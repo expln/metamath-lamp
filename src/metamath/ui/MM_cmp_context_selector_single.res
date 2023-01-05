@@ -51,7 +51,7 @@ let make = (
 
     let rndFileSelector = () => {
         if (fileName->Belt.Option.isNone || parseError->Belt_Option.isNone) {
-            <TextFileReader2 onChange=onFileChange />
+            <Expln_React_TextFileReader onChange=onFileChange />
         } else {
             <span>
                 {React.string(fileName->Belt_Option.getWithDefault("<fileName>"))}

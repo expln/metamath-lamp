@@ -70,7 +70,7 @@ let make = (
                     onKeyDown=ctrlEnterHnd(_, actEditDone)
                     title="Ctrl+Enter to save"
                 />
-                {rndIconButton(~icon=<Icons2.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Ctrl+Enter", ())}
             </Row>
         } else {
             let style = if (text->Js.String2.trim == "") {

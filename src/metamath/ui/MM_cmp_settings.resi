@@ -1,6 +1,6 @@
 open MM_context
 open Expln_React_common
-open Modal
+open Expln_React_Modal
 open MM_wrk_settings
 
 let createDefaultSettings: unit => settings

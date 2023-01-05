@@ -41,7 +41,7 @@ let make = (
             }))
         }
         <IconButton key="add-button" onClick={_ => onAdd()}>
-            <Icons2.Add/>
+            <MM_Icons.Add/>
         </IconButton>
     </Col>
 }

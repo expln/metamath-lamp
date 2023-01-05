@@ -114,7 +114,7 @@ let make = (
                     onKeyDown=ctrlEnterHnd(_, actLabelEditDone)
                     title="Ctrl+Enter to save"
                 />
-                {rndIconButton(~icon=<Icons2.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actLabelEditDone, 
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actLabelEditDone,
                     ~title="Save, Ctrl+Enter", ())}
             </Row>
         } else {
@@ -140,7 +140,7 @@ let make = (
                     onKeyDown=ctrlEnterHnd(_, actContEditDone)
                     title="Ctrl+Enter to save"
                 />
-                {rndIconButton(~icon=<Icons2.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actContEditDone, 
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actContEditDone,
                     ~title="Save, Ctrl+Enter", ())}
             </Row>
         } else {
@@ -236,7 +236,7 @@ let make = (
                     onKeyDown=ctrlEnterHnd(_, actJstfEditDone)
                     title="Ctrl+Enter to save"
                 />
-                {rndIconButton(~icon=<Icons2.Save/>, ~active=true,  ~onClick=actJstfEditDone, 
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
                     ~title="Save, Ctrl+Enter", ())}
             </Row>
         } else {

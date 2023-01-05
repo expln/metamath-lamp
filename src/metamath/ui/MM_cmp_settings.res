@@ -2,9 +2,10 @@ open MM_parser
 open MM_context
 open Expln_React_common
 open Expln_React_Mui
-open Modal
+open Expln_React_Modal
 open Expln_utils_promise
 open MM_wrk_settings
+open MM_react_common
 
 let allColors = [
     "#e6194B", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabed4",
@@ -205,7 +206,7 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
             />
             <span title="Determine parentheses from the loaded MM file">
                 <IconButton onClick={_ => syncParens()}>
-                    <Icons2.Sync/>
+                    <MM_Icons.Sync/>
                 </IconButton>
             </span>
         </Row>

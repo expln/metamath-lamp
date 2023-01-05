@@ -2,7 +2,7 @@ open Expln_React_Mui
 open MM_context
 open MM_cmp_settings
 open MM_wrk_settings
-open Modal
+open Expln_React_Modal
 
 type tabData =
     | Settings
@@ -46,7 +46,7 @@ let setSettings = (st,settings) => {
 @react.component
 let make = () => {
     let modalRef = useModalRef()
-    let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = UseTabs.useTabs()
+    let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settingsLocStor=settingsReadFromLocStor("settings")))
 
     let onContextWasUpdated = newCtx => {
@@ -61,11 +61,11 @@ let make = () => {
 
     React.useEffect0(()=>{
         updateTabs(st => {
-            if (st->UseTabs.getTabs->Js_array2.length == 0) {
-                let (st, _) = st->UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
-                let (st, editorTabId) = st->UseTabs.addTab(~label="Editor", ~closable=false, ~data=Editor)
-                // let (st, _) = st->UseTabs.addTab(~label="Search", ~closable=false, ~data=Search)
-                let st = st->UseTabs.openTab(editorTabId)
+            if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
+                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
+                let (st, editorTabId) = st->Expln_React_UseTabs.addTab(~label="Editor", ~closable=false, ~data=Editor)
+                // let (st, _) = st->Expln_React_UseTabs.addTab(~label="Search", ~closable=false, ~data=Search)
+                let st = st->Expln_React_UseTabs.openTab(editorTabId)
                 st
             } else {
                 st
@@ -74,7 +74,7 @@ let make = () => {
         None
     })
 
-    let rndTabContent = (top:int, tab:UseTabs.tab<'a>) => {
+    let rndTabContent = (top:int, tab:Expln_React_UseTabs.tab<'a>) => {
         <div key=tab.id style=ReactDOM.Style.make(~display=if (tab.id == activeTabId) {"block"} else {"none"}, ())>
             {
                 switch tab.data {
@@ -101,7 +101,7 @@ let make = () => {
         </div>
     }
 
-    <ContentWithStickyHeader 
+    <Expln_React_ContentWithStickyHeader
         top=0
         header={
             <Col>
@@ -112,7 +112,7 @@ let make = () => {
         content={contentTop => {
             <Col>
                 {React.array(tabs->Js_array2.map(rndTabContent(contentTop, _)))}
-                <Modal modalRef />
+                <Expln_React_Modal modalRef />
             </Col>
         }}
     />

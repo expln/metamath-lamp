@@ -1,9 +1,10 @@
 open Expln_React_Mui
 open Expln_utils_promise
 open MM_parser
+open MM_react_common
 open MM_cmp_context_selector_single
 open MM_context
-open Modal
+open Expln_React_Modal
 
 let readInstrFromStr = str => {
     switch str {
@@ -198,7 +199,7 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         })
         if (thereIsAtLeastOneValidSingleScope) {
             <IconButton key="add-button" onClick={_ => setState(addSingleScope)} >
-                <Icons2.Add/>
+                <MM_Icons.Add/>
             </IconButton>
         } else {
             React.null
@@ -299,7 +300,7 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
 
 
     <Accordion expanded=state.expanded >
-        <AccordionSummaryStyled expandIcon={<Icons2.ExpandMore/>} onClick=toggleAccordion >
+        <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} onClick=toggleAccordion >
             {state.loadedContextSummary->React.string}
         </AccordionSummaryStyled>
         <AccordionDetails>

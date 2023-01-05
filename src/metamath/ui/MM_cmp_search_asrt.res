@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open MM_react_common
 open Expln_utils_promise
 open MM_asrt_apply
 open MM_wrk_ctx
@@ -8,7 +9,7 @@ open MM_wrk_search_asrt
 open MM_context
 open MM_substitution
 open MM_parser
-open Modal
+open Expln_React_Modal
 
 type resultForRender = React.element
 

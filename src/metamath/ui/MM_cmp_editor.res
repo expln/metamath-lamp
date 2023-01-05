@@ -1,7 +1,7 @@
 open MM_context
 open Expln_React_common
 open Expln_React_Mui
-open Modal
+open Expln_React_Modal
 open MM_wrk_editor
 open MM_wrk_settings
 open MM_wrk_ctx
@@ -11,6 +11,7 @@ open MM_parser
 open MM_proof_tree
 open MM_proof_table
 open Expln_utils_promise
+open MM_react_common
 
 type userStmtLocStor = {
     id: string,
@@ -497,27 +498,27 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
                     onChange={_ => actToggleMainCheckbox()}
                 />
-                {rndIconButton(~icon=<Icons2.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
+                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected statements down", ())}
-                {rndIconButton(~icon=<Icons2.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
+                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected statements up", ())}
-                {rndIconButton(~icon=<Icons2.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive, 
+                {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new statement (and place before selected statements if any)", ())}
-                {rndIconButton(~icon=<Icons2.DeleteForever/>, ~onClick=actDeleteCheckedStmts, 
+                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
                     ~active= !editIsActive && atLeastOneStmtIsSelected, ~title="Delete selected statements", ()
                 )}
-                {rndIconButton(~icon=<Icons2.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, ~active= !editIsActive && isSingleStmtChecked(state), 
+                {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, ~active= !editIsActive && isSingleStmtChecked(state),
                     ~title="Duplicate selected statement", ())}
                 { 
-                    rndIconButton(~icon=<Icons2.Search/>, ~onClick=actSearchAsrt, 
+                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
                         ~title="Add new statements from existing assertions (and place before selected statements if any)", ()
                     ) 
                 }
-                { rndIconButton(~icon=<Icons2.TextRotationNone/>, ~onClick=actSubstitute, ~active=generalModificationActionIsEnabled,
+                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~active=generalModificationActionIsEnabled,
                     ~title="Apply a substitution to all statements", () ) }
                 { 
-                    rndIconButton(~icon=<Icons2.Hub/>, ~onClick=actUnifyAll, 
+                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnifyAll,
                         ~active=generalModificationActionIsEnabled 
                                     && !atLeastOneStmtIsSelected
                                     && state.stmts->Js_array2.length > 0, 
@@ -597,7 +598,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         </table>
     }
 
-    <ContentWithStickyHeader
+    <Expln_React_ContentWithStickyHeader
         top
         header={rndButtons()}
         content={_ => {
