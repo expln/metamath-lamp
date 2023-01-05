@@ -1,0 +1,23 @@
+- fix the bug:
+    0. load set.mm, read all
+    1. Add itgsinexplem1
+    2. remove its justification
+    3. Unify all - "index out of bounds"
+- fix the bug:
+    0. load set.mm, read all
+    1. search for the pattern "|- ( ( 0 . _ class class ) x. ; 1 0 ) = ( class . class )"
+    2. The search is too slow (hangs on 77%). 0dp2dp is expected to be found.
+- try to replace the array with a map in MM_parenCounter.
+- add licenses
+- write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)
+- add possibility to comment statements
+- make error messages more informative: add the statement caused the error (for example in "variables" or in justifications).
+- write tests for editorState -> proofTree -> editorState.
+- renaming of a statement should automatically rename all references (after user confirms this action).
+- correct methods related to movement of statements, they became incorrect after automatic reordering.
+- use Async/Await.
+- don't show scope selector when no file chosen.
+- precalculate number of combinations (store in an array)
+- use uncurried functions everywhere
+- replace a[i] with a->Js_array2.unsafe_get(i), or open Belt and replace with Option.getExn
+- in editorReadStateFromLocStor: make nextStmtId and stmts optional, and check/update nextStmtId after reading

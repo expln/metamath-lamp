@@ -1,0 +1,58 @@
+{
+  "name": "learn-js-react-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.10.5",
+    "@emotion/styled": "^11.10.5",
+    "@expln/utils": "0.0.12",
+    "@fontsource/roboto": "^4.5.8",
+    "@mui/icons-material": "^5.10.9",
+    "@mui/material": "^5.10.11",
+    "@rescript/react": "^0.10.3",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "react-window": "^1.8.7",
+    "rescript": "^10.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "mocha": "^10.1.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "scripts": {
+    "compile": "rescript",
+    "compile-with-deps": "rescript build -with-deps",
+    "compile-test": "rescript && mocha src/metamath/test/**/*.js",
+    "clean-and-compile-with-deps": "npm run rescript-clean && npm run compile-with-deps",
+    "rescript-start": "rescript build -w",
+    "rescript-clean": "rescript clean -with-deps",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject11111"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "homepage": "."
+}

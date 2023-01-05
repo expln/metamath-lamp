@@ -1,0 +1,27 @@
+------------------------
+Work variables:
+    workVar1 wff wff1
+Disjoints:
+
+Arguments:
+    provable1: |- wff1
+    provable2: |- ( wff1 -> P )
+Proof:
+    :provable1,provable2:mp
+Result:
+    |- P
+
+
+------------------------
+Work variables:
+
+Disjoints:
+
+Arguments:
+    [p1]
+    provable1: |- ( P -> P )
+Proof:
+    :p1,provable1:mp
+Result:
+    |- P
+

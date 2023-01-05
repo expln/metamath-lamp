@@ -1,0 +1,1 @@
+metamath.exe "read set-reduced.mm" "verify proof new-asrt" exit

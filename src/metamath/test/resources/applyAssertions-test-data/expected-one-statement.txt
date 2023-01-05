@@ -1,0 +1,124 @@
+------------------------
+Work variables:
+    workVar1 term term1
+    workVar2 term term2
+    workVar3 term term3
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::a1
+Result:
+    |- ( term1 = term2 -> ( term1 = term3 -> term2 = term3 ) )
+
+
+------------------------
+Work variables:
+    workVar1 term term1
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::a2
+Result:
+    |- ( term1 + 0 ) = term1
+
+
+------------------------
+Work variables:
+    workVar1 wff wff1
+    workVar2 wff wff2
+Disjoints:
+
+Arguments:
+    provable1: |- wff1
+    provable2: |- ( wff1 -> wff2 )
+Proof:
+    :provable1,provable2:mp
+Result:
+    |- wff2
+
+
+------------------------
+Work variables:
+    workVar1 wff wff1
+Disjoints:
+
+Arguments:
+    [p1]
+    provable1: |- ( ( t + 0 ) = t -> wff1 )
+Proof:
+    :p1,provable1:mp
+Result:
+    |- wff1
+
+
+------------------------
+Work variables:
+    workVar1 term term1
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::th1
+Result:
+    |- term1 = term1
+
+
+------------------------
+Work variables:
+    workVar1 term term1
+    workVar2 term term2
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::tpl
+Result:
+    term ( term1 + term2 )
+
+
+------------------------
+Work variables:
+
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::tze
+Result:
+    term 0
+
+
+------------------------
+Work variables:
+    workVar1 term term1
+    workVar2 term term2
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::weq
+Result:
+    wff term1 = term2
+
+
+------------------------
+Work variables:
+    workVar1 wff wff1
+    workVar2 wff wff2
+Disjoints:
+
+Arguments:
+
+Proof:
+    ::wim
+Result:
+    wff ( wff1 -> wff2 )
+
