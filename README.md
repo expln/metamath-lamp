@@ -1,70 +1,54 @@
-# Getting Started with Create React App
+***How to run locally:***
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+1. Clone the source code
 
-## Available Scripts
+`git clone https://github.com/expln/metamath-proof-assistant.git`
 
-In the project directory, you can run:
+2. Navigate to the project's directory
 
-### `npm start`
+`cd metamath-proof-assistant`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+3. Install npm dependencies
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+`npm install`
 
-### `npm test`
+4. Compile ReScript code (local and from all npm dependencies) to JS code
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+`npm run compile-with-deps`
 
-### `npm run build`
+5. Assemble a worker script
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+`npx webpack --config webworker.webpack.config.js`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+6. Copy the worker script from ./dist to ./public
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Windows: `copy /B /Y ".\dist\webworker-main.js" ".\public"`
 
-### `npm run eject`
+Mac: `cp ./dist/webworker-main.js ./public`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+7. Finally, run the project locally
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+`npm run start`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+***How to run all tests***
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+`npm run compile-test`
 
-## Learn More
+***How to run a particular test***
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. In package.json, update 'compile-test' script adding required test name. For example:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Replace: `"compile-test": "rescript && mocha src/metamath/test/**/*.js",`
 
-### Code Splitting
+With: `"compile-test": "rescript && mocha -g \"'finds proofs for simple wffs'\" src/metamath/test/**/*.js",`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+2. Run tests:
 
-### Analyzing the Bundle Size
+`npm run compile-test`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+***How to debug***
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+There is no standard way to debug ReScript code. But ReScript gets compiled to readable JS code. So it is possible to debug JS code. In order to debug any use case:
+1. Create a test which reproduces required use case or modify existing test.
+2. Compile the code `npm run compile`
+3. Use your favorite IDE to place a break point in generated JS code and then run tests in debug mode.
