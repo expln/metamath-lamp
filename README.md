@@ -32,19 +32,19 @@ Mac: `cp ./dist/webworker-main.js ./public`
 
 ***How to run all tests***
 
-`npm run compile-test`
+`npm run compile-test-all`
 
 ***How to run a particular test***
 
-1. In package.json, update 'compile-test' script adding required test name. For example:
+1. In package.json, update 'compile-test-one' script replacing put_test_name_here with required test name. For example:
 
-Replace: `"compile-test": "rescript && mocha src/metamath/test/**/*.js",`
+replace: `"compile-test-one": "rescript && mocha --timeout 100000 -g \"'put_test_name_here'\" src/metamath/test/**/*.js",`
 
-With: `"compile-test": "rescript && mocha -g \"'finds proofs for simple wffs'\" src/metamath/test/**/*.js",`
+with: `"compile-test-one": "rescript && mocha --timeout 100000 -g \"'finds proofs for simple wffs'\" src/metamath/test/**/*.js",`
 
 2. Run tests:
 
-`npm run compile-test`
+`npm run compile-test-one`
 
 ***How to debug***
 

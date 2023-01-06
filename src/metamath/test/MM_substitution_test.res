@@ -182,6 +182,22 @@ describe("iterateConstParts", _ => {
             ]
         )
     })
+    it("doesn't match when expr.length < frmExpr.length (no constants in frmExpr)", _ => {
+        testIterateConstParts(
+            ~frmExprStr = "a b c d",
+            ~expectedConstParts = [],
+            ~exprStr = "A B C",
+            ~expectedMatchingConstParts = []
+        )
+    })
+    it("doesn't fail when expr.length < frmExpr.length (expr consists of constants only and matches beginning of frmExp)", _ => {
+        testIterateConstParts(
+            ~frmExprStr = "( + a b -> c d )",
+            ~expectedConstParts = [(0,1),(4,4),(7,7)],
+            ~exprStr = "( +",
+            ~expectedMatchingConstParts = []
+        )
+    })
 })
 
 describe("iterateSubstitutions", _ => {

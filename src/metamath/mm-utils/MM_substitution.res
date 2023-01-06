@@ -131,7 +131,9 @@ let rec iterateConstParts = (
     let exprLen = expr->Js_array2.length
     let frmExprLen = frmExpr->Js_array2.length
 
-    if (idxToMatch == frmConstParts.length) {
+    if (exprLen < frmExprLen) {
+        Continue
+    } else if (idxToMatch == frmConstParts.length) {
         if (frmConstParts.length > 0 && constParts.ends[idxToMatch-1] != exprLen-1) {
             if (frmConstParts.ends[idxToMatch-1] == frmExprLen-1) {
                 Continue
@@ -394,27 +396,33 @@ let iterateSubstitutions = (
             Continue
         }
     } else {
-        iterateConstParts(
-            ~frmExpr, 
-            ~expr, 
-            ~frmConstParts, 
-            ~constParts, 
-            ~idxToMatch=0,
-            ~parenCnt,
-            ~consumer = constParts => {
-                initVarGroups(~varGroups, ~constParts, ~expr)
-                iterateVarGroups(
-                    ~expr,
-                    ~subs,
-                    ~varGroups,
-                    ~curGrpIdx = 0,
-                    ~curVarIdx = 0,
-                    ~subExprBeginIdx = varGroups[0].exprBeginIdx,
-                    ~parenCnt,
-                    ~consumer
-                )
-            }
-        )
+        let exprLen = expr->Js_array2.length
+        let frmExprLen = frmExpr->Js_array2.length
+        if (exprLen < frmExprLen) {
+            Continue
+        } else {
+            iterateConstParts(
+                ~frmExpr, 
+                ~expr, 
+                ~frmConstParts, 
+                ~constParts, 
+                ~idxToMatch=0,
+                ~parenCnt,
+                ~consumer = constParts => {
+                    initVarGroups(~varGroups, ~constParts, ~expr)
+                    iterateVarGroups(
+                        ~expr,
+                        ~subs,
+                        ~varGroups,
+                        ~curGrpIdx = 0,
+                        ~curVarIdx = 0,
+                        ~subExprBeginIdx = varGroups[0].exprBeginIdx,
+                        ~parenCnt,
+                        ~consumer
+                    )
+                }
+            )
+        }
     }
 }
 

@@ -62,27 +62,56 @@ describe("proofTreeProve", _ => {
     it_skip("unifies few statements", _ => {
         testUnification(
             ~pathToMmFile = ".../books/metamath/set.mm",
-            ~stopAfter="reccot", 
-            ~varsText="var1 class class1 \n var2 class class2",
+            // ~stopAfter="reccot", 
+            ~varsText="var1 class class1
+var2 setvar setvar2
+var3 class class3
+var4 class class4
+var5 class class5
+var6 class class6
+var7 class class7
+var8 class class8
+var9 wff wff9",
+            ~disjText="setvar2,wff9,class3",
             ~stmts=[
                 {
-                    label: "stmt3",
-                    text: "|- ( ( ( class1 e. CC /\\ class1 =/= 0 ) /\\ ( class2 e. CC /\\ class2 =/= 0 ) ) -> ( 1 / ( class1 / class2 ) ) = ( class2 / class1 ) )",
-                    jstf: Some({args:[], asrt:"recdiv"})
+                    label: "stmt1-itgsinexplem1.11",
+                    text: "|- class1 = ( setvar2 e. CC |-> ( ( sin ` setvar2 ) ^ class3 ) )",
+                    jstf: None
                 },
                 {
-                    label: "stmt2",
-                    text: "|- ( ( A e. CC /\\ ( sin ` A ) =/= 0 ) -> ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) ) )",
-                    jstf: Some({args:[], asrt:"cotval"})
+                    label: "stmt1-itgsinexplem1.21",
+                    text: "|- class4 = ( setvar2 e. CC |-> -u ( cos ` setvar2 ) )",
+                    jstf: None
+                },
+                {
+                    label: "stmt1-itgsinexplem1.31",
+                    text: "|- class5 = ( setvar2 e. CC |-> ( ( class3 x. ( ( sin ` setvar2 ) ^ ( class3 - 1 ) ) ) x. ( cos ` setvar2 ) ) )",
+                    jstf: None
+                },
+                {
+                    label: "stmt1-itgsinexplem1.41",
+                    text: "|- class6 = ( setvar2 e. CC |-> ( ( ( sin ` setvar2 ) ^ class3 ) x. ( sin ` setvar2 ) ) )",
+                    jstf: None
+                },
+                {
+                    label: "stmt1-itgsinexplem1.51",
+                    text: "|- class7 = ( setvar2 e. CC |-> ( ( ( class3 x. ( ( sin ` setvar2 ) ^ ( class3 - 1 ) ) ) x. ( cos ` setvar2 ) ) x. -u ( cos ` setvar2 ) ) )",
+                    jstf: None
+                },
+                {
+                    label: "stmt1-itgsinexplem1.61",
+                    text: "|- class8 = ( setvar2 e. CC |-> ( ( ( cos ` setvar2 ) ^ 2 ) x. ( ( sin ` setvar2 ) ^ ( class3 - 1 ) ) ) )",
+                    jstf: None
+                },
+                {
+                    label: "stmt1-itgsinexplem1.71",
+                    text: "|- ( wff9 -> class3 e. NN )",
+                    jstf: None
                 },
                 {
                     label: "stmt1",
-                    text: "|- ( ( A e. CC /\\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )",
-                    jstf: Some({args:[], asrt:"tanval"})
-                },
-                {
-                    label: "stmt4",
-                    text: "|- ( ( A e. CC /\\ ( sin ` A ) =/= 0 /\\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )",
+                    text: "|- ( wff9 -> S. ( 0 (,) _pi ) ( ( ( sin ` setvar2 ) ^ class3 ) x. ( sin ` setvar2 ) ) _d setvar2 = ( class3 x. S. ( 0 (,) _pi ) ( ( ( cos ` setvar2 ) ^ 2 ) x. ( ( sin ` setvar2 ) ^ ( class3 - 1 ) ) ) _d setvar2 ) )",
                     jstf: None
                 },
             ],
