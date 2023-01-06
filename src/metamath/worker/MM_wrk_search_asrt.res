@@ -12,29 +12,22 @@ type response =
     | OnProgress(float)
     | SearchResult({found:array<applyAssertionResult>})
 
-let rec frameMatchesPatternPriv = (frm:frame, pat:array<int>, aIdx:int, pIdx:int):bool => {
-    let asrtLen = frm.asrt->Js_array2.length
-    if (pIdx >= pat->Js_array2.length) {
-        true
-    } else if (aIdx >= asrtLen) {
-        false
-    } else {
-        let aIdx = ref(aIdx)
-        let matchFound = ref(false)
-        while (!matchFound.contents && aIdx.contents < asrtLen) {
-            if (
-                frm.asrt[aIdx.contents] < 0 && frm.asrt[aIdx.contents] == pat[pIdx]
-                || frm.asrt[aIdx.contents] >= 0 && frm.varTypes[frm.asrt[aIdx.contents]] == pat[pIdx]
-            ) {
-                matchFound.contents = frameMatchesPatternPriv(frm, pat, aIdx.contents+1, pIdx+1)
-            }
-            aIdx.contents = aIdx.contents + 1
+let rec frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
+    let patLen = pat->Js.Array2.length
+    let asrtLen = frm.asrt->Js.Array2.length
+    let pIdx = ref(0)
+    let aIdx = ref(0)
+    while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
+        if (
+            frm.asrt[aIdx.contents] < 0 && frm.asrt[aIdx.contents] == pat[pIdx.contents]
+            || frm.asrt[aIdx.contents] >= 0 && frm.varTypes[frm.asrt[aIdx.contents]] == pat[pIdx.contents]
+        ) {
+            pIdx.contents = pIdx.contents + 1
         }
-        matchFound.contents
+        aIdx.contents = aIdx.contents + 1
     }
+    pIdx.contents == patLen
 }
-
-let rec frameMatchesPattern = (frm:frame, pat:array<int>):bool => frameMatchesPatternPriv(frm,pat,0,0)
 
 let searchAssertions = (
     ~preCtxVer: int,
