@@ -1,0 +1,1 @@
+metamath.exe "read set-check-new-proofs.mm" "verify proof new-asrt" exit
