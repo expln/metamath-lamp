@@ -28,12 +28,18 @@ type rec proofTreeNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofTreeNode>, label:string, subs: option<array<array<string>>>/*debug*/})
+    | Assertion({
+        args:array<proofTreeNode>, 
+        label:string, 
+        subs: option<array<array<string>>>,//debug
+        comb: array<int>,//debug
+    })
 
 type proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
     hypsByExpr: Belt_Map.t<expr,hypothesis,ExprCmp.identity>,
     hypsByLabel: Belt_MapString.t<hypothesis>,
+    ctxMaxVar:int,
     mutable maxVar:int,
     newVars: Belt_MutableSet.t<expr,ExprCmp.identity>,
     disj: disjMutable,
@@ -48,6 +54,90 @@ type proofTreeDto = {
     nodes: array<proofTreeNode>,
 }
 
+type stackOfNodesToCreateParentsFor = {
+    stackF: Belt_MutableStack.t<proofTreeNode>,
+    stackE: Belt_MutableStack.t<Belt_MutableStack.t<proofTreeNode>>,
+    set: Belt_MutableSet.t<expr,ExprCmp.identity>,
+}
+
+let stackOfNodesToCreateParentsForHas = (stack:stackOfNodesToCreateParentsFor,node:proofTreeNode) => {
+    stack.set->Belt_MutableSet.has(node.expr)
+}
+
+let stackOfNodesToCreateParentsForMake = () => {
+    {
+        stackF: Belt_MutableStack.make(),
+        stackE: Belt_MutableStack.make(),
+        set: Belt_MutableSet.make(~id=module(ExprCmp))
+    }
+}
+
+let stackOfNodesToCreateParentsForAddAll = (
+    stack:stackOfNodesToCreateParentsFor,
+    ~fArgs:array<proofTreeNode>,
+    ~eArgs:array<proofTreeNode>,
+) => {
+    fArgs->Js_array2.forEach(arg => {
+        if (!(stack.set->Belt_MutableSet.has(arg.expr))) {
+            stack.set->Belt_MutableSet.add(arg.expr)
+            stack.stackF->Belt_MutableStack.push(arg)
+        }
+    })
+    let essentials = Belt_MutableStack.make()
+    eArgs->Js_array2.forEach(arg => {
+        if (!(stack.set->Belt_MutableSet.has(arg.expr))) {
+            stack.set->Belt_MutableSet.add(arg.expr)
+            essentials->Belt_MutableStack.push(arg)
+        }
+    })
+    if (!(essentials->Belt_MutableStack.isEmpty)) {
+        stack.stackE->Belt_MutableStack.push(essentials)
+    }
+}
+
+let stackOfNodesToCreateParentsForAddE = (stack:stackOfNodesToCreateParentsFor, node:proofTreeNode) => {
+    if (!(stack.set->Belt_MutableSet.has(node.expr))) {
+        stack.set->Belt_MutableSet.add(node.expr)
+        let essentials = Belt_MutableStack.make()
+        essentials->Belt_MutableStack.push(node)
+        stack.stackE->Belt_MutableStack.push(essentials)
+    }
+}
+
+let stackOfNodesToCreateParentsForDepth = (stack:stackOfNodesToCreateParentsFor) => {
+    stack.stackE->Belt_MutableStack.size
+}
+
+let stackOfNodesToCreateParentsForIsEmty = (stack:stackOfNodesToCreateParentsFor) => {
+    stack.stackF->Belt_MutableStack.isEmpty && stack.stackE->Belt_MutableStack.isEmpty
+}
+
+let stackOfNodesToCreateParentsForGetNextNode = (stack:stackOfNodesToCreateParentsFor) => {
+    let isTopEmpty = stack => {
+        switch stack->Belt_MutableStack.top {
+            | None => false
+            | Some(top) => top->Belt_MutableStack.isEmpty
+        }
+    }
+    if (stack.stackF->Belt_MutableStack.isEmpty) {
+        while (stack.stackE->isTopEmpty) {
+            stack.stackE->Belt_MutableStack.pop->ignore
+        }
+        switch stack.stackE->Belt_MutableStack.top {
+            | None => None
+            | Some(top) => {
+                let res = top->Belt_MutableStack.pop
+                while (stack.stackE->isTopEmpty) {
+                    stack.stackE->Belt_MutableStack.pop->ignore
+                }
+                res
+            }
+        }
+    } else {
+        stack.stackF->Belt_MutableStack.pop
+    }
+}
+
 let createEmptyProofTree = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~hyps: Belt_MapString.t<hypothesis>,
@@ -59,12 +149,40 @@ let createEmptyProofTree = (
         frms,
         hypsByLabel: hyps,
         hypsByExpr: hyps->Belt_MapString.toArray->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))->Belt_Map.fromArray(~id=module(ExprCmp)),
+        ctxMaxVar:maxVar,
         maxVar,
         newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
         disj,
         parenCnt,
         rootNodes: Belt_MutableMap.make(~id=module(ExprCmp)),
         nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
+    }
+}
+
+let exprSourceEq = (s1,s2) => {
+    switch s1 {
+        | VarType => {
+            switch s2 {
+                | VarType => true
+                | _ => false
+            }
+        }
+        | Hypothesis({label:label1}) => {
+            switch s2 {
+                | Hypothesis({label:label2}) => label1 == label2
+                | _ => false
+            }
+        }
+        | Assertion({ args:args1, label:label1, }) => {
+            switch s2 {
+                | Assertion({ args:args2, label:label2, }) => {
+                    label1 == label2
+                    && args1->Js.Array2.length == args2->Js.Array2.length
+                    && args1->Js.Array2.everyi((arg1,idx) => exprEq(arg1.expr, args2[idx].expr))
+                }
+                | _ => false
+            }
+        }
     }
 }
 
@@ -203,22 +321,18 @@ let printSubs = (~frame,~subs,~exprToStr):array<array<string>> => {
     lines
 }
 
-let rec proveNode = (
-    ~tree:proofTree,
-    ~stmts:array<rootStmt>,
-    ~node:proofTreeNode,
-    ~justification: option<justification>,
-    ~syntaxProof:bool,
-    ~bottomUp:bool,
-    ~exprToStr:option<expr=>string>,
-) => {
-    let nodesToCreateParentsFor = Belt_MutableQueue.make()
-
-    let addParentsWithoutNewVars = (node):unit => {
+let addParentsWithoutNewVars = (
+    ~tree, 
+    ~node, 
+    ~stackOfNodesToCreateParentsFor:stackOfNodesToCreateParentsFor,
+    ~exprToStr
+):unit => {
+    if (stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForDepth < 5) {
+        let expr = node.expr
+        let exprLen = expr->Js_array2.length
         tree.frms->Belt_MapString.forEach((_,frm) => {
             if (node.proof->Belt.Option.isNone) {
                 let frmExpr = frm.frame.asrt
-                let expr = node.expr
                 if (frmExpr[0] == expr[0]) {
                     iterateSubstitutions(
                         ~frmExpr,
@@ -238,17 +352,33 @@ let rec proveNode = (
                                         ~createWorkVar = 
                                             _ => raise(MmException({msg:`Work variables are not supported in addParentsWithoutNewVars().`}))
                                     )
-                                    let arg = createOrUpdateNode(
-                                        ~tree, 
-                                        ~label=None,
-                                        ~expr=newExprToProve, 
-                                        ~child=Some(node),
-                                        ~exprToStr
-                                    )
-                                    nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
+                                    let arg = switch tree.rootNodes->Belt_MutableMap.get(newExprToProve) {
+                                        | Some(existingNode) => existingNode
+                                        | None => {
+                                            createOrUpdateNode(
+                                                ~tree,
+                                                ~label=None,
+                                                ~expr = newExprToProve,
+                                                ~child=Some(node),
+                                                ~exprToStr,
+                                            )
+                                        }
+                                    }
                                     arg
                                 })
-                                let parent = Assertion({ args, label:frm.frame.label, subs: None })
+                                stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForAddAll(
+                                    ~fArgs=args->Js_array2.filteri((arg,i) => {
+                                        frm.frame.hyps[i].typ == F
+                                            && arg.parents->Belt.Option.isNone
+                                            && arg.expr->Js_array2.length <= exprLen
+                                    }),
+                                    ~eArgs=args->Js_array2.filteri((arg,i) => {
+                                        frm.frame.hyps[i].typ == E
+                                            && arg.parents->Belt.Option.isNone
+                                            && arg.expr->Js_array2.length <= exprLen
+                                    })
+                                )
+                                let parent = Assertion({ args, label:frm.frame.label, comb: [], subs: None })
                                 node.parents->Belt.Option.getExn->Js_array2.push(parent)->ignore
                                 markProved(node)
                             }
@@ -263,115 +393,169 @@ let rec proveNode = (
             }
         })
     }
+}
 
-    let addParentsWithNewVars = (node,justification,bottomUp):unit => {
-        let applResults = []
-        switch justification {
-            | None => {
-                let prevRootExprs = stmts->Js.Array2.map(({expr}) => expr)
-                applyAssertions(
-                    ~maxVar = tree.maxVar,
-                    ~frms = tree.frms,
-                    ~isDisjInCtx = tree.disj->disjContains,
-                    ~statements = prevRootExprs,
-                    ~allowEmptyArgs=bottomUp,
-                    ~result = node.expr,
-                    ~parenCnt=tree.parenCnt,
-                    ~onMatchFound = res => {
-                        applResults->Js_array2.push(res)->ignore
-                        Continue
-                    },
-                    ()
-                )
-            }
-            | Some(justification) => {
-                applyAssertions(
-                    ~maxVar = tree.maxVar,
-                    ~frms = tree.frms,
-                    ~isDisjInCtx = tree.disj->disjContains,
-                    ~statements = getStatementsFromJustification( ~tree, ~stmts, ~justification ),
-                    ~exactOrderOfStmts=true,
-                    ~allowEmptyArgs=false,
-                    ~result = node.expr,
-                    ~parenCnt=tree.parenCnt,
-                    ~frameFilter = frame => frame.label == justification.asrt,
-                    ~onMatchFound = res => {
-                        applResults->Js_array2.push(res)->ignore
-                        Continue
-                    },
-                    ()
-                )
-            }
-        }
-        applResults->Expln_utils_common.arrForEach(applResult => {
-            let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
-            applResult.newVars->Js.Array2.forEachi((v,i) => {
-                tree.maxVar = tree.maxVar + 1
-                let newVar = tree.maxVar
-                applNewVarToTreeNewVar->Belt_MutableMapInt.set(v,newVar)
-                let newVarType = applResult.newVarTypes[i]
-                tree.newVars->Belt_MutableSet.add([newVarType, newVar])
-            })
-            applResult.newDisj->disjForEach((n,m) => {
-                tree.disj->disjAddPair(
-                    applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
-                    applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
-                )
-            })
-            let frame = switch tree.frms->Belt_MapString.get(applResult.asrtLabel) {
-                | None => 
-                    raise(MmException({msg:`Cannot find an assertion with label ${applResult.asrtLabel} in addParentsWithNewVars.`}))
-                | Some(frm) => frm.frame
-            }
-            let args = frame.hyps->Js_array2.map(hyp => {
-                let argExpr = applySubs(
-                    ~frmExpr = hyp.expr, 
-                    ~subs=applResult.subs,
-                    ~createWorkVar = _ => raise(MmException({msg:`New work variables are not expected here.`}))
-                )
-                switch tree.rootNodes->Belt_MutableMap.get(argExpr) {
-                    | Some(existingNode) => existingNode
-                    | None => {
-                        createOrUpdateNode(
-                            ~tree,
-                            ~label=None,
-                            ~expr = argExpr,
-                            ~child=Some(node),
-                            ~exprToStr,
-                        )
-                    }
-                }
-            })
-            if (checkTypes(~tree, ~frame, ~args, ~exprToStr)) {
+let collectParentNodesWithoutNewVars = (
+    ~tree,
+    ~parents:array<exprSource>,
+    ~parentNodesWithoutNewVars:Belt_MutableQueue.t<proofTreeNode>
+) => {
+    parents->Js.Array2.forEach(parent => {
+        switch parent {
+            | Assertion({args, label}) => {
                 args->Js_array2.forEach(arg => {
-                    if (arg.parents->Belt.Option.isNone) {
-                        nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
+                    if (arg.expr->Js_array2.every(s => s <= tree.ctxMaxVar)) {
+                        parentNodesWithoutNewVars->Belt_MutableQueue.add(arg)
                     }
                 })
-                node.parents->Belt_Option.getExn->Js_array2.push(Assertion({
-                    args,
-                    label: applResult.asrtLabel,
-                    subs:
-                        switch exprToStr {
-                            | None => None
-                            | Some(exprToStr) => Some(printSubs(~frame,~subs=applResult.subs,~exprToStr))
-                        }
-                }))->ignore
+            }
+            | _ => ()
+        }
+    })
+}
+
+let getUnprovedParentNodesWithoutNewVars = (
+    ~tree,
+    ~parents:array<exprSource>,
+):array<proofTreeNode> => {
+    let res = Belt_MutableMap.make(~id=module(ExprCmp))
+    parents->Js.Array2.forEach(parent => {
+        switch parent {
+            | Assertion({args, label}) => {
+                args->Js_array2.forEach(arg => {
+                    if (
+                            arg.proof->Belt.Option.isNone
+                            && !(res->Belt_MutableMap.has(arg.expr))
+                            && arg.expr->Js_array2.every(s => s <= tree.ctxMaxVar) 
+                    ) {
+                        res->Belt_MutableMap.set(arg.expr, arg)
+                    }
+                })
+            }
+            | _ => ()
+        }
+    })
+    res->Belt_MutableMap.valuesToArray
+}
+
+let rec addParentsWithNewVars = (~tree, ~stmts:array<rootStmt>, ~node, ~justification, ~bottomUp, ~exprToStr):unit => {
+    let applResults = []
+    switch justification {
+        | None => {
+            let prevRootExprs = stmts->Js.Array2.map(({expr}) => expr)
+            applyAssertions(
+                ~maxVar = tree.maxVar,
+                ~frms = tree.frms,
+                ~isDisjInCtx = tree.disj->disjContains,
+                ~statements = prevRootExprs,
+                ~allowEmptyArgs=bottomUp,
+                ~result = node.expr,
+                ~parenCnt=tree.parenCnt,
+                ~onMatchFound = res => {
+                    applResults->Js_array2.push(res)->ignore
+                    Continue
+                },
+                ()
+            )
+        }
+        | Some(justification) => {
+            applyAssertions(
+                ~maxVar = tree.maxVar,
+                ~frms = tree.frms,
+                ~isDisjInCtx = tree.disj->disjContains,
+                ~statements = getStatementsFromJustification( ~tree, ~stmts, ~justification ),
+                ~exactOrderOfStmts=true,
+                ~allowEmptyArgs=false,
+                ~result = node.expr,
+                ~parenCnt=tree.parenCnt,
+                ~frameFilter = frame => frame.label == justification.asrt,
+                ~onMatchFound = res => {
+                    applResults->Js_array2.push(res)->ignore
+                    Continue
+                },
+                ()
+            )
+        }
+    }
+    applResults->Expln_utils_common.arrForEach(applResult => {
+        let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
+        applResult.newVars->Js.Array2.forEachi((v,i) => {
+            tree.maxVar = tree.maxVar + 1
+            let newVar = tree.maxVar
+            applNewVarToTreeNewVar->Belt_MutableMapInt.set(v,newVar)
+            let newVarType = applResult.newVarTypes[i]
+            tree.newVars->Belt_MutableSet.add([newVarType, newVar])
+        })
+        applResult.newDisj->disjForEach((n,m) => {
+            tree.disj->disjAddPair(
+                applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
+                applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
+            )
+        })
+        let frame = switch tree.frms->Belt_MapString.get(applResult.asrtLabel) {
+            | None => 
+                raise(MmException({msg:`Cannot find an assertion with label ${applResult.asrtLabel} in addParentsWithNewVars.`}))
+            | Some(frm) => frm.frame
+        }
+        let args = frame.hyps->Js_array2.map(hyp => {
+            let argExpr = applySubs(
+                ~frmExpr = hyp.expr, 
+                ~subs=applResult.subs,
+                ~createWorkVar = _ => raise(MmException({msg:`New work variables are not expected here.`}))
+            )
+            switch tree.rootNodes->Belt_MutableMap.get(argExpr) {
+                | Some(existingNode) => existingNode
+                | None => {
+                    createOrUpdateNode(
+                        ~tree,
+                        ~label=None,
+                        ~expr = argExpr,
+                        ~child=Some(node),
+                        ~exprToStr,
+                    )
+                }
+            }
+        })
+        let newParent = Assertion({
+            args,
+            label: applResult.asrtLabel,
+            comb: applResult.comb,
+            subs:
+                switch exprToStr {
+                    | None => None
+                    | Some(exprToStr) => Some(printSubs(~frame,~subs=applResult.subs,~exprToStr))
+                }
+        })
+        if (node.parents->Belt.Option.getExn->Js_array2.find(par => exprSourceEq(par, newParent))->Belt_Option.isNone) {
+            if (checkTypes(~tree, ~frame, ~args, ~exprToStr)) {
+                node.parents->Belt_Option.getExn->Js_array2.push(newParent)->ignore
                 markProved(node)
             }
-            if (node.proof->Belt.Option.isSome) {
-                Some(true)
-            } else {
-                None
-            }
-        })->ignore
-    }
+        }
+        if (node.proof->Belt.Option.isSome) {
+            Some(true)
+        } else {
+            None
+        }
+    })->ignore
+}
 
+and let proveNode = (
+    ~tree:proofTree,
+    ~stmts:array<rootStmt>,
+    ~node:proofTreeNode,
+    ~justification: option<justification>,
+    ~syntaxProof:bool,
+    ~bottomUp:bool,
+    ~exprToStr:option<expr=>string>,
+) => {
     if (syntaxProof) {
         let rootNode = node
-        nodesToCreateParentsFor->Belt_MutableQueue.add(node)
-        while (rootNode.proof->Belt_Option.isNone && nodesToCreateParentsFor->Belt_MutableQueue.size > 0) {
-            let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
+        let stackOfNodesToCreateParentsFor = stackOfNodesToCreateParentsForMake()
+        stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForAddE(node)
+        let maxStackSize = ref(stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForDepth)
+        while (rootNode.proof->Belt_Option.isNone && !(stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForIsEmty)) {
+            let curNode = stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForGetNextNode->Belt_Option.getExn
             switch curNode.parents {
                 | Some(_) => ()
                 | None => {
@@ -386,19 +570,75 @@ let rec proveNode = (
                             }
                             | None => {
                                 curNode.parents = Some([])
-                                addParentsWithoutNewVars(curNode)
+                                addParentsWithoutNewVars(~tree, ~node=curNode, ~stackOfNodesToCreateParentsFor, ~exprToStr)
                             }
                         }
                     }
                 }
             }
+            if (bottomUp) {
+                let size = stackOfNodesToCreateParentsFor->stackOfNodesToCreateParentsForDepth
+                if (maxStackSize.contents < size) {
+                    maxStackSize.contents = size
+                    Js.Console.log2("maxStackSize", maxStackSize.contents)
+                }
+                if (size > 10) {
+                    Js.Console.log2("size2", size)
+                }
+            }
         }
     } else if (!bottomUp) {
         node.parents = Some([])
-        addParentsWithNewVars(node,justification,false)
+        addParentsWithNewVars(~tree, ~stmts, ~node, ~justification, ~bottomUp=false, ~exprToStr)
     } else {
         node.parents = Some([])
-        addParentsWithNewVars(node,justification,true)
+        let rootNode = node
+        addParentsWithNewVars(~tree, ~stmts, ~node=rootNode, ~justification, ~bottomUp=true, ~exprToStr)
+        if (rootNode.proof->Belt.Option.isNone) {
+            let cnt = ref(0)
+            getUnprovedParentNodesWithoutNewVars(~tree, ~parents=rootNode.parents->Belt.Option.getExn)
+                ->Expln_utils_common.arrForEach(parentNode => {
+                    if (parentNode.proof->Belt.Option.isNone) {
+                        cnt.contents = cnt.contents + 1
+                        Js.Console.log2("cnt", cnt.contents)
+                    }
+                    // if (cnt.contents > 5) {
+                    //     Some(())
+                    // } else {
+                        proveNode(
+                            ~tree,
+                            ~stmts,
+                            ~node=parentNode,
+                            ~justification=None,
+                            ~syntaxProof=true,
+                            ~bottomUp=true,
+                            ~exprToStr,
+                        )
+                        rootNode.proof
+                    //     None
+                    // }
+                })->ignore
+            // let parentNodesWithoutNewVars = Belt_MutableQueue.make()
+            // collectParentNodesWithoutNewVars( 
+            //     ~tree, 
+            //     ~parents=rootNode.parents->Belt.Option.getExn, 
+            //     ~parentNodesWithoutNewVars
+            // )
+            // while (rootNode.proof->Belt.Option.isNone && parentNodesWithoutNewVars->Belt_MutableQueue.size > 0) {
+            //     Js.Console.log2("Queue.size", parentNodesWithoutNewVars->Belt_MutableQueue.size)
+            //     let currNode = parentNodesWithoutNewVars->Belt_MutableQueue.pop->Belt.Option.getExn
+            //     currNode.parents = Some([])
+            //     addParentsWithNewVars(~tree, ~stmts, ~node=currNode, ~justification=None, ~bottomUp=false, ~exprToStr)
+            //     if (rootNode.proof->Belt.Option.isNone && currNode.proof->Belt.Option.isNone) {
+            //         addParentsWithNewVars(~tree, ~stmts, ~node=currNode, ~justification=None, ~bottomUp=true, ~exprToStr)
+            //         collectParentNodesWithoutNewVars( 
+            //             ~tree, 
+            //             ~parents=currNode.parents->Belt.Option.getExn,
+            //             ~parentNodesWithoutNewVars 
+            //         )
+            //     }
+            // }
+        }
     }
 }
 and let checkTypes = (

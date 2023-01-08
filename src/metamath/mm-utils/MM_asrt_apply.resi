@@ -8,6 +8,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
+    comb: array<int>,//debug
 }
 
 let applyAssertions: (

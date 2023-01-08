@@ -25,12 +25,18 @@ type rec proofTreeNode = {
 and exprSource =
     | VarType
     | Hypothesis({label: string})
-    | Assertion({args: array<proofTreeNode>, label: string, subs: option<array<array<string>>>/*debug*/})
+    | Assertion({
+        args:array<proofTreeNode>, 
+        label:string, 
+        subs: option<array<array<string>>>,//debug
+        comb: array<int>,//debug
+    })
 
 type proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
     hypsByExpr: Belt_Map.t<expr,hypothesis,ExprCmp.identity>,
     hypsByLabel: Belt_MapString.t<hypothesis>,
+    ctxMaxVar:int,
     mutable maxVar:int,
     newVars: Belt_MutableSet.t<expr,ExprCmp.identity>,
     disj: disjMutable,

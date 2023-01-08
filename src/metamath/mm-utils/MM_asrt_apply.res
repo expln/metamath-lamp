@@ -9,6 +9,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
+    comb: array<int>,//debug
 }
 
 let rec iterateCombinationsRec = (
@@ -363,7 +364,8 @@ let applyAssertions = (
                                                     ends: frm.subs.ends->Js.Array2.copy,
                                                     exprs: frm.subs.exprs->Js.Array2.copy,
                                                     isDefined: frm.subs.isDefined->Js.Array2.copy,
-                                                }
+                                                },
+                                                comb: comb->Js.Array2.copy,
                                             }
                                             onMatchFound(res)
                                         }
