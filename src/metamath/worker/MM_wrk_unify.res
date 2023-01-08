@@ -6,7 +6,7 @@ open MM_proof_tree
 let procName = "MM_wrk_unify"
 
 type request = 
-    | Unify({stmts: array<rootStmt>})
+    | Unify({stmts: array<rootStmt>, bottomUp:bool})
 
 type response =
     | OnProgress(float)
@@ -20,6 +20,7 @@ let unify = (
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
     ~stmts: array<rootStmt>,
+    ~bottomUp: bool,
     ~onProgress:float=>unit,
 ): promise<proofTreeDto> => {
     promise(resolve => {
@@ -31,12 +32,13 @@ let unify = (
             ~disjText,
             ~hyps,
             ~procName,
-            ~initialRequest = Unify({stmts:stmts}),
+            ~initialRequest = Unify({stmts:stmts, bottomUp}),
             ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
                     | Result(proofTree) => {
                         endWorkerInteraction()
+                        Js.Console.log2("proofTree", proofTree)
                         resolve(proofTree)
                     }
                 }
@@ -49,14 +51,16 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({stmts}) => {
+        | Unify({stmts, bottomUp}) => {
             let proofTree = proofTreeProve(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~stmts,
+                ~bottomUp,
                 ~syntaxProof=false,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),
+                ~debug=true,
                 ()
             )
             sendToClient(Result({

@@ -342,6 +342,25 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
+    let getTheOnlySelectedStmt = ():option<userStmt> => {
+        if (state.checkedStmtIds->Js.Array2.length != 1) {
+            None
+        } else {
+            let idToFind = state.checkedStmtIds[0]
+            switch state.stmts->Js_array2.find(stmt => stmt.id == idToFind) {
+                | None => None
+                | Some(stmt) => Some(stmt)
+            }
+        }
+    }
+
+    let singleProvableIsSelected = () => {
+        switch getTheOnlySelectedStmt() {
+            | None => false
+            | Some(stmt) => stmt.typ == #p
+        }
+    }
+
     let actUnifyAllResultsAreReady = proofTreeDto => {
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
@@ -367,7 +386,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                         },
                         ~stmts={
-                            state.stmts
+                            state->getAllStmtsUpToChecked
                                 ->Js_array2.filter(stmt => stmt.typ == #p)
                                 ->Js_array2.map(stmt => {
                                     {
@@ -381,6 +400,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                     }
                                 })
                         },
+                        ~bottomUp=singleProvableIsSelected(),
                         ~onProgress = pct => updateModal(modalRef, modalId, () => rndProgress(~text="Unifying", ~pct))
                     )->promiseMap(proofTreeDto => {
                         closeModal(modalRef, modalId)
@@ -486,10 +506,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let rndButtons = () => {
-        let generalModificationActionIsEnabled =
-            !editIsActive
-            && !thereAreSyntaxErrors
+        let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
         let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
+        let singleProvableIsSelected = singleProvableIsSelected()
         <Paper>
             <Row>
                 <Checkbox
@@ -520,7 +539,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnifyAll,
                         ~active=generalModificationActionIsEnabled 
-                                    && !atLeastOneStmtIsSelected
+                                    && (!atLeastOneStmtIsSelected || singleProvableIsSelected)
                                     && state.stmts->Js_array2.length > 0, 
                         ~title="Unify all statements", () )
                 }

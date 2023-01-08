@@ -19,6 +19,7 @@ type rootStmt = {
 
 type rec proofTreeNode = {
     expr:expr,
+    exprStr:option<string>,//debug
     label: option<string>,
     mutable parents: option<array<exprSource>>,
     mutable children: array<proofTreeNode>,
@@ -27,7 +28,7 @@ type rec proofTreeNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofTreeNode>, label:string})
+    | Assertion({args:array<proofTreeNode>, label:string, subs: option<array<array<string>>>/*debug*/})
 
 type proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -71,7 +72,8 @@ let createOrUpdateNode = (
     ~tree:proofTree, 
     ~label:option<string>, 
     ~expr:expr, 
-    ~child:option<proofTreeNode>
+    ~child:option<proofTreeNode>,
+    ~exprToStr:option<expr=>string>,
 ):proofTreeNode => {
     let result = switch tree.nodes->Belt_MutableMap.get(expr) {
         | Some(node) => node
@@ -79,6 +81,11 @@ let createOrUpdateNode = (
             let node = {
                 label,
                 expr,
+                exprStr:
+                    switch exprToStr {
+                        | None => None
+                        | Some(exprToStr) => Some(exprToStr(expr))
+                    },
                 parents: None,
                 proof: None,
                 children: [],
@@ -179,15 +186,32 @@ let getStatementsFromJustification = (
     }
 }
 
+let printSubs = (~frame,~subs,~exprToStr):array<array<string>> => {
+    let getSubExprForFrmVar = frmVar => {
+        let subExpr = subs.exprs[frmVar]
+        let minIdx = subs.begins[frmVar]
+        let maxIdx = subs.ends[frmVar]
+        subExpr->Js_array2.filteri((_,idx) => minIdx <= idx && idx <= maxIdx)
+    }
+    let lines = []
+    for frmVar in 0 to subs.size-1 {
+        lines->Js_array2.push([
+            frame.frameVarToSymb->Belt_MapInt.get(frmVar)->Belt_Option.getWithDefault("?????"),
+            getSubExprForFrmVar(frmVar)->exprToStr
+        ])->ignore
+    }
+    lines
+}
+
 let rec proveNode = (
     ~tree:proofTree,
     ~stmts:array<rootStmt>,
     ~node:proofTreeNode,
     ~justification: option<justification>,
     ~syntaxProof:bool,
-    ~allowEmptyArgs:bool,
+    ~bottomUp:bool,
+    ~exprToStr:option<expr=>string>,
 ) => {
-    let prevRootExprs = stmts->Js.Array2.map(({expr}) => expr)
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let addParentsWithoutNewVars = (node):unit => {
@@ -218,12 +242,13 @@ let rec proveNode = (
                                         ~tree, 
                                         ~label=None,
                                         ~expr=newExprToProve, 
-                                        ~child=Some(node)
+                                        ~child=Some(node),
+                                        ~exprToStr
                                     )
                                     nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
                                     arg
                                 })
-                                let parent = Assertion({ args, label:frm.frame.label })
+                                let parent = Assertion({ args, label:frm.frame.label, subs: None })
                                 node.parents->Belt.Option.getExn->Js_array2.push(parent)->ignore
                                 markProved(node)
                             }
@@ -239,16 +264,17 @@ let rec proveNode = (
         })
     }
 
-    let addParentsWithNewVars = (node,justification):unit => {
+    let addParentsWithNewVars = (node,justification,bottomUp):unit => {
         let applResults = []
         switch justification {
             | None => {
+                let prevRootExprs = stmts->Js.Array2.map(({expr}) => expr)
                 applyAssertions(
                     ~maxVar = tree.maxVar,
                     ~frms = tree.frms,
                     ~isDisjInCtx = tree.disj->disjContains,
                     ~statements = prevRootExprs,
-                    ~allowEmptyArgs,
+                    ~allowEmptyArgs=bottomUp,
                     ~result = node.expr,
                     ~parenCnt=tree.parenCnt,
                     ~onMatchFound = res => {
@@ -265,7 +291,7 @@ let rec proveNode = (
                     ~isDisjInCtx = tree.disj->disjContains,
                     ~statements = getStatementsFromJustification( ~tree, ~stmts, ~justification ),
                     ~exactOrderOfStmts=true,
-                    ~allowEmptyArgs,
+                    ~allowEmptyArgs=false,
                     ~result = node.expr,
                     ~parenCnt=tree.parenCnt,
                     ~frameFilter = frame => frame.label == justification.asrt,
@@ -310,12 +336,13 @@ let rec proveNode = (
                             ~tree,
                             ~label=None,
                             ~expr = argExpr,
-                            ~child=Some(node)
+                            ~child=Some(node),
+                            ~exprToStr,
                         )
                     }
                 }
             })
-            if (checkTypes(~tree, ~frame, ~args)) {
+            if (checkTypes(~tree, ~frame, ~args, ~exprToStr)) {
                 args->Js_array2.forEach(arg => {
                     if (arg.parents->Belt.Option.isNone) {
                         nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
@@ -323,7 +350,12 @@ let rec proveNode = (
                 })
                 node.parents->Belt_Option.getExn->Js_array2.push(Assertion({
                     args,
-                    label: applResult.asrtLabel
+                    label: applResult.asrtLabel,
+                    subs:
+                        switch exprToStr {
+                            | None => None
+                            | Some(exprToStr) => Some(printSubs(~frame,~subs=applResult.subs,~exprToStr))
+                        }
                 }))->ignore
                 markProved(node)
             }
@@ -361,15 +393,19 @@ let rec proveNode = (
                 }
             }
         }
+    } else if (!bottomUp) {
+        node.parents = Some([])
+        addParentsWithNewVars(node,justification,false)
     } else {
         node.parents = Some([])
-        addParentsWithNewVars(node,justification)
+        addParentsWithNewVars(node,justification,true)
     }
 }
 and let checkTypes = (
     ~tree:proofTree,
     ~frame:frame,
     ~args:array<proofTreeNode>,
+    ~exprToStr:option<expr=>string>,
 ):bool => {
     let nodesToTypecheck = []
     frame.hyps->Js.Array2.forEachi((hyp,hypIdx) => {
@@ -384,7 +420,8 @@ and let checkTypes = (
             ~node,
             ~justification=None,
             ~syntaxProof=true,
-            ~allowEmptyArgs=false,
+            ~bottomUp=false,
+            ~exprToStr,
         )
         node.proof->Belt_Option.isSome
     })
@@ -394,10 +431,11 @@ let proofTreeProve = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<rootStmt>,
-    ~parenCnt: parenCnt,
+    ~bottomUp: bool=false,
     ~syntaxProof:bool,
-    ~allowEmptyArgs:bool=false,
+    ~parenCnt: parenCnt,
     ~onProgress:option<float=>unit>=?,
+    ~debug: bool=false,
     ()
 ):proofTree => {
     let stmtsProcessed = ref(0.)
@@ -407,24 +445,40 @@ let proofTreeProve = (
     let disj = ctx->getAllDisj
     let hyps = ctx->getAllHyps
     let tree = createEmptyProofTree(~frms, ~maxVar, ~disj, ~hyps, ~parenCnt, )
+    let exprToStr = if (debug) {
+        let maxCtxVar = ctx->getNumOfVars - 1
+        let intToSym = i => {
+            if (i <= maxCtxVar) {
+                ctx->ctxIntToSymExn(i)
+            } else {
+                "&" ++ i->Belt.Int.toString
+            }
+        }
+        Some(expr => expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" "))
+    } else {
+        None
+    }
     ctx->getLocalHyps->Js_array2.forEach(hyp => {
         let rootNode = createOrUpdateNode(
             ~tree, 
             ~label=Some(hyp.label), 
             ~expr=hyp.expr, 
-            ~child=None
+            ~child=None,
+            ~exprToStr,
         )
         rootNode.proof = Some(Hypothesis({label:hyp.label}))
         tree.rootNodes->Belt_MutableMap.set(rootNode.expr, rootNode)
     })
     let numOfStmts = stmts->Js_array2.length
-    for stmtIdx in 0 to numOfStmts - 1 {
+    let maxStmtIdx = numOfStmts - 1
+    for stmtIdx in 0 to maxStmtIdx {
         tree.nodes->Belt_MutableMap.clear
         let rootNode = createOrUpdateNode(
             ~tree, 
             ~label=stmts[stmtIdx].label, 
             ~expr=stmts[stmtIdx].expr, 
-            ~child=None
+            ~child=None,
+            ~exprToStr,
         )
         tree.rootNodes->Belt_MutableMap.set(rootNode.expr, rootNode)
         proveNode(
@@ -439,7 +493,8 @@ let proofTreeProve = (
             ~node=rootNode,
             ~justification=stmts[stmtIdx].justification,
             ~syntaxProof,
-            ~allowEmptyArgs,
+            ~bottomUp = if (stmtIdx < maxStmtIdx) {false} else {bottomUp},
+            ~exprToStr
         )
 
         stmtsProcessed.contents = stmtsProcessed.contents +. 1.

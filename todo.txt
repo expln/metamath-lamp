@@ -1,3 +1,4 @@
+- rename applyAssertions to findSubstitutions
 - simplify search of assertions by filtering frms (don't use applyAssertions() ).
 - try to replace the array with a map in MM_parenCounter.
 - write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)

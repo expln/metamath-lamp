@@ -77,6 +77,7 @@ let uncheckAllStmts: editorState => editorState
 let deleteCheckedStmts: editorState => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
+let getAllStmtsUpToChecked: editorState => array<userStmt>
 let addNewStmt: editorState => (editorState,string)
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: editorState => editorState

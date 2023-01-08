@@ -193,6 +193,20 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
     }
 }
 
+let getAllStmtsUpToChecked = (st):array<userStmt> => {
+    let checkedAdded = ref(false)
+    let res = []
+    let i = ref(0)
+    let stmtsLen = st.stmts->Js_array2.length
+    while (i.contents < stmtsLen && !checkedAdded.contents) {
+        let stmt = st.stmts[i.contents]
+        res->Js.Array2.push(stmt)->ignore
+        checkedAdded.contents = st.checkedStmtIds->Js.Array2.includes(stmt.id)
+        i.contents = i.contents + 1
+    }
+    res
+}
+
 let createNewLabel = (st:editorState, prefix:string):string => {
     let isLabelDefinedInCtx = label => {
         switch st.wrkCtx {

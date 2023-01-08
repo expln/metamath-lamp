@@ -16,6 +16,7 @@ type rootStmt = {
 
 type rec proofTreeNode = {
     expr:expr,
+    exprStr:option<string>,//debug
     label: option<string>,
     mutable parents: option<array<exprSource>>,
     mutable children: array<proofTreeNode>,
@@ -24,7 +25,7 @@ type rec proofTreeNode = {
 and exprSource =
     | VarType
     | Hypothesis({label: string})
-    | Assertion({args: array<proofTreeNode>, label: string})
+    | Assertion({args: array<proofTreeNode>, label: string, subs: option<array<array<string>>>/*debug*/})
 
 type proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -48,10 +49,11 @@ let proofTreeProve: (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<rootStmt>,
-    ~parenCnt: parenCnt,
+    ~bottomUp: bool=?,
     ~syntaxProof:bool,
-    ~allowEmptyArgs:bool=?,
+    ~parenCnt: parenCnt,
     ~onProgress: float=>unit = ?,
+    ~debug: bool=?,
     ()
 ) => proofTree
 
