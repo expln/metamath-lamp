@@ -74,7 +74,9 @@ let iterateCombinations = (
         }
     }
     let thereIsHypWithoutAnyCandidate = candidatesPerHyp->Js_array2.some(candidates => candidates->Js_array2.length == 0)
-    if (!thereIsHypWithoutAnyCandidate) {
+    if (thereIsHypWithoutAnyCandidate) {
+        Continue
+    } else {
         let comb = Belt_Array.make(numOfHyps, 0)
         let continue = iterateCombinationsRec(
             ~candidatesPerHyp,
@@ -96,8 +98,6 @@ let iterateCombinations = (
         } else {
             continue
         }
-    } else {
-        Continue
     }
 }
 
