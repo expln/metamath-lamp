@@ -27,8 +27,15 @@ let proofTreeMake: (
 let proofTreeGetFrms: proofTree => Belt_MapString.t<frmSubsData>
 let proofTreeGetParenCnt: proofTree => parenCnt
 let proofTreeIsDisj: (proofTree, int, int) => bool
+let proofTreeIsNewVarDef: (proofTree, expr) => bool
 let proofTreeGetNodeByExpr: (proofTree, expr) => option<proofNode>
+let proofTreeGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let proofTreeAddRootNode: (proofTree, proofNode) => unit
 let proofTreeMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
-let proofNodeAddParent: (proofNode, exprSource) => unit
-let proofTreeCreateProofTable: proofNode => MM_proof_table.proofTable
+
+let proofNodeGetExpr: proofNode => expr
+let proofNodeGetProof: proofNode => option<exprSource>
+let proofNodeGetParents: proofNode => option<array<exprSource>>
+let proofNodeAddNonAsrtParent: (proofNode, exprSource) => unit
+let proofNodeAddAsrtParent: (proofNode, exprSource, frame) => unit
+let proofNodeCreateProofTable: proofNode => proofTable

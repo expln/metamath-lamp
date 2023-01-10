@@ -45,6 +45,31 @@ let findParentsWithoutNewVars = ( ~tree, ~node, ):array<exprSource> => {
     foundParents
 }
 
-// let proveFloating = (~tree, ~node) => {
-
-// }
+let proveFloating = (~tree, ~node) => {
+    let rootNode = node
+    let nodesToCreateParentsFor = Belt_MutableStack.make()
+    let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
+    nodesToCreateParentsFor->Belt_MutableStack.push(rootNode)
+    while (rootNode->proofNodeGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableStack.isEmpty)) {
+        let curNode = nodesToCreateParentsFor->Belt_MutableStack.pop->Belt_Option.getExn
+        switch curNode->proofNodeGetParents {
+            | Some(_) => ()
+            | None => {
+                let curExpr = curNode->proofNodeGetExpr
+                if (tree->proofTreeIsNewVarDef(curExpr)) {
+                    curNode->proofNodeAddNonAsrtParent(VarType)
+                } else {
+                    switch tree->proofTreeGetHypByExpr(curExpr) {
+                        | Some(hyp) => {
+                            curNode->proofNodeAddNonAsrtParent(Hypothesis({label:hyp.label}))
+                        }
+                        | None => {
+                            curNode.parents = Some([])
+                            addParentsWithoutNewVars(~tree, ~node=curNode, ~stackOfNodesToCreateParentsFor, ~exprToStr)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

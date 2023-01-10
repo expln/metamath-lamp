@@ -63,6 +63,7 @@ let exprSourceEq = (s1,s2) => {
 let proofTreeGetFrms = tree => tree.frms
 let proofTreeGetParenCnt = tree => tree.parenCnt
 let proofTreeIsDisj = (tree, n, m) => tree.disj->disjContains(n,m)
+let proofTreeIsNewVarDef = (tree, expr) => tree.newVars->Belt_MutableSet.has(expr)
 
 let proofTreeMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -89,6 +90,10 @@ let proofTreeMake = (
 
 let proofTreeGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
     tree.nodes->Belt_MutableMap.get(expr)
+}
+
+let proofTreeGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
+    tree.hypsByExpr->Belt_Map.get(expr)
 }
 
 let proofTreeAddRootNode = (tree, node):unit => {
@@ -178,10 +183,34 @@ let proofNodeAddChild = (node, child): unit => {
     }
 }
 
-let proofNodeAddParent = (node:proofNode, parent:exprSource):unit => {
+let proofNodeGetExpr = node => node.expr
+let proofNodeGetProof = node => node.proof
+let proofNodeGetParents = node => node.parents
+
+let proofNodeAddParent = (node:proofNode, parent:exprSource, frame:option<frame>):unit => {
     switch node.proof {
         | Some(_) => ()
         | None => {
+            switch parent {
+                | VarType | Hypothesis(_) => ()
+                | Assertion({args}) => {
+                    switch frame {
+                        | None => 
+                            raise(MmException({
+                                msg:`Cannot add a parent node derived from an assertion without a correspondig frame.`
+                            }))
+                        | Some(frame) => {
+                            switch frame.hyps->Js_array2.findi((hyp,i) => hyp.typ == F && args[i].proof->Belt_Option.isNone) {
+                                | Some(_) =>
+                                    raise(MmException({
+                                        msg:`Cannot add a parent node with an unproved floating hypothesis.`
+                                    }))
+                                | None => ()
+                            }
+                        }
+                    }
+                }
+            }
             let newParentWasAdded = ref(false)
             switch node.parents {
                 | None => {
@@ -217,7 +246,15 @@ let proofNodeAddParent = (node:proofNode, parent:exprSource):unit => {
     }
 }
 
-let proofTreeCreateProofTable = (node:proofNode):proofTable => {
+let proofNodeAddNonAsrtParent = (node:proofNode, parent:exprSource):unit => {
+    proofNodeAddParent(node, parent, None)
+}
+
+let proofNodeAddAsrtParent = (node:proofNode, parent:exprSource, frame:frame):unit => {
+    proofNodeAddParent(node, parent, Some(frame))
+}
+
+let proofNodeCreateProofTable = (node:proofNode):proofTable => {
     let processedExprs = Belt_MutableSet.make(~id = module(ExprCmp))
     let exprToIdx = Belt_MutableMap.make(~id = module(ExprCmp))
     let tbl = []
