@@ -61,9 +61,9 @@ let testUnification = (
 }
 
 describe("proofTreeProve", _ => {
-    it("unifies few statements", _ => {
+    it_skip("unifies few statements", _ => {
         testUnification(
-            ~pathToMmFile = "C:/Users/Igor/igye/books/metamath/set.mm",
+            ~pathToMmFile = ".../metamath/set.mm",
             ~stopAfter="df-sgn", 
             ~varsText="",
             ~disjText="",

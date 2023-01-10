@@ -30,6 +30,7 @@ type proofTree = {
     parenCnt:parenCnt,
     rootNodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
     nodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
+    exprToStr: option<expr=>string>, //for debug purposes
 }
 
 let exprSourceEq = (s1,s2) => {
@@ -59,12 +60,9 @@ let exprSourceEq = (s1,s2) => {
     }
 }
 
-let proofNodeGetExprStr = (node:proofNode):string => {
-    switch node.exprStr {
-        | Some(str) => str
-        | None => node.expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ")
-    }
-}
+let proofTreeGetFrms = tree => tree.frms
+let proofTreeGetParenCnt = tree => tree.parenCnt
+let proofTreeIsDisj = (tree, n, m) => tree.disj->disjContains(n,m)
 
 let proofTreeMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -72,6 +70,7 @@ let proofTreeMake = (
     ~maxVar: int,
     ~disj: disjMutable,
     ~parenCnt:parenCnt,
+    ~exprToStr: option<expr=>string>,
 ) => {
     {
         frms,
@@ -84,6 +83,7 @@ let proofTreeMake = (
         parenCnt,
         rootNodes: Belt_MutableMap.make(~id=module(ExprCmp)),
         nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
+        exprToStr,
     }
 }
 
@@ -95,23 +95,29 @@ let proofTreeAddRootNode = (tree, node):unit => {
     tree.rootNodes->Belt_MutableMap.set(node.expr, node)
 }
 
-let proofNodeMake = ( tree:proofTree, ~label:option<string>, ~expr:expr, ~exprStr:option<string>, ):proofNode => {
-    let getExprStr = () => {
-        switch exprStr {
-            | Some(str) => str
-            | None => expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ")
-        }
+let proofNodeGetExprStr = (node:proofNode):string => {
+    switch node.exprStr {
+        | Some(str) => str
+        | None => node.expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ")
     }
+}
+
+let proofTreeMakeNode = ( 
+    tree:proofTree,
+    ~label:option<string>,
+    ~expr:expr,
+):proofNode => {
     switch tree.nodes->Belt_MutableMap.get(expr) {
-        | Some(_) => 
+        | Some(existingNode) => 
             raise(MmException({
-                msg:`Creation of a new node '${getExprStr()}' was requested, but a node with such expr already exists.`
+                msg:`Creation of a new node was requested, ` 
+                    ++ `but a node with the same expr already exists '${existingNode->proofNodeGetExprStr}'.`
             }))
         | None => {
             let node = {
                 label,
                 expr,
-                exprStr,
+                exprStr: tree.exprToStr->Belt.Option.map(f => f(expr)),
                 parents: None,
                 proof: None,
                 children: [],
