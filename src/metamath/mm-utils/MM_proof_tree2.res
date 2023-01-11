@@ -17,7 +17,7 @@ type rec proofNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({ args:array<proofNode>, label:string })
+    | Assertion({args:array<proofNode>, label:string, frame:option<frame>})
 
 type proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -60,12 +60,12 @@ let exprSourceEq = (s1,s2) => {
     }
 }
 
-let proofTreeGetFrms = tree => tree.frms
-let proofTreeGetParenCnt = tree => tree.parenCnt
-let proofTreeIsDisj = (tree, n, m) => tree.disj->disjContains(n,m)
-let proofTreeIsNewVarDef = (tree, expr) => tree.newVars->Belt_MutableSet.has(expr)
+let ptGetFrms = tree => tree.frms
+let ptGetParenCnt = tree => tree.parenCnt
+let ptIsDisj = (tree, n, m) => tree.disj->disjContains(n,m)
+let ptIsNewVarDef = (tree, expr) => tree.newVars->Belt_MutableSet.has(expr)
 
-let proofTreeMake = (
+let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~maxVar: int,
@@ -76,7 +76,10 @@ let proofTreeMake = (
     {
         frms,
         hypsByLabel: hyps,
-        hypsByExpr: hyps->Belt_MapString.toArray->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))->Belt_Map.fromArray(~id=module(ExprCmp)),
+        hypsByExpr: hyps
+                        ->Belt_MapString.toArray
+                        ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
+                        ->Belt_Map.fromArray(~id=module(ExprCmp)),
         ctxMaxVar:maxVar,
         maxVar,
         newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
@@ -88,15 +91,15 @@ let proofTreeMake = (
     }
 }
 
-let proofTreeGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
+let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
     tree.nodes->Belt_MutableMap.get(expr)
 }
 
-let proofTreeGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
+let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
     tree.hypsByExpr->Belt_Map.get(expr)
 }
 
-let proofTreeAddRootNode = (tree, node):unit => {
+let ptAddRootNode = (tree, node):unit => {
     tree.rootNodes->Belt_MutableMap.set(node.expr, node)
 }
 
@@ -107,7 +110,7 @@ let proofNodeGetExprStr = (node:proofNode):string => {
     }
 }
 
-let proofTreeMakeNode = ( 
+let ptMakeNode = ( 
     tree:proofTree,
     ~label:option<string>,
     ~expr:expr,
@@ -133,25 +136,25 @@ let proofTreeMakeNode = (
     }
 }
 
-let exprSourceIsProved = (exprSrc:exprSource): bool => {
+let esIsProved = (exprSrc:exprSource): bool => {
     switch exprSrc {
         | VarType | Hypothesis(_) => true
         | Assertion({args}) => args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
     }
 }
 
-let proofNodeGetProofFromParents = (node):option<exprSource> => {
+let pnGetProofFromParents = (node):option<exprSource> => {
     switch node.parents {
         | None => None
-        | Some(parents) => parents->Js_array2.find(exprSourceIsProved)
+        | Some(parents) => parents->Js_array2.find(esIsProved)
     }
 }
 
-let proofNodeMarkProved = ( node:proofNode ):unit => {
+let pnMarkProved = ( node:proofNode ):unit => {
     switch node.proof {
         | Some(_) => ()
         | None => {
-            switch proofNodeGetProofFromParents(node) {
+            switch pnGetProofFromParents(node) {
                 | None => ()
                 | Some(nodeProof) => {
                     node.proof = Some(nodeProof)
@@ -159,7 +162,7 @@ let proofNodeMarkProved = ( node:proofNode ):unit => {
                     while (!(nodesToMarkProved->Belt_MutableQueue.isEmpty)) {
                         let curNode = nodesToMarkProved->Belt_MutableQueue.pop->Belt_Option.getExn
                         if (curNode.proof->Belt_Option.isNone) {
-                            switch proofNodeGetProofFromParents(curNode) {
+                            switch pnGetProofFromParents(curNode) {
                                 | None => ()
                                 | Some(curNodeProof) => {
                                     curNode.proof = Some(curNodeProof)
@@ -174,7 +177,7 @@ let proofNodeMarkProved = ( node:proofNode ):unit => {
     }
 }
 
-let proofNodeAddChild = (node, child): unit => {
+let pnAddChild = (node, child): unit => {
     if (!exprEq(node.expr, child.expr)) {
         switch node.children->Js.Array2.find(existingChild => exprEq(existingChild.expr,child.expr)) {
             | None => node.children->Js_array2.push(child)->ignore
@@ -183,11 +186,11 @@ let proofNodeAddChild = (node, child): unit => {
     }
 }
 
-let proofNodeGetExpr = node => node.expr
-let proofNodeGetProof = node => node.proof
-let proofNodeGetParents = node => node.parents
+let pnGetExpr = node => node.expr
+let pnGetProof = node => node.proof
+let pnGetParents = node => node.parents
 
-let proofNodeAddParent = (node:proofNode, parent:exprSource, frame:option<frame>):unit => {
+let pnAddParent = (node:proofNode, parent:exprSource, frame:option<frame>):unit => {
     switch node.proof {
         | Some(_) => ()
         | None => {
@@ -220,7 +223,7 @@ let proofNodeAddParent = (node:proofNode, parent:exprSource, frame:option<frame>
                 | Some(parents) => {
                     switch parents->Js_array2.find(par => exprSourceEq(par, parent)) {
                         | Some(existingParent) => {
-                            if (exprSourceIsProved(existingParent)) {
+                            if (esIsProved(existingParent)) {
                                 raise(MmException({
                                     msg:`Unexpected: an unproved node '${proofNodeGetExprStr(node)}' has a proved parent.`
                                 }))
@@ -236,25 +239,25 @@ let proofNodeAddParent = (node:proofNode, parent:exprSource, frame:option<frame>
             if (newParentWasAdded.contents) {
                 switch parent {
                     | VarType | Hypothesis(_) => ()
-                    | Assertion({args}) => args->Js_array2.forEach(proofNodeAddChild(_, node))
+                    | Assertion({args}) => args->Js_array2.forEach(pnAddChild(_, node))
                 }
-                if (exprSourceIsProved(parent)) {
-                    proofNodeMarkProved(node)
+                if (esIsProved(parent)) {
+                    pnMarkProved(node)
                 }
             }
         }
     }
 }
 
-let proofNodeAddNonAsrtParent = (node:proofNode, parent:exprSource):unit => {
-    proofNodeAddParent(node, parent, None)
+let pnAddNonAsrtParent = (node:proofNode, parent:exprSource):unit => {
+    pnAddParent(node, parent, None)
 }
 
-let proofNodeAddAsrtParent = (node:proofNode, parent:exprSource, frame:frame):unit => {
-    proofNodeAddParent(node, parent, Some(frame))
+let pnAddAsrtParent = (node:proofNode, parent:exprSource, frame:frame):unit => {
+    pnAddParent(node, parent, Some(frame))
 }
 
-let proofNodeCreateProofTable = (node:proofNode):proofTable => {
+let pnCreateProofTable = (node:proofNode):proofTable => {
     let processedExprs = Belt_MutableSet.make(~id = module(ExprCmp))
     let exprToIdx = Belt_MutableMap.make(~id = module(ExprCmp))
     let tbl = []

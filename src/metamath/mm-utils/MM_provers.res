@@ -6,10 +6,9 @@ open MM_parenCounter
 open MM_progress_tracker
 open MM_proof_tree2
 
-let findParentsWithoutNewVars = ( ~tree, ~node, ):array<exprSource> => {
+let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
     let foundParents = []
-    tree->proofTreeGetFrms->Belt_MapString.forEach((_,frm) => {
-        let expr = node.expr
+    tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
         let frmExpr = frm.frame.asrt
         if (frmExpr[0] == expr[0]) {
             iterateSubstitutions(
@@ -19,23 +18,26 @@ let findParentsWithoutNewVars = ( ~tree, ~node, ):array<exprSource> => {
                 ~constParts = frm.constParts[frm.numOfHypsE],
                 ~varGroups = frm.varGroups[frm.numOfHypsE],
                 ~subs = frm.subs,
-                ~parenCnt=tree->proofTreeGetParenCnt,
+                ~parenCnt=tree->ptGetParenCnt,
                 ~consumer = subs => {
                     if (subs.isDefined->Js_array2.every(b=>b)
-                        && verifyDisjoints(~frmDisj=frm.frame.disj, ~subs, ~isDisjInCtx=tree->proofTreeIsDisj)) {
+                        && verifyDisjoints(~frmDisj=frm.frame.disj, ~subs, ~isDisjInCtx=tree->ptIsDisj)) {
                         let args = frm.frame.hyps->Js_array2.map(hyp => {
                             let newExpr = applySubs(
                                 ~frmExpr = hyp.expr, 
                                 ~subs,
-                                ~createWorkVar = 
-                                    _ => raise(MmException({msg:`Work variables are not supported in addParentsWithoutNewVars().`}))
+                                ~createWorkVar = _ => raise(MmException({
+                                    msg:`Work variables are not supported in addParentsWithoutNewVars().`
+                                }))
                             )
-                            switch tree->proofTreeGetNodeByExpr(newExpr) {
+                            switch tree->ptGetNodeByExpr(newExpr) {
                                 | Some(existingNode) => existingNode
-                                | None => tree->proofTreeMakeNode( ~label=None, ~expr = newExpr, )
+                                | None => tree->ptMakeNode( ~label=None, ~expr = newExpr, )
                             }
                         })
-                        foundParents->Js_array2.push(Assertion({ args, label:frm.frame.label }))->ignore
+                        foundParents->Js_array2.push(
+                            Assertion({ args, label:frm.frame.label, frame:Some(frm.frame) })
+                        )->ignore
                     }
                     Continue
                 }
@@ -46,30 +48,41 @@ let findParentsWithoutNewVars = ( ~tree, ~node, ):array<exprSource> => {
 }
 
 let proveFloating = (~tree, ~node) => {
-    let rootNode = node
-    let nodesToCreateParentsFor = Belt_MutableStack.make()
-    let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
-    nodesToCreateParentsFor->Belt_MutableStack.push(rootNode)
-    while (rootNode->proofNodeGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableStack.isEmpty)) {
-        let curNode = nodesToCreateParentsFor->Belt_MutableStack.pop->Belt_Option.getExn
-        switch curNode->proofNodeGetParents {
-            | Some(_) => ()
-            | None => {
-                let curExpr = curNode->proofNodeGetExpr
-                if (tree->proofTreeIsNewVarDef(curExpr)) {
-                    curNode->proofNodeAddNonAsrtParent(VarType)
-                } else {
-                    switch tree->proofTreeGetHypByExpr(curExpr) {
-                        | Some(hyp) => {
-                            curNode->proofNodeAddNonAsrtParent(Hypothesis({label:hyp.label}))
-                        }
-                        | None => {
-                            curNode.parents = Some([])
-                            addParentsWithoutNewVars(~tree, ~node=curNode, ~stackOfNodesToCreateParentsFor, ~exprToStr)
+    if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
+        let nodesToCreateParentsFor = Belt_MutableStack.make()
+        let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
+
+        let saveNodeToCreateParentsFor = node => {
+            if (node->pnGetParents->Belt.Option.isNone && !(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
+                savedNodes->Belt_MutableSet.add(node->pnGetExpr)
+                nodesToCreateParentsFor->Belt_MutableStack.push(node)
+            }
+        }
+
+        let rootNode = node
+        saveNodeToCreateParentsFor(rootNode)
+        while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableStack.isEmpty)) {
+            let curNode = nodesToCreateParentsFor->Belt_MutableStack.pop->Belt_Option.getExn
+            if (curNode->pnGetProof->Belt.Option.isNone) {
+                switch curNode->pnGetParents {
+                    | Some(_) => ()
+                    | None => {
+                        let curExpr = curNode->pnGetExpr
+                        if (tree->ptIsNewVarDef(curExpr)) {
+                            curNode->pnAddNonAsrtParent(VarType)
+                        } else {
+                            switch tree->ptGetHypByExpr(curExpr) {
+                                | Some(hyp) => curNode->pnAddNonAsrtParent(Hypothesis({label:hyp.label}))
+                                | None => {
+                                    findParentsWithoutNewVars(~tree, ~expr=curNode->pnGetExpr)
+                                        ->Js.Array2.forEach(src)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
+
 }

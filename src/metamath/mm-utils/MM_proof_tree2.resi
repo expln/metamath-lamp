@@ -10,12 +10,12 @@ type proofNode
 
 type exprSource =
   | VarType
-  | Hypothesis({label: string})
-  | Assertion({args: array<proofNode>, label: string})
+  | Hypothesis({label:string})
+  | Assertion({args:array<proofNode>, label:string, frame:option<frame>})
 
 type proofTree
 
-let proofTreeMake: (
+let ptMake: (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~maxVar: int,
@@ -24,18 +24,18 @@ let proofTreeMake: (
     ~exprToStr: option<expr=>string>,
 ) => proofTree
 
-let proofTreeGetFrms: proofTree => Belt_MapString.t<frmSubsData>
-let proofTreeGetParenCnt: proofTree => parenCnt
-let proofTreeIsDisj: (proofTree, int, int) => bool
-let proofTreeIsNewVarDef: (proofTree, expr) => bool
-let proofTreeGetNodeByExpr: (proofTree, expr) => option<proofNode>
-let proofTreeGetHypByExpr: (proofTree, expr) => option<hypothesis>
-let proofTreeAddRootNode: (proofTree, proofNode) => unit
-let proofTreeMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
+let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
+let ptGetParenCnt: proofTree => parenCnt
+let ptIsDisj: (proofTree, int, int) => bool
+let ptIsNewVarDef: (proofTree, expr) => bool
+let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
+let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
+let ptAddRootNode: (proofTree, proofNode) => unit
+let ptMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
 
-let proofNodeGetExpr: proofNode => expr
-let proofNodeGetProof: proofNode => option<exprSource>
-let proofNodeGetParents: proofNode => option<array<exprSource>>
-let proofNodeAddNonAsrtParent: (proofNode, exprSource) => unit
-let proofNodeAddAsrtParent: (proofNode, exprSource, frame) => unit
-let proofNodeCreateProofTable: proofNode => proofTable
+let pnGetExpr: proofNode => expr
+let pnGetProof: proofNode => option<exprSource>
+let pnGetParents: proofNode => option<array<exprSource>>
+let pnAddNonAsrtParent: (proofNode, exprSource) => unit
+let pnAddAsrtParent: (proofNode, exprSource, frame) => unit
+let pnCreateProofTable: proofNode => proofTable
