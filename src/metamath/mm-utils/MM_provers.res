@@ -35,9 +35,7 @@ let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
                                 | None => tree->ptMakeNode( ~label=None, ~expr = newExpr, )
                             }
                         })
-                        foundParents->Js_array2.push(
-                            Assertion({ args, label:frm.frame.label, frame:Some(frm.frame) })
-                        )->ignore
+                        foundParents->Js_array2.push( Assertion({ args, frame:frm.frame }) )->ignore
                     }
                     Continue
                 }
@@ -69,13 +67,19 @@ let proveFloating = (~tree, ~node) => {
                     | None => {
                         let curExpr = curNode->pnGetExpr
                         if (tree->ptIsNewVarDef(curExpr)) {
-                            curNode->pnAddNonAsrtParent(VarType)
+                            curNode->pnAddParent(VarType)
                         } else {
                             switch tree->ptGetHypByExpr(curExpr) {
-                                | Some(hyp) => curNode->pnAddNonAsrtParent(Hypothesis({label:hyp.label}))
+                                | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
                                 | None => {
                                     findParentsWithoutNewVars(~tree, ~expr=curNode->pnGetExpr)
-                                        ->Js.Array2.forEach(src)
+                                        ->Js.Array2.forEach(asrtParent => {
+                                            curNode->pnAddParent(asrtParent)//this will fail because of unproved floatings
+                                            switch asrtParent {
+                                                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
+                                                | _ => ()
+                                            }
+                                        })
                                 }
                             }
                         }

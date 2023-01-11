@@ -11,7 +11,7 @@ type proofNode
 type exprSource =
   | VarType
   | Hypothesis({label:string})
-  | Assertion({args:array<proofNode>, label:string, frame:option<frame>})
+  | Assertion({args:array<proofNode>, frame:frame})
 
 type proofTree
 
@@ -36,6 +36,5 @@ let ptMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSource>
 let pnGetParents: proofNode => option<array<exprSource>>
-let pnAddNonAsrtParent: (proofNode, exprSource) => unit
-let pnAddAsrtParent: (proofNode, exprSource, frame) => unit
+let pnAddParent: (proofNode, exprSource) => unit
 let pnCreateProofTable: proofNode => proofTable

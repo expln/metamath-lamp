@@ -17,7 +17,7 @@ type rec proofNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, label:string, frame:option<frame>})
+    | Assertion({args:array<proofNode>, frame:frame})
 
 type proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -47,10 +47,10 @@ let exprSourceEq = (s1,s2) => {
                 | _ => false
             }
         }
-        | Assertion({ args:args1, label:label1, }) => {
+        | Assertion({ args:args1, frame:frame1, }) => {
             switch s2 {
-                | Assertion({ args:args2, label:label2, }) => {
-                    label1 == label2
+                | Assertion({ args:args2, frame:frame2, }) => {
+                    frame1.label == frame2.label
                     && args1->Js.Array2.length == args2->Js.Array2.length
                     && args1->Js.Array2.everyi((arg1,idx) => exprEq(arg1.expr, args2[idx].expr))
                 }
@@ -190,27 +190,19 @@ let pnGetExpr = node => node.expr
 let pnGetProof = node => node.proof
 let pnGetParents = node => node.parents
 
-let pnAddParent = (node:proofNode, parent:exprSource, frame:option<frame>):unit => {
+let pnAddParent = (node:proofNode, parent:exprSource):unit => {
     switch node.proof {
         | Some(_) => ()
         | None => {
             switch parent {
                 | VarType | Hypothesis(_) => ()
-                | Assertion({args}) => {
-                    switch frame {
-                        | None => 
+                | Assertion({args, frame}) => {
+                    switch frame.hyps->Js_array2.findi((hyp,i) => hyp.typ == F && args[i].proof->Belt_Option.isNone) {
+                        | Some(_) =>
                             raise(MmException({
-                                msg:`Cannot add a parent node derived from an assertion without a correspondig frame.`
+                                msg:`Cannot add a parent node with an unproved floating hypothesis.`
                             }))
-                        | Some(frame) => {
-                            switch frame.hyps->Js_array2.findi((hyp,i) => hyp.typ == F && args[i].proof->Belt_Option.isNone) {
-                                | Some(_) =>
-                                    raise(MmException({
-                                        msg:`Cannot add a parent node with an unproved floating hypothesis.`
-                                    }))
-                                | None => ()
-                            }
-                        }
+                        | None => ()
                     }
                 }
             }
@@ -247,14 +239,6 @@ let pnAddParent = (node:proofNode, parent:exprSource, frame:option<frame>):unit 
             }
         }
     }
-}
-
-let pnAddNonAsrtParent = (node:proofNode, parent:exprSource):unit => {
-    pnAddParent(node, parent, None)
-}
-
-let pnAddAsrtParent = (node:proofNode, parent:exprSource, frame:frame):unit => {
-    pnAddParent(node, parent, Some(frame))
 }
 
 let pnCreateProofTable = (node:proofNode):proofTable => {
@@ -297,11 +281,11 @@ let pnCreateProofTable = (node:proofNode):proofTable => {
                 | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNode [3].`}))
                 | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [3].`}))
                 | Some(Hypothesis(_)) => ()
-                | Some(Assertion({args,label})) => {
+                | Some(Assertion({args,frame})) => {
                     if (exprToIdx->Belt_MutableMap.get(n.expr)->Belt_Option.isNone) {
                         let idx = tbl->Js_array2.push({
                             proof:Assertion({
-                                label:label,
+                                label:frame.label,
                                 args: args->Js_array2.map(n => {
                                     exprToIdx->Belt_MutableMap.get(n.expr)->Belt_Option.getWithDefault(-1)
                                 })
