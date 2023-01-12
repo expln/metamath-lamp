@@ -15,11 +15,12 @@ type rec proofNode = {
     mutable proof: option<exprSource>,
 }
 and exprSource =
+    | ParentTree
     | VarType
     | Hypothesis({label:string})
     | Assertion({args:array<proofNode>, frame:frame})
 
-type proofTree = {
+type rec proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
     hypsByExpr: Belt_Map.t<expr,hypothesis,ExprCmp.identity>,
     hypsByLabel: Belt_MapString.t<hypothesis>,
@@ -31,10 +32,19 @@ type proofTree = {
     rootNodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
     nodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
     exprToStr: option<expr=>string>, //for debug purposes
+
+    parentTree:option<proofTree>,
+    allowParentsWithUnprovedFloatings:bool,
 }
 
 let exprSourceEq = (s1,s2) => {
     switch s1 {
+        | ParentTree => {
+            switch s2 {
+                | ParentTree => true
+                | _ => false
+            }
+        }
         | VarType => {
             switch s2 {
                 | VarType => true
@@ -66,33 +76,85 @@ let ptIsDisj = (tree, n, m) => tree.disj->disjContains(n,m)
 let ptIsNewVarDef = (tree, expr) => tree.newVars->Belt_MutableSet.has(expr)
 
 let ptMake = (
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~hyps: Belt_MapString.t<hypothesis>,
-    ~maxVar: int,
-    ~disj: disjMutable,
-    ~parenCnt:parenCnt,
-    ~exprToStr: option<expr=>string>,
+    ~frms: option<Belt_MapString.t<frmSubsData>>=?,
+    ~hyps: option<Belt_MapString.t<hypothesis>>=?,
+    ~maxVar: option<int>=?,
+    ~disj: option<disjMutable>=?,
+    ~parenCnt:option<parenCnt>=?,
+    ~exprToStr: option<expr=>string>=?,
+
+    ~parentTree:option<proofTree>=?,
+    ~allowParentsWithUnprovedFloatings: bool=false,
+    ()
 ) => {
-    {
-        frms,
-        hypsByLabel: hyps,
-        hypsByExpr: hyps
-                        ->Belt_MapString.toArray
-                        ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
-                        ->Belt_Map.fromArray(~id=module(ExprCmp)),
-        ctxMaxVar:maxVar,
-        maxVar,
-        newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
-        disj,
-        parenCnt,
-        rootNodes: Belt_MutableMap.make(~id=module(ExprCmp)),
-        nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
-        exprToStr,
+    switch parentTree {
+        | Some(parentTree) => {
+            {
+                frms: parentTree.frms,
+                hypsByLabel: parentTree.hypsByLabel,
+                hypsByExpr: parentTree.hypsByExpr,
+                ctxMaxVar: parentTree.ctxMaxVar,
+                maxVar: parentTree.maxVar,
+                newVars: parentTree.newVars,
+                disj: parentTree.disj,
+                parenCnt: parentTree.parenCnt,
+                rootNodes: parentTree.rootNodes,
+                nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
+                exprToStr: parentTree.exprToStr,
+
+                parentTree: Some(parentTree),
+                allowParentsWithUnprovedFloatings,
+            }
+        }
+        | None => {
+            switch (frms, hyps, maxVar, disj, parenCnt) {
+                | (Some(frms), Some(hyps), Some(maxVar), Some(disj), Some(parenCnt)) => {
+                    {
+                        frms,
+                        hypsByLabel: hyps,
+                        hypsByExpr: hyps
+                                        ->Belt_MapString.toArray
+                                        ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
+                                        ->Belt_Map.fromArray(~id=module(ExprCmp)),
+                        ctxMaxVar:maxVar,
+                        maxVar,
+                        newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
+                        disj,
+                        parenCnt,
+                        rootNodes: Belt_MutableMap.make(~id=module(ExprCmp)),
+                        nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
+                        exprToStr,
+
+                        parentTree,
+                        allowParentsWithUnprovedFloatings
+                    }
+                }
+                | _ => {
+                    raise(MmException({
+                        msg:`If parentTree is None then all the following parameters must be specified: ` 
+                                ++ `frms, hyps, maxVar, disj, parenCnt.`
+                    }))
+                }
+            }
+        }
     }
 }
 
 let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
     tree.nodes->Belt_MutableMap.get(expr)
+}
+
+let ptGetProvedNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
+    switch tree.nodes->Belt_MutableMap.get(expr) {
+        | None => None
+        | Some(node) => {
+            if (node.proof->Belt_Option.isSome) {
+                Some(node)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
@@ -138,7 +200,7 @@ let ptMakeNode = (
 
 let esIsProved = (exprSrc:exprSource): bool => {
     switch exprSrc {
-        | VarType | Hypothesis(_) => true
+        | ParentTree | VarType | Hypothesis(_) => true
         | Assertion({args}) => args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
     }
 }
@@ -190,19 +252,21 @@ let pnGetExpr = node => node.expr
 let pnGetProof = node => node.proof
 let pnGetParents = node => node.parents
 
-let pnAddParent = (node:proofNode, parent:exprSource):unit => {
+let pnAddParent = (node:proofNode, parent:exprSource, tree:proofTree):unit => {
     switch node.proof {
         | Some(_) => ()
         | None => {
-            switch parent {
-                | VarType | Hypothesis(_) => ()
-                | Assertion({args, frame}) => {
-                    switch frame.hyps->Js_array2.findi((hyp,i) => hyp.typ == F && args[i].proof->Belt_Option.isNone) {
-                        | Some(_) =>
-                            raise(MmException({
-                                msg:`Cannot add a parent node with an unproved floating hypothesis.`
-                            }))
-                        | None => ()
+            if (!(tree.allowParentsWithUnprovedFloatings)) {
+                switch parent {
+                    | ParentTree | VarType | Hypothesis(_) => ()
+                    | Assertion({args, frame}) => {
+                        switch frame.hyps->Js_array2.findi((hyp,i) => hyp.typ == F && args[i].proof->Belt_Option.isNone) {
+                            | Some(_) =>
+                                raise(MmException({
+                                    msg:`Cannot add a parent node with an unproved floating hypothesis.`
+                                }))
+                            | None => ()
+                        }
                     }
                 }
             }

@@ -46,14 +46,49 @@ let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
 }
 
 let proveFloating = (~tree, ~node) => {
-    if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
+    /*
+    If a node has a proof, no need to prove it again.
+    If a node has Some parents, this means there was an attempt to prove this node earlier,
+        so no need in trying to prove it again.
+    It follows from the statement above, that all unproved nodes have to have most complete collection of parents, 
+        otherwise there is a risk to miss existing proof for this node. So we must not interrupt the process of adding 
+        parents even if the root node becomes proved.
+
+    On the other hand:
+    We should not skip unproved nodes with Some parents because such nodes could appear as a side effect of proving 
+        other nodes and were left unproved because the root node became proved first.
+    */
+    if (node->pnGetProof->Belt.Option.isNone /* && node->pnGetParents->Belt.Option.isNone */) {
+        let tmpTree = ptMake(
+            ~parentTree=tree,
+            ~allowParentsWithUnprovedFloatings=true,
+            ()
+        )
+
         let nodesToCreateParentsFor = Belt_MutableStack.make()
         let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
 
         let saveNodeToCreateParentsFor = node => {
-            if (node->pnGetParents->Belt.Option.isNone && !(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
+            if (!(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
                 savedNodes->Belt_MutableSet.add(node->pnGetExpr)
-                nodesToCreateParentsFor->Belt_MutableStack.push(node)
+                switch node->pnGetProof {
+                    | Some(_) => ()
+                    | None => {
+                        switch node->pnGetParents {
+                            | Some(parents) => {
+                                parents->Js_array2.forEach(parent => {
+                                    switch parent {
+                                        | Assertion({args:})
+                                    }
+                                })
+                            }
+                            | None => {
+                                savedNodes->Belt_MutableSet.add(node->pnGetExpr)
+                                nodesToCreateParentsFor->Belt_MutableStack.push(node)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -66,8 +101,11 @@ let proveFloating = (~tree, ~node) => {
                     | Some(_) => ()
                     | None => {
                         let curExpr = curNode->pnGetExpr
-                        if (tree->ptIsNewVarDef(curExpr)) {
-                            curNode->pnAddParent(VarType)
+                        switch tree->ptGetProvedNodeByExpr(curExpr) {
+                            | Some(_) => curNode->pnAddParent(VarType, tmpTree)
+                        }
+                        if (tmpTree->ptIsNewVarDef(curExpr)) {
+                            curNode->pnAddParent(VarType, tmpTree)
                         } else {
                             switch tree->ptGetHypByExpr(curExpr) {
                                 | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
