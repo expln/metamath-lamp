@@ -35,6 +35,22 @@ let setInfoExpanded = (st,infoExpanded):state => {
     }
 }
 
+let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mouse.t => unit) => {
+    if (mouseEvt->ReactEvent.Mouse.button == 0) {
+        clbk()
+    } else {
+        ifNot(mouseEvt)
+    }
+}
+
+let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mouse.t => unit) => {
+    if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
+        clbk()
+    } else {
+        ifNot(mouseEvt)
+    }
+}
+
 @react.component
 let make = (
     ~stmt:userStmt, 
@@ -94,14 +110,6 @@ let make = (
         }
     }
 
-    let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mouse.t => unit) => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
-            clbk()
-        } else {
-            ifNot(mouseEvt)
-        }
-    }
-
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Row>
@@ -119,8 +127,8 @@ let make = (
             </Row>
         } else {
             <span 
-                onClick=altLeftClickHnd(_, onLabelEditRequested, _ => ()) 
-                title="Alt+<left-click> to change"
+                onClick=leftClickHnd(_, onLabelEditRequested, _ => ()) 
+                title="<left-click> to change"
             >
                 {React.string(stmt.label)}
             </span>
@@ -145,9 +153,9 @@ let make = (
             </Row>
         } else {
             <Paper 
-                onClick=altLeftClickHnd(_, onContEditRequested, _ => ()) 
+                onClick=leftClickHnd(_, onContEditRequested, _ => ()) 
                 style=ReactDOM.Style.make(~padding="1px 10px", ~backgroundColor="rgb(255,255,235)", ()) 
-                title="Alt+<left-click> to change"
+                title="<left-click> to change"
             >
             {
                 switch stmt.cont {
@@ -241,9 +249,9 @@ let make = (
             </Row>
         } else {
             <Paper 
-                onClick=altLeftClickHnd(_, onJstfEditRequested, _ => ()) 
+                onClick=leftClickHnd(_, onJstfEditRequested, _ => ()) 
                 style=ReactDOM.Style.make(~padding="3px", ())
-                title="Alt+<left-click> to change"
+                title="<left-click> to change"
             >
                 {React.string("Justification: ")}
                 {React.string(stmt.jstfText)}

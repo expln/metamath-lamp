@@ -51,8 +51,8 @@ let make = (
         }
     }
 
-    let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
+    let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
+        if (mouseEvt->ReactEvent.Mouse.button == 0) {
             clbk()
         }
     }
@@ -80,9 +80,9 @@ let make = (
             }
             <Paper 
                 variant=#outlined 
-                onClick=altLeftClickHnd(_, onEditRequested) 
+                onClick=leftClickHnd(_, onEditRequested) 
                 style 
-                title="Alt+<left-click> to change"
+                title="<left-click> to change"
             >
                 <pre>
                     {React.string(text)}
