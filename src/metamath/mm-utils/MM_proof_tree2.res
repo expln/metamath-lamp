@@ -13,14 +13,16 @@ type rec proofNode = {
     mutable parents: option<array<exprSource>>,
     mutable children: array<proofNode>,
     mutable proof: option<exprSource>,
+    tree: proofTree
 }
+
 and exprSource =
     | ParentTree
     | VarType
     | Hypothesis({label:string})
     | Assertion({args:array<proofNode>, frame:frame})
 
-type rec proofTree = {
+and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
     hypsByExpr: Belt_Map.t<expr,hypothesis,ExprCmp.identity>,
     hypsByLabel: Belt_MapString.t<hypothesis>,
@@ -29,7 +31,6 @@ type rec proofTree = {
     newVars: Belt_MutableSet.t<expr,ExprCmp.identity>,
     disj: disjMutable,
     parenCnt:parenCnt,
-    rootNodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
     nodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
     exprToStr: option<expr=>string>, //for debug purposes
 
@@ -98,7 +99,6 @@ let ptMake = (
                 newVars: parentTree.newVars,
                 disj: parentTree.disj,
                 parenCnt: parentTree.parenCnt,
-                rootNodes: parentTree.rootNodes,
                 nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
                 exprToStr: parentTree.exprToStr,
 
@@ -121,7 +121,6 @@ let ptMake = (
                         newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
                         disj,
                         parenCnt,
-                        rootNodes: Belt_MutableMap.make(~id=module(ExprCmp)),
                         nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
                         exprToStr,
 
@@ -161,10 +160,6 @@ let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
     tree.hypsByExpr->Belt_Map.get(expr)
 }
 
-let ptAddRootNode = (tree, node):unit => {
-    tree.rootNodes->Belt_MutableMap.set(node.expr, node)
-}
-
 let proofNodeGetExprStr = (node:proofNode):string => {
     switch node.exprStr {
         | Some(str) => str
@@ -181,7 +176,7 @@ let ptMakeNode = (
         | Some(existingNode) => 
             raise(MmException({
                 msg:`Creation of a new node was requested, ` 
-                    ++ `but a node with the same expr already exists '${existingNode->proofNodeGetExprStr}'.`
+                    ++ `but a node with the same expression already exists '${existingNode->proofNodeGetExprStr}'.`
             }))
         | None => {
             let node = {
@@ -191,6 +186,7 @@ let ptMakeNode = (
                 parents: None,
                 proof: None,
                 children: [],
+                tree,
             }
             tree.nodes->Belt_MutableMap.set(expr, node)->ignore
             node
@@ -248,15 +244,16 @@ let pnAddChild = (node, child): unit => {
     }
 }
 
+let pnGetLabel = node => node.label
 let pnGetExpr = node => node.expr
 let pnGetProof = node => node.proof
 let pnGetParents = node => node.parents
 
-let pnAddParent = (node:proofNode, parent:exprSource, tree:proofTree):unit => {
+let pnAddParent = (node:proofNode, parent:exprSource):unit => {
     switch node.proof {
         | Some(_) => ()
         | None => {
-            if (!(tree.allowParentsWithUnprovedFloatings)) {
+            if (!(node.tree.allowParentsWithUnprovedFloatings)) {
                 switch parent {
                     | ParentTree | VarType | Hypothesis(_) => ()
                     | Assertion({args, frame}) => {
@@ -294,7 +291,7 @@ let pnAddParent = (node:proofNode, parent:exprSource, tree:proofTree):unit => {
             }
             if (newParentWasAdded.contents) {
                 switch parent {
-                    | VarType | Hypothesis(_) => ()
+                    | ParentTree | VarType | Hypothesis(_) => ()
                     | Assertion({args}) => args->Js_array2.forEach(pnAddChild(_, node))
                 }
                 if (esIsProved(parent)) {
@@ -315,6 +312,7 @@ let pnCreateProofTable = (node:proofNode):proofTable => {
         (_,n) => {
             switch n.proof {
                 | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNode [1].`}))
+                | Some(ParentTree) => raise(MmException({msg:`ParentTree is not supported in createProofTable [1].`}))
                 | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [1].`}))
                 | Some(Hypothesis(_)) => None
                 | Some(Assertion({args})) => {
@@ -330,6 +328,7 @@ let pnCreateProofTable = (node:proofNode):proofTable => {
             switch n.proof {
                 | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNode [2].`}))
                 | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [2].`}))
+                | Some(ParentTree) => raise(MmException({msg:`ParentTree is not supported in createProofTable [2].`}))
                 | Some(Hypothesis({label})) => {
                     if (exprToIdx->Belt_MutableMap.get(n.expr)->Belt_Option.isNone) {
                         let idx = tbl->Js_array2.push({proof:Hypothesis({label:label}), expr:n.expr})-1
@@ -344,6 +343,7 @@ let pnCreateProofTable = (node:proofNode):proofTable => {
             switch n.proof {
                 | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNode [3].`}))
                 | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [3].`}))
+                | Some(ParentTree) => raise(MmException({msg:`ParentTree is not supported in createProofTable [3].`}))
                 | Some(Hypothesis(_)) => ()
                 | Some(Assertion({args,frame})) => {
                     if (exprToIdx->Belt_MutableMap.get(n.expr)->Belt_Option.isNone) {

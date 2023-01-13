@@ -36,11 +36,11 @@ let ptIsNewVarDef: (proofTree, expr) => bool
 let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetProvedNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
-let ptAddRootNode: (proofTree, proofNode) => unit
 let ptMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
 
+let pnGetLabel: proofNode => option<string>
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSource>
 let pnGetParents: proofNode => option<array<exprSource>>
-let pnAddParent: (proofNode, exprSource, proofTree) => unit
+let pnAddParent: (proofNode, exprSource) => unit
 let pnCreateProofTable: proofNode => proofTable
