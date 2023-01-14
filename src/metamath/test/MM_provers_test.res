@@ -24,7 +24,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let nodeToProve = proofTree->ptMakeNode(~label=None, ~expr)
 
     //when
-    proveFloating(~tree=proofTree, ~node=nodeToProve)
+    proveFloating(proofTree, nodeToProve)
 
     //then
     let proofTable = pnCreateProofTable(nodeToProve)

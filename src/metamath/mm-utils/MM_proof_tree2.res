@@ -98,6 +98,12 @@ let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
     tree.hypsByExpr->Belt_Map.get(expr)
 }
 
+let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> => {
+    tree.hypsByLabel->Belt_MapString.get(label)
+}
+
+let ptGetMaxVar = tree => tree.maxVar
+
 let proofNodeGetExprStr = (node:proofNode):string => {
     switch node.exprStr {
         | Some(str) => str
@@ -223,6 +229,17 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
             }
         }
     }
+}
+
+let ptAddNewVar = (tree, typ):int => {
+    tree.maxVar = tree.maxVar + 1
+    let newVar = tree.maxVar
+    tree.newVars->Belt_MutableSet.add([typ, newVar])
+    newVar
+}
+
+let ptAddDisjPair = (tree, n, m) => {
+    tree.disj->disjAddPair( n,m )
 }
 
 let pnCreateProofTable = (node:proofNode):proofTable => {

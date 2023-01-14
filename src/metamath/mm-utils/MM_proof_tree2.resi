@@ -25,12 +25,16 @@ let ptMake: (
 ) => proofTree
 
 let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
+let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
+let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
+let ptGetMaxVar: proofTree => int
 let ptGetParenCnt: proofTree => parenCnt
 let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
 let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
-let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
+let ptAddNewVar: (proofTree, int) => int
+let ptAddDisjPair: (proofTree, int, int) => unit
 
 let pnGetLabel: proofNode => option<string>
 let pnGetExpr: proofNode => expr
