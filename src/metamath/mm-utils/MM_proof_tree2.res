@@ -302,6 +302,35 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
     }
 }
 
+// let moveProofToTargetTree = rootNode => {
+//     let targetTree = rootNode.tree
+//     let nodesToMove = Belt_MutableQueue.make()
+//     nodesToMove->Belt_MutableQueue.add(rootNode)
+//     while (!(nodesToMove->Belt_MutableQueue.isEmpty)) {
+//         let curNode = nodesToMove->Belt_MutableQueue.pop()->Belt.Option.getExn
+//         if (curNode === rootNode || curNode.tree !== targetTree) {
+//             curNode.tree = targetTree
+//             curNode.parents = Some([])
+//             switch curNode.proof {
+//                 | None => raise(MmException({msg:`each node must be proved in moveProofToTargetTree().`}))
+//                 | Some(proof) => {
+//                     switch proof {
+//                         | ParentTree => {
+//                             switch targetTree.nodes->Belt_MutableMap.get()
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     switch rootNode.proof {
+//         | None => raise(MmException({msg:`rootNode must be proved in moveProofToNodesTree().`}))
+//         | Some(proof) => {
+            
+//         }
+//     }
+// }
+
 let pnCreateProofTable = (node:proofNode):proofTable => {
     let processedExprs = Belt_MutableSet.make(~id = module(ExprCmp))
     let exprToIdx = Belt_MutableMap.make(~id = module(ExprCmp))
