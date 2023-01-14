@@ -35,7 +35,7 @@ let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
                                 | None => tree->ptMakeNode( ~label=None, ~expr = newExpr, )
                             }
                         })
-                        foundParents->Js_array2.push( Assertion({ args, frame:frm.frame }) )->ignore
+                        foundParents->Js_array2.push( Assertion({ args, label:frm.frame.label }) )->ignore
                     }
                     Continue
                 }
@@ -55,12 +55,6 @@ let proveFloating = (~tree, ~node) => {
         parents even if the root node becomes proved.
     */
     if (node->pnGetProof->Belt.Option.isNone) {
-        let tmpTree = ptMake(
-            ~parentTree=tree,
-            ~allowParentsWithUnprovedFloatings=true,
-            ()
-        )
-
         let nodesToCreateParentsFor = Belt_MutableStack.make()
         let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
 
@@ -76,7 +70,7 @@ let proveFloating = (~tree, ~node) => {
             }
         }
 
-        let rootNode = tmpTree->ptMakeNode(~label=node->pnGetLabel, ~expr=node->pnGetExpr )
+        let rootNode = node
         saveNodeToCreateParentsFor(rootNode)
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableStack.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableStack.pop->Belt_Option.getExn
@@ -92,38 +86,26 @@ let proveFloating = (~tree, ~node) => {
                     }
                     | None => {
                         let curExpr = curNode->pnGetExpr
-                        switch tree->ptGetProvedNodeByExpr(curExpr) {
-                            | Some(_) => curNode->pnAddParent(ParentTree)
-                            | None => {
-                                if (tmpTree->ptIsNewVarDef(curExpr)) {
-                                    curNode->pnAddParent(VarType)
-                                } else {
-                                    switch tree->ptGetHypByExpr(curExpr) {
-                                        | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
-                                        | None => {
-                                            findParentsWithoutNewVars(~tree=tmpTree, ~expr=curNode->pnGetExpr)
-                                                ->Js.Array2.forEach(asrtParent => {
-                                                    curNode->pnAddParent(asrtParent)
-                                                    switch asrtParent {
-                                                        | Assertion({args}) => 
-                                                            args->Js_array2.forEach(saveNodeToCreateParentsFor)
-                                                        | _ => ()
-                                                    }
-                                                })
-                                        }
-                                    }
+                        if (tree->ptIsNewVarDef(curExpr)) {
+                            curNode->pnAddParent(VarType)
+                        } else {
+                            switch tree->ptGetHypByExpr(curExpr) {
+                                | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
+                                | None => {
+                                    findParentsWithoutNewVars(~tree, ~expr=curNode->pnGetExpr)
+                                        ->Js.Array2.forEach(asrtParent => {
+                                            curNode->pnAddParent(asrtParent)
+                                            switch asrtParent {
+                                                | Assertion({args}) => 
+                                                    args->Js_array2.forEach(saveNodeToCreateParentsFor)
+                                                | _ => ()
+                                            }
+                                        })
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
-
-        switch rootNode->pnGetProof {
-            | None => ()
-            | Some(proof) => {
-                let 
             }
         }
     }

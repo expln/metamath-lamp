@@ -9,24 +9,19 @@ open MM_progress_tracker
 type proofNode
 
 type exprSource =
-  | ParentTree
   | VarType
   | Hypothesis({label:string})
-  | Assertion({args:array<proofNode>, frame:frame})
+  | Assertion({args:array<proofNode>, label:string})
 
 type proofTree
 
 let ptMake: (
-    ~frms: Belt_MapString.t<frmSubsData>=?,
-    ~hyps: Belt_MapString.t<hypothesis>=?,
-    ~maxVar: int=?,
-    ~disj: disjMutable=?,
-    ~parenCnt: parenCnt=?,
-    ~exprToStr: (expr=>string)=?,
-
-    ~parentTree:proofTree=?,
-    ~allowParentsWithUnprovedFloatings: bool=?,
-    ()
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~hyps: Belt_MapString.t<hypothesis>,
+    ~maxVar: int,
+    ~disj: disjMutable,
+    ~parenCnt: parenCnt,
+    ~exprToStr: option<expr=>string>,
 ) => proofTree
 
 let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
@@ -34,7 +29,6 @@ let ptGetParenCnt: proofTree => parenCnt
 let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
 let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
-let ptGetProvedNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
 
