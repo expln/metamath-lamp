@@ -29,7 +29,7 @@
     "compile": "rescript",
     "compile-with-deps": "rescript build -with-deps",
     "compile-test-all": "rescript && mocha src/metamath/test/**/*.js",
-    "compile-test-single": "rescript && mocha --timeout 100000 -g \"'unifies few statements'\" src/metamath/test/**/*.js",
+    "compile-test-single": "rescript && mocha --timeout 100000 -g \"'put_test_name_here'\" src/metamath/test/**/*.js",
     "clean-and-compile-with-deps": "npm run rescript-clean && npm run compile-with-deps",
     "rescript-start": "rescript build -w",
     "rescript-clean": "rescript clean -with-deps",
