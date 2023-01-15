@@ -261,3 +261,57 @@ let proveStmt = (~tree, ~prevStmts:array<rootStmt>, ~stmt:rootStmt, ~jstf:option
         }
     }
 }
+
+let unifyAll = (
+    ~ctx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~stmts: array<rootStmt>,
+    ~parenCnt: parenCnt,
+    ~onProgress:option<float=>unit>=?,
+    ~debug: bool=false,
+    ()
+) => {
+    let stmtsProcessed = ref(0.)
+    let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
+
+    let hyps = ctx->getAllHyps
+    let ctxMaxVar = ctx->getNumOfVars - 1
+    let disj = ctx->getAllDisj
+    let exprToStr = if (debug) {
+        let intToSym = i => {
+            if (i <= ctxMaxVar) {
+                ctx->ctxIntToSymExn(i)
+            } else {
+                "&" ++ i->Belt.Int.toString
+            }
+        }
+        Some(expr => expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" "))
+    } else {
+        None
+    }
+    let tree = ptMake(~frms, ~hyps, ~ctxMaxVar, ~disj, ~parenCnt, ~exprToStr )
+    hyps->Belt_MapString.forEach((label,hyp) => {
+        if (hyp.typ == E) {
+            let node = tree->ptMakeNode(hyp.expr)
+            node->pnAddParent(Hypothesis({label:label}))
+        }
+    })
+
+    let numOfStmts = stmts->Js_array2.length
+    let maxStmtIdx = numOfStmts - 1
+    for stmtIdx in 0 to maxStmtIdx {
+        let stmt = stmts[stmtIdx]
+        proveStmt(
+            ~tree, 
+            ~prevStmts = stmts->Js_array2.filteri((_,i) => i < stmtIdx),
+            ~stmt, 
+            ~jstf=stmt.justification,
+        )
+
+        stmtsProcessed.contents = stmtsProcessed.contents +. 1.
+        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+            stmtsProcessed.contents /. numOfStmts->Belt_Int.toFloat
+        )
+    }
+    tree
+}

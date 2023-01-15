@@ -18,9 +18,9 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let parenCnt = parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]"))
     let hyps = ctx->getAllHyps
     let disj = ctx->getAllDisj
-    let maxVar = ctx->getNumOfVars - 1
+    let ctxMaxVar = ctx->getNumOfVars - 1
 
-    let proofTree = ptMake( ~frms, ~disj, ~hyps, ~parenCnt, ~exprToStr=None, ~maxVar )
+    let proofTree = ptMake( ~frms, ~disj, ~hyps, ~parenCnt, ~exprToStr=None, ~ctxMaxVar )
     let nodeToProve = proofTree->ptMakeNode(expr)
 
     //when

@@ -78,7 +78,7 @@ let ptIsNewVarDef = (tree, expr) => tree.newVars->Belt_MutableSet.has(expr)
 let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~hyps: Belt_MapString.t<hypothesis>,
-    ~maxVar: int,
+    ~ctxMaxVar: int,
     ~disj: disjMutable,
     ~parenCnt: parenCnt,
     ~exprToStr: option<expr=>string>,
@@ -90,8 +90,8 @@ let ptMake = (
                         ->Belt_MapString.toArray
                         ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
                         ->Belt_Map.fromArray(~id=module(ExprCmp)),
-        ctxMaxVar:maxVar,
-        maxVar,
+        ctxMaxVar,
+        maxVar:ctxMaxVar,
         newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
         disj,
         parenCnt,

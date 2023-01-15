@@ -29,7 +29,7 @@ type proofTree
 let ptMake: (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~hyps: Belt_MapString.t<hypothesis>,
-    ~maxVar: int,
+    ~ctxMaxVar: int,
     ~disj: disjMutable,
     ~parenCnt: parenCnt,
     ~exprToStr: option<expr=>string>,
