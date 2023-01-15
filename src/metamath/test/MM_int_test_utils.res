@@ -215,7 +215,11 @@ let editorStateToStr = st => {
     lines->Js_array2.push("")->ignore
     st.stmts->Js.Array2.forEach(stmt => {
         lines->Js_array2.push("")->ignore
-        lines->Js_array2.push("-------------------------------------------------------------------------------")->ignore
+        lines->Js_array2.push(
+            "--- "
+            ++ (stmt.typ :> string) 
+            ++ " -------------------------------------------------------------------------------"
+        )->ignore
         lines->Js_array2.push(stmt.label)->ignore
         lines->Js_array2.push(stmt.jstfText)->ignore
         lines->Js_array2.push(contToStr(stmt.cont))->ignore
