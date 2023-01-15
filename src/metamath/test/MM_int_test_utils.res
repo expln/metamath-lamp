@@ -15,8 +15,11 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
     let (ast, _) = parseMmFile(mmFileText, ())
     let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ())
+    while (ctx->getNestingLevel != 0) {
+        ctx->closeChildContext
+    }
     let frms = prepareFrmSubsData(ctx)
-    parenCnt.contents = parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]"))
+    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, "( ) { } [ ]"))
     {
         settingsV: 1,
         settings: {
@@ -117,7 +120,7 @@ let updateStmt = (
 }
 
 let addStmtsBySearch = (
-    st, 
+    st,
     ~addBefore:option<string>=?,
     ~filterLabel:option<string>=?, 
     ~filterTyp:option<string>=?, 

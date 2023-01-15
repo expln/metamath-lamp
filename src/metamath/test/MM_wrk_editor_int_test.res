@@ -2,10 +2,10 @@ open Expln_test
 open MM_int_test_utils
 
 let setMmPath = "C:/Users/Igor/igye/books/metamath/set.mm"
+let failOnMismatch = true
 
 describe("MM_wrk_editor integration tests", _ => {
     it("proving reccot", _ => {
-        let failOnMismatch = true
         setTestDataDir("prove-reccot")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="reccsc", ())
 
@@ -135,6 +135,25 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step17-after-unify-all", ~failOnMismatch, ())
         assertProof(st, trgtStmtId, "proof3-no-hyps", ~failOnMismatch, ())
+    })
+
+    it("proving nfv", _ => {
+        setTestDataDir("prove-nfv")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="nfv", ())
+
+        let (st, _) = st->addStmt( ~stmt="|- ( E. x ph -> ph )", () )
+        let (st, _) = st->addStmt( ~stmt="|- ( ph -> A. x ph )", () )
+        let (st, _) = st->addStmt( ~stmt="|- ( E. x ph -> A. x ph )", () )
+        let (st, trgtStmtId) = st->addStmt( ~stmt="|- F/ x ph", () )
+        let st = st->unifyAll
+        assertEditorState(st, "step1", ~failOnMismatch, ())
+        
+        let st = st->MM_wrk_editor.completeDisjEditMode("x,ph")
+        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        let st = st->unifyAll
+        assertEditorState(st, "step2", ~failOnMismatch, ())
+        assertProof(st, trgtStmtId, "proof1", ~failOnMismatch, ())
+
     })
     
 })
