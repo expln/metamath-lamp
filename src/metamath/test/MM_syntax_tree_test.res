@@ -33,18 +33,16 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(mmFileText, ())
     let ctx = loadContext(ast, ())
-    let proofTree = ptMake(
-        ~frms=prepareFrmSubsData(ctx),
-        ~hyps=ctx->getAllHyps,
-        ~ctxMaxVar=ctx->getNumOfVars - 1,
-        ~disj=ctx->getAllDisj,
-        ~parenCnt=parenCntMake(ctx->ctxSymsToIntsExn(["(", ")", "{", "}", "[", "]"])),
-        ~exprToStr = Some(ctx->ctxIntsToStrExn),
-    )
     let expr = exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _)
-    let nodeToProve = proofTree->ptMakeNode(expr)
-    proveFloating( proofTree, nodeToProve, )
-    let proofTable = pnCreateProofTable(nodeToProve)
+    let proofTree = proveFloatings(
+        ~ctx,
+        ~frms=prepareFrmSubsData(ctx),
+        ~stmts = [expr],
+        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]")),
+        (),
+    )
+    let node = proofTree->ptGetOrCreateNode(expr)
+    let proofTable = pnCreateProofTable(node)
 
     //when
     let actualSyntaxTree = buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)

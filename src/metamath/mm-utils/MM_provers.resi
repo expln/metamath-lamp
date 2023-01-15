@@ -3,7 +3,15 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 
-let proveFloating: (proofTree, proofNode) => unit
+let proveFloatings: (
+  ~ctx: mmContext,
+  ~frms: Belt_MapString.t<frmSubsData>,
+  ~stmts: array<expr>,
+  ~parenCnt: parenCnt,
+  ~debug: bool=?,
+  (),
+) => proofTree
+
 
 let unifyAll: (
   ~ctx: mmContext,
@@ -12,5 +20,6 @@ let unifyAll: (
   ~parenCnt: parenCnt,
   ~onProgress: float => unit=?,
   ~debug: bool=?,
-  unit,
+  (),
 ) => proofTree
+

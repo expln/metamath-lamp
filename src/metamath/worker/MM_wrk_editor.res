@@ -825,16 +825,10 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
     let typesToProve = wrkSubs
         ->Belt_MapInt.toArray
         ->Js_array2.map(((var,expr)) => [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr))
-    let proofTree = unifyAll(
+    let proofTree = proveFloatings(
         ~ctx,
         ~frms,
-        ~stmts=typesToProve->Js_array2.mapi((typeExpr,i) => {
-            {
-                label: "",
-                expr: typeExpr,
-                justification: None
-            }
-        }),
+        ~stmts=typesToProve,
         ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens)),
         ()
     )

@@ -15,19 +15,19 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let ctx = loadContext(ast, ())
     let expr = ctx->ctxStrToIntsExn(exprStr)
     let frms = prepareFrmSubsData(ctx)
-    let parenCnt = parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]"))
-    let hyps = ctx->getAllHyps
-    let disj = ctx->getAllDisj
-    let ctxMaxVar = ctx->getNumOfVars - 1
-
-    let proofTree = ptMake( ~frms, ~disj, ~hyps, ~parenCnt, ~exprToStr=None, ~ctxMaxVar )
-    let nodeToProve = proofTree->ptMakeNode(expr)
 
     //when
-    proveFloating(proofTree, nodeToProve)
+    let proofTree = proveFloatings(
+        ~ctx,
+        ~frms,
+        ~stmts = [expr],
+        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]")),
+        (),
+    )
 
     //then
-    let proofTable = pnCreateProofTable(nodeToProve)
+    let node = proofTree->ptGetOrCreateNode(expr)
+    let proofTable = pnCreateProofTable(node)
     let actualProof = createProof(ctx, proofTable, proofTable->Js_array2.length-1)
 
     //then

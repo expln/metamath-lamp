@@ -262,6 +262,49 @@ let proveStmt = (~tree, ~prevStmts:array<rootStmt>, ~stmt:rootStmt, ~jstf:option
     }
 }
 
+let makeExprToStr = (debug, ctx, ctxMaxVar) => {
+    if (debug) {
+        let intToSym = i => {
+            if (i <= ctxMaxVar) {
+                ctx->ctxIntToSymExn(i)
+            } else {
+                "&" ++ i->Belt.Int.toString
+            }
+        }
+        Some(expr => expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" "))
+    } else {
+        None
+    }
+}
+
+let createProofTree = (
+    ~ctx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~addEssentials: bool,
+    ~debug: bool,
+) => {
+    let ctxMaxVar = ctx->getNumOfVars - 1
+    let hyps = ctx->getAllHyps
+    let tree = ptMake(
+        ~frms, 
+        ~hyps, 
+        ~ctxMaxVar, 
+        ~disj=ctx->getAllDisj, 
+        ~parenCnt, 
+        ~exprToStr=makeExprToStr(debug, ctx, ctxMaxVar),
+    )
+    if (addEssentials) {
+        hyps->Belt_MapString.forEach((label,hyp) => {
+            if (hyp.typ == E) {
+                let node = tree->ptMakeNode(hyp.expr)
+                node->pnAddParent(Hypothesis({label:label}))
+            }
+        })
+    }
+    tree
+}
+
 let unifyAll = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -274,28 +317,13 @@ let unifyAll = (
     let stmtsProcessed = ref(0.)
     let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
 
-    let hyps = ctx->getAllHyps
-    let ctxMaxVar = ctx->getNumOfVars - 1
-    let disj = ctx->getAllDisj
-    let exprToStr = if (debug) {
-        let intToSym = i => {
-            if (i <= ctxMaxVar) {
-                ctx->ctxIntToSymExn(i)
-            } else {
-                "&" ++ i->Belt.Int.toString
-            }
-        }
-        Some(expr => expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" "))
-    } else {
-        None
-    }
-    let tree = ptMake(~frms, ~hyps, ~ctxMaxVar, ~disj, ~parenCnt, ~exprToStr )
-    hyps->Belt_MapString.forEach((label,hyp) => {
-        if (hyp.typ == E) {
-            let node = tree->ptMakeNode(hyp.expr)
-            node->pnAddParent(Hypothesis({label:label}))
-        }
-    })
+    let tree = createProofTree(
+        ~ctx,
+        ~frms,
+        ~parenCnt,
+        ~addEssentials=true,
+        ~debug,
+    )
 
     let numOfStmts = stmts->Js_array2.length
     let maxStmtIdx = numOfStmts - 1
@@ -313,5 +341,27 @@ let unifyAll = (
             stmtsProcessed.contents /. numOfStmts->Belt_Int.toFloat
         )
     }
+    tree
+}
+
+let proveFloatings = (
+    ~ctx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~stmts: array<expr>,
+    ~parenCnt: parenCnt,
+    ~debug: bool=false,
+    ()
+) => {
+    let tree = createProofTree(
+        ~ctx,
+        ~frms,
+        ~parenCnt,
+        ~addEssentials=false,
+        ~debug,
+    )
+
+    stmts->Js.Array2.forEach(stmt => {
+        proveFloating( tree, tree->ptGetOrCreateNode(stmt) )
+    })
     tree
 }
