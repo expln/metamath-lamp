@@ -1,5 +1,8 @@
 open MM_wrk_editor
 
+let setMmPath: string
+let failOnMismatch: bool
+
 let createEditorState: ( ~mmFilePath: string, ~stopBefore: string=?, ~stopAfter: string=?, unit, ) => editorState
 
 let addStmt: ( editorState, ~typ: userStmtType=?, ~label: string=?, ~stmt: string, unit, ) => (editorState, string)

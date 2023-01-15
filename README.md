@@ -30,9 +30,16 @@ Mac: `cp ./dist/webworker-main.js ./public`
 
 `npm run start`
 
-***How to run all tests***
+***How to run all unit tests***
 
-`npm run compile-test-all`
+`npm run compile-test-all-unit`
+
+***How to run all integration tests***
+
+1. Update setMmPath constant in src/metamath/test/MM_int_test_utils.res to point out to set.mm file.
+2. Run tests: 
+`npm run compile-test-all-int`
+
 
 ***How to run a particular test***
 

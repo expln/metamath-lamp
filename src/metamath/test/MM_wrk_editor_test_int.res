@@ -1,6 +1,9 @@
 open Expln_test
 open MM_int_test_utils
 
+let setMmPath = "C:/Users/Igor/igye/books/metamath/set.mm"
+let failOnMismatch = true
+
 describe("MM_wrk_editor integration tests", _ => {
     it("proving reccot", _ => {
         setTestDataDir("prove-reccot")

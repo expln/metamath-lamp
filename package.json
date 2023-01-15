@@ -28,7 +28,8 @@
   "scripts": {
     "compile": "rescript",
     "compile-with-deps": "rescript build -with-deps",
-    "compile-test-all": "rescript && mocha src/metamath/test/**/*.js",
+    "compile-test-all-unit": "rescript && mocha src/metamath/test/**/*_test.bs.js",
+    "compile-test-all-int": "rescript && mocha --timeout 100000 src/metamath/test/**/*_test_int.bs.js",
     "compile-test-single": "rescript && mocha --timeout 100000 -g \"'put_test_name_here'\" src/metamath/test/**/*.js",
     "clean-and-compile-with-deps": "npm run rescript-clean && npm run compile-with-deps",
     "rescript-start": "rescript build -w",

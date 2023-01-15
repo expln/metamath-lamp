@@ -9,6 +9,9 @@ open MM_wrk_search_asrt
 open MM_substitution
 open MM_parenCounter
 
+let setMmPath = "/books/metamath/set.mm"
+let failOnMismatch = true
+
 let parenCnt = ref(parenCntMake([]))
 
 let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stopAfter:option<string>=?, ()) => {
