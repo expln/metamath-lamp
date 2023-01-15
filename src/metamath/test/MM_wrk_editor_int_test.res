@@ -115,16 +115,26 @@ describe("MM_wrk_editor integration tests", _ => {
         )
         let st = st->unifyAll
         assertEditorState(st, "step14", ~failOnMismatch, ())
-        assertProof(st, trgtStmtId, "proof1", ~failOnMismatch, ())
+        assertProof(st, trgtStmtId, "proof1-no-hyps", ~failOnMismatch, ())
 
-        // let hyp1Id = st.stmts[0].id
-        // let hyp2Id = st.stmts[1].id
+        let hyp1Id = st.stmts[0].id
+        let hyp2Id = st.stmts[1].id
 
-        // let st = st->updateStmt(hyp1Id, ~typ=#e, () )
-        // let st = st->updateStmt(hyp2Id, ~typ=#e, () )
-        // let st = st->unifyAll
-        // assertEditorState(st, "step15")
-        // assertProof(st, trgtStmtId, "proof2")
+        let st = st->updateStmt(hyp1Id, ~typ=#e, () )
+        let st = st->updateStmt(hyp2Id, ~typ=#e, () )
+        let st = st->unifyAll
+        assertEditorState(st, "step15", ~failOnMismatch, ())
+        assertProof(st, trgtStmtId, "proof2-hyps", ~failOnMismatch, ())
+        
+        let st = st->updateStmt(hyp1Id, ~typ=#p, () )
+        let st = st->updateStmt(hyp2Id, ~typ=#p, () )
+        let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
+        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        assertEditorState(st, "step16-no-jstf-before-unify-all", ~failOnMismatch, ())
+
+        let st = st->unifyAll
+        assertEditorState(st, "step17-after-unify-all", ~failOnMismatch, ())
+        assertProof(st, trgtStmtId, "proof3-no-hyps", ~failOnMismatch, ())
     })
     
 })
