@@ -23,6 +23,15 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let st = st->unifyAll
         assertEditorState(st, "step4")
+
+        let st = st->addStmtsBySearch( ~filterLabel="cotval", ~chooseLabel="cotval", () )
+        let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="A")
+        let st = st->unifyAll
+        assertEditorState(st, "step5")
+
+        let st = st->addStmtsBySearch(~filterPattern="class =/= 0 /\\ class =/= 0 -> 1 /", ~chooseLabel="recdiv", () )
+        let st = st->unifyAll
+        assertEditorState(st, "step6")
     })
     
 })

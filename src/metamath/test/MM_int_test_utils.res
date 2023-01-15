@@ -89,7 +89,11 @@ let addStmtsBySearch = (
                 ()
             )
             switch searchResults->Js_array2.find(res => res.asrtLabel == chooseLabel) {
-                | None => raise(MmException({msg:`Could not find ${chooseLabel}`}))
+                | None => 
+                    raise(MmException({
+                        msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
+                            ++ `Available: ${searchResults->Js_array2.map(res => res.asrtLabel)->Js_array2.joinWith(", ")} `
+                    }))
                 | Some(searchResult) => st->addAsrtSearchResult(searchResult)
             }
         }
