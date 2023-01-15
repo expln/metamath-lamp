@@ -116,6 +116,37 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
+let unifyAll = st => {
+    switch st.wrkCtx {
+        | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
+        | Some(wrkCtx) => {
+            let stmts = st.stmts
+                ->Js_array2.filter(stmt => stmt.typ == #p)
+                ->Js_array2.map(stmt => {
+                    {
+                        label:stmt.label,
+                        expr:
+                            switch stmt.expr {
+                                | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
+                                | Some(expr) => expr
+                            },
+                        justification: stmt.jstf,
+                    }
+                })
+            let proofTree = unifyAll(
+                ~parenCnt = parenCnt.contents,
+                ~frms = st.frms,
+                ~ctx = wrkCtx,
+                ~stmts,
+                ~debug=true,
+                ()
+            )
+            let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))
+            applyUnifyAllResults(st, proofTreeDto)
+        }
+    }
+}
+
 let editorStateToStr = st => {
     let lines = []
     lines->Js_array2.push("Variables:")->ignore
@@ -188,6 +219,9 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="A")
         assertEditorState(st, "step3")
+
+        let st = st->unifyAll
+        assertEditorState(st, "step4")
     })
     
 })
