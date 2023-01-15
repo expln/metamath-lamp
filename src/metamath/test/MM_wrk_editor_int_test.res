@@ -52,6 +52,68 @@ describe("MM_wrk_editor integration tests", _ => {
         )
         let st = st->unifyAll
         assertEditorState(st, "step8")
+
+        let (st, cotvalCopy2Id) = st->duplicateStmt(cotvalCopy1Id)
+        let st = st->updateStmt(cotvalCopy2Id, 
+            ~contReplaceWhat="( cot ` A )",
+            ~contReplaceWith="( 1 / ( cot ` A ) )",
+            ()
+        )
+        let st = st->updateStmt(cotvalCopy2Id, 
+            ~contReplaceWhat="( ( cos ` A ) / ( sin ` A ) )",
+            ~contReplaceWith="( 1 / ( ( cos ` A ) / ( sin ` A ) ) )",
+            ()
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step9")
+
+        let st = st->applySubstitution(
+            ~replaceWhat="1 / ( class1 / class2 )", 
+            ~replaceWith="1 / ( ( cos ` A ) / ( sin ` A ) )"
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step10")
+
+        let st = st->MM_wrk_editor.uncheckAllStmts
+        let st = st->MM_wrk_editor.toggleStmtChecked(st.stmts[0].id)
+        let (st, _) = st->addStmt(
+            ~stmt="|- ( A e. CC -> ( cos ` A ) e. CC )",
+            ()
+        )
+        let st = st->MM_wrk_editor.uncheckAllStmts
+        let st = st->unifyAll
+        assertEditorState(st, "step11")
+
+        let st = st->addStmtsBySearch(~filterLabel="sincl", ~chooseLabel="sincl", () )
+        let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="A")
+        let st = st->unifyAll
+        assertEditorState(st, "step12")
+
+        let result1Id = st->getStmtId(~contains="1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )")
+        let (st, result2Id) = st->duplicateStmt(result1Id)
+        let st = st->updateStmt(result2Id, 
+            ~contReplaceWhat="( cos ` A ) e. CC /\\ ( cos ` A ) =/= 0",
+            ~contReplaceWith="A e. CC /\\ ( cos ` A ) =/= 0",
+            ()
+        )
+
+        let (st, result3Id) = st->duplicateStmt(result2Id)
+        let st = st->updateStmt(result3Id, 
+            ~contReplaceWhat="( sin ` A ) e. CC /\\ ( sin ` A ) =/= 0",
+            ~contReplaceWith="A e. CC /\\ ( sin ` A ) =/= 0",
+            ()
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step13")
+
+        let (st, result4Id) = st->duplicateStmt(result3Id)
+        let st = st->updateStmt(result4Id, 
+            ~contReplaceWhat="( A e. CC /\\ ( cos ` A ) =/= 0 ) /\\ ( A e. CC /\\ ( sin ` A ) =/= 0 )",
+            ~contReplaceWith="A e. CC /\\ ( sin ` A ) =/= 0 /\\ ( cos ` A ) =/= 0",
+            ()
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step14")
     })
     
 })
