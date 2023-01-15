@@ -62,6 +62,60 @@ let addStmt = (st, ~typ:option<userStmtType>=?, ~label:option<string>=?, ~stmt:s
     (st->updateEditorStateWithPostupdateActions(st => st), stmtId)
 }
 
+let duplicateStmt = (st, stmtId):(editorState,string) => {
+    let st = st->uncheckAllStmts
+    let st = st->toggleStmtChecked(stmtId)
+    let st = st->duplicateCheckedStmt
+    if (st.checkedStmtIds->Js.Array2.length != 1) {
+        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
+    } else {
+        let newStmtId = st.checkedStmtIds[0]
+        let st = st->uncheckAllStmts
+        (st->updateEditorStateWithPostupdateActions(st => st), newStmtId)
+    }
+}
+
+let updateStmt = (
+    st, 
+    stmtId, 
+    ~label:option<string>=?,
+    ~typ:option<userStmtType>=?,
+    ~content:option<string>=?,
+    ~contReplaceWhat:option<string>=?,
+    ~contReplaceWith:option<string>=?,
+    ()
+):editorState => {
+    let st = st->updateStmt(stmtId, stmt => {
+        let stmt = switch label {
+            | None => stmt
+            | Some(label) => {...stmt, label}
+        }
+        let stmt = switch typ {
+            | None => stmt
+            | Some(typ) => {...stmt, typ}
+        }
+        let stmt = switch content {
+            | Some(content) => {...stmt, cont:strToCont(content)}
+            | None => {
+                switch (contReplaceWhat, contReplaceWith) {
+                    | (Some(contReplaceWhat), Some(contReplaceWith)) => {
+                        {
+                            ...stmt, 
+                            cont: stmt.cont
+                                    ->contToStr
+                                    ->Js.String2.replace(contReplaceWhat, contReplaceWith)
+                                    ->strToCont
+                        }
+                    }
+                    | _ => stmt
+                }
+            }
+        }
+        stmt
+    })
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
 let addStmtsBySearch = (
     st, 
     ~addBefore:option<string>=?,
@@ -201,5 +255,14 @@ let assertEditorState = (st, expectedStateFileName:string) => {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
         Expln_utils_files.writeStringToFile(fileWithActualResult, actualResultStr)
         assertEq( fileWithActualResult, fileWithExpectedResult )
+    }
+}
+
+let getStmtId = (st, ~contains:string) => {
+    let found = st.stmts->Js_array2.filter(stmt => stmt.cont->contToStr->Js.String2.includes(contains))
+    if (found->Js_array2.length != 1) {
+        raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
+    } else {
+        found[0].id
     }
 }

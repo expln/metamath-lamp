@@ -1,0 +1,37 @@
+Variables:
+var1 class class1
+var2 class class2
+
+Disjoints:
+
+
+
+stmt3
+: recdiv
+|- ( ( ( class1 e. CC /\ class1 =/= 0 ) /\ ( class2 e. CC /\ class2 =/= 0 ) ) -> ( 1 / ( class1 / class2 ) ) = ( class2 / class1 ) )
+ready
+
+stmt2
+: cotval
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 ) -> ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) ) )
+ready
+
+stmt5
+stmt2 : 3adant3
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) ) )
+ready
+
+stmt1
+: tanval
+|- ( ( A e. CC /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )
+ready
+
+stmt4
+stmt1 : 3adant2
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )
+ready
+
+reccot
+
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( 1 / ( cot ` A ) ) )
+noJstf
