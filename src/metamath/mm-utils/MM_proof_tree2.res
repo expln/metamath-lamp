@@ -6,10 +6,20 @@ open MM_parenCounter
 open MM_proof_table
 open MM_progress_tracker
 
+type justification = {
+    args: array<string>,
+    asrt: string
+}
+
+type rootStmt = {
+    label: string,
+    expr: expr,
+    justification: option<justification>,
+}
+
 type rec proofNode = {
     expr:expr,
     exprStr:option<string>, //for debug purposes
-    label: option<string>,
     mutable parents: option<array<exprSource>>,
     mutable children: array<proofNode>,
     mutable proof: option<exprSource>,
@@ -90,10 +100,6 @@ let ptMake = (
     }
 }
 
-let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
-    tree.nodes->Belt_MutableMap.get(expr)
-}
-
 let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
     tree.hypsByExpr->Belt_Map.get(expr)
 }
@@ -111,11 +117,7 @@ let proofNodeGetExprStr = (node:proofNode):string => {
     }
 }
 
-let ptMakeNode = ( 
-    tree:proofTree,
-    ~label:option<string>,
-    ~expr:expr,
-):proofNode => {
+let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
     switch tree.nodes->Belt_MutableMap.get(expr) {
         | Some(existingNode) => 
             raise(MmException({
@@ -124,7 +126,6 @@ let ptMakeNode = (
             }))
         | None => {
             let node = {
-                label,
                 expr,
                 exprStr: tree.exprToStr->Belt.Option.map(f => f(expr)),
                 parents: None,
@@ -134,6 +135,13 @@ let ptMakeNode = (
             tree.nodes->Belt_MutableMap.set(expr, node)->ignore
             node
         }
+    }
+}
+
+let ptGetOrCreateNode = ( tree:proofTree, expr:expr ):proofNode => {
+    switch tree.nodes->Belt_MutableMap.get(expr) {
+        | Some(node) => node
+        | None => tree->ptMakeNode(expr)
     }
 }
 
@@ -187,7 +195,6 @@ let pnAddChild = (node, child): unit => {
     }
 }
 
-let pnGetLabel = node => node.label
 let pnGetExpr = node => node.expr
 let pnGetProof = node => node.proof
 let pnGetParents = node => node.parents

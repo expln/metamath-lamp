@@ -6,6 +6,17 @@ open MM_parenCounter
 open MM_proof_table
 open MM_progress_tracker
 
+type justification = {
+    args: array<string>,
+    asrt: string
+}
+
+type rootStmt = {
+    label: string,
+    expr: expr,
+    justification: option<justification>,
+}
+
 type proofNode
 
 type exprSource =
@@ -31,12 +42,11 @@ let ptGetMaxVar: proofTree => int
 let ptGetParenCnt: proofTree => parenCnt
 let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
-let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
-let ptMakeNode: ( proofTree, ~label: option<string>, ~expr: expr, ) => proofNode
+let ptGetOrCreateNode: (proofTree, expr) => proofNode
+let ptMakeNode: ( proofTree, expr, ) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
 
-let pnGetLabel: proofNode => option<string>
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSource>
 let pnGetParents: proofNode => option<array<exprSource>>

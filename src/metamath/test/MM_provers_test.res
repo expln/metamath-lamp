@@ -21,7 +21,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let maxVar = ctx->getNumOfVars - 1
 
     let proofTree = ptMake( ~frms, ~disj, ~hyps, ~parenCnt, ~exprToStr=None, ~maxVar )
-    let nodeToProve = proofTree->ptMakeNode(~label=None, ~expr)
+    let nodeToProve = proofTree->ptMakeNode(expr)
 
     //when
     proveFloating(proofTree, nodeToProve)

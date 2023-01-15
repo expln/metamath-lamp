@@ -30,10 +30,7 @@ let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
                                     msg:`Work variables are not supported in addParentsWithoutNewVars().`
                                 }))
                             )
-                            switch tree->ptGetNodeByExpr(newExpr) {
-                                | Some(existingNode) => existingNode
-                                | None => tree->ptMakeNode( ~label=None, ~expr = newExpr, )
-                            }
+                            tree->ptGetOrCreateNode(newExpr)
                         })
                         foundParents->Js_array2.push( Assertion({ args, label:frm.frame.label }) )->ignore
                     }
@@ -116,7 +113,7 @@ let findParentsWithNewVars = (
     ~expr:expr,
     ~stmts:array<expr>,
     ~exactOrderOfStmts:bool=false,
-    ~label:option<string>=?,
+    ~asrtLabel:option<string>=?,
     ~bottomUp:bool=false,
     ()
 ):array<exprSource> => {
@@ -128,10 +125,11 @@ let findParentsWithNewVars = (
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = stmts,
         ~exactOrderOfStmts,
+        ~allowEmptyArgs=bottomUp,
         ~result = expr,
         ~frameFilter = 
-            label
-                ->Belt_Option.map(label => frame => frame.label == label)
+            asrtLabel
+                ->Belt_Option.map(asrtLabel => (frame:frame) => frame.label == asrtLabel)
                 ->Belt_Option.getWithDefault(_=>true),
         ~onMatchFound = res => {
             applResults->Js_array2.push(res)->ignore
@@ -158,28 +156,108 @@ let findParentsWithNewVars = (
                 raise(MmException({msg:`Cannot find an assertion with label ${applResult.asrtLabel} in findParentsWithNewVars.`}))
             | Some(frm) => frm.frame
         }
-        let args = frame.hyps->Js_array2.map(hyp => {
+        let numOfArgs = frame.hyps->Js_array2.length
+        let args = Expln_utils_common.createArray(numOfArgs)
+        let typesAreCorrect = ref(true)
+        let argIdx = ref(0)
+        let maxArgIdx = numOfArgs - 1
+        while (argIdx.contents <= maxArgIdx && typesAreCorrect.contents) {
             let argExpr = applySubs(
-                ~frmExpr = hyp.expr, 
+                ~frmExpr = frame.hyps[argIdx.contents].expr, 
                 ~subs=applResult.subs,
                 ~createWorkVar = _ => raise(MmException({msg:`New work variables are not expected here [findParentsWithNewVars].`}))
             )
-            switch tree->ptGetNodeByExpr(argExpr) {
-                | Some(existingNode) => existingNode
-                | None => tree->ptMakeNode( ~label=None, ~expr=argExpr, )
-            }
-        })
-        switch args->Js_array2.findi((arg,i) => {
-            if (frame.hyps[i].typ == F) {
-                proveFloating(tree, arg)
-                arg->pnGetProof->Belt.Option.isNone
-            } else {
-                false
-            }
-        }) {
-            | None => foundParents->Js.Array2.push( Assertion({ args, label: applResult.asrtLabel, }) )->ignore
-            | Some(_) => ()
+            let argNode = tree->ptGetOrCreateNode(argExpr)
+            args[argIdx.contents] = argNode
+            proveFloating(tree, argNode)
+            typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isNone
+            argIdx.contents = argIdx.contents + 1
+        }
+        if (typesAreCorrect.contents) {
+            foundParents->Js.Array2.push( Assertion({ args, label: applResult.asrtLabel, }) )->ignore
         }
     })
     foundParents
+}
+
+let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr):proofNode => {
+    let node = tree->ptGetOrCreateNode(stmt)
+    if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
+        let parents = findParentsWithNewVars( ~tree, ~expr=stmt, ~stmts=prevStmts, () )
+        parents->Expln_utils_common.arrForEach(parent => {
+            node->pnAddParent(parent)
+            node->pnGetProof
+        })->ignore
+    }
+    node
+}
+
+let proveWithJustification = (~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt:expr):proofNode => {
+    let node = tree->ptGetOrCreateNode(stmt)
+    if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
+        let parents = findParentsWithNewVars( 
+            ~tree, 
+            ~expr=stmt, 
+            ~stmts=args, 
+            ~asrtLabel,
+            ~exactOrderOfStmts=true,
+            () 
+        )
+        parents->Expln_utils_common.arrForEach(parent => {
+            node->pnAddParent(parent)
+            node->pnGetProof
+        })->ignore
+    }
+    node
+}
+
+let getStatementsFromJustification = (
+    ~tree:proofTree,
+    ~stmts:array<rootStmt>,
+    ~justification: justification,
+):array<expr> => {
+    let getStmtByLabel = label => {
+        switch stmts->Js.Array2.find(stmt => stmt.label == label) {
+            | Some(stmt) => Some(stmt.expr)
+            | None => {
+                switch tree->ptGetHypByLabel(label) {
+                    | Some(hyp) => Some(hyp.expr)
+                    | None => None
+                }
+            }
+        }
+    }
+    let foundStmts = justification.args
+        ->Js_array2.map(getStmtByLabel)
+        ->Js_array2.filter(Belt_Option.isSome)
+        ->Js_array2.map(Belt_Option.getExn)
+    if (foundStmts->Js_array2.length == justification.args->Js.Array2.length) {
+        foundStmts
+    } else {
+        []
+    }
+}
+
+let proveStmt = (~tree, ~prevStmts:array<rootStmt>, ~stmt:rootStmt, ~jstf:option<justification>) => {
+    switch jstf {
+        | None => {
+            proveWithoutJustification(
+                ~tree, 
+                ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
+                ~stmt=stmt.expr,
+            )->ignore
+        }
+        | Some(jstf) => {
+            proveWithJustification(
+                ~tree, 
+                ~args=getStatementsFromJustification(
+                    ~tree,
+                    ~stmts=prevStmts,
+                    ~justification=jstf,
+                ), 
+                ~asrtLabel=jstf.asrt, 
+                ~stmt=stmt.expr,
+            )->ignore
+        }
+    }
 }
