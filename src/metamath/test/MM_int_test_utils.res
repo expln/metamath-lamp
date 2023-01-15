@@ -215,6 +215,7 @@ let editorStateToStr = st => {
     lines->Js_array2.push("")->ignore
     st.stmts->Js.Array2.forEach(stmt => {
         lines->Js_array2.push("")->ignore
+        lines->Js_array2.push("-------------------------------------------------------------------------------")->ignore
         lines->Js_array2.push(stmt.label)->ignore
         lines->Js_array2.push(stmt.jstfText)->ignore
         lines->Js_array2.push(contToStr(stmt.cont))->ignore
@@ -233,7 +234,7 @@ let setTestDataDir = dirName => {
     curTestDataDir.contents = "./src/metamath/test/resources/int-tests/" ++ dirName
 }
 
-let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
+let assertStrEqFile = (~actualStr:string, ~expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
         Expln_utils_files.readStringFromFile(fileWithExpectedResult)
@@ -253,18 +254,20 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     if (actualStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
         Expln_utils_files.writeStringToFile(fileWithActualResult, actualStr)
-        assertEq( fileWithActualResult, fileWithExpectedResult )
+        if (failOnMismatch) {
+            assertEq( fileWithActualResult, fileWithExpectedResult )
+        }
     }
 }
 
-let assertEditorState = (st, expectedStrFileName:string) => {
-    let actualResultStr = st->editorStateToStr
-    assertStrEqFile(actualResultStr, expectedStrFileName)
+let assertEditorState = (st, expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
+    let actualStr = st->editorStateToStr
+    assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
 }
 
-let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
-    let actualProofStr = st->generateCompressedProof(stmtId)->Belt.Option.getWithDefault("no proof generated")
-    assertStrEqFile(actualProofStr, expectedStrFileName)
+let assertProof = (st, stmtId:string, expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
+    let actualStr = st->generateCompressedProof(stmtId)->Belt.Option.getWithDefault("no proof generated")
+    assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
 }
 
 let getStmtId = (st, ~contains:string) => {

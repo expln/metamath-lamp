@@ -32,6 +32,6 @@ let applySubstitution: ( editorState, ~replaceWhat: string, ~replaceWith: string
 let unifyAll: editorState => editorState
 
 let setTestDataDir: string => unit
-let assertEditorState: (editorState, string) => unit
-let assertProof: (editorState, string, string) => unit
+let assertEditorState: (editorState, string, ~failOnMismatch: bool=?, unit,) => unit
+let assertProof: (editorState, string, string, ~failOnMismatch: bool=?, unit,) => unit
 let getStmtId: (editorState, ~contains: string) => string
