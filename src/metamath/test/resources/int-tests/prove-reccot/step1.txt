@@ -1,0 +1,10 @@
+Variables:
+
+
+Disjoints:
+
+
+
+reccot
+
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( 1 / ( cot ` A ) ) )

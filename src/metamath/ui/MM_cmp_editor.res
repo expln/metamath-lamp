@@ -166,13 +166,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
-            let st = update(st)
-            let st = prepareEditorForUnification(st)
-            let st = if (st.wrkCtx->Belt_Option.isSome) {
-                removeUnusedVars(st)
-            } else {
-                st
-            }
+            let st = updateEditorStateWithPostupdateActions(st, update)
             editorSaveStateToLocStor(st, stateLocStorKey)
             st
         })

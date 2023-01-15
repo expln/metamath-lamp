@@ -1158,3 +1158,13 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
         }
     }
 }
+
+let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorState) => {
+    let st = update(st)
+    let st = prepareEditorForUnification(st)
+    if (st.wrkCtx->Belt_Option.isSome) {
+        removeUnusedVars(st)
+    } else {
+        st
+    }
+}

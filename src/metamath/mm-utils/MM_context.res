@@ -955,10 +955,15 @@ let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
     }
 }
 
-let loadContext: (mmAstNode, ~initialContext:mmContext=?, ~stopBefore: string=?, ~stopAfter: string=?, 
-                    ~expectedNumOfAssertions:int=?, ~onProgress:float=>unit=?, ()) => mmContext =
-                                                (ast, ~initialContext=?,~stopBefore="",~stopAfter="", 
-                                                    ~expectedNumOfAssertions=-1, ~onProgress= _=>(), ()) => {
+let loadContext = (
+    ast, 
+    ~initialContext=?,
+    ~stopBefore="",
+    ~stopAfter="",
+    ~expectedNumOfAssertions=-1, 
+    ~onProgress= _=>(), 
+    ()
+) => {
     let expectedNumOfAssertionsF = expectedNumOfAssertions->Belt_Int.toFloat
     let assertionsProcessed = ref(0.)
     let progressTracker = ref(progressTrackerMake(~step=0.01, ~onProgress, ()))
