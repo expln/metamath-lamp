@@ -1,4 +1,4 @@
-open MM_proof_tree2
+open MM_proof_tree
 open MM_context
 open MM_substitution
 open MM_parenCounter

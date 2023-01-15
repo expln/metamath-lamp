@@ -4,7 +4,7 @@ open MM_substitution
 open MM_asrt_apply
 open MM_parenCounter
 open MM_progress_tracker
-open MM_proof_tree2
+open MM_proof_tree
 
 let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
     let foundParents = []

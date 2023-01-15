@@ -1,7 +1,7 @@
 open MM_context
 open Expln_utils_promise
 open MM_wrk_ctx
-open MM_proof_tree2
+open MM_proof_tree
 open MM_provers
 
 let procName = "MM_wrk_unify"

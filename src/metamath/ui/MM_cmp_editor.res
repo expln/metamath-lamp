@@ -8,7 +8,7 @@ open MM_wrk_ctx
 open MM_wrk_unify
 open MM_substitution
 open MM_parser
-open MM_proof_tree2
+open MM_proof_tree
 open MM_proof_table
 open Expln_utils_promise
 open MM_react_common
