@@ -26,6 +26,12 @@ type exprSource =
 
 type proofTree
 
+type proofTreeDto = {
+    newVars: array<expr>,
+    disj: disjMutable,
+    nodes: array<proofNode>,
+}
+
 let ptMake: (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~hyps: Belt_MapString.t<hypothesis>,
@@ -42,10 +48,12 @@ let ptGetMaxVar: proofTree => int
 let ptGetParenCnt: proofTree => parenCnt
 let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
+let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetOrCreateNode: (proofTree, expr) => proofNode
 let ptMakeNode: ( proofTree, expr, ) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
+let ptToDto: (proofTree, array<expr>) => proofTreeDto
 
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSource>

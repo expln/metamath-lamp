@@ -4,7 +4,8 @@ open MM_context
 open MM_parenCounter
 open MM_syntax_tree
 open MM_substitution
-open MM_proof_tree
+open MM_proof_tree2
+open MM_provers
 
 type rec syntaxTreeNodeTest = {
     label:string,
@@ -32,27 +33,18 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(mmFileText, ())
     let ctx = loadContext(ast, ())
-    let expr = exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _)
-    let frms = prepareFrmSubsData(ctx)
-    let parenCnt = parenCntMake(ctx->ctxSymsToIntsExn(["(", ")", "{", "}", "[", "]"]))
-    let hyps = ctx->getAllHyps
-    let disj = ctx->getAllDisj
-    let proofTree = proofTreeProve(
-        ~parenCnt,
-        ~frms,
-        ~ctx,
-        ~stmts = [
-            {
-                label: None,
-                expr,
-                justification: None
-            }
-        ],
-        ~syntaxProof=true,
-        ()
+    let proofTree = ptMake(
+        ~frms=prepareFrmSubsData(ctx),
+        ~hyps=ctx->getAllHyps,
+        ~ctxMaxVar=ctx->getNumOfVars - 1,
+        ~disj=ctx->getAllDisj,
+        ~parenCnt=parenCntMake(ctx->ctxSymsToIntsExn(["(", ")", "{", "}", "[", "]"])),
+        ~exprToStr = Some(ctx->ctxIntsToStrExn),
     )
-    let proofNode = proofTree.nodes->Belt_MutableMap.get(expr)->Belt_Option.getExn
-    let proofTable = proofTreeCreateProofTable(proofNode)
+    let expr = exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _)
+    let nodeToProve = proofTree->ptMakeNode(expr)
+    proveFloating( proofTree, nodeToProve, )
+    let proofTable = pnCreateProofTable(nodeToProve)
 
     //when
     let actualSyntaxTree = buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)

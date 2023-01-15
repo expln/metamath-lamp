@@ -1,7 +1,8 @@
 open MM_context
 open Expln_utils_promise
 open MM_wrk_ctx
-open MM_proof_tree
+open MM_proof_tree2
+open MM_provers
 
 let procName = "MM_wrk_unify"
 
@@ -52,22 +53,16 @@ let unify = (
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | Unify({stmts, bottomUp}) => {
-            let proofTree = proofTreeProve(
+            let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~stmts,
-                ~bottomUp,
-                ~syntaxProof=false,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),
                 ~debug=true,
                 ()
             )
-            sendToClient(Result({
-                newVars: proofTree.newVars->Belt_MutableSet.toArray,
-                disj: proofTree.disj,
-                nodes: proofTree.rootNodes->Belt_MutableMap.valuesToArray
-            }))
+            sendToClient(Result(proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))))
         }
     }
 }

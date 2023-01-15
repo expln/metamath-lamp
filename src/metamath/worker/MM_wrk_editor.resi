@@ -1,5 +1,5 @@
 open MM_context
-open MM_proof_tree
+open MM_proof_tree2
 open MM_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
@@ -37,7 +37,7 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<justification>,
-    proof: option<proofTreeNode>,
+    proof: option<proofNode>,
     proofStatus: option<proofStatus>,
 }
 

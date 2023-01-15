@@ -43,6 +43,12 @@ and proofTree = {
     exprToStr: option<expr=>string>, //for debug purposes
 }
 
+type proofTreeDto = {
+    newVars: array<expr>,
+    disj: disjMutable,
+    nodes: array<proofNode>,
+}
+
 let exprSourceEq = (s1,s2) => {
     switch s1 {
         | VarType => {
@@ -72,8 +78,8 @@ let exprSourceEq = (s1,s2) => {
 
 let ptGetFrms = tree => tree.frms
 let ptGetParenCnt = tree => tree.parenCnt
-let ptIsDisj = (tree, n, m) => tree.disj->disjContains(n,m)
-let ptIsNewVarDef = (tree, expr) => tree.newVars->Belt_MutableSet.has(expr)
+let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
+let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_MutableSet.has(expr)
 
 let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -138,8 +144,12 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
     }
 }
 
-let ptGetOrCreateNode = ( tree:proofTree, expr:expr ):proofNode => {
-    switch tree.nodes->Belt_MutableMap.get(expr) {
+let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
+    tree.nodes->Belt_MutableMap.get(expr)
+}
+
+let ptGetOrCreateNode = ( tree:proofTree, expr:expr):proofNode => {
+    switch tree->ptGetNodeByExpr(expr) {
         | Some(node) => node
         | None => tree->ptMakeNode(expr)
     }
@@ -245,8 +255,19 @@ let ptAddNewVar = (tree, typ):int => {
     newVar
 }
 
-let ptAddDisjPair = (tree, n, m) => {
+let ptAddDisjPair = (tree:proofTree, n, m) => {
     tree.disj->disjAddPair( n,m )
+}
+
+let ptToDto = (tree:proofTree, stmts:array<expr>):proofTreeDto => {
+    {
+        newVars: tree.newVars->Belt_MutableSet.toArray,
+        disj: tree.disj,
+        nodes: stmts
+                ->Js.Array2.map(tree.nodes->Belt_MutableMap.get)
+                ->Js.Array2.filter(Belt_Option.isSome)
+                ->Js.Array2.map(Belt_Option.getExn)
+    }
 }
 
 let pnCreateProofTable = (node:proofNode):proofTable => {

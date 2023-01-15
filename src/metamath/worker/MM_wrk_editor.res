@@ -1,12 +1,13 @@
 open MM_context
 open MM_parser
-open MM_proof_tree
+open MM_proof_tree2
 open MM_syntax_tree
 open MM_wrk_settings
 open MM_asrt_apply
 open MM_parenCounter
 open MM_substitution
 open MM_wrk_ctx
+open MM_provers
 
 type stmtCont =
     | Text(array<string>)
@@ -63,7 +64,7 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<justification>,
-    proof: option<proofTreeNode>,
+    proof: option<proofNode>,
     proofStatus: option<proofStatus>,
 }
 
@@ -824,24 +825,23 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
     let typesToProve = wrkSubs
         ->Belt_MapInt.toArray
         ->Js_array2.map(((var,expr)) => [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr))
-    let proofTree = proofTreeProve(
+    let proofTree = unifyAll(
         ~ctx,
         ~frms,
         ~stmts=typesToProve->Js_array2.mapi((typeExpr,i) => {
             {
-                label: None,
+                label: "",
                 expr: typeExpr,
                 justification: None
             }
         }),
         ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens)),
-        ~syntaxProof=true,
         ()
     )
     typesToProve->Js_array2.every(typeExpr => {
-        switch proofTree.rootNodes->Belt_MutableMap.get(typeExpr) {
+        switch proofTree->ptGetNodeByExpr(typeExpr) {
             | None => raise(MmException({msg:`Unexpected condition met: the proofTree was expected to contain nodes for each typeExpr.`}))
-            | Some(node) => node.proof->Belt_Option.isSome
+            | Some(node) => node->pnGetProof->Belt_Option.isSome
         }
     })
 }
@@ -1027,7 +1027,7 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let exprSrcToJstf = (wrkCtx, exprSrc:exprSource):option<justification> => {
+let exprSrcToJstf = (wrkCtx, exprSrc:exprSource, exprToUserStmt):option<justification> => {
     switch exprSrc {
         | Assertion({args, label:asrtLabel}) => {
             switch wrkCtx->getFrame(asrtLabel) {
@@ -1040,9 +1040,9 @@ let exprSrcToJstf = (wrkCtx, exprSrc:exprSource):option<justification> => {
                             switch args->Belt_Array.get(i) {
                                 | None => argLabelsValid.contents = false
                                 | Some(argNode) => {
-                                    switch argNode.label {
+                                    switch exprToUserStmt->Belt_Map.get(argNode->pnGetExpr) {
                                         | None => argLabelsValid.contents = false
-                                        | Some(argLabel) => argLabels->Js_array2.push(argLabel)->ignore
+                                        | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
                                 }
                             }
@@ -1063,10 +1063,10 @@ let exprSrcToJstf = (wrkCtx, exprSrc:exprSource):option<justification> => {
     }
 }
 
-let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofTreeNode):userStmt => {
-    switch proofNode.proof {
+let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNode,exprToUserStmt):userStmt => {
+    switch proofNode->pnGetProof {
         | Some(proofSrc) => {
-            switch exprSrcToJstf(wrkCtx,proofSrc) {
+            switch exprSrcToJstf(wrkCtx,proofSrc,exprToUserStmt) {
                 | None => stmt
                 | Some(jstfFromProof) => {
                     switch stmt.jstf {
@@ -1096,9 +1096,9 @@ let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofTreeNode):userStmt
     
 }
 
-let userStmtSetProofStatus = (stmt,wrkCtx,proofNode:proofTreeNode):userStmt => {
+let userStmtSetProofStatus = (stmt, wrkCtx, proofNode:proofNode, exprToUserStmt):userStmt => {
     let parentEqJstf = (parentSrc, jstf) => {
-        switch exprSrcToJstf(wrkCtx, parentSrc) {
+        switch exprSrcToJstf(wrkCtx, parentSrc, exprToUserStmt) {
             | None => false
             | Some(parentJstf) => parentJstf == jstf
         }
@@ -1110,7 +1110,7 @@ let userStmtSetProofStatus = (stmt,wrkCtx,proofNode:proofTreeNode):userStmt => {
             switch stmt.jstf {
                 | None => {...stmt, proofStatus:Some(#noJstf)}
                 | Some(jstf) => {
-                    switch proofNode.parents {
+                    switch proofNode->pnGetParents {
                         | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
                         | Some(parents) => {
                             switch parents->Js.Array2.find(parentEqJstf(_, jstf)) {
@@ -1129,7 +1129,13 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot applyUnifyAllResults without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let nodes = proofTreeDto.nodes->Js_array2.map(node => (node.expr,node))->Belt_MutableMap.fromArray(~id=module(ExprCmp))
+            let nodes = proofTreeDto.nodes
+                ->Js_array2.map(node => (node->pnGetExpr,node))
+                ->Belt_MutableMap.fromArray(~id=module(ExprCmp))
+            let exprToUserStmt = st.stmts
+                                    ->Js_array2.filter(stmt => stmt.expr->Belt_Option.isSome)
+                                    ->Js_array2.map(stmt => (stmt.expr->Belt_Option.getExn, stmt))
+                                    ->Belt_Map.fromArray(~id=module(ExprCmp))
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}
@@ -1141,8 +1147,8 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                                     switch nodes->Belt_MutableMap.get(expr) {
                                         | None => stmt
                                         | Some(node) => {
-                                            let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,node)
-                                            let stmt = userStmtSetProofStatus(stmt,wrkCtx,node)
+                                            let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,node,exprToUserStmt)
+                                            let stmt = userStmtSetProofStatus(stmt,wrkCtx,node,exprToUserStmt)
                                             stmt
                                         }
                                     }

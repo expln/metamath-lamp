@@ -3,10 +3,11 @@ open MM_parser
 open MM_context
 open MM_proof_table
 open MM_proof_verifier
-open MM_proof_tree
+open MM_proof_tree2
 open MM_parenCounter
 open MM_substitution
 open MM_wrk_ctx
+open MM_provers
 
 type userStmt = {
     label: string,
@@ -39,19 +40,17 @@ let testUnification = (
     )->Belt.Result.getExn
 
     //when
-    let proofTree = proofTreeProve(
+    let proofTree = unifyAll(
         ~parenCnt,
         ~frms,
         ~ctx=wrkCtx,
         ~stmts=stmts->Js.Array2.map(({label, text, jstf}) => {
             {
-                label:Some(label), 
+                label,
                 expr: wrkCtx->ctxStrToIntsExn(text),
                 justification: jstf
             }
         }),
-        ~syntaxProof=false,
-        ~bottomUp=true,
         ~debug=true,
         ()
     )

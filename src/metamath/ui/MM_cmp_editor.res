@@ -8,7 +8,7 @@ open MM_wrk_ctx
 open MM_wrk_unify
 open MM_substitution
 open MM_parser
-open MM_proof_tree
+open MM_proof_tree2
 open MM_proof_table
 open Expln_utils_promise
 open MM_react_common
@@ -390,7 +390,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 ->Js_array2.filter(stmt => stmt.typ == #p)
                                 ->Js_array2.map(stmt => {
                                     {
-                                        label:Some(stmt.label),
+                                        label:stmt.label,
                                         expr:
                                             switch stmt.expr {
                                                 | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
@@ -482,7 +482,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         switch stmt.proof {
                             | None => ()
                             | Some(proofNode) => {
-                                let proofTable = proofTreeCreateProofTable(proofNode)
+                                let proofTable = pnCreateProofTable(proofNode)
                                 proofTablePrint(wrkCtx, proofTable, "exported-proof")
                                 let proof = createProof(wrkCtx, proofTable, proofTable->Js_array2.length-1)
                                 openModal(modalRef, () => React.null)->promiseMap(modalId => {
