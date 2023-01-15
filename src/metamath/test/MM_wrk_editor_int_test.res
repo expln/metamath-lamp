@@ -8,7 +8,7 @@ describe("MM_wrk_editor integration tests", _ => {
         setTestDataDir("prove-reccot")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="reccsc", ())
 
-        let (st, trgtStmt) = st->addStmt(
+        let (st, trgtStmtId) = st->addStmt(
             ~label="reccot", 
             ~stmt="|- ( ( A e. CC /\\ ( sin ` A ) =/= 0 /\\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( 1 / ( cot ` A ) ) )",
             ()
@@ -114,6 +114,8 @@ describe("MM_wrk_editor integration tests", _ => {
         )
         let st = st->unifyAll
         assertEditorState(st, "step14")
+
+        assertProof(st, trgtStmtId, "proof1")
     })
     
 })

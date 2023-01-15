@@ -33,4 +33,5 @@ let unifyAll: editorState => editorState
 
 let setTestDataDir: string => unit
 let assertEditorState: (editorState, string) => unit
+let assertProof: (editorState, string, string) => unit
 let getStmtId: (editorState, ~contains: string) => string

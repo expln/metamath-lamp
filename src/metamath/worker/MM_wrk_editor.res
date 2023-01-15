@@ -1168,3 +1168,76 @@ let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorStat
         st
     }
 }
+
+let splitIntoChunks = (str, chunkMaxSize): array<string> => {
+    let len = str->Js_string2.length
+    if (len <= chunkMaxSize) {
+        [str]
+    } else {
+        let res = []
+        let numberOfChunks = Js.Math.ceil_int(len->Belt_Int.toFloat /. chunkMaxSize->Belt_Int.toFloat)
+        for i in 1 to numberOfChunks {
+            let begin = (i-1)*chunkMaxSize
+            res->Js_array2.push(str->Js_string2.substrAtMost(~from=begin, ~length=chunkMaxSize))->ignore
+        }
+        res
+    }
+}
+
+let proofToText = (ctx:mmContext,stmt:userStmt,proof:proof):string => {
+    switch proof {
+        | Compressed({labels, compressedProofBlock}) => {
+            let blk = splitIntoChunks(compressedProofBlock, 50)->Js_array2.joinWith(" ")
+            let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Js_array2.joinWith(" ")} ) ${blk} $.`
+            let localVars = ctx->getLocalVars
+            let localDisj = ctx->getLocalDisj
+            let localHyps = ctx->getLocalHyps
+            let blockIsRequired = localHyps->Js.Array2.length > 0 || !(localDisj->disjIsEmpty)
+            let result = []
+            if (blockIsRequired) {
+                result->Js.Array2.push("${")->ignore
+            }
+            if (localVars->Js.Array2.length > 0) {
+                result->Js.Array2.push("$v " ++ localVars->Js.Array2.joinWith(" ") ++ " $.")->ignore
+            }
+            localDisj->disjForEachArr(vars => {
+                result->Js.Array2.push("$d " ++ ctx->ctxIntsToStrExn(vars) ++ " $.")->ignore
+            })
+            localHyps->Js.Array2.forEach(hyp => {
+                let hypTypStr = if (hyp.typ == F) {
+                    " $f "
+                } else {
+                    " $e "
+                }
+                result->Js.Array2.push(hyp.label ++ hypTypStr ++ ctx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
+            })
+            result->Js.Array2.push(asrt)->ignore
+            if (blockIsRequired) {
+                result->Js.Array2.push("$}")->ignore
+            }
+            result->Js.Array2.joinWith("\r\n")
+        }
+        | _ => "Error: only compressed proofs are supported."
+    }
+}
+
+let generateCompressedProof = (st, stmtId):option<string> => {
+    switch st.wrkCtx {
+        | None => None
+        | Some(wrkCtx) => {
+            switch st.stmts->Js.Array2.find(stmt => stmt.id == stmtId) {
+                | None => None
+                | Some(stmt) => {
+                    switch stmt.proof {
+                        | None => None
+                        | Some(proofNode) => {
+                            let proofTable = pnCreateProofTable(proofNode)
+                            let proof = MM_proof_table.createProof(wrkCtx, proofTable, proofTable->Js_array2.length-1)
+                            Some(proofToText(wrkCtx,stmt,proof))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

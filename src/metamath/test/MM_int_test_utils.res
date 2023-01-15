@@ -233,9 +233,8 @@ let setTestDataDir = dirName => {
     curTestDataDir.contents = "./src/metamath/test/resources/int-tests/" ++ dirName
 }
 
-let assertEditorState = (st, expectedStateFileName:string) => {
-    let actualResultStr = st->editorStateToStr
-    let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStateFileName ++ ".txt"
+let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
+    let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
         Expln_utils_files.readStringFromFile(fileWithExpectedResult)
     } catch {
@@ -251,11 +250,21 @@ let assertEditorState = (st, expectedStateFileName:string) => {
             }
         }
     }
-    if (actualResultStr != expectedResultStr) {
+    if (actualStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
-        Expln_utils_files.writeStringToFile(fileWithActualResult, actualResultStr)
+        Expln_utils_files.writeStringToFile(fileWithActualResult, actualStr)
         assertEq( fileWithActualResult, fileWithExpectedResult )
     }
+}
+
+let assertEditorState = (st, expectedStrFileName:string) => {
+    let actualResultStr = st->editorStateToStr
+    assertStrEqFile(actualResultStr, expectedStrFileName)
+}
+
+let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
+    let actualProofStr = st->generateCompressedProof(stmtId)->Belt.Option.getWithDefault("no proof generated")
+    assertStrEqFile(actualProofStr, expectedStrFileName)
 }
 
 let getStmtId = (st, ~contains:string) => {
