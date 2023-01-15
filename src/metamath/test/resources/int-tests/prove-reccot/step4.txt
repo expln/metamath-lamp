@@ -8,7 +8,7 @@ Disjoints:
 stmt1
 : tanval
 |- ( ( A e. CC /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )
-jstfIsIncorrect
+ready
 
 reccot
 

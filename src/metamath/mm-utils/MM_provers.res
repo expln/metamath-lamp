@@ -169,8 +169,10 @@ let findParentsWithNewVars = (
             )
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode
-            proveFloating(tree, argNode)
-            typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isNone
+            if (frame.hyps[argIdx.contents].typ == F) {
+                proveFloating(tree, argNode)
+                typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isSome
+            }
             argIdx.contents = argIdx.contents + 1
         }
         if (typesAreCorrect.contents) {
