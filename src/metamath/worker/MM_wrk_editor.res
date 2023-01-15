@@ -905,7 +905,7 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable) => {
     res.contents
 }
 
-let findPossibleSubs = (st, frmExpr, expr):array<Belt_MapInt.t<expr>> => {
+let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {

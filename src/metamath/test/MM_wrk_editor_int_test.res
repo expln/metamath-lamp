@@ -59,7 +59,7 @@ let addStmt = (st, ~typ:option<userStmtType>=?, ~label:option<string>=?, ~stmt:s
         | Some(typ) => st->completeTypEditMode(stmtId, typ)
         | None => st
     }
-    (st, stmtId)
+    (st->updateEditorStateWithPostupdateActions(st => st), stmtId)
 }
 
 let addStmtsBySearch = (
@@ -71,8 +71,7 @@ let addStmtsBySearch = (
     ~chooseLabel:string,
     ()
 ):editorState => {
-    let st = st->updateEditorStateWithPostupdateActions(st => st)
-    switch st.wrkCtx {
+    let st = switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot addStmtsBySearch when wrkCtx is None.`}))
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
@@ -95,6 +94,26 @@ let addStmtsBySearch = (
             }
         }
     }
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorState => {
+    let st = switch st.wrkCtx {
+        | None => raise(MmException({msg:`Cannot applySubstitution when wrkCtx is None.`}))
+        | Some(wrkCtx) => {
+            let wrkSubs = findPossibleSubs(
+                st, 
+                wrkCtx->ctxStrToIntsExn(replaceWhat),
+                wrkCtx->ctxStrToIntsExn(replaceWith)
+            )
+            if (wrkSubs->Js.Array2.length != 1) {
+                raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
+            } else {
+                st->applySubstitutionForEditor(wrkSubs[0])
+            }
+        }
+    }
+    st->updateEditorStateWithPostupdateActions(st => st)
 }
 
 let editorStateToStr = st => {
@@ -164,8 +183,11 @@ describe("MM_wrk_editor integration tests", _ => {
         )
         assertEditorState(st, "step1")
 
-        let st = st->addStmtsBySearch( ~filterLabel="cotval", ~chooseLabel="cotval", () )
+        let st = st->addStmtsBySearch( ~filterLabel="tanval", ~chooseLabel="tanval", () )
         assertEditorState(st, "step2")
+
+        let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="A")
+        assertEditorState(st, "step3")
     })
     
 })
