@@ -1,0 +1,16 @@
+Variables:
+var1 class class1
+
+Disjoints:
+
+
+
+stmt1
+: cotval
+|- ( ( class1 e. CC /\ ( sin ` class1 ) =/= 0 ) -> ( cot ` class1 ) = ( ( cos ` class1 ) / ( sin ` class1 ) ) )
+None
+
+reccot
+
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( 1 / ( cot ` A ) ) )
+None

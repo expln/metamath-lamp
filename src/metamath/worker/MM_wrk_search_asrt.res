@@ -2,6 +2,8 @@ open MM_context
 open MM_asrt_apply
 open Expln_utils_promise
 open MM_wrk_ctx
+open MM_substitution
+open MM_parenCounter
 
 let procName = "MM_wrk_search_asrt"
 
@@ -66,25 +68,48 @@ let searchAssertions = (
     })
 }
 
+let doSearchAssertions = (
+    ~wrkCtx:mmContext,
+    ~frms:Belt_MapString.t<frmSubsData>,
+    ~parenCnt:parenCnt,
+    ~label:string, 
+    ~typ:int, 
+    ~pattern:array<int>, 
+    ~onProgress:option<float=>unit>=?, 
+    ()
+) => {
+    let results = []
+    applyAssertions(
+        ~maxVar = wrkCtx->getNumOfVars - 1,
+        ~frms,
+        ~isDisjInCtx = wrkCtx->isDisj,
+        ~statements = [],
+        ~parenCnt,
+        ~frameFilter = frame => 
+            frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
+            && frame.asrt[0] == typ 
+            && frameMatchesPattern(frame, pattern),
+        ~onMatchFound = res => {
+            results->Js_array2.push(res)->ignore
+            Continue
+        },
+        ~onProgress?,
+        ()
+    )
+    results
+}
+
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | FindAssertions({label, typ, pattern}) => {
-            let results = []
-            applyAssertions(
-                ~maxVar = getWrkCtxExn()->getNumOfVars - 1,
-                ~frms = getWrkFrmsExn(),
-                ~isDisjInCtx = getWrkCtxExn()->isDisj,
-                ~statements = [],
+            let results = doSearchAssertions(
+                ~wrkCtx=getWrkCtxExn(), 
+                ~frms = getWrkFrmsExn(), 
                 ~parenCnt = getWrkParenCntExn(),
-                ~frameFilter = frame => 
-                    frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
-                    && frame.asrt[0] == typ 
-                    && frameMatchesPattern(frame, pattern),
-                ~onMatchFound = res => {
-                    results->Js_array2.push(res)->ignore
-                    Continue
-                },
-                ~onProgress = pct => sendToClient(OnProgress(pct)),
+                ~label, 
+                ~typ, 
+                ~pattern, 
+                ~onProgress = pct => sendToClient(OnProgress(pct)), 
                 ()
             )
             sendToClient(SearchResult({found:results}))
