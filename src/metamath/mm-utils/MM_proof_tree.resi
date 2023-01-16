@@ -53,10 +53,13 @@ let ptGetOrCreateNode: (proofTree, expr) => proofNode
 let ptMakeNode: ( proofTree, expr, ) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
+let ptEraseDists: proofTree => unit
 let ptToDto: (proofTree, array<expr>) => proofTreeDto
 
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSource>
 let pnGetParents: proofNode => option<array<exprSource>>
 let pnAddParent: (proofNode, exprSource) => unit
+let pnGetDist: proofNode => option<int>
+let pnSetDist: (proofNode, option<int>) => unit
 let pnCreateProofTable: proofNode => proofTable

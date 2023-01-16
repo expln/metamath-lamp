@@ -42,7 +42,12 @@ let findParentsWithoutNewVars = ( ~tree, ~expr, ):array<exprSource> => {
     foundParents
 }
 
-let proveFloating = (tree, node) => {
+let proveBottomUp = (
+    ~tree:proofTree, 
+    ~node:proofNode, 
+    ~getParents:expr=>array<exprSource>,
+    ~maxSearchDepth:option<int>,
+) => {
     /*
     If a node has a proof, no need to prove it again.
     If a node has Some(parents), it could appear as a side effect of proving other nodes and it was left unproved 
@@ -52,31 +57,60 @@ let proveFloating = (tree, node) => {
         parents even if the root node becomes proved.
     */
     if (node->pnGetProof->Belt.Option.isNone) {
+        if (maxSearchDepth->Belt.Option.isSome) {
+            tree->ptEraseDists
+            node->pnSetDist(Some(0))
+        }
+
         let nodesToCreateParentsFor = Belt_MutableStack.make()
         let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
 
-        let saveNodeToCreateParentsFor = node => {
-            switch node->pnGetProof {
-                | Some(_) => ()
-                | None => {
-                    if (!(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
-                        savedNodes->Belt_MutableSet.add(node->pnGetExpr)
-                        nodesToCreateParentsFor->Belt_MutableStack.push(node)
+        let saveNodeToCreateParentsFor = (node,dist) => {
+            let notTooFarFromRoot = switch maxSearchDepth {
+                | None => true
+                | Some(maxSearchDepth) => {
+                    switch dist {
+                        | None => 
+                            raise(MmException({
+                                msg: `proveBottomUp: dist must not be None when maxSearchDepth is Some.`
+                            }))
+                        | Some(dist) => dist <= maxSearchDepth
+                    }
+                }
+            }
+            if (notTooFarFromRoot) {
+                switch dist {
+                    | None => ()
+                    | Some(dist) => {
+                        switch node->pnGetDist {
+                            | Some(curDist) if curDist <= dist => ()
+                            | _ => node->pnSetDist(Some(dist))
+                        }
+                    }
+                }
+                switch node->pnGetProof {
+                    | Some(_) => ()
+                    | None => {
+                        if (!(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
+                            savedNodes->Belt_MutableSet.add(node->pnGetExpr)
+                            nodesToCreateParentsFor->Belt_MutableStack.push(node)
+                        }
                     }
                 }
             }
         }
 
         let rootNode = node
-        saveNodeToCreateParentsFor(rootNode)
+        saveNodeToCreateParentsFor(rootNode, maxSearchDepth->Belt_Option.map(_ => 0))
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableStack.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableStack.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
+                let newDist = curNode->pnGetDist->Belt.Option.map(dist => dist + 1)
                 switch curNode->pnGetParents {
                     | Some(parents) => {
                         parents->Js.Array2.forEach(parent => {
                             switch parent {
-                                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
+                                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
                                 | _ => ()
                             }
                         })
@@ -89,15 +123,14 @@ let proveFloating = (tree, node) => {
                             switch tree->ptGetHypByExpr(curExpr) {
                                 | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
                                 | None => {
-                                    findParentsWithoutNewVars(~tree, ~expr=curNode->pnGetExpr)
-                                        ->Js.Array2.forEach(asrtParent => {
-                                            curNode->pnAddParent(asrtParent)
-                                            switch asrtParent {
-                                                | Assertion({args}) => 
-                                                    args->Js_array2.forEach(saveNodeToCreateParentsFor)
-                                                | _ => ()
-                                            }
-                                        })
+                                    getParents(curNode->pnGetExpr)->Js.Array2.forEach(parent => {
+                                        curNode->pnAddParent(parent)
+                                        switch parent {
+                                            | Assertion({args}) => 
+                                                args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
+                                            | _ => ()
+                                        }
+                                    })
                                 }
                             }
                         }
@@ -106,6 +139,15 @@ let proveFloating = (tree, node) => {
             }
         }
     }
+}
+
+let proveFloating = (tree, node) => {
+    proveBottomUp(
+        ~tree, 
+        ~node, 
+        ~getParents = expr => findParentsWithoutNewVars(~tree, ~expr),
+        ~maxSearchDepth = None,
+    )
 }
 
 let findParentsWithNewVars = (

@@ -23,6 +23,7 @@ type rec proofNode = {
     mutable parents: option<array<exprSource>>,
     mutable children: array<proofNode>,
     mutable proof: option<exprSource>,
+    mutable dist: option<int>,
 }
 
 and exprSource =
@@ -137,11 +138,16 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
                 parents: None,
                 proof: None,
                 children: [],
+                dist: None
             }
             tree.nodes->Belt_MutableMap.set(expr, node)->ignore
             node
         }
     }
+}
+
+let ptEraseDists = (tree:proofTree) => {
+    tree.nodes->Belt_MutableMap.forEach((_, node) => node.dist = None)
 }
 
 let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
@@ -246,6 +252,12 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
             }
         }
     }
+}
+
+let pnGetDist = node => node.dist
+
+let pnSetDist = (node,dist) => {
+    node.dist = dist
 }
 
 let ptAddNewVar = (tree, typ):int => {
