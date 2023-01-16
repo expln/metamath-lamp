@@ -45,6 +45,7 @@ let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
 let ptGetMaxVar: proofTree => int
+let ptGetCtxMaxVar: proofTree => int
 let ptGetParenCnt: proofTree => parenCnt
 let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool

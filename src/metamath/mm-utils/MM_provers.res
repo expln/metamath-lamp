@@ -156,7 +156,7 @@ let findParentsWithNewVars = (
     ~stmts:array<expr>,
     ~exactOrderOfStmts:bool=false,
     ~asrtLabel:option<string>=?,
-    ~bottomUp:bool=false,
+    ~allowEmptyArgs:bool=false,
     ()
 ):array<exprSource> => {
     let applResults = []
@@ -167,7 +167,7 @@ let findParentsWithNewVars = (
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = stmts,
         ~exactOrderOfStmts,
-        ~allowEmptyArgs=bottomUp,
+        ~allowEmptyArgs,
         ~result = expr,
         ~frameFilter = 
             asrtLabel
@@ -255,6 +255,43 @@ let proveWithJustification = (~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt
     node
 }
 
+let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDepth:int):proofNode => {
+    let ctxMaxVar = tree->ptGetCtxMaxVar
+    let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
+    let getParents = expr => {
+        if (exprHasNewVars(expr)) {
+            []
+        } else {
+            let parents = findParentsWithNewVars(
+                ~tree,
+                ~expr,
+                ~stmts=prevStmts,
+                ~allowEmptyArgs=true,
+                ()
+            )
+            parents->Js_array2.filter(parent => {
+                switch parent {
+                    | VarType | Hypothesis(_) => true
+                    | Assertion({args}) => {
+                        args->Js_array2.every(arg => !exprHasNewVars(arg->pnGetExpr))
+                    }
+                }
+            })
+        }
+    }
+
+    let node = tree->ptGetOrCreateNode(stmt)
+    if (node->pnGetProof->Belt.Option.isNone) {
+        proveBottomUp(
+            ~tree, 
+            ~node, 
+            ~getParents,
+            ~maxSearchDepth = Some(maxSearchDepth),
+        )
+    }
+    node
+}
+
 let getStatementsFromJustification = (
     ~tree:proofTree,
     ~stmts:array<rootStmt>,
@@ -282,26 +319,42 @@ let getStatementsFromJustification = (
     }
 }
 
-let proveStmt = (~tree, ~prevStmts:array<rootStmt>, ~stmt:rootStmt, ~jstf:option<justification>) => {
-    switch jstf {
-        | None => {
-            proveWithoutJustification(
-                ~tree, 
-                ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
-                ~stmt=stmt.expr,
-            )->ignore
-        }
-        | Some(jstf) => {
-            proveWithJustification(
-                ~tree, 
-                ~args=getStatementsFromJustification(
-                    ~tree,
-                    ~stmts=prevStmts,
-                    ~justification=jstf,
-                ), 
-                ~asrtLabel=jstf.asrt, 
-                ~stmt=stmt.expr,
-            )->ignore
+let proveStmt = (
+    ~tree, 
+    ~prevStmts:array<rootStmt>, 
+    ~stmt:rootStmt, 
+    ~jstf:option<justification>, 
+    ~bottomUp:bool,
+    ~maxSearchDepth:int,
+) => {
+    if (bottomUp) {
+        proveStmtBottomUp( 
+            ~tree, 
+            ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
+            ~stmt=stmt.expr,
+            ~maxSearchDepth 
+        )->ignore
+    } else {
+        switch jstf {
+            | None => {
+                proveWithoutJustification(
+                    ~tree, 
+                    ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
+                    ~stmt=stmt.expr,
+                )->ignore
+            }
+            | Some(jstf) => {
+                proveWithJustification(
+                    ~tree, 
+                    ~args=getStatementsFromJustification(
+                        ~tree,
+                        ~stmts=prevStmts,
+                        ~justification=jstf,
+                    ), 
+                    ~asrtLabel=jstf.asrt, 
+                    ~stmt=stmt.expr,
+                )->ignore
+            }
         }
     }
 }
@@ -354,6 +407,8 @@ let unifyAll = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<rootStmt>,
     ~parenCnt: parenCnt,
+    ~bottomUp:bool,
+    ~maxSearchDepth:int,
     ~onProgress:option<float=>unit>=?,
     ~debug: bool=false,
     ()
@@ -378,6 +433,8 @@ let unifyAll = (
             ~prevStmts = stmts->Js_array2.filteri((_,i) => i < stmtIdx),
             ~stmt, 
             ~jstf=stmt.justification,
+            ~bottomUp = stmtIdx == maxStmtIdx && bottomUp,
+            ~maxSearchDepth
         )
 
         stmtsProcessed.contents = stmtsProcessed.contents +. 1.

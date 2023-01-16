@@ -117,6 +117,8 @@ let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> => {
 
 let ptGetMaxVar = tree => tree.maxVar
 
+let ptGetCtxMaxVar = tree => tree.ctxMaxVar
+
 let proofNodeGetExprStr = (node:proofNode):string => {
     switch node.exprStr {
         | Some(str) => str

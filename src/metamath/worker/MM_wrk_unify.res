@@ -58,6 +58,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~stmts,
+                ~bottomUp,
+                ~maxSearchDepth = 5,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),
                 ~debug=true,
                 ()

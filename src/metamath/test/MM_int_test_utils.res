@@ -203,6 +203,8 @@ let unifyAll = st => {
                 ~ctx = wrkCtx,
                 ~stmts,
                 ~debug=true,
+                ~bottomUp=false,
+                ~maxSearchDepth=5,
                 ()
             )
             let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))
