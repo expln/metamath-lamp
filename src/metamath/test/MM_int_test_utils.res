@@ -219,19 +219,7 @@ let unifyBottomUp = (st,stmtId):editorState => {
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
-            let stmts = st->getAllStmtsUpToChecked
-                ->Js_array2.filter(stmt => stmt.typ == #p)
-                ->Js_array2.map(stmt => {
-                    {
-                        label:stmt.label,
-                        expr:
-                            switch stmt.expr {
-                                | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
-                                | Some(expr) => expr
-                            },
-                        justification: stmt.jstf,
-                    }
-                })
+            let stmts = st->getStmtsForUnification
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = parenCnt.contents,
                 ~frms = st.frms,
@@ -239,7 +227,7 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~stmts,
                 ~debug=true,
                 ~bottomUp=true,
-                ~maxSearchDepth=5,
+                ~maxSearchDepth=2,
                 ()
             )
             let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))

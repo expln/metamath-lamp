@@ -208,6 +208,22 @@ let getAllStmtsUpToChecked = (st):array<userStmt> => {
     res
 }
 
+let getStmtsForUnification = (st):array<rootStmt> => {
+    st->getAllStmtsUpToChecked
+        ->Js_array2.filter(stmt => stmt.typ == #p)
+        ->Js_array2.map(stmt => {
+            {
+                label:stmt.label,
+                expr:
+                    switch stmt.expr {
+                        | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
+                        | Some(expr) => expr
+                    },
+                justification: stmt.jstf,
+            }
+        })
+}
+
 let createNewLabel = (st:editorState, prefix:string):string => {
     let isLabelDefinedInCtx = label => {
         switch st.wrkCtx {

@@ -261,36 +261,39 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
         if (exprHasNewVars(expr)) {
             []
         } else {
-            let parents = findParentsWithNewVars(
-                ~tree,
-                ~expr,
-                ~stmts=prevStmts,
-                ~allowEmptyArgs=true,
-                ()
-            )
-            if (exprEq(expr, stmt)) {
-                parents
-            } else {
-                parents->Js_array2.filter(parent => {
-                    switch parent {
-                        | VarType | Hypothesis(_) => true
-                        | Assertion({args}) => {
-                            args->Js_array2.every(arg => !exprHasNewVars(arg->pnGetExpr))
-                        }
-                    }
-                })
-            }
+            findParentsWithNewVars( ~tree, ~expr, ~stmts=prevStmts, () )
+                ->Js.Array2.concat( findParentsWithoutNewVars(~tree, ~expr) )
         }
     }
 
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone) {
-        proveBottomUp(
-            ~tree, 
-            ~node, 
-            ~getParents,
-            ~maxSearchDepth = Some(maxSearchDepth),
-        )
+        let firstLevelParents = findParentsWithNewVars( ~tree, ~expr=stmt, ~stmts=prevStmts, ~allowEmptyArgs=true, () )
+        firstLevelParents->Expln_utils_common.arrForEach(parent => {
+            node->pnAddParent(parent)
+            node->pnGetProof
+        })->ignore
+        firstLevelParents->Js.Array2.forEachi((firstLevelParent, pi) => {
+            if (node->pnGetProof->Belt.Option.isNone) {
+                switch firstLevelParent {
+                    | Assertion({args}) => {
+                        args->Js.Array2.forEachi((arg,ai) => {
+                            if (node->pnGetProof->Belt.Option.isNone && arg->pnGetProof->Belt.Option.isNone
+                                    && !exprHasNewVars(arg->pnGetExpr)) {
+                                Js.Console.log2("(pi,ai)", (pi,ai))
+                                proveBottomUp(
+                                    ~tree, 
+                                    ~node=arg, 
+                                    ~getParents,
+                                    ~maxSearchDepth = Some(maxSearchDepth-1),
+                                )
+                            }
+                        })
+                    }
+                    | _ => ()
+                }
+            }
+        })
     }
     node
 }
@@ -429,22 +432,30 @@ let unifyAll = (
 
     let numOfStmts = stmts->Js_array2.length
     let maxStmtIdx = numOfStmts - 1
-    for stmtIdx in 0 to maxStmtIdx {
-        let stmt = stmts[stmtIdx]
+    let prevStmts = []
+    stmts->Js.Array2.forEachi((stmt,stmtIdx) => {
         proveStmt(
             ~tree, 
-            ~prevStmts = stmts->Js_array2.filteri((_,i) => i < stmtIdx),
+            ~prevStmts,
             ~stmt, 
             ~jstf=stmt.justification,
             ~bottomUp = stmtIdx == maxStmtIdx && bottomUp,
             ~maxSearchDepth
         )
+        prevStmts->Js_array2.push(stmt)->ignore
 
         stmtsProcessed.contents = stmtsProcessed.contents +. 1.
         progressState.contents = progressState.contents->progressTrackerSetCurrPct(
             stmtsProcessed.contents /. numOfStmts->Belt_Int.toFloat
         )
+    })
+
+    if (debug) {
+        let nodes = stmts->Js.Array2.map(stmt => tree->ptGetOrCreateNode(stmt.expr))
+        //to doto: too many children
+        Js.Console.log2("nodes.length", nodes->Js_array2.length)
     }
+
     tree
 }
 

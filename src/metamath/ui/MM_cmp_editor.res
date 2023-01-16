@@ -379,21 +379,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 ->Js_array2.filter(stmt => stmt.typ == #e)
                                 ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                         },
-                        ~stmts={
-                            state->getAllStmtsUpToChecked
-                                ->Js_array2.filter(stmt => stmt.typ == #p)
-                                ->Js_array2.map(stmt => {
-                                    {
-                                        label:stmt.label,
-                                        expr:
-                                            switch stmt.expr {
-                                                | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
-                                                | Some(expr) => expr
-                                            },
-                                        justification: stmt.jstf,
-                                    }
-                                })
-                        },
+                        ~stmts=state->getStmtsForUnification,
                         ~bottomUp=singleProvableIsSelected(),
                         ~onProgress = pct => updateModal(modalRef, modalId, () => rndProgress(~text="Unifying", ~pct))
                     )->promiseMap(proofTreeDto => {

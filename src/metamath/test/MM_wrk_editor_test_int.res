@@ -159,6 +159,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
         let st = st->unifyBottomUp(trgtStmtId)
+        // assertEditorState(st, "step1", ~failOnMismatch, ())
 
     })
     
