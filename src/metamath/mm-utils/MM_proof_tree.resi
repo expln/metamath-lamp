@@ -55,6 +55,7 @@ let ptMakeNode: ( proofTree, expr, ) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
 let ptEraseDists: proofTree => unit
+let ptGetNuberOfNodes: proofTree => int
 let ptToDto: (proofTree, array<expr>) => proofTreeDto
 
 let pnGetExpr: proofNode => expr

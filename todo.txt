@@ -1,3 +1,4 @@
+- rename containerOfWaiting... to priorityQueue
 - prefixes for work vars
 - prefix for new statements
 - add logs to applyAssertions (using array)
@@ -16,3 +17,4 @@
 - use uncurried functions everywhere
 - replace a[i] with a->Js_array2.unsafe_get(i), or open Belt and replace with Option.getExn
 - in editorReadStateFromLocStor: make nextStmtId and stmts optional, and check/update nextStmtId after reading
+- add possibility to stop running worker.

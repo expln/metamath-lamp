@@ -152,6 +152,8 @@ let ptEraseDists = (tree:proofTree) => {
     tree.nodes->Belt_MutableMap.forEach((_, node) => node.dist = None)
 }
 
+let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_MutableMap.size
+
 let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
     tree.nodes->Belt_MutableMap.get(expr)
 }

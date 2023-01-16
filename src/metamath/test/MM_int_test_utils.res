@@ -227,7 +227,7 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~stmts,
                 ~debug=true,
                 ~bottomUp=true,
-                ~maxSearchDepth=2,
+                ~maxSearchDepth=3,
                 ()
             )
             let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))
