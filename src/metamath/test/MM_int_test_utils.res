@@ -180,7 +180,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let unifyAll = st => {
+let unifyAll = (st):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -204,6 +204,41 @@ let unifyAll = st => {
                 ~stmts,
                 ~debug=true,
                 ~bottomUp=false,
+                ~maxSearchDepth=5,
+                ()
+            )
+            let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))
+            applyUnifyAllResults(st, proofTreeDto)
+        }
+    }
+}
+
+let unifyBottomUp = (st,stmtId):editorState => {
+    switch st.wrkCtx {
+        | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
+        | Some(wrkCtx) => {
+            let st = st->uncheckAllStmts
+            let st = st->toggleStmtChecked(stmtId)
+            let stmts = st->getAllStmtsUpToChecked
+                ->Js_array2.filter(stmt => stmt.typ == #p)
+                ->Js_array2.map(stmt => {
+                    {
+                        label:stmt.label,
+                        expr:
+                            switch stmt.expr {
+                                | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
+                                | Some(expr) => expr
+                            },
+                        justification: stmt.jstf,
+                    }
+                })
+            let proofTree = MM_provers.unifyAll(
+                ~parenCnt = parenCnt.contents,
+                ~frms = st.frms,
+                ~ctx = wrkCtx,
+                ~stmts,
+                ~debug=true,
+                ~bottomUp=true,
                 ~maxSearchDepth=5,
                 ()
             )

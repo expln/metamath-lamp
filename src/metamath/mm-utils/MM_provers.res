@@ -59,39 +59,38 @@ let proveBottomUp = (
     if (node->pnGetProof->Belt.Option.isNone) {
         if (maxSearchDepth->Belt.Option.isSome) {
             tree->ptEraseDists
-            node->pnSetDist(Some(0))
         }
 
         let nodesToCreateParentsFor = Belt_MutableStack.make()
         let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
 
         let saveNodeToCreateParentsFor = (node,dist) => {
-            let notTooFarFromRoot = switch maxSearchDepth {
-                | None => true
-                | Some(maxSearchDepth) => {
-                    switch dist {
-                        | None => 
-                            raise(MmException({
-                                msg: `proveBottomUp: dist must not be None when maxSearchDepth is Some.`
-                            }))
-                        | Some(dist) => dist <= maxSearchDepth
-                    }
-                }
-            }
-            if (notTooFarFromRoot) {
-                switch dist {
-                    | None => ()
-                    | Some(dist) => {
-                        switch node->pnGetDist {
-                            | Some(curDist) if curDist <= dist => ()
-                            | _ => node->pnSetDist(Some(dist))
+            switch node->pnGetProof {
+                | Some(_) => ()
+                | None => {
+                    if (!(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
+                        let notTooFarFromRoot = switch maxSearchDepth {
+                            | None => true
+                            | Some(maxSearchDepth) => {
+                                switch dist {
+                                    | None => 
+                                        raise(MmException({
+                                            msg: `proveBottomUp: dist must not be None when maxSearchDepth is Some.`
+                                        }))
+                                    | Some(dist) => dist <= maxSearchDepth
+                                }
+                            }
                         }
-                    }
-                }
-                switch node->pnGetProof {
-                    | Some(_) => ()
-                    | None => {
-                        if (!(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
+                        if (notTooFarFromRoot) {
+                            switch dist {
+                                | None => ()
+                                | Some(dist) => {
+                                    switch node->pnGetDist {
+                                        | Some(curDist) if curDist <= dist => ()
+                                        | _ => node->pnSetDist(Some(dist))
+                                    }
+                                }
+                            }
                             savedNodes->Belt_MutableSet.add(node->pnGetExpr)
                             nodesToCreateParentsFor->Belt_MutableStack.push(node)
                         }
@@ -269,14 +268,18 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
                 ~allowEmptyArgs=true,
                 ()
             )
-            parents->Js_array2.filter(parent => {
-                switch parent {
-                    | VarType | Hypothesis(_) => true
-                    | Assertion({args}) => {
-                        args->Js_array2.every(arg => !exprHasNewVars(arg->pnGetExpr))
+            if (exprEq(expr, stmt)) {
+                parents
+            } else {
+                parents->Js_array2.filter(parent => {
+                    switch parent {
+                        | VarType | Hypothesis(_) => true
+                        | Assertion({args}) => {
+                            args->Js_array2.every(arg => !exprHasNewVars(arg->pnGetExpr))
+                        }
                     }
-                }
-            })
+                })
+            }
         }
     }
 

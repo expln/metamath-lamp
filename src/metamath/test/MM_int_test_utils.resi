@@ -33,6 +33,7 @@ let addStmtsBySearch: (
 let applySubstitution: ( editorState, ~replaceWhat: string, ~replaceWith: string, ) => editorState
 
 let unifyAll: editorState => editorState
+let unifyBottomUp: ( editorState, string, ) => editorState
 
 let setTestDataDir: string => unit
 let assertEditorState: (editorState, string, ~failOnMismatch: bool=?, unit,) => unit

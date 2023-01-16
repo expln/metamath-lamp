@@ -2,7 +2,7 @@ open Expln_test
 open MM_int_test_utils
 
 describe("MM_wrk_editor integration tests", _ => {
-    it("proving reccot", _ => {
+    it("prove reccot", _ => {
         setTestDataDir("prove-reccot")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="reccsc", ())
 
@@ -134,7 +134,7 @@ describe("MM_wrk_editor integration tests", _ => {
         assertProof(st, trgtStmtId, "proof3-no-hyps", ~failOnMismatch, ())
     })
 
-    it("proving nfv", _ => {
+    it("prove nfv", _ => {
         setTestDataDir("prove-nfv")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="nfv", ())
 
@@ -150,6 +150,15 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step2", ~failOnMismatch, ())
         assertProof(st, trgtStmtId, "proof1", ~failOnMismatch, ())
+
+    })
+
+    it("prove sgnval", _ => {
+        setTestDataDir("prove-sgnval")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+
+        let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
+        let st = st->unifyBottomUp(trgtStmtId)
 
     })
     
