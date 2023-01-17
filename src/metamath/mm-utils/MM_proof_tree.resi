@@ -62,4 +62,3 @@ let pnGetParents: proofNode => option<array<exprSource>>
 let pnAddParent: (proofNode, exprSource) => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode, option<int>) => unit
-let pnCreateProofTable: proofNode => proofTable

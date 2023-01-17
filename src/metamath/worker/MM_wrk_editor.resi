@@ -1,5 +1,6 @@
 open MM_context
 open MM_proof_tree
+open MM_proof_tree_dto
 open MM_syntax_tree
 open MM_wrk_settings
 open MM_wrk_unify
@@ -38,7 +39,7 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<justification>,
-    proof: option<proofNode>,
+    proof: option<(proofTreeDto, proofNodeDto)>,
     proofStatus: option<proofStatus>,
 }
 

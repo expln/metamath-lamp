@@ -5,6 +5,7 @@ open MM_parenCounter
 open MM_syntax_tree
 open MM_substitution
 open MM_proof_tree
+open MM_proof_tree_dto
 open MM_provers
 
 type rec syntaxTreeNodeTest = {
@@ -41,8 +42,9 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]")),
         (),
     )
-    let node = proofTree->ptGetOrCreateNode(expr)
-    let proofTable = pnCreateProofTable(node)
+    let proofTreeDto = proofTreeToDto(proofTree, [expr])
+    let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
+    let proofTable = createProofTable(proofTreeDto, node)
 
     //when
     let actualSyntaxTree = buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)

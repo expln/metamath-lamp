@@ -1,6 +1,7 @@
 open MM_context
 open MM_parser
 open MM_proof_tree
+open MM_proof_tree_dto
 open MM_syntax_tree
 open MM_wrk_settings
 open MM_asrt_apply
@@ -65,7 +66,7 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<justification>,
-    proof: option<proofNodeDto>,
+    proof: option<(proofTreeDto, proofNodeDto)>,
     proofStatus: option<proofStatus>,
 }
 
@@ -1038,7 +1039,7 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let exprSrcToJstf = (wrkCtx, exprSrc:exprSourceDto, exprToUserStmt):option<justification> => {
+let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSourceDto, exprToUserStmt):option<justification> => {
     switch exprSrc {
         | Assertion({args, label:asrtLabel}) => {
             switch wrkCtx->getFrame(asrtLabel) {
@@ -1050,8 +1051,8 @@ let exprSrcToJstf = (wrkCtx, exprSrc:exprSourceDto, exprToUserStmt):option<justi
                         if (hyp.typ == E) {
                             switch args->Belt_Array.get(i) {
                                 | None => argLabelsValid.contents = false
-                                | Some(argExpr) => {
-                                    switch exprToUserStmt->Belt_Map.get(argExpr) {
+                                | Some(argIdx) => {
+                                    switch exprToUserStmt->Belt_Map.get(proofTree.nodes[argIdx].expr) {
                                         | None => argLabelsValid.contents = false
                                         | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
@@ -1074,10 +1075,10 @@ let exprSrcToJstf = (wrkCtx, exprSrc:exprSourceDto, exprToUserStmt):option<justi
     }
 }
 
-let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNodeDto,exprToUserStmt):userStmt => {
+let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
     switch proofNode.proof {
         | Some(proofSrc) => {
-            switch exprSrcToJstf(wrkCtx,proofSrc,exprToUserStmt) {
+            switch exprSrcToJstf(wrkCtx, proofTree, proofSrc, exprToUserStmt) {
                 | None => stmt
                 | Some(jstfFromProof) => {
                     switch stmt.jstf {
@@ -1085,14 +1086,14 @@ let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNodeDto,exprToUser
                             {
                                 ...stmt,
                                 jstfText: jstfFromProof.args->Js_array2.joinWith(" ") ++ " : " ++ jstfFromProof.asrt,
-                                proof: Some(proofNode),
+                                proof: Some((proofTree, proofNode)),
                             }
                         }
                         | Some(existingJstf) => {
                             if (jstfFromProof == existingJstf) {
                                 {
                                     ...stmt,
-                                    proof: Some(proofNode)
+                                    proof: Some((proofTree, proofNode)),
                                 }
                             } else {
                                 stmt
@@ -1107,9 +1108,9 @@ let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNodeDto,exprToUser
     
 }
 
-let userStmtSetProofStatus = (stmt, wrkCtx, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
+let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
     let parentEqJstf = (parentSrc, jstf) => {
-        switch exprSrcToJstf(wrkCtx, parentSrc, exprToUserStmt) {
+        switch exprSrcToJstf(wrkCtx, proofTree, parentSrc, exprToUserStmt) {
             | None => false
             | Some(parentJstf) => parentJstf == jstf
         }
@@ -1121,9 +1122,14 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofNode:proofNodeDto, exprToUserSt
             switch stmt.jstf {
                 | None => {...stmt, proofStatus:Some(#noJstf)}
                 | Some(jstf) => {
-                    switch proofNode.parents->Js.Array2.find(parentEqJstf(_, jstf)) {
-                        | Some(_) => {...stmt, proofStatus:Some(#waiting)}
+                    switch proofNode.parents {
                         | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
+                        | Some(parents) => {
+                            switch parents->Js.Array2.find(parentEqJstf(_, jstf)) {
+                                | Some(_) => {...stmt, proofStatus:Some(#waiting)}
+                                | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
+                            }
+                        }
                     }
                 }
             }
@@ -1153,8 +1159,8 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                                     switch nodes->Belt_MutableMap.get(expr) {
                                         | None => stmt
                                         | Some(node) => {
-                                            let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,node,exprToUserStmt)
-                                            let stmt = userStmtSetProofStatus(stmt,wrkCtx,node,exprToUserStmt)
+                                            let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
+                                            let stmt = userStmtSetProofStatus(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
                                             stmt
                                         }
                                     }
@@ -1242,8 +1248,8 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                 | Some(stmt) => {
                     switch stmt.proof {
                         | None => None
-                        | Some(proofNode) => {
-                            let proofTable = pnCreateProofTable(proofNode)
+                        | Some((proofTable,proofNode)) => {
+                            let proofTable = createProofTable(proofTable,proofNode)
                             let proof = MM_proof_table.createProof(wrkCtx, proofTable, proofTable->Js_array2.length-1)
                             Some(proofToText(wrkCtx,stmt,proof))
                         }

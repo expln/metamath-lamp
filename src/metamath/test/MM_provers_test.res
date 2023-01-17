@@ -4,6 +4,7 @@ open MM_context
 open MM_proof_table
 open MM_proof_verifier
 open MM_proof_tree
+open MM_proof_tree_dto
 open MM_provers
 open MM_parenCounter
 open MM_substitution
@@ -26,8 +27,9 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     )
 
     //then
-    let node = proofTree->ptGetOrCreateNode(expr)
-    let proofTable = pnCreateProofTable(node)
+    let proofTreeDto = proofTreeToDto(proofTree, [expr])
+    let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
+    let proofTable = createProofTable(proofTreeDto, node)
     let actualProof = createProof(ctx, proofTable, proofTable->Js_array2.length-1)
 
     //then

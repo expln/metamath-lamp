@@ -2,6 +2,7 @@ open Expln_test
 open MM_parser
 open MM_context
 open MM_proof_tree
+open MM_proof_tree_dto
 open MM_provers
 open MM_wrk_editor
 open MM_wrk_settings
@@ -207,7 +208,7 @@ let unifyAll = (st):editorState => {
                 ~maxSearchDepth=5,
                 ()
             )
-            let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)
         }
     }
@@ -230,7 +231,7 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~maxSearchDepth=3,
                 ()
             )
-            let proofTreeDto = proofTree->ptToDto(stmts->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)
         }
     }
