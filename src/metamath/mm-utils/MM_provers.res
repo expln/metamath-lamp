@@ -126,13 +126,13 @@ let proveBottomUp = (
         }
 
         let nodesToCreateParentsFor = waitingNodesContainerMake(searchDir)
-        let savedNodes = Belt_MutableSet.make(~id=module(ExprCmp))
+        let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 16 )
 
         let saveNodeToCreateParentsFor = (node,dist) => {
             switch node->pnGetProof {
                 | Some(_) => ()
                 | None => {
-                    if (!(savedNodes->Belt_MutableSet.has(node->pnGetExpr))) {
+                    if (!(savedNodes->Belt_HashSet.has(node->pnGetExpr))) {
                         let notTooFarFromRoot = switch maxSearchDepth {
                             | None => true
                             | Some(maxSearchDepth) => {
@@ -155,7 +155,7 @@ let proveBottomUp = (
                                     }
                                 }
                             }
-                            savedNodes->Belt_MutableSet.add(node->pnGetExpr)
+                            savedNodes->Belt_HashSet.add(node->pnGetExpr)
                             nodesToCreateParentsFor->waitingNodesContainerPush(node)
                         }
                     }
@@ -208,7 +208,7 @@ let proveBottomUp = (
             }
         }
         if (maxSearchDepth->Belt_Option.isSome) {
-            Js.Console.log2("savedNodes.size", savedNodes->Belt_MutableSet.size)
+            Js.Console.log2("savedNodes.size", savedNodes->Belt_HashSet.size)
         }
     }
 }
@@ -331,33 +331,44 @@ let proveWithJustification = (~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt
 let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDepth:int):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
+
+    let numOfGetParentsCalls = ref(0)
+    let numOfParentsProcessed = ref(0)
+    let numOfParentsReturned = ref(0)
+    let numOfProveFloatingCalls = ref(0)
+
     let getParents = expr => {
+        numOfGetParentsCalls.contents = numOfGetParentsCalls.contents + 1
         let parents = findAsrtParentsWithoutNewVars( ~tree, ~expr, ~restrictExprLen=Less, )
-        parents->Js.Array2.filter(parent => {
-            switch parent {
-                | Assertion({args, label}) => {
-                    let frame = switch tree->ptGetFrms->Belt_MapString.get(label) {
-                        | None => 
-                            raise(MmException({msg:`Cannot find an assertion with label ${label} in proveStmtBottomUp.`}))
-                        | Some(frm) => frm.frame
-                    }
-                    let numOfArgs = frame.hyps->Js_array2.length
-                    let argsAreCorrect = ref(true)
-                    let argIdx = ref(0)
-                    let maxArgIdx = numOfArgs - 1
-                    while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                        let arg = args[argIdx.contents]
-                        if (frame.hyps[argIdx.contents].typ == F) {
-                            proveFloating(tree, arg)
-                            argsAreCorrect.contents = arg->pnGetProof->Belt.Option.isSome
+        numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
+        let parents = parents->Js.Array2.filter(parent => {
+                switch parent {
+                    | Assertion({args, label}) => {
+                        let frame = switch tree->ptGetFrms->Belt_MapString.get(label) {
+                            | None => 
+                                raise(MmException({msg:`Cannot find an assertion with label ${label} in proveStmtBottomUp.`}))
+                            | Some(frm) => frm.frame
                         }
-                        argIdx.contents = argIdx.contents + 1
+                        let numOfArgs = frame.hyps->Js_array2.length
+                        let argsAreCorrect = ref(true)
+                        let argIdx = ref(0)
+                        let maxArgIdx = numOfArgs - 1
+                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
+                            let arg = args[argIdx.contents]
+                            if (frame.hyps[argIdx.contents].typ == F) {
+                                numOfProveFloatingCalls.contents = numOfProveFloatingCalls.contents + 1
+                                proveFloating(tree, arg)
+                                argsAreCorrect.contents = arg->pnGetProof->Belt.Option.isSome
+                            }
+                            argIdx.contents = argIdx.contents + 1
+                        }
+                        argsAreCorrect.contents
                     }
-                    argsAreCorrect.contents
+                    | _ => true
                 }
-                | _ => true
-            }
-        })
+            })
+        numOfParentsReturned.contents = numOfParentsReturned.contents + parents->Js.Array2.length
+        parents
     }
 
     let node = tree->ptGetOrCreateNode(stmt)
@@ -375,6 +386,10 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
                             if (node->pnGetProof->Belt.Option.isNone && arg->pnGetProof->Belt.Option.isNone
                                     && !exprHasNewVars(arg->pnGetExpr)) {
                                 Js.Console.log2("(pi,ai)", (pi,ai))
+                                numOfGetParentsCalls.contents = 0
+                                numOfParentsProcessed.contents = 0
+                                numOfParentsReturned.contents = 0
+                                numOfProveFloatingCalls.contents = 0
                                 proveBottomUp(
                                     ~tree, 
                                     ~node=arg, 
@@ -382,6 +397,10 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
                                     ~maxSearchDepth = Some(maxSearchDepth-1),
                                     ~searchDir = Width
                                 )
+                                Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
+                                Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
+                                Js.Console.log2("numOfParentsReturned", numOfParentsReturned.contents)
+                                Js.Console.log2("numOfProveFloatingCalls", numOfProveFloatingCalls.contents)
                             }
                         })
                     }
@@ -547,6 +566,7 @@ let unifyAll = (
     })
 
     if (debug) {
+        tree->ptGetStats
         let nodes = stmts->Js.Array2.map(stmt => tree->ptGetOrCreateNode(stmt.expr))
         //to doto: too many children
         Js.Console.log2("nodes.length", nodes->Js_array2.length)

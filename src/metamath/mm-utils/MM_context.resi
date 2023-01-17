@@ -87,3 +87,10 @@ module ExprCmp: {
   type t = expr
   let cmp: Belt_Id.cmp<t, identity>
 }
+
+module ExprHash: {
+  type identity
+  type t = expr
+  let hash: Belt_Id.hash<t, identity>
+  let eq: Belt_Id.eq<t, identity>
+}

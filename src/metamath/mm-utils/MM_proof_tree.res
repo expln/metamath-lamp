@@ -33,14 +33,14 @@ and exprSource =
 
 and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
-    hypsByExpr: Belt_Map.t<expr,hypothesis,ExprCmp.identity>,
-    hypsByLabel: Belt_MapString.t<hypothesis>,
+    hypsByExpr: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
+    hypsByLabel: Belt_HashMapString.t<hypothesis>,
     ctxMaxVar:int,
     mutable maxVar:int,
-    newVars: Belt_MutableSet.t<expr,ExprCmp.identity>,
+    newVars: Belt_HashSet.t<expr,ExprHash.identity>,
     disj: disjMutable,
     parenCnt:parenCnt,
-    nodes: Belt_MutableMap.t<expr,proofNode,ExprCmp.identity>,
+    nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     exprToStr: option<expr=>string>, //for debug purposes
 }
 
@@ -80,7 +80,7 @@ let exprSourceEq = (s1,s2) => {
 let ptGetFrms = tree => tree.frms
 let ptGetParenCnt = tree => tree.parenCnt
 let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
-let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_MutableSet.has(expr)
+let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_HashSet.has(expr)
 
 let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -92,27 +92,27 @@ let ptMake = (
 ) => {
     {
         frms,
-        hypsByLabel: hyps,
+        hypsByLabel: hyps->Belt_MapString.toArray->Belt_HashMapString.fromArray,
         hypsByExpr: hyps
                         ->Belt_MapString.toArray
                         ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
-                        ->Belt_Map.fromArray(~id=module(ExprCmp)),
+                        ->Belt_HashMap.fromArray(~id=module(ExprHash)),
         ctxMaxVar,
         maxVar:ctxMaxVar,
-        newVars: Belt_MutableSet.make(~id=module(ExprCmp)),
+        newVars: Belt_HashSet.make(~id=module(ExprHash), ~hintSize=16),
         disj,
         parenCnt,
-        nodes: Belt_MutableMap.make(~id=module(ExprCmp)),
+        nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
         exprToStr,
     }
 }
 
 let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
-    tree.hypsByExpr->Belt_Map.get(expr)
+    tree.hypsByExpr->Belt_HashMap.get(expr)
 }
 
 let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> => {
-    tree.hypsByLabel->Belt_MapString.get(label)
+    tree.hypsByLabel->Belt_HashMapString.get(label)
 }
 
 let ptGetMaxVar = tree => tree.maxVar
@@ -127,7 +127,7 @@ let proofNodeGetExprStr = (node:proofNode):string => {
 }
 
 let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
-    switch tree.nodes->Belt_MutableMap.get(expr) {
+    switch tree.nodes->Belt_HashMap.get(expr) {
         | Some(existingNode) => 
             raise(MmException({
                 msg:`Creation of a new node was requested, ` 
@@ -142,20 +142,25 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
                 children: [],
                 dist: None
             }
-            tree.nodes->Belt_MutableMap.set(expr, node)->ignore
+            tree.nodes->Belt_HashMap.set(expr, node)->ignore
             node
         }
     }
 }
 
 let ptEraseDists = (tree:proofTree) => {
-    tree.nodes->Belt_MutableMap.forEach((_, node) => node.dist = None)
+    tree.nodes->Belt_HashMap.forEach((_, node) => node.dist = None)
 }
 
-let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_MutableMap.size
+let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
+
+let ptGetStats = (tree:proofTree) => {
+    let hist = Belt_HashMap.getBucketHistogram(tree.nodes)
+    Js.Console.log2("hist", hist)
+}
 
 let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
-    tree.nodes->Belt_MutableMap.get(expr)
+    tree.nodes->Belt_HashMap.get(expr)
 }
 
 let ptGetOrCreateNode = ( tree:proofTree, expr:expr):proofNode => {
@@ -208,10 +213,11 @@ let pnMarkProved = ( node:proofNode ):unit => {
 
 let pnAddChild = (node, child): unit => {
     if (!exprEq(node.expr, child.expr)) {
-        switch node.children->Js.Array2.find(existingChild => exprEq(existingChild.expr,child.expr)) {
-            | None => node.children->Js_array2.push(child)->ignore
-            | Some(_) => ()
-        }
+        node.children->Js_array2.push(child)->ignore
+        // switch node.children->Js.Array2.find(existingChild => exprEq(existingChild.expr,child.expr)) {
+        //     | None => node.children->Js_array2.push(child)->ignore
+        //     | Some(_) => ()
+        // }
     }
 }
 
@@ -230,19 +236,21 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
                     newParentWasAdded.contents = true
                 }
                 | Some(parents) => {
-                    switch parents->Js_array2.find(par => exprSourceEq(par, parent)) {
-                        | Some(existingParent) => {
-                            if (esIsProved(existingParent)) {
-                                raise(MmException({
-                                    msg:`Unexpected: an unproved node '${proofNodeGetExprStr(node)}' has a proved parent.`
-                                }))
-                            }
-                        }
-                        | None => {
-                            parents->Js_array2.push(parent)->ignore
-                            newParentWasAdded.contents = true
-                        }
-                    }
+                    parents->Js_array2.push(parent)->ignore
+                    newParentWasAdded.contents = true
+                    // switch parents->Js_array2.find(par => exprSourceEq(par, parent)) {
+                    //     | Some(existingParent) => {
+                    //         if (esIsProved(existingParent)) {
+                    //             raise(MmException({
+                    //                 msg:`Unexpected: an unproved node '${proofNodeGetExprStr(node)}' has a proved parent.`
+                    //             }))
+                    //         }
+                    //     }
+                    //     | None => {
+                    //         parents->Js_array2.push(parent)->ignore
+                    //         newParentWasAdded.contents = true
+                    //     }
+                    // }
                 }
             }
             if (newParentWasAdded.contents) {
@@ -267,7 +275,7 @@ let pnSetDist = (node,dist) => {
 let ptAddNewVar = (tree, typ):int => {
     tree.maxVar = tree.maxVar + 1
     let newVar = tree.maxVar
-    tree.newVars->Belt_MutableSet.add([typ, newVar])
+    tree.newVars->Belt_HashSet.add([typ, newVar])
     newVar
 }
 
@@ -277,10 +285,10 @@ let ptAddDisjPair = (tree:proofTree, n, m) => {
 
 let ptToDto = (tree:proofTree, stmts:array<expr>):proofTreeDto => {
     {
-        newVars: tree.newVars->Belt_MutableSet.toArray,
+        newVars: tree.newVars->Belt_HashSet.toArray,
         disj: tree.disj,
         nodes: stmts
-                ->Js.Array2.map(tree.nodes->Belt_MutableMap.get)
+                ->Js.Array2.map(tree.nodes->Belt_HashMap.get)
                 ->Js.Array2.filter(Belt_Option.isSome)
                 ->Js.Array2.map(Belt_Option.getExn)
     }

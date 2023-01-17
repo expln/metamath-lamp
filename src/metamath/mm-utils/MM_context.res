@@ -228,6 +228,24 @@ module ExprCmp = Belt.Id.MakeComparable({
         }
     }
 })
+
+module ExprHash = Belt.Id.MakeHashable({
+    type t = expr
+
+    // https://stackoverflow.com/questions/194846/is-there-hash-code-function-accepting-any-object-type
+    let hash = %raw(`
+        expr => {
+            let hash = 0;
+            for (let i = 0; i < expr.length; i++) {
+                hash = ( ( hash << 5 ) - hash ) + expr[i];
+                hash = hash & hash;  // Convert to 32-bit integer
+            }
+            return hash;
+        }
+    `)
+    let eq = exprEq
+})
+
 // cdblk #search ===========================================================================================
 
 let rec forEachCtxInDeclarationOrder = (ctx:mmContextContents,consumer:mmContextContents=>option<'a>):option<'a> => {
