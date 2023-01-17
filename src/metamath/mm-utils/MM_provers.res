@@ -7,7 +7,6 @@ open MM_progress_tracker
 open MM_proof_tree
 
 type lengthRestrict = No | LessEq | Less
-type searchDir = Depth | Width
 
 let findAsrtParentsWithoutNewVars = ( 
     ~tree, 
@@ -54,7 +53,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( Assertion({ args, label:frm.frame.label }) )->ignore
+                            foundParents->Js_array2.push( Assertion({ args, label:frm.frame.label, frame:frm.frame }) )->ignore
                         }
                     }
                     Continue
@@ -65,52 +64,11 @@ let findAsrtParentsWithoutNewVars = (
     foundParents
 }
 
-type waitingNodesContainer = {
-    stack: option<Belt_MutableStack.t<proofNode>>,
-    queue: option<Belt_MutableQueue.t<proofNode>>,
-}
-
-let waitingNodesContainerMake = dir => {
-    if (dir == Depth) {
-        {
-            stack: Some(Belt_MutableStack.make()),
-            queue: None,
-        }
-    } else {
-        {
-            stack: None,
-            queue: Some(Belt_MutableQueue.make()),
-        }
-    }
-}
-
-let waitingNodesContainerPush = (cont,node) => {
-    switch cont.stack {
-        | Some(stack) => stack->Belt_MutableStack.push(node)
-        | None => cont.queue->Belt.Option.getExn->Belt_MutableQueue.add(node)
-    }
-}
-
-let waitingNodesContainerPop = cont => {
-    switch cont.stack {
-        | Some(stack) => stack->Belt_MutableStack.pop
-        | None => cont.queue->Belt.Option.getExn->Belt_MutableQueue.pop
-    }
-}
-
-let waitingNodesContainerIsEmpty = cont => {
-    switch cont.stack {
-        | Some(stack) => stack->Belt_MutableStack.isEmpty
-        | None => cont.queue->Belt.Option.getExn->Belt_MutableQueue.isEmpty
-    }
-}
-
 let proveBottomUp = (
     ~tree:proofTree, 
     ~node:proofNode, 
     ~getParents:expr=>array<exprSource>,
     ~maxSearchDepth:option<int>,
-    ~searchDir:searchDir,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -125,7 +83,7 @@ let proveBottomUp = (
             tree->ptEraseDists
         }
 
-        let nodesToCreateParentsFor = waitingNodesContainerMake(searchDir)
+        let nodesToCreateParentsFor = Belt_MutableQueue.make()
         let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 16 )
 
         let saveNodeToCreateParentsFor = (node,dist) => {
@@ -156,7 +114,7 @@ let proveBottomUp = (
                                 }
                             }
                             savedNodes->Belt_HashSet.add(node->pnGetExpr)
-                            nodesToCreateParentsFor->waitingNodesContainerPush(node)
+                            nodesToCreateParentsFor->Belt_MutableQueue.add(node)
                         }
                     }
                 }
@@ -165,8 +123,8 @@ let proveBottomUp = (
 
         let rootNode = node
         saveNodeToCreateParentsFor(rootNode, maxSearchDepth->Belt_Option.map(_ => 0))
-        while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->waitingNodesContainerIsEmpty)) {
-            let curNode = nodesToCreateParentsFor->waitingNodesContainerPop->Belt_Option.getExn
+        while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
+            let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
                 let newDist = curNode->pnGetDist->Belt.Option.map(dist => dist + 1)
                 switch curNode->pnGetParents {
@@ -194,12 +152,6 @@ let proveBottomUp = (
                                             | _ => ()
                                         }
                                     })
-                                    // if (maxSearchDepth->Belt_Option.isSome) {
-                                    //     Js.Console.log2("size", 
-                                    //         savedNodes->Belt_MutableSet.size->Belt_Int.toString
-                                    //             ++ "/" ++ nodesToCreateParentsFor->Belt_MutableStack.size->Belt_Int.toString
-                                    //     )
-                                    // }
                                 }
                             }
                         }
@@ -219,7 +171,6 @@ let proveFloating = (tree, node) => {
         ~node, 
         ~getParents = expr => findAsrtParentsWithoutNewVars(~tree, ~expr, ~restrictExprLen=LessEq),
         ~maxSearchDepth = None,
-        ~searchDir = Depth
     )
 }
 
@@ -291,7 +242,7 @@ let findAsrtParentsWithNewVars = (
             argIdx.contents = argIdx.contents + 1
         }
         if (typesAreCorrect.contents) {
-            foundParents->Js.Array2.push( Assertion({ args, label: applResult.asrtLabel, }) )->ignore
+            foundParents->Js.Array2.push( Assertion({ args, label:applResult.asrtLabel, frame}) )->ignore
         }
     })
     foundParents
@@ -343,12 +294,7 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
         numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
         let parents = parents->Js.Array2.filter(parent => {
                 switch parent {
-                    | Assertion({args, label}) => {
-                        let frame = switch tree->ptGetFrms->Belt_MapString.get(label) {
-                            | None => 
-                                raise(MmException({msg:`Cannot find an assertion with label ${label} in proveStmtBottomUp.`}))
-                            | Some(frm) => frm.frame
-                        }
+                    | Assertion({args, frame}) => {
                         let numOfArgs = frame.hyps->Js_array2.length
                         let argsAreCorrect = ref(true)
                         let argIdx = ref(0)
@@ -395,7 +341,6 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
                                     ~node=arg, 
                                     ~getParents,
                                     ~maxSearchDepth = Some(maxSearchDepth-1),
-                                    ~searchDir = Width
                                 )
                                 Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
                                 Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)

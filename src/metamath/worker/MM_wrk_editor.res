@@ -7,6 +7,7 @@ open MM_asrt_apply
 open MM_parenCounter
 open MM_substitution
 open MM_wrk_ctx
+open MM_wrk_unify
 open MM_provers
 
 type stmtCont =
@@ -64,7 +65,7 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<justification>,
-    proof: option<proofNode>,
+    proof: option<proofNodeDto>,
     proofStatus: option<proofStatus>,
 }
 
@@ -1037,7 +1038,7 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let exprSrcToJstf = (wrkCtx, exprSrc:exprSource, exprToUserStmt):option<justification> => {
+let exprSrcToJstf = (wrkCtx, exprSrc:exprSourceDto, exprToUserStmt):option<justification> => {
     switch exprSrc {
         | Assertion({args, label:asrtLabel}) => {
             switch wrkCtx->getFrame(asrtLabel) {
@@ -1049,8 +1050,8 @@ let exprSrcToJstf = (wrkCtx, exprSrc:exprSource, exprToUserStmt):option<justific
                         if (hyp.typ == E) {
                             switch args->Belt_Array.get(i) {
                                 | None => argLabelsValid.contents = false
-                                | Some(argNode) => {
-                                    switch exprToUserStmt->Belt_Map.get(argNode->pnGetExpr) {
+                                | Some(argExpr) => {
+                                    switch exprToUserStmt->Belt_Map.get(argExpr) {
                                         | None => argLabelsValid.contents = false
                                         | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
@@ -1073,8 +1074,8 @@ let exprSrcToJstf = (wrkCtx, exprSrc:exprSource, exprToUserStmt):option<justific
     }
 }
 
-let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNode,exprToUserStmt):userStmt => {
-    switch proofNode->pnGetProof {
+let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNodeDto,exprToUserStmt):userStmt => {
+    switch proofNode.proof {
         | Some(proofSrc) => {
             switch exprSrcToJstf(wrkCtx,proofSrc,exprToUserStmt) {
                 | None => stmt
@@ -1106,7 +1107,7 @@ let userStmtSetJstfTextAndProof = (stmt,wrkCtx,proofNode:proofNode,exprToUserStm
     
 }
 
-let userStmtSetProofStatus = (stmt, wrkCtx, proofNode:proofNode, exprToUserStmt):userStmt => {
+let userStmtSetProofStatus = (stmt, wrkCtx, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
     let parentEqJstf = (parentSrc, jstf) => {
         switch exprSrcToJstf(wrkCtx, parentSrc, exprToUserStmt) {
             | None => false
@@ -1120,14 +1121,9 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofNode:proofNode, exprToUserStmt)
             switch stmt.jstf {
                 | None => {...stmt, proofStatus:Some(#noJstf)}
                 | Some(jstf) => {
-                    switch proofNode->pnGetParents {
+                    switch proofNode.parents->Js.Array2.find(parentEqJstf(_, jstf)) {
+                        | Some(_) => {...stmt, proofStatus:Some(#waiting)}
                         | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
-                        | Some(parents) => {
-                            switch parents->Js.Array2.find(parentEqJstf(_, jstf)) {
-                                | Some(_) => {...stmt, proofStatus:Some(#waiting)}
-                                | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
-                            }
-                        }
                     }
                 }
             }
@@ -1140,7 +1136,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
         | None => raise(MmException({msg:`Cannot applyUnifyAllResults without wrkCtx.`}))
         | Some(wrkCtx) => {
             let nodes = proofTreeDto.nodes
-                ->Js_array2.map(node => (node->pnGetExpr,node))
+                ->Js_array2.map(node => (node.expr,node))
                 ->Belt_MutableMap.fromArray(~id=module(ExprCmp))
             let exprToUserStmt = st.stmts
                                     ->Js_array2.filter(stmt => stmt.expr->Belt_Option.isSome)

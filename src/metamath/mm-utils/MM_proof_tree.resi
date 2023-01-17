@@ -20,17 +20,11 @@ type rootStmt = {
 type proofNode
 
 type exprSource =
-  | VarType
-  | Hypothesis({label:string})
-  | Assertion({args:array<proofNode>, label:string})
+    | VarType
+    | Hypothesis({label:string})
+    | Assertion({args:array<proofNode>, label:string, frame:frame})
 
 type proofTree
-
-type proofTreeDto = {
-    newVars: array<expr>,
-    disj: disjMutable,
-    nodes: array<proofNode>,
-}
 
 let ptMake: (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -55,11 +49,14 @@ let ptMakeNode: ( proofTree, expr, ) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
 let ptEraseDists: proofTree => unit
+let ptGetCopyOfNewVars: proofTree => array<expr>
+let ptGetCopyOfDisj: proofTree => disjMutable
+
 let ptGetNuberOfNodes: proofTree => int
 let ptGetStats: proofTree => unit
-let ptToDto: (proofTree, array<expr>) => proofTreeDto
 
 let pnGetExpr: proofNode => expr
+let pnGetExprStr: proofNode => option<string>
 let pnGetProof: proofNode => option<exprSource>
 let pnGetParents: proofNode => option<array<exprSource>>
 let pnAddParent: (proofNode, exprSource) => unit
