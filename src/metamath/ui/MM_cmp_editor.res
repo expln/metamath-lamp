@@ -363,11 +363,18 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         })
     }
 
+    let makeActTerminate = (modalId:modalId):(unit=>unit) => {
+        () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
+        }
+    }
+
     let actUnifyAll = () => {
         switch state.wrkCtx {
             | None => ()
             | Some(_) => {
-                openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0.))->promiseMap(modalId => {
+                openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
                     unify(
                         ~preCtxVer=state.preCtxV,
                         ~preCtx=state.preCtx,
@@ -381,7 +388,11 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         },
                         ~stmts=state->getStmtsForUnification,
                         ~bottomUp=singleProvableIsSelected(),
-                        ~onProgress = pct => updateModal(modalRef, modalId, () => rndProgress(~text="Unifying", ~pct))
+                        ~onProgress = pct => updateModal( 
+                            modalRef, modalId, () => rndProgress(
+                                ~text="Unifying", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                            )
+                        )
                     )->promiseMap(proofTreeDto => {
                         closeModal(modalRef, modalId)
                         actUnifyAllResultsAreReady(proofTreeDto)

@@ -2,6 +2,7 @@
 - prefixes for work vars
 - prefix for new statements
 - add logs to applyAssertions (using array)
+- merge identical statements which appear as a result of substitution
 - rename applyAssertions to findSubstitutions
 - simplify search of assertions by filtering frms (don't use applyAssertions() ).
 - try to replace the array with a map in MM_parenCounter.

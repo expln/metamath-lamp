@@ -153,15 +153,22 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
         })
     }
 
-    let rndFindParensProgress = (pct) => {
-        rndProgress(~text=`Searching parentheses`, ~pct)
+    let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
+        modalId->Belt.Option.map(modalId => () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
+        })
+    }
+
+    let rndFindParensProgress = (pct, modalIdOpt) => {
+        rndProgress(~text=`Searching parentheses`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
     }
 
     let syncParens = () => {
-        openModal(modalRef, _ => rndFindParensProgress(0.))->promiseMap(modalId => {
+        openModal(modalRef, _ => rndFindParensProgress(0., None))->promiseMap(modalId => {
             MM_wrk_FindParens.beginFindParens(
                 ~ctx,
-                ~onProgress = pct => updateModal(modalRef, modalId, () => rndFindParensProgress(pct)),
+                ~onProgress = pct => updateModal(modalRef, modalId, () => rndFindParensProgress(pct, Some(modalId))),
                 ~onDone = parens => {
                     onParensChange(parens)
                     closeModal(modalRef, modalId)

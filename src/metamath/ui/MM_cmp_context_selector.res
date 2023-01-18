@@ -117,22 +117,31 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         onChange(ctx)
     }
 
-    let rndParseMmFileProgress = (fileName, pct) => {
-        rndProgress(~text=`Parsing ${fileName}`, ~pct)
+    let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
+        modalId->Belt.Option.map(modalId => () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
+        })
     }
 
-    let rndLoadMmContextProgress = (pct) => {
-        rndProgress(~text=`Loading MM context`, ~pct)
+    let rndParseMmFileProgress = (fileName, pct, modalIdOpt) => {
+        rndProgress(~text=`Parsing ${fileName}`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
+    }
+
+    let rndLoadMmContextProgress = (pct, modalIdOpt) => {
+        rndProgress(~text=`Loading MM context`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
     }
 
     let parseMmFileText = (id, nameAndTextOpt) => {
         switch nameAndTextOpt {
             | None => setState(updateSingleScope(_,id,reset))
             | Some((name,text)) => {
-                openModal(modalRef, _ => rndParseMmFileProgress(name, 0.))->promiseMap(modalId => {
+                openModal(modalRef, _ => rndParseMmFileProgress(name, 0., None))->promiseMap(modalId => {
                     MM_wrk_ParseMmFile.beginParsingMmFile(
                         ~mmFileText = text,
-                        ~onProgress = pct => updateModal(modalRef, modalId, () => rndParseMmFileProgress(name, pct)),
+                        ~onProgress = pct => updateModal(
+                            modalRef, modalId, () => rndParseMmFileProgress(name, pct, Some(modalId))
+                        ),
                         ~onDone = parseResult => {
                             setState(updateSingleScope(_,id,setFileName(_,Some(name))))
                             setState(updateSingleScope(_,id,setFileText(_,Some(text))))
@@ -212,7 +221,7 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         if (scopeIsEmpty) {
             actNewCtxIsReady(createContext(()))
         } else {
-            openModal(modalRef, _ => rndLoadMmContextProgress(0.))->promiseMap(modalId => {
+            openModal(modalRef, _ => rndLoadMmContextProgress(0., None))->promiseMap(modalId => {
                 MM_wrk_LoadCtx.beginLoadingMmContext(
                     ~scopes = state.singleScopes->Js.Array2.map(ss => {
                         let stopBefore = if (ss.readInstr == #stopBefore) {ss.label} else {None}
@@ -232,7 +241,9 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
                             expectedNumOfAssertions: ss.allLabels->Js_array2.indexOf(label) + 1
                         }
                     }),
-                    ~onProgress = pct => updateModal(modalRef, modalId, _ => rndLoadMmContextProgress(pct)),
+                    ~onProgress = pct => updateModal(
+                        modalRef, modalId, _ => rndLoadMmContextProgress(pct, Some(modalId))
+                    ),
                     ~onDone = ctx => {
                         switch ctx {
                             | Error(msg) => {

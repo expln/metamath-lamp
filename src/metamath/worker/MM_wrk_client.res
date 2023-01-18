@@ -1,10 +1,11 @@
 open MM_wrk_api
 open Common
 
-let webworker: option<{..}> = %raw("typeof window !== 'undefined' ? window.webWorkerInst : undefined")
-let sendToWorkerPriv: workerRequest => unit = req => {
-    webworker->Belt_Option.forEach(webworker => webworker["postMessage"](. req))
-}
+@new external newWorker: string => {..} = "Worker"
+
+exception WorkerException(string)
+
+let webworkerRef: ref<option<{..}>> = ref(None)
 
 type clientCallback = serialized => unit
 
@@ -12,6 +13,16 @@ type client = {
     id: int,
     callback: clientCallback,
     traceEnabled: bool,
+}
+
+let terminateWorker = () => {
+    switch webworkerRef.contents {
+        | None => ()
+        | Some(webworker) => {
+            webworker["terminate"](.)
+            webworkerRef.contents = None
+        }
+    }
 }
 
 let nextClientId = ref(0)
@@ -40,22 +51,31 @@ let unregClient = id => {
     }
 }
 
-webworker->Belt_Option.forEach(webworker => {
-    webworker["onmessage"]= msg => {
-        let resp:workerResponse = msg["data"]
-        clients->Expln_utils_common.arrForEach(client => {
-            if (client.id == resp.clientId) {
-                if (client.traceEnabled) {
-                    Js.Console.log(`${currTimeStr()} [clientId=${resp.clientId->Belt_Int.toString}] client received a response`)
+let sendToWorkerPriv: workerRequest => unit = req => {
+    if (webworkerRef.contents->Belt.Option.isNone) {
+        let webworker = newWorker("./webworker-main.js")
+        webworker["onmessage"]= msg => {
+            let resp:workerResponse = msg["data"]
+            clients->Expln_utils_common.arrForEach(client => {
+                if (client.id == resp.clientId) {
+                    if (client.traceEnabled) {
+                        Js.Console.log(`${currTimeStr()} [clientId=${resp.clientId->Belt_Int.toString}] ` 
+                                            ++ `client received a response`)
+                    }
+                    client.callback(resp.body)
+                    Some(())
+                } else {
+                    None
                 }
-                client.callback(resp.body)
-                Some(())
-            } else {
-                None
-            }
-        })->ignore
+            })->ignore
+        }
+        webworkerRef.contents = Some(webworker)
     }
-})
+    switch webworkerRef.contents {
+        | None => raise(WorkerException(`Could not instantiate a webworker.`))
+        | Some(webworker) => webworker["postMessage"](. req)
+    }
+}
 
 let beginWorkerInteraction = (
     ~procName:string,

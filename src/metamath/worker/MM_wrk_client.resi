@@ -5,3 +5,5 @@ let beginWorkerInteraction: (
     ~enableTrace: bool=?,
     ()
 ) => unit
+
+let terminateWorker: unit => unit

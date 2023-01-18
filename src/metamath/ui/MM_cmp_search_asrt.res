@@ -159,6 +159,13 @@ let make = (
         setState(setResults(_, results, wrkCtx, frms))
     }
 
+    let makeActTerminate = (modalId:modalId):(unit=>unit) => {
+        () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
+        }
+    }
+
     let actSearch = () => {
         onTypChange(state.typ)
         let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Js_array2.find(sym => !(wrkCtx->isConst(sym)))
@@ -166,7 +173,7 @@ let make = (
             | Some(sym) => setState(setPatternErr(_, Some(`'${sym}' - is not a constant.`)))
             | None => {
                 setState(setPatternErr(_, None))
-                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0.))->promiseMap(modalId => {
+                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. , ()))->promiseMap(modalId => {
                     searchAssertions(
                         ~preCtxVer,
                         ~preCtx,
@@ -177,7 +184,11 @@ let make = (
                         ~label=state.label,
                         ~typ=state.typ,
                         ~pattern=wrkCtx->ctxStrToIntsExn(state.patternStr),
-                        ~onProgress = pct => updateModal(modalRef, modalId, () => rndProgress(~text="Searching", ~pct))
+                        ~onProgress = pct => updateModal(
+                            modalRef, modalId, () => rndProgress(
+                                ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                            )
+                        )
                     )->promiseMap(found => {
                         closeModal(modalRef, modalId)
                         actResultsRetrieved(found)
