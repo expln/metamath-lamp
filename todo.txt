@@ -4,6 +4,7 @@
 - add logs to applyAssertions (using array)
 - merge identical statements which appear as a result of substitution
 - rename applyAssertions to findSubstitutions
+- render disjoint vars in search results
 - simplify search of assertions by filtering frms (don't use applyAssertions() ).
 - try to replace the array with a map in MM_parenCounter.
 - write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)

@@ -706,7 +706,9 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
                 (
                     {
                         ...st,
-                        varsText: st.varsText ++ (if (st.varsText->Js.String2.length != 0) {"\n"} else {""}) ++ newVarsText
+                        varsText: st.varsText 
+                                    ++ (if (st.varsText->Js.String2.trim->Js.String2.length != 0) {"\n"} else {""})
+                                    ++ newVarsText
                     },
                     newVarInts
                 )
@@ -725,7 +727,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
             })
             let newDisjTextLines = []
             newDisj->disjForEachArr(varInts => {
-                newDisjTextLines->Js.Array2.push(wrkCtx->ctxIntsToSymsExn(varInts))->ignore
+                newDisjTextLines->Js.Array2.push(wrkCtx->ctxIntsToSymsExn(varInts)->Js.Array2.joinWith(","))->ignore
             })
             if (newDisjTextLines->Js.Array2.length == 0) {
                 st
@@ -733,7 +735,9 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
                 let newDisjText = newDisjTextLines->Js.Array2.joinWith("\n")
                 {
                     ...st,
-                    disjText: st.disjText ++ "\n" ++ newDisjText
+                    disjText: st.disjText 
+                                ++ (if (st.disjText->Js.String2.trim->Js.String2.length != 0) {"\n"} else {""})
+                                ++ newDisjText
                 }
             }
         }
@@ -754,15 +758,10 @@ let addAsrtSearchResult = (st:editorState, applRes:applyAssertionResult):editorS
                     })
                     let newCtxDisj = disjMutableMake()
                     applRes.newDisj->disjForEach((n,m) => {
-                        let newN = switch applResVarToCtxVar->Belt_MutableMapInt.get(n) {
-                            | None => n
-                            | Some(newN) => newN
-                        }
-                        let newM = switch applResVarToCtxVar->Belt_MutableMapInt.get(m) {
-                            | None => m
-                            | Some(newM) => newM
-                        }
-                        newCtxDisj->disjAddPair(newN, newM)
+                        newCtxDisj->disjAddPair(
+                            applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(n,n), 
+                            applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(m,m), 
+                        )
                     })
                     let st = createNewDisj(st, newCtxDisj)
                     let selectionWasEmpty = st.checkedStmtIds->Js.Array2.length == 0
@@ -784,10 +783,7 @@ let addAsrtSearchResult = (st:editorState, applRes:applyAssertionResult):editorS
                                 ~createWorkVar=_=>raise(MmException({msg:`Cannot create a work variable in addAsrtSearchResult [1].`}))
                             )
                                 ->Js.Array2.map(appResInt => {
-                                    switch applResVarToCtxVar->Belt_MutableMapInt.get(appResInt) {
-                                        | None => appResInt
-                                        | Some(ctxVar) => ctxVar
-                                    }
+                                    applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(appResInt, appResInt)
                                 })
                                 ->ctxIntsToStrExn(wrkCtx, _)
                             let (st, newStmtId) = addNewStmt(stMut.contents)
@@ -810,10 +806,7 @@ let addAsrtSearchResult = (st:editorState, applRes:applyAssertionResult):editorS
                         ~createWorkVar=_=>raise(MmException({msg:`Cannot create a work variable in addAsrtSearchResult [2].`}))
                     )
                         ->Js.Array2.map(appResInt => {
-                            switch applResVarToCtxVar->Belt_MutableMapInt.get(appResInt) {
-                                | None => appResInt
-                                | Some(ctxVar) => ctxVar
-                            }
+                            applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(appResInt, appResInt)
                         })
                         ->ctxIntsToStrExn(wrkCtx, _)
                     let (st, newStmtId) = addNewStmt(st)
