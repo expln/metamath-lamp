@@ -375,6 +375,11 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             | None => ()
             | Some(_) => {
                 openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
+                    updateModal( 
+                        modalRef, modalId, () => rndProgress(
+                            ~text="Unifying", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                        )
+                    )
                     unify(
                         ~preCtxVer=state.preCtxV,
                         ~preCtx=state.preCtx,

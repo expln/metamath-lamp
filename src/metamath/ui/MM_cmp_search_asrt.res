@@ -174,6 +174,11 @@ let make = (
             | None => {
                 setState(setPatternErr(_, None))
                 openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. , ()))->promiseMap(modalId => {
+                    updateModal(
+                        modalRef, modalId, () => rndProgress(
+                            ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                        )
+                    )
                     searchAssertions(
                         ~preCtxVer,
                         ~preCtx,
