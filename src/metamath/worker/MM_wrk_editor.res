@@ -780,7 +780,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                     ->Belt.Option.map(jstf => {
                         jstf.args->Js_array2.map(label => {
                             newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
-                        })->Js.Array2.joinWith(" ")
+                        })->Js.Array2.joinWith(" ") ++ ": " ++ jstf.label
                     })
                     ->Belt.Option.getWithDefault("")
                 let (st, newStmtId) = addNewStmt(stMut.contents)
@@ -796,6 +796,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                     }
                 })
             })
+            let st = stMut.contents
             if (selectionWasEmpty) {
                 st->uncheckAllStmts
             } else {
