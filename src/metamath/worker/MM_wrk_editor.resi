@@ -7,6 +7,7 @@ open MM_wrk_unify
 open MM_parenCounter
 open MM_substitution
 open MM_asrt_apply
+open MM_statements_dto
 
 type stmtCont =
     | Text(array<string>)
@@ -102,7 +103,7 @@ let editorStateHasErrors: editorState => bool
 let refreshWrkCtx: editorState => editorState
 let prepareProvablesForUnification: editorState => editorState
 let prepareEditorForUnification: editorState => editorState
-let addAsrtSearchResult: (editorState, applyAssertionResult) => editorState
+let addNewStatements: (editorState, newStmtsDto) => editorState
 let findPossibleSubs: (editorState, expr, expr) => array<wrkSubs>
 let applySubstitutionForEditor: (editorState, wrkSubs) => editorState
 let removeUnusedVars: editorState => editorState

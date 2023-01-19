@@ -10,6 +10,7 @@ open MM_context
 open MM_substitution
 open MM_parser
 open Expln_React_Modal
+open MM_statements_dto
 
 type resultForRender = React.element
 
@@ -19,7 +20,7 @@ type state = {
     typ: int,
     patternStr: string,
     patternErr: option<string>,
-    results: option<array<applyAssertionResult>>,
+    results: option<array<newStmtsDto>>,
     resultsForRender: option<array<resultForRender>>,
     resultsPerPage:int,
     resultsMaxPage:int,
@@ -62,24 +63,42 @@ let setResults = (st,results,ctx,frms):state => {
         results:Some(results),
         resultsForRender:Some(
             results->Js.Array2.map(result => {
-                switch frms->Belt_MapString.get(result.asrtLabel) {
-                    | None => React.string(`Cannot find assertion '${result.asrtLabel}'`)
-                    | Some(frm) => {
-                        <Paper style=ReactDOM.Style.make(~padding="3px", ())>
-                            <Col>
-                                {React.array(
-                                    frm.hypsE->Js_array2.mapi((hyp,i) => {
-                                        <React.Fragment key={i->Belt_Int.toString} >
-                                            {React.string(hyp.label ++ ": " ++ ctx->frmIntsToStrExn(frm.frame, hyp.expr))}
+                let numOfDisj = result.newDisjStr->Js_array2.length
+                let lastDisjIdx = numOfDisj - 1
+                let numOfStmt = result.stmts->Js.Array2.length
+                let lastStmtIdx = numOfStmt - 1
+                <Paper style=ReactDOM.Style.make(~padding="3px", ())>
+                    <Col>
+                        {React.array(
+                            result.newDisjStr->Js_array2.mapi((disjStr,i) => {
+                                <React.Fragment key={"disj-" ++ i->Belt_Int.toString} >
+                                    {React.string("$d " ++ disjStr ++ " $.")}
+                                    {
+                                        if (i != lastDisjIdx) {
                                             <Divider/>
-                                        </React.Fragment>
-                                    })
-                                )}
-                                { React.string(result.asrtLabel ++ ": " ++ ctx->frmIntsToStrExn(frm.frame, frm.frame.asrt)) }
-                            </Col>
-                        </Paper>
-                    }
-                }
+                                        } else {
+                                            React.null
+                                        }
+                                    }
+                                </React.Fragment>
+                            })
+                        )}
+                        {React.array(
+                            result.stmts->Js_array2.mapi((stmt,i) => {
+                                <React.Fragment key={"stmt-" ++ i->Belt_Int.toString} >
+                                    {React.string(stmt.label ++ ": " ++ stmt.exprStr)}
+                                    {
+                                        if (i != lastStmtIdx) {
+                                            <Divider/>
+                                        } else {
+                                            React.null
+                                        }
+                                    }
+                                </React.Fragment>
+                            })
+                        )}
+                    </Col>
+                </Paper>
             })
         ),
         resultsMaxPage: maxPage,
@@ -151,7 +170,7 @@ let make = (
     ~initialTyp:option<int>,
     ~onTypChange:int=>unit,
     ~onCanceled:unit=>unit,
-    ~onResultsSelected:array<applyAssertionResult>=>unit
+    ~onResultsSelected:array<newStmtsDto>=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(frms, initialTyp))
 

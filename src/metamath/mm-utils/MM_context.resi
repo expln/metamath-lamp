@@ -76,6 +76,7 @@ let generateNewLabels: (mmContext, ~prefix:string, ~amount:int) => array<string>
 let disjMutableMake: unit => disjMutable
 let disjAddPair: (disjMutable, int, int) => unit
 let disjContains: (disjMutable, int, int) => bool
+let disjNumOfGroups: disjMutable => int
 let disjForEachArr: (disjMutable, array<int> => unit) => unit
 let disjForEach: (disjMutable, (int,int) => unit) => unit
 let disjIsEmpty: disjMutable => bool

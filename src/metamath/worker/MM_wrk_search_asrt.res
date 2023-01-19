@@ -4,6 +4,8 @@ open Expln_utils_promise
 open MM_wrk_ctx
 open MM_substitution
 open MM_parenCounter
+open MM_statements_dto
+open MM_progress_tracker
 
 let procName = "MM_wrk_search_asrt"
 
@@ -12,7 +14,7 @@ type request =
 
 type response =
     | OnProgress(float)
-    | SearchResult({found:array<applyAssertionResult>})
+    | SearchResult({found:array<newStmtsDto>})
 
 let rec frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
     let patLen = pat->Js.Array2.length
@@ -42,7 +44,7 @@ let searchAssertions = (
     ~typ:int, 
     ~pattern:array<int>,
     ~onProgress:float=>unit,
-): promise<array<applyAssertionResult>> => {
+): promise<array<newStmtsDto>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~preCtxVer,
@@ -71,31 +73,72 @@ let searchAssertions = (
 let doSearchAssertions = (
     ~wrkCtx:mmContext,
     ~frms:Belt_MapString.t<frmSubsData>,
-    ~parenCnt:parenCnt,
     ~label:string, 
     ~typ:int, 
     ~pattern:array<int>, 
-    ~onProgress:option<float=>unit>=?, 
+    ~onProgress:option<float=>unit>=?,
     ()
 ) => {
+    let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
+    let framesProcessed = ref(0.)
+    let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
+
     let results = []
-    applyAssertions(
-        ~maxVar = wrkCtx->getNumOfVars - 1,
-        ~frms,
-        ~isDisjInCtx = wrkCtx->isDisj,
-        ~statements = [],
-        ~parenCnt,
-        ~frameFilter = frame => 
+    frms->Belt_MapString.forEach((_,frm) => {
+        let frame = frm.frame
+        if (
             frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
             && frame.asrt[0] == typ 
-            && frameMatchesPattern(frame, pattern),
-        ~onMatchFound = res => {
-            results->Js_array2.push(res)->ignore
-            Continue
-        },
-        ~onProgress?,
-        ()
-    )
+            && frameMatchesPattern(frame, pattern)
+        ) {
+            let newDisj = disjMutableMake()
+            frame.disj->Belt_MapInt.forEach((n,ms) => {
+                ms->Belt_SetInt.forEach(m => {
+                    newDisj->disjAddPair(n,m)
+                })
+            })
+            let newDisjStr = []
+            newDisj->disjForEachArr(disjArr => {
+                newDisjStr->Js.Array2.push(frmIntsToStrExn(wrkCtx, frame, disjArr))->ignore
+            })
+            let stmts = []
+            let argLabels = []
+            frame.hyps->Js_array2.forEachi((hyp, i) => {
+                if (hyp.typ == E) {
+                    let argLabel = hyp.label
+                    argLabels->Js_array2.push(argLabel)->ignore
+                    stmts->Js_array2.push(
+                        {
+                            label: argLabel,
+                            expr:hyp.expr,
+                            exprStr:frmIntsToStrExn(wrkCtx, frame, hyp.expr),
+                            jstf:None,
+                        }
+                    )->ignore
+                }
+            })
+            stmts->Js_array2.push(
+                {
+                    label: frame.label,
+                    expr:frame.asrt,
+                    exprStr:frmIntsToStrExn(wrkCtx, frame, frame.asrt),
+                    jstf:Some({args:argLabels,label:frame.label}),
+                }
+            )->ignore
+            results->Js.Array2.push({
+                newVars: Belt_Array.range(0, frame.numOfVars-1),
+                newVarTypes: frame.varTypes,
+                newDisj,
+                newDisjStr,
+                stmts,
+            })->ignore
+        }
+
+        framesProcessed.contents = framesProcessed.contents +. 1.
+        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+            framesProcessed.contents /. numOfFrames
+        )
+    })
     results
 }
 
@@ -104,8 +147,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
         | FindAssertions({label, typ, pattern}) => {
             let results = doSearchAssertions(
                 ~wrkCtx=getWrkCtxExn(), 
-                ~frms = getWrkFrmsExn(), 
-                ~parenCnt = getWrkParenCntExn(),
+                ~frms = getWrkFrmsExn(),
                 ~label, 
                 ~typ, 
                 ~pattern, 

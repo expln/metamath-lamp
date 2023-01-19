@@ -10,6 +10,7 @@ open MM_substitution
 open MM_wrk_ctx
 open MM_wrk_unify
 open MM_provers
+open MM_statements_dto
 
 type stmtCont =
     | Text(array<string>)
@@ -744,89 +745,61 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     }
 }
 
-let addAsrtSearchResult = (st:editorState, applRes:applyAssertionResult):editorState => {
+let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot add assertion search result without wrkCtx.`}))
         | Some(wrkCtx) => {
-            switch st.frms->Belt_MapString.get(applRes.asrtLabel) {
-                | None => raise(MmException({msg:`Cannot find assertion with label '${applRes.asrtLabel}'.`}))
-                | Some(frm) => {
-                    let (st, newCtxVarInts) = createNewVars(st,applRes.newVarTypes)
-                    let applResVarToCtxVar = Belt_MutableMapInt.make()
-                    applRes.newVars->Js.Array2.forEachi((applResVarInt,i) => {
-                        applResVarToCtxVar->Belt_MutableMapInt.set(applResVarInt, newCtxVarInts[i])
+            let (st, newCtxVarInts) = createNewVars(st,newStmts.newVarTypes)
+            let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
+            newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
+                newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
+            })
+            let newCtxDisj = disjMutableMake()
+            newStmts.newDisj->disjForEach((n,m) => {
+                newCtxDisj->disjAddPair(
+                    newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(n,n), 
+                    newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(m,m), 
+                )
+            })
+            let st = createNewDisj(st, newCtxDisj)
+            let selectionWasEmpty = st.checkedStmtIds->Js.Array2.length == 0
+            let st = if (!selectionWasEmpty || st.stmts->Js.Array2.length == 0) {
+                st
+            } else {
+                st->toggleStmtChecked(st.stmts[0].id)
+            }
+            let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
+            let stMut = ref(st)
+            newStmts.stmts->Js_array2.forEach(stmt => {
+                let ctxLabel = createNewLabel(stMut.contents, "stmt")
+                newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
+                let exprText = stmt.expr
+                    ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
+                    ->ctxIntsToStrExn(wrkCtx, _)
+                let jstfText = stmt.jstf
+                    ->Belt.Option.map(jstf => {
+                        jstf.args->Js_array2.map(label => {
+                            newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
+                        })->Js.Array2.joinWith(" ")
                     })
-                    let newCtxDisj = disjMutableMake()
-                    applRes.newDisj->disjForEach((n,m) => {
-                        newCtxDisj->disjAddPair(
-                            applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(n,n), 
-                            applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(m,m), 
-                        )
-                    })
-                    let st = createNewDisj(st, newCtxDisj)
-                    let selectionWasEmpty = st.checkedStmtIds->Js.Array2.length == 0
-                    let st = if (!selectionWasEmpty || st.stmts->Js.Array2.length == 0) {
-                        st
-                    } else {
-                        st->toggleStmtChecked(st.stmts[0].id)
+                    ->Belt.Option.getWithDefault("")
+                let (st, newStmtId) = addNewStmt(stMut.contents)
+                stMut.contents = st
+                stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {
+                    {
+                        ...stmt,
+                        typ: #p,
+                        label: ctxLabel,
+                        cont: strToCont(exprText),
+                        contEditMode: false,
+                        jstfText,
                     }
-                    let mainStmtLabel = createNewLabel(st, "stmt")
-                    let argLabels = []
-                    let stMut = ref(st)
-                    frm.frame.hyps->Js_array2.forEach(hyp => {
-                        if (hyp.typ == E) {
-                            let argLabel = createNewLabel(stMut.contents, mainStmtLabel ++ "-" ++ hyp.label)
-                            argLabels->Js.Array2.push(argLabel)->ignore
-                            let argExprText = applySubs(
-                                ~frmExpr=hyp.expr,
-                                ~subs=applRes.subs,
-                                ~createWorkVar=_=>raise(MmException({msg:`Cannot create a work variable in addAsrtSearchResult [1].`}))
-                            )
-                                ->Js.Array2.map(appResInt => {
-                                    applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(appResInt, appResInt)
-                                })
-                                ->ctxIntsToStrExn(wrkCtx, _)
-                            let (st, newStmtId) = addNewStmt(stMut.contents)
-                            stMut.contents = st
-                            stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {
-                                {
-                                    ...stmt,
-                                    typ: #p,
-                                    label: argLabel,
-                                    cont: strToCont(argExprText),
-                                    contEditMode: false,
-                                }
-                            })
-                        }
-                    })
-                    let st = stMut.contents
-                    let asrtExprText = applySubs(
-                        ~frmExpr=frm.frame.asrt,
-                        ~subs=applRes.subs,
-                        ~createWorkVar=_=>raise(MmException({msg:`Cannot create a work variable in addAsrtSearchResult [2].`}))
-                    )
-                        ->Js.Array2.map(appResInt => {
-                            applResVarToCtxVar->Belt_MutableMapInt.getWithDefault(appResInt, appResInt)
-                        })
-                        ->ctxIntsToStrExn(wrkCtx, _)
-                    let (st, newStmtId) = addNewStmt(st)
-                    let jstfText = argLabels->Js.Array2.joinWith(" ") ++ ": " ++ applRes.asrtLabel
-                    let st = updateStmt(st, newStmtId, stmt => {
-                        {
-                            ...stmt,
-                            typ: #p,
-                            label: mainStmtLabel,
-                            cont: strToCont(asrtExprText),
-                            contEditMode: false,
-                            jstfText,
-                        }
-                    })
-                    if (selectionWasEmpty) {
-                        st->uncheckAllStmts
-                    } else {
-                        st
-                    }
-                }
+                })
+            })
+            if (selectionWasEmpty) {
+                st->uncheckAllStmts
+            } else {
+                st
             }
         }
     }

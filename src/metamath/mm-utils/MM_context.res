@@ -317,6 +317,8 @@ let disjContains = (disj:disjMutable, n, m):bool => {
     }
 }
 
+let disjNumOfGroups = disjMutable => disjMutable->mutableMapIntSize
+
 let disjForEachArr = (disjMutable, consumer) => {
     disjMutable->mutableMapIntForEach((n,ms) => Belt_Array.concat([n], ms->mutableSetIntToArray)->consumer)
 }

@@ -143,19 +143,18 @@ let addStmtsBySearch = (
             let searchResults = doSearchAssertions(
                 ~wrkCtx,
                 ~frms=st.frms,
-                ~parenCnt=parenCnt.contents,
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
                 ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
                 ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
                 ()
             )
-            switch searchResults->Js_array2.find(res => res.asrtLabel == chooseLabel) {
+            switch searchResults->Js_array2.find(res => res.stmts[res.stmts->Js_array2.length-1].label == chooseLabel) {
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
-                            ++ `Available: ${searchResults->Js_array2.map(res => res.asrtLabel)->Js_array2.joinWith(", ")} `
+                            ++ `Available: ${searchResults->Js_array2.map(res => res.stmts[res.stmts->Js_array2.length-1].label)->Js_array2.joinWith(", ")} `
                     }))
-                | Some(searchResult) => st->addAsrtSearchResult(searchResult)
+                | Some(searchResult) => st->addNewStatements(searchResult)
             }
         }
     }
@@ -267,7 +266,7 @@ let editorStateToStr = st => {
 let curTestDataDir = ref("")
 
 let setTestDataDir = dirName => {
-    curTestDataDir.contents = "./src/metamath/test/resources/int-tests/" ++ dirName
+    curTestDataDir.contents = "./src/metamath/test/resources/int-test-data/" ++ dirName
 }
 
 let assertStrEqFile = (~actualStr:string, ~expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {

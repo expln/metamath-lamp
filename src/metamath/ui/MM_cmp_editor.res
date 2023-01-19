@@ -274,7 +274,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actAsrtSearchResultsSelected = selectedResults => {
-        setState(st => selectedResults->Js_array2.reduce( addAsrtSearchResult, st ))
+        setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
 
     let actWrkSubsSelected = wrkSubs => {
