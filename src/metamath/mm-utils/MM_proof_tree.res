@@ -24,6 +24,7 @@ type rec proofNode = {
     mutable children: array<proofNode>,
     mutable proof: option<exprSource>,
     mutable dist: option<int>,
+    mutable isInvalidFloating: bool,
 }
 
 and exprSource =
@@ -134,7 +135,8 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
                 parents: None,
                 proof: None,
                 children: [],
-                dist: None
+                dist: None,
+                isInvalidFloating: false,
             }
             tree.nodes->Belt_HashMap.set(expr, node)->ignore
             node
@@ -259,6 +261,12 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
 }
 
 let pnGetDist = node => node.dist
+
+let pnSetInvalidFloating = (node,isInvalidFloating) => {
+    node.isInvalidFloating = isInvalidFloating
+}
+
+let pnIsInvalidFloating = node => node.isInvalidFloating
 
 let pnSetDist = (node,dist) => {
     node.dist = dist

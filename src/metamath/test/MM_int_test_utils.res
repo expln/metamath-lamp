@@ -205,6 +205,7 @@ let unifyAll = (st):editorState => {
                 ~debug=true,
                 ~bottomUp=false,
                 ~maxSearchDepth=5,
+                ~framesToSkip=["idi"],
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
@@ -228,6 +229,7 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~debug=true,
                 ~bottomUp=true,
                 ~maxSearchDepth=3,
+                ~framesToSkip=["idi"],
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))

@@ -12,12 +12,13 @@ let findAsrtParentsWithoutNewVars = (
     ~tree, 
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
+    ~framesToSkip: array<string>,
 ):array<exprSource> => {
     let exprLen = expr->Js_array2.length
     let foundParents = []
     tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
         let frmExpr = frm.frame.asrt
-        if (frmExpr[0] == expr[0]) {
+        if (frmExpr[0] == expr[0] && !(framesToSkip->Js.Array2.includes(frm.frame.label))) {
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
@@ -165,19 +166,25 @@ let proveBottomUp = (
     }
 }
 
-let proveFloating = (tree, node) => {
-    proveBottomUp(
-        ~tree, 
-        ~node, 
-        ~getParents = expr => findAsrtParentsWithoutNewVars(~tree, ~expr, ~restrictExprLen=LessEq),
-        ~maxSearchDepth = None,
-    )
+let proveFloating = (tree, node, ~framesToSkip: array<string>) => {
+    if (!(node->pnIsInvalidFloating) && node->pnGetProof->Belt.Option.isNone) {
+        proveBottomUp(
+            ~tree, 
+            ~node, 
+            ~getParents = expr => findAsrtParentsWithoutNewVars(~tree, ~expr, ~restrictExprLen=LessEq, ~framesToSkip),
+            ~maxSearchDepth = None,
+        )
+        if (node->pnGetProof->Belt.Option.isNone) {
+            node->pnSetInvalidFloating(true)
+        }
+    }
 }
 
 let findAsrtParentsWithNewVars = (
     ~tree,
     ~expr:expr,
     ~stmts:array<expr>,
+    ~framesToSkip: array<string>,
     ~exactOrderOfStmts:bool=false,
     ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool=false,
@@ -193,10 +200,10 @@ let findAsrtParentsWithNewVars = (
         ~exactOrderOfStmts,
         ~allowEmptyArgs,
         ~result = expr,
-        ~frameFilter = 
-            asrtLabel
-                ->Belt_Option.map(asrtLabel => (frame:frame) => frame.label == asrtLabel)
-                ->Belt_Option.getWithDefault(_=>true),
+        ~frameFilter = frame => !(framesToSkip->Js.Array2.includes(frame.label))
+                                && asrtLabel
+                                    ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
+                                    ->Belt_Option.getWithDefault(true),
         ~onMatchFound = res => {
             applResults->Js_array2.push(res)->ignore
             Continue
@@ -236,7 +243,7 @@ let findAsrtParentsWithNewVars = (
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode
             if (frame.hyps[argIdx.contents].typ == F) {
-                proveFloating(tree, argNode)
+                proveFloating(tree, argNode, ~framesToSkip)
                 typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isSome
             }
             argIdx.contents = argIdx.contents + 1
@@ -248,10 +255,10 @@ let findAsrtParentsWithNewVars = (
     foundParents
 }
 
-let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr):proofNode => {
+let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~framesToSkip: array<string>):proofNode => {
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
-        let parents = findAsrtParentsWithNewVars( ~tree, ~expr=stmt, ~stmts=prevStmts, () )
+        let parents = findAsrtParentsWithNewVars( ~tree, ~expr=stmt, ~framesToSkip, ~stmts=prevStmts, () )
         parents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent)
             node->pnGetProof
@@ -260,7 +267,9 @@ let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr):proo
     node
 }
 
-let proveWithJustification = (~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt:expr):proofNode => {
+let proveWithJustification = (
+    ~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt:expr, ~framesToSkip: array<string>
+):proofNode => {
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
         let parents = findAsrtParentsWithNewVars( 
@@ -268,6 +277,7 @@ let proveWithJustification = (~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt
             ~expr=stmt, 
             ~stmts=args, 
             ~asrtLabel,
+            ~framesToSkip,
             ~exactOrderOfStmts=true,
             () 
         )
@@ -279,7 +289,9 @@ let proveWithJustification = (~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt
     node
 }
 
-let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDepth:int):proofNode => {
+let proveStmtBottomUp = (
+    ~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDepth:int, ~framesToSkip: array<string>
+):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
 
@@ -290,7 +302,7 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
 
     let getParents = expr => {
         numOfGetParentsCalls.contents = numOfGetParentsCalls.contents + 1
-        let parents = findAsrtParentsWithoutNewVars( ~tree, ~expr, ~restrictExprLen=Less, )
+        let parents = findAsrtParentsWithoutNewVars( ~tree, ~expr, ~restrictExprLen=Less, ~framesToSkip)
         numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
         let parents = parents->Js.Array2.filter(parent => {
                 switch parent {
@@ -302,8 +314,10 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
                         while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                             let arg = args[argIdx.contents]
                             if (frame.hyps[argIdx.contents].typ == F) {
-                                numOfProveFloatingCalls.contents = numOfProveFloatingCalls.contents + 1
-                                proveFloating(tree, arg)
+                                if (!(arg->pnIsInvalidFloating)) {
+                                    numOfProveFloatingCalls.contents = numOfProveFloatingCalls.contents + 1
+                                    proveFloating(tree, arg, ~framesToSkip)
+                                }
                                 argsAreCorrect.contents = arg->pnGetProof->Belt.Option.isSome
                             }
                             argIdx.contents = argIdx.contents + 1
@@ -319,7 +333,9 @@ let proveStmtBottomUp = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDe
 
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone) {
-        let firstLevelParents = findAsrtParentsWithNewVars( ~tree, ~expr=stmt, ~stmts=prevStmts, ~allowEmptyArgs=true, () )
+        let firstLevelParents = findAsrtParentsWithNewVars( 
+            ~tree, ~expr=stmt, ~stmts=prevStmts, ~allowEmptyArgs=true, ~framesToSkip, () 
+        )
         firstLevelParents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent)
             node->pnGetProof
@@ -389,6 +405,7 @@ let proveStmt = (
     ~tree, 
     ~prevStmts:array<rootStmt>, 
     ~stmt:rootStmt, 
+    ~framesToSkip: array<string>,
     ~jstf:option<justification>, 
     ~bottomUp:bool,
     ~maxSearchDepth:int,
@@ -398,7 +415,8 @@ let proveStmt = (
             ~tree, 
             ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
             ~stmt=stmt.expr,
-            ~maxSearchDepth 
+            ~maxSearchDepth,
+            ~framesToSkip
         )->ignore
     } else {
         switch jstf {
@@ -407,6 +425,7 @@ let proveStmt = (
                     ~tree, 
                     ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
                     ~stmt=stmt.expr,
+                    ~framesToSkip,
                 )->ignore
             }
             | Some(jstf) => {
@@ -419,6 +438,7 @@ let proveStmt = (
                     ), 
                     ~asrtLabel=jstf.asrt, 
                     ~stmt=stmt.expr,
+                    ~framesToSkip,
                 )->ignore
             }
         }
@@ -468,10 +488,34 @@ let createProofTree = (
     tree
 }
 
+let proveFloatings = (
+    ~ctx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~stmts: array<expr>,
+    ~framesToSkip: array<string>=[],
+    ~parenCnt: parenCnt,
+    ~debug: bool=false,
+    ()
+) => {
+    let tree = createProofTree(
+        ~ctx,
+        ~frms,
+        ~parenCnt,
+        ~addEssentials=false,
+        ~debug,
+    )
+
+    stmts->Js.Array2.forEach(stmt => {
+        proveFloating( tree, tree->ptGetOrCreateNode(stmt), ~framesToSkip )
+    })
+    tree
+}
+
 let unifyAll = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<rootStmt>,
+    ~framesToSkip: array<string>=[],
     ~parenCnt: parenCnt,
     ~bottomUp:bool,
     ~maxSearchDepth:int,
@@ -500,7 +544,8 @@ let unifyAll = (
             ~stmt, 
             ~jstf=stmt.justification,
             ~bottomUp = stmtIdx == maxStmtIdx && bottomUp,
-            ~maxSearchDepth
+            ~maxSearchDepth,
+            ~framesToSkip,
         )
         prevStmts->Js_array2.push(stmt)->ignore
 
@@ -517,27 +562,5 @@ let unifyAll = (
         Js.Console.log2("nodes.length", nodes->Js_array2.length)
     }
 
-    tree
-}
-
-let proveFloatings = (
-    ~ctx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~stmts: array<expr>,
-    ~parenCnt: parenCnt,
-    ~debug: bool=false,
-    ()
-) => {
-    let tree = createProofTree(
-        ~ctx,
-        ~frms,
-        ~parenCnt,
-        ~addEssentials=false,
-        ~debug,
-    )
-
-    stmts->Js.Array2.forEach(stmt => {
-        proveFloating( tree, tree->ptGetOrCreateNode(stmt) )
-    })
     tree
 }
