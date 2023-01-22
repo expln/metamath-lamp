@@ -1,3 +1,7 @@
+- fix a bug:
+    1) load an MM file, apply changes;
+    2) load same file in the same file selector - nothing happens.
+- don't store nextStmtId to loc stor.
 - add arrJoinWith: (array<'a>, 'a) => array<'a> to rescript-utils
 - don't load assertion descriptions; store assertion descriptions in a separate container.
 - prefixes for work vars

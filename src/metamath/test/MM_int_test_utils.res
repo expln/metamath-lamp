@@ -28,9 +28,8 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
         settingsV: 1,
         settings: {
             parens: "( ) [ ] { }",
-            parensIsValid: true,
-            types: [],
-            colors: [],
+            asrtsToSkip: "idi",
+            typeSettings: [ ],
         },
 
         preCtxV: 1,

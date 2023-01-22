@@ -15,9 +15,8 @@ let createEditorState = (mmFile) => {
         settingsV: 1,
         settings: {
             parens: "( ) [ ] { }",
-            parensIsValid: true,
-            types: [],
-            colors: [],
+            asrtsToSkip: "idi",
+            typeSettings: [ ],
         },
 
         preCtxV: 1,

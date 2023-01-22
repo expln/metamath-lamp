@@ -6,6 +6,18 @@ open Expln_React_Modal
 open Expln_utils_promise
 open MM_wrk_settings
 open MM_react_common
+open MM_cmp_type_settings
+
+type settingsState = {
+    nextId: int,
+
+    parens: string,
+    parensErr: option<string>,
+
+    asrtsToSkip: string,
+
+    typeSettings: array<typeSettingsState>,
+}
 
 let allColors = [
     "#e6194B", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabed4",
@@ -15,142 +27,310 @@ let allColors = [
 
 let createDefaultSettings = () => {
     {
+        nextId: 4,
         parens: "( ) [ ] { }",
-        parensIsValid: true,
-        types:  [ "wff",     "term",    "setvar",  "class"],
-        colors: [ "#4363d8", "#000000", "#e6194B", "#f032e6"],
+        parensErr: None,
+        asrtsToSkip: "idi",
+        typeSettings: [
+            {
+                id: "0",
+                typ: "wff",
+                color: "#4363d8",
+                prefix: "&W",
+                err: None,
+            },
+            {
+                id: "1",
+                typ: "term",
+                color: "#000000",
+                prefix: "&T",
+                err: None,
+            },
+            {
+                id: "2",
+                typ: "setvar",
+                color: "#e6194B",
+                prefix: "&S",
+                err: None,
+            },
+            {
+                id: "3",
+                typ: "class",
+                color: "#f032e6",
+                prefix: "&C",
+                err: None,
+            },
+        ],
     }
 }
 
-let settingsSaveToLocStor = (settings, key) => {
-    Dom_storage2.localStorage->Dom_storage2.setItem(key, Expln_utils_common.stringify(settings))
+let strContainsWhitespaceRegex = %re("/\s+/")
+let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
+    let newId = switch Belt_Int.fromString(ts.id) {
+        | None => "0"
+        | Some(_) => ts.id
+    }
+    let newTyp = ts.typ->Js_string2.trim
+    let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
+    let typIsEmpty = newTyp->Js_string2.length == 0
+    let newColor = if (!(allColors->Js_array2.includes(ts.color))) {
+        allColors[0]
+    } else {
+        ts.color
+    }
+    let newPrefix = ts.prefix->Js_string2.trim
+    let prefixHasWhitespace = newPrefix->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
+    let prefixIsEmpty = newPrefix->Js_string2.length == 0
+    let err = if (typHasWhitespace) {
+        Some("Type should not contain whitespaces.")
+    } else if (typIsEmpty) {
+        Some("Type should not be empty.")
+    } else if (prefixHasWhitespace) {
+        Some("Work variable prefix should not contain whitespaces.")
+    } else if (prefixIsEmpty) {
+        Some("Work variable prefix should not be empty.")
+    } else {
+        None
+    }
+
+    {
+        ...ts,
+        typ: newTyp,
+        color: newColor,
+        prefix: newPrefix,
+        err
+    }
 }
 
-let settingsReadFromLocStor = (key:string):option<settings> => {
-    switch Dom_storage2.localStorage->Dom_storage2.getItem(key) {
-        | None => None
+let validateAndCorrectState = (st:settingsState):settingsState => {
+    let validatedTypeSettings = st.typeSettings->Js_array2.map(validateAndCorrectTypeSetting)
+    let distinctIds = Belt_SetInt.fromArray(
+        validatedTypeSettings->Js_array2.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getWithDefault(0))
+    )
+    let validatedTypeSettings = if (distinctIds->Belt_SetInt.size != validatedTypeSettings->Js_array2.length) {
+        let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
+        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i)->Belt_Int.toString})
+    } else {
+        validatedTypeSettings
+    }
+    let maxTypSettId = validatedTypeSettings->Js_array2.reduce(
+        (maxId,ts) => {
+            let id = switch ts.id->Belt_Int.fromString {
+                | None => raise(MmException({msg:`Cannot convert string to int for typeSettingsState.id`}))
+                | Some(id) => id
+            }
+            if (id <= maxId) { maxId } else { id }
+        },
+        0
+    )
+    let newNextId = if (maxTypSettId < st.nextId) {st.nextId} else {maxTypSettId + 1}
+    let newParens = st.parens->Js_string2.trim
+    let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Js.Array2.length, 2) == 0) {
+        None
+    } else {
+        Some("Number of parentheses must be even.")
+    }
+    let newAsrtsToSkip = st.asrtsToSkip->Js_string2.trim
+
+    {
+        ...st,
+        nextId: newNextId,
+        parens: newParens,
+        parensErr,
+        asrtsToSkip: newAsrtsToSkip,
+        typeSettings: validatedTypeSettings,
+    }
+}
+
+let stateToSettings = (st:settingsState):settings => {
+    {
+        parens: st.parens,
+        asrtsToSkip: st.asrtsToSkip,
+        typeSettings: st.typeSettings->Js_array2.map(typSett => {
+            typ: typSett.typ,
+            color: typSett.color,
+            prefix: typSett.prefix,
+        }),
+    }
+}
+
+let settingsToState = (ls:settings):settingsState => {
+    let res = {
+        nextId: 0,
+        parens: ls.parens,
+        parensErr: None,
+        asrtsToSkip: ls.asrtsToSkip,
+        typeSettings: ls.typeSettings->Js_array2.map(lts => {
+            id: "0",
+            typ: lts.typ,
+            color: lts.color,
+            prefix: lts.prefix,
+            err: None,
+        }),
+    }
+    validateAndCorrectState(res)
+}
+
+let settingsLocStorKey = "settings"
+
+let saveStateToLocStor = (st:settingsState):unit => {
+    Dom_storage2.localStorage->Dom_storage2.setItem(settingsLocStorKey, Expln_utils_common.stringify(
+        stateToSettings(st)
+    ))
+}
+
+let readStateFromLocStor = ():settingsState => {
+    let defaultSettings = createDefaultSettings()
+    switch Dom_storage2.localStorage->Dom_storage2.getItem(settingsLocStorKey) {
+        | None => defaultSettings
         | Some(settingsLocStorStr) => {
             open Expln_utils_jsonParse
-            let parseResult = parseJson(settingsLocStorStr, asObj(_, d=>{
+            let parseResult:result<settingsState,string> = parseJson(settingsLocStorStr, asObj(_, d=>{
                 {
-                    parens: d->str("parens", ~default=()=>"( ) { } [ ]", ()),
-                    parensIsValid: d->bool("parensIsValid", ()),
-                    types: d->arr("types", asStr(_, ()), ()),
-                    colors: d->arr("colors", asStr(_, ()), ()),
+                    nextId: 0,
+                    parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
+                    parensErr: None,
+                    asrtsToSkip: d->str("asrtsToSkip", ~default=()=>defaultSettings.asrtsToSkip, ()),
+                    typeSettings: d->arr("typeSettings", asObj(_, d=>{
+                        id: "0",
+                        typ: d->str("typ", ()),
+                        color: d->str("color", ()),
+                        prefix: d->str("prefix", ()),
+                        err: None,
+                    }, ()), ~default=()=>defaultSettings.typeSettings, ()),
                 }
-            }, ()), ())
+            }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
-                | Error(_) => None
-                | Ok(res) => Some(res)
+                | Error(msg) => raise(MmException({msg:`Cannot read settings from the local storage: ${msg}`}))
+                | Ok(state) => {
+                    validateAndCorrectState(state)
+                }
             }
         }
     }
 }
 
-let getParensAsArray = st => {
-    st.parens->getSpaceSeparatedValuesAsArray
-}
-
-let getParens: settings => array<string> = st => st->getParensAsArray
-
-let getCorrectedTypesAndColors = st => {
-    let correctedTypes = []
-    let correctedColors = []
-    st.types
-        ->Js_array2.mapi((typ,i) => (typ->Js_string2.trim, st.colors[i]->Js_string2.trim))
-        ->Js_array2.filter(((t,c)) => t != "" && c != "")
-        ->Js_array2.forEach(((t,c)) => {
-            correctedTypes->Js_array2.push(t)->ignore
-            correctedColors->Js_array2.push(c)->ignore
-        })
-    (correctedTypes, correctedColors)
-}
-
-let getTypeColors: settings => Belt_MapString.t<string> = st => {
-    let (types, colors) = getCorrectedTypesAndColors(st)
-    types
-        ->Js_array2.mapi((typ,i) => (typ, colors[i]))
-        ->Belt_MapString.fromArray
-}
-
-let setParens = (st, str) => {
-    {
-        ...st,
-        parens: str
-    }
-}
-
-let getNotUsedColors = st => {
-    let usedColors = Belt_SetString.fromArray(st.colors)
-    allColors->Js_array2.filter(c => !(usedColors->Belt_SetString.has(c)))
-}
-
-let addTypeColor = st => {
-    {
-        ...st,
-        types: st.types->Js_array2.concat([""]),
-        colors: st.colors->Js_array2.concat([getNotUsedColors(st)->Belt_Array.get(0)->Belt_Option.getWithDefault("")]),
-    }
-}
-
-let changeType = (st,idx,newType) => {
-    {
-        ...st,
-        types: st.types->Js_array2.mapi((e,i) => if i == idx {newType} else {e}),
-    }
-}
-
-let changeColor = (st,idx,newColor) => {
-    {
-        ...st,
-        colors: st.colors->Js_array2.mapi((e,i) => if i == idx {newColor} else {e}),
-    }
-}
-
-let correctAndValidate = st => {
-    let parensArr = st->getParensAsArray
-    let (types, colors) = getCorrectedTypesAndColors(st)
-    {
-        parens: parensArr->Js_array2.joinWith(" "),
-        parensIsValid: parensArr->Js_array2.length->mod(_,2) == 0,
-        types,
-        colors,
-    }
-}
+let settingsReadFromLocStor = () => readStateFromLocStor()->stateToSettings
 
 let isValid = st => {
-    st.parensIsValid
+    st.parensErr->Belt_Option.isNone
+        && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
+}
+
+let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {
+    ts1.typ == ts2.typ
+        && ts1.color == ts2.color
+        && ts1.prefix == ts2.prefix
 }
 
 let eqState = (st1, st2) => {
-    getParensAsArray(st1) == getParensAsArray(st2) && 
-        st1.types == st2.types && st1.colors == st2.colors
+    st1.parens == st2.parens
+        && st1.asrtsToSkip == st2.asrtsToSkip
+        && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
+        && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
 }
 
-let stateLocStorKey = "settings"
+let updateParens = (st,parens) => {
+    {
+        ...st,
+        parens,
+        parensErr: None,
+    }
+}
+
+let updateAsrtsToSkip = (st,asrtsToSkip) => {
+    {
+        ...st,
+        asrtsToSkip,
+    }
+}
+
+let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
+    {
+        ...st,
+        typeSettings: st.typeSettings->Js_array2.map(ts => if (ts.id == id) { update(ts) } else { ts })
+    }
+}
+
+let updateType = (st,id,typ) => {
+    updateTypeSetting(st, id, ts => {...ts, typ, err:None})
+}
+
+let updateColor = (st,id,color) => {
+    updateTypeSetting(st, id, ts => {...ts, color, err:None})
+}
+
+let updatePrefix = (st,id,prefix) => {
+    updateTypeSetting(st, id, ts => {...ts, prefix, err:None})
+}
+
+let addTypeSetting = st => {
+    let newId = st.nextId->Belt_Int.toString
+    {
+        ...st,
+        nextId: st.nextId + 1,
+        typeSettings: st.typeSettings->Js_array2.concat([{
+            id: newId,
+            typ: "",
+            color: allColors[0],
+            prefix: "",
+            err: None,
+        }]),
+    }
+}
+
+let deleteTypeSetting = (st, id) => {
+    {
+        ...st,
+        typeSettings: st.typeSettings->Js_array2.filter(ts => ts.id != id)
+    }
+}
 
 @react.component
 let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onChange: settings => unit) => {
-    let (prevState, setPrevState) = React.useState(_ => initialSettings)
-    let (state, setStatePriv) = React.useState(_ => initialSettings)
+    let (state, setState) = React.useState(_ => initialSettings->settingsToState)
+    let (prevState, setPrevState) = React.useState(_ => state)
 
-    let setState = update => {
-        setStatePriv(prev => {
-            let new = update(prev)
-            new->settingsSaveToLocStor(stateLocStorKey)
-            new
-        })
+    let applyChanges = () => {
+        let st = validateAndCorrectState(state)
+        setState(_ => st)
+        if (st->isValid) {
+            saveStateToLocStor(st)
+            setPrevState(_ => st)
+            onChange(st->stateToSettings)
+        }
+    }
+    
+    let discardChanges = () => {
+        setState(_ => prevState)
     }
 
-    let onParensChange = newParens => {
-        setState(st=>{
-            let st = st->setParens(newParens)
-            if (st->isValid) {
-                st
-            } else {
-                st->correctAndValidate
-            }
-        })
+    let actParensChange = parens => {
+        setState(updateParens(_, parens))
+    }
+
+    let actAsrtsToSkipChange = asrtsToSkip => {
+        setState(updateAsrtsToSkip(_, asrtsToSkip))
+    }
+
+    let actTypeSettingAdd = () => {
+        setState(addTypeSetting)
+    }
+
+    let actTypeSettingDelete = id => {
+        setState(deleteTypeSetting(_, id))
+    }
+
+    let actTypeChange = (id,typ) => {
+        setState(updateType(_, id, typ))
+    }
+
+    let actColorChange = (id,color) => {
+        setState(updateColor(_, id, color))
+    }
+
+    let actPrefixChange = (id,prefix) => {
+        setState(updatePrefix(_, id, prefix))
     }
 
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
@@ -171,34 +351,11 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
                 ~ctx,
                 ~onProgress = pct => updateModal(modalRef, modalId, () => rndFindParensProgress(pct, Some(modalId))),
                 ~onDone = parens => {
-                    onParensChange(parens)
+                    actParensChange(parens)
                     closeModal(modalRef, modalId)
                 }
             )
         })->ignore
-    }
-
-    let applyChanges = () => {
-        let st = correctAndValidate(state)
-        setState(_ => st)
-        if (st->isValid) {
-            setPrevState(_ => st)
-            onChange(st)
-        }
-    }
-    
-    let onTypeColorAdd = () => {
-        setState(_ => addTypeColor(state))
-    }
-    let onTypeChange = (idx,newType) => {
-        setState(changeType(_,idx,newType))
-    }
-    let onColorChange = (idx,newColor) => {
-        setState(changeColor(_,idx,newColor))
-    }
-
-    let discardChanges = () => {
-        setState(_ => prevState)
     }
 
     <Col spacing=3. style=ReactDOM.Style.make(~margin="30px", ())>
@@ -208,8 +365,8 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
                 style=ReactDOM.Style.make(~width="400px", ())
                 label="Parentheses" 
                 value=state.parens 
-                onChange=evt2str(onParensChange)
-                error={!state.parensIsValid}
+                onChange=evt2str(actParensChange)
+                error={state.parensErr->Belt_Option.isSome}
                 title="Parentheses are used to speed up finding of substitutions"
             />
             <span title="Determine parentheses from the loaded MM file">
@@ -218,14 +375,31 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
                 </IconButton>
             </span>
         </Row>
-        // <MM_cmp_colors
-        //     types=state.types
-        //     colors=state.colors
-        //     availableColors=allColors
-        //     onAdd=onTypeColorAdd
-        //     onTypeChange
-        //     onColorChange
-        // />
+        {
+            switch state.parensErr {
+                | None => React.null
+                | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
+            }
+        }
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="400px", ())
+            label="Assertions to skip"
+            value=state.asrtsToSkip
+            onChange=evt2str(actAsrtsToSkipChange)
+            title="Space separated list of assertion labels to skip during the unification process"
+        />
+        <Divider/>
+        <MM_cmp_type_settings
+            typeSettings=state.typeSettings
+            availableColors=allColors
+            onAdd=actTypeSettingAdd
+            onTypeChange=actTypeChange
+            onColorChange=actColorChange
+            onPrefixChange=actPrefixChange
+            onDelete=actTypeSettingDelete
+        />
+        <Divider/>
         {
             if (!eqState(prevState, state)) {
                 <Row spacing=3. >
