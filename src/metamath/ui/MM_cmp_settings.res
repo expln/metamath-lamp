@@ -31,14 +31,14 @@ let settingsReadFromLocStor = (key:string):option<settings> => {
         | None => None
         | Some(settingsLocStorStr) => {
             open Expln_utils_jsonParse
-            let parseResult = parseObj(settingsLocStorStr, d=>{
+            let parseResult = parseJson(settingsLocStorStr, asObj(_, d=>{
                 {
-                    parens: d->str("parens"),
-                    parensIsValid: d->bool("parensIsValid"),
-                    types: d->arr("types", asStr),
-                    colors: d->arr("colors", asStr),
+                    parens: d->str("parens", ~default=()=>"( ) { } [ ]", ()),
+                    parensIsValid: d->bool("parensIsValid", ()),
+                    types: d->arr("types", asStr(_, ()), ()),
+                    colors: d->arr("colors", asStr(_, ()), ()),
                 }
-            })
+            }, ()), ())
             switch parseResult {
                 | Error(_) => None
                 | Ok(res) => Some(res)

@@ -109,22 +109,22 @@ let readEditorStateFromLocStor = (key:string):option<editorStateLocStor> => {
         | None => None
         | Some(stateLocStorStr) => {
             open Expln_utils_jsonParse
-            let parseResult = parseObj(stateLocStorStr, d=>{
+            let parseResult = parseJson(stateLocStorStr, asObj(_, d=>{
                 {
-                    varsText: d->strOpt("varsText")->Belt_Option.getWithDefault(""),
-                    disjText: d->strOpt("disjText")->Belt_Option.getWithDefault(""),
-                    nextStmtId: d->int("nextStmtId"),
-                    stmts: d->arr("stmts", d=>{
+                    varsText: d->str("varsText", ~default=()=>"", ()),
+                    disjText: d->str("disjText", ~default=()=>"", ()),
+                    nextStmtId: d->int("nextStmtId", ()),
+                    stmts: d->arr("stmts", asObj(_, d=>{
                         {
-                            id: d->str("id"),
-                            label: d->str("label"),
-                            typ: d->str("typ"),
-                            cont: d->str("cont"),
-                            jstfText: d->str("jstfText")
+                            id: d->str("id", ()),
+                            label: d->str("label", ()),
+                            typ: d->str("typ", ()),
+                            cont: d->str("cont", ()),
+                            jstfText: d->str("jstfText", ())
                         }
-                    })
+                    }, ()), ())
                 }
-            })
+            }, ()), ())
             switch parseResult {
                 | Error(_) => None
                 | Ok(res) => Some(res)

@@ -1,5 +1,5 @@
 - add arrJoinWith: (array<'a>, 'a) => array<'a> to rescript-utils
-- don't load assertion descriptions
+- don't load assertion descriptions; store assertion descriptions in a separate container.
 - prefixes for work vars
 - prefix for new statements
 - add logs to applyAssertions (using array)
