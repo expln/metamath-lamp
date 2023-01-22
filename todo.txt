@@ -1,6 +1,7 @@
 - fix a bug:
     1) load an MM file, apply changes;
     2) load same file in the same file selector - nothing happens.
+- check min and max in parentCounter, place all parentheses in the beginning in the ctx.
 - don't store nextStmtId to loc stor.
 - add arrJoinWith: (array<'a>, 'a) => array<'a> to rescript-utils
 - don't load assertion descriptions; store assertion descriptions in a separate container.

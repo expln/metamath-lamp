@@ -19,7 +19,6 @@ type frame = {
     hyps: array<hypothesis>,
     asrt: expr,
     label: string,
-    description: string,
     frameVarToSymb: Belt_MapInt.t<string>,
     varTypes: array<int>,
     numOfVars: int,
@@ -28,11 +27,9 @@ type frame = {
 
 let createContext: (~parent:mmContext=?, ()) => mmContext
 let applySingleStmt: (mmContext, stmt) => unit
-let addLocalConst: (mmContext, string) => unit
 let openChildContext: mmContext => unit
 let closeChildContext: mmContext => unit
 let resetToParentContext: mmContext => unit
-let cloneContext: mmContext => mmContext
 let loadContext: (mmAstNode, ~initialContext:mmContext=?, ~stopBefore:string=?, ~stopAfter:string=?, 
                     ~expectedNumOfAssertions:int=?, ~onProgress:float=>unit=?, ()) => mmContext
 
@@ -48,7 +45,6 @@ let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>
 let getLocalVars: mmContext => array<string>
-let getLocalConsts: mmContext => array<string>
 let getLocalHyps: mmContext => array<hypothesis>
 let getNumOfVars: mmContext => int
 let forEachFrame: (mmContext, frame => option<'a>) => option<'a>
@@ -68,7 +64,9 @@ let ctxIntsToSymsExn: (mmContext, expr) => array<string>
 let ctxIntsToStrExn: (mmContext, expr) => string
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
-let createFrame: (mmContext, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => frame
+let createFrame: (mmContext, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => (frame, string)
+
+let ctxRemoveFrameDescriptions: mmContext => unit
 
 let generateNewVarNames: (mmContext, array<int>, Belt_MapString.t<string>) => array<string>
 let generateNewLabels: (mmContext, ~prefix:string, ~amount:int) => array<string>

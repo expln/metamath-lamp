@@ -9,6 +9,7 @@ type rec paren = {
 }
 
 type parenCnt = {
+    min:int,
     parens: array<paren>,
     parentStack: array<paren>,
     mutable failed: bool
@@ -17,7 +18,14 @@ type parenCnt = {
 let parenCntMake = parentheses => {
     let parenLen = parentheses->Js_array2.length
     if (mod(parenLen, 2)  != 0) {
-        raise(MmException({msg:`mod(parenLen, 2)  != 0`}))
+        raise(MmException({msg:`mod(parenLen, 2)  != 0 in parenCntMake`}))
+    } else if (parenLen == 0) {
+        {
+            min: 0,
+            parens:[],
+            parentStack: [],
+            failed: false,
+        }
     } else {
         let parens = []
         let maxI = parenLen / 2 - 1
@@ -28,6 +36,7 @@ let parenCntMake = parentheses => {
             parens->Js_array2.push({code: closeCode, isOpen: false, opposite: openCode})->ignore
         }
         {
+            min:parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses[0]),
             parens,
             parentStack: [],
             failed: false,
@@ -41,7 +50,7 @@ let parenCntReset: parenCnt => unit = cnt => {
 }
 
 let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
-    if (!cnt.failed) {
+    if (!cnt.failed && cnt.min <= i) {
         switch cnt.parens->Js_array2.find(({code}) => code == i) {
             | Some(paren) => {
                 if (paren.isOpen) {

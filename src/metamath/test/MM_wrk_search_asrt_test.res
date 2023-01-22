@@ -8,7 +8,6 @@ let createFrame = (asrt:expr, varTypes:array<int>):frame => {
         hyps: [],
         asrt,
         label: "",
-        description: "",
         frameVarToSymb: Belt_MapInt.empty,
         varTypes,
         numOfVars: varTypes->Js.Array2.length,

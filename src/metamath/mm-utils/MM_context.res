@@ -18,7 +18,6 @@ type frame = {
     hyps: array<hypothesis>,
     asrt: expr,
     label: string,
-    description: string,
     frameVarToSymb: Belt_MapInt.t<string>,
     varTypes: array<int>,
     numOfVars: int,
@@ -32,8 +31,8 @@ type mutableSetInt = Belt.HashSet.Int.t
 type disjMutable = mutableMapInt<mutableSetInt>
 
 type rec mmContextContents = {
+    mutable root: option<mmContextContents>,
     parent: option<mmContextContents>,
-    constsBaseIdx: int,
     consts: array<string>,
     varsBaseIdx: int,
     vars: array<string>,
@@ -43,6 +42,7 @@ type rec mmContextContents = {
     symToHyp: mutableMapStr<hypothesis>,
     mutable lastComment: string,
     frames: mutableMapStr<frame>,
+    frameDescr: mutableMapStr<string>,
 }
 
 type mmContext = ref<mmContextContents>
@@ -79,6 +79,10 @@ let mutableMapStrClone = (orig:mutableMapStr<'v>, cloneValue:'v=>'v) => {
     let map = mutableMapStrMake()
     orig->mutableMapStrForEach((k,v) => map->mutableMapStrPut(k,cloneValue(v)))
     map
+}
+
+let mutableMapStrClear = map => {
+    map->Belt.HashMap.String.clear
 }
 
 let mutableMapIntMake = () => {
@@ -273,9 +277,8 @@ let rec forEachCtxInReverseOrder = (ctx:mmContextContents,consumer:mmContextCont
 }
 
 let rec isConstPriv: (mmContextContents,string) => bool = (ctx, sym) => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.symToInt->mutableMapStrGet(sym)
-    })
+    (ctx.root->Belt.Option.getExn).symToInt
+        ->mutableMapStrGet(sym)
         ->Belt_Option.map(i => i < 0)
         ->Belt_Option.getWithDefault(false)
 }
@@ -361,13 +364,6 @@ let getFramePriv = (ctx:mmContextContents,label):option<frame> => {
 
 let getFrame = (ctx:mmContext,label):option<frame> => getFramePriv(ctx.contents,label)
 
-let getLocalConsts: mmContext => array<string> = ctx => {
-    switch ctx.contents.parent {
-        | Some(_) => ctx.contents.consts->Js_array2.copy
-        | None => ctx.contents.consts->Js_array2.sliceFrom(1)
-    }
-}
-
 let getLocalVars: mmContext => array<string> = ctx => {
     ctx.contents.vars->Js_array2.copy
 }
@@ -419,22 +415,17 @@ let ctxSymToIntExn = (ctx:mmContext, sym:string):int => {
 }
 
 let ctxIntToSymPriv = (ctx:mmContextContents,i):option<string> => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        if (i >= 0) {
+    if (i < 0) {
+        (ctx.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
+    } else {
+        ctx->forEachCtxInReverseOrder(ctx => {
             if (i < ctx.varsBaseIdx) {
                 None
             } else {
                 Some(ctx.vars[i-ctx.varsBaseIdx])
             }
-        } else {
-            let iAbs = -i
-            if (iAbs < ctx.constsBaseIdx) {
-                None
-            } else {
-                ctx.consts->Belt_Array.get(iAbs-ctx.constsBaseIdx)
-            }
-        }
-    })
+        })
+    }
 }
 
 let ctxIntToSymExnPriv = (ctx:mmContextContents,i) => {
@@ -578,15 +569,12 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
     let getAllConsts = (ctx:mmContextContents) => {
         let allConsts = ["(", ")", "[", "]", "{", "}"]->Js.Array2.filter(ctx->isConstPriv)->ctxSymsToIntsExnPriv(ctx, _)
         let predefiend = Belt_SetInt.fromArray(allConsts)
-        ctx->forEachCtxInDeclarationOrder(ctx => {
-            let maxC = ctx.constsBaseIdx + ctx.consts->Js.Array2.length - 1
-            for c in ctx.constsBaseIdx to maxC {
-                if (c != 0 && !(predefiend->Belt_SetInt.has(-c))) {
-                    allConsts->Js_array2.push(-c)->ignore
-                }
+        let maxC = (ctx.root->Belt.Option.getExn).consts->Js.Array2.length - 1
+        for c in 1 to maxC {
+            if (!(predefiend->Belt_SetInt.has(-c))) {
+                allConsts->Js_array2.push(-c)->ignore
             }
-            None
-        })->ignore
+        }
         allConsts
     }
 
@@ -661,26 +649,6 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
     foundParens
 }
 
-let rec cloneContextPriv: mmContextContents => mmContextContents = ctx => {
-    {
-        parent: ctx.parent->Belt_Option.map(cloneContextPriv),
-        constsBaseIdx: ctx.constsBaseIdx,
-        consts: ctx.consts->Js_array2.copy,
-        varsBaseIdx: ctx.varsBaseIdx,
-        vars: ctx.vars->Js_array2.copy,
-        symToInt: ctx.symToInt->mutableMapStrClone(x=>x),
-        disj: ctx.disj->mutableMapIntClone(mutableSetIntClone),
-        hyps: ctx.hyps->Js_array2.copy,
-        symToHyp: ctx.symToHyp->mutableMapStrClone(x=>x),
-        lastComment: ctx.lastComment,
-        frames: ctx.frames->mutableMapStrClone(x=>x),
-    }
-}
-
-let cloneContext: mmContext => mmContext = ctx => {
-    ref(ctx.contents->cloneContextPriv)
-}
-
 // cdblk #update ===========================================================================================
 
 let disjMutableMake = () => {
@@ -715,13 +683,10 @@ let createContext: (~parent:mmContext=?, ()) => mmContext = (~parent=?, ()) => {
         | Some(pCtx) => Some(pCtx.contents)
         | None => None
     }
-    ref(
+    let ctx = ref(
         {
+            root: None,
             parent: pCtxContentsOpt,
-            constsBaseIdx: switch pCtxContentsOpt {
-                | None => 0
-                | Some(parent) => parent.constsBaseIdx + parent.consts->Js_array2.length
-            },
             consts: switch pCtxContentsOpt {
                 | None => [""]
                 | Some(_) => []
@@ -737,8 +702,14 @@ let createContext: (~parent:mmContext=?, ()) => mmContext = (~parent=?, ()) => {
             symToHyp: mutableMapStrMake(),
             lastComment: "",
             frames: mutableMapStrMake(),
+            frameDescr: mutableMapStrMake(),
         }
     )
+    switch pCtxContentsOpt {
+        | None => ctx.contents.root = Some(ctx.contents)
+        | Some(pCtxContents) => ctx.contents.root = pCtxContents.root
+    }
+    ctx
 }
 
 let openChildContext: mmContext => unit = ctx => {
@@ -756,33 +727,27 @@ let addComment: (mmContext,string) => unit = (ctx,str) => {
     ctx.contents.lastComment = str
 }
 
-let addConstPriv: (mmContextContents,string,bool) => unit = (ctx,cName,strict) => {
-    if (strict && ctx.parent->Belt_Option.isSome) {
+let addConstPriv: (mmContextContents,string) => unit = (ctx,cName) => {
+    if (ctx.parent->Belt_Option.isSome) {
         raise(MmException({msg:`An attempt to declare a constant '${cName}' in an inner block.`}))
     } else if (isConstPriv(ctx, cName) || isVarPriv(ctx, cName)) {
         raise(MmException({msg:`An attempt to re-declare the math symbol '${cName}' as a constant.`}))
     } else {
-        ctx.symToInt->mutableMapStrPut(cName, -(ctx.constsBaseIdx + ctx.consts->Js_array2.length))
+        ctx.symToInt->mutableMapStrPut(cName, -(ctx.consts->Js_array2.length))
         ctx.consts->Js_array2.push(cName)->ignore
     }
 }
 
 let addConst: (mmContext,string) => unit = (ctx,cName) => {
-    ctx.contents->addConstPriv(cName, true)
-}
-
-let addLocalConst: (mmContext,string) => unit = (ctx,cName) => {
-    ctx.contents->addConstPriv(cName, false)
+    ctx.contents->addConstPriv(cName)
 }
 
 let closeChildContext: mmContext => unit = ctx => {
     ctx.contents = switch ctx.contents.parent {
         | None => raise(MmException({msg:`Cannot close the root context.`}))
         | Some(parent) => {
-            ctx.contents.consts->Js_array2.forEach(cName => {
-                parent->addConstPriv(cName, false)
-            })
             ctx.contents.frames->mutableMapStrForEach((k,v) => parent.frames->mutableMapStrPut(k,v))
+            ctx.contents.frameDescr->mutableMapStrForEach((k,v) => parent.frameDescr->mutableMapStrPut(k,v))
             parent
         }
     }
@@ -913,7 +878,7 @@ let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_
     varTypes
 }
 
-let createFramePriv: (mmContextContents, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => frame = (
+let createFramePriv: (mmContextContents, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => (frame,string) = (
     ctx, label, exprStr, ~skipHyps:bool=false, ~skipFirstSymCheck:bool=false, ()
 ) => {
     if (label->Js_string2.trim == "") {
@@ -938,17 +903,17 @@ let createFramePriv: (mmContextContents, string, array<string>, ~skipHyps:bool=?
                                                             ->Belt_MapInt.fromArray
                 let varTypes = extractVarTypes(mandatoryHypotheses, varRenumbering)
                 let hyps = mandatoryHypotheses->Js_array2.map(renumberVarsInHypothesis(_, varRenumbering))
-                {
+                let frame = {
                     disj: mandatoryDisj->renumberVarsInDisj(varRenumbering),
                     hyps,
                     asrt: asrt->renumberVarsInExpr(varRenumbering),
                     label,
-                    description: ctx.lastComment,
                     frameVarToSymb: createFrameVarToSymbMap(ctx, mandatoryHypotheses, asrt, varRenumbering),
                     varTypes,
                     numOfVars: varTypes->Js_array2.length,
                     numOfArgs: hyps->Js_array2.length
                 }
+                (frame, ctx.lastComment)
             }
         }
     }
@@ -957,9 +922,18 @@ let createFramePriv: (mmContextContents, string, array<string>, ~skipHyps:bool=?
 let createFrame = ( ctx, label, exprStr, ~skipHyps:bool=false, ~skipFirstSymCheck:bool=false, () ) => 
     createFramePriv(ctx.contents, label, exprStr, ~skipHyps, ~skipFirstSymCheck, ())
 
+let ctxRemoveFrameDescriptions = ctx => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.frameDescr->mutableMapStrClear
+        None
+    })->ignore
+}
+
 let addAssertion: (mmContext, ~label:string, ~exprStr:array<string>) => unit = (ctx, ~label, ~exprStr) => {
     let ctx = ctx.contents
-    ctx.frames->mutableMapStrPut(label, createFramePriv(ctx, label, exprStr, ()))
+    let (frame, descr) = createFramePriv(ctx, label, exprStr, ())
+    ctx.frames->mutableMapStrPut(label, frame)
+    ctx.frameDescr->mutableMapStrPut(label, descr)
 }
 
 let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
@@ -1081,3 +1055,11 @@ let generateNewLabels = (ctx:mmContext, ~prefix:string, ~amount:int): array<stri
     }
     res
 }
+
+// let moveParensToBeginPriv = (ctx:mmContextContents, parens:array<int>):unit => {
+//     let parenLen = parens->Js_array2.length
+//     if (mod(parenLen, 2)  != 0) {
+//         raise(MmException({msg:`mod(parenLen, 2)  != 0 in moveParensToBeginPriv`}))
+//     }
+    
+// }
