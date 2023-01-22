@@ -87,3 +87,20 @@ describe("applySingleStmt", _ => {
         }
     })
 })
+
+describe("moveConstsToBegin", _ => {
+    it("descreases int codes of the specified constants", _ => {
+        //given
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let (ast, _) = parseMmFile(mmFileText, ())
+        let ctx = loadContext(ast, ())
+        let constsToMove = "( ) [ ] { }"
+        assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-13,-14,-15])
+
+        //when
+        ctx->moveConstsToBegin(constsToMove)
+
+        //then
+        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
+    })
+})

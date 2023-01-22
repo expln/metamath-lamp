@@ -567,7 +567,10 @@ let getNestingLevel: mmContext => int = ctx => getNestingLevelPriv(ctx.contents)
 let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> = (ctx, ~onProgress=?, ()) => {
     let ctx = ctx.contents
     let getAllConsts = (ctx:mmContextContents) => {
-        let allConsts = ["(", ")", "[", "]", "{", "}"]->Js.Array2.filter(ctx->isConstPriv)->ctxSymsToIntsExnPriv(ctx, _)
+        let allConsts = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
+            ->getSpaceSeparatedValuesAsArray
+            ->Js.Array2.filter(ctx->isConstPriv)
+            ->ctxSymsToIntsExnPriv(ctx, _)
         let predefiend = Belt_SetInt.fromArray(allConsts)
         let maxC = (ctx.root->Belt.Option.getExn).consts->Js.Array2.length - 1
         for c in 1 to maxC {
@@ -1056,10 +1059,57 @@ let generateNewLabels = (ctx:mmContext, ~prefix:string, ~amount:int): array<stri
     res
 }
 
-// let moveParensToBeginPriv = (ctx:mmContextContents, parens:array<int>):unit => {
-//     let parenLen = parens->Js_array2.length
-//     if (mod(parenLen, 2)  != 0) {
-//         raise(MmException({msg:`mod(parenLen, 2)  != 0 in moveParensToBeginPriv`}))
-//     }
+let renumberConstsInExpr = (expr:expr, constRenum:Belt_HashMapInt.t<int>):unit => {
+    let maxI = expr->Js_array2.length-1
+    for i in 0 to maxI {
+        let sym = expr[i]
+        if (sym < 0) {
+            expr[i] = constRenum->Belt_HashMapInt.get(sym)->Belt_Option.getWithDefault(sym)
+        }
+    }
+}
+
+let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
+    let rootCtx = ctx.contents.root->Belt_Option.getExn
+    let constsToMove = constsStr->getSpaceSeparatedValuesAsArray
+        ->Js_array2.map(ctxSymToInt(ctx,_))
+        ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
+        ->Js.Array2.map(Belt_Option.getExn)
+        ->Belt_HashSetInt.fromArray
+    let constsLen = constsToMove->Belt_HashSetInt.size
+    let reservedIdxs = Belt_HashSetInt.make(~hintSize=constsLen)
+
+    let getConstToMoveFar = () => {
+        let res= ref(1)
+        while (reservedIdxs->Belt_HashSetInt.has(res.contents) || constsToMove->Belt_HashSetInt.has(-res.contents)) {
+            res.contents = res.contents + 1
+        }
+        reservedIdxs->Belt_HashSetInt.add(res.contents)
+        -res.contents
+    }
     
-// }
+    let constRenum = Belt_HashMapInt.make(~hintSize=constsLen)
+    constsToMove->Belt_HashSetInt.forEach(constToMoveClose => {
+        if (constToMoveClose < -constsLen) {
+            let constToMoveFar = getConstToMoveFar()
+            constRenum->Belt_HashMapInt.set(constToMoveClose, constToMoveFar)
+            constRenum->Belt_HashMapInt.set(constToMoveFar, constToMoveClose)
+            let symTmp = rootCtx.consts[-constToMoveClose]
+            rootCtx.consts[-constToMoveClose] = rootCtx.consts[-constToMoveFar]
+            rootCtx.consts[-constToMoveFar] = symTmp
+            rootCtx.symToInt->mutableMapStrPut(rootCtx.consts[-constToMoveClose], constToMoveClose)
+            rootCtx.symToInt->mutableMapStrPut(rootCtx.consts[-constToMoveFar], constToMoveFar)
+        }
+    })
+
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.hyps->Js_array2.forEach(hyp => renumberConstsInExpr(hyp.expr, constRenum))
+        ctx.frames->mutableMapStrForEach((_,frame) => {
+            frame.hyps->Js_array2.forEach(hyp => renumberConstsInExpr(hyp.expr, constRenum))
+            renumberConstsInExpr(frame.asrt, constRenum)
+            renumberConstsInExpr(frame.varTypes, constRenum)
+        })
+        None
+    })->ignore
+
+}

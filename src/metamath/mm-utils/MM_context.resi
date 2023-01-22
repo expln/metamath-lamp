@@ -67,6 +67,7 @@ let frmIntsToStrExn: (mmContext, frame, expr) => string
 let createFrame: (mmContext, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => (frame, string)
 
 let ctxRemoveFrameDescriptions: mmContext => unit
+let moveConstsToBegin: (mmContext, string) => unit
 
 let generateNewVarNames: (mmContext, array<int>, Belt_MapString.t<string>) => array<string>
 let generateNewLabels: (mmContext, ~prefix:string, ~amount:int) => array<string>

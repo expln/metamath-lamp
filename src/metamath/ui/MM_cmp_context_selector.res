@@ -109,6 +109,7 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
     })
 
     let actNewCtxIsReady = ctx => {
+        ctx->ctxRemoveFrameDescriptions
         setState(st => {
             let st = st->setLoadedContextSummary(getSummary(st))
             setPrevState(_ => st)
