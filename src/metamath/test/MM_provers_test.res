@@ -14,6 +14,8 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(mmFileText, ())
     let ctx = loadContext(ast, ())
+    let parens = "( ) { } [ ]"
+    ctx->moveConstsToBegin(parens)
     let expr = ctx->ctxStrToIntsExn(exprStr)
     let frms = prepareFrmSubsData(ctx)
 
@@ -22,7 +24,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
         ~ctx,
         ~frms,
         ~stmts = [expr],
-        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]")),
+        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens)),
         (),
     )
 

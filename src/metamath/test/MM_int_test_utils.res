@@ -22,12 +22,14 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext
     }
+    let parens = "( ) { } [ ]"
+    ctx->moveConstsToBegin(parens)
     let frms = prepareFrmSubsData(ctx)
-    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, "( ) { } [ ]"))
+    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens))
     {
         settingsV: 1,
         settings: {
-            parens: "( ) [ ] { }",
+            parens,
             asrtsToSkip: "idi",
             typeSettings: [ ],
         },
