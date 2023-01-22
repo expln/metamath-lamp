@@ -816,7 +816,7 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
         ~ctx,
         ~frms,
         ~stmts=typesToProve,
-        ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens)),
+        ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens), ()),
         ()
     )
     typesToProve->Js_array2.every(typeExpr => {
@@ -908,7 +908,7 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
                 ~constParts = frm.constParts[frm.numOfHypsE], 
                 ~varGroups = frm.varGroups[frm.numOfHypsE],
                 ~subs = frm.subs,
-                ~parenCnt=parenCntMake(prepareParenInts(wrkCtx, st.settings.parens)),
+                ~parenCnt=parenCntMake(prepareParenInts(wrkCtx, st.settings.parens), ()),
                 ~consumer = subs => {
                     let wrkSubs = convertSubsToWrkSubs(subs, frame, wrkCtx)
                     if (verifyDisjoints(~wrkSubs, ~disj) 

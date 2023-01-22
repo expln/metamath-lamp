@@ -65,5 +65,5 @@ let verifyDisjoints: (~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, ~subs:subs, ~isDisj
 
 //------------------------- TEST ---------------------------
 
-let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr) => (array<(int,int)>, array<array<(int,int)>>)
-let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr) => array<array<expr>>
+let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => (array<(int,int)>, array<array<(int,int)>>)
+let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => array<array<expr>>

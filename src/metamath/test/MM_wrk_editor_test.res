@@ -11,10 +11,12 @@ let createEditorState = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(mmFileText, ())
     let ctx = loadContext(ast, ())
+    let parens = "( ) { } [ ]"
+    ctx->moveConstsToBegin(parens)
     {
         settingsV: 1,
         settings: {
-            parens: "( ) [ ] { }",
+            parens,
             asrtsToSkip: "idi",
             typeSettings: [ ],
         },
@@ -452,6 +454,7 @@ describe("findPossibleSubs", _ => {
         //given
         let st = createEditorState(findPossibleSubsSimpleCase)->prepareEditorForUnification
         let ctx = st.wrkCtx->Belt_Option.getExn
+
         let t = ctx->ctxSymToIntExn("t")
         let r = ctx->ctxSymToIntExn("r")
         let s = ctx->ctxSymToIntExn("s")

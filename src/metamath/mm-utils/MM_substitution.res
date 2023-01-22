@@ -567,13 +567,13 @@ let verifyDisjoints = (~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, ~subs:subs, ~isDis
 
 //------------------------- TEST ---------------------------
 
-let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr) => (array<(int,int)>, array<array<(int,int)>>) = (~ctx,~frmExpr,~expr) => {
+let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => (array<(int,int)>, array<array<(int,int)>>) = (~ctx,~frmExpr,~expr, ~parens) => {
     let constPartsToArr = (constParts:constParts) => {
         constParts.begins->Js_array2.mapi((b,i)=>(b,constParts.ends[i]))
     }
+    let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
     let frmConstParts = createConstParts(frmExpr)
     let constParts = createMatchingConstParts(frmConstParts)
-    let parenCnt = parenCntMake(ctx->ctxSymsToIntsExn(["(", ")", "{", "}", "[", "]"]))
     let matchingConstParts = []
     iterateConstParts(
         ~frmExpr, 
@@ -595,10 +595,10 @@ let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr) => (arra
     )
 }
 
-let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr) => array<array<expr>> = (~ctx, ~frmExpr, ~expr) => {
+let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => array<array<expr>> = (~ctx, ~frmExpr, ~expr, ~parens) => {
+    let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
     let frmConstParts = createConstParts(frmExpr)
     let constParts = createMatchingConstParts(frmConstParts)
-    let parenCnt = parenCntMake(ctx->ctxSymsToIntsExn(["(", ")", "{", "}", "[", "]"]))
     let varGroups = createVarGroups(~frmExpr, ~frmConstParts)
     let numOfVars = frmExpr
         ->Js_array2.filter(i => i >= 0)

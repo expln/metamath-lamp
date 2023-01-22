@@ -15,7 +15,7 @@ type parenCnt = {
     mutable failed: bool
 }
 
-let parenCntMake = parentheses => {
+let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
     let parenLen = parentheses->Js_array2.length
     if (mod(parenLen, 2)  != 0) {
         raise(MmException({msg:`mod(parenLen, 2)  != 0 in parenCntMake`}))
@@ -35,8 +35,12 @@ let parenCntMake = parentheses => {
             parens->Js_array2.push({code: openCode, isOpen: true, opposite: closeCode})->ignore
             parens->Js_array2.push({code: closeCode, isOpen: false, opposite: openCode})->ignore
         }
+        let min = parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses[0])
+        if (checkParensOptimized && Js.Math.abs_int(min) != parenLen) {
+            Js.Console.log("Warning: parentheses are not optimized (this may slow down the unification process).")
+        }
         {
-            min:parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses[0]),
+            min,
             parens,
             parentStack: [],
             failed: false,
@@ -50,7 +54,7 @@ let parenCntReset: parenCnt => unit = cnt => {
 }
 
 let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
-    if (!cnt.failed && cnt.min <= i) {
+    if (!cnt.failed && cnt.min <= i && i < 0) {
         switch cnt.parens->Js_array2.find(({code}) => code == i) {
             | Some(paren) => {
                 if (paren.isOpen) {

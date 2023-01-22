@@ -11,10 +11,10 @@ type tabData =
     | ProofExplorer({label:string})
 
 type state = {
-    ctx: mmContext,
-    ctxV: int,
     settings: settings,
     settingsV: int,
+    ctx: mmContext,
+    ctxV: int,
 }
 
 let createInitialState = (~settings) => {
@@ -49,14 +49,18 @@ let make = () => {
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
-    let onContextWasUpdated = newCtx => {
+    let actCtxUpdated = (newCtx, settingsOpt) => {
+        let settings = switch settingsOpt {
+            | Some(settings) => settings
+            | None => state.settings
+        }
+        newCtx->moveConstsToBegin(settings.parens)
         setState(setCtx(_,newCtx))
-        tabs->Js.Array2.forEach(tab => {
-            switch tab.data {
-                | ProofExplorer(_) => removeTab(tab.id)
-                | _ => ()
-            }
-        })
+    }
+
+    let actSettingsUpdated = newSettings => {
+        setState(setSettings(_,newSettings))
+        actCtxUpdated(state.ctx, Some(newSettings))
     }
 
     React.useEffect0(()=>{
@@ -83,7 +87,7 @@ let make = () => {
                             modalRef
                             ctx=state.ctx 
                             initialSettings=state.settings 
-                            onChange={newSettings => setState(setSettings(_,newSettings))} 
+                            onChange=actSettingsUpdated 
                         />
                     | Editor => 
                         <MM_cmp_editor
@@ -105,7 +109,7 @@ let make = () => {
         top=0
         header={
             <Col>
-                <MM_cmp_context_selector onChange=onContextWasUpdated modalRef />
+                <MM_cmp_context_selector onChange=actCtxUpdated(_, None) modalRef />
                 {renderTabs()}
             </Col>
         }

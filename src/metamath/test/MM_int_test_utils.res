@@ -13,7 +13,7 @@ open MM_parenCounter
 let setMmPath = "/books/metamath/set.mm"
 let failOnMismatch = true
 
-let parenCnt = ref(parenCntMake([]))
+let parenCnt = ref(parenCntMake([], ()))
 
 let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stopAfter:option<string>=?, ()) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
@@ -25,7 +25,7 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
     let frms = prepareFrmSubsData(ctx)
-    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens))
+    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens), ())
     {
         settingsV: 1,
         settings: {

@@ -233,10 +233,12 @@ let testApplyAssertions = (
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
     let (ast, _) = parseMmFile(mmFileText, ())
     let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
+    let parens = "( ) { } [ ]"
+    preCtx->moveConstsToBegin(parens)
     additionalStatements->Js_array2.forEach(preCtx->applySingleStmt)
     let workCtx = createContext(~parent=preCtx, ())
     let frms = prepareFrmSubsData(workCtx)
-    let parenCnt = parenCntMake(workCtx->ctxSymsToIntsExn(["(", ")", "{", "}", "[", "]"]))
+    let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
     let stmtsForAppl = statements->Js_array2.map(((_,exprStr)) => ctxStrToIntsExn(workCtx,exprStr))

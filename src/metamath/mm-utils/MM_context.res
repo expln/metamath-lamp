@@ -586,7 +586,7 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
         let res = ref(true)
         let openUsed = ref(false)
         let closeUsed = ref(false)
-        let parenCnt = parenCntMake([openSym, closeSym])
+        let parenCnt = parenCntMake([openSym, closeSym], ~checkParensOptimized=false, ())
         let parenState = ref(Balanced)
         let allExprsLen = allExprs->Js_array2.length
         let e = ref(0)

@@ -103,4 +103,19 @@ describe("moveConstsToBegin", _ => {
         //then
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
     })
+
+    it("doesn't fail if variables or unrecognized symbols are provided", _ => {
+        //given
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let (ast, _) = parseMmFile(mmFileText, ())
+        let ctx = loadContext(ast, ())
+        let constsToMove = "( ) [ ] { }"
+        assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
+
+        //when
+        ctx->moveConstsToBegin("( ) [ t ] { } abc yyy")
+
+        //then
+        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
+    })
 })

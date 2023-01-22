@@ -34,12 +34,14 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(mmFileText, ())
     let ctx = loadContext(ast, ())
+    let parens = "( ) { } [ ]"
+    ctx->moveConstsToBegin(parens)
     let expr = exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _)
     let proofTree = proveFloatings(
         ~ctx,
         ~frms=prepareFrmSubsData(ctx),
         ~stmts = [expr],
-        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn("( ) { } [ ]")),
+        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
         (),
     )
     let proofTreeDto = proofTreeToDto(proofTree, [expr])
