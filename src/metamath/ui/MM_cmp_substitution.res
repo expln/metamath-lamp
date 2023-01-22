@@ -170,11 +170,11 @@ let make = (
         </Row>
     }
 
-    let rndWrkSubs = (subs:wrkSubs):React.element => {
+    let rndWrkSubs = (wrkSubs:wrkSubs):React.element => {
         <table>
             <tbody>
             {React.array(
-                subs->Belt_MapInt.toArray->Js_array2.map(((v,expr)) => {
+                wrkSubs.subs->Belt_MapInt.toArray->Js_array2.map(((v,expr)) => {
                     if (expr->Js_array2.length == 1 && v == expr[0]) {
                         React.null
                     } else {

@@ -468,7 +468,7 @@ describe("findPossibleSubs", _ => {
 
         //then
         assertEq(
-            possibleSubs,
+            possibleSubs->Js.Array2.map(wrkSubs => wrkSubs.subs),
             [
                 Belt_MapInt.fromArray([
                     (t, ctx->ctxStrToIntsExn("( t + t )")),
@@ -484,9 +484,77 @@ describe("findPossibleSubs", _ => {
         )
     })
 
+    it("returns new disjoints if any", _ => {
+        //given
+        let st = createEditorState(findPossibleSubsDisjointsCase)
+        let st = completeDisjEditMode(st, "x, y")
+        let st = prepareEditorForUnification(st)
+        let ctx = st.wrkCtx->Belt_Option.getExn
+
+        let t = ctx->ctxSymToIntExn("t")
+        let x = ctx->ctxSymToIntExn("x")
+        let y = ctx->ctxSymToIntExn("y")
+        let z = ctx->ctxSymToIntExn("z")
+
+        //when
+        let possibleSubs = findPossibleSubs(
+            st, 
+            ctx->ctxStrToIntsExn("y"),
+            ctx->ctxStrToIntsExn("z"),
+        )
+
+        //then
+        assertEq(
+            possibleSubs->Js.Array2.map(wrkSubs => wrkSubs.subs),
+            [
+                Belt_MapInt.fromArray([
+                    (t, ctx->ctxStrToIntsExn("t")),
+                    (x, ctx->ctxStrToIntsExn("x")),
+                    (y, ctx->ctxStrToIntsExn("z")),
+                    (z, ctx->ctxStrToIntsExn("z")),
+                ]),
+            ]
+        )
+
+        let newDisjStrArr = []
+        possibleSubs[0].newDisj->disjForEachArr(arr => {
+            newDisjStrArr->Js.Array2.push(ctx->ctxIntsToStrExn(arr))->ignore
+        })
+        assertEq( newDisjStrArr, ["x z"] )
+    })
+
     it("doesn't return substitutions which don't satisfy disjoints", _ => {
         //given
         let st = createEditorState(findPossibleSubsDisjointsCase)
+        let st = prepareEditorForUnification(st)
+        let ctx = st.wrkCtx->Belt_Option.getExn
+
+        let t = ctx->ctxSymToIntExn("t")
+        let x = ctx->ctxSymToIntExn("x")
+        let y = ctx->ctxSymToIntExn("y")
+        let z = ctx->ctxSymToIntExn("z")
+
+        let stmt1 = "x + y"
+        let stmt2 = "z + z"
+
+        let possibleSubs = findPossibleSubs(
+            st, 
+            ctx->ctxStrToIntsExn(stmt1),
+            ctx->ctxStrToIntsExn(stmt2),
+        )
+
+        assertEq(
+            possibleSubs->Js.Array2.map(wrkSubs => wrkSubs.subs),
+            [
+                Belt_MapInt.fromArray([
+                    (t, ctx->ctxStrToIntsExn("t")),
+                    (x, ctx->ctxStrToIntsExn("z")),
+                    (y, ctx->ctxStrToIntsExn("z")),
+                    (z, ctx->ctxStrToIntsExn("z")),
+                ]),
+            ]
+        )
+
         let st = completeDisjEditMode(st, "x, y")
         let st = prepareEditorForUnification(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
@@ -494,8 +562,8 @@ describe("findPossibleSubs", _ => {
         //when
         let possibleSubs = findPossibleSubs(
             st, 
-            ctx->ctxStrToIntsExn("y"),
-            ctx->ctxStrToIntsExn("z"),
+            ctx->ctxStrToIntsExn(stmt1),
+            ctx->ctxStrToIntsExn(stmt2),
         )
 
         //then

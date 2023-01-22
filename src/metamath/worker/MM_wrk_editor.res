@@ -106,7 +106,10 @@ type editorState = {
     checkedStmtIds: array<string>,
 }
 
-type wrkSubs = Belt_MapInt.t<expr>
+type wrkSubs = {
+    newDisj: disjMutable,
+    subs: Belt_MapInt.t<expr>,
+}
 
 let updateStmt = (st:editorState,id,update):editorState => {
     {
@@ -809,7 +812,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
 }
 
 let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
-    let typesToProve = wrkSubs
+    let typesToProve = wrkSubs.subs
         ->Belt_MapInt.toArray
         ->Js_array2.map(((var,expr)) => [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr))
     let proofTree = proveFloatings(
@@ -827,14 +830,14 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
     })
 }
 
-let convertSubsToWrkSubs = (subs, frame, ctx):wrkSubs => {
+let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
     let frameVarToCtxVar = frameVar => {
-        switch frame.frameVarToSymb->Belt_MapInt.get(frameVar) {
+        switch tmpFrame.frameVarToSymb->Belt_MapInt.get(frameVar) {
             | None => raise(MmException({msg:`Cannot convert frameVar to ctxVar.`}))
             | Some(ctxSym) => ctx->ctxSymToIntExn(ctxSym)
         }
     }
-    let res = Belt_Array.range(1,frame.numOfVars)
+    let res = Belt_Array.range(1,tmpFrame.numOfVars)
         ->Js.Array2.map(v => {
             (
                 frameVarToCtxVar(v-1),
@@ -853,10 +856,14 @@ let convertSubsToWrkSubs = (subs, frame, ctx):wrkSubs => {
             res->Belt_MutableMapInt.set(v, [v])
         }
     }
-    res->Belt_MutableMapInt.toArray->Belt_MapInt.fromArray
+    {
+        subs: res->Belt_MutableMapInt.toArray->Belt_MapInt.fromArray,
+        newDisj: disjMutableMake()
+    }
+    
 }
 
-let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable) => {
+let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):bool => {
     let varToSubVars = Belt_MutableMapInt.make()
 
     let getSubVars = var => {
@@ -864,7 +871,7 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable) => {
             | None => {
                 varToSubVars->Belt_MutableMapInt.set(
                     var, 
-                    switch wrkSubs->Belt_MapInt.get(var) {
+                    switch wrkSubs.subs->Belt_MapInt.get(var) {
                         | None => []
                         | Some(expr) => expr->Js_array2.filter(s => s >= 0)
                     }
@@ -882,7 +889,10 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable) => {
                 if (res.contents) {
                     getSubVars(m)->Js_array2.forEach(mv => {
                         if (res.contents) {
-                            res.contents = nv != mv && disj->disjContains(nv,mv)
+                            res.contents = nv != mv
+                            if (res.contents && !(disj->disjContains(nv,mv))) {
+                                wrkSubs.newDisj->disjAddPair(nv,mv)
+                            }
                         }
                     })
                 }
@@ -897,12 +907,12 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
             let axLabel = (wrkCtx->generateNewLabels(~prefix="temp-ax-", ~amount=1))[0]
-            let (frame, _) = wrkCtx->createFrame(axLabel, wrkCtx->ctxIntsToSymsExn(frmExpr), ~skipHyps=true, ~skipFirstSymCheck=true, ())
-            let frm = prepareFrmSubsDataForFrame(frame)
+            let (tmpFrame, _) = wrkCtx->createFrame(axLabel, wrkCtx->ctxIntsToSymsExn(frmExpr), ~skipHyps=true, ~skipFirstSymCheck=true, ())
+            let frm = prepareFrmSubsDataForFrame(tmpFrame)
             let disj = wrkCtx->getAllDisj
             let foundSubs = []
             iterateSubstitutions(
-                ~frmExpr=frame.asrt,
+                ~frmExpr=tmpFrame.asrt,
                 ~expr,
                 ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
                 ~constParts = frm.constParts[frm.numOfHypsE], 
@@ -910,8 +920,8 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
                 ~subs = frm.subs,
                 ~parenCnt=parenCntMake(prepareParenInts(wrkCtx, st.settings.parens), ()),
                 ~consumer = subs => {
-                    let wrkSubs = convertSubsToWrkSubs(subs, frame, wrkCtx)
-                    if (verifyDisjoints(~wrkSubs, ~disj) 
+                    let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
+                    if (verifyDisjoints(~wrkSubs, ~disj)
                         && verifyTypesForSubstitution(~settings=st.settings, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
                     ) {
                         foundSubs->Js_array2.push(wrkSubs)->ignore
@@ -924,13 +934,13 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
     }
 }
 
-let applyWrkSubs = (expr, subs): expr => {
+let applyWrkSubs = (expr, wrkSubs): expr => {
     let resultSize = ref(0)
     expr->Js_array2.forEach(s => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
         } else {
-            switch subs->Belt_MapInt.get(s) {
+            switch wrkSubs.subs->Belt_MapInt.get(s) {
                 | None => raise(MmException({msg:`Cannot find a substitution for ${s->Belt_Int.toString} in applyWrkSubs.`}))
                 | Some(expr) => resultSize.contents = resultSize.contents + expr->Js_array2.length
             }
@@ -945,7 +955,7 @@ let applyWrkSubs = (expr, subs): expr => {
             res[r.contents] = s
             r.contents = r.contents + 1
         } else {
-            let subExpr = subs->Belt_MapInt.getExn(s)
+            let subExpr = wrkSubs.subs->Belt_MapInt.getExn(s)
             let len = subExpr->Js_array2.length
             Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=0, ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
@@ -955,22 +965,23 @@ let applyWrkSubs = (expr, subs): expr => {
     res
 }
 
-let applySubstitutionForStmt = (ctx:mmContext, stmt:userStmt, subs:wrkSubs):userStmt => {
+let applySubstitutionForStmt = (ctx:mmContext, stmt:userStmt, wrkSubs:wrkSubs):userStmt => {
     let expr = ctx->ctxSymsToIntsExn(stmt.cont->contToArrStr)
-    let newExpr = applyWrkSubs(expr, subs)
+    let newExpr = applyWrkSubs(expr, wrkSubs)
     {
         ...stmt,
         cont: Text(ctx->ctxIntsToSymsExn(newExpr))
     }
 }
 
-let applySubstitutionForEditor = (st, subs:wrkSubs):editorState => {
+let applySubstitutionForEditor = (st, wrkSubs:wrkSubs):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot apply substitution without wrkCtx.`}))
         | Some(wrkCtx) => {
+            let st = createNewDisj(st, wrkSubs.newDisj)
             {
                 ...st,
-                stmts: st.stmts->Js_array2.map(stmt => applySubstitutionForStmt(wrkCtx,stmt,subs))
+                stmts: st.stmts->Js_array2.map(stmt => applySubstitutionForStmt(wrkCtx,stmt,wrkSubs))
             }
         }
     }

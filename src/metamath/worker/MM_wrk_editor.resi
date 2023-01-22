@@ -70,7 +70,10 @@ type editorState = {
     checkedStmtIds: array<string>,
 }
 
-type wrkSubs = Belt_MapInt.t<expr>
+type wrkSubs = {
+    newDisj: disjMutable,
+    subs: Belt_MapInt.t<expr>,
+}
 
 let updateStmt: (editorState, string, userStmt => userStmt) => editorState
 let isStmtChecked: (editorState, string) => bool
