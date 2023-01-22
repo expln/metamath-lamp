@@ -63,8 +63,6 @@ let setResults = (st,results,ctx,frms):state => {
         results:Some(results),
         resultsForRender:Some(
             results->Js.Array2.map(result => {
-                let numOfDisj = result.newDisjStr->Js_array2.length
-                let lastDisjIdx = numOfDisj - 1
                 let numOfStmt = result.stmts->Js.Array2.length
                 let lastStmtIdx = numOfStmt - 1
                 <Paper style=ReactDOM.Style.make(~padding="3px", ())>
@@ -73,13 +71,7 @@ let setResults = (st,results,ctx,frms):state => {
                             result.newDisjStr->Js_array2.mapi((disjStr,i) => {
                                 <React.Fragment key={"disj-" ++ i->Belt_Int.toString} >
                                     {React.string("$d " ++ disjStr ++ " $.")}
-                                    {
-                                        if (i != lastDisjIdx) {
-                                            <Divider/>
-                                        } else {
-                                            React.null
-                                        }
-                                    }
+                                    <Divider/>
                                 </React.Fragment>
                             })
                         )}

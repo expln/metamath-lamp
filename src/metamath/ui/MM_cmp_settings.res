@@ -358,7 +358,7 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
         })->ignore
     }
 
-    <Col spacing=3. style=ReactDOM.Style.make(~margin="30px", ())>
+    <Col spacing=1. style=ReactDOM.Style.make(~margin="30px", ())>
         <Row alignItems=#center>
             <TextField 
                 size=#small
