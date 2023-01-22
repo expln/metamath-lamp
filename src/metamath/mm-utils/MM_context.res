@@ -1044,17 +1044,22 @@ let loadContext = (
     ctx
 }
 
-let generateNewVarNames = (ctx:mmContext, types:array<int>): array<string> => {
+let generateNewVarNames = (ctx:mmContext, types:array<int>, typeToPrefix:Belt_MapString.t<string>): array<string> => {
+    let prefixToCnt = Belt_MutableMapString.make()
+
+    let getCnt = prefix => prefixToCnt->Belt_MutableMapString.getWithDefault(prefix,0)
+    let incCnt = prefix => prefixToCnt->Belt_MutableMapString.set(prefix,getCnt(prefix)+1)
+
     let maxI = types->Js.Array2.length - 1
-    let cnt = ref(0)
     let res = []
     for i in 0 to maxI {
         let typeStr = ctx->ctxIntToSymExn(types[i])
-        cnt.contents = cnt.contents + 1
-        let newName = ref(typeStr ++ cnt.contents->Belt_Int.toString)
+        let prefix = typeToPrefix->Belt_MapString.getWithDefault(typeStr, typeStr)
+        incCnt(prefix)
+        let newName = ref(prefix ++ getCnt(prefix)->Belt_Int.toString)
         while (ctx->isConst(newName.contents) || ctx->isVar(newName.contents)) {
-            cnt.contents = cnt.contents + 1
-            newName.contents = typeStr ++ cnt.contents->Belt_Int.toString
+            incCnt(prefix)
+            newName.contents = prefix ++ getCnt(prefix)->Belt_Int.toString
         }
         res->Js.Array2.push(newName.contents)->ignore
     }

@@ -155,7 +155,7 @@ let testApplyAssertions = (
         let maxWorkCtxVar = workCtx->getNumOfVars - 1
         let workVarHypLabels = workCtx->generateNewLabels(~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length)
         let workVarTypes = res.newVarTypes->Js_array2.map(workCtx->ctxIntToSymExn)
-        let workVarNames = workCtx->generateNewVarNames(res.newVarTypes)
+        let workVarNames = workCtx->generateNewVarNames(res.newVarTypes, Belt_MapString.empty)
         let disjArrStr = []
         res.newDisj->disjForEachArr(disj => {
             disjArrStr->Js.Array2.push(

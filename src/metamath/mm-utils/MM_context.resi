@@ -70,7 +70,7 @@ let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
 let createFrame: (mmContext, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => frame
 
-let generateNewVarNames: (mmContext, array<int>) => array<string>
+let generateNewVarNames: (mmContext, array<int>, Belt_MapString.t<string>) => array<string>
 let generateNewLabels: (mmContext, ~prefix:string, ~amount:int) => array<string>
 
 let disjMutableMake: unit => disjMutable

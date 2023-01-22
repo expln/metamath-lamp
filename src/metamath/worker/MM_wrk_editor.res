@@ -4,7 +4,6 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open MM_syntax_tree
 open MM_wrk_settings
-open MM_asrt_apply
 open MM_parenCounter
 open MM_substitution
 open MM_wrk_ctx
@@ -693,7 +692,10 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
             if (numOfVars == 0) {
                 (st,[])
             } else {
-                let newVarNames = wrkCtx->generateNewVarNames(varTypes)
+                let typeToPrefix = Belt_MapString.fromArray(
+                    st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                )
+                let newVarNames = wrkCtx->generateNewVarNames(varTypes, typeToPrefix)
                 let newHypLabels = wrkCtx->generateNewLabels(~prefix="var", ~amount=numOfVars)
                 wrkCtx->applySingleStmt(Var({symbols:newVarNames}))
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
