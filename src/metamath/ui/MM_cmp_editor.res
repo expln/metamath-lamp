@@ -55,17 +55,20 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
 }
 
 let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocStor:option<editorStateLocStor>) => {
-    {
+    let st = {
         settingsV,
         settings,
+        typeColors: Belt_HashMapString.make(~hintSize=0),
 
         preCtxV,
         preCtx,
         frms: prepareFrmSubsData(preCtx),
+        preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         varsText: stateLocStor->Belt.Option.map(obj => obj.varsText)->Belt.Option.getWithDefault(""),
         varsEditMode: false,
         varsErr: None,
+        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         disjText: stateLocStor->Belt.Option.map(obj => obj.disjText)->Belt.Option.getWithDefault(""),
         disjEditMode: false,
@@ -81,6 +84,7 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
                 ->Belt.Option.getWithDefault([]),
         checkedStmtIds: [],
     }
+    recalcAllColors(st)
 }
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {

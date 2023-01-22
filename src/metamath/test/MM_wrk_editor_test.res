@@ -13,22 +13,24 @@ let createEditorState = (mmFile) => {
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
-    {
+    let st = {
         settingsV: 1,
         settings: {
             parens,
             asrtsToSkip: "idi",
             typeSettings: [ ],
         },
+        typeColors: Belt_HashMapString.make(~hintSize=0),
 
         preCtxV: 1,
         preCtx: ctx,
         frms: prepareFrmSubsData(ctx),
-
+        preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         varsText: "",
         varsEditMode: false,
         varsErr: None,
+        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         disjText: "",
         disjEditMode: false,
@@ -41,6 +43,7 @@ let createEditorState = (mmFile) => {
         stmts: [],
         checkedStmtIds: [],
     }
+    recalcAllColors(st)
 }
 
 let getVarType = (ctx:mmContext, vName:string) => {

@@ -85,14 +85,17 @@ let createEmptyUserStmt = (id, typ, label):userStmt => {
 type editorState = {
     settingsV:int,
     settings:settings,
+    typeColors: Belt_HashMapString.t<string>,
 
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
+    preCtxColors: Belt_HashMapString.t<string>,
 
     varsText: string,
     varsEditMode: bool,
     varsErr: option<string>,
+    wrkCtxColors: Belt_HashMapString.t<string>,
 
     disjText: string,
     disjEditMode: bool,
@@ -311,14 +314,6 @@ let setVarsEditMode = st => {
     }
 }
 
-let completeVarsEditMode = (st, newVarsText) => {
-    {
-        ...st,
-        varsText:newVarsText,
-        varsEditMode: false
-    }
-}
-
 let setDisjEditMode = st => {
     {
         ...st,
@@ -414,12 +409,119 @@ let completeJstfEditMode = (st, stmtId, newJstf) => {
     })
 }
 
+let getTypeAndVarFromVarsTextLine = (str):option<(string,string)> => {
+    let arr = getSpaceSeparatedValuesAsArray(str)
+    if (arr->Js_array2.length != 3) {
+        None
+    } else {
+        Some((arr[1], arr[2]))
+    }
+}
+
+let newLineRegex = %re("/[\n\r]/")
+let extractVarColorsFromVarsText = (varsText, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
+    let res = Belt_HashMapString.make(~hintSize=16)
+    varsText->Js_string2.splitByRe(newLineRegex)->Js_array2.forEach(lineOpt => {
+        switch lineOpt {
+            | None => ()
+            | Some(line) => {
+                switch getTypeAndVarFromVarsTextLine(line->Js_string2.trim) {
+                    | None => ()
+                    | Some((typeStr,varStr)) => {
+                        switch typeColors->Belt_HashMapString.get(typeStr) {
+                            | None => ()
+                            | Some(color) => {
+                                res->Belt_HashMapString.set(varStr, color)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    })
+    res
+}
+
+let recalcTypeColors = (st:editorState):editorState => {
+    {
+        ...st,
+        typeColors: st.settings.typeSettings
+            ->Js_array2.map(ts => (ts.typ, ts.color))
+            ->Belt_HashMapString.fromArray
+    }
+}
+
+let recalcPreCtxColors = (st:editorState):editorState => {
+    let varColorsArr = []
+    st.preCtx->forEachHypothesisInDeclarationOrder(hyp => {
+        if (hyp.typ == F) {
+            switch st.preCtx->ctxIntToSym(hyp.expr[0]) {
+                | None => ()
+                | Some(typeStr) => {
+                    switch st.typeColors->Belt_HashMapString.get(typeStr) {
+                        | None => ()
+                        | Some(color) => {
+                            varColorsArr->Js_array2.push((
+                                st.preCtx->ctxIntToSymExn(hyp.expr[1]),
+                                color,
+                            ))->ignore
+                        }
+                    }
+                }
+            }
+        }
+        None
+    })->ignore
+    {
+        ...st,
+        preCtxColors: Belt_HashMapString.fromArray(varColorsArr),
+    }
+}
+
+let recalcWrkCtxColors = (st:editorState):editorState => {
+    {
+        ...st,
+        wrkCtxColors: extractVarColorsFromVarsText(st.varsText, st.typeColors),
+    }
+}
+
+let recalcAllColors = st => {
+    let st = recalcTypeColors(st)
+    let st = recalcPreCtxColors(st)
+    let st = recalcWrkCtxColors(st)
+    st
+}
+
+let completeVarsEditMode = (st, newVarsText) => {
+    let st = {
+        ...st,
+        varsText:newVarsText,
+        varsEditMode: false
+    }
+    let st = recalcWrkCtxColors(st)
+    st
+}
+
 let setSettings = (st, settingsV, settings) => {
-    { ...st, settingsV, settings }
+    let st = { 
+        ...st, 
+        settingsV, 
+        settings,
+    }
+    recalcAllColors(st)
 }
 
 let setPreCtx = (st, preCtxV, preCtx) => {
-    { ...st, preCtxV, preCtx, frms: prepareFrmSubsData(preCtx) }
+    let st = { 
+        ...st, 
+        preCtxV, 
+        preCtx, 
+        frms: prepareFrmSubsData(preCtx),
+        
+    }
+    let st = recalcPreCtxColors(st)
+    let st = recalcWrkCtxColors(st)
+    st
 }
 
 let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {

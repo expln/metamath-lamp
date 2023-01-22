@@ -40,7 +40,6 @@ let unify = (
                     | OnProgress(pct) => onProgress(pct)
                     | Result(proofTree) => {
                         endWorkerInteraction()
-                        Js.Console.log2("proofTree", proofTree)
                         resolve(proofTree)
                     }
                 }
@@ -62,7 +61,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~bottomUp,
                 ~maxSearchDepth = 5,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),
-                ~debug=true,
+                ~debug=false,
                 ()
             )
             sendToClient(Result(proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))))

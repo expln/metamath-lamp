@@ -49,14 +49,17 @@ let createEmptyUserStmt: (string, userStmtType, string) => userStmt
 type editorState = {
     settingsV:int,
     settings:settings,
+    typeColors: Belt_HashMapString.t<string>,
 
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
+    preCtxColors: Belt_HashMapString.t<string>,
 
     varsText: string,
     varsEditMode: bool,
     varsErr: option<string>,
+    wrkCtxColors: Belt_HashMapString.t<string>,
 
     disjText: string,
     disjEditMode: bool,
@@ -113,3 +116,4 @@ let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
 let generateCompressedProof: (editorState, string) => option<string>
+let recalcAllColors: editorState => editorState

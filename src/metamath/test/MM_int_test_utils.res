@@ -26,22 +26,24 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
     ctx->moveConstsToBegin(parens)
     let frms = prepareFrmSubsData(ctx)
     parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens), ())
-    {
+    let st = {
         settingsV: 1,
         settings: {
             parens,
             asrtsToSkip: "idi",
             typeSettings: [ ],
         },
+        typeColors: Belt_HashMapString.make(~hintSize=0),
 
         preCtxV: 1,
         preCtx: ctx,
         frms,
-
+        preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         varsText: "",
         varsEditMode: false,
         varsErr: None,
+        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         disjText: "",
         disjEditMode: false,
@@ -54,6 +56,7 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
         stmts: [],
         checkedStmtIds: [],
     }
+    recalcAllColors(st)
 }
 
 let addStmt = (st, ~typ:option<userStmtType>=?, ~label:option<string>=?, ~stmt:string, ()):(editorState,string) => {
