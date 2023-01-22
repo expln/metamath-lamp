@@ -566,20 +566,6 @@ let getNestingLevel: mmContext => int = ctx => getNestingLevelPriv(ctx.contents)
 
 let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> = (ctx, ~onProgress=?, ()) => {
     let ctx = ctx.contents
-    let getAllConsts = (ctx:mmContextContents) => {
-        let allConsts = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
-            ->getSpaceSeparatedValuesAsArray
-            ->Js.Array2.filter(ctx->isConstPriv)
-            ->ctxSymsToIntsExnPriv(ctx, _)
-        let predefiend = Belt_SetInt.fromArray(allConsts)
-        let maxC = (ctx.root->Belt.Option.getExn).consts->Js.Array2.length - 1
-        for c in 1 to maxC {
-            if (!(predefiend->Belt_SetInt.has(-c))) {
-                allConsts->Js_array2.push(-c)->ignore
-            }
-        }
-        allConsts
-    }
 
     let getAllExprs = ctx => {
         let allExpr = []
@@ -595,7 +581,7 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
         allExpr
     }
 
-    let checkValidParens = (allExprs, openSym, closeSym) => {
+    let checkValidParens = (allExprs, openSym, closeSym):bool => {
         open MM_parenCounter
         let res = ref(true)
         let openUsed = ref(false)
@@ -626,29 +612,36 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
         res.contents && openUsed.contents && closeUsed.contents
     }
 
-    let allConsts = getAllConsts(ctx)
     let allExprs = getAllExprs(ctx)
+    let allConsts = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
+        ->getSpaceSeparatedValuesAsArray
+        ->Js.Array2.filter(ctx->isConstPriv)
+        ->ctxSymsToIntsExnPriv(ctx, _)
+        ->Js_array2.concat(
+            Belt_Array.range(
+                1,
+                (ctx.root->Belt.Option.getExn).consts->Js.Array2.length - 1
+            )->Js_array2.map(i => -i)
+        )
 
-    let c = ref(0)
-    let maxC = allConsts->Js_array2.length - 2
+    let maxC = allConsts->Js.Array2.length - 2
     let maxCF = maxC->Belt_Int.toFloat
-    let foundParens = []
     let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
-    while (c.contents <= maxC) {
-        let openSym = allConsts[c.contents]
-        let closeSym = allConsts[c.contents+1]
-        if (checkValidParens(allExprs, openSym, closeSym)) {
-            foundParens->Js_array2.push(openSym)->ignore
-            foundParens->Js_array2.push(closeSym)->ignore
-            c.contents = c.contents + 2
-        } else {
-            c.contents = c.contents + 1
+    let foundParens = []
+    for c in 0 to maxC {
+        let openParen = allConsts[c]
+        let closeParen = allConsts[c+1]
+        if (!(foundParens->Js.Array2.includes(openParen))
+            && !(foundParens->Js.Array2.includes(closeParen))
+            && checkValidParens(allExprs, openParen, closeParen)
+        ) {
+            foundParens->Js_array2.push(openParen)->ignore
+            foundParens->Js_array2.push(closeParen)->ignore
         }
         progressState.contents = progressState.contents->progressTrackerSetCurrPct(
-            c.contents->Belt_Int.toFloat /. maxCF
+            c->Belt_Int.toFloat /. maxCF
         )
     }
-
     foundParens
 }
 

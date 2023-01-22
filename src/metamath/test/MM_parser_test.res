@@ -12,7 +12,7 @@ describe("parseMmFile", _ => {
         //then
         let actual = stmtToStrRec(ast)->Js_array2.filter(s => !(s->Js_string2.trim->Js_string2.startsWith("$(")))
         let expected = [
-                "$c 0 + = -> ( ) term wff & => |- [ ] { } <. .> $.",
+                "$c 0 + = -> ( ) term wff & => |- [ { ] } <. .> $.",
                 "$v t r s P Q $.",
                 "tt $f term t $.",
                 "tr $f term r $.",

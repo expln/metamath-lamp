@@ -95,7 +95,7 @@ describe("moveConstsToBegin", _ => {
         let (ast, _) = parseMmFile(mmFileText, ())
         let ctx = loadContext(ast, ())
         let constsToMove = "( ) [ ] { }"
-        assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-13,-14,-15])
+        assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
 
         //when
         ctx->moveConstsToBegin(constsToMove)
