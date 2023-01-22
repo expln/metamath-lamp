@@ -160,9 +160,9 @@ let proveBottomUp = (
                 }
             }
         }
-        if (maxSearchDepth->Belt_Option.isSome) {
-            Js.Console.log2("savedNodes.size", savedNodes->Belt_HashSet.size)
-        }
+        // if (maxSearchDepth->Belt_Option.isSome) {
+        //     Js.Console.log2("savedNodes.size", savedNodes->Belt_HashSet.size)
+        // }
     }
 }
 
@@ -295,15 +295,15 @@ let proveStmtBottomUp = (
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
 
-    let numOfGetParentsCalls = ref(0)
-    let numOfParentsProcessed = ref(0)
-    let numOfParentsReturned = ref(0)
-    let numOfProveFloatingCalls = ref(0)
+    // let numOfGetParentsCalls = ref(0)
+    // let numOfParentsProcessed = ref(0)
+    // let numOfParentsReturned = ref(0)
+    // let numOfProveFloatingCalls = ref(0)
 
     let getParents = expr => {
-        numOfGetParentsCalls.contents = numOfGetParentsCalls.contents + 1
+        // numOfGetParentsCalls.contents = numOfGetParentsCalls.contents + 1
         let parents = findAsrtParentsWithoutNewVars( ~tree, ~expr, ~restrictExprLen=Less, ~framesToSkip)
-        numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
+        // numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
         let parents = parents->Js.Array2.filter(parent => {
                 switch parent {
                     | Assertion({args, frame}) => {
@@ -315,7 +315,7 @@ let proveStmtBottomUp = (
                             let arg = args[argIdx.contents]
                             if (frame.hyps[argIdx.contents].typ == F) {
                                 if (!(arg->pnIsInvalidFloating)) {
-                                    numOfProveFloatingCalls.contents = numOfProveFloatingCalls.contents + 1
+                                    // numOfProveFloatingCalls.contents = numOfProveFloatingCalls.contents + 1
                                     proveFloating(tree, arg, ~framesToSkip)
                                 }
                                 argsAreCorrect.contents = arg->pnGetProof->Belt.Option.isSome
@@ -327,7 +327,7 @@ let proveStmtBottomUp = (
                     | _ => true
                 }
             })
-        numOfParentsReturned.contents = numOfParentsReturned.contents + parents->Js.Array2.length
+        // numOfParentsReturned.contents = numOfParentsReturned.contents + parents->Js.Array2.length
         parents
     }
 
@@ -347,21 +347,21 @@ let proveStmtBottomUp = (
                         args->Js.Array2.forEachi((arg,ai) => {
                             if (node->pnGetProof->Belt.Option.isNone && arg->pnGetProof->Belt.Option.isNone
                                     && !exprHasNewVars(arg->pnGetExpr)) {
-                                Js.Console.log2("(pi,ai)", (pi,ai))
-                                numOfGetParentsCalls.contents = 0
-                                numOfParentsProcessed.contents = 0
-                                numOfParentsReturned.contents = 0
-                                numOfProveFloatingCalls.contents = 0
+                                // Js.Console.log2("(pi,ai)", (pi,ai))
+                                // numOfGetParentsCalls.contents = 0
+                                // numOfParentsProcessed.contents = 0
+                                // numOfParentsReturned.contents = 0
+                                // numOfProveFloatingCalls.contents = 0
                                 proveBottomUp(
                                     ~tree, 
                                     ~node=arg, 
                                     ~getParents,
                                     ~maxSearchDepth = Some(maxSearchDepth-1),
                                 )
-                                Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
-                                Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
-                                Js.Console.log2("numOfParentsReturned", numOfParentsReturned.contents)
-                                Js.Console.log2("numOfProveFloatingCalls", numOfProveFloatingCalls.contents)
+                                // Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
+                                // Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
+                                // Js.Console.log2("numOfParentsReturned", numOfParentsReturned.contents)
+                                // Js.Console.log2("numOfProveFloatingCalls", numOfProveFloatingCalls.contents)
                             }
                         })
                     }

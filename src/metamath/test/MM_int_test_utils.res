@@ -203,10 +203,10 @@ let unifyAll = (st):editorState => {
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~debug=true,
+                ~debug=false,
                 ~bottomUp=false,
                 ~maxSearchDepth=5,
-                ~framesToSkip=["idi"],
+                ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
@@ -227,10 +227,10 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~debug=true,
+                ~debug=false,
                 ~bottomUp=true,
                 ~maxSearchDepth=3,
-                ~framesToSkip=["idi"],
+                ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
