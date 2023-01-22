@@ -170,6 +170,29 @@ let make = (
         </Row>
     }
 
+    let rndNewDisj = (wrkSubs:wrkSubs):React.element => {
+        if (wrkSubs.newDisj->disjIsEmpty) {
+            React.null
+        } else {
+            let tableRows = []
+            wrkSubs.newDisj->disjForEachArr(disjGrp => {
+                let disjGrpStr = "$d " ++ wrkCtx->ctxIntsToStrExn(disjGrp) ++ " $."
+                tableRows->Js.Array2.push(
+                    <tr key=disjGrpStr>
+                        <td>
+                            {React.string(disjGrpStr)}
+                        </td>
+                    </tr>
+                )->ignore
+            })
+            <table>
+                <tbody>
+                    {tableRows->React.array}
+                </tbody>
+            </table>
+        }
+    }
+
     let rndWrkSubs = (wrkSubs:wrkSubs):React.element => {
         <table>
             <tbody>
@@ -209,27 +232,30 @@ let make = (
                     <Col>
                         {
                             results->Js_array2.mapi((res,i) => {
-                                <table key={i->Belt_Int.toString}>
-                                    <tbody>
-                                        <tr>
-                                            {
-                                                if (numOfResults > 1) {
-                                                    <td>
-                                                        <Checkbox
-                                                            checked={state.checkedResultIdx == i}
-                                                            onChange={_ => actToggleResultChecked(i)}
-                                                        />
-                                                    </td>
-                                                } else {
-                                                    React.null
+                                <Paper key={i->Belt_Int.toString}>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                {
+                                                    if (numOfResults > 1) {
+                                                        <td>
+                                                            <Checkbox
+                                                                checked={state.checkedResultIdx == i}
+                                                                onChange={_ => actToggleResultChecked(i)}
+                                                            />
+                                                        </td>
+                                                    } else {
+                                                        React.null
+                                                    }
                                                 }
-                                            }
-                                            <td>
-                                                {rndWrkSubs(res)}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                                <td>
+                                                    {rndNewDisj(res)}
+                                                    {rndWrkSubs(res)}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </Paper>
                             })->React.array
                         }
                         {rndResultButtons()}
