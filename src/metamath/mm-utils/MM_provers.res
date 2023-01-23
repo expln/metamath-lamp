@@ -480,7 +480,7 @@ let createProofTree = (
     if (addEssentials) {
         hyps->Belt_MapString.forEach((label,hyp) => {
             if (hyp.typ == E) {
-                let node = tree->ptMakeNode(hyp.expr)
+                let node = tree->ptGetOrCreateNode(hyp.expr)
                 node->pnAddParent(Hypothesis({label:label}))
             }
         })
@@ -534,9 +534,18 @@ let unifyAll = (
         ~debug,
     )
 
+    let prevStmts = []
+    ctx->getAllHyps->Belt_MapString.forEach((label,hyp) => {
+        if (hyp.typ == E) {
+            prevStmts->Js_array2.push({
+                label,
+                expr: hyp.expr,
+                justification: None,
+            })->ignore
+        }
+    })
     let numOfStmts = stmts->Js_array2.length
     let maxStmtIdx = numOfStmts - 1
-    let prevStmts = []
     stmts->Js.Array2.forEachi((stmt,stmtIdx) => {
         proveStmt(
             ~tree, 

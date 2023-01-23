@@ -1,3 +1,4 @@
+- add an int test with few hypotheses.
 - apply colors to search results, substitutions.
 - fix a bug:
     1) load an MM file, apply changes;

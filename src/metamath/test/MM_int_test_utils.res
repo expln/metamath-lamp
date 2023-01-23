@@ -278,7 +278,7 @@ let setTestDataDir = dirName => {
 let assertStrEqFile = (~actualStr:string, ~expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
-        Expln_utils_files.readStringFromFile(fileWithExpectedResult)
+        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
     } catch {
         | Js.Exn.Error(exn) => {
             if (
@@ -307,7 +307,9 @@ let assertEditorState = (st, expectedStrFileName:string, ~failOnMismatch:bool=tr
 }
 
 let assertProof = (st, stmtId:string, expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
-    let actualStr = st->generateCompressedProof(stmtId)->Belt.Option.getWithDefault("no proof generated")
+    let actualStr = st->generateCompressedProof(stmtId)
+        ->Belt.Option.getWithDefault("no proof generated")
+        ->Js.String2.replaceByRe(%re("/\r/g"), "")
     assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
 }
 

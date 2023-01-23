@@ -45,7 +45,6 @@ let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
 let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetOrCreateNode: (proofTree, expr) => proofNode
-let ptMakeNode: ( proofTree, expr, ) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
 let ptEraseDists: proofTree => unit
