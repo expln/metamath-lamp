@@ -398,6 +398,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                         },
                         ~stmts=state->getStmtsForUnification,
+                        ~framesToSkip=state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                         ~bottomUp=singleProvableIsSelected(),
                         ~onProgress = pct => updateModal( 
                             modalRef, modalId, () => rndProgress(
@@ -476,7 +477,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnifyAll,
                         ~active=generalModificationActionIsEnabled 
-                                    && (!atLeastOneStmtIsSelected || singleProvableIsSelected)
+                                    && (!atLeastOneStmtIsSelected /* || singleProvableIsSelected */)
                                     && state.stmts->Js_array2.length > 0, 
                         ~title="Unify all statements", () )
                 }

@@ -8,7 +8,7 @@ open MM_provers
 let procName = "MM_wrk_unify"
 
 type request = 
-    | Unify({stmts: array<rootStmt>, bottomUp:bool})
+    | Unify({stmts: array<rootStmt>, framesToSkip:array<string>, bottomUp:bool})
 
 type response =
     | OnProgress(float)
@@ -17,6 +17,7 @@ type response =
 let unify = (
     ~preCtxVer: int,
     ~preCtx: mmContext,
+    ~framesToSkip:array<string>,
     ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
@@ -34,7 +35,7 @@ let unify = (
             ~disjText,
             ~hyps,
             ~procName,
-            ~initialRequest = Unify({stmts:stmts, bottomUp}),
+            ~initialRequest = Unify({stmts:stmts, bottomUp, framesToSkip}),
             ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -52,12 +53,13 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({stmts, bottomUp}) => {
+        | Unify({stmts, bottomUp, framesToSkip}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~stmts,
+                ~framesToSkip,
                 ~bottomUp,
                 ~maxSearchDepth = 5,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),

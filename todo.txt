@@ -1,3 +1,4 @@
+- apply colors to search results, substitutions.
 - fix a bug:
     1) load an MM file, apply changes;
     2) load same file in the same file selector - nothing happens.
