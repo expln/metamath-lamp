@@ -10,6 +10,7 @@ open MM_asrt_apply
 open MM_statements_dto
 
 type stmtSym = {
+    id: string,
     sym: string,
     color: option<string>,
 }

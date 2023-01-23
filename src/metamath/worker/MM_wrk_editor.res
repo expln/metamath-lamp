@@ -12,6 +12,7 @@ open MM_provers
 open MM_statements_dto
 
 type stmtSym = {
+    id: string,
     sym: string,
     color: option<string>,
 }
@@ -45,8 +46,9 @@ let strToCont = (
     ()
 ) => {
     Text(
-        getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
+        getSpaceSeparatedValuesAsArray(str)->Js.Array2.mapi((sym,i) => {
             {
+                id: i->Belt.Int.toString ++ sym,
                 sym,
                 color:
                     switch preCtxColors->Belt_Option.flatMap(map => map->Belt_HashMapString.get(sym)) {
