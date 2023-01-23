@@ -61,7 +61,7 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
 
 let addStmt = (st, ~typ:option<userStmtType>=?, ~label:option<string>=?, ~stmt:string, ()):(editorState,string) => {
     let (st,stmtId) = st->addNewStmt
-    let st = st->completeContEditMode(stmtId, strToCont(stmt))
+    let st = st->completeContEditMode(stmtId, stmt)
     let st = switch label {
         | Some(label) => st->completeLabelEditMode(stmtId, label)
         | None => st
@@ -106,7 +106,7 @@ let updateStmt = (
             | Some(typ) => {...stmt, typ}
         }
         let stmt = switch content {
-            | Some(content) => {...stmt, cont:strToCont(content)}
+            | Some(content) => {...stmt, cont:strToCont(content, ())}
             | None => {
                 switch (contReplaceWhat, contReplaceWith) {
                     | (Some(contReplaceWhat), Some(contReplaceWith)) => {
@@ -115,7 +115,7 @@ let updateStmt = (
                             cont: stmt.cont
                                     ->contToStr
                                     ->Js.String2.replace(contReplaceWhat, contReplaceWith)
-                                    ->strToCont
+                                    ->strToCont(_, ())
                         }
                     }
                     | _ => stmt

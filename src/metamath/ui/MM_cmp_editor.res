@@ -39,7 +39,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         labelEditMode: false,
         typ: userStmtTypeFromStr(userStmtLocStor.typ),
         typEditMode: false,
-        cont: strToCont(userStmtLocStor.cont),
+        cont: strToCont(userStmtLocStor.cont, ()),
         contEditMode: false,
 
         jstfText: userStmtLocStor.jstfText,
@@ -84,7 +84,9 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
                 ->Belt.Option.getWithDefault([]),
         checkedStmtIds: [],
     }
-    recalcAllColors(st)
+    let st = recalcAllColors(st)
+    let st = updateColorsInAllStmts(st)
+    st
 }
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
@@ -502,7 +504,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     onTypEditDone={newTyp => actCompleteEdit(completeTypEditMode(_,stmt.id,newTyp))}
 
                     onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
-                    onContEditDone={newCont => actCompleteEdit(completeContEditMode(_,stmt.id,newCont))}
+                    onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
                     
                     onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
                     onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}

@@ -56,7 +56,7 @@ let make = (
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
-    ~onContEditRequested:unit=>unit, ~onContEditDone:stmtCont=>unit,
+    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit,
     ~onGenerateProof:unit=>unit,
 ) => {
@@ -96,7 +96,7 @@ let make = (
     }
     
     let actContEditDone = () => {
-        onContEditDone(strToCont(state.newText))
+        onContEditDone(state.newText)
     }
     
     let actJstfEditDone = () => {
@@ -138,7 +138,7 @@ let make = (
     let rndCont = () => {
         if (stmt.contEditMode) {
             <Row>
-                <TextField 
+                <TextField
                     size=#small
                     style=ReactDOM.Style.make(~width="600px", ())
                     autoFocus=true
@@ -159,7 +159,7 @@ let make = (
             >
             {
                 switch stmt.cont {
-                    | Text(arr) => React.string(arr->Js_array2.joinWith(" "))
+                    | Text(arr) => React.string(arr->Js_array2.map(stmtSym => stmtSym.sym)->Js_array2.joinWith(" "))
                     | Tree(syntaxTreeNode) => React.string(syntaxTreeToSymbols(syntaxTreeNode)->Js_array2.joinWith(" "))
                 }
             }

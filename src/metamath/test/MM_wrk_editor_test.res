@@ -141,8 +141,8 @@ describe("refreshWrkCtx", _ => {
         let (st, _) = addNewStmt(st)
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:#p, label:"pr", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:#e, label:"hyp", cont:Text(["|-", "0", "+", "0."])})
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:#p, label:"pr", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:#e, label:"hyp", cont:strToCont("|- 0 + 0.", ())})
 
         //when
         let st = refreshWrkCtx(st)
@@ -164,8 +164,8 @@ describe("refreshWrkCtx", _ => {
         let (st, _) = addNewStmt(st)
         let hyp1Id = st.stmts[0].id
         let hyp2Id = st.stmts[1].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "t", "+", "t"])})
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- t + t", ())})
 
         //when
         let st = refreshWrkCtx(st)
@@ -198,10 +198,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+-", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:Text(["|-", "t", "term"])})
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 +- 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ())})
         let st = refreshWrkCtx(st)
 
         //when
@@ -225,10 +225,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1"
         })
         let st = refreshWrkCtx(st)
@@ -254,10 +254,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : hyp1"
         })
         let st = refreshWrkCtx(st)
@@ -283,10 +283,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : pr1"
         })
         let st = refreshWrkCtx(st)
@@ -312,10 +312,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp-- : ax"
         })
         let st = refreshWrkCtx(st)
@@ -341,10 +341,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"tt", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"tt", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
         let st = refreshWrkCtx(st)
@@ -370,10 +370,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"mp", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"mp", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
         let st = refreshWrkCtx(st)
@@ -399,10 +399,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
         let st = refreshWrkCtx(st)
@@ -428,10 +428,10 @@ describe("prepareProvablesForUnification", _ => {
         let pr2Id = st.stmts[1].id
         let hyp1Id = st.stmts[2].id
         let hyp2Id = st.stmts[3].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:Text(["|-", "t", "+", "t"])})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:Text(["|-", "0", "+", "0"])})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:Text(["|-", "t", "term"]), 
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:#e, label:"hyp1", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:#e, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
         let st = refreshWrkCtx(st)
@@ -599,8 +599,8 @@ describe("applySubstitutionForEditor", _ => {
         let (st, _) = addNewStmt(st)
         let pr1Id = st.stmts[0].id
         let pr2Id = st.stmts[1].id
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:Text("|- t + s"->getSpaceSeparatedValuesAsArray)})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:Text("|- r = 0"->getSpaceSeparatedValuesAsArray)})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + s", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0", ())})
         let st = prepareEditorForUnification(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
         let wrkSubs = findPossibleSubs(
@@ -634,8 +634,8 @@ describe("removeUnusedVars", _ => {
         let (st, _) = addNewStmt(st)
         let pr1Id = st.stmts[0].id
         let pr2Id = st.stmts[1].id
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:Text("|- t + a"->getSpaceSeparatedValuesAsArray)})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:Text("|- r = c"->getSpaceSeparatedValuesAsArray)})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a", ())})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = c", ())})
         let st = prepareEditorForUnification(st)
 
         //when

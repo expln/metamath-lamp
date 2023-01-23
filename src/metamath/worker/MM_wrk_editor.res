@@ -11,8 +11,13 @@ open MM_wrk_unify
 open MM_provers
 open MM_statements_dto
 
+type stmtSym = {
+    sym: string,
+    color: option<string>,
+}
+
 type stmtCont =
-    | Text(array<string>)
+    | Text(array<stmtSym>)
     | Tree(syntaxTreeNode)
 
 let contIsEmpty = cont => {
@@ -24,7 +29,7 @@ let contIsEmpty = cont => {
 
 let contToArrStr = cont => {
     switch cont {
-        | Text(arr) => arr
+        | Text(arr) => arr->Js_array2.map(stmtSym => stmtSym.sym)
         | Tree(syntaxTreeNode) => syntaxTreeToSymbols(syntaxTreeNode)
     }
 }
@@ -33,8 +38,29 @@ let contToStr = cont => {
     cont->contToArrStr->Js_array2.joinWith(" ")
 }
 
-let strToCont = str => {
-    Text(getSpaceSeparatedValuesAsArray(str))
+let strToCont = (
+    str:string,
+    ~preCtxColors: option<Belt_HashMapString.t<string>>=?,
+    ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?,
+    ()
+) => {
+    Text(
+        getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
+            {
+                sym,
+                color:
+                    switch preCtxColors->Belt_Option.flatMap(map => map->Belt_HashMapString.get(sym)) {
+                        | Some(color) => Some(color)
+                        | None => {
+                            switch wrkCtxColors->Belt_Option.flatMap(map => map->Belt_HashMapString.get(sym)) {
+                                | Some(color) => Some(color)
+                                | None => None
+                            }
+                        }
+                    }
+            }
+        })
+    )
 }
 
 type userStmtType = [ #e | #p ]
@@ -359,14 +385,14 @@ let setContEditMode = (st, stmtId) => {
     }
 }
 
-let completeContEditMode = (st, stmtId, newCont) => {
+let completeContEditMode = (st, stmtId, newContText) => {
     updateStmt(st, stmtId, stmt => {
-        if (contIsEmpty(newCont)) {
+        if (newContText->Js_string2.trim == "") {
             stmt
         } else {
             {
                 ...stmt,
-                cont:newCont,
+                cont:strToCont(newContText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
                 contEditMode: false
             }
         }
@@ -492,6 +518,16 @@ let recalcAllColors = st => {
     st
 }
 
+let updateColorsInAllStmts = st => {
+    {
+        ...st,
+        stmts: st.stmts->Js_array2.map(stmt => {
+            ...stmt,
+            cont: stmt.cont->contToStr->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ())
+        })
+    }
+}
+
 let completeVarsEditMode = (st, newVarsText) => {
     let st = {
         ...st,
@@ -499,6 +535,7 @@ let completeVarsEditMode = (st, newVarsText) => {
         varsEditMode: false
     }
     let st = recalcWrkCtxColors(st)
+    let st = updateColorsInAllStmts(st)
     st
 }
 
@@ -508,7 +545,9 @@ let setSettings = (st, settingsV, settings) => {
         settingsV, 
         settings,
     }
-    recalcAllColors(st)
+    let st = recalcAllColors(st)
+    let st = updateColorsInAllStmts(st)
+    st
 }
 
 let setPreCtx = (st, preCtxV, preCtx) => {
@@ -521,6 +560,7 @@ let setPreCtx = (st, preCtxV, preCtx) => {
     }
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)
+    let st = updateColorsInAllStmts(st)
     st
 }
 
@@ -811,15 +851,14 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
                 let newVarsText = newHypLabels->Js.Array2.mapi((label,i) => {
                     `${label} ${varTypeNames[i]} ${newVarNames[i]}`
                 })->Js_array2.joinWith("\n")
-                (
-                    {
-                        ...st,
-                        varsText: st.varsText 
-                                    ++ (if (st.varsText->Js.String2.trim->Js.String2.length != 0) {"\n"} else {""})
-                                    ++ newVarsText
-                    },
-                    newVarInts
-                )
+                let st = {
+                    ...st,
+                    varsText: st.varsText 
+                                ++ (if (st.varsText->Js.String2.trim->Js.String2.length != 0) {"\n"} else {""})
+                                ++ newVarsText
+                }
+                let st = recalcWrkCtxColors(st)
+                ( st, newVarInts )
             }
             
         }
@@ -897,7 +936,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         ...stmt,
                         typ: #p,
                         label: ctxLabel,
-                        cont: strToCont(exprText),
+                        cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
                         contEditMode: false,
                         jstfText,
                     }
@@ -1067,12 +1106,12 @@ let applyWrkSubs = (expr, wrkSubs): expr => {
     res
 }
 
-let applySubstitutionForStmt = (ctx:mmContext, stmt:userStmt, wrkSubs:wrkSubs):userStmt => {
+let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wrkSubs:wrkSubs):userStmt => {
     let expr = ctx->ctxSymsToIntsExn(stmt.cont->contToArrStr)
     let newExpr = applyWrkSubs(expr, wrkSubs)
     {
         ...stmt,
-        cont: Text(ctx->ctxIntsToSymsExn(newExpr))
+        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ())
     }
 }
 
@@ -1083,7 +1122,7 @@ let applySubstitutionForEditor = (st, wrkSubs:wrkSubs):editorState => {
             let st = createNewDisj(st, wrkSubs.newDisj)
             {
                 ...st,
-                stmts: st.stmts->Js_array2.map(stmt => applySubstitutionForStmt(wrkCtx,stmt,wrkSubs))
+                stmts: st.stmts->Js_array2.map(stmt => applySubstitutionForStmt(st, wrkCtx,stmt,wrkSubs))
             }
         }
     }

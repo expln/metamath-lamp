@@ -9,14 +9,24 @@ open MM_substitution
 open MM_asrt_apply
 open MM_statements_dto
 
+type stmtSym = {
+    sym: string,
+    color: option<string>,
+}
+
 type stmtCont =
-    | Text(array<string>)
+    | Text(array<stmtSym>)
     | Tree(syntaxTreeNode)
 
 let contIsEmpty: stmtCont => bool
 let contToArrStr: stmtCont => array<string>
 let contToStr: stmtCont => string
-let strToCont: string => stmtCont
+let strToCont: (
+    string,
+    ~preCtxColors: Belt_HashMapString.t<string>=?,
+    ~wrkCtxColors: Belt_HashMapString.t<string>=?,
+    ()
+) => stmtCont
 
 type userStmtType = [#e | #p]
 let userStmtTypeFromStr: string => userStmtType
@@ -98,7 +108,7 @@ let completeDisjEditMode: (editorState, string) => editorState
 let setLabelEditMode: (editorState, string) => editorState
 let completeLabelEditMode: (editorState, string, Js_string2.t) => editorState
 let setContEditMode: (editorState, string) => editorState
-let completeContEditMode: (editorState, string, stmtCont) => editorState
+let completeContEditMode: (editorState, string, string) => editorState
 let setTypEditMode: (editorState, string) => editorState
 let completeTypEditMode: (editorState, string, userStmtType) => editorState
 let setJstfEditMode: (editorState, string) => editorState
@@ -117,3 +127,4 @@ let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
 let generateCompressedProof: (editorState, string) => option<string>
 let recalcAllColors: editorState => editorState
+let updateColorsInAllStmts: editorState => editorState
