@@ -8,7 +8,11 @@ open MM_provers
 let procName = "MM_wrk_unify"
 
 type request = 
-    | Unify({stmts: array<rootStmt>, framesToSkip:array<string>, bottomUp:bool})
+    | Unify({
+        stmts: array<rootStmt>, 
+        framesToSkip:array<string>, 
+        bottomUpProverParams:option<bottomUpProverParams>,
+    })
 
 type response =
     | OnProgress(float)
@@ -23,7 +27,7 @@ let unify = (
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
     ~stmts: array<rootStmt>,
-    ~bottomUp: bool,
+    ~bottomUpProverParams: option<bottomUpProverParams>,
     ~onProgress:float=>unit,
 ): promise<proofTreeDto> => {
     promise(resolve => {
@@ -35,7 +39,7 @@ let unify = (
             ~disjText,
             ~hyps,
             ~procName,
-            ~initialRequest = Unify({stmts:stmts, bottomUp, framesToSkip}),
+            ~initialRequest = Unify({stmts:stmts, framesToSkip, bottomUpProverParams}),
             ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -53,15 +57,14 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({stmts, bottomUp, framesToSkip}) => {
+        | Unify({stmts, bottomUpProverParams, framesToSkip}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~stmts,
                 ~framesToSkip,
-                ~bottomUp,
-                ~maxSearchDepth = 5,
+                ~bottomUpProverParams?,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),
                 ~debug=false,
                 ()

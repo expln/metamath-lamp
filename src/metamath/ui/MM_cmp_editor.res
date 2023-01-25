@@ -376,40 +376,49 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
-    let actUnifyAll = () => {
+    let actUnify = () => {
         switch state.wrkCtx {
             | None => ()
             | Some(_) => {
-                openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
-                    updateModal( 
-                        modalRef, modalId, () => rndProgress(
-                            ~text="Unifying", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
-                        )
-                    )
-                    unify(
-                        ~preCtxVer=state.preCtxV,
-                        ~preCtx=state.preCtx,
-                        ~parenStr=state.settings.parens,
-                        ~varsText=state.varsText,
-                        ~disjText=state.disjText,
-                        ~hyps={
-                            state.stmts
-                                ->Js_array2.filter(stmt => stmt.typ == #e)
-                                ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
-                        },
-                        ~stmts=state->getStmtsForUnification,
-                        ~framesToSkip=state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
-                        ~bottomUp=singleProvableIsSelected(),
-                        ~onProgress = pct => updateModal( 
+                if (isSingleStmtChecked(state)) {
+                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                        updateModal(modalRef, modalId, () => {
+                            <MM_cmp_unify_bottom_up
+                            />
+                        })
+                    })->ignore
+                } else {
+                    openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
+                        updateModal( 
                             modalRef, modalId, () => rndProgress(
-                                ~text="Unifying", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                ~text="Unifying", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                             )
                         )
-                    )->promiseMap(proofTreeDto => {
-                        closeModal(modalRef, modalId)
-                        actUnifyAllResultsAreReady(proofTreeDto)
-                    })
-                })->ignore
+                        unify(
+                            ~preCtxVer=state.preCtxV,
+                            ~preCtx=state.preCtx,
+                            ~parenStr=state.settings.parens,
+                            ~varsText=state.varsText,
+                            ~disjText=state.disjText,
+                            ~hyps={
+                                state.stmts
+                                    ->Js_array2.filter(stmt => stmt.typ == #e)
+                                    ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
+                            },
+                            ~stmts=state->getStmtsForUnification,
+                            ~framesToSkip=state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
+                            ~bottomUpProverParams=None,
+                            ~onProgress = pct => updateModal( 
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Unifying", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                )
+                            )
+                        )->promiseMap(proofTreeDto => {
+                            closeModal(modalRef, modalId)
+                            actUnifyAllResultsAreReady(proofTreeDto)
+                        })
+                    })->ignore
+                }
             }
         }
     }
@@ -464,8 +473,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
                     ~active= !editIsActive && atLeastOneStmtIsSelected, ~title="Delete selected statements", ()
                 )}
-                {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, ~active= !editIsActive && isSingleStmtChecked(state),
-                    ~title="Duplicate selected statement", ())}
+                {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
+                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
@@ -475,9 +484,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~active=generalModificationActionIsEnabled,
                     ~title="Apply a substitution to all statements", () ) }
                 { 
-                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnifyAll,
+                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnify,
                         ~active=generalModificationActionIsEnabled 
-                                    && (!atLeastOneStmtIsSelected /* || singleProvableIsSelected */)
+                                    && (!atLeastOneStmtIsSelected || singleProvableIsSelected)
                                     && state.stmts->Js_array2.length > 0, 
                         ~title="Unify all statements", () )
                 }

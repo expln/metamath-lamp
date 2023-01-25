@@ -8,6 +8,12 @@ open MM_proof_tree
 
 type lengthRestrict = No | LessEq | Less
 
+type bottomUpProverParams = {
+    asrtLabel: option<string>,
+    maxSearchDepth: int,
+    lengthRestriction: lengthRestrict,
+}
+
 let findAsrtParentsWithoutNewVars = ( 
     ~tree, 
     ~expr, 
@@ -290,7 +296,7 @@ let proveWithJustification = (
 }
 
 let proveStmtBottomUp = (
-    ~tree, ~prevStmts:array<expr>, ~stmt:expr, ~maxSearchDepth:int, ~framesToSkip: array<string>
+    ~tree, ~prevStmts:array<expr>, ~stmt:expr, ~params:bottomUpProverParams, ~framesToSkip: array<string>
 ):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
@@ -302,7 +308,9 @@ let proveStmtBottomUp = (
 
     let getParents = expr => {
         // numOfGetParentsCalls.contents = numOfGetParentsCalls.contents + 1
-        let parents = findAsrtParentsWithoutNewVars( ~tree, ~expr, ~restrictExprLen=Less, ~framesToSkip)
+        let parents = findAsrtParentsWithoutNewVars( 
+            ~tree, ~expr, ~restrictExprLen=params.lengthRestriction, ~framesToSkip
+        )
         // numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
         let parents = parents->Js.Array2.filter(parent => {
                 switch parent {
@@ -334,7 +342,13 @@ let proveStmtBottomUp = (
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone) {
         let firstLevelParents = findAsrtParentsWithNewVars( 
-            ~tree, ~expr=stmt, ~stmts=prevStmts, ~allowEmptyArgs=true, ~framesToSkip, () 
+            ~tree, 
+            ~expr=stmt, 
+            ~stmts=prevStmts, 
+            ~allowEmptyArgs=true, 
+            ~framesToSkip, 
+            ~asrtLabel=?params.asrtLabel,
+            () 
         )
         firstLevelParents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent)
@@ -356,7 +370,7 @@ let proveStmtBottomUp = (
                                     ~tree, 
                                     ~node=arg, 
                                     ~getParents,
-                                    ~maxSearchDepth = Some(maxSearchDepth-1),
+                                    ~maxSearchDepth = Some(params.maxSearchDepth-1),
                                 )
                                 // Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
                                 // Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
@@ -370,7 +384,7 @@ let proveStmtBottomUp = (
             }
         })
     }
-    Js.Console.log2("NuberOfNodes", tree->ptGetNuberOfNodes)
+    //Js.Console.log2("NumberOfNodes", tree->ptGetNuberOfNodes)
     node
 }
 
@@ -407,39 +421,41 @@ let proveStmt = (
     ~stmt:rootStmt, 
     ~framesToSkip: array<string>,
     ~jstf:option<justification>, 
-    ~bottomUp:bool,
-    ~maxSearchDepth:int,
+    ~bottomUpProverParams:option<bottomUpProverParams>,
 ) => {
-    if (bottomUp) {
-        proveStmtBottomUp( 
-            ~tree, 
-            ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
-            ~stmt=stmt.expr,
-            ~maxSearchDepth,
-            ~framesToSkip
-        )->ignore
-    } else {
-        switch jstf {
-            | None => {
-                proveWithoutJustification(
-                    ~tree, 
-                    ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
-                    ~stmt=stmt.expr,
-                    ~framesToSkip,
-                )->ignore
-            }
-            | Some(jstf) => {
-                proveWithJustification(
-                    ~tree, 
-                    ~args=getStatementsFromJustification(
-                        ~tree,
-                        ~stmts=prevStmts,
-                        ~justification=jstf,
-                    ), 
-                    ~asrtLabel=jstf.asrt, 
-                    ~stmt=stmt.expr,
-                    ~framesToSkip,
-                )->ignore
+    switch bottomUpProverParams {
+        | Some(params) => {
+            proveStmtBottomUp( 
+                ~tree, 
+                ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
+                ~stmt=stmt.expr,
+                ~params,
+                ~framesToSkip
+            )->ignore
+        }
+        | None => {
+            switch jstf {
+                | None => {
+                    proveWithoutJustification(
+                        ~tree, 
+                        ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
+                        ~stmt=stmt.expr,
+                        ~framesToSkip,
+                    )->ignore
+                }
+                | Some(jstf) => {
+                    proveWithJustification(
+                        ~tree, 
+                        ~args=getStatementsFromJustification(
+                            ~tree,
+                            ~stmts=prevStmts,
+                            ~justification=jstf,
+                        ), 
+                        ~asrtLabel=jstf.asrt, 
+                        ~stmt=stmt.expr,
+                        ~framesToSkip,
+                    )->ignore
+                }
             }
         }
     }
@@ -517,8 +533,7 @@ let unifyAll = (
     ~stmts: array<rootStmt>,
     ~framesToSkip: array<string>=[],
     ~parenCnt: parenCnt,
-    ~bottomUp:bool,
-    ~maxSearchDepth:int,
+    ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~onProgress:option<float=>unit>=?,
     ~debug: bool=false,
     ()
@@ -552,8 +567,7 @@ let unifyAll = (
             ~prevStmts,
             ~stmt, 
             ~jstf=stmt.justification,
-            ~bottomUp = stmtIdx == maxStmtIdx && bottomUp,
-            ~maxSearchDepth,
+            ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
             ~framesToSkip,
         )
         prevStmts->Js_array2.push(stmt)->ignore

@@ -207,8 +207,6 @@ let unifyAll = (st):editorState => {
                 ~ctx = wrkCtx,
                 ~stmts,
                 ~debug=false,
-                ~bottomUp=false,
-                ~maxSearchDepth=5,
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
@@ -231,8 +229,11 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~ctx = wrkCtx,
                 ~stmts,
                 ~debug=false,
-                ~bottomUp=true,
-                ~maxSearchDepth=3,
+                ~bottomUpProverParams = {
+                    asrtLabel: None,
+                    maxSearchDepth: 3,
+                    lengthRestriction: Less,
+                },
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )

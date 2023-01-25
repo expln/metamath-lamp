@@ -3,6 +3,14 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 
+type lengthRestrict = No | LessEq | Less
+
+type bottomUpProverParams = {
+    asrtLabel: option<string>,
+    maxSearchDepth: int,
+    lengthRestriction: lengthRestrict,
+}
+
 let proveFloatings: (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -20,8 +28,7 @@ let unifyAll: (
     ~stmts: array<rootStmt>,
     ~framesToSkip: array<string>=?,
     ~parenCnt: parenCnt,
-    ~bottomUp:bool,
-    ~maxSearchDepth:int,
+    ~bottomUpProverParams:bottomUpProverParams=?,
     ~onProgress: float => unit=?,
     ~debug: bool=?,
     (),
