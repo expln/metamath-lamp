@@ -21,9 +21,12 @@ type resultRendered = {
 }
 
 type state = {
+    title: reElem,
+
     availableLabels: array<string>,
     label:option<string>,
     depth: int,
+    depthStr: string,
     lengthRestrict: lengthRestrict,
 
     results: option<array<newStmtsDto>>,
@@ -34,12 +37,25 @@ type state = {
     checkedResultIdx: option<int>,
 }
 
-let makeInititalState = (~preCtx) => {
+let makeInitialState = (~preCtx, ~stmts: array<rootStmt>,) => {
     {
+        title:
+            <span>
+                <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                    {"Proving bottom-up: "->React.string}
+                </span>
+                {
+                    React.string(
+                        stmts[stmts->Js_array2.length-1].expr->ctxIntsToStrExn(preCtx, _)
+                    )
+                }
+            </span>,
+        
         availableLabels: preCtx->getAllFrames->Belt_MapString.keysToArray,
         label: None,
+        depthStr: "3",
         depth: 3,
-        lengthRestrict: No,
+        lengthRestrict: Less,
 
         results: None,
         resultsRendered: None,
@@ -47,6 +63,45 @@ let makeInititalState = (~preCtx) => {
         resultsMaxPage: 0,
         resultsPage: 0,
         checkedResultIdx: None,
+    }
+}
+
+let setLabel = (st,label) => {
+    {
+        ...st,
+        label
+    }
+}
+
+let setDepthStr = (st,depthStr) => {
+    {
+        ...st,
+        depthStr
+    }
+}
+
+let setLengthRestrict = (st,lengthRestrict) => {
+    {
+        ...st,
+        lengthRestrict
+    }
+}
+
+let notDigitPattern = %re("/\D/g")
+
+let lengthRestrictToStr = (len:lengthRestrict) => {
+    switch len {
+        | No => "No"
+        | LessEq => "LessEq"
+        | Less => "Less"
+    }
+}
+let lengthRestrictFromStr = str => {
+    switch str {
+        | "No" => No
+        | "LessEq" => LessEq
+        | "Less" => Less
+        | _ => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
     }
 }
 
@@ -60,10 +115,67 @@ let make = (
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
     ~stmts: array<rootStmt>,
+    ~onCancel:unit=>unit
 ) => {
-    let (state, setState) = React.useState(() => makeInititalState(~preCtx))
+    let (state, setState) = React.useState(() => makeInitialState(~preCtx, ~stmts))
+
+    let actLabelUpdated = label => {
+        setState(setLabel(_,label))
+    }
+
+    let actDepthUpdated = depthStr => {
+        setState(setDepthStr(_,depthStr->Js.String2.replaceByRe(notDigitPattern, "")))
+    }
+
+    let actLengthRestrictUpdated = lengthRestrict => {
+        setState(setLengthRestrict(_,lengthRestrict))
+    }
+
+    let rndTitle = () => {
+        state.title
+    }
+
+    let rndLengthRestrictSelector = (value:lengthRestrict) => {
+        <FormControl size=#small>
+            <InputLabel id="length-restrict-select-label">"Length resctriction"</InputLabel>
+            <Select
+                labelId="length-restrict-select-label"
+                value={lengthRestrictToStr(value)}
+                label="Length resctriction"
+                onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStr(str)))
+            >
+                <MenuItem value="No">{React.string("No")}</MenuItem>
+                <MenuItem value="LessEq">{React.string("LessEq")}</MenuItem>
+                <MenuItem value="Less">{React.string("Less")}</MenuItem>
+            </Select>
+        </FormControl>
+    }
+
+    let rndParams = () => {
+        <Row>
+            <AutocompleteVirtualized value=state.label options=state.availableLabels size=#small width=200
+                onChange=actLabelUpdated
+            />
+            <TextField 
+                label="Search depth"
+                size=#small
+                style=ReactDOM.Style.make(~width="100px", ())
+                autoFocus=true
+                value=state.depthStr
+                onChange=evt2str(actDepthUpdated)
+            />
+            {rndLengthRestrictSelector(state.lengthRestrict)}
+            <Button onClick={_=>()} variant=#contained>
+                {React.string("Prove")}
+            </Button>
+            <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
+        </Row>
+    }
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-        {"Unifying bottom up ..."->React.string}
+        <Col spacing=1.5>
+            {rndTitle()}
+            {rndParams()}
+        </Col>
     </Paper>
 }

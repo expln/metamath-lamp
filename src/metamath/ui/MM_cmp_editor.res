@@ -396,6 +396,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                         ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                                 }
                                 stmts={state->getStmtsForUnification}
+                                onCancel={() => closeModal(modalRef, modalId)}
                             />
                         })
                     })->ignore

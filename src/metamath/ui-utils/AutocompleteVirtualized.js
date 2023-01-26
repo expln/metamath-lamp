@@ -95,10 +95,10 @@ const StyledPopper = styled(Popper)({
     },
 })
 
-export default function make({value, options, onChange, size}) {
+export default function make({value, options, onChange, size, width}) {
     return (
         <Autocomplete
-            sx={{ width: 300 }}
+            sx={{ width:width??300 }}
             size={size}
             disableListWrap
             PopperComponent={StyledPopper}

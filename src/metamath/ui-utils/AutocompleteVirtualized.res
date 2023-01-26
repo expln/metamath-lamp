@@ -8,4 +8,5 @@ external make: (
     ~options: array<string>,
     ~onChange: option<string>=>unit,
     ~size:size=?,
+    ~width:int=?,
 ) => reElem = "default"
