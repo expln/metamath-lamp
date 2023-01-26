@@ -380,23 +380,23 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
+                let preCtxVer=state.preCtxV
+                let preCtx=state.preCtx
+                let framesToSkip={state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray}
+                let parenStr=state.settings.parens
+                let varsText=state.varsText
+                let disjText=state.disjText
+                let hyps={
+                    state.stmts
+                        ->Js_array2.filter(stmt => stmt.typ == #e)
+                        ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
+                }
+                let stmts={state->getStmtsForUnification}
                 if (isSingleStmtChecked(state)) {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_unify_bottom_up
-                                preCtxVer=state.preCtxV
-                                preCtx=state.preCtx
-                                wrkCtx
-                                framesToSkip={state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray}
-                                parenStr=state.settings.parens
-                                varsText=state.varsText
-                                disjText=state.disjText
-                                hyps={
-                                    state.stmts
-                                        ->Js_array2.filter(stmt => stmt.typ == #e)
-                                        ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
-                                }
-                                stmts={state->getStmtsForUnification}
+                                modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
                                 onCancel={() => closeModal(modalRef, modalId)}
                             />
                         })
@@ -409,18 +409,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             )
                         )
                         unify(
-                            ~preCtxVer=state.preCtxV,
-                            ~preCtx=state.preCtx,
-                            ~parenStr=state.settings.parens,
-                            ~varsText=state.varsText,
-                            ~disjText=state.disjText,
-                            ~hyps={
-                                state.stmts
-                                    ->Js_array2.filter(stmt => stmt.typ == #e)
-                                    ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
-                            },
-                            ~stmts=state->getStmtsForUnification,
-                            ~framesToSkip=state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
+                            ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
                             ~bottomUpProverParams=None,
                             ~onProgress = pct => updateModal( 
                                 modalRef, modalId, () => rndProgress(

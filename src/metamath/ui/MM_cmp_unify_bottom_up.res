@@ -13,6 +13,7 @@ open Expln_React_Modal
 open MM_statements_dto
 open MM_provers
 open MM_proof_tree
+open MM_wrk_unify
 
 type resultRendered = {
     elem: reElem,
@@ -107,6 +108,7 @@ let lengthRestrictFromStr = str => {
 
 @react.component
 let make = (
+    ~modalRef:modalRef,
     ~preCtxVer: int,
     ~preCtx: mmContext,
     ~wrkCtx: mmContext,
@@ -134,6 +136,52 @@ let make = (
 
     let rndTitle = () => {
         state.title
+    }
+
+    let makeActTerminate = (modalId:modalId):(unit=>unit) => {
+        () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
+        }
+    }
+
+    let actProve = () => {
+        setState(st => {
+            let depthStr = st.depthStr->Js_string2.trim
+            let st = if (depthStr->Js_string2.length == 0) {
+                {...st, depth:0, depthStr:"0"}
+            } else {
+                let depth = depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(0)
+                let depthStr = depth->Belt_Int.toString
+                {...st, depth, depthStr}
+            }
+
+            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0., ()))->promiseMap(modalId => {
+                updateModal( 
+                    modalRef, modalId, () => rndProgress(
+                        ~text="Proving bottom-up", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                    )
+                )
+                unify(
+                    ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
+                    ~bottomUpProverParams=Some({
+                        asrtLabel: st.label,
+                        maxSearchDepth: st.depth,
+                        lengthRestriction: st.lengthRestrict,
+                    }),
+                    ~onProgress = pct => updateModal( 
+                        modalRef, modalId, () => rndProgress(
+                            ~text="Proving bottom-up", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                        )
+                    )
+                )->promiseMap(proofTreeDto => {
+                    closeModal(modalRef, modalId)
+                    Js.Console.log2("proofTreeDto", proofTreeDto)
+                })
+            })->ignore
+
+            st
+        })
     }
 
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
@@ -167,7 +215,7 @@ let make = (
                 onChange=evt2str(actDepthUpdated)
             />
             {rndLengthRestrictSelector(state.lengthRestrict)}
-            <Button onClick={_=>()} variant=#contained>
+            <Button onClick={_=>actProve()} variant=#contained>
                 {React.string("Prove")}
             </Button>
             <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
