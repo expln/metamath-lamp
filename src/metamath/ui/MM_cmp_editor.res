@@ -384,6 +384,18 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_unify_bottom_up
+                                preCtxVer=state.preCtxV
+                                preCtx=state.preCtx
+                                framesToSkip={state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray}
+                                parenStr=state.settings.parens
+                                varsText=state.varsText
+                                disjText=state.disjText
+                                hyps={
+                                    state.stmts
+                                        ->Js_array2.filter(stmt => stmt.typ == #e)
+                                        ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
+                                }
+                                stmts={state->getStmtsForUnification}
                             />
                         })
                     })->ignore
