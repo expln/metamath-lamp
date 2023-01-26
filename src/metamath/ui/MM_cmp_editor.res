@@ -379,13 +379,14 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actUnify = () => {
         switch state.wrkCtx {
             | None => ()
-            | Some(_) => {
+            | Some(wrkCtx) => {
                 if (isSingleStmtChecked(state)) {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_unify_bottom_up
                                 preCtxVer=state.preCtxV
                                 preCtx=state.preCtx
+                                wrkCtx
                                 framesToSkip={state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray}
                                 parenStr=state.settings.parens
                                 varsText=state.varsText

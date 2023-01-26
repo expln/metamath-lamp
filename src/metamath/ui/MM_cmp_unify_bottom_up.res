@@ -37,7 +37,7 @@ type state = {
     checkedResultIdx: option<int>,
 }
 
-let makeInitialState = (~preCtx, ~stmts: array<rootStmt>,) => {
+let makeInitialState = (~wrkCtx, ~stmts: array<rootStmt>,) => {
     {
         title:
             <span>
@@ -46,12 +46,12 @@ let makeInitialState = (~preCtx, ~stmts: array<rootStmt>,) => {
                 </span>
                 {
                     React.string(
-                        stmts[stmts->Js_array2.length-1].expr->ctxIntsToStrExn(preCtx, _)
+                        stmts[stmts->Js_array2.length-1].expr->ctxIntsToStrExn(wrkCtx, _)
                     )
                 }
             </span>,
         
-        availableLabels: preCtx->getAllFrames->Belt_MapString.keysToArray,
+        availableLabels: wrkCtx->getAllFrames->Belt_MapString.keysToArray,
         label: None,
         depthStr: "3",
         depth: 3,
@@ -109,6 +109,7 @@ let lengthRestrictFromStr = str => {
 let make = (
     ~preCtxVer: int,
     ~preCtx: mmContext,
+    ~wrkCtx: mmContext,
     ~framesToSkip:array<string>,
     ~parenStr: string,
     ~varsText: string,
@@ -117,7 +118,7 @@ let make = (
     ~stmts: array<rootStmt>,
     ~onCancel:unit=>unit
 ) => {
-    let (state, setState) = React.useState(() => makeInitialState(~preCtx, ~stmts))
+    let (state, setState) = React.useState(() => makeInitialState(~wrkCtx, ~stmts))
 
     let actLabelUpdated = label => {
         setState(setLabel(_,label))
@@ -139,9 +140,10 @@ let make = (
         <FormControl size=#small>
             <InputLabel id="length-restrict-select-label">"Length resctriction"</InputLabel>
             <Select
+                sx={"width": 130}
                 labelId="length-restrict-select-label"
                 value={lengthRestrictToStr(value)}
-                label="Length resctriction"
+                label="Length restriction"
                 onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStr(str)))
             >
                 <MenuItem value="No">{React.string("No")}</MenuItem>

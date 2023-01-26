@@ -429,7 +429,10 @@ let ctxIntToSymPriv = (ctx:mmContextContents,i):option<string> => {
 }
 
 let ctxIntToSymExnPriv = (ctx:mmContextContents,i) => {
-    ctxIntToSymPriv(ctx,i)->Belt.Option.getExn
+    switch ctxIntToSymPriv(ctx,i) {
+        | Some(str) => str
+        | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
+    }
 }
 
 let ctxIntToSymExn = (ctx:mmContext,i) => ctxIntToSymExnPriv(ctx.contents,i)
