@@ -231,7 +231,7 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~debug=false,
                 ~bottomUpProverParams = {
                     asrtLabel: None,
-                    maxSearchDepth: 3,
+                    maxSearchDepth: 4,
                     lengthRestriction: Less,
                 },
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,

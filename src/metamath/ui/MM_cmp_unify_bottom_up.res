@@ -54,8 +54,8 @@ let makeInitialState = (~wrkCtx, ~stmts: array<rootStmt>,) => {
         
         availableLabels: wrkCtx->getAllFrames->Belt_MapString.keysToArray,
         label: None,
-        depthStr: "3",
-        depth: 3,
+        depthStr: "4",
+        depth: 4,
         lengthRestrict: Less,
 
         results: None,
@@ -149,9 +149,9 @@ let make = (
         setState(st => {
             let depthStr = st.depthStr->Js_string2.trim
             let st = if (depthStr->Js_string2.length == 0) {
-                {...st, depth:0, depthStr:"0"}
+                {...st, depth:1, depthStr:"1"}
             } else {
-                let depth = depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(0)
+                let depth = Js.Math.max_int(depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(1), 1)
                 let depthStr = depth->Belt_Int.toString
                 {...st, depth, depthStr}
             }

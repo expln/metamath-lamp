@@ -76,6 +76,7 @@ let proveBottomUp = (
     ~node:proofNode, 
     ~getParents:expr=>array<exprSource>,
     ~maxSearchDepth:option<int>,
+    ~onDistProgress:int=>unit,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -106,7 +107,7 @@ let proveBottomUp = (
                                         raise(MmException({
                                             msg: `proveBottomUp: dist must not be None when maxSearchDepth is Some.`
                                         }))
-                                    | Some(dist) => dist <= maxSearchDepth
+                                    | Some(dist) => dist < maxSearchDepth
                                 }
                             }
                         }
@@ -130,10 +131,20 @@ let proveBottomUp = (
 
         let rootNode = node
         saveNodeToCreateParentsFor(rootNode, maxSearchDepth->Belt_Option.map(_ => 0))
+        let lastDist = ref(0)
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
-                let newDist = curNode->pnGetDist->Belt.Option.map(dist => dist + 1)
+                let newDist = switch curNode->pnGetDist {
+                    | Some(curDist) => {
+                        if (lastDist.contents != curDist) {
+                            lastDist.contents = curDist
+                            onDistProgress(curDist)
+                        }
+                        Some(curDist + 1)
+                    }
+                    | None => None
+                }
                 switch curNode->pnGetParents {
                     | Some(parents) => {
                         parents->Js.Array2.forEach(parent => {
@@ -172,6 +183,8 @@ let proveBottomUp = (
     }
 }
 
+let dummyOnDistProgress = _ => ()
+
 let proveFloating = (tree, node, ~framesToSkip: array<string>) => {
     if (!(node->pnIsInvalidFloating) && node->pnGetProof->Belt.Option.isNone) {
         proveBottomUp(
@@ -179,6 +192,7 @@ let proveFloating = (tree, node, ~framesToSkip: array<string>) => {
             ~node, 
             ~getParents = expr => findAsrtParentsWithoutNewVars(~tree, ~expr, ~restrictExprLen=LessEq, ~framesToSkip),
             ~maxSearchDepth = None,
+            ~onDistProgress = dummyOnDistProgress,
         )
         if (node->pnGetProof->Belt.Option.isNone) {
             node->pnSetInvalidFloating(true)
@@ -296,7 +310,8 @@ let proveWithJustification = (
 }
 
 let proveStmtBottomUp = (
-    ~tree, ~prevStmts:array<expr>, ~stmt:expr, ~params:bottomUpProverParams, ~framesToSkip: array<string>
+    ~tree, ~prevStmts:array<expr>, ~stmt:expr, ~params:bottomUpProverParams, ~framesToSkip: array<string>,
+    ~onProgress:option<float=>unit>,
 ):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
@@ -341,6 +356,7 @@ let proveStmtBottomUp = (
 
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone) {
+        let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
         let firstLevelParents = findAsrtParentsWithNewVars( 
             ~tree, 
             ~expr=stmt, 
@@ -348,43 +364,71 @@ let proveStmtBottomUp = (
             ~allowEmptyArgs=true, 
             ~framesToSkip, 
             ~asrtLabel=?params.asrtLabel,
-            () 
+            ()
         )
         firstLevelParents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent)
             node->pnGetProof
         })->ignore
-        firstLevelParents->Js.Array2.forEachi((firstLevelParent, pi) => {
-            if (node->pnGetProof->Belt.Option.isNone) {
-                switch firstLevelParent {
-                    | Assertion({args}) => {
-                        args->Js.Array2.forEachi((arg,ai) => {
-                            if (node->pnGetProof->Belt.Option.isNone && arg->pnGetProof->Belt.Option.isNone
-                                    && !exprHasNewVars(arg->pnGetExpr)) {
-                                // Js.Console.log2("(pi,ai)", (pi,ai))
-                                // numOfGetParentsCalls.contents = 0
-                                // numOfParentsProcessed.contents = 0
-                                // numOfParentsReturned.contents = 0
-                                // numOfProveFloatingCalls.contents = 0
-                                proveBottomUp(
-                                    ~tree, 
-                                    ~node=arg, 
-                                    ~getParents,
-                                    ~maxSearchDepth = Some(params.maxSearchDepth-1),
-                                )
-                                // Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
-                                // Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
-                                // Js.Console.log2("numOfParentsReturned", numOfParentsReturned.contents)
-                                // Js.Console.log2("numOfProveFloatingCalls", numOfProveFloatingCalls.contents)
+        let flParentsLen = firstLevelParents->Js.Array2.length
+        if (flParentsLen > 0) {
+            let pctPerFlParent = 1. /. flParentsLen->Belt.Int.toFloat
+            let maxSearchDepth = params.maxSearchDepth-1
+            if (maxSearchDepth > 0) {
+                firstLevelParents->Js.Array2.forEachi((firstLevelParent, pi) => {
+                    if (node->pnGetProof->Belt.Option.isNone) {
+                        switch firstLevelParent {
+                            | Assertion({args}) => {
+                                let argsLen = args->Js.Array2.length
+                                if (argsLen > 0) {
+                                    let pctPerArg = pctPerFlParent /. argsLen->Belt.Int.toFloat
+                                    args->Js.Array2.forEachi((arg,ai) => {
+                                        if (node->pnGetProof->Belt.Option.isNone && arg->pnGetProof->Belt.Option.isNone
+                                                && !exprHasNewVars(arg->pnGetExpr)) {
+                                            // Js.Console.log2("(pi,ai)", (pi,ai))
+                                            // numOfGetParentsCalls.contents = 0
+                                            // numOfParentsProcessed.contents = 0
+                                            // numOfParentsReturned.contents = 0
+                                            // numOfProveFloatingCalls.contents = 0
+                                            let pctPerDepth = pctPerArg /. maxSearchDepth->Belt.Int.toFloat
+                                            proveBottomUp(
+                                                ~tree, 
+                                                ~node=arg, 
+                                                ~getParents,
+                                                ~maxSearchDepth = Some(maxSearchDepth),
+                                                ~onDistProgress = curDist => {
+                                                    let depthDone = curDist - 1
+                                                    if (depthDone > 0) {
+                                                        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+                                                            pi->Belt_Int.toFloat *. pctPerFlParent
+                                                                +. ai->Belt_Int.toFloat *. pctPerArg
+                                                                +. depthDone->Belt_Int.toFloat *. pctPerDepth
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                            // Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
+                                            // Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
+                                            // Js.Console.log2("numOfParentsReturned", numOfParentsReturned.contents)
+                                            // Js.Console.log2("numOfProveFloatingCalls", numOfProveFloatingCalls.contents)
+                                        }
+                                        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+                                            pi->Belt_Int.toFloat *. pctPerFlParent
+                                                +. (ai+1)->Belt_Int.toFloat *. pctPerArg
+                                        )
+                                    })
+                                }
                             }
-                        })
+                            | _ => ()
+                        }
                     }
-                    | _ => ()
-                }
+                    progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+                        (pi+1)->Belt_Int.toFloat *. pctPerFlParent
+                    )
+                })
             }
-        })
+        }
     }
-    //Js.Console.log2("NumberOfNodes", tree->ptGetNuberOfNodes)
     node
 }
 
@@ -422,6 +466,7 @@ let proveStmt = (
     ~framesToSkip: array<string>,
     ~jstf:option<justification>, 
     ~bottomUpProverParams:option<bottomUpProverParams>,
+    ~onProgress:option<float=>unit>,
 ) => {
     switch bottomUpProverParams {
         | Some(params) => {
@@ -430,7 +475,8 @@ let proveStmt = (
                 ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
                 ~stmt=stmt.expr,
                 ~params,
-                ~framesToSkip
+                ~framesToSkip,
+                ~onProgress,
             )->ignore
         }
         | None => {
@@ -538,7 +584,6 @@ let unifyAll = (
     ~debug: bool=false,
     ()
 ) => {
-    let stmtsProcessed = ref(0.)
     let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
 
     let tree = createProofTree(
@@ -560,23 +605,38 @@ let unifyAll = (
         }
     })
     let numOfStmts = stmts->Js_array2.length
-    let maxStmtIdx = numOfStmts - 1
-    stmts->Js.Array2.forEachi((stmt,stmtIdx) => {
-        proveStmt(
-            ~tree, 
-            ~prevStmts,
-            ~stmt, 
-            ~jstf=stmt.justification,
-            ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
-            ~framesToSkip,
-        )
-        prevStmts->Js_array2.push(stmt)->ignore
+    if (numOfStmts > 0) {
+        let pctPerStmt = (1. /. numOfStmts->Belt.Int.toFloat)
+            *. if (bottomUpProverParams->Belt.Option.isNone) { 1. } else { 0.1 }
+        let maxStmtIdx = numOfStmts - 1
+        stmts->Js.Array2.forEachi((stmt,stmtIdx) => {
+            proveStmt(
+                ~tree, 
+                ~prevStmts,
+                ~stmt, 
+                ~jstf=stmt.justification,
+                ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
+                ~framesToSkip,
+                ~onProgress = 
+                    if (stmtIdx != maxStmtIdx) {
+                        None
+                    } else {
+                        Some(pct => {
+                            progressState.contents = progressState.contents->progressTrackerSetCurrPct( pct *. 0.9 )
+                        })
+                    },
+            )
+            prevStmts->Js_array2.push(stmt)->ignore
 
-        stmtsProcessed.contents = stmtsProcessed.contents +. 1.
-        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
-            stmtsProcessed.contents /. numOfStmts->Belt_Int.toFloat
-        )
-    })
+            if (stmtIdx == maxStmtIdx) {
+                progressState.contents = progressState.contents->progressTrackerSetCurrPct( 1. )
+            } else {
+                progressState.contents = progressState.contents->progressTrackerSetCurrPct( 
+                    stmtIdx->Belt_Int.toFloat *. pctPerStmt
+                )
+            }
+        })
+    }
 
     if (debug) {
         tree->ptGetStats
