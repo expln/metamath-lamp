@@ -21,30 +21,39 @@ type proofTreeDto = {
     nodes: array<proofNodeDto>,
 }
 
-let rec exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):exprSourceDto => {
+let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):option<exprSourceDto> => {
     switch src {
-        | VarType => VarType
-        | Hypothesis({label}) => Hypothesis({label:label})
+        | VarType => Some(VarType)
+        | Hypothesis({label}) => Some(Hypothesis({label:label}))
         | Assertion({args, label}) => {
-            Assertion({
-                args: args->Js_array2.map(arg => {
-                    switch exprToIdx->Belt_HashMap.get(arg->pnGetExpr) {
-                        | None => raise(MmException({msg:`exprSourceToDto: cannot get idx by expr.`}))
-                        | Some(idx) => idx
-                    }
-                }), 
-                label
-            })
+            if (args->Js.Array2.some(arg => arg->pnIsInvalidFloating && arg->pnGetProof->Belt.Option.isNone)) {
+                None
+            } else {
+                Some(Assertion({
+                    args: args->Js_array2.map(arg => {
+                        switch exprToIdx->Belt_HashMap.get(arg->pnGetExpr) {
+                            | None => raise(MmException({msg:`exprSourceToDto: cannot get idx by expr.`}))
+                            | Some(idx) => idx
+                        }
+                    }), 
+                    label
+                }))
+            }
         }
     }
 }
 
-and let proofNodeToDto = (node:proofNode, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):proofNodeDto => {
+let proofNodeToDto = (node:proofNode, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):proofNodeDto => {
     {
         expr:node->pnGetExpr,
         exprStr:node->pnGetExprStr,
-        parents: node->pnGetParents->Belt.Option.map(Js_array2.map(_,exprSourceToDto(_,exprToIdx))),
-        proof: node->pnGetProof->Belt.Option.map(exprSourceToDto(_,exprToIdx)),
+        parents: node->pnGetParents->Belt.Option.map(parents => {
+            parents
+                ->Js_array2.map(exprSourceToDto(_,exprToIdx))
+                ->Js_array2.filter(Belt_Option.isSome)
+                ->Js_array2.map(Belt_Option.getExn)
+        }),
+        proof: node->pnGetProof->Belt.Option.flatMap(exprSourceToDto(_,exprToIdx)),
     }
 }
 
@@ -57,7 +66,11 @@ let collectAllExprs = (tree:proofTree, roots:array<expr>):Belt_HashMap.t<expr,in
     let saveNodesFromSrc = (src:exprSource) => {
         switch src {
             | Assertion({args}) => {
-                args->Js_array2.forEach(nodesToProcess->Belt_MutableStack.push)
+                args->Js_array2.forEach(arg => {
+                    if (!(arg->pnIsInvalidFloating) || arg->pnGetProof->Belt.Option.isSome) {
+                        nodesToProcess->Belt_MutableStack.push(arg)
+                    }
+                })
             }
             | _ => ()
         }
