@@ -89,6 +89,13 @@ let setLengthRestrict = (st,lengthRestrict) => {
     }
 }
 
+let setResults = (st,results) => {
+    {
+        ...st,
+        results
+    }
+}
+
 let notDigitPattern = %re("/\D/g")
 
 let lengthRestrictToStr = (len:lengthRestrict) => {
@@ -107,106 +114,119 @@ let lengthRestrictFromStr = str => {
     }
 }
 
-let nodeToNewStmts = (
-    ~node:proofNodeDto, 
+let srcToNewStmts = (
+    ~src:exprSourceDto, 
     ~tree:proofTreeDto, 
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~wrkCtx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~getFrame: string=>frame,
-    ~prevStmts: array<rootStmt>,
-):newStmtsDto => {
-    let maxCtxVar = wrkCtx->getNumOfVars - 1
-    let res = {
-        newVars: [],
-        newVarTypes: [],
-        newDisj: disjMutableMake(),
-        newDisjStr: [],
-        stmts: [],
-    }
-    let exprToLabel = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16)
-    let varNames = Belt_HashMapInt.make(~hintSize=8)
-    let usedVarNames = Belt_HashSetString.make(~hintSize=8)
-    let usedLabels = Belt_HashSetString.make(~hintSize=8)
+):option<newStmtsDto> => {
+    switch src {
+        | Assertion({args, label}) => {
+            let maxCtxVar = wrkCtx->getNumOfVars - 1
+            let res = {
+                newVars: [],
+                newVarTypes: [],
+                newDisj: disjMutableMake(),
+                newDisjStr: [],
+                stmts: [],
+            }
+            let exprToLabel = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16)
+            let varNames = Belt_HashMapInt.make(~hintSize=8)
+            let usedVarNames = Belt_HashSetString.make(~hintSize=8)
+            let usedLabels = Belt_HashSetString.make(~hintSize=8)
 
-    let intToSym = i => {
-        if (i <= maxCtxVar) {
-            switch wrkCtx->ctxIntToSym(i) {
-                | None => raise(MmException({msg:`Cannot determine sym for an existing int in nodeToNewStmts.`}))
-                | Some(sym) => sym
-            }
-        } else {
-            switch varNames->Belt_HashMapInt.get(i) {
-                | None => raise(MmException({msg:`Cannot determine name of a new var in nodeToNewStmts.`}))
-                | Some(name) => name
-            }
-        }
-    }
-
-    Expln_utils_data.traverseTree(
-        (),
-        node,
-        (_,node) => switch node.proof {
-            | Some(Assertion({args,label})) => {
-                let children = []
-                getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
-                    if (hyp.typ == E) {
-                        children->Js_array2.push(tree.nodes[args[i]])->ignore
+            let intToSym = i => {
+                if (i <= maxCtxVar) {
+                    switch wrkCtx->ctxIntToSym(i) {
+                        | None => raise(MmException({msg:`Cannot determine sym for an existing int in nodeToNewStmts.`}))
+                        | Some(sym) => sym
                     }
-                })
-                Some(children)
-            }
-            | _ => None
-        },
-        ~postProcess = (_,node) => {
-            let newLabel = generateNewLabels(~ctx = wrkCtx, ~prefix="stmt", ~amount=1, ~usedLabels, ())[0]
-            exprToLabel->Belt_HashMap.set(node.expr, newLabel)
-            node.expr->Js_array2.forEach(sym => {
-                if (sym > maxCtxVar && !(res.newVars->Js_array2.includes(sym))) {
-                    switch newVarTypes->Belt_HashMapInt.get(sym) {
-                        | None => raise(MmException({msg:`Cannot determine type of a new var in nodeToNewStmts.`}))
-                        | Some(typ) => {
-                            res.newVars->Js_array2.push(sym)->ignore
-                            res.newVarTypes->Js_array2.push(typ)->ignore
-                            let newVarName = generateNewVarNames( ~ctx = wrkCtx, ~types = [typ],
-                                ~typeToPrefix, ~usedNames=usedVarNames, ()
-                            )[0]
-                            usedVarNames->Belt_HashSetString.add(newVarName)
-                        }
+                } else {
+                    switch varNames->Belt_HashMapInt.get(i) {
+                        | None => raise(MmException({msg:`Cannot determine name of a new var in nodeToNewStmts.`}))
+                        | Some(name) => name
                     }
+                }
+            }
+            let frame = getFrame(label)
+            let eArgs = []
+            frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                if (hyp.typ == E) {
+                    eArgs->Js_array2.push(tree.nodes[args[i]])->ignore
                 }
             })
-            let exprStr = node.expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
-            let jstf = switch node.proof {
-                | Some(Assertion({args, label})) => {
-                    let argLabels = []
-                    getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
-                        if (hyp.typ == E) {
-                            switch exprToLabel->Belt_HashMap.get(tree.nodes[args[i]].expr) {
-                                | None => raise(MmException({msg:`Cannot get a label for an arg by arg expr.`}))
-                                | Some(argLabel) => argLabels->Js_array2.push(argLabel)->ignore
-                            }
+            eArgs->Js.Array2.forEach(node => {
+                Expln_utils_data.traverseTree(
+                    (),
+                    node,
+                    (_,node) => switch node.proof {
+                        | Some(Assertion({args,label})) => {
+                            let children = []
+                            getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
+                                if (hyp.typ == E) {
+                                    children->Js_array2.push(tree.nodes[args[i]])->ignore
+                                }
+                            })
+                            Some(children)
                         }
-                    })
-                    Some({ args:argLabels, label})
-                }
-                | _ => None
-            }
-            res.stmts->Js_array2.push(
-                {
-                    label:newLabel,
-                    expr:node.expr,
-                    exprStr,
-                    jstf,
-                    isProved: node.proof->Belt_Option.isSome,
-                }
-            )->ignore
-            None
-        },
-        ()
-    )->ignore
-
-    res
+                        | _ => None
+                    },
+                    ~postProcess = (_,node) => {
+                        let newLabel = generateNewLabels(~ctx = wrkCtx, ~prefix="stmt", ~amount=1, ~usedLabels, ())[0]
+                        exprToLabel->Belt_HashMap.set(node.expr, newLabel)
+                        node.expr->Js_array2.forEach(sym => {
+                            if (sym > maxCtxVar && !(res.newVars->Js_array2.includes(sym))) {
+                                switch newVarTypes->Belt_HashMapInt.get(sym) {
+                                    | None => raise(MmException({msg:`Cannot determine type of a new var in nodeToNewStmts.`}))
+                                    | Some(typ) => {
+                                        res.newVars->Js_array2.push(sym)->ignore
+                                        res.newVarTypes->Js_array2.push(typ)->ignore
+                                        let newVarName = generateNewVarNames( ~ctx = wrkCtx, ~types = [typ],
+                                            ~typeToPrefix, ~usedNames=usedVarNames, ()
+                                        )[0]
+                                        usedVarNames->Belt_HashSetString.add(newVarName)
+                                        varNames->Belt_HashMapInt.set(sym, newVarName)
+                                    }
+                                }
+                            }
+                        })
+                        let exprStr = node.expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
+                        let jstf = switch node.proof {
+                            | Some(Assertion({args, label})) => {
+                                let argLabels = []
+                                getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
+                                    if (hyp.typ == E) {
+                                        switch exprToLabel->Belt_HashMap.get(tree.nodes[args[i]].expr) {
+                                            | None => raise(MmException({msg:`Cannot get a label for an arg by arg expr.`}))
+                                            | Some(argLabel) => argLabels->Js_array2.push(argLabel)->ignore
+                                        }
+                                    }
+                                })
+                                Some({ args:argLabels, label})
+                            }
+                            | _ => None
+                        }
+                        res.stmts->Js_array2.push(
+                            {
+                                label:newLabel,
+                                expr:node.expr,
+                                exprStr,
+                                jstf,
+                                isProved: node.proof->Belt_Option.isSome,
+                            }
+                        )->ignore
+                        None
+                    },
+                    ()
+                )->ignore
+            })
+            Some(res)
+        }
+        | _ => None
+    }
+    
 }
 
 @react.component
@@ -221,9 +241,12 @@ let make = (
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
     ~stmts: array<rootStmt>,
+    ~typeToPrefix: Belt_MapString.t<string>,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(~wrkCtx, ~stmts))
+
+    Js.Console.log2("state", state)
 
     let actLabelUpdated = label => {
         setState(setLabel(_,label))
@@ -237,6 +260,10 @@ let make = (
         setState(setLengthRestrict(_,lengthRestrict))
     }
 
+    let actSetResults = results => {
+        setState(setResults(_, results))
+    }
+
     let rndTitle = () => {
         state.title
     }
@@ -245,6 +272,33 @@ let make = (
         () => {
             MM_wrk_client.terminateWorker()
             closeModal(modalRef, modalId)
+        }
+    }
+
+    let actOnResultReady = (treeDto) => {
+        let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
+        let stmtToProve = stmts[stmts->Js_array2.length-1]
+        let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(stmtToProve.expr)) {
+            | None => raise(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
+            | Some(node) => node
+        }
+
+        switch proofNode.parents {
+            | None => actSetResults(Some([]))
+            | Some(parents) => {
+                let results = parents
+                    ->Js_array2.map(src => srcToNewStmts(
+                        ~src, 
+                        ~tree = treeDto, 
+                        ~newVarTypes,
+                        ~wrkCtx,
+                        ~typeToPrefix,
+                        ~getFrame = label => wrkCtx->getFrame(label)->Belt_Option.getExn,
+                    ))
+                    ->Js.Array2.filter(Belt_Option.isSome)
+                    ->Js.Array2.map(Belt_Option.getExn)
+                actSetResults(Some(results))
+            }
         }
     }
 
@@ -280,6 +334,7 @@ let make = (
                 )->promiseMap(proofTreeDto => {
                     closeModal(modalRef, modalId)
                     Js.Console.log2("proofTreeDto", proofTreeDto)
+                    actOnResultReady(proofTreeDto)
                 })
             })->ignore
 

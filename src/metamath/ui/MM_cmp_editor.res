@@ -398,6 +398,11 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             <MM_cmp_unify_bottom_up
                                 modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
                                 onCancel={() => closeModal(modalRef, modalId)}
+                                typeToPrefix = {
+                                    Belt_MapString.fromArray(
+                                        state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                                    )
+                                }
                             />
                         })
                     })->ignore
