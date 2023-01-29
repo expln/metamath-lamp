@@ -5,11 +5,13 @@ type newStmtJstfDto = {
     label:string,
 }
 
+
 type newStmtDto = {
     label:string,
     expr:expr,
     exprStr:string,
     jstf:option<newStmtJstfDto>,
+    isProved: bool,
 }
 
 type newStmtsDto = {

@@ -1,4 +1,3 @@
-open MM_parser
 open MM_context
 open MM_proof_table
 open MM_proof_tree

@@ -153,9 +153,9 @@ let testApplyAssertions = (
     let printApplyAssertionResult = (workCtx, statements:array<labeledExpr>, res:applyAssertionResult):string => {
         workCtx->openChildContext
         let maxWorkCtxVar = workCtx->getNumOfVars - 1
-        let workVarHypLabels = workCtx->generateNewLabels(~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length)
+        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length, ())
         let workVarTypes = res.newVarTypes->Js_array2.map(workCtx->ctxIntToSymExn)
-        let workVarNames = workCtx->generateNewVarNames(res.newVarTypes, Belt_MapString.empty)
+        let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
         let disjArrStr = []
         res.newDisj->disjForEachArr(disj => {
             disjArrStr->Js.Array2.push(
@@ -188,7 +188,7 @@ let testApplyAssertions = (
                         argLabels->Js_array2.push(label)->ignore
                     }
                     | None => {
-                        let newStmtLabel = workCtx->generateNewLabels(~prefix="provable", ~amount=1)
+                        let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
                         let label = newStmtLabel[0]
                         let exprArrStr = argExpr->Js_array2.map(workCtx->ctxIntToSymExn)
                         workCtx->applySingleStmt(Provable({

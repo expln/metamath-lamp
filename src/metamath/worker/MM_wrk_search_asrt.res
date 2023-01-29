@@ -113,6 +113,7 @@ let doSearchAssertions = (
                             expr:hyp.expr,
                             exprStr:frmIntsToStrExn(wrkCtx, frame, hyp.expr),
                             jstf:None,
+                            isProved: false,
                         }
                     )->ignore
                 }
@@ -123,6 +124,7 @@ let doSearchAssertions = (
                     expr:frame.asrt,
                     exprStr:frmIntsToStrExn(wrkCtx, frame, frame.asrt),
                     jstf:Some({args:argLabels,label:frame.label}),
+                    isProved: false,
                 }
             )->ignore
             results->Js.Array2.push({

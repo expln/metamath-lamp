@@ -1026,7 +1026,13 @@ let loadContext = (
     ctx
 }
 
-let generateNewVarNames = (ctx:mmContext, types:array<int>, typeToPrefix:Belt_MapString.t<string>): array<string> => {
+let generateNewVarNames = (
+    ~ctx:mmContext, 
+    ~types:array<int>, 
+    ~typeToPrefix:Belt_MapString.t<string>,
+    ~usedNames:option<Belt_HashSetString.t>=?,
+    ()
+): array<string> => {
     let prefixToCnt = Belt_MutableMapString.make()
 
     let getCnt = prefix => prefixToCnt->Belt_MutableMapString.getWithDefault(prefix,0)
@@ -1039,7 +1045,11 @@ let generateNewVarNames = (ctx:mmContext, types:array<int>, typeToPrefix:Belt_Ma
         let prefix = typeToPrefix->Belt_MapString.getWithDefault(typeStr, typeStr)
         incCnt(prefix)
         let newName = ref(prefix ++ getCnt(prefix)->Belt_Int.toString)
-        while (ctx->isConst(newName.contents) || ctx->isVar(newName.contents)) {
+        while (ctx->isConst(newName.contents) || ctx->isVar(newName.contents)
+                || usedNames
+                        ->Belt.Option.map(Belt_HashSetString.has(_,newName.contents))
+                        ->Belt_Option.getWithDefault(false)
+        ) {
             incCnt(prefix)
             newName.contents = prefix ++ getCnt(prefix)->Belt_Int.toString
         }
@@ -1048,14 +1058,24 @@ let generateNewVarNames = (ctx:mmContext, types:array<int>, typeToPrefix:Belt_Ma
     res
 }
 
-let generateNewLabels = (ctx:mmContext, ~prefix:string, ~amount:int): array<string> => {
+let generateNewLabels = (
+    ~ctx:mmContext, 
+    ~prefix:string, 
+    ~amount:int,
+    ~usedLabels:option<Belt_HashSetString.t>=?,
+    ()
+): array<string> => {
     let maxI = amount - 1
     let cnt = ref(0)
     let res = []
     for _ in 0 to maxI {
         cnt.contents = cnt.contents + 1
         let newName = ref(prefix ++ cnt.contents->Belt_Int.toString)
-        while (ctx->isHyp(newName.contents) || ctx->isAsrt(newName.contents)) {
+        while (ctx->isHyp(newName.contents) || ctx->isAsrt(newName.contents)
+                    || usedLabels
+                        ->Belt.Option.map(Belt_HashSetString.has(_,newName.contents))
+                        ->Belt_Option.getWithDefault(false)
+        ) {
             cnt.contents = cnt.contents + 1
             newName.contents = prefix ++ cnt.contents->Belt_Int.toString
         }

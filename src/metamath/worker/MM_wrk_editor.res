@@ -842,8 +842,18 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
                 let typeToPrefix = Belt_MapString.fromArray(
                     st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                 )
-                let newVarNames = wrkCtx->generateNewVarNames(varTypes, typeToPrefix)
-                let newHypLabels = wrkCtx->generateNewLabels(~prefix="var", ~amount=numOfVars)
+                let newVarNames = generateNewVarNames(
+                    ~ctx=wrkCtx,
+                    ~types=varTypes, 
+                    ~typeToPrefix,
+                    ()
+                )
+                let newHypLabels = generateNewLabels(
+                    ~ctx=wrkCtx,
+                    ~prefix="var", 
+                    ~amount=numOfVars,
+                    ()
+                )
                 wrkCtx->applySingleStmt(Var({symbols:newVarNames}))
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
                 newHypLabels->Js.Array2.forEachi((label,i) => {
@@ -1049,7 +1059,7 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let axLabel = (wrkCtx->generateNewLabels(~prefix="temp-ax-", ~amount=1))[0]
+            let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
             let (tmpFrame, _) = wrkCtx->createFrame(axLabel, wrkCtx->ctxIntsToSymsExn(frmExpr), ~skipHyps=true, ~skipFirstSymCheck=true, ())
             let frm = prepareFrmSubsDataForFrame(tmpFrame)
             let disj = wrkCtx->getAllDisj
