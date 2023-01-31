@@ -99,6 +99,13 @@ let setResults = (st,results) => {
     }
 }
 
+let setResultsRendered = (st,resultsRendered) => {
+    {
+        ...st,
+        resultsRendered
+    }
+}
+
 let notDigitPattern = %re("/\D/g")
 
 let lengthRestrictToStr = (len:lengthRestrict) => {
@@ -356,7 +363,16 @@ let make = (
     }
 
     let actSetResults = results => {
-        setState(setResults(_, results))
+        setState(st => {
+            let st = setResults(st, results)
+            let st = switch results {
+                | Some(results) => {
+                    setResultsRendered(st, Some(results->Js_array2.map(newStmtsDtoToResultRendered)))
+                }
+                | None => st
+            }
+            st
+        })
     }
 
     let rndTitle = () => {
