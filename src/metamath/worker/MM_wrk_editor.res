@@ -1276,7 +1276,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
         | Some(wrkCtx) => {
             let nodes = proofTreeDto.nodes
                 ->Js_array2.map(node => (node.expr,node))
-                ->Belt_MutableMap.fromArray(~id=module(ExprCmp))
+                ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let exprToUserStmt = st.stmts
                                     ->Js_array2.filter(stmt => stmt.expr->Belt_Option.isSome)
                                     ->Js_array2.map(stmt => (stmt.expr->Belt_Option.getExn, stmt))
@@ -1289,7 +1289,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                             switch stmt.expr {
                                 | None => stmt
                                 | Some(expr) => {
-                                    switch nodes->Belt_MutableMap.get(expr) {
+                                    switch nodes->Belt_HashMap.get(expr) {
                                         | None => stmt
                                         | Some(node) => {
                                             let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)

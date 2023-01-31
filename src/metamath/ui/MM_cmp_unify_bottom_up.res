@@ -210,27 +210,33 @@ let srcToNewStmts = (
                     (),
                     node,
                     (_,node) => {
-                        switch node.proof {
-                            | Some(Assertion({args,label})) => {
-                                let children = []
-                                getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
-                                    if (hyp.typ == E) {
-                                        let argNode = tree.nodes[args[i]]
-                                        if (!(exprToLabel->Belt_HashMap.has(argNode.expr))) {
-                                            children->Js_array2.push(argNode)->ignore
+                        if (exprToLabel->Belt_HashMap.has(node.expr)) {
+                            None
+                        } else {
+                            switch node.proof {
+                                | Some(Assertion({args,label})) => {
+                                    let children = []
+                                    getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
+                                        if (hyp.typ == E) {
+                                            let argNode = tree.nodes[args[i]]
+                                            if (!(exprToLabel->Belt_HashMap.has(argNode.expr))) {
+                                                children->Js_array2.push(argNode)->ignore
+                                            }
                                         }
-                                    }
-                                })
-                                Some(children)
+                                    })
+                                    Some(children)
+                                }
+                                | _ => None
                             }
-                            | _ => None
                         }
                     },
                     ~postProcess = (_,node) => {
-                        let newLabel = generateNewLabels(~ctx = wrkCtx, ~prefix="stmt", ~amount=1, ~usedLabels, ())[0]
-                        usedLabels->Belt_HashSetString.add(newLabel)
-                        exprToLabel->Belt_HashMap.set(node.expr, newLabel)
-                        addExprToResult(~label=newLabel, ~expr = node.expr, ~proof = node.proof)
+                        if (!(exprToLabel->Belt_HashMap.has(node.expr))) {
+                            let newLabel = generateNewLabels(~ctx = wrkCtx, ~prefix="stmt", ~amount=1, ~usedLabels, ())[0]
+                            exprToLabel->Belt_HashMap.set(node.expr, newLabel)
+                            usedLabels->Belt_HashSetString.add(newLabel)
+                            addExprToResult(~label=newLabel, ~expr = node.expr, ~proof = node.proof)
+                        }
                         None
                     },
                     ()
