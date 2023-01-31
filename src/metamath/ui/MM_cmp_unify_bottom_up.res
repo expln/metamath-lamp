@@ -18,8 +18,9 @@ open MM_wrk_unify
 
 type resultRendered = {
     elem: reElem,
+    asrtLabel:string,
     numOfNewVars: int,
-    numOfUnprovedStmts: int,
+    numOfNewUnprovedStmts: int,
 }
 
 type state = {
@@ -33,6 +34,7 @@ type state = {
 
     results: option<array<newStmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
+    resultsSorted: option<array<int>>,
     resultsPerPage:int,
     resultsMaxPage:int,
     resultsPage:int,
@@ -61,6 +63,7 @@ let makeInitialState = (~wrkCtx, ~stmts: array<rootStmt>,) => {
 
         results: None,
         resultsRendered: None,
+        resultsSorted: None,
         resultsPerPage: 20,
         resultsMaxPage: 0,
         resultsPage: 0,
@@ -252,6 +255,7 @@ let srcToNewStmts = (
                         let m = res.newVars[mi]
                         if (!(wrkCtx->isDisj(n,m)) && tree.disj->disjContains(n,m)) {
                             res.newDisj->disjAddPair(n,m)
+                            res.newDisjStr->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
                         }
                     }
                 }
@@ -261,6 +265,63 @@ let srcToNewStmts = (
         | _ => None
     }
     
+}
+
+let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto):resultRendered => {
+    let elem = 
+        <Col>
+            {
+                newStmtsDto.newDisjStr
+                    ->Js.Array2.map(disjStr => {
+                        <span key=disjStr>
+                            {disjStr->React.string}
+                        </span>
+                    })
+                    ->React.array
+            }
+            <table>
+                <tbody>
+                    {
+                        newStmtsDto.stmts
+                            ->Js.Array2.map(stmt => {
+                                <tr key=stmt.exprStr>
+                                    <td>
+                                        {
+                                            switch stmt.jstf {
+                                                | None => React.null
+                                                | Some({args, label}) => {
+                                                    React.string(
+                                                        args->Js_array2.joinWith(" ") ++ " : " ++ label
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    </td>
+                                    <td> 
+                                        { if (stmt.isProved) { React.string("\u2713") } else { React.null } } 
+                                    </td>
+                                    <td> 
+                                        {React.string(stmt.exprStr)}
+                                    </td>
+                                </tr>
+                            })
+                            ->React.array
+                    }
+                </tbody>
+            </table>
+        </Col>
+    {
+        elem,
+        asrtLabel:
+            newStmtsDto.stmts[newStmtsDto.stmts->Js.Array2.length-1].jstf
+                ->Belt_Option.map(jstf => jstf.label)
+                ->Belt_Option.getWithDefault(""),
+        numOfNewVars: newStmtsDto.newVars->Js.Array2.length,
+        numOfNewUnprovedStmts: newStmtsDto.stmts->Js.Array2.reduce(
+            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
+            0
+        ),
+    }
 }
 
 @react.component
