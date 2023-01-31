@@ -244,6 +244,18 @@ let srcToNewStmts = (
             })
             let stmtToProve = rootStmts[rootStmts->Js.Array2.length-1]
             addExprToResult(~label=stmtToProve.label, ~expr = stmtToProve.expr, ~proof = Some(src))
+            if (!disjIsEmpty(tree.disj)) {
+                let numOfNewVars = res.newVars->Js.Array2.length
+                for ni in 0 to numOfNewVars-2 {
+                    for mi in ni+1 to numOfNewVars-1 {
+                        let n = res.newVars[ni]
+                        let m = res.newVars[mi]
+                        if (!(wrkCtx->isDisj(n,m)) && tree.disj->disjContains(n,m)) {
+                            res.newDisj->disjAddPair(n,m)
+                        }
+                    }
+                }
+            }
             Some(res)
         }
         | _ => None
