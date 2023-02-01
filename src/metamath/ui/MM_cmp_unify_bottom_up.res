@@ -16,6 +16,8 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open MM_wrk_unify
 
+type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
+
 type resultRendered = {
     elem: reElem,
     asrtLabel:string,
@@ -34,6 +36,7 @@ type state = {
 
     results: option<array<newStmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
+    sortBy: sortBy,
     resultsSorted: option<array<int>>,
     resultsPerPage:int,
     resultsMaxPage:int,
@@ -63,6 +66,7 @@ let makeInitialState = (~wrkCtx, ~stmts: array<rootStmt>,) => {
 
         results: None,
         resultsRendered: None,
+        sortBy: UnprovedStmtsNum,
         resultsSorted: None,
         resultsPerPage: 20,
         resultsMaxPage: 0,
@@ -106,6 +110,30 @@ let setResultsRendered = (st,resultsRendered) => {
     }
 }
 
+let sortResultsRendered = (resultsRendered, sortBy) => {
+    switch resultsRendered {
+        | None => None
+        | Some(resultsRendered) => {
+            let cmp = switch sortBy {
+                | UnprovedStmtsNum => (a,b) => a.numOfNewUnprovedStmts - b.numOfNewUnprovedStmts
+                | NumOfNewVars => (a,b) => a.numOfNewVars - b.numOfNewVars
+                | AsrtLabel => (a,b) => a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
+            }
+            Some(resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(cmp))
+        }
+    }
+}
+
+let setSortBy = (st,sortBy) => {
+    {
+        ...st,
+        sortBy,
+        resultsSorted: sortResultsRendered(st.resultsRendered, sortBy),
+        resultsPage: 0,
+        checkedResultIdx: None,
+    }
+}
+
 let notDigitPattern = %re("/\D/g")
 
 let lengthRestrictToStr = (len:lengthRestrict) => {
@@ -121,6 +149,22 @@ let lengthRestrictFromStr = str => {
         | "LessEq" => LessEq
         | "Less" => Less
         | _ => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
+    }
+}
+
+let sortByToStr = sortBy => {
+    switch sortBy {
+        | UnprovedStmtsNum => "UnprovedStmtsNum"
+        | NumOfNewVars => "NumOfNewVars"
+        | AsrtLabel => "AsrtLabel"
+    }
+}
+
+let sortByFromStr = str => {
+    switch str {
+        | "UnprovedStmtsNum" => UnprovedStmtsNum
+        | "NumOfNewVars" => NumOfNewVars
+        | "AsrtLabel" => AsrtLabel
     }
 }
 
@@ -454,6 +498,10 @@ let make = (
         })
     }
 
+    let actSortByChange = sortBy => {
+        setState(setSortBy(_, sortBy))
+    }
+
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
         <FormControl size=#small>
             <InputLabel id="length-restrict-select-label">"Length resctriction"</InputLabel>
@@ -469,6 +517,32 @@ let make = (
                 <MenuItem value="Less">{React.string("Less")}</MenuItem>
             </Select>
         </FormControl>
+    }
+
+    let rndSortBySelector = () => {
+        switch state.results {
+            | None => React.null
+            | Some(results) => {
+                if (results->Js_array2.length < 1) {
+                    React.null
+                } else {
+                    <FormControl size=#small>
+                        <InputLabel id="sortBy-select-label">"Sort results by"</InputLabel>
+                        <Select 
+                            labelId="sortBy-select-label"
+                            value=sortByToStr(state.sortBy)
+                            label="Sort results by"
+                            onChange=evt2str(str => actSortByChange(sortByFromStr(str)))
+                        >
+                            <MenuItem value="UnprovedStmtsNum">{React.string("Number of new unproved statements")}</MenuItem>
+                            <MenuItem value="NumOfNewVars">{React.string("Number of new variables")}</MenuItem>
+                            <MenuItem value="AsrtLabel">{React.string("Assertion label")}</MenuItem>
+                        </Select>
+                    </FormControl>
+                }
+            }
+        }
+        
     }
 
     let rndParams = () => {
