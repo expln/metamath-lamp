@@ -1,4 +1,6 @@
 open MM_wrk_editor
+open MM_provers
+open MM_proof_tree_dto
 
 let setMmPath: string
 let failOnMismatch: bool
@@ -33,7 +35,14 @@ let addStmtsBySearch: (
 let applySubstitution: ( editorState, ~replaceWhat: string, ~replaceWith: string, ) => editorState
 
 let unifyAll: editorState => editorState
-let unifyBottomUp: ( editorState, string, ) => editorState
+let unifyBottomUp: (
+    editorState,
+    string,
+    ~asrtLabel:string=?,
+    ~maxSearchDepth:int=?,
+    ~lengthRestriction:lengthRestrict=?,
+    ()
+) => (editorState, proofTreeDto)
 
 let setTestDataDir: string => unit
 let assertEditorState: (editorState, string, ~failOnMismatch: bool=?, unit,) => unit

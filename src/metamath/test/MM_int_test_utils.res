@@ -217,7 +217,12 @@ let unifyAll = (st):editorState => {
     }
 }
 
-let unifyBottomUp = (st,stmtId):editorState => {
+let unifyBottomUp = (st,stmtId, 
+    ~asrtLabel:option<string>=?,
+    ~maxSearchDepth:int=4, 
+    ~lengthRestriction:lengthRestrict=Less,
+    ()
+):(editorState, proofTreeDto) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -231,15 +236,15 @@ let unifyBottomUp = (st,stmtId):editorState => {
                 ~stmts,
                 ~debug=false,
                 ~bottomUpProverParams = {
-                    asrtLabel: None,
-                    maxSearchDepth: 4,
-                    lengthRestriction: Less,
+                    asrtLabel,
+                    maxSearchDepth,
+                    lengthRestriction,
                 },
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
-            applyUnifyAllResults(st, proofTreeDto)
+            (st, proofTreeDto)
         }
     }
 }
