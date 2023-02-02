@@ -44,9 +44,7 @@ let make = (
     }
 
     let rndLabelSelector = () => {
-        <AutocompleteVirtualized value=label options=allLabels size=#small
-            onChange=onLabelChange
-        />
+        <AutocompleteVirtualized value=label options=allLabels size=#small onChange=onLabelChange />
     }
 
     let rndFileSelector = () => {
@@ -67,15 +65,20 @@ let make = (
                 </pre>
             }
             | None => {
-                <Row>
-                    {rndReadInstrTypeSelector()}
-                    {
-                        switch readInstr {
-                            | #stopBefore | #stopAfter => rndLabelSelector()
-                            | _ => React.null
-                        }
+                switch fileName {
+                    | None => React.null
+                    | Some(_) => {
+                        <Row>
+                            {rndReadInstrTypeSelector()}
+                            {
+                                switch readInstr {
+                                    | #stopBefore | #stopAfter => rndLabelSelector()
+                                    | _ => React.null
+                                }
+                            }
+                        </Row>
                     }
-                </Row>
+                }
             }
         }
     }

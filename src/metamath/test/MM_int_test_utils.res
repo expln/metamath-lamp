@@ -37,6 +37,7 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
 
         preCtxV: 1,
         preCtx: ctx,
+        parenCnt: parenCnt.contents,
         frms,
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 

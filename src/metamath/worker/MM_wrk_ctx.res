@@ -111,7 +111,7 @@ let thisProcName = procName
 
 let prepareParenInts = (wrkCtx, parenStr) => {
     let parenSyms = parenStr->getSpaceSeparatedValuesAsArray
-    let parensInt = []
+    let parenInts = []
     let maxI = parenSyms->Js_array2.length / 2 - 1
     for i in 0 to maxI {
         let leftParen = parenSyms[i*2]
@@ -120,8 +120,8 @@ let prepareParenInts = (wrkCtx, parenStr) => {
             | Some(leftParenInt) if wrkCtx->isConst(leftParen) => {
                 switch wrkCtx->ctxSymToInt(rightParen) {
                     | Some(rightParenInt) if wrkCtx->isConst(rightParen) => {
-                        parensInt->Js.Array2.push(leftParenInt)->ignore
-                        parensInt->Js.Array2.push(rightParenInt)->ignore
+                        parenInts->Js.Array2.push(leftParenInt)->ignore
+                        parenInts->Js.Array2.push(rightParenInt)->ignore
                     }
                     | _ => ()
                 }
@@ -129,7 +129,7 @@ let prepareParenInts = (wrkCtx, parenStr) => {
             | _ => ()
         }
     }
-    parensInt
+    parenInts
 }
 
 let addVarFromString = (wrkCtx, str) => {

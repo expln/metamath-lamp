@@ -3,7 +3,6 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open MM_syntax_tree
 open MM_wrk_settings
-open MM_wrk_unify
 open MM_parenCounter
 open MM_substitution
 open MM_asrt_apply
@@ -65,6 +64,7 @@ type editorState = {
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
 
     varsText: string,

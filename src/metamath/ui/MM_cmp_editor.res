@@ -12,6 +12,7 @@ open MM_proof_tree
 open MM_proof_table
 open Expln_utils_promise
 open MM_react_common
+open MM_parenCounter
 
 type userStmtLocStor = {
     id: string,
@@ -63,6 +64,7 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
         preCtxV,
         preCtx,
         frms: prepareFrmSubsData(preCtx),
+        parenCnt: parenCntMake(prepareParenInts(preCtx, settings.parens), ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         varsText: stateLocStor->Belt.Option.map(obj => obj.varsText)->Belt.Option.getWithDefault(""),
@@ -397,6 +399,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_unify_bottom_up
                                 modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
+                                frms=state.frms parenCnt=state.parenCnt
                                 onCancel={() => closeModal(modalRef, modalId)}
                                 typeToPrefix = {
                                     Belt_MapString.fromArray(

@@ -118,6 +118,7 @@ type editorState = {
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
 
     varsText: string,
@@ -558,7 +559,7 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         preCtxV, 
         preCtx, 
         frms: prepareFrmSubsData(preCtx),
-        
+        parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)

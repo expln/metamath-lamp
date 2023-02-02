@@ -15,6 +15,7 @@ open MM_provers
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_wrk_unify
+open MM_parenCounter
 
 type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -45,7 +46,58 @@ type state = {
     checkedResultIdx: option<int>,
 }
 
-let makeInitialState = (~wrkCtx, ~stmts: array<rootStmt>,) => {
+let stmtMayMatchAsrt = (
+    ~stmt:expr,
+    ~frm:frmSubsData,
+    ~parenCnt:parenCnt,
+):bool => {
+    if (stmt[0] != frm.frame.asrt[0]) {
+        false
+    } else {
+        let res = ref(false)
+        iterateSubstitutions(
+            ~frmExpr = frm.frame.asrt,
+            ~expr = stmt,
+            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
+            ~constParts = frm.constParts[frm.numOfHypsE], 
+            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~subs = frm.subs,
+            ~parenCnt,
+            ~consumer = _ => {
+                res.contents = true
+                Stop
+            }
+        )->ignore
+        res.contents
+    }
+}
+
+let getAvailableAsrtLabels = (
+    ~frms: Belt_MapString.t<frmSubsData>, 
+    ~parenCnt: parenCnt, 
+    ~framesToSkip:array<string>, 
+    ~stmtToProve:expr,
+) => {
+    let availableAsrtLabels = []
+    frms->Belt_MapString.forEach((label,frm) => {
+        if (
+            !(framesToSkip->Js_array2.includes(label))
+            && stmtMayMatchAsrt(~stmt=stmtToProve, ~frm, ~parenCnt)
+        ) {
+            availableAsrtLabels->Js_array2.push(label)->ignore
+        }
+    })
+    availableAsrtLabels
+}
+
+let makeInitialState = (
+    ~wrkCtx:mmContext,
+    ~stmts: array<rootStmt>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~framesToSkip:array<string>,
+) => {
+    let stmtToProve = stmts[stmts->Js_array2.length-1].expr
     {
         title:
             <span>
@@ -53,13 +105,11 @@ let makeInitialState = (~wrkCtx, ~stmts: array<rootStmt>,) => {
                     {"Proving bottom-up: "->React.string}
                 </span>
                 {
-                    React.string(
-                        stmts[stmts->Js_array2.length-1].expr->ctxIntsToStrExn(wrkCtx, _)
-                    )
+                    React.string( stmtToProve->ctxIntsToStrExn(wrkCtx, _) )
                 }
             </span>,
         
-        availableLabels: wrkCtx->getAllFrames->Belt_MapString.keysToArray,
+        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~framesToSkip, ~stmtToProve, ),
         label: None,
         depthStr: "4",
         depth: 4,
@@ -115,7 +165,7 @@ let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRende
                         newStmtsDto.stmts
                             ->Js.Array2.map(stmt => {
                                 <tr key=stmt.exprStr>
-                                    <td>
+                                    <td style=ReactDOM.Style.make(~textAlign="right", ())>
                                         {
                                             switch stmt.jstf {
                                                 | None => React.null
@@ -127,7 +177,7 @@ let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRende
                                             }
                                         }
                                     </td>
-                                    <td> 
+                                    <td style=ReactDOM.Style.make(~color="green", ())>
                                         { if (stmt.isProved) { React.string("\u2713") } else { React.null } } 
                                     </td>
                                     <td> 
@@ -315,7 +365,7 @@ let srcToNewStmts = (
                 }
             }
 
-            let addExprToResult = (~label, ~expr, ~proof) => {
+            let addExprToResult = (~label, ~expr, ~jstf, ~isProved) => {
                 expr->Js_array2.forEach(ei => {
                     if (ei > maxCtxVar && !(res.newVars->Js_array2.includes(ei))) {
                         switch newVarTypes->Belt_HashMapInt.get(ei) {
@@ -333,7 +383,7 @@ let srcToNewStmts = (
                     }
                 })
                 let exprStr = expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
-                let jstf = switch proof {
+                let jstf = switch jstf {
                     | Some(Assertion({args, label})) => {
                         let argLabels = []
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
@@ -354,7 +404,7 @@ let srcToNewStmts = (
                         expr,
                         exprStr,
                         jstf,
-                        isProved: proof->Belt_Option.isSome,
+                        isProved,
                     }
                 )->ignore
             }
@@ -396,7 +446,12 @@ let srcToNewStmts = (
                             let newLabel = generateNewLabels(~ctx = wrkCtx, ~prefix="stmt", ~amount=1, ~usedLabels, ())[0]
                             exprToLabel->Belt_HashMap.set(node.expr, newLabel)
                             usedLabels->Belt_HashSetString.add(newLabel)
-                            addExprToResult(~label=newLabel, ~expr = node.expr, ~proof = node.proof)
+                            addExprToResult(
+                                ~label=newLabel, 
+                                ~expr = node.expr, 
+                                ~jstf = node.proof, 
+                                ~isProved=node.proof->Belt_Option.isSome
+                            )
                         }
                         None
                     },
@@ -404,7 +459,7 @@ let srcToNewStmts = (
                 )->ignore
             })
             let stmtToProve = rootStmts[rootStmts->Js.Array2.length-1]
-            addExprToResult(~label=stmtToProve.label, ~expr = stmtToProve.expr, ~proof = Some(src))
+            addExprToResult(~label=stmtToProve.label, ~expr = stmtToProve.expr, ~jstf=Some(src), ~isProved=false)
             if (!disjIsEmpty(tree.disj)) {
                 let numOfNewVars = res.newVars->Js.Array2.length
                 for ni in 0 to numOfNewVars-2 {
@@ -430,6 +485,8 @@ let make = (
     ~modalRef:modalRef,
     ~preCtxVer: int,
     ~preCtx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
     ~wrkCtx: mmContext,
     ~framesToSkip:array<string>,
     ~parenStr: string,
@@ -440,7 +497,7 @@ let make = (
     ~typeToPrefix: Belt_MapString.t<string>,
     ~onCancel:unit=>unit
 ) => {
-    let (state, setState) = React.useState(() => makeInitialState(~wrkCtx, ~stmts))
+    let (state, setState) = React.useState(() => makeInitialState( ~wrkCtx, ~stmts, ~frms, ~parenCnt, ~framesToSkip, ))
 
     Js.Console.log2("state", state)
 
@@ -572,7 +629,7 @@ let make = (
         switch state.results {
             | None => React.null
             | Some(results) => {
-                if (results->Js_array2.length < 1) {
+                if (results->Js_array2.length < 2) {
                     React.null
                 } else {
                     <FormControl size=#small>
@@ -595,24 +652,34 @@ let make = (
     }
 
     let rndParams = () => {
-        <Row>
-            <AutocompleteVirtualized value=state.label options=state.availableLabels size=#small width=200
-                onChange=actLabelUpdated
-            />
-            <TextField 
-                label="Search depth"
-                size=#small
-                style=ReactDOM.Style.make(~width="100px", ())
-                autoFocus=true
-                value=state.depthStr
-                onChange=evt2str(actDepthUpdated)
-            />
-            {rndLengthRestrictSelector(state.lengthRestrict)}
-            <Button onClick={_=>actProve()} variant=#contained>
-                {React.string("Prove")}
-            </Button>
-            <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
-        </Row>
+        if (state.availableLabels->Js.Array2.length == 0) {
+            <Col>
+                {
+                    React.string("The statement to prove doesn't math any existing assertion. " 
+                        ++ "Bottom-up proving is not available for such statements.")
+                }
+                <Button onClick={_=>onCancel()}> {React.string("Ok")} </Button>
+            </Col>
+        } else {
+            <Row>
+                <AutocompleteVirtualized value=state.label options=state.availableLabels size=#small width=200
+                    onChange=actLabelUpdated
+                />
+                <TextField 
+                    label="Search depth"
+                    size=#small
+                    style=ReactDOM.Style.make(~width="100px", ())
+                    autoFocus=true
+                    value=state.depthStr
+                    onChange=evt2str(actDepthUpdated)
+                />
+                {rndLengthRestrictSelector(state.lengthRestrict)}
+                <Button onClick={_=>actProve()} variant=#contained>
+                    {React.string("Prove")}
+                </Button>
+                <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
+            </Row>
+        }
     }
 
     let rndPagination = totalNumOfResults => {
@@ -627,38 +694,46 @@ let make = (
         switch state.resultsSorted {
             | None => React.null
             | Some(resultsSorted) => {
-                let start = (state.resultsPage - 1) * state.resultsPerPage
-                let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
                 let totalNumOfResults = resultsSorted->Js.Array2.length
-                <Col>
-                    {rndSortBySelector()}
-                    {rndPagination(totalNumOfResults)}
-                    {
-                        items->Js_array2.map(item => {
-                            <table key={item.idx->Belt_Int.toString}>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <Checkbox
-                                                checked={
-                                                    state.checkedResultIdx
-                                                        ->Belt_Option.map(idx => idx == item.idx)
-                                                        ->Belt.Option.getWithDefault(false)
-                                                }
-                                                onChange={_ => actToggleResultChecked(item.idx)}
-                                            />
-                                        </td>
-                                        <td>
-                                            item.elem
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        })->React.array
-                    }
-                    {rndPagination(totalNumOfResults)}
-                    // {rndResultButtons()}
-                </Col>
+                if (totalNumOfResults == 0) {
+                    React.string("Nothing found.")
+                } else {
+                    let start = (state.resultsPage - 1) * state.resultsPerPage
+                    let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
+                    <Col>
+                        <Row alignItems=#center>
+                            {rndSortBySelector()}
+                            {rndPagination(totalNumOfResults)}
+                        </Row>
+                        {
+                            items->Js_array2.map(item => {
+                                <table key={item.idx->Belt_Int.toString}>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <Checkbox
+                                                    checked={
+                                                        state.checkedResultIdx
+                                                            ->Belt_Option.map(idx => idx == item.idx)
+                                                            ->Belt.Option.getWithDefault(false)
+                                                    }
+                                                    onChange={_ => actToggleResultChecked(item.idx)}
+                                                />
+                                            </td>
+                                            <td>
+                                                <Paper>
+                                                    item.elem
+                                                </Paper>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            })->React.array
+                        }
+                        {rndPagination(totalNumOfResults)}
+                        // {rndResultButtons()}
+                    </Col>
+                }
             }
         }
     }
