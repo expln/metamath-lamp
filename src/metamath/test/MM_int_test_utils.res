@@ -7,8 +7,10 @@ open MM_provers
 open MM_wrk_editor
 open MM_wrk_settings
 open MM_wrk_search_asrt
+open MM_wrk_unify
 open MM_substitution
 open MM_parenCounter
+open MM_statements_dto
 
 let setMmPath = "/books/metamath/set.mm"
 let failOnMismatch = true
@@ -221,8 +223,9 @@ let unifyBottomUp = (st,stmtId,
     ~asrtLabel:option<string>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
+    ~chooseLabel:string,
     ()
-):(editorState, proofTreeDto) => {
+):(editorState, array<newStmtsDto>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -244,7 +247,23 @@ let unifyBottomUp = (st,stmtId,
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
-            (st, proofTreeDto)
+            let newStmts = proofTreeDtoToNewStmtsDto(
+                ~treeDto = proofTreeDto, 
+                ~rootStmts = stmts,
+                ~ctx = wrkCtx,
+                ~typeToPrefix = 
+                    Belt_MapString.fromArray(
+                        st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                    )
+            )
+            let result = newStmts->Js_array2.filter(newStmtsDto => {
+                let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
+                switch lastStmt.jstf {
+                    | Some({label}) => label == chooseLabel
+                    | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
+                }
+            })
+            (st, result)
         }
     }
 }
@@ -320,7 +339,7 @@ let assertProof = (st, stmtId:string, expectedStrFileName:string, ~failOnMismatc
     assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
 }
 
-let getStmtId = (st, ~contains:string) => {
+let getStmtId = (st:editorState, ~contains:string) => {
     let found = st.stmts->Js_array2.filter(stmt => stmt.cont->contToStr->Js.String2.includes(contains))
     if (found->Js_array2.length != 1) {
         raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))

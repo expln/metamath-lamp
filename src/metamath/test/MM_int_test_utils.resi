@@ -1,6 +1,7 @@
 open MM_wrk_editor
 open MM_provers
 open MM_proof_tree_dto
+open MM_statements_dto
 
 let setMmPath: string
 let failOnMismatch: bool
@@ -41,8 +42,9 @@ let unifyBottomUp: (
     ~asrtLabel:string=?,
     ~maxSearchDepth:int=?,
     ~lengthRestriction:lengthRestrict=?,
+    ~chooseLabel:string,
     ()
-) => (editorState, proofTreeDto)
+) => (editorState, array<newStmtsDto>)
 
 let setTestDataDir: string => unit
 let assertEditorState: (editorState, string, ~failOnMismatch: bool=?, unit,) => unit
