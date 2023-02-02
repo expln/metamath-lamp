@@ -165,19 +165,22 @@ let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRende
                         newStmtsDto.stmts
                             ->Js.Array2.map(stmt => {
                                 <tr key=stmt.exprStr>
+                                    <td>
+                                        { React.string(stmt.label) } 
+                                    </td>
                                     <td style=ReactDOM.Style.make(~textAlign="right", ())>
                                         {
                                             switch stmt.jstf {
                                                 | None => React.null
                                                 | Some({args, label}) => {
                                                     React.string(
-                                                        args->Js_array2.joinWith(" ") ++ " : " ++ label
+                                                        "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
                                                     )
                                                 }
                                             }
                                         }
                                     </td>
-                                    <td style=ReactDOM.Style.make(~color="green", ())>
+                                    <td style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())>
                                         { if (stmt.isProved) { React.string("\u2713") } else { React.null } } 
                                     </td>
                                     <td> 

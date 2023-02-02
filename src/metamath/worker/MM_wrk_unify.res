@@ -195,7 +195,7 @@ let srcToNewStmts = (
                     },
                     ~postProcess = (_,node) => {
                         if (!(exprToLabel->Belt_HashMap.has(node.expr))) {
-                            let newLabel = generateNewLabels(~ctx, ~prefix="stmt", ~amount=1, ~usedLabels, ())[0]
+                            let newLabel = generateNewLabels(~ctx, ~prefix="", ~amount=1, ~usedLabels, ())[0]
                             exprToLabel->Belt_HashMap.set(node.expr, newLabel)
                             usedLabels->Belt_HashSetString.add(newLabel)
                             addExprToResult(
