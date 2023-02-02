@@ -1,3 +1,5 @@
+- autofocus label selector after scope is set to StopBefore or StopAfter
+- in cmp_search use array2.slice and store idx in the rendered elem the same way as in cmp_bottom_up
 - add an int test with few hypotheses.
 - apply colors to search results, substitutions.
 - fix a bug:

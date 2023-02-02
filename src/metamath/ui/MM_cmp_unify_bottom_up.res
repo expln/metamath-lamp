@@ -19,6 +19,7 @@ open MM_wrk_unify
 type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
 type resultRendered = {
+    idx:int,
     elem: reElem,
     asrtLabel:string,
     numOfNewVars: int,
@@ -37,7 +38,7 @@ type state = {
     results: option<array<newStmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
     sortBy: sortBy,
-    resultsSorted: option<array<int>>,
+    resultsSorted: option<array<resultRendered>>,
     resultsPerPage:int,
     resultsMaxPage:int,
     resultsPage:int,
@@ -96,17 +97,61 @@ let setLengthRestrict = (st,lengthRestrict) => {
     }
 }
 
-let setResults = (st,results) => {
+let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRendered => {
+    let elem = 
+        <Col>
+            {
+                newStmtsDto.newDisjStr
+                    ->Js.Array2.map(disjStr => {
+                        <span key=disjStr>
+                            {disjStr->React.string}
+                        </span>
+                    })
+                    ->React.array
+            }
+            <table>
+                <tbody>
+                    {
+                        newStmtsDto.stmts
+                            ->Js.Array2.map(stmt => {
+                                <tr key=stmt.exprStr>
+                                    <td>
+                                        {
+                                            switch stmt.jstf {
+                                                | None => React.null
+                                                | Some({args, label}) => {
+                                                    React.string(
+                                                        args->Js_array2.joinWith(" ") ++ " : " ++ label
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    </td>
+                                    <td> 
+                                        { if (stmt.isProved) { React.string("\u2713") } else { React.null } } 
+                                    </td>
+                                    <td> 
+                                        {React.string(stmt.exprStr)}
+                                    </td>
+                                </tr>
+                            })
+                            ->React.array
+                    }
+                </tbody>
+            </table>
+        </Col>
     {
-        ...st,
-        results
-    }
-}
-
-let setResultsRendered = (st,resultsRendered) => {
-    {
-        ...st,
-        resultsRendered
+        idx,
+        elem,
+        asrtLabel:
+            newStmtsDto.stmts[newStmtsDto.stmts->Js.Array2.length-1].jstf
+                ->Belt_Option.map(jstf => jstf.label)
+                ->Belt_Option.getWithDefault(""),
+        numOfNewVars: newStmtsDto.newVars->Js.Array2.length,
+        numOfNewUnprovedStmts: newStmtsDto.stmts->Js.Array2.reduce(
+            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
+            0
+        ),
     }
 }
 
@@ -124,13 +169,75 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     }
 }
 
+let setResults = (st,results) => {
+    switch results {
+        | None => {
+            {
+                ...st,
+                results,
+                resultsRendered: None,
+                resultsSorted: None,
+                resultsMaxPage: 0,
+                resultsPage: 0,
+                checkedResultIdx: None,
+            }
+        }
+        | Some(results) => {
+            let resultsRendered = Some(results->Js_array2.mapi((dto,i) => newStmtsDtoToResultRendered(dto,i)))
+            {
+                ...st,
+                results:Some(results),
+                resultsRendered,
+                resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
+                resultsMaxPage: Js.Math.ceil_int(
+                    results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat
+                ),
+                resultsPage: 1,
+                checkedResultIdx: None,
+            }
+        }
+    }
+    
+}
+
 let setSortBy = (st,sortBy) => {
     {
         ...st,
         sortBy,
         resultsSorted: sortResultsRendered(st.resultsRendered, sortBy),
-        resultsPage: 0,
+        resultsPage: 1,
         checkedResultIdx: None,
+    }
+}
+
+let setPage = (st,page) => {
+    {
+        ...st,
+        resultsPage: page,
+    }
+}
+
+let toggleResultChecked = (st,idx) => {
+    switch st.checkedResultIdx {
+        | None => {
+            {
+                ...st,
+                checkedResultIdx: Some(idx)
+            }
+        }
+        | Some(checkedIdx) => {
+            if (checkedIdx != idx) {
+                {
+                    ...st,
+                    checkedResultIdx: Some(idx)
+                }
+            } else {
+                {
+                    ...st,
+                    checkedResultIdx: None
+                }
+            }
+        }
     }
 }
 
@@ -318,63 +425,6 @@ let srcToNewStmts = (
     
 }
 
-let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto):resultRendered => {
-    let elem = 
-        <Col>
-            {
-                newStmtsDto.newDisjStr
-                    ->Js.Array2.map(disjStr => {
-                        <span key=disjStr>
-                            {disjStr->React.string}
-                        </span>
-                    })
-                    ->React.array
-            }
-            <table>
-                <tbody>
-                    {
-                        newStmtsDto.stmts
-                            ->Js.Array2.map(stmt => {
-                                <tr key=stmt.exprStr>
-                                    <td>
-                                        {
-                                            switch stmt.jstf {
-                                                | None => React.null
-                                                | Some({args, label}) => {
-                                                    React.string(
-                                                        args->Js_array2.joinWith(" ") ++ " : " ++ label
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    </td>
-                                    <td> 
-                                        { if (stmt.isProved) { React.string("\u2713") } else { React.null } } 
-                                    </td>
-                                    <td> 
-                                        {React.string(stmt.exprStr)}
-                                    </td>
-                                </tr>
-                            })
-                            ->React.array
-                    }
-                </tbody>
-            </table>
-        </Col>
-    {
-        elem,
-        asrtLabel:
-            newStmtsDto.stmts[newStmtsDto.stmts->Js.Array2.length-1].jstf
-                ->Belt_Option.map(jstf => jstf.label)
-                ->Belt_Option.getWithDefault(""),
-        numOfNewVars: newStmtsDto.newVars->Js.Array2.length,
-        numOfNewUnprovedStmts: newStmtsDto.stmts->Js.Array2.reduce(
-            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
-            0
-        ),
-    }
-}
-
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -407,16 +457,7 @@ let make = (
     }
 
     let actSetResults = results => {
-        setState(st => {
-            let st = setResults(st, results)
-            let st = switch results {
-                | Some(results) => {
-                    setResultsRendered(st, Some(results->Js_array2.map(newStmtsDtoToResultRendered)))
-                }
-                | None => st
-            }
-            st
-        })
+        setState(setResults(_, results))
     }
 
     let rndTitle = () => {
@@ -502,6 +543,14 @@ let make = (
         setState(setSortBy(_, sortBy))
     }
 
+    let actPageChange = page => {
+        setState(setPage(_, page))
+    }
+
+    let actToggleResultChecked = idx => {
+        setState(toggleResultChecked(_,idx))
+    }
+
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
         <FormControl size=#small>
             <InputLabel id="length-restrict-select-label">"Length resctriction"</InputLabel>
@@ -566,10 +615,59 @@ let make = (
         </Row>
     }
 
+    let rndPagination = totalNumOfResults => {
+        if (state.resultsPerPage < totalNumOfResults) {
+            <Pagination count=state.resultsMaxPage page=state.resultsPage onChange={(_,newPage) => actPageChange(newPage)} />
+        } else {
+            React.null
+        }
+    }
+
+    let rndResults = () => {
+        switch state.resultsSorted {
+            | None => React.null
+            | Some(resultsSorted) => {
+                let start = (state.resultsPage - 1) * state.resultsPerPage
+                let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
+                let totalNumOfResults = resultsSorted->Js.Array2.length
+                <Col>
+                    {rndSortBySelector()}
+                    {rndPagination(totalNumOfResults)}
+                    {
+                        items->Js_array2.map(item => {
+                            <table key={item.idx->Belt_Int.toString}>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <Checkbox
+                                                checked={
+                                                    state.checkedResultIdx
+                                                        ->Belt_Option.map(idx => idx == item.idx)
+                                                        ->Belt.Option.getWithDefault(false)
+                                                }
+                                                onChange={_ => actToggleResultChecked(item.idx)}
+                                            />
+                                        </td>
+                                        <td>
+                                            item.elem
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        })->React.array
+                    }
+                    {rndPagination(totalNumOfResults)}
+                    // {rndResultButtons()}
+                </Col>
+            }
+        }
+    }
+
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.5>
             {rndTitle()}
             {rndParams()}
+            {rndResults()}
         </Col>
     </Paper>
 }
