@@ -153,6 +153,24 @@ describe("MM_wrk_editor integration tests", _ => {
 
     })
 
+    it("filtering bottom-up proof results in two ways for xmulasslem", _ => {
+        setTestDataDir("bottom-up-xmulasslem")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+
+        let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
+
+        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~chooseLabel="xmulasslem", ())
+        let resultsWhenLabelParamIsNotSpecified = stmts1->arrNewStmtsDtoToStr
+
+        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
+        let resultsWhenLabelParamIsSpecified = stmts2->arrNewStmtsDtoToStr
+
+        assertTextEq(
+            resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
+            resultsWhenLabelParamIsSpecified, "resultsWhenLabelParamIsSpecified"
+        )
+    })
+
     it("prove sgnval", _ => {
         setTestDataDir("prove-sgnval")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())

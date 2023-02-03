@@ -14,6 +14,7 @@ open MM_statements_dto
 
 let setMmPath = "/books/metamath/set.mm"
 let failOnMismatch = true
+let useDebugModeForUnification = false
 
 let parenCnt = ref(parenCntMake([], ()))
 
@@ -209,7 +210,7 @@ let unifyAll = (st):editorState => {
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~debug=false,
+                ~debug=useDebugModeForUnification,
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
@@ -237,7 +238,7 @@ let unifyBottomUp = (st,stmtId,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~debug=false,
+                ~debug=useDebugModeForUnification,
                 ~bottomUpProverParams = {
                     asrtLabel,
                     maxSearchDepth,
@@ -364,6 +365,22 @@ let assertProof = (st, stmtId:string, expectedStrFileName:string, ~failOnMismatc
         ->Belt.Option.getWithDefault("no proof generated")
         ->Js.String2.replaceByRe(%re("/\r/g"), "")
     assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
+}
+
+let assertTextEq = (text1:string, fileName1:string, text2:string, fileName2:string):unit => {
+    if (text1 != text2) {
+        Expln_utils_files.writeStringToFile(
+            curTestDataDir.contents ++ "/" ++ fileName1 ++ ".txt", 
+            text1
+        )
+        Expln_utils_files.writeStringToFile(
+            curTestDataDir.contents ++ "/" ++ fileName2 ++ ".txt", 
+            text2
+        )
+        if (failOnMismatch) {
+            assertEq( text1, text2 )
+        }
+    }
 }
 
 let getStmtId = (st:editorState, ~contains:string) => {
