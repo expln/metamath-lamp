@@ -262,7 +262,7 @@ let findAsrtParentsWithNewVars = (
             )
             let maxI = argExpr->Js_array2.length-1
             for i in 0 to maxI {
-                argExpr[i] = applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(i, i)
+                argExpr[i] = applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(argExpr[i], argExpr[i])
             }
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode

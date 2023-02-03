@@ -367,7 +367,7 @@ let assertProof = (st, stmtId:string, expectedStrFileName:string, ~failOnMismatc
     assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
 }
 
-let assertTextEq = (text1:string, fileName1:string, text2:string, fileName2:string):unit => {
+let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:string):unit => {
     if (text1 != text2) {
         Expln_utils_files.writeStringToFile(
             curTestDataDir.contents ++ "/" ++ fileName1 ++ ".txt", 
@@ -379,6 +379,10 @@ let assertTextEq = (text1:string, fileName1:string, text2:string, fileName2:stri
         )
         assertEq( text1, text2 )
     }
+}
+
+let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
+    assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
 }
 
 let getStmtId = (st:editorState, ~contains:string) => {

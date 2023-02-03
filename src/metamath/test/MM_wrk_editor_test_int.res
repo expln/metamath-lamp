@@ -159,13 +159,35 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
-        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~chooseLabel="xmulasslem", ())
+        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="xmulasslem", ())
         let resultsWhenLabelParamIsNotSpecified = stmts1->arrNewStmtsDtoToStr
 
-        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
+        assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "xmulasslem")
+
+        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
         let resultsWhenLabelParamIsSpecified = stmts2->arrNewStmtsDtoToStr
 
-        assertTextEq(
+        assertTextsEq(
+            resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
+            resultsWhenLabelParamIsSpecified, "resultsWhenLabelParamIsSpecified"
+        )
+    })
+
+    it("filtering bottom-up proof results in two ways for fvmpt", _ => {
+        setTestDataDir("bottom-up-fvmpt")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+
+        let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
+
+        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="fvmpt", ())
+        let resultsWhenLabelParamIsNotSpecified = stmts1->arrNewStmtsDtoToStr
+
+        assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "fvmpt")
+
+        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
+        let resultsWhenLabelParamIsSpecified = stmts2->arrNewStmtsDtoToStr
+
+        assertTextsEq(
             resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
             resultsWhenLabelParamIsSpecified, "resultsWhenLabelParamIsSpecified"
         )

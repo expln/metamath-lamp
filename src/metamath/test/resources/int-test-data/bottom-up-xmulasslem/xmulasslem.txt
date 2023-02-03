@@ -1,0 +1,13 @@
+$d setvar1 class1 $.
+$d setvar1 class2 $.
+$d setvar1 class3 $.
+1    |- ( setvar1 = class1 -> ( wff1 <-> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) ) )
+2    |- ( setvar1 = -e class1 -> ( wff1 <-> class2 = class3 ) )
+3    |- ( A e. RR* -> ( sgn ` A ) e. RR* )
+4    |- ( A e. RR* -> if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) e. RR* )
+5    |- ( A e. RR* -> class1 e. RR* )
+6    |- ( ( A e. RR* /\ ( setvar1 e. RR* /\ 0 < setvar1 ) ) -> wff1 )
+7    |- ( A e. RR* -> ( setvar1 = 0 -> wff1 ) )
+8    |- ( A e. RR* -> class2 = -e ( sgn ` A ) )
+9    |- ( A e. RR* -> class3 = -e if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
+stmt1 [1 2 3 4 5 6 7 8 9 : xmulasslem ]   |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )

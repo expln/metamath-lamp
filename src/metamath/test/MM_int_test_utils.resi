@@ -50,5 +50,6 @@ let arrNewStmtsDtoToStr: array<MM_statements_dto.newStmtsDto> => string
 let setTestDataDir: string => unit
 let assertEditorState: (editorState, string, ~failOnMismatch: bool=?, unit,) => unit
 let assertProof: (editorState, string, string, ~failOnMismatch: bool=?, unit,) => unit
-let assertTextEq: (string, string, string, string) => unit
+let assertTextsEq: (string, string, string, string) => unit
+let assertTextEqFile: (string, string) => unit
 let getStmtId: (editorState, ~contains: string) => string
