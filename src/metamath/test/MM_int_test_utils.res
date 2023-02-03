@@ -256,16 +256,43 @@ let unifyBottomUp = (st,stmtId,
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                     )
             )
-            let result = newStmts->Js_array2.filter(newStmtsDto => {
-                let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
-                switch lastStmt.jstf {
-                    | Some({label}) => label == chooseLabel
-                    | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
-                }
-            })
+            let result = newStmts
+                ->Js_array2.map(newStmtsDto => {
+                    let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
+                    switch lastStmt.jstf {
+                        | Some({label}) => (label, newStmtsDto)
+                        | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
+                    }
+                })
+                ->Js_array2.filter(((label, _)) => label == chooseLabel)
+                ->Js.Array2.sortInPlaceWith(((la, _),(lb, _)) => la->Js_string2.localeCompare(lb)->Belt.Float.toInt)
+                ->Js_array2.map(((_, newStmtsDto)) => newStmtsDto)
             (st, result)
         }
     }
+}
+
+let newStmtsDtoToStr = (newStmtsDto:newStmtsDto):string => {
+    let disjStr = newStmtsDto.newDisjStr->Js.Array2.joinWith("\n")
+    let stmtsStr = newStmtsDto.stmts
+        ->Js.Array2.map(stmt => {
+            [
+                stmt.label,
+                switch stmt.jstf {
+                    | None => ""
+                    | Some({args, label}) => "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
+                },
+                if (stmt.isProved) {"\u2713"} else {" "},
+                stmt.exprStr
+            ]->Js.Array2.joinWith(" ")
+        })->Js.Array2.joinWith("\n")
+    disjStr ++ "\n" ++ stmtsStr
+}
+
+let arrNewStmtsDtoToStr = (arr:array<newStmtsDto>):string => {
+    arr
+        ->Js_array2.map(newStmtsDtoToStr)
+        ->Js_array2.joinWith("\n------------------------------------------------------------------------------------\n")
 }
 
 let editorStateToStr = st => {
