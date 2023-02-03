@@ -260,6 +260,10 @@ let findAsrtParentsWithNewVars = (
                 ~subs=applResult.subs,
                 ~createWorkVar = _ => raise(MmException({msg:`New work variables are not expected here [findParentsWithNewVars].`}))
             )
+            let maxI = argExpr->Js_array2.length-1
+            for i in 0 to maxI {
+                argExpr[i] = applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(i, i)
+            }
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode
             if (frame.hyps[argIdx.contents].typ == F) {

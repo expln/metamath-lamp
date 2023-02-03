@@ -377,9 +377,7 @@ let assertTextEq = (text1:string, fileName1:string, text2:string, fileName2:stri
             curTestDataDir.contents ++ "/" ++ fileName2 ++ ".txt", 
             text2
         )
-        if (failOnMismatch) {
-            assertEq( text1, text2 )
-        }
+        assertEq( text1, text2 )
     }
 }
 

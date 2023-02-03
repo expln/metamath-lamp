@@ -1,7 +1,6 @@
 open MM_parser
 open MM_context
 open MM_substitution
-open MM_asrt_apply
 open MM_parenCounter
 open MM_proof_table
 open MM_progress_tracker
