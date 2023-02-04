@@ -129,3 +129,4 @@ let updateEditorStateWithPostupdateActions: (editorState, editorState => editorS
 let generateCompressedProof: (editorState, string) => option<string>
 let recalcAllColors: editorState => editorState
 let updateColorsInAllStmts: editorState => editorState
+let getTheOnlySelectedStmt: editorState => option<userStmt>

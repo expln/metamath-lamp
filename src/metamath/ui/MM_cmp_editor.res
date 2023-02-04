@@ -344,20 +344,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
-    let getTheOnlySelectedStmt = ():option<userStmt> => {
-        if (state.checkedStmtIds->Js.Array2.length != 1) {
-            None
-        } else {
-            let idToFind = state.checkedStmtIds[0]
-            switch state.stmts->Js_array2.find(stmt => stmt.id == idToFind) {
-                | None => None
-                | Some(stmt) => Some(stmt)
-            }
-        }
-    }
-
     let singleProvableIsSelected = () => {
-        switch getTheOnlySelectedStmt() {
+        switch getTheOnlySelectedStmt(state) {
             | None => false
             | Some(stmt) => stmt.typ == #p
         }

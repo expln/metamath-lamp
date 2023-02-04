@@ -832,6 +832,18 @@ let prepareEditorForUnification = st => {
     )
 }
 
+let getTheOnlySelectedStmt = (st):option<userStmt> => {
+    if (st.checkedStmtIds->Js.Array2.length != 1) {
+        None
+    } else {
+        let idToFind = st.checkedStmtIds[0]
+        switch st.stmts->Js_array2.find(stmt => stmt.id == idToFind) {
+            | None => None
+            | Some(stmt) => Some(stmt)
+        }
+    }
+}
+
 let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
@@ -927,33 +939,56 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
             } else {
                 st->toggleStmtChecked(st.stmts[0].id)
             }
+            let checkedStmt = st->getTheOnlySelectedStmt
             let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
             let stMut = ref(st)
             newStmts.stmts->Js_array2.forEach(stmt => {
-                let ctxLabel = createNewLabel(stMut.contents, "stmt")
-                newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
-                let exprText = stmt.expr
-                    ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
-                    ->ctxIntsToStrExn(wrkCtx, _)
-                let jstfText = stmt.jstf
-                    ->Belt.Option.map(jstf => {
-                        jstf.args->Js_array2.map(label => {
-                            newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
-                        })->Js.Array2.joinWith(" ") ++ ": " ++ jstf.label
-                    })
-                    ->Belt.Option.getWithDefault("")
-                let (st, newStmtId) = addNewStmt(stMut.contents)
-                stMut.contents = st
-                stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {
-                    {
-                        ...stmt,
-                        typ: #p,
-                        label: ctxLabel,
-                        cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
-                        contEditMode: false,
-                        jstfText,
+                switch checkedStmt {
+                    | Some(checkedStmt) if checkedStmt.expr
+                                                ->Belt_Option.map(exprEq(_,stmt.expr))
+                                                ->Belt_Option.getWithDefault(false) => {
+                        stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
+                            {
+                                ...stmtToUpdate,
+                                jstfText: switch stmt.jstf {
+                                    | None => stmtToUpdate.jstfText
+                                    | Some({args, label}) => {
+                                        args->Js_array2.map(argLabel => {
+                                            newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
+                                        })->Js.Array2.joinWith(" ") ++ " : " ++ label
+                                    }
+                                }
+                            }
+                        })
                     }
-                })
+                    | _ => {
+                        let ctxLabel = createNewLabel(stMut.contents, "stmt")
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
+                        let exprText = stmt.expr
+                            ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
+                            ->ctxIntsToStrExn(wrkCtx, _)
+                        let jstfText = stmt.jstf
+                            ->Belt.Option.map(jstf => {
+                                jstf.args->Js_array2.map(label => {
+                                    newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
+                                })->Js.Array2.joinWith(" ") ++ ": " ++ jstf.label
+                            })
+                            ->Belt.Option.getWithDefault("")
+                        let (st, newStmtId) = addNewStmt(stMut.contents)
+                        stMut.contents = st
+                        stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {
+                            {
+                                ...stmt,
+                                typ: #p,
+                                label: ctxLabel,
+                                cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
+                                contEditMode: false,
+                                jstfText,
+                            }
+                        })
+                    }
+                    
+                }
             })
             let st = stMut.contents
             if (selectionWasEmpty) {

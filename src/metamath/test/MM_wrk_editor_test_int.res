@@ -201,7 +201,6 @@ describe("MM_wrk_editor integration tests", _ => {
         let (st, stmts) = st->unifyBottomUp(trgtStmtId, 
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
         assertEq(stmts->Js.Array2.length, 1)
-        stmts[0].stmts->Js_array2.spliceInPlace(~pos=-1, ~remove=1, ~add=[])->ignore
         let st = st->MM_wrk_editor.addNewStatements(stmts[0])
         let st = st->MM_wrk_editor.uncheckAllStmts
         let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
