@@ -329,7 +329,7 @@ let setTestDataDir = dirName => {
     curTestDataDir.contents = "./src/metamath/test/resources/int-test-data/" ++ dirName
 }
 
-let assertStrEqFile = (~actualStr:string, ~expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
+let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
         Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
@@ -355,16 +355,16 @@ let assertStrEqFile = (~actualStr:string, ~expectedStrFileName:string, ~failOnMi
     }
 }
 
-let assertEditorState = (st, expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
+let assertEditorState = (st, expectedStrFileName:string) => {
     let actualStr = st->editorStateToStr
-    assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
+    assertStrEqFile(actualStr, expectedStrFileName)
 }
 
-let assertProof = (st, stmtId:string, expectedStrFileName:string, ~failOnMismatch:bool=true, ()) => {
+let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
     let actualStr = st->generateCompressedProof(stmtId)
         ->Belt.Option.getWithDefault("no proof generated")
         ->Js.String2.replaceByRe(%re("/\r/g"), "")
-    assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
+    assertStrEqFile(actualStr, expectedStrFileName)
 }
 
 let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:string):unit => {
@@ -382,7 +382,7 @@ let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:str
 }
 
 let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
-    assertStrEqFile(~actualStr, ~expectedStrFileName, ~failOnMismatch, ())
+    assertStrEqFile(actualStr, expectedStrFileName)
 }
 
 let getStmtId = (st:editorState, ~contains:string) => {
