@@ -13,15 +13,22 @@ type hypothesis = {
     expr: expr
 }
 
+type frameDbg = {
+    disj: array<string>,
+    hyps: array<string>,
+    asrt: string,
+}
+
 type frame = {
     disj: Belt.Map.Int.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
     asrt: expr,
     label: string,
-    frameVarToSymb: Belt_MapInt.t<string>,
+    frameVarToSymb: array<string>,
     varTypes: array<int>,
     numOfVars: int,
     numOfArgs: int,
+    dbg: option<frameDbg>,
 }
 
 type mutableMapStr<'v> = Belt.HashMap.String.t<'v>
@@ -43,6 +50,7 @@ type rec mmContextContents = {
     mutable lastComment: string,
     frames: mutableMapStr<frame>,
     frameDescr: mutableMapStr<string>,
+    debug:bool,
 }
 
 type mmContext = ref<mmContextContents>
@@ -276,6 +284,8 @@ let rec forEachCtxInReverseOrder = (ctx:mmContextContents,consumer:mmContextCont
     }
 }
 
+let isDebug = ctx => ctx.contents.debug
+
 let rec isConstPriv: (mmContextContents,string) => bool = (ctx, sym) => {
     (ctx.root->Belt.Option.getExn).symToInt
         ->mutableMapStrGet(sym)
@@ -328,6 +338,16 @@ let disjForEach = (disjMutable, consumer) => {
             consumer(n,m)
         })
     })
+}
+
+let disjToArr = (disj:Belt_MapInt.t<Belt_SetInt.t>):array<array<int>> => {
+    let res = []
+    disj->Belt_MapInt.forEach((n,ms) => {
+        ms->Belt_SetInt.forEach(m => {
+            res->Js_array2.push([n,m])->ignore
+        })
+    })
+    res
 }
 
 let disjForEachArr = (disjMutable, consumer) => {
@@ -447,17 +467,20 @@ let ctxIntsToStrExnPriv: (mmContextContents, expr) => string = (ctx, expr) => {
 
 let ctxIntsToStrExn: (mmContext, expr) => string = (ctx, expr) => ctxIntsToStrExnPriv(ctx.contents,expr)
 
-let frmIntToSymExnPriv: (mmContextContents, frame, int) => string = (ctx, frame, i) => {
-    if (i < 0) {ctx->ctxIntToSymExnPriv(i)} else {frame.frameVarToSymb->Belt_MapInt.getExn(i)}
+let frmIntToSymExnPriv = (ctx:mmContextContents, frameVarToSymb:array<string>, i:int) => {
+    if (i < 0) {ctx->ctxIntToSymExnPriv(i)} else {frameVarToSymb[i]}
 }
 
-let frmIntToSymExn: (mmContext, frame, int) => string = (ctx, frame, i) => frmIntToSymExnPriv(ctx.contents,frame,i)
-
-let frmIntsToStrExnPriv: (mmContextContents, frame, expr) => string = (ctx, frame, expr) => {
-    expr->Js_array2.map(frmIntToSymExnPriv(ctx, frame, _))->Js_array2.joinWith(" ")
+let frmIntToSymExn: (mmContext, frame, int) => string = (ctx, frame, i) => {
+    frmIntToSymExnPriv(ctx.contents,frame.frameVarToSymb,i)
 }
 
-let frmIntsToStrExn: (mmContext, frame, expr) => string = (ctx, frame, expr) => frmIntsToStrExnPriv(ctx.contents, frame, expr)
+let frmIntsToStrExnPriv = (ctx:mmContextContents, frameVarToSymb:array<string>, expr:expr):string => {
+    expr->Js_array2.map(frmIntToSymExnPriv(ctx, frameVarToSymb, _))->Js_array2.joinWith(" ")
+}
+
+let frmIntsToStrExn: (mmContext, frame, expr) => string = (ctx, frame, expr) => 
+    frmIntsToStrExnPriv(ctx.contents, frame.frameVarToSymb, expr)
 
 let getTypeOfVarPriv = (ctx, varInt) => {
     ctx->forEachHypothesisInDeclarationOrderPriv(hyp => {
@@ -686,7 +709,7 @@ let getLocalDisj = (ctx:mmContext):disjMutable => {
     disj
 }
 
-let createContext: (~parent:mmContext=?, ()) => mmContext = (~parent=?, ()) => {
+let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmContext => {
     let pCtxContentsOpt = switch parent {
         | Some(pCtx) => Some(pCtx.contents)
         | None => None
@@ -711,6 +734,7 @@ let createContext: (~parent:mmContext=?, ()) => mmContext = (~parent=?, ()) => {
             lastComment: "",
             frames: mutableMapStrMake(),
             frameDescr: mutableMapStrMake(),
+            debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
     switch pCtxContentsOpt {
@@ -857,7 +881,7 @@ let renumberVarsInHypothesis = (hyp: hypothesis, renumbering: Belt_MapInt.t<int>
     expr: renumberVarsInExpr(hyp.expr, renumbering)
 }
 
-let createFrameVarToSymbMap = (ctx:mmContextContents, mandatoryHypotheses:array<hypothesis>, asrt, renumbering: Belt_MapInt.t<int>): Belt_MapInt.t<string> => {
+let createFrameVarToSymbMap = (ctx:mmContextContents, mandatoryHypotheses:array<hypothesis>, asrt, renumbering: Belt_MapInt.t<int>): array<string> => {
     let allVars = mutableSetIntMake()
     mandatoryHypotheses->Js.Array2.forEach(hyp => {
         hyp.expr->Js_array2.forEach(i => {
@@ -871,9 +895,11 @@ let createFrameVarToSymbMap = (ctx:mmContextContents, mandatoryHypotheses:array<
             allVars->mutableSetIntAdd(i)
         }
     })
-    Belt_MapInt.fromArray(
-        allVars->mutableSetIntToArray->Js_array2.map(v => (renumbering->Belt_MapInt.getExn(v), ctxIntToSymExnPriv(ctx,v)))
-    )
+    let frameVarToSymb = Expln_utils_common.createArray(allVars->mutableSetIntSize)
+    allVars->mutableSetIntForEach(ctxVar => {
+        frameVarToSymb[renumbering->Belt_MapInt.getExn(ctxVar)] = ctxIntToSymExnPriv(ctx,ctxVar)
+    })
+    frameVarToSymb
 }
 
 let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_MapInt.t<int>): array<int> => {
@@ -886,9 +912,14 @@ let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_
     varTypes
 }
 
-let createFramePriv: (mmContextContents, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => (frame,string) = (
-    ctx, label, exprStr, ~skipHyps:bool=false, ~skipFirstSymCheck:bool=false, ()
-) => {
+let createFramePriv = (
+    ctx:mmContextContents, 
+    label:string, 
+    exprStr:array<string>, 
+    ~skipHyps:bool=false, 
+    ~skipFirstSymCheck:bool=false, 
+    ()
+):(frame,string) => {
     if (label->Js_string2.trim == "") {
         raise(MmException({msg:`Cannot use empty string as a label.`}))
     } else if (ctx->getHypothesisPriv(label)->Belt_Option.isSome || ctx->getFramePriv(label)->Belt_Option.isSome) {
@@ -911,15 +942,28 @@ let createFramePriv: (mmContextContents, string, array<string>, ~skipHyps:bool=?
                                                             ->Belt_MapInt.fromArray
                 let varTypes = extractVarTypes(mandatoryHypotheses, varRenumbering)
                 let hyps = mandatoryHypotheses->Js_array2.map(renumberVarsInHypothesis(_, varRenumbering))
+                let disj = mandatoryDisj->renumberVarsInDisj(varRenumbering)
+                let frameVarToSymb = createFrameVarToSymbMap(ctx, mandatoryHypotheses, asrt, varRenumbering)
+                let asrt = asrt->renumberVarsInExpr(varRenumbering)
+                let dbg = if (ctx.debug) {
+                    Some({
+                        disj: disj->disjToArr->Js_array2.map(frmIntsToStrExnPriv(ctx, frameVarToSymb, _)),
+                        hyps: hyps->Js_array2.map(hyp => frmIntsToStrExnPriv(ctx, frameVarToSymb, hyp.expr)),
+                        asrt: frmIntsToStrExnPriv(ctx, frameVarToSymb, asrt),
+                    })
+                } else {
+                    None
+                }
                 let frame = {
-                    disj: mandatoryDisj->renumberVarsInDisj(varRenumbering),
+                    disj,
                     hyps,
-                    asrt: asrt->renumberVarsInExpr(varRenumbering),
+                    asrt,
                     label,
-                    frameVarToSymb: createFrameVarToSymbMap(ctx, mandatoryHypotheses, asrt, varRenumbering),
+                    frameVarToSymb,
                     varTypes,
                     numOfVars: varTypes->Js_array2.length,
-                    numOfArgs: hyps->Js_array2.length
+                    numOfArgs: hyps->Js_array2.length,
+                    dbg
                 }
                 (frame, ctx.lastComment)
             }
@@ -964,6 +1008,7 @@ let loadContext = (
     ~stopAfter="",
     ~expectedNumOfAssertions=-1, 
     ~onProgress= _=>(), 
+    ~debug:bool=false, 
     ()
 ) => {
     let expectedNumOfAssertionsF = expectedNumOfAssertions->Belt_Int.toFloat
@@ -980,7 +1025,7 @@ let loadContext = (
     let (ctx, _) = traverseAst(
         switch initialContext {
             | Some(ctx) => ctx
-            | None => createContext(())
+            | None => createContext(~debug, ())
         },
         ast,
         ~preProcess = (ctx,node) => {

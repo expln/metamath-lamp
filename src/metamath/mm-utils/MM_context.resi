@@ -14,25 +14,33 @@ type hypothesis = {
 
 type disjMutable
 
+type frameDbg = {
+    disj: array<string>,
+    hyps: array<string>,
+    asrt: string,
+}
+
 type frame = {
     disj: Belt.Map.Int.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
     asrt: expr,
     label: string,
-    frameVarToSymb: Belt_MapInt.t<string>,
+    frameVarToSymb: array<string>,
     varTypes: array<int>,
     numOfVars: int,
     numOfArgs: int,
+    dbg: option<frameDbg>,
 }
 
-let createContext: (~parent:mmContext=?, ()) => mmContext
+let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
 let applySingleStmt: (mmContext, stmt) => unit
 let openChildContext: mmContext => unit
 let closeChildContext: mmContext => unit
 let resetToParentContext: mmContext => unit
 let loadContext: (mmAstNode, ~initialContext:mmContext=?, ~stopBefore:string=?, ~stopAfter:string=?, 
-                    ~expectedNumOfAssertions:int=?, ~onProgress:float=>unit=?, ()) => mmContext
+                    ~expectedNumOfAssertions:int=?, ~onProgress:float=>unit=?, ~debug:bool=?, ()) => mmContext
 
+let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool
 let isVar: (mmContext,string) => bool
 let isHyp: (mmContext,string) => bool

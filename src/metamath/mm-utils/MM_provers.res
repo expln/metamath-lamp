@@ -511,8 +511,8 @@ let proveStmt = (
     }
 }
 
-let makeExprToStr = (debug, ctx, ctxMaxVar) => {
-    if (debug) {
+let makeExprToStr = (ctx, ctxMaxVar) => {
+    if (ctx->isDebug) {
         let intToSym = i => {
             if (i <= ctxMaxVar) {
                 ctx->ctxIntToSymExn(i)
@@ -531,7 +531,6 @@ let createProofTree = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~addEssentials: bool,
-    ~debug: bool,
 ) => {
     let ctxMaxVar = ctx->getNumOfVars - 1
     let hyps = ctx->getAllHyps
@@ -541,7 +540,7 @@ let createProofTree = (
         ~ctxMaxVar, 
         ~disj=ctx->getAllDisj, 
         ~parenCnt, 
-        ~exprToStr=makeExprToStr(debug, ctx, ctxMaxVar),
+        ~exprToStr=makeExprToStr(ctx, ctxMaxVar),
     )
     if (addEssentials) {
         hyps->Belt_MapString.forEach((label,hyp) => {
@@ -560,7 +559,6 @@ let proveFloatings = (
     ~stmts: array<expr>,
     ~framesToSkip: array<string>=[],
     ~parenCnt: parenCnt,
-    ~debug: bool=false,
     ()
 ) => {
     let tree = createProofTree(
@@ -568,7 +566,6 @@ let proveFloatings = (
         ~frms,
         ~parenCnt,
         ~addEssentials=false,
-        ~debug,
     )
 
     stmts->Js.Array2.forEach(stmt => {
@@ -585,7 +582,6 @@ let unifyAll = (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~onProgress:option<float=>unit>=?,
-    ~debug: bool=false,
     ()
 ) => {
     let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
@@ -595,7 +591,6 @@ let unifyAll = (
         ~frms,
         ~parenCnt,
         ~addEssentials=true,
-        ~debug,
     )
 
     let prevStmts = []
@@ -642,7 +637,7 @@ let unifyAll = (
         })
     }
 
-    if (debug) {
+    if (ctx->isDebug) {
         tree->ptGetStats
         let nodes = stmts->Js.Array2.map(stmt => tree->ptGetOrCreateNode(stmt.expr))
         //to doto: too many children

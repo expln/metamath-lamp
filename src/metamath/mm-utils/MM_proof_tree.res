@@ -38,7 +38,9 @@ and proofTree = {
     ctxMaxVar:int,
     mutable maxVar:int,
     newVars: Belt_HashSet.t<expr,ExprHash.identity>,
+    dbgNewVars: array<string>,
     disj: disjMutable,
+    dbgDisj: array<string>,
     parenCnt:parenCnt,
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     exprToStr: option<expr=>string>, //for debug purposes
@@ -94,7 +96,9 @@ let ptMake = (
         ctxMaxVar,
         maxVar:ctxMaxVar,
         newVars: Belt_HashSet.make(~id=module(ExprHash), ~hintSize=16),
+        dbgNewVars: [],
         disj,
+        dbgDisj: [],
         parenCnt,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
         exprToStr,
@@ -275,11 +279,19 @@ let ptAddNewVar = (tree, typ):int => {
     tree.maxVar = tree.maxVar + 1
     let newVar = tree.maxVar
     tree.newVars->Belt_HashSet.add([typ, newVar])
+    switch tree.exprToStr {
+        | None => ()
+        | Some(exprToStr) => tree.dbgNewVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
+    }
     newVar
 }
 
 let ptAddDisjPair = (tree, n, m) => {
     tree.disj->disjAddPair( n,m )
+    switch tree.exprToStr {
+        | None => ()
+        | Some(exprToStr) => tree.dbgDisj->Js.Array2.push(exprToStr([n,m]))->ignore
+    }
 }
 
 let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray

@@ -1021,7 +1021,7 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
 
 let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
     let frameVarToCtxVar = frameVar => {
-        switch tmpFrame.frameVarToSymb->Belt_MapInt.get(frameVar) {
+        switch tmpFrame.frameVarToSymb->Belt_Array.get(frameVar) {
             | None => raise(MmException({msg:`Cannot convert frameVar to ctxVar.`}))
             | Some(ctxSym) => ctx->ctxSymToIntExn(ctxSym)
         }

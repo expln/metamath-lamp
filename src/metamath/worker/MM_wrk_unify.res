@@ -68,7 +68,6 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~framesToSkip,
                 ~bottomUpProverParams?,
                 ~onProgress = pct => sendToClient(OnProgress(pct)),
-                ~debug=true,
                 ()
             )
             sendToClient(Result(proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))))

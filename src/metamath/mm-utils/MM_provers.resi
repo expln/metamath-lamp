@@ -17,7 +17,6 @@ let proveFloatings: (
     ~stmts: array<expr>,
     ~framesToSkip: array<string>=?,
     ~parenCnt: parenCnt,
-    ~debug: bool=?,
     (),
 ) => proofTree
 
@@ -30,7 +29,6 @@ let unifyAll: (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~onProgress: float => unit=?,
-    ~debug: bool=?,
     (),
 ) => proofTree
 
