@@ -14,14 +14,14 @@ open MM_statements_dto
 
 let setMmPath = "/books/metamath/set.mm"
 let failOnMismatch = true
-let useDebugModeForUnification = false
+let debug = true
 
 let parenCnt = ref(parenCntMake([], ()))
 
 let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stopAfter:option<string>=?, ()) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
     let (ast, _) = parseMmFile(mmFileText, ())
-    let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ())
+    let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ~debug, ())
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext
     }
@@ -210,7 +210,6 @@ let unifyAll = (st):editorState => {
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~debug=useDebugModeForUnification,
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
@@ -238,7 +237,6 @@ let unifyBottomUp = (st,stmtId,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~debug=useDebugModeForUnification,
                 ~bottomUpProverParams = {
                     asrtLabel,
                     maxSearchDepth,
