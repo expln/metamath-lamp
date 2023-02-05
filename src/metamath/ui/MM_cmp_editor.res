@@ -185,6 +185,31 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         })
     }
 
+    let editIsActive = 
+        state.varsEditMode || state.disjEditMode ||
+        state.stmts->Js.Array2.some(stmt => stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode )
+
+    let thereAreSyntaxErrors = editorStateHasErrors(state)
+    let mainCheckboxState = {
+        let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
+        let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
+        if (atLeastOneStmtIsChecked && atLeastOneStmtIsNotChecked) {
+            None
+        } else if (atLeastOneStmtIsChecked && !atLeastOneStmtIsNotChecked) {
+            Some(true)
+        } else {
+            Some(false)
+        }
+    }
+
+    let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
+    let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
+    let singleProvableSelected = switch getTheOnlySelectedStmt(state) {
+        | Some(stmt) if stmt.typ == #p => Some(stmt)
+        | _ => None
+    }
+    let oneStatementIsSelected = state.checkedStmtIds->Js.Array2.length == 1
+
     let actSettingsUpdated = (settingsV, settings) => {
         setState(setSettings(_, settingsV, settings))
     }
@@ -202,23 +227,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         actPreCtxUpdated(preCtxV, preCtx)
         None
     }, [preCtxV])
-
-    let thereAreSyntaxErrors = editorStateHasErrors(state)
-    let mainCheckboxState = {
-        let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
-        let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
-        if (atLeastOneStmtIsChecked && atLeastOneStmtIsNotChecked) {
-            None
-        } else if (atLeastOneStmtIsChecked && !atLeastOneStmtIsNotChecked) {
-            Some(true)
-        } else {
-            Some(false)
-        }
-    }
-
-    let editIsActive = 
-        state.varsEditMode || state.disjEditMode ||
-        state.stmts->Js.Array2.some(stmt => stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode )
 
     let actAddNewStmt = () => setState(st => {
         let (st, _) = addNewStmt(st)
@@ -427,13 +435,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
-    let singleProvableIsSelected = () => {
-        switch getTheOnlySelectedStmt(state) {
-            | None => false
-            | Some(stmt) => stmt.typ == #p
-        }
-    }
-
     let actUnifyAllResultsAreReady = proofTreeDto => {
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
@@ -465,45 +466,49 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                 }
                 let stmts={state->getStmtsForUnification}
-                if (isSingleStmtChecked(state)) {
-                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                        updateModal(modalRef, modalId, () => {
-                            <MM_cmp_unify_bottom_up
-                                modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
-                                frms=state.frms parenCnt=state.parenCnt
-                                onResultSelected={newStmtsDto => {
-                                    closeModal(modalRef, modalId)
-                                    actBottomUpResultSelected(newStmtsDto)
-                                }}
-                                onCancel={() => closeModal(modalRef, modalId)}
-                                typeToPrefix = {
-                                    Belt_MapString.fromArray(
-                                        state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
-                                    )
-                                }
-                            />
-                        })
-                    })->ignore
-                } else {
-                    openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
-                        updateModal( 
-                            modalRef, modalId, () => rndProgress(
-                                ~text="Unifying", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
-                            )
-                        )
-                        unify(
-                            ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
-                            ~bottomUpProverParams=None,
-                            ~onProgress = pct => updateModal( 
+                switch singleProvableSelected {
+                    | Some(singleProvableSelected) => {
+                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <MM_cmp_unify_bottom_up
+                                    modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
+                                    userStmtToProve=singleProvableSelected
+                                    frms=state.frms parenCnt=state.parenCnt
+                                    onResultSelected={newStmtsDto => {
+                                        closeModal(modalRef, modalId)
+                                        actBottomUpResultSelected(newStmtsDto)
+                                    }}
+                                    onCancel={() => closeModal(modalRef, modalId)}
+                                    typeToPrefix = {
+                                        Belt_MapString.fromArray(
+                                            state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                                        )
+                                    }
+                                />
+                            })
+                        })->ignore
+                    }
+                    | None => {
+                        openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
+                            updateModal( 
                                 modalRef, modalId, () => rndProgress(
-                                    ~text="Unifying", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                    ~text="Unifying", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                                 )
                             )
-                        )->promiseMap(proofTreeDto => {
-                            closeModal(modalRef, modalId)
-                            actUnifyAllResultsAreReady(proofTreeDto)
-                        })
-                    })->ignore
+                            unify(
+                                ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
+                                ~bottomUpProverParams=None,
+                                ~onProgress = pct => updateModal( 
+                                    modalRef, modalId, () => rndProgress(
+                                        ~text="Unifying", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                    )
+                                )
+                            )->promiseMap(proofTreeDto => {
+                                closeModal(modalRef, modalId)
+                                actUnifyAllResultsAreReady(proofTreeDto)
+                            })
+                        })->ignore
+                    }
                 }
             }
         }
@@ -549,10 +554,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let rndButtons = () => {
-        let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
-        let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
-        let singleProvableIsSelected = singleProvableIsSelected()
-        let oneStatementIsSelected = state.checkedStmtIds->Js.Array2.length == 1
         <Paper>
             <Row>
                 <Checkbox
@@ -587,9 +588,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnify,
                         ~active=generalModificationActionIsEnabled 
-                                    && (!atLeastOneStmtIsSelected || singleProvableIsSelected)
+                                    && (!atLeastOneStmtIsSelected || singleProvableSelected->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 
-                        ~title="Unify all statements", () )
+                        ~title="Unify all statements or unify selected provable bottom-up", () )
                 }
             </Row>
         </Paper>

@@ -3,6 +3,7 @@ open Expln_React_Mui
 open MM_react_common
 open Expln_utils_promise
 open MM_wrk_ctx
+open MM_wrk_editor
 open MM_context
 open MM_substitution
 open MM_parser
@@ -91,6 +92,7 @@ let getAvailableAsrtLabels = (
 
 let makeInitialState = (
     ~wrkCtx:mmContext,
+    ~userStmtToProve:userStmt,
     ~stmts: array<rootStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
@@ -103,9 +105,7 @@ let makeInitialState = (
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up: "->React.string}
                 </span>
-                {
-                    React.string( stmtToProve->ctxIntsToStrExn(wrkCtx, _) )
-                }
+                { MM_cmp_user_stmt.rndContText(userStmtToProve.cont) }
             </span>,
         
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~framesToSkip, ~stmtToProve, ),
@@ -349,6 +349,7 @@ let sortByFromStr = str => {
         | "UnprovedStmtsNum" => UnprovedStmtsNum
         | "NumOfNewVars" => NumOfNewVars
         | "AsrtLabel" => AsrtLabel
+        | _ => raise(MmException({msg:`Cannot convert value of '${str}' to a sortBy.`}))
     }
 }
 
@@ -365,12 +366,15 @@ let make = (
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
+    ~userStmtToProve:userStmt,
     ~stmts: array<rootStmt>,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~onResultSelected:newStmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
-    let (state, setState) = React.useState(() => makeInitialState( ~wrkCtx, ~stmts, ~frms, ~parenCnt, ~framesToSkip, ))
+    let (state, setState) = React.useState(() => makeInitialState( 
+        ~wrkCtx, ~userStmtToProve, ~stmts, ~frms, ~parenCnt, ~framesToSkip, 
+    ))
 
     let onlyOneResultIsAvailable = switch state.results {
         | None => false
