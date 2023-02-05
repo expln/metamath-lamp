@@ -65,7 +65,9 @@ let strToCont = (
     )
 }
 
-let jstfToStr = (jstf:justification) => jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.asrt
+let jstfToStr = (jstf:justification) => {
+    (jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.asrt)->Js_string2.trim
+}
 
 type userStmtType = [ #e | #p ]
 

@@ -206,9 +206,10 @@ let findAsrtParentsWithNewVars = (
     ~expr:expr,
     ~stmts:array<expr>,
     ~framesToSkip: array<string>,
-    ~exactOrderOfStmts:bool=false,
+    ~exactOrderOfStmts:bool,
     ~asrtLabel:option<string>=?,
-    ~allowEmptyArgs:bool=false,
+    ~allowEmptyArgs:bool,
+    ~allowNewVars:bool,
     ()
 ):array<exprSource> => {
     let applResults = []
@@ -226,7 +227,9 @@ let findAsrtParentsWithNewVars = (
                                     ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
                                     ->Belt_Option.getWithDefault(true),
         ~onMatchFound = res => {
-            applResults->Js_array2.push(res)->ignore
+            if (allowNewVars || res.newVars->Js.Array2.length == 0) {
+                applResults->Js_array2.push(res)->ignore
+            }
             Continue
         },
         ()
@@ -283,7 +286,16 @@ let findAsrtParentsWithNewVars = (
 let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~framesToSkip: array<string>):proofNode => {
     let node = tree->ptGetOrCreateNode(stmt)
     if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
-        let parents = findAsrtParentsWithNewVars( ~tree, ~expr=stmt, ~framesToSkip, ~stmts=prevStmts, () )
+        let parents = findAsrtParentsWithNewVars( 
+            ~tree, 
+            ~expr=stmt, 
+            ~framesToSkip, 
+            ~stmts=prevStmts, 
+            ~exactOrderOfStmts=false,
+            ~allowEmptyArgs=false,
+            ~allowNewVars=false,
+            () 
+        )
         parents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent)
             node->pnGetProof
@@ -301,9 +313,11 @@ let proveWithJustification = (
             ~tree, 
             ~expr=stmt, 
             ~stmts=args, 
+            ~exactOrderOfStmts=true,
+            ~allowEmptyArgs=false,
+            ~allowNewVars=false,
             ~asrtLabel,
             ~framesToSkip,
-            ~exactOrderOfStmts=true,
             () 
         )
         parents->Expln_utils_common.arrForEach(parent => {
@@ -366,7 +380,9 @@ let proveStmtBottomUp = (
             ~tree, 
             ~expr=stmt, 
             ~stmts=prevStmts, 
-            ~allowEmptyArgs=params.allowNewVars,
+            ~exactOrderOfStmts=false,
+            ~allowEmptyArgs=true,
+            ~allowNewVars=params.allowNewVars,
             ~framesToSkip, 
             ~asrtLabel=?params.asrtLabel,
             ()
