@@ -75,6 +75,34 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
     }
 }
 
+let doesntHaveBackRefs = (newStmtsDto:newStmtsDto):bool => {
+    let res = newStmtsDto.stmts->Js.Array2.reduce(
+        (res, stmt) => {
+            switch res {
+                | Error(_) => res
+                | Ok(refs) => {
+                    if (refs->Js_array2.includes(stmt.label)) {
+                        Error(())
+                    } else {
+                        switch stmt.jstf {
+                            | None => ()
+                            | Some(jstf) => {
+                                jstf.args->Js.Array2.forEach(ref => refs->Js_array2.push(ref)->ignore)
+                            }
+                        }
+                        Ok(refs)
+                    }
+                }
+            }
+        },
+        Ok([])
+    )
+    switch res {
+        | Ok(_) => true
+        | Error(_) => false
+    }
+}
+
 let srcToNewStmts = (
     ~rootStmts:array<rootStmt>,
     ~src:exprSourceDto, 

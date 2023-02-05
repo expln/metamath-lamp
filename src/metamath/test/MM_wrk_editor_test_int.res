@@ -193,6 +193,27 @@ describe("MM_wrk_editor integration tests", _ => {
         )
     })
 
+    it("filtering bottom-up proof has same results for search depth 3 and 4 for ifbieq2d", _ => {
+        setTestDataDir("bottom-up-ifbieq2d")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+
+        let st = st->MM_wrk_editor.completeDisjEditMode("x,A")
+        let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( x = A -> if ( x = 0 , 0 , if ( x < 0 , -u 1 , 1 ) ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
+
+        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
+        let resultsWhenDepth3 = stmts1->arrNewStmtsDtoToStr
+
+        assertTextEqFile(resultsWhenDepth3, "ifbieq2d")
+
+        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
+        let resultsWhenDepth4 = stmts2->arrNewStmtsDtoToStr
+
+        assertTextsEq(
+            resultsWhenDepth3, "resultsWhenDepth3", 
+            resultsWhenDepth4, "resultsWhenDepth4"
+        )
+    })
+
     it("prove sgnval", _ => {
         setTestDataDir("prove-sgnval")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())

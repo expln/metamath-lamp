@@ -18,9 +18,11 @@ type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 type resultRendered = {
     idx:int,
     elem: reElem,
+    isProved: bool,
     asrtLabel:string,
     numOfNewVars: int,
     numOfNewUnprovedStmts: int,
+    numOfStmts: int,
 }
 
 type state = {
@@ -210,19 +212,36 @@ let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRende
             (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
             0
         ),
+        isProved: newStmtsDto.stmts[newStmtsDto.stmts->Js.Array2.length-1].isProved,
+        numOfStmts: newStmtsDto.stmts->Js.Array2.length,
     }
+}
+
+let compareByIsProved = Expln_utils_common.comparatorBy(res => if (res.isProved) {0} else {1})
+let compareByNumberOfStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
+
+let compareByNumOfNewUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfNewUnprovedStmts)
+let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
+let compareByAsrtLabel = (a,b) => a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
+
+let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> => {
+    open Expln_utils_common
+    let mainCmp = switch sortBy {
+        | UnprovedStmtsNum => compareByNumOfNewUnprovedStmts
+        | NumOfNewVars => compareByNumOfNewVars
+        | AsrtLabel => compareByAsrtLabel
+    }
+    compareByIsProved
+        ->comparatorAndThen(mainCmp)
+        ->comparatorAndThen(compareByNumberOfStmts)
+        ->comparatorAndThen(compareByAsrtLabel)
 }
 
 let sortResultsRendered = (resultsRendered, sortBy) => {
     switch resultsRendered {
         | None => None
         | Some(resultsRendered) => {
-            let cmp = switch sortBy {
-                | UnprovedStmtsNum => (a,b) => a.numOfNewUnprovedStmts - b.numOfNewUnprovedStmts
-                | NumOfNewVars => (a,b) => a.numOfNewVars - b.numOfNewVars
-                | AsrtLabel => (a,b) => a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
-            }
-            Some(resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(cmp))
+            Some(resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(createComparator(sortBy)))
         }
     }
 }
