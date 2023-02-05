@@ -512,7 +512,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     React.useEffect1(() => {
         if (unifyAllIsRequiredCnt.contents < state.unifyAllIsRequiredCnt) {
             unifyAllIsRequiredCnt.contents = state.unifyAllIsRequiredCnt
-            actUnify()
+            if (!editorStateHasErrors(state)) {
+                actUnify()
+            }
         }
         None
     }, [state.unifyAllIsRequiredCnt])
