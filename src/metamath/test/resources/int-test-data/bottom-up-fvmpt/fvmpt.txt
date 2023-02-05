@@ -1,4 +1,4 @@
-
+$d A setvar1 $.
 1    |- ( setvar1 = A -> class1 = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
 2    |- sgn = ( setvar1 e. RR* |-> class1 )
 3    |- if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) e. _V
