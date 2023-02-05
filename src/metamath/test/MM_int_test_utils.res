@@ -225,6 +225,7 @@ let unifyBottomUp = (st,stmtId,
     ~asrtLabel:option<string>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
+    ~allowNewVars:bool=true,
     ~chooseLabel:string,
     ()
 ):(editorState, array<newStmtsDto>) => {
@@ -243,6 +244,7 @@ let unifyBottomUp = (st,stmtId,
                     asrtLabel,
                     maxSearchDepth,
                     lengthRestriction,
+                    allowNewVars
                 },
                 ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()

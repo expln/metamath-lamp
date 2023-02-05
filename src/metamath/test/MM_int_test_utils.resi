@@ -42,6 +42,7 @@ let unifyBottomUp: (
     ~asrtLabel:string=?,
     ~maxSearchDepth:int=?,
     ~lengthRestriction:lengthRestrict=?,
+    ~allowNewVars:bool=?,
     ~chooseLabel:string,
     ()
 ) => (editorState, array<newStmtsDto>)

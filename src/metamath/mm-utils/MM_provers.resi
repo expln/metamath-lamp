@@ -9,6 +9,7 @@ type bottomUpProverParams = {
     asrtLabel: option<string>,
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
+    allowNewVars: bool,
 }
 
 let proveFloatings: (

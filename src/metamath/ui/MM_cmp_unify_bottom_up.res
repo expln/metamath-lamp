@@ -2,10 +2,7 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_react_common
 open Expln_utils_promise
-open MM_asrt_apply
 open MM_wrk_ctx
-open MM_wrk_editor
-open MM_wrk_search_asrt
 open MM_context
 open MM_substitution
 open MM_parser
@@ -13,7 +10,6 @@ open Expln_React_Modal
 open MM_statements_dto
 open MM_provers
 open MM_proof_tree
-open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
 
@@ -35,6 +31,7 @@ type state = {
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
+    allowNewVars: bool,
 
     results: option<array<newStmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
@@ -114,6 +111,7 @@ let makeInitialState = (
         depthStr: "4",
         depth: 4,
         lengthRestrict: Less,
+        allowNewVars: true,
 
         results: None,
         resultsRendered: None,
@@ -144,6 +142,13 @@ let setLengthRestrict = (st,lengthRestrict) => {
     {
         ...st,
         lengthRestrict
+    }
+}
+
+let toggleAllowNewVars = (st) => {
+    {
+        ...st,
+        allowNewVars: !st.allowNewVars
     }
 }
 
@@ -365,6 +370,10 @@ let make = (
         setState(setLengthRestrict(_,lengthRestrict))
     }
 
+    let actToggleAllowNewVars = () => {
+        setState(toggleAllowNewVars)
+    }
+
     let rndTitle = () => {
         state.title
     }
@@ -409,6 +418,7 @@ let make = (
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,
                         lengthRestriction: st.lengthRestrict,
+                        allowNewVars: st.allowNewVars,
                     }),
                     ~onProgress = pct => updateModal( 
                         modalRef, modalId, () => rndProgress(
@@ -520,6 +530,15 @@ let make = (
                     onChange=evt2str(actDepthUpdated)
                 />
                 {rndLengthRestrictSelector(state.lengthRestrict)}
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked=state.allowNewVars
+                            onChange={_ => actToggleAllowNewVars()}
+                        />
+                    }
+                    label="Allow new variables"
+                />
                 <Button onClick={_=>actProve()} variant=#contained>
                     {React.string("Prove")}
                 </Button>

@@ -12,6 +12,7 @@ type bottomUpProverParams = {
     asrtLabel: option<string>,
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
+    allowNewVars: bool,
 }
 
 let findAsrtParentsWithoutNewVars = ( 
@@ -365,7 +366,7 @@ let proveStmtBottomUp = (
             ~tree, 
             ~expr=stmt, 
             ~stmts=prevStmts, 
-            ~allowEmptyArgs=true, 
+            ~allowEmptyArgs=params.allowNewVars,
             ~framesToSkip, 
             ~asrtLabel=?params.asrtLabel,
             ()
