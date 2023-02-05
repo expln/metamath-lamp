@@ -617,23 +617,21 @@ let unifyAll = (
                 ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
                 ~framesToSkip,
                 ~onProgress = 
-                    if (stmtIdx != maxStmtIdx) {
+                    if (stmtIdx != maxStmtIdx || bottomUpProverParams->Belt.Option.isNone) {
                         None
                     } else {
                         Some(pct => {
-                            progressState.contents = progressState.contents->progressTrackerSetCurrPct( pct *. 0.9 )
+                            progressState.contents = progressState.contents->progressTrackerSetCurrPct( 
+                                (stmtIdx->Belt.Int.toFloat *. pctPerStmt) +. 0.9 *. pct
+                            )
                         })
                     },
             )
             prevStmts->Js_array2.push(stmt)->ignore
 
-            if (stmtIdx == maxStmtIdx) {
-                progressState.contents = progressState.contents->progressTrackerSetCurrPct( 1. )
-            } else {
-                progressState.contents = progressState.contents->progressTrackerSetCurrPct( 
-                    stmtIdx->Belt_Int.toFloat *. pctPerStmt
-                )
-            }
+            progressState.contents = progressState.contents->progressTrackerSetCurrPct( 
+                (stmtIdx+1)->Belt_Int.toFloat *. pctPerStmt
+            )
         })
     }
 

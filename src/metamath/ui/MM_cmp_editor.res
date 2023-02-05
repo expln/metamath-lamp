@@ -13,6 +13,7 @@ open MM_proof_table
 open Expln_utils_promise
 open MM_react_common
 open MM_parenCounter
+open MM_statements_dto
 
 type userStmtLocStor = {
     id: string,
@@ -285,6 +286,14 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
 
+    let actBottomUpResultSelected = (selectedResult:newStmtsDto) => {
+        setState(st => {
+            let st = st->addNewStatements(selectedResult)
+            let st = st->uncheckAllStmts
+            st
+        })
+    }
+
     let actWrkSubsSelected = wrkSubs => {
         setState(st => st->applySubstitutionForEditor(wrkSubs))
     }
@@ -388,6 +397,10 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             <MM_cmp_unify_bottom_up
                                 modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
                                 frms=state.frms parenCnt=state.parenCnt
+                                onResultSelected={newStmtsDto => {
+                                    closeModal(modalRef, modalId)
+                                    actBottomUpResultSelected(newStmtsDto)
+                                }}
                                 onCancel={() => closeModal(modalRef, modalId)}
                                 typeToPrefix = {
                                     Belt_MapString.fromArray(

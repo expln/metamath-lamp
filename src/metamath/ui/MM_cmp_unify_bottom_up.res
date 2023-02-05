@@ -343,11 +343,15 @@ let make = (
     ~hyps: array<wrkCtxHyp>,
     ~stmts: array<rootStmt>,
     ~typeToPrefix: Belt_MapString.t<string>,
+    ~onResultSelected:newStmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( ~wrkCtx, ~stmts, ~frms, ~parenCnt, ~framesToSkip, ))
 
-    Js.Console.log2("state", state)
+    let onlyOneResultIsAvailable = switch state.results {
+        | None => false
+        | Some(results) => results->Js_array2.length == 1
+    }
 
     let actLabelUpdated = label => {
         setState(setLabel(_,label))
@@ -434,6 +438,22 @@ let make = (
         setState(toggleResultChecked(_,idx))
     }
 
+    let actChooseSelected = () => {
+        switch state.results {
+            | None => ()
+            | Some(results) => {
+                if (onlyOneResultIsAvailable) {
+                    onResultSelected(results[0])
+                } else {
+                    switch state.checkedResultIdx {
+                        | None => ()
+                        | Some(checkedResultIdx) => onResultSelected(results[checkedResultIdx])
+                    }
+                }
+            }
+        }
+    }
+
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
         <FormControl size=#small>
             <InputLabel id="length-restrict-select-label">"Length resctriction"</InputLabel>
@@ -516,6 +536,16 @@ let make = (
         }
     }
 
+    let rndResultButtons = () => {
+        <Row>
+            <Button onClick={_=>actChooseSelected()} variant=#contained 
+                    disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
+                {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
+            </Button>
+            <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
+        </Row>
+    }
+
     let rndResults = () => {
         switch state.resultsSorted {
             | None => React.null
@@ -536,16 +566,22 @@ let make = (
                                 <table key={item.idx->Belt_Int.toString}>
                                     <tbody>
                                         <tr>
-                                            <td>
-                                                <Checkbox
-                                                    checked={
-                                                        state.checkedResultIdx
-                                                            ->Belt_Option.map(idx => idx == item.idx)
-                                                            ->Belt.Option.getWithDefault(false)
-                                                    }
-                                                    onChange={_ => actToggleResultChecked(item.idx)}
-                                                />
-                                            </td>
+                                            {
+                                                if (onlyOneResultIsAvailable) {
+                                                    React.null
+                                                } else {
+                                                    <td>
+                                                        <Checkbox
+                                                            checked={
+                                                                state.checkedResultIdx
+                                                                    ->Belt_Option.map(idx => idx == item.idx)
+                                                                    ->Belt.Option.getWithDefault(false)
+                                                            }
+                                                            onChange={_ => actToggleResultChecked(item.idx)}
+                                                        />
+                                                    </td>
+                                                }
+                                            }
                                             <td>
                                                 <Paper>
                                                     item.elem
@@ -557,7 +593,7 @@ let make = (
                             })->React.array
                         }
                         {rndPagination(totalNumOfResults)}
-                        // {rndResultButtons()}
+                        {rndResultButtons()}
                     </Col>
                 }
             }
