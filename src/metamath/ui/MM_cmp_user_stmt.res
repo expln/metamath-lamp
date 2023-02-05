@@ -51,6 +51,28 @@ let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mous
     }
 }
 
+let rndContText = (stmtCont) => {
+    switch stmtCont {
+        | Text(arr) => {
+            arr->Js.Array2.map(stmtSym => {
+                <React.Fragment key={stmtSym.id}>
+                    {
+                        switch stmtSym.color {
+                            | None => (stmtSym.sym ++ "\u00A0")->React.string
+                            | Some(color) => {
+                                <span style=ReactDOM.Style.make(~color=color, ~fontWeight="500", ())>
+                                    {(stmtSym.sym ++ "\u00A0")->React.string}
+                                </span>
+                            }
+                        }
+                    }
+                </React.Fragment>
+            })->React.array
+        }
+        | Tree(syntaxTreeNode) => React.string(syntaxTreeToSymbols(syntaxTreeNode)->Js_array2.joinWith(" "))
+    }
+}
+
 @react.component
 let make = (
     ~stmt:userStmt, 
@@ -132,28 +154,6 @@ let make = (
             >
                 {React.string(stmt.label)}
             </span>
-        }
-    }
-
-    let rndContText = (stmtCont) => {
-        switch stmtCont {
-            | Text(arr) => {
-                arr->Js.Array2.mapi((stmtSym,i) => {
-                    <React.Fragment key={stmtSym.id}>
-                        {
-                            switch stmtSym.color {
-                                | None => (stmtSym.sym ++ "\u00A0")->React.string
-                                | Some(color) => {
-                                    <span style=ReactDOM.Style.make(~color=color, ~fontWeight="500", ())>
-                                        {(stmtSym.sym ++ "\u00A0")->React.string}
-                                    </span>
-                                }
-                            }
-                        }
-                    </React.Fragment>
-                })->React.array
-            }
-            | Tree(syntaxTreeNode) => React.string(syntaxTreeToSymbols(syntaxTreeNode)->Js_array2.joinWith(" "))
         }
     }
 

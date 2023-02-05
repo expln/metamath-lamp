@@ -254,6 +254,8 @@ let getAllStmtsUpToChecked = (st):array<userStmt> => {
     res
 }
 
+let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
+
 let getStmtsForUnification = (st):array<rootStmt> => {
     st->getAllStmtsUpToChecked
         ->Js_array2.filter(stmt => stmt.typ == #p)
@@ -1493,10 +1495,10 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
 }
 
 let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,string> => {
-    switch st.stmts->Js_array2.find(stmt => stmt.id == id1) {
+    switch st->editorGetStmtById(id1) {
         | None => Error(`Cannot find a statement with id = '${id1}'`)
         | Some(stmt1) => {
-            switch st.stmts->Js_array2.find(stmt => stmt.id == id2) {
+            switch st->editorGetStmtById(id2) {
                 | None => Error(`Cannot find a statement with id = '${id2}'`)
                 | Some(stmt2) => {
                     if (stmt1.cont->contToStr != stmt2.cont->contToStr) {

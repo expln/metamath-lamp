@@ -303,6 +303,54 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         setState(st => st->applySubstitutionForEditor(wrkSubs))
     }
 
+    let actOnMergeStmtsSelected = (stmtToUse:userStmt,stmtToRemove:userStmt) => {
+        setState(st => {
+            switch st->mergeStmts(stmtToUse.id, stmtToRemove.id) {
+                | Ok(st) => st
+                | Error(msg) => {
+                    openInfoDialog(~modalRef, ~text=msg, ())
+                    st
+                }
+            }
+        })
+    }
+
+    let actMergeTwoStmts = () => {
+        if (state.checkedStmtIds->Js.Array2.length == 2) {
+            switch state->editorGetStmtById(state.checkedStmtIds[0]) {
+                | None => ()
+                | Some(stmt1) => {
+                    switch state->editorGetStmtById(state.checkedStmtIds[1]) {
+                        | None => ()
+                        | Some(stmt2) => {
+                            if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
+                                openInfoDialog(
+                                    ~modalRef, 
+                                    ~text="Statements to merge must have identical expressions.",
+                                    ()
+                                )
+                            } else {
+                                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                    updateModal(modalRef, modalId, () => {
+                                        <MM_cmp_merge_two_stmts
+                                            stmt1
+                                            stmt2
+                                            onStmtSelected={(stmtToUse,stmtToRemove)=>{
+                                                closeModal(modalRef, modalId)
+                                                actOnMergeStmtsSelected(stmtToUse,stmtToRemove)
+                                            }}
+                                            onCancel={()=>closeModal(modalRef, modalId)}
+                                        />
+                                    })
+                                })->ignore
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let actSearchAsrt = () => {
         switch state.wrkCtx {
             | None => ()
@@ -481,6 +529,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
         let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
         let singleProvableIsSelected = singleProvableIsSelected()
+        let twoStatementsSelected = state.checkedStmtIds->Js.Array2.length == 2
         <Paper>
             <Row>
                 <Checkbox
@@ -500,6 +549,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 )}
                 {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", ())}
+                {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
+                    ~onClick=actMergeTwoStmts,
+                    ~active=twoStatementsSelected, ~title="Merge two similar statements", ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
