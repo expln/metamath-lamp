@@ -59,6 +59,8 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
         nextStmtId: 0,
         stmts: [],
         checkedStmtIds: [],
+
+        unifyAllIsRequiredCnt: 0
     }
     recalcAllColors(st)
 }

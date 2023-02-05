@@ -45,6 +45,8 @@ let createEditorState = (mmFile) => {
         nextStmtId: 0,
         stmts: [],
         checkedStmtIds: [],
+
+        unifyAllIsRequiredCnt: 0
     }
     recalcAllColors(st)
 }

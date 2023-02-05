@@ -56,6 +56,8 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
     }
 }
 
+let unifyAllIsRequiredCnt = ref(0)
+
 let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocStor:option<editorStateLocStor>) => {
     let st = {
         settingsV,
@@ -86,6 +88,8 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
                 ->Belt.Option.map(obj => obj.stmts->Js_array2.map(userStmtLocStorToUserStmt))
                 ->Belt.Option.getWithDefault([]),
         checkedStmtIds: [],
+
+        unifyAllIsRequiredCnt: unifyAllIsRequiredCnt.contents,
     }
     let st = recalcAllColors(st)
     let st = updateColorsInAllStmts(st)
@@ -290,6 +294,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         setState(st => {
             let st = st->addNewStatements(selectedResult)
             let st = st->uncheckAllStmts
+            let st = st->incUnifyAllIsRequiredCnt
             st
         })
     }
@@ -434,6 +439,14 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             }
         }
     }
+
+    React.useEffect1(() => {
+        if (unifyAllIsRequiredCnt.contents < state.unifyAllIsRequiredCnt) {
+            unifyAllIsRequiredCnt.contents = state.unifyAllIsRequiredCnt
+            actUnify()
+        }
+        None
+    }, [state.unifyAllIsRequiredCnt])
 
     let rndExportedProof = (proofStr, modalId) => {
         <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >

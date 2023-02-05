@@ -136,6 +136,8 @@ type editorState = {
     nextStmtId: int,
     stmts: array<userStmt>,
     checkedStmtIds: array<string>,
+
+    unifyAllIsRequiredCnt: int
 }
 
 type wrkSubs = {
@@ -436,6 +438,13 @@ let completeJstfEditMode = (st, stmtId, newJstf) => {
             jstfEditMode: false
         }
     })
+}
+
+let incUnifyAllIsRequiredCnt = st => {
+    {
+        ...st,
+        unifyAllIsRequiredCnt: st.unifyAllIsRequiredCnt + 1
+    }
 }
 
 let getTypeAndVarFromVarsTextLine = (str):option<(string,string)> => {

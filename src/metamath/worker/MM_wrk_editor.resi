@@ -82,6 +82,8 @@ type editorState = {
     nextStmtId: int,
     stmts: array<userStmt>,
     checkedStmtIds: array<string>,
+
+    unifyAllIsRequiredCnt: int,
 }
 
 type wrkSubs = {
@@ -114,6 +116,7 @@ let setTypEditMode: (editorState, string) => editorState
 let completeTypEditMode: (editorState, string, userStmtType) => editorState
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, string, string) => editorState
+let incUnifyAllIsRequiredCnt: editorState => editorState
 let setSettings: (editorState, int, settings) => editorState
 let setPreCtx: (editorState, int, mmContext) => editorState
 let editorStateHasErrors: editorState => bool
