@@ -316,11 +316,12 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actMergeTwoStmts = () => {
-        if (state.checkedStmtIds->Js.Array2.length == 2) {
+        if (state.checkedStmtIds->Js.Array2.length == 1) {
             switch state->editorGetStmtById(state.checkedStmtIds[0]) {
                 | None => ()
                 | Some(stmt1) => {
-                    switch state->editorGetStmtById(state.checkedStmtIds[1]) {
+                    let contStr = stmt1.cont->contToStr
+                    switch state.stmts->Js.Array2.find(stmt => stmt.cont->contToStr == contStr) {
                         | None => ()
                         | Some(stmt2) => {
                             if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
@@ -529,7 +530,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
         let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
         let singleProvableIsSelected = singleProvableIsSelected()
-        let twoStatementsSelected = state.checkedStmtIds->Js.Array2.length == 2
+        let oneStatementIsSelected = state.checkedStmtIds->Js.Array2.length == 1
         <Paper>
             <Row>
                 <Checkbox
@@ -551,7 +552,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts,
-                    ~active=twoStatementsSelected, ~title="Merge two similar statements", ())}
+                    ~active=oneStatementIsSelected, ~title="Merge two similar statements", ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
