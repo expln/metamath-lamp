@@ -1,15 +1,4 @@
-- fix a bug:
-    1) begin bottom-up proving of |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
-    2) select xmulasslem in the label field
-    3) check results - one result is present
-    4) clear the label field
-    5) check results - xmulasslem is absent in results
-- fix a bug:
-    1) begin bottom-up proving of |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
-    2) select fvmpt in the label field
-    3) check results - there are $S1 and $C1 work variables
-    4) clear the label field
-    5) check results - the result with fvmpt has &S1 and &S2 work variables
+- in bottom-up proof dialog show proved results first in any case of orderBy
 - autofocus label selector after scope is set to StopBefore or StopAfter
 - in cmp_search use array2.slice and store idx in the rendered elem the same way as in cmp_bottom_up
 - add an int test with few hypotheses.

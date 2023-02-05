@@ -65,6 +65,8 @@ let strToCont = (
     )
 }
 
+let jstfToStr = (jstf:justification) => jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.asrt
+
 type userStmtType = [ #e | #p ]
 
 let userStmtTypeFromStr = str => {
@@ -185,13 +187,18 @@ let uncheckAllStmts = (st:editorState):editorState => {
 }
 
 let deleteCheckedStmts = (st:editorState):editorState => {
-    let newStmts = st.stmts->Js_array2.filter(stmt => !isStmtChecked(st,stmt.id))
-    let newNextStmtId = if (newStmts->Js_array2.length == 0) { 0 } else { st.nextStmtId }
     {
         ...st,
-        stmts: newStmts,
+        stmts: st.stmts->Js_array2.filter(stmt => !isStmtChecked(st,stmt.id)),
         checkedStmtIds: [],
-        nextStmtId: newNextStmtId,
+    }
+}
+
+let deleteStmt = (st:editorState, id:string):editorState => {
+    {
+        ...st,
+        stmts: st.stmts->Js_array2.filter(stmt => stmt.id != id),
+        checkedStmtIds: st.checkedStmtIds->Js_array2.filter(checkedId => checkedId != id),
     }
 }
 
@@ -699,7 +706,7 @@ let refreshWrkCtx = (st:editorState):editorState => {
     st
 }
 
-let parseJstf = jstfText => {
+let parseJstf = (jstfText:string):option<justification> => {
     let jstfTrim = jstfText->Js_string2.trim
     if (jstfTrim->Js_string2.length == 0) {
         None
@@ -962,9 +969,12 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                                 jstfText: switch stmt.jstf {
                                     | None => stmtToUpdate.jstfText
                                     | Some({args, label}) => {
-                                        args->Js_array2.map(argLabel => {
-                                            newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
-                                        })->Js.Array2.joinWith(" ") ++ " : " ++ label
+                                        jstfToStr({
+                                            args: args->Js_array2.map(argLabel => {
+                                                newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
+                                            }), 
+                                            asrt:label
+                                        })
                                     }
                                 }
                             }
@@ -978,9 +988,12 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                             ->ctxIntsToStrExn(wrkCtx, _)
                         let jstfText = stmt.jstf
                             ->Belt.Option.map(jstf => {
-                                jstf.args->Js_array2.map(label => {
-                                    newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
-                                })->Js.Array2.joinWith(" ") ++ ": " ++ jstf.label
+                                jstfToStr({
+                                    args: jstf.args->Js_array2.map(label => {
+                                        newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
+                                    }), 
+                                    asrt: jstf.label
+                                })
                             })
                             ->Belt.Option.getWithDefault("")
                         let (st, newStmtId) = addNewStmt(stMut.contents)
@@ -1263,7 +1276,7 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
                         | None => {
                             {
                                 ...stmt,
-                                jstfText: jstfFromProof.args->Js_array2.joinWith(" ") ++ " : " ++ jstfFromProof.asrt,
+                                jstfText: jstfToStr(jstfFromProof),
                                 proof: Some((proofTree, proofNode)),
                             }
                         }
@@ -1430,6 +1443,71 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                             let proofTable = createProofTable(proofTable,proofNode)
                             let proof = MM_proof_table.createProof(wrkCtx, proofTable, proofTable->Js_array2.length-1)
                             Some(proofToText(wrkCtx,stmt,proof))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
+    st.stmts->Js_array2.reduce(
+        (res,stmt) => {
+            switch res {
+                | Error(_) => res
+                | Ok(st) => {
+                    switch parseJstf(stmt.jstfText) {
+                        | None => {
+                            if (stmt.jstfText->Js_string2.trim != "") {
+                                Error(`Cannot parse justification '${stmt.jstfText}' for ${stmt.label}`)
+                            } else {
+                                Ok(st)
+                            }
+                        }
+                        | Some(jstf) => {
+                            if (jstf.args->Js.Array2.includes(replaceWhat)) {
+                                let newJstf = {
+                                    ...jstf,
+                                    args: jstf.args
+                                        ->Js_array2.map(ref => if (ref == replaceWhat) {replaceWith} else {ref})
+                                }
+                                Ok(
+                                    st->updateStmt(stmt.id, stmt => {
+                                        {
+                                            ...stmt,
+                                            jstfText: jstfToStr(newJstf)
+                                        }
+                                    })
+                                )
+                            } else {
+                                Ok(st)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        Ok(st)
+    )
+}
+
+let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,string> => {
+    switch st.stmts->Js_array2.find(stmt => stmt.id == id1) {
+        | None => Error(`Cannot find a statement with id = '${id1}'`)
+        | Some(stmt1) => {
+            switch st.stmts->Js_array2.find(stmt => stmt.id == id2) {
+                | None => Error(`Cannot find a statement with id = '${id2}'`)
+                | Some(stmt2) => {
+                    if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
+                        Error(`Statements to merge must have identical expressions.`)
+                    } else {
+                        switch replaceRef(st, ~replaceWhat=stmt2.label, ~replaceWith=stmt1.label) {
+                            | Error(msg) => Error(msg)
+                            | Ok(st) => {
+                                let st = st->deleteStmt(id2)
+                                Ok(st)
+                            }
                         }
                     }
                 }
