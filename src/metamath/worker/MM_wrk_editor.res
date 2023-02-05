@@ -708,19 +708,20 @@ let refreshWrkCtx = (st:editorState):editorState => {
     st
 }
 
-let parseJstf = (jstfText:string):option<justification> => {
+let parseJstf = (jstfText:string):result<option<justification>,string> => {
     let jstfTrim = jstfText->Js_string2.trim
     if (jstfTrim->Js_string2.length == 0) {
-        None
+        Ok(None)
     } else {
         let argsAndAsrt = jstfTrim->Js_string2.split(":")
         if (argsAndAsrt->Js_array2.length != 2) {
-            raise(MmException({msg:`Cannot parse justification: '${jstfText}' [1].`}))
+            Error(`Cannot parse justification: '${jstfText}' [1].`)
+        } else {
+            Ok(Some({
+                args: argsAndAsrt[0]->getSpaceSeparatedValuesAsArray,
+                asrt: argsAndAsrt[1]->Js_string2.trim
+            }))
         }
-        Some({
-            args: argsAndAsrt[0]->getSpaceSeparatedValuesAsArray,
-            asrt: argsAndAsrt[1]->Js_string2.trim
-        })
     }
 }
 
@@ -732,7 +733,10 @@ let setExprAndJstf = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
             {
                 ...stmt,
                 expr: Some(wrkCtx->ctxSymsToIntsExn(stmt.cont->contToArrStr)),
-                jstf: parseJstf(stmt.jstfText)
+                jstf: switch parseJstf(stmt.jstfText) {
+                    | Error(msg) => raise(MmException({msg:msg}))
+                    | Ok(jstf) => jstf
+                }
             }
         } catch {
             | MmException({msg}) => {...stmt, stmtErr:Some(msg)}
@@ -1460,14 +1464,9 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
                 | Error(_) => res
                 | Ok(st) => {
                     switch parseJstf(stmt.jstfText) {
-                        | None => {
-                            if (stmt.jstfText->Js_string2.trim != "") {
-                                Error(`Cannot parse justification '${stmt.jstfText}' for ${stmt.label}`)
-                            } else {
-                                Ok(st)
-                            }
-                        }
-                        | Some(jstf) => {
+                        | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' for ${stmt.label}`)
+                        | Ok(None) => Ok(st)
+                        | Ok(Some(jstf)) => {
                             if (jstf.args->Js.Array2.includes(replaceWhat)) {
                                 let newJstf = {
                                     ...jstf,

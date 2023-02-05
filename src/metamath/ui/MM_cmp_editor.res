@@ -306,7 +306,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actOnMergeStmtsSelected = (stmtToUse:userStmt,stmtToRemove:userStmt) => {
         setState(st => {
             switch st->mergeStmts(stmtToUse.id, stmtToRemove.id) {
-                | Ok(st) => st
+                | Ok(st) => st->uncheckAllStmts
                 | Error(msg) => {
                     openInfoDialog(~modalRef, ~text=msg, ())
                     st
@@ -321,8 +321,14 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 | None => ()
                 | Some(stmt1) => {
                     let contStr = stmt1.cont->contToStr
-                    switch state.stmts->Js.Array2.find(stmt => stmt.cont->contToStr == contStr) {
-                        | None => ()
+                    switch state.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
+                        | None => {
+                            openInfoDialog(
+                                ~modalRef, 
+                                ~text="Cannot find another statement to merge with.",
+                                ()
+                            )
+                        }
                         | Some(stmt2) => {
                             if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
                                 openInfoDialog(
