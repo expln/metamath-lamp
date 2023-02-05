@@ -16,4 +16,5 @@ module Save = { @module("@mui/icons-material/Save") @react.component external ma
 module Search = { @module("@mui/icons-material/Search") @react.component external make: () => React.element = "default" }
 module Settings = { @module("@mui/icons-material/Settings") @react.component external make: () => React.element = "default" }
 module Sync = { @module("@mui/icons-material/Sync") @react.component external make: () => React.element = "default" }
+module SwapVert = { @module("@mui/icons-material/SwapVert") @react.component external make: () => React.element = "default" }
 module TextRotationNone = { @module("@mui/icons-material/TextRotationNone") @react.component external make: () => React.element = "default" }

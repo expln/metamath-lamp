@@ -396,10 +396,24 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
+                let expr1Init = if (state.checkedStmtIds->Js.Array2.length >= 1) {
+                    let id = state.checkedStmtIds[0]
+                    state.stmts->Js_array2.find(stmt => stmt.id == id)->Belt_Option.map(stmt => stmt.cont->contToStr)
+                } else {
+                    None
+                }
+                let expr2Init = if (state.checkedStmtIds->Js.Array2.length >= 2) {
+                    let id = state.checkedStmtIds[1]
+                    state.stmts->Js_array2.find(stmt => stmt.id == id)->Belt_Option.map(stmt => stmt.cont->contToStr)
+                } else {
+                    None
+                }
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_substitution
                             editorState=state
+                            expr1Init
+                            expr2Init
                             wrkCtx
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onSubstitutionSelected={wrkSubs=>{
@@ -565,7 +579,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         ~title="Add new statements from existing assertions (and place before selected statements if any)", ()
                     ) 
                 }
-                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~active=generalModificationActionIsEnabled,
+                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
+                    ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
                     ~title="Apply a substitution to all statements", () ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnify,

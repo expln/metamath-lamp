@@ -13,11 +13,14 @@ type state = {
     checkedResultIdx: int
 }
 
-let makeInitialState = () => {
+let makeInitialState = (
+    ~expr1Init:option<string>,
+    ~expr2Init:option<string>,
+) => {
     {
-        expr1Str: "",
+        expr1Str: expr1Init->Belt.Option.getWithDefault(""),
         expr1Err: None,
-        expr2Str: "",
+        expr2Str: expr2Init->Belt.Option.getWithDefault(""),
         expr2Err: None,
         results: None,
         checkedResultIdx: -1
@@ -46,6 +49,16 @@ let setExpr2Str = (st,str):state => {
     }
 }
 
+let swapExprs = (st):state => {
+    {
+        ...st,
+        expr1Err:None,
+        expr2Err:None,
+        expr1Str: st.expr2Str,
+        expr2Str: st.expr1Str,
+    }
+}
+
 let toggleResultChecked = (st,idx) => {
     if (st.checkedResultIdx ==idx) {
         {
@@ -60,14 +73,22 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
+let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
+    <span ?title>
+        <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
+    </span>
+}
+
 @react.component
 let make = (
     ~editorState: editorState,
+    ~expr1Init:option<string>,
+    ~expr2Init:option<string>,
     ~wrkCtx:mmContext,
     ~onCanceled:unit=>unit,
     ~onSubstitutionSelected:wrkSubs=>unit
 ) => {
-    let (state, setState) = React.useState(makeInitialState)
+    let (state, setState) = React.useState(() => makeInitialState(~expr1Init, ~expr2Init))
 
     let actSaveResults = results => {
         setState(setResults(_, results))
@@ -124,6 +145,10 @@ let make = (
         setState(setExpr2Str(_,str))
     }
 
+    let actSwapExprs = () => {
+        setState(swapExprs)
+    }
+
     let rndError = msgOpt => {
         switch msgOpt {
             | None => React.null
@@ -135,7 +160,7 @@ let make = (
         <TextField 
             label
             size=#small
-            style=ReactDOM.Style.make(~width="300px", ())
+            style=ReactDOM.Style.make(~width="700px", ())
             autoFocus
             value
             onChange=evt2str(onChange)
@@ -144,7 +169,19 @@ let make = (
     
     let rndInput = () => {
         <Col>
-            {rndExpr(~label="Replace what", ~value=state.expr1Str, ~autoFocus=true, ~onChange=actExpr1Change)}
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            {rndExpr(~label="Replace what", ~value=state.expr1Str, ~autoFocus=true, ~onChange=actExpr1Change)}
+                        </td>
+                        <td>
+                            {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
+                                ~title="Swap \"Replace what\" and \"Replace with\"", ())}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             {rndError(state.expr1Err)}
             {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false, ~onChange=actExpr2Change)}
             {rndError(state.expr2Err)}
