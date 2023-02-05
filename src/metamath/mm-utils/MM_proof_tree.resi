@@ -46,6 +46,7 @@ let ptAddDisjPair: (proofTree, int, int) => unit
 let ptEraseDists: proofTree => unit
 let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetCopyOfDisj: proofTree => disjMutable
+let ptGetExprToStr: proofTree => option<expr=>string>
 
 let ptGetNuberOfNodes: proofTree => int
 let ptGetStats: proofTree => unit

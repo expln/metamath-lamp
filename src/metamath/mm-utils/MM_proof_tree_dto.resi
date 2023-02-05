@@ -14,10 +14,16 @@ type proofNodeDto = {
     proof: option<exprSourceDto>,
 }
 
+type dbgProofTreeDto = {
+    newVars: array<string>,
+    disj: array<string>,
+}
+
 type proofTreeDto = {
     newVars: array<expr>,
     disj: disjMutable,
     nodes: array<proofNodeDto>,
+    dbg: option<dbgProofTreeDto>,
 }
 
 let proofTreeToDto: (proofTree, array<expr>) => proofTreeDto

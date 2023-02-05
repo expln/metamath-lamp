@@ -100,7 +100,12 @@ let srcToNewStmts = (
             let usedVarNames = Belt_HashSetString.make(~hintSize=8)
             let usedLabels = rootStmts->Js.Array2.map(stmt=>stmt.label)->Belt_HashSetString.fromArray
 
-            let getFrame = label => ctx->getFrame(label)->Belt_Option.getExn
+            let getFrame = label => {
+                switch ctx->getFrame(label) {
+                    | None => raise(MmException({msg:`Cannot get a frame by label '${label} in srcToNewStmts.'`}))
+                    | Some(frame) => frame
+                }
+            }
 
             let intToSym = i => {
                 if (i <= maxCtxVar) {
@@ -140,7 +145,7 @@ let srcToNewStmts = (
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                             if (hyp.typ == E) {
                                 switch exprToLabel->Belt_HashMap.get(tree.nodes[args[i]].expr) {
-                                    | None => raise(MmException({msg:`Cannot get a label for an arg by arg expr.`}))
+                                    | None => raise(MmException({msg:`Cannot get a label for an arg by arg's expr.`}))
                                     | Some(argLabel) => argLabels->Js_array2.push(argLabel)->ignore
                                 }
                             }
@@ -216,19 +221,12 @@ let srcToNewStmts = (
                 ~jstf = Some(src), 
                 ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
-            if (!disjIsEmpty(tree.disj)) {
-                let numOfNewVars = res.newVars->Js.Array2.length
-                for ni in 0 to numOfNewVars-2 {
-                    for mi in ni+1 to numOfNewVars-1 {
-                        let n = res.newVars[ni]
-                        let m = res.newVars[mi]
-                        if (!(ctx->isDisj(n,m)) && tree.disj->disjContains(n,m)) {
-                            res.newDisj->disjAddPair(n,m)
-                            res.newDisjStr->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
-                        }
-                    }
+            tree.disj->disjForEach((n,m) => {
+                if (res.newVars->Js.Array2.includes(n) || res.newVars->Js.Array2.includes(m)) {
+                    res.newDisj->disjAddPair(n,m)
+                    res.newDisjStr->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
                 }
-            }
+            })
             Some(res)
         }
         | _ => None

@@ -641,7 +641,7 @@ let unifyAll = (
         tree->ptGetStats
         let nodes = stmts->Js.Array2.map(stmt => tree->ptGetOrCreateNode(stmt.expr))
         //to doto: too many children
-        Js.Console.log2("nodes.length", nodes->Js_array2.length)
+        // Js.Console.log2("nodes.length", nodes->Js_array2.length)
     }
 
     tree

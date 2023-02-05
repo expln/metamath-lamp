@@ -15,10 +15,16 @@ type proofNodeDto = {
     proof: option<exprSourceDto>,
 }
 
+type dbgProofTreeDto = {
+    newVars: array<string>,
+    disj: array<string>,
+}
+
 type proofTreeDto = {
     newVars: array<expr>,
     disj: disjMutable,
     nodes: array<proofNodeDto>,
+    dbg: option<dbgProofTreeDto>,
 }
 
 let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):option<exprSourceDto> => {
@@ -95,11 +101,20 @@ let proofTreeToDto = (tree:proofTree, stmts:array<expr>):proofTreeDto => {
     exprToIdx->Belt_HashMap.forEach((expr,idx) => {
         nodes[idx] = proofNodeToDto(tree->ptGetOrCreateNode(expr), exprToIdx)
     })
-    {
-        newVars: tree->ptGetCopyOfNewVars,
-        disj: tree->ptGetCopyOfDisj,
-        nodes
+    let newVars = tree->ptGetCopyOfNewVars
+    let disj = tree->ptGetCopyOfDisj
+    let dbg = switch tree->ptGetExprToStr {
+        | None => None
+        | Some(exprToStr) => {
+            let dbgNewVars = newVars->Js.Array2.map(exprToStr)
+            let dbgDisj = []
+            disj->disjForEach((n,m) => {
+                dbgDisj->Js.Array2.push(exprToStr([n,m]))->ignore
+            })
+            Some({ newVars:dbgNewVars, disj:dbgDisj })
+        }
     }
+    { newVars, disj, nodes, dbg }
 }
 
 let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {

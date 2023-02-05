@@ -155,7 +155,7 @@ let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
 
 let ptGetStats = (tree:proofTree) => {
     let hist = Belt_HashMap.getBucketHistogram(tree.nodes)
-    Js.Console.log2("hist", hist)
+    // Js.Console.log2("hist", hist)
 }
 
 let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
@@ -302,3 +302,4 @@ let ptGetCopyOfDisj = tree => {
     disj
 }
 
+let ptGetExprToStr = tree => tree.exprToStr
