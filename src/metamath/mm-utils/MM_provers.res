@@ -72,12 +72,10 @@ let findAsrtParentsWithoutNewVars = (
     foundParents
 }
 
-let proveBottomUp = (
+let proveFloating = (
     ~tree:proofTree, 
     ~node:proofNode, 
-    ~getParents:expr=>array<exprSource>,
-    ~maxSearchDepth:option<int>,
-    ~onDistProgress:int=>unit,
+    ~framesToSkip:array<string>,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -87,70 +85,32 @@ let proveBottomUp = (
         otherwise there is a risk to miss existing proof for this node. So we must not interrupt the process of adding 
         parents even if the root node becomes proved.
     */
-    if (node->pnGetProof->Belt.Option.isNone) {
-        if (maxSearchDepth->Belt.Option.isSome) {
-            tree->ptEraseDists
-        }
-
+    if (node->pnGetProof->Belt.Option.isNone && !(node->pnIsInvalidFloating)) {
         let nodesToCreateParentsFor = Belt_MutableQueue.make()
         let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 16 )
 
-        let saveNodeToCreateParentsFor = (node,dist) => {
+        let saveNodeToCreateParentsFor = node => {
             switch node->pnGetProof {
                 | Some(_) => ()
                 | None => {
                     if (!(savedNodes->Belt_HashSet.has(node->pnGetExpr))) {
-                        let notTooFarFromRoot = switch maxSearchDepth {
-                            | None => true
-                            | Some(maxSearchDepth) => {
-                                switch dist {
-                                    | None => 
-                                        raise(MmException({
-                                            msg: `proveBottomUp: dist must not be None when maxSearchDepth is Some.`
-                                        }))
-                                    | Some(dist) => dist < maxSearchDepth
-                                }
-                            }
-                        }
-                        if (notTooFarFromRoot) {
-                            switch dist {
-                                | None => ()
-                                | Some(dist) => {
-                                    switch node->pnGetDist {
-                                        | Some(curDist) if curDist <= dist => ()
-                                        | _ => node->pnSetDist(Some(dist))
-                                    }
-                                }
-                            }
-                            savedNodes->Belt_HashSet.add(node->pnGetExpr)
-                            nodesToCreateParentsFor->Belt_MutableQueue.add(node)
-                        }
+                        savedNodes->Belt_HashSet.add(node->pnGetExpr)
+                        nodesToCreateParentsFor->Belt_MutableQueue.add(node)
                     }
                 }
             }
         }
 
         let rootNode = node
-        saveNodeToCreateParentsFor(rootNode, maxSearchDepth->Belt_Option.map(_ => 0))
-        let lastDist = ref(0)
+        saveNodeToCreateParentsFor(rootNode)
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
-                let newDist = switch curNode->pnGetDist {
-                    | Some(curDist) => {
-                        if (lastDist.contents != curDist) {
-                            lastDist.contents = curDist
-                            onDistProgress(curDist)
-                        }
-                        Some(curDist + 1)
-                    }
-                    | None => None
-                }
                 switch curNode->pnGetParents {
                     | Some(parents) => {
                         parents->Js.Array2.forEach(parent => {
                             switch parent {
-                                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
+                                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
                                 | _ => ()
                             }
                         })
@@ -163,11 +123,12 @@ let proveBottomUp = (
                             switch tree->ptGetHypByExpr(curExpr) {
                                 | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
                                 | None => {
-                                    getParents(curNode->pnGetExpr)->Js.Array2.forEach(parent => {
+                                    findAsrtParentsWithoutNewVars(
+                                        ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~framesToSkip
+                                    )->Js.Array2.forEach(parent => {
                                         curNode->pnAddParent(parent)
                                         switch parent {
-                                            | Assertion({args}) => 
-                                                args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
+                                            | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
                                             | _ => ()
                                         }
                                     })
@@ -178,28 +139,104 @@ let proveBottomUp = (
                 }
             }
         }
-        // if (maxSearchDepth->Belt_Option.isSome) {
-        //     Js.Console.log2("savedNodes.size", savedNodes->Belt_HashSet.size)
-        // }
+        if (rootNode->pnGetProof->Belt.Option.isNone) {
+            rootNode->pnSetInvalidFloating(true)
+        }
+    }
+}
+
+type rec virtNode = {
+    expr: expr,
+    proved: bool,
+    dist: int,
+    child: option<virtNode>,
+    parents: array<virtNode>,
+}
+
+let vnMake = (~node:proofNode, ~child:option<virtNode>, ~dist:int):virtNode => {
+    { node, dist, child, parents:[], }
+}
+
+let isBackRef = (vNode:virtNode, src:exprSource):bool => {
+
+}
+
+let proveBottomUp = (
+    ~tree:proofTree, 
+    ~expr:expr, 
+    ~getParents:expr=>array<exprSource>,
+    ~maxSearchDepth:int,
+    ~onDistProgress:int=>unit,
+) => {
+    let nodesToCreateParentsFor = Belt_MutableQueue.make()
+    let foundParens = Belt_HashMap.make( ~id=module(ExprHash), ~hintSize = 16 )
+
+    let saveNodeToCreateParentsFor = (vNode:virtNode) => {
+        switch vNode.node->pnGetProof {
+            | Some(_) => ()
+            | None => {
+                nodesToCreateParentsFor->Belt_MutableQueue.add(vNode)
+            }
+        }
+    }
+
+    let rootNode = tree->ptGetOrCreateNode(expr)
+    saveNodeToCreateParentsFor(vnMake(~node=rootNode, ~child=None, ~dist=0))
+    let lastDist = ref(0)
+    while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
+        let curVNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
+        if (curVNode.node->pnGetProof->Belt.Option.isNone) {
+            let curDist = curVNode.dist
+            if (lastDist.contents != curDist) {
+                lastDist.contents = curDist
+                onDistProgress(curDist)
+            }
+            let newDist = curDist + 1
+            if (newDist <= maxSearchDepth) {
+                let curExpr = curVNode.node->pnGetExpr
+                let parents:array<exprSource> = switch foundParens->Belt_HashMap.get(curExpr) {
+                    | Some(parents) => parents
+                    | None => {
+                        getParents(curExpr)
+                    }
+                }
+            }
+
+            switch curVNode.node->pnGetParents {
+                | Some(parents) => {
+                    parents->Js.Array2.forEach(parent => {
+                        switch parent {
+                            | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
+                            | _ => ()
+                        }
+                    })
+                }
+                | None => {
+                    let curExpr = curNode->pnGetExpr
+                    if (tree->ptIsNewVarDef(curExpr)) {
+                        curNode->pnAddParent(VarType)
+                    } else {
+                        switch tree->ptGetHypByExpr(curExpr) {
+                            | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
+                            | None => {
+                                getParents(curNode->pnGetExpr)->Js.Array2.forEach(parent => {
+                                    curNode->pnAddParent(parent)
+                                    switch parent {
+                                        | Assertion({args}) => 
+                                            args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
+                                        | _ => ()
+                                    }
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 let dummyOnDistProgress = _ => ()
-
-let proveFloating = (tree, node, ~framesToSkip: array<string>) => {
-    if (!(node->pnIsInvalidFloating) && node->pnGetProof->Belt.Option.isNone) {
-        proveBottomUp(
-            ~tree, 
-            ~node, 
-            ~getParents = expr => findAsrtParentsWithoutNewVars(~tree, ~expr, ~restrictExprLen=LessEq, ~framesToSkip),
-            ~maxSearchDepth = None,
-            ~onDistProgress = dummyOnDistProgress,
-        )
-        if (node->pnGetProof->Belt.Option.isNone) {
-            node->pnSetInvalidFloating(true)
-        }
-    }
-}
 
 let findAsrtParentsWithNewVars = (
     ~tree,
@@ -586,7 +623,7 @@ let proveFloatings = (
     )
 
     stmts->Js.Array2.forEach(stmt => {
-        proveFloating( tree, tree->ptGetOrCreateNode(stmt), ~framesToSkip )
+        proveFloating( ~tree, ~node=tree->ptGetOrCreateNode(stmt), ~framesToSkip )
     })
     tree
 }

@@ -489,7 +489,7 @@ let make = (
 
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
         <FormControl size=#small>
-            <InputLabel id="length-restrict-select-label">"Length resctriction"</InputLabel>
+            <InputLabel id="length-restrict-select-label">"Length restriction"</InputLabel>
             <Select
                 sx={"width": 130}
                 labelId="length-restrict-select-label"

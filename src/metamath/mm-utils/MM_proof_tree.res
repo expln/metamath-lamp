@@ -2,8 +2,6 @@ open MM_parser
 open MM_context
 open MM_substitution
 open MM_parenCounter
-open MM_proof_table
-open MM_progress_tracker
 
 type justification = {
     args: array<string>,
@@ -22,7 +20,6 @@ type rec proofNode = {
     mutable parents: option<array<exprSource>>,
     mutable children: array<proofNode>,
     mutable proof: option<exprSource>,
-    mutable dist: option<int>,
     mutable isInvalidFloating: bool,
 }
 
@@ -138,17 +135,12 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
                 parents: None,
                 proof: None,
                 children: [],
-                dist: None,
                 isInvalidFloating: false,
             }
             tree.nodes->Belt_HashMap.set(expr, node)->ignore
             node
         }
     }
-}
-
-let ptEraseDists = (tree:proofTree) => {
-    tree.nodes->Belt_HashMap.forEach((_, node) => node.dist = None)
 }
 
 let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
@@ -263,17 +255,11 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
     }
 }
 
-let pnGetDist = node => node.dist
-
 let pnSetInvalidFloating = (node,isInvalidFloating) => {
     node.isInvalidFloating = isInvalidFloating
 }
 
 let pnIsInvalidFloating = node => node.isInvalidFloating
-
-let pnSetDist = (node,dist) => {
-    node.dist = dist
-}
 
 let ptAddNewVar = (tree, typ):int => {
     tree.maxVar = tree.maxVar + 1

@@ -43,7 +43,6 @@ let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetOrCreateNode: (proofTree, expr) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
-let ptEraseDists: proofTree => unit
 let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetCopyOfDisj: proofTree => disjMutable
 let ptGetExprToStr: proofTree => option<expr=>string>
@@ -56,7 +55,5 @@ let pnGetExprStr: proofNode => option<string>
 let pnGetProof: proofNode => option<exprSource>
 let pnGetParents: proofNode => option<array<exprSource>>
 let pnAddParent: (proofNode, exprSource) => unit
-let pnGetDist: proofNode => option<int>
-let pnSetDist: (proofNode, option<int>) => unit
 let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: (proofNode, bool) => unit
