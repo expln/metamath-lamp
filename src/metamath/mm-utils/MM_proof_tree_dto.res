@@ -178,3 +178,30 @@ let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {
     )->ignore
     tbl
 }
+
+let exprSourceDtoEq = (s1,s2) => {
+    switch s1 {
+        | VarType => {
+            switch s2 {
+                | VarType => true
+                | _ => false
+            }
+        }
+        | Hypothesis({label:label1}) => {
+            switch s2 {
+                | Hypothesis({label:label2}) => label1 == label2
+                | _ => false
+            }
+        }
+        | Assertion({ args:args1, label:label1, }) => {
+            switch s2 {
+                | Assertion({ args:args2, label:label2, }) => {
+                    label1 == label2
+                    && args1->Js.Array2.length == args2->Js.Array2.length
+                    && args1->Js.Array2.everyi((arg1,idx) => arg1 ==args2[idx])
+                }
+                | _ => false
+            }
+        }
+    }
+}

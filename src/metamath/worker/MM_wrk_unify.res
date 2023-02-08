@@ -110,6 +110,7 @@ let srcToNewStmts = (
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
+    ~proof: option<exprSourceDto>,
 ):option<newStmtsDto> => {
     switch src {
         | Assertion({args, label}) => {
@@ -247,7 +248,7 @@ let srcToNewStmts = (
                 ~label=stmtToProve.label, 
                 ~expr = stmtToProve.expr, 
                 ~jstf = Some(src), 
-                ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
+                ~isProved = proof->Belt_Option.map(exprSourceDtoEq(_, src))->Belt_Option.getWithDefault(false)
             )
             tree.disj->disjForEach((n,m) => {
                 if (res.newVars->Js.Array2.includes(n) || res.newVars->Js.Array2.includes(m)) {
@@ -285,6 +286,7 @@ let proofTreeDtoToNewStmtsDto = (
                     ~newVarTypes,
                     ~ctx,
                     ~typeToPrefix: Belt_MapString.t<string>,
+                    ~proof = proofNode.proof,
                 ))
                 ->Js.Array2.filter(Belt_Option.isSome)
                 ->Js.Array2.map(Belt_Option.getExn)

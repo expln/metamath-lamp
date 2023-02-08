@@ -29,3 +29,5 @@ type proofTreeDto = {
 let proofTreeToDto: (proofTree, array<expr>) => proofTreeDto
 
 let createProofTable: (proofTreeDto, proofNodeDto) => proofTable
+
+let exprSourceDtoEq: (exprSourceDto, exprSourceDto) => bool
