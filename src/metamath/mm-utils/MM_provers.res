@@ -230,14 +230,14 @@ let findAsrtParentsWithNewVars = (
     foundParents
 }
 
-let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~framesToSkip: array<string>):proofNode => {
-    let node = tree->ptGetOrCreateNode(stmt)
-    if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
+let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~framesToSkip: array<string>):proofNode => {
+    let node = tree->ptGetOrCreateNode(expr)
+    if (node->pnGetProof->Belt.Option.isNone) {
         let parents = findAsrtParentsWithNewVars( 
             ~tree, 
-            ~expr=stmt, 
+            ~expr, 
             ~framesToSkip, 
-            ~stmts=prevStmts, 
+            ~stmts=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr), 
             ~exactOrderOfStmts=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
@@ -251,26 +251,60 @@ let proveWithoutJustification = (~tree, ~prevStmts:array<expr>, ~stmt:expr, ~fra
     node
 }
 
+let getStatementsFromJustification = (
+    ~tree:proofTree,
+    ~jstf: justification,
+):option<array<expr>> => {
+    let getStmtByLabel = label => {
+        switch tree->ptGetRootStmts->Js.Array2.find(stmt => stmt.label == label) {
+            | Some(stmt) => Some(stmt.expr)
+            | None => {
+                switch tree->ptGetHypByLabel(label) {
+                    | Some(hyp) => Some(hyp.expr)
+                    | None => None
+                }
+            }
+        }
+    }
+    let foundStmts = jstf.args
+        ->Js_array2.map(getStmtByLabel)
+        ->Js_array2.filter(Belt_Option.isSome)
+        ->Js_array2.map(Belt_Option.getExn)
+    if (foundStmts->Js_array2.length == jstf.args->Js.Array2.length) {
+        Some(foundStmts)
+    } else {
+        None
+    }
+}
+
 let proveWithJustification = (
-    ~tree, ~args:array<expr>, ~asrtLabel:string, ~stmt:expr, ~framesToSkip: array<string>
+    ~tree:proofTree, 
+    ~expr:expr, 
+    ~jstf: justification, 
+    ~framesToSkip: array<string>,
 ):proofNode => {
-    let node = tree->ptGetOrCreateNode(stmt)
-    if (node->pnGetProof->Belt.Option.isNone && node->pnGetParents->Belt.Option.isNone) {
-        let parents = findAsrtParentsWithNewVars( 
-            ~tree, 
-            ~expr=stmt, 
-            ~stmts=args, 
-            ~exactOrderOfStmts=true,
-            ~allowEmptyArgs=false,
-            ~allowNewVars=false,
-            ~asrtLabel,
-            ~framesToSkip,
-            () 
-        )
-        parents->Expln_utils_common.arrForEach(parent => {
-            node->pnAddParent(parent)
-            node->pnGetProof
-        })->ignore
+    let node = tree->ptGetOrCreateNode(expr)
+    if (node->pnGetProof->Belt.Option.isNone) {
+        switch getStatementsFromJustification( ~tree, ~jstf, ) {
+            | None => ()
+            | Some(args) => {
+                let parents = findAsrtParentsWithNewVars( 
+                    ~tree,
+                    ~expr,
+                    ~stmts=args,
+                    ~exactOrderOfStmts=true,
+                    ~allowEmptyArgs=false,
+                    ~allowNewVars=false,
+                    ~asrtLabel=jstf.asrt,
+                    ~framesToSkip,
+                    () 
+                )
+                parents->Expln_utils_common.arrForEach(parent => {
+                    node->pnAddParent(parent)
+                    node->pnGetProof
+                })->ignore
+            }
+        }
     }
     node
 }
@@ -438,76 +472,20 @@ let proveStmtBottomUp = (
     tree->ptGetOrCreateNode(expr)
 }
 
-let getStatementsFromJustification = (
-    ~tree:proofTree,
-    ~stmts:array<rootStmt>,
-    ~justification: justification,
-):array<expr> => {
-    let getStmtByLabel = label => {
-        switch stmts->Js.Array2.find(stmt => stmt.label == label) {
-            | Some(stmt) => Some(stmt.expr)
-            | None => {
-                switch tree->ptGetHypByLabel(label) {
-                    | Some(hyp) => Some(hyp.expr)
-                    | None => None
-                }
-            }
-        }
-    }
-    let foundStmts = justification.args
-        ->Js_array2.map(getStmtByLabel)
-        ->Js_array2.filter(Belt_Option.isSome)
-        ->Js_array2.map(Belt_Option.getExn)
-    if (foundStmts->Js_array2.length == justification.args->Js.Array2.length) {
-        foundStmts
-    } else {
-        []
-    }
-}
-
 let proveStmt = (
     ~tree, 
-    ~prevStmts:array<rootStmt>,
-    ~stmt:rootStmt, 
-    ~framesToSkip: array<string>,
+    ~expr:expr, 
     ~jstf:option<justification>, 
+    ~framesToSkip: array<string>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
     ~onProgress:option<float=>unit>,
 ) => {
     switch bottomUpProverParams {
-        | Some(params) => {
-            proveStmtBottomUp( 
-                ~tree, 
-                ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
-                ~stmt=stmt.expr,
-                ~params,
-                ~framesToSkip,
-                ~onProgress,
-            )->ignore
-        }
+        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~framesToSkip, ~onProgress, )->ignore
         | None => {
             switch jstf {
-                | None => {
-                    proveWithoutJustification(
-                        ~tree, 
-                        ~prevStmts=prevStmts->Js_array2.map(stmt => stmt.expr),
-                        ~stmt=stmt.expr,
-                        ~framesToSkip,
-                    )->ignore
-                }
-                | Some(jstf) => {
-                    proveWithJustification(
-                        ~tree, 
-                        ~args=getStatementsFromJustification(
-                            ~tree,
-                            ~stmts=prevStmts,
-                            ~justification=jstf,
-                        ), 
-                        ~asrtLabel=jstf.asrt, 
-                        ~stmt=stmt.expr,
-                        ~framesToSkip,
-                    )->ignore
-                }
+                | None => proveWithoutJustification( ~tree, ~expr, ~framesToSkip, )->ignore
+                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, ~framesToSkip, )->ignore
             }
         }
     }
@@ -549,6 +527,11 @@ let createProofTree = (
             if (hyp.typ == E) {
                 let node = tree->ptGetOrCreateNode(hyp.expr)
                 node->pnAddParent(Hypothesis({label:label}))
+                tree->ptAddRootStmt({
+                    label,
+                    expr: hyp.expr,
+                    justification: None,
+                })->ignore
             }
         })
     }
@@ -595,15 +578,6 @@ let unifyAll = (
         ~addEssentials=true,
     )
 
-    ctx->getAllHyps->Belt_MapString.forEach((label,hyp) => {
-        if (hyp.typ == E) {
-            tree->ptAddRootStmt({
-                label,
-                expr: hyp.expr,
-                justification: None,
-            })->ignore
-        }
-    })
     let numOfStmts = stmts->Js_array2.length
     if (numOfStmts > 0) {
         let pctPerStmt = (1. /. numOfStmts->Belt.Int.toFloat)
@@ -612,8 +586,7 @@ let unifyAll = (
         stmts->Js.Array2.forEachi((stmt,stmtIdx) => {
             proveStmt(
                 ~tree, 
-                ~prevStmts,
-                ~stmt, 
+                ~expr=stmt.expr, 
                 ~jstf=stmt.justification,
                 ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
                 ~framesToSkip,
