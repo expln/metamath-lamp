@@ -1,3 +1,4 @@
+- fix a bug: allow new vars on all dists in bottom-up, run 'prove sgnval' - there will be an exception "a variable cannot be found".
 - before merging of statements check if some statements should be moved up because they are referenced by above statements and don't merge in that case.
 - remove framesToSkip from the settings.
 - write unit tests for exprIsBackRef and srcIsBackRef.

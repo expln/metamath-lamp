@@ -347,44 +347,17 @@ let proveBottomUp = (
     ~onProgress:option<string=>unit>,
 ) => {
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
-    let nodeCountsByDist = Belt_HashMapInt.make(~hintSize=maxSearchDepth)
-    let nodeMaxCountsByDist = Belt_HashMapInt.make(~hintSize=maxSearchDepth)
-
-    let getCntFromMap = (map, dist) => {
-        switch map->Belt_HashMapInt.get(dist) {
-            | None => 0
-            | Some(cnt) => cnt
-        }
-    }
-
-    let getCnt = dist => getCntFromMap(nodeCountsByDist, dist)
-    let getMaxCnt = dist => getCntFromMap(nodeMaxCountsByDist, dist)
-
-    let addToCnt = (dist,x) => nodeCountsByDist->Belt_HashMapInt.set( dist, getCnt(dist) + x )
-
-    let incCnt = dist => {
-        addToCnt(dist,1)
-        nodeMaxCountsByDist->Belt_HashMapInt.set(dist, getCnt(dist))
-    }
-    let decCnt = dist => addToCnt(dist,-1)
 
     let saveNodeToCreateParentsFor = (vNode:virtNode) => {
         switch vNode.node->pnGetProof {
             | Some(_) => ()
-            | None => {
-                nodesToCreateParentsFor->Belt_MutableQueue.add(vNode)
-                incCnt(vNode.dist)
-            }
+            | None => nodesToCreateParentsFor->Belt_MutableQueue.add(vNode)
         }
     }
 
     let hasNodesToCreateParentsFor = () => !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)
 
-    let getNextNodeToCreateParentsFor = () => {
-        let vNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
-        decCnt(vNode.dist)
-        vNode
-    }
+    let getNextNodeToCreateParentsFor = () => nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
     let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
@@ -392,6 +365,8 @@ let proveBottomUp = (
     let rootNode = tree->ptGetOrCreateNode(expr)
     saveNodeToCreateParentsFor(vnMake(~node=rootNode, ~child=None, ~dist=0))
     let lastDist = ref(0)
+    let maxCnt = ref(1)
+    let cnt = ref(0)
     while (rootNode->pnGetProof->Belt_Option.isNone && hasNodesToCreateParentsFor()) {
         let curVNode = getNextNodeToCreateParentsFor()
         if (curVNode.node->pnGetProof->Belt.Option.isNone) {
@@ -409,11 +384,13 @@ let proveBottomUp = (
                             }, 
                             ()
                         )
+                        maxCnt.contents = nodesToCreateParentsFor->Belt_MutableQueue.size + 1
+                        cnt.contents = 0
                     }
-                    let maxCnt = getMaxCnt(curDist)
                     progressState.contents = progressState.contents->progressTrackerSetCurrPct(
-                        (maxCnt - getCnt(curDist) - 1)->Belt_Int.toFloat /. maxCnt->Belt_Int.toFloat
+                        cnt.contents->Belt_Int.toFloat /. maxCnt.contents->Belt_Int.toFloat
                     )
+                    cnt.contents = cnt.contents + 1
                 }
                 | None => ()
             }
@@ -476,7 +453,7 @@ let proveStmtBottomUp = (
                     ~exactOrderOfStmts=false,
                     ~asrtLabel = ?(if (vNode.dist == 0) {params.asrtLabel} else {None}),
                     ~allowEmptyArgs = true,
-                    ~allowNewVars = params.allowNewVars,
+                    ~allowNewVars = vNode.dist == 0 && params.allowNewVars,
                     ()
                 )
                 if (vNode.dist == 0) {
