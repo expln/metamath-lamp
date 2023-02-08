@@ -386,11 +386,14 @@ let proveBottomUp = (
         vNode
     }
 
+    let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
+    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
+
     let rootNode = tree->ptGetOrCreateNode(expr)
     saveNodeToCreateParentsFor(vnMake(~node=rootNode, ~child=None, ~dist=0))
     let lastDist = ref(0)
     while (rootNode->pnGetProof->Belt_Option.isNone && hasNodesToCreateParentsFor()) {
-        let curVNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
+        let curVNode = getNextNodeToCreateParentsFor()
         if (curVNode.node->pnGetProof->Belt.Option.isNone) {
             let curDist = curVNode.dist
             switch onProgress {
@@ -398,12 +401,19 @@ let proveBottomUp = (
                     if (lastDist.contents != curDist) {
                         lastDist.contents = curDist
                         let curDistStr = curDist->Belt.Int.toString
-                        let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
-                        let pctStr = (
-                            (getMaxCnt(curDist) - getCnt(curDist) - 1)->Belt_Int.toFloat /. getMaxCnt(curDist)->Belt_Int.toFloat *. 100.
-                        )->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
-                        onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
+                        progressState.contents = progressTrackerMake(
+                            ~step=0.01,
+                            ~onProgress= pct => {
+                                let pctStr = (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
+                                onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
+                            }, 
+                            ()
+                        )
                     }
+                    let maxCnt = getMaxCnt(curDist)
+                    progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+                        (maxCnt - getCnt(curDist) - 1)->Belt_Int.toFloat /. maxCnt->Belt_Int.toFloat
+                    )
                 }
                 | None => ()
             }
@@ -611,7 +621,7 @@ let unifyAll = (
     let progressState = ref(progressTrackerMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
-            pct => onProgress(`Unifying all: ${pct->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}`)
+            pct => onProgress(`Unifying all: ${(pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`)
         }), 
         ()
     ))
