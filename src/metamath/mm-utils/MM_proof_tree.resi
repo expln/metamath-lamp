@@ -39,6 +39,7 @@ let ptGetCtxMaxVar: proofTree => int
 let ptGetParenCnt: proofTree => parenCnt
 let ptIsDisj: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
+let ptGetRootStmts: proofTree => array<rootStmt>
 let ptGetNodeByExpr: (proofTree, expr) => option<proofNode>
 let ptGetOrCreateNode: (proofTree, expr) => proofNode
 let ptAddNewVar: (proofTree, int) => int
@@ -46,6 +47,7 @@ let ptAddDisjPair: (proofTree, int, int) => unit
 let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetCopyOfDisj: proofTree => disjMutable
 let ptGetExprToStr: proofTree => option<expr=>string>
+let ptAddRootStmt: (proofTree, rootStmt) => unit
 
 let ptGetNuberOfNodes: proofTree => int
 let ptGetStats: proofTree => unit

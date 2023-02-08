@@ -51,10 +51,11 @@ let findAsrtParentsWithoutNewVars = (
                                     msg:`Work variables are not supported in addAsrtParentsWithoutNewVars().`
                                 }))
                             )
-                            argsAreCorrect.contents = 
-                                restrictExprLen == No
-                                || restrictExprLen == LessEq && newExpr->Js_array2.length <= exprLen
-                                || newExpr->Js_array2.length < exprLen
+                            argsAreCorrect.contents = switch restrictExprLen {
+                                | No => true
+                                | LessEq => newExpr->Js_array2.length <= exprLen
+                                | Less => newExpr->Js_array2.length < exprLen
+                            }
                             if (argsAreCorrect.contents) {
                                 args[argIdx.contents] = tree->ptGetOrCreateNode(newExpr)
                             }
@@ -145,97 +146,6 @@ let proveFloating = (
     }
 }
 
-type rec virtNode = {
-    expr: expr,
-    proved: bool,
-    dist: int,
-    child: option<virtNode>,
-    parents: array<virtNode>,
-}
-
-let vnMake = (~node:proofNode, ~child:option<virtNode>, ~dist:int):virtNode => {
-    { node, dist, child, parents:[], }
-}
-
-let isBackRef = (vNode:virtNode, src:exprSource):bool => {
-
-}
-
-let proveBottomUp = (
-    ~tree:proofTree, 
-    ~expr:expr, 
-    ~getParents:expr=>array<exprSource>,
-    ~maxSearchDepth:int,
-    ~onDistProgress:int=>unit,
-) => {
-    let nodesToCreateParentsFor = Belt_MutableQueue.make()
-    let foundParens = Belt_HashMap.make( ~id=module(ExprHash), ~hintSize = 16 )
-
-    let saveNodeToCreateParentsFor = (vNode:virtNode) => {
-        switch vNode.node->pnGetProof {
-            | Some(_) => ()
-            | None => {
-                nodesToCreateParentsFor->Belt_MutableQueue.add(vNode)
-            }
-        }
-    }
-
-    let rootNode = tree->ptGetOrCreateNode(expr)
-    saveNodeToCreateParentsFor(vnMake(~node=rootNode, ~child=None, ~dist=0))
-    let lastDist = ref(0)
-    while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
-        let curVNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
-        if (curVNode.node->pnGetProof->Belt.Option.isNone) {
-            let curDist = curVNode.dist
-            if (lastDist.contents != curDist) {
-                lastDist.contents = curDist
-                onDistProgress(curDist)
-            }
-            let newDist = curDist + 1
-            if (newDist <= maxSearchDepth) {
-                let curExpr = curVNode.node->pnGetExpr
-                let parents:array<exprSource> = switch foundParens->Belt_HashMap.get(curExpr) {
-                    | Some(parents) => parents
-                    | None => {
-                        getParents(curExpr)
-                    }
-                }
-            }
-
-            switch curVNode.node->pnGetParents {
-                | Some(parents) => {
-                    parents->Js.Array2.forEach(parent => {
-                        switch parent {
-                            | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
-                            | _ => ()
-                        }
-                    })
-                }
-                | None => {
-                    let curExpr = curNode->pnGetExpr
-                    if (tree->ptIsNewVarDef(curExpr)) {
-                        curNode->pnAddParent(VarType)
-                    } else {
-                        switch tree->ptGetHypByExpr(curExpr) {
-                            | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
-                            | None => {
-                                getParents(curNode->pnGetExpr)->Js.Array2.forEach(parent => {
-                                    curNode->pnAddParent(parent)
-                                    switch parent {
-                                        | Assertion({args}) => 
-                                            args->Js_array2.forEach(saveNodeToCreateParentsFor(_,newDist))
-                                        | _ => ()
-                                    }
-                                })
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 let dummyOnDistProgress = _ => ()
 
 let findAsrtParentsWithNewVars = (
@@ -308,7 +218,7 @@ let findAsrtParentsWithNewVars = (
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode
             if (frame.hyps[argIdx.contents].typ == F) {
-                proveFloating(tree, argNode, ~framesToSkip)
+                proveFloating(~tree, ~node=argNode, ~framesToSkip)
                 typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isSome
             }
             argIdx.contents = argIdx.contents + 1
@@ -365,129 +275,167 @@ let proveWithJustification = (
     node
 }
 
+type rec virtNode = {
+    node:proofNode,
+    dist: int,
+    child: option<virtNode>,
+    parents: array<virtNode>,
+}
+
+let vnMake = (~node:proofNode, ~child:option<virtNode>, ~dist:int):virtNode => {
+    { node, dist, child, parents:[], }
+}
+
+let exprIsBackRef = (vNode:virtNode, expr:expr):bool => {
+    let vNode = ref(Some(vNode))
+    while (
+        vNode.contents
+            ->Belt_Option.map(vNode => !exprEq(vNode.node->pnGetExpr, expr))
+            ->Belt.Option.getWithDefault(false)
+    ) {
+        vNode.contents = (vNode.contents->Belt_Option.getExn).child
+    }
+    vNode.contents->Belt_Option.isSome
+}
+
+let srcIsBackRef = (vNode:virtNode, src:exprSource):bool => {
+    switch src {
+        | Assertion({args}) => args->Js_array2.some(arg => exprIsBackRef(vNode, arg->pnGetExpr))
+        | _ => false
+    }
+}
+
+let proveBottomUp = (
+    ~tree:proofTree, 
+    ~expr:expr, 
+    ~getParents:virtNode=>array<exprSource>,
+    ~maxSearchDepth:int,
+    ~onDistProgress:int=>unit,
+) => {
+    let nodesToCreateParentsFor = Belt_MutableQueue.make()
+
+    let saveNodeToCreateParentsFor = (vNode:virtNode) => {
+        switch vNode.node->pnGetProof {
+            | Some(_) => ()
+            | None => {
+                nodesToCreateParentsFor->Belt_MutableQueue.add(vNode)
+            }
+        }
+    }
+
+    let rootNode = tree->ptGetOrCreateNode(expr)
+    saveNodeToCreateParentsFor(vnMake(~node=rootNode, ~child=None, ~dist=0))
+    let lastDist = ref(0)
+    while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
+        let curVNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
+        if (curVNode.node->pnGetProof->Belt.Option.isNone) {
+            let curDist = curVNode.dist
+            if (lastDist.contents != curDist) {
+                lastDist.contents = curDist
+                onDistProgress(curDist)
+            }
+
+            let curExpr = curVNode.node->pnGetExpr
+            if (tree->ptIsNewVarDef(curExpr)) {
+                curVNode.node->pnAddParent(VarType)
+            } else {
+                switch tree->ptGetHypByExpr(curExpr) {
+                    | Some(hyp) => curVNode.node->pnAddParent(Hypothesis({label:hyp.label}))
+                    | None => {
+                        let newDist = curDist + 1
+                        if (newDist <= maxSearchDepth) {
+                            getParents(curVNode)->Js.Array2.forEach(src => {
+                                if (!srcIsBackRef(curVNode, src)) {
+                                    curVNode.node->pnAddParent(src)
+                                    switch src {
+                                        | Assertion({args}) => 
+                                            args->Js_array2.forEach(arg => {
+                                                if (arg->pnGetProof->Belt.Option.isNone) {
+                                                    saveNodeToCreateParentsFor(
+                                                        vnMake(~node=arg, ~child=Some(curVNode), ~dist=newDist)
+                                                    )
+                                                }
+                                            })
+                                        | _ => ()
+                                    }
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 let proveStmtBottomUp = (
-    ~tree, ~prevStmts:array<expr>, ~stmt:expr, ~params:bottomUpProverParams, ~framesToSkip: array<string>,
+    ~tree:proofTree, 
+    ~expr:expr, 
+    ~params:bottomUpProverParams, 
+    ~framesToSkip: array<string>,
     ~onProgress:option<float=>unit>,
 ):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
+    let foundParents = Belt_HashMap.make(~hintSize=16, ~id=module(ExprHash))
+    let rootExprs = tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr)
 
-    // let numOfGetParentsCalls = ref(0)
-    // let numOfParentsProcessed = ref(0)
-    // let numOfParentsReturned = ref(0)
-    // let numOfProveFloatingCalls = ref(0)
-
-    let getParents = expr => {
-        // numOfGetParentsCalls.contents = numOfGetParentsCalls.contents + 1
-        let parents = findAsrtParentsWithoutNewVars( 
-            ~tree, ~expr, ~restrictExprLen=params.lengthRestriction, ~framesToSkip
-        )
-        // numOfParentsProcessed.contents = numOfParentsProcessed.contents + parents->Js.Array2.length
-        let parents = parents->Js.Array2.filter(parent => {
-                switch parent {
-                    | Assertion({args, frame}) => {
-                        let numOfArgs = frame.hyps->Js_array2.length
-                        let argsAreCorrect = ref(true)
-                        let argIdx = ref(0)
-                        let maxArgIdx = numOfArgs - 1
-                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                            let arg = args[argIdx.contents]
-                            if (frame.hyps[argIdx.contents].typ == F) {
-                                if (!(arg->pnIsInvalidFloating)) {
-                                    // numOfProveFloatingCalls.contents = numOfProveFloatingCalls.contents + 1
-                                    proveFloating(tree, arg, ~framesToSkip)
-                                }
-                                argsAreCorrect.contents = arg->pnGetProof->Belt.Option.isSome
-                            }
-                            argIdx.contents = argIdx.contents + 1
-                        }
-                        argsAreCorrect.contents
-                    }
-                    | _ => true
-                }
-            })
-        // numOfParentsReturned.contents = numOfParentsReturned.contents + parents->Js.Array2.length
-        parents
-    }
-
-    let node = tree->ptGetOrCreateNode(stmt)
-    if (node->pnGetProof->Belt.Option.isNone) {
-        let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
-        let firstLevelParents = findAsrtParentsWithNewVars( 
-            ~tree, 
-            ~expr=stmt, 
-            ~stmts=prevStmts, 
-            ~exactOrderOfStmts=false,
-            ~allowEmptyArgs=true,
-            ~allowNewVars=params.allowNewVars,
-            ~framesToSkip, 
-            ~asrtLabel=?params.asrtLabel,
-            ()
-        )
-        firstLevelParents->Expln_utils_common.arrForEach(parent => {
-            node->pnAddParent(parent)
-            node->pnGetProof
-        })->ignore
-        let flParentsLen = firstLevelParents->Js.Array2.length
-        if (flParentsLen > 0) {
-            let pctPerFlParent = 1. /. flParentsLen->Belt.Int.toFloat
-            let maxSearchDepth = params.maxSearchDepth-1
-            if (maxSearchDepth > 0) {
-                firstLevelParents->Js.Array2.forEachi((firstLevelParent, pi) => {
-                    if (node->pnGetProof->Belt.Option.isNone) {
-                        switch firstLevelParent {
-                            | Assertion({args}) => {
-                                let argsLen = args->Js.Array2.length
-                                if (argsLen > 0) {
-                                    let pctPerArg = pctPerFlParent /. argsLen->Belt.Int.toFloat
-                                    args->Js.Array2.forEachi((arg,ai) => {
-                                        if (node->pnGetProof->Belt.Option.isNone && arg->pnGetProof->Belt.Option.isNone
-                                                && !exprHasNewVars(arg->pnGetExpr)) {
-                                            // Js.Console.log2("(pi,ai)", (pi,ai))
-                                            // numOfGetParentsCalls.contents = 0
-                                            // numOfParentsProcessed.contents = 0
-                                            // numOfParentsReturned.contents = 0
-                                            // numOfProveFloatingCalls.contents = 0
-                                            let pctPerDepth = pctPerArg /. maxSearchDepth->Belt.Int.toFloat
-                                            proveBottomUp(
-                                                ~tree, 
-                                                ~node=arg, 
-                                                ~getParents,
-                                                ~maxSearchDepth = Some(maxSearchDepth),
-                                                ~onDistProgress = curDist => {
-                                                    let depthDone = curDist - 1
-                                                    if (depthDone > 0) {
-                                                        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
-                                                            pi->Belt_Int.toFloat *. pctPerFlParent
-                                                                +. ai->Belt_Int.toFloat *. pctPerArg
-                                                                +. depthDone->Belt_Int.toFloat *. pctPerDepth
-                                                        )
-                                                    }
-                                                },
-                                            )
-                                            // Js.Console.log2("numOfGetParentsCalls", numOfGetParentsCalls.contents)
-                                            // Js.Console.log2("numOfParentsProcessed", numOfParentsProcessed.contents)
-                                            // Js.Console.log2("numOfParentsReturned", numOfParentsReturned.contents)
-                                            // Js.Console.log2("numOfProveFloatingCalls", numOfProveFloatingCalls.contents)
+    let getParents = (vNode:virtNode):array<exprSource> => {
+        let expr = vNode.node->pnGetExpr
+        switch foundParents->Belt_HashMap.get(expr) {
+            | Some(parents) => parents
+            | _ => {
+                let parents = findAsrtParentsWithNewVars(
+                    ~tree,
+                    ~expr,
+                    ~stmts=rootExprs,
+                    ~framesToSkip,
+                    ~exactOrderOfStmts=false,
+                    ~asrtLabel = ?(if (vNode.dist == 0) {params.asrtLabel} else {None}),
+                    ~allowEmptyArgs = true,
+                    ~allowNewVars = params.allowNewVars,
+                    ()
+                )
+                if (vNode.dist == 0) {
+                    parents
+                } else {
+                    let exprLen = expr->Js_array2.length
+                    parents->Js.Array2.filter(parent => {
+                        switch parent {
+                            | Assertion({args, frame}) => {
+                                let argsAreCorrect = ref(true)
+                                let numOfArgs = frame.hyps->Js_array2.length
+                                let maxArgIdx = numOfArgs - 1
+                                let argIdx = ref(0)
+                                while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
+                                    let arg = args[argIdx.contents]
+                                    if (frame.hyps[argIdx.contents].typ == E) {
+                                        argsAreCorrect.contents = switch params.lengthRestriction {
+                                            | No => true
+                                            | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
+                                            | Less => arg->pnGetExpr->Js_array2.length < exprLen
                                         }
-                                        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
-                                            pi->Belt_Int.toFloat *. pctPerFlParent
-                                                +. (ai+1)->Belt_Int.toFloat *. pctPerArg
-                                        )
-                                    })
+                                    }
+                                    argIdx.contents = argIdx.contents + 1
                                 }
+                                argsAreCorrect.contents
                             }
-                            | _ => ()
+                            | _ => true
                         }
-                    }
-                    progressState.contents = progressState.contents->progressTrackerSetCurrPct(
-                        (pi+1)->Belt_Int.toFloat *. pctPerFlParent
-                    )
-                })
+                    })
+                }
             }
         }
     }
-    node
+
+    proveBottomUp(
+        ~tree, 
+        ~expr, 
+        ~getParents,
+        ~maxSearchDepth=params.maxSearchDepth,
+        ~onDistProgress = _=>(),
+    )
+    tree->ptGetOrCreateNode(expr)
 }
 
 let getStatementsFromJustification = (
@@ -519,7 +467,7 @@ let getStatementsFromJustification = (
 
 let proveStmt = (
     ~tree, 
-    ~prevStmts:array<rootStmt>, 
+    ~prevStmts:array<rootStmt>,
     ~stmt:rootStmt, 
     ~framesToSkip: array<string>,
     ~jstf:option<justification>, 
@@ -647,10 +595,9 @@ let unifyAll = (
         ~addEssentials=true,
     )
 
-    let prevStmts = []
     ctx->getAllHyps->Belt_MapString.forEach((label,hyp) => {
         if (hyp.typ == E) {
-            prevStmts->Js_array2.push({
+            tree->ptAddRootStmt({
                 label,
                 expr: hyp.expr,
                 justification: None,
@@ -681,7 +628,7 @@ let unifyAll = (
                         })
                     },
             )
-            prevStmts->Js_array2.push(stmt)->ignore
+            tree->ptAddRootStmt(stmt)
 
             progressState.contents = progressState.contents->progressTrackerSetCurrPct( 
                 (stmtIdx+1)->Belt_Int.toFloat *. pctPerStmt

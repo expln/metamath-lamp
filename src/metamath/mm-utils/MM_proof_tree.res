@@ -40,6 +40,7 @@ and proofTree = {
     dbgDisj: array<string>,
     parenCnt:parenCnt,
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
+    rootStmts:array<rootStmt>,
     exprToStr: option<expr=>string>, //for debug purposes
 }
 
@@ -98,6 +99,7 @@ let ptMake = (
         dbgDisj: [],
         parenCnt,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
+        rootStmts: [],
         exprToStr,
     }
 }
@@ -150,6 +152,10 @@ let ptGetStats = (tree:proofTree) => {
     // Js.Console.log2("hist", hist)
 }
 
+let ptGetRootStmts = tree => {
+    tree.rootStmts
+}
+
 let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
     tree.nodes->Belt_HashMap.get(expr)
 }
@@ -158,6 +164,13 @@ let ptGetOrCreateNode = ( tree:proofTree, expr:expr):proofNode => {
     switch tree->ptGetNodeByExpr(expr) {
         | Some(node) => node
         | None => tree->ptMakeNode(expr)
+    }
+}
+
+let ptAddRootStmt = (tree, stmt:rootStmt) => {
+    switch tree.rootStmts->Js_array2.find(existingStmt => existingStmt.expr->exprEq(stmt.expr)) {
+        | Some(_) => ()
+        | None => tree.rootStmts->Js_array2.push(stmt)->ignore
     }
 }
 
