@@ -443,9 +443,9 @@ let make = (
                         lengthRestriction: st.lengthRestrict,
                         allowNewVars: st.allowNewVars,
                     }),
-                    ~onProgress = pct => updateModal( 
+                    ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
-                            ~text="Proving bottom-up", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                            ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
                         )
                     )
                 )->promiseMap(proofTreeDto => {

@@ -17,7 +17,7 @@ type request =
     })
 
 type response =
-    | OnProgress(float)
+    | OnProgress(string)
     | Result(proofTreeDto)
 
 let unify = (
@@ -30,7 +30,7 @@ let unify = (
     ~hyps: array<wrkCtxHyp>,
     ~stmts: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
-    ~onProgress:float=>unit,
+    ~onProgress:string=>unit,
 ): promise<proofTreeDto> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
@@ -44,7 +44,7 @@ let unify = (
             ~initialRequest = Unify({stmts:stmts, framesToSkip, bottomUpProverParams}),
             ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
                 switch resp {
-                    | OnProgress(pct) => onProgress(pct)
+                    | OnProgress(msg) => onProgress(msg)
                     | Result(proofTree) => {
                         endWorkerInteraction()
                         resolve(proofTree)
@@ -67,7 +67,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~stmts,
                 ~framesToSkip,
                 ~bottomUpProverParams?,
-                ~onProgress = pct => sendToClient(OnProgress(pct)),
+                ~onProgress = msg => sendToClient(OnProgress(msg)),
                 ()
             )
             sendToClient(Result(proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))))

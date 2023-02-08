@@ -21,7 +21,7 @@ let unify: (
     ~hyps: array<MM_wrk_ctx.wrkCtxHyp>,
     ~stmts: array<MM_proof_tree.rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
-    ~onProgress: float => unit,
+    ~onProgress: string => unit,
 ) => Expln_utils_promise.promise<MM_proof_tree_dto.proofTreeDto>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit

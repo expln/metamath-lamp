@@ -489,18 +489,18 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         })->ignore
                     }
                     | None => {
-                        openModal(modalRef, () => rndProgress(~text="Unifying", ~pct=0., ()))->promiseMap(modalId => {
+                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))->promiseMap(modalId => {
                             updateModal( 
                                 modalRef, modalId, () => rndProgress(
-                                    ~text="Unifying", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                                    ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                                 )
                             )
                             unify(
                                 ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
                                 ~bottomUpProverParams=None,
-                                ~onProgress = pct => updateModal( 
+                                ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(
-                                        ~text="Unifying", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                        ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
                                     )
                                 )
                             )->promiseMap(proofTreeDto => {

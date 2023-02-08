@@ -29,7 +29,7 @@ let unifyAll: (
     ~framesToSkip: array<string>=?,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
-    ~onProgress: float => unit=?,
+    ~onProgress: string=>unit=?,
     (),
 ) => proofTree
 
