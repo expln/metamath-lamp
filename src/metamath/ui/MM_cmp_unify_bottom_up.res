@@ -556,7 +556,7 @@ let make = (
                     }
                     label="Allow new variables"
                 />
-                <Button onClick={_=>actProve()} variant=#contained>
+                <Button onClick={_=>actProve()} variant=#outlined>
                     {React.string("Prove")}
                 </Button>
                 <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>

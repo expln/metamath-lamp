@@ -47,7 +47,7 @@ let parseMmFile = (text:string, ~onProgress: float=>unit = _ => (), ()): (mmAstN
     let idx = ref(0) // index of the next char to read.
     let endOfFile = ref(false) // if idx is outside of text then endOfFile is true.
     let ch = ref("") // the char idx is pointing to. If endOfFile then ch == "".
-    let progressTracker = ref(progressTrackerMake(~step=0.1, ~dontDecrease=true, ~onProgress, ()))
+    let progressTracker = progressTrackerMutableMake(~step=0.1, ~dontDecrease=true, ~onProgress, ())
     let allLabels = []
 
     let setIdx = i => {
@@ -270,7 +270,7 @@ let parseMmFile = (text:string, ~onProgress: float=>unit = _ => (), ()): (mmAstN
                 }
             }
 
-            progressTracker.contents = progressTracker.contents->progressTrackerSetCurrPct(tokenIdx->Belt_Int.toFloat /. textLengthFlt)
+            progressTracker->progressTrackerMutableSetCurrPct(tokenIdx->Belt_Int.toFloat /. textLengthFlt)
         }
         result.contents->Belt_Option.getExn
     }

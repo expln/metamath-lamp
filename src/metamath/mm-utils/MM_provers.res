@@ -547,13 +547,13 @@ let unifyAll = (
     ~onProgress:option<string=>unit>=?,
     ()
 ) => {
-    let progressState = ref(progressTrackerMake(
+    let progressState = progressTrackerMutableMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
             pct => onProgress(`Unifying all: ${(pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`)
         }), 
         ()
-    ))
+    )
 
     let tree = createProofTree(
         ~ctx,
@@ -579,7 +579,7 @@ let unifyAll = (
         )
         tree->ptAddRootStmt(stmt)
 
-        progressState.contents = progressState.contents->progressTrackerSetCurrPct( 
+        progressState->progressTrackerMutableSetCurrPct( 
             (stmtIdx+1)->Belt_Int.toFloat /. numOfStmts->Belt_Int.toFloat
         )
     })

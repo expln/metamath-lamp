@@ -303,7 +303,7 @@ let applyAssertions = (
 ):unit => {
     let numOfStmts = statements->Js_array2.length
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
-    let progressState = ref(progressTrackerMake(~step=0.01, ~onProgress?, ()))
+    let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     frms->Belt_MapString.forEach((_,frm) => {
         if (frameFilter(frm.frame) 
@@ -378,7 +378,7 @@ let applyAssertions = (
             )->ignore
         }
         framesProcessed.contents = framesProcessed.contents +. 1.
-        progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+        progressState->progressTrackerMutableSetCurrPct(
             framesProcessed.contents /. numOfFrames
         )
     })
