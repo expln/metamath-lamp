@@ -87,7 +87,6 @@ let getAvailableAsrtLabels = (
 }
 
 let makeInitialState = (
-    ~wrkCtx:mmContext,
     ~userStmtToProve:userStmt,
     ~stmts: array<rootStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -98,7 +97,7 @@ let makeInitialState = (
         title:
             <span>
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                    {"Proving bottom-up: "->React.string}
+                    {"Proving bottom-up "->React.string}
                 </span>
                 { MM_cmp_user_stmt.rndContText(userStmtToProve.cont) }
             </span>,
@@ -368,7 +367,7 @@ let make = (
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~wrkCtx, ~userStmtToProve, ~stmts, ~frms, ~parenCnt,
+        ~userStmtToProve, ~stmts, ~frms, ~parenCnt,
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
