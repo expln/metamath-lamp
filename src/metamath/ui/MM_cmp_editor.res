@@ -16,26 +16,21 @@ open MM_parenCounter
 open MM_statements_dto
 
 type userStmtLocStor = {
-    id: string,
-
     label: string,
     typ: string,
     cont: string,
-    
     jstfText: string,
 }   
 
 type editorStateLocStor = {
     varsText: string,
     disjText: string,
-
-    nextStmtId: int,
     stmts: array<userStmtLocStor>,
 }
 
 let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
     {
-        id: userStmtLocStor.id,
+        id: "",
 
         label: userStmtLocStor.label,
         labelEditMode: false,
@@ -82,10 +77,17 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
 
         wrkCtx: None,
 
-        nextStmtId: stateLocStor->Belt.Option.map(obj => obj.nextStmtId)->Belt.Option.getWithDefault(0),
+        nextStmtId: stateLocStor
+            ->Belt.Option.map(stateLocStor => stateLocStor.stmts->Js_array2.length)
+            ->Belt.Option.getWithDefault(0),
         stmts: 
             stateLocStor
-                ->Belt.Option.map(obj => obj.stmts->Js_array2.map(userStmtLocStorToUserStmt))
+                ->Belt.Option.map(obj => obj.stmts->Js_array2.mapi((stmtLocStor,i) => {
+                    {
+                        ...userStmtLocStorToUserStmt(stmtLocStor),
+                        id: i->Belt_Int.toString
+                    }
+                }))
                 ->Belt.Option.getWithDefault([]),
         checkedStmtIds: [],
 
@@ -100,10 +102,8 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
     {
         varsText: state.varsText,
         disjText: state.disjText,
-        nextStmtId: state.nextStmtId,
         stmts: state.stmts->Js_array2.map(stmt => {
             {
-                id: stmt.id,
                 label: stmt.label,
                 typ: (stmt.typ :> string),
                 cont: contToStr(stmt.cont),
@@ -126,10 +126,8 @@ let readEditorStateFromLocStor = (key:string):option<editorStateLocStor> => {
                 {
                     varsText: d->str("varsText", ~default=()=>"", ()),
                     disjText: d->str("disjText", ~default=()=>"", ()),
-                    nextStmtId: d->int("nextStmtId", ()),
                     stmts: d->arr("stmts", asObj(_, d=>{
                         {
-                            id: d->str("id", ()),
                             label: d->str("label", ()),
                             typ: d->str("typ", ()),
                             cont: d->str("cont", ()),
