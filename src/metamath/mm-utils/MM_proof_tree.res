@@ -21,6 +21,7 @@ type rec proofNode = {
     mutable children: array<proofNode>,
     mutable proof: option<exprSource>,
     mutable isInvalidFloating: bool,
+    mutable dist: option<int>,
 }
 
 and exprSource =
@@ -138,6 +139,7 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
                 proof: None,
                 children: [],
                 isInvalidFloating: false,
+                dist: None,
             }
             tree.nodes->Belt_HashMap.set(expr, node)->ignore
             node
@@ -172,6 +174,10 @@ let ptAddRootStmt = (tree, stmt:rootStmt) => {
         | Some(_) => ()
         | None => tree.rootStmts->Js_array2.push(stmt)->ignore
     }
+}
+
+let ptClearDists = tree => {
+    tree.nodes->Belt_HashMap.forEach((_,node) => node.dist = None)
 }
 
 let esIsProved = (exprSrc:exprSource): bool => {
@@ -271,6 +277,10 @@ let pnAddParent = (node:proofNode, parent:exprSource):unit => {
 let pnSetInvalidFloating = (node,isInvalidFloating) => {
     node.isInvalidFloating = isInvalidFloating
 }
+
+let pnGetDist = node => node.dist
+
+let pnSetDist = (node,dist) => node.dist = Some(dist)
 
 let pnIsInvalidFloating = node => node.isInvalidFloating
 

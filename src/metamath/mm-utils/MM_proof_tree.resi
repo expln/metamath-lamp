@@ -48,6 +48,7 @@ let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetCopyOfDisj: proofTree => disjMutable
 let ptGetExprToStr: proofTree => option<expr=>string>
 let ptAddRootStmt: (proofTree, rootStmt) => unit
+let ptClearDists: proofTree => unit
 
 let ptGetNuberOfNodes: proofTree => int
 let ptGetStats: proofTree => unit
@@ -59,3 +60,5 @@ let pnGetParents: proofNode => option<array<exprSource>>
 let pnAddParent: (proofNode, exprSource) => unit
 let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: (proofNode, bool) => unit
+let pnGetDist: proofNode => option<int>
+let pnSetDist: (proofNode,int) => unit

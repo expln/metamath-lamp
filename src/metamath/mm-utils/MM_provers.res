@@ -309,32 +309,9 @@ let proveWithJustification = (
     node
 }
 
-type rec virtNode = {
-    node:proofNode,
-    dist: int,
-    child: option<virtNode>,
-    parents: array<virtNode>,
-}
-
-let vnMake = (~node:proofNode, ~child:option<virtNode>, ~dist:int):virtNode => {
-    { node, dist, child, parents:[], }
-}
-
-let exprIsBackRef = (vNode:virtNode, expr:expr):bool => {
-    let vNode = ref(Some(vNode))
-    while (
-        vNode.contents
-            ->Belt_Option.map(vNode => !exprEq(vNode.node->pnGetExpr, expr))
-            ->Belt.Option.getWithDefault(false)
-    ) {
-        vNode.contents = (vNode.contents->Belt_Option.getExn).child
-    }
-    vNode.contents->Belt_Option.isSome
-}
-
-let srcIsBackRef = (vNode:virtNode, src:exprSource):bool => {
+let srcIsBackRef = (expr:expr, src:exprSource):bool => {
     switch src {
-        | Assertion({args}) => args->Js_array2.some(arg => exprIsBackRef(vNode, arg->pnGetExpr))
+        | Assertion({args}) => args->Js_array2.some(arg => expr->exprEq(arg->pnGetExpr))
         | _ => false
     }
 }
@@ -342,35 +319,29 @@ let srcIsBackRef = (vNode:virtNode, src:exprSource):bool => {
 let proveBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
-    ~getParents:virtNode=>array<exprSource>,
+    ~getParents:(expr,int)=>array<exprSource>,
     ~maxSearchDepth:int,
     ~onProgress:option<string=>unit>,
 ) => {
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
-    let saveNodeToCreateParentsFor = (vNode:virtNode) => {
-        switch vNode.node->pnGetProof {
-            | Some(_) => ()
-            | None => nodesToCreateParentsFor->Belt_MutableQueue.add(vNode)
-        }
-    }
-
-    let hasNodesToCreateParentsFor = () => !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)
-
-    let getNextNodeToCreateParentsFor = () => nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
-
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
     let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
 
+    tree->ptClearDists
     let rootNode = tree->ptGetOrCreateNode(expr)
-    saveNodeToCreateParentsFor(vnMake(~node=rootNode, ~child=None, ~dist=0))
+    rootNode->pnSetDist(0)
+    nodesToCreateParentsFor->Belt_MutableQueue.add(rootNode)
     let lastDist = ref(0)
     let maxCnt = ref(1)
     let cnt = ref(0)
-    while (rootNode->pnGetProof->Belt_Option.isNone && hasNodesToCreateParentsFor()) {
-        let curVNode = getNextNodeToCreateParentsFor()
-        if (curVNode.node->pnGetProof->Belt.Option.isNone) {
-            let curDist = curVNode.dist
+    while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
+        let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
+        if (curNode->pnGetProof->Belt.Option.isNone) {
+            let curDist = switch curNode->pnGetDist {
+                | None => raise(MmException({msg:`Encountered a node without dist.`}))
+                | Some(dist) => dist
+            }
             switch onProgress {
                 | Some(onProgress) => {
                     if (lastDist.contents != curDist) {
@@ -395,25 +366,25 @@ let proveBottomUp = (
                 | None => ()
             }
 
-            let curExpr = curVNode.node->pnGetExpr
+            let curExpr = curNode->pnGetExpr
             if (tree->ptIsNewVarDef(curExpr)) {
-                curVNode.node->pnAddParent(VarType)
+                curNode->pnAddParent(VarType)
             } else {
                 switch tree->ptGetHypByExpr(curExpr) {
-                    | Some(hyp) => curVNode.node->pnAddParent(Hypothesis({label:hyp.label}))
+                    | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
                     | None => {
                         let newDist = curDist + 1
                         if (newDist <= maxSearchDepth) {
-                            getParents(curVNode)->Js.Array2.forEach(src => {
-                                if (!srcIsBackRef(curVNode, src)) {
-                                    curVNode.node->pnAddParent(src)
+                            getParents(curExpr, curDist)->Js.Array2.forEach(src => {
+                                if (!srcIsBackRef(curExpr, src)) {
+                                    curNode->pnAddParent(src)
                                     switch src {
                                         | Assertion({args}) => 
                                             args->Js_array2.forEach(arg => {
-                                                if (arg->pnGetProof->Belt.Option.isNone) {
-                                                    saveNodeToCreateParentsFor(
-                                                        vnMake(~node=arg, ~child=Some(curVNode), ~dist=newDist)
-                                                    )
+                                                if (arg->pnGetProof->Belt.Option.isNone
+                                                        && arg->pnGetDist->Belt.Option.isNone) {
+                                                    arg->pnSetDist(newDist)
+                                                    nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
                                                 }
                                             })
                                         | _ => ()
@@ -437,54 +408,47 @@ let proveStmtBottomUp = (
 ):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
     let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
-    let foundParents = Belt_HashMap.make(~hintSize=16, ~id=module(ExprHash))
     let rootExprs = tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr)
 
-    let getParents = (vNode:virtNode):array<exprSource> => {
-        let expr = vNode.node->pnGetExpr
-        switch foundParents->Belt_HashMap.get(expr) {
-            | Some(parents) => parents
-            | _ => {
-                let parents = findAsrtParentsWithNewVars(
-                    ~tree,
-                    ~expr,
-                    ~stmts=rootExprs,
-                    ~framesToSkip,
-                    ~exactOrderOfStmts=false,
-                    ~asrtLabel = ?(if (vNode.dist == 0) {params.asrtLabel} else {None}),
-                    ~allowEmptyArgs = true,
-                    ~allowNewVars = vNode.dist == 0 && params.allowNewVars,
-                    ()
-                )
-                if (vNode.dist == 0) {
-                    parents
-                } else {
-                    let exprLen = expr->Js_array2.length
-                    parents->Js.Array2.filter(parent => {
-                        switch parent {
-                            | Assertion({args, frame}) => {
-                                let argsAreCorrect = ref(true)
-                                let numOfArgs = frame.hyps->Js_array2.length
-                                let maxArgIdx = numOfArgs - 1
-                                let argIdx = ref(0)
-                                while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                                    let arg = args[argIdx.contents]
-                                    if (frame.hyps[argIdx.contents].typ == E) {
-                                        argsAreCorrect.contents = switch params.lengthRestriction {
-                                            | No => true
-                                            | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
-                                            | Less => arg->pnGetExpr->Js_array2.length < exprLen
-                                        }
-                                    }
-                                    argIdx.contents = argIdx.contents + 1
+    let getParents = (expr:expr, dist:int):array<exprSource> => {
+        let parents = findAsrtParentsWithNewVars(
+            ~tree,
+            ~expr,
+            ~stmts=rootExprs,
+            ~framesToSkip,
+            ~exactOrderOfStmts=false,
+            ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
+            ~allowEmptyArgs = true,
+            ~allowNewVars = dist == 0 && params.allowNewVars,
+            ()
+        )
+        if (dist == 0) {
+            parents
+        } else {
+            let exprLen = expr->Js_array2.length
+            parents->Js.Array2.filter(parent => {
+                switch parent {
+                    | Assertion({args, frame}) => {
+                        let argsAreCorrect = ref(true)
+                        let numOfArgs = frame.hyps->Js_array2.length
+                        let maxArgIdx = numOfArgs - 1
+                        let argIdx = ref(0)
+                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
+                            let arg = args[argIdx.contents]
+                            if (frame.hyps[argIdx.contents].typ == E) {
+                                argsAreCorrect.contents = switch params.lengthRestriction {
+                                    | No => true
+                                    | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
+                                    | Less => arg->pnGetExpr->Js_array2.length < exprLen
                                 }
-                                argsAreCorrect.contents
                             }
-                            | _ => true
+                            argIdx.contents = argIdx.contents + 1
                         }
-                    })
+                        argsAreCorrect.contents
+                    }
+                    | _ => true
                 }
-            }
+            })
         }
     }
 
