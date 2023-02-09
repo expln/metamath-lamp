@@ -187,8 +187,9 @@ let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRende
                                             }
                                         }
                                     </td>
-                                    <td style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())>
-                                        { if (stmt.isProved) { React.string("\u2713") } else { React.null } } 
+                                    <td style=ReactDOM.Style.make(~color= if (stmt.isProved) {"green"} else {"#565656"},
+                                                ~fontWeight="bold", ())>
+                                        {React.string( if (stmt.isProved) {"\u2713"} else {"?"} )}
                                     </td>
                                     <td> 
                                         {React.string(stmt.exprStr)}
@@ -450,7 +451,6 @@ let make = (
                     )
                 )->promiseMap(proofTreeDto => {
                     closeModal(modalRef, modalId)
-                    Js.Console.log2("proofTreeDto", proofTreeDto)
                     actOnResultsReady(proofTreeDto)
                 })
             })->ignore
