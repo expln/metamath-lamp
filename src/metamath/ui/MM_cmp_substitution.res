@@ -156,7 +156,7 @@ let make = (
         }
     }
     
-    let rndExpr = (~label, ~value, ~autoFocus, ~onChange) => {
+    let rndExpr = (~label, ~value, ~autoFocus, ~onChange, ~tabIndex:int) => {
         <TextField 
             label
             size=#small
@@ -164,6 +164,7 @@ let make = (
             autoFocus
             value
             onChange=evt2str(onChange)
+            inputProps={"tabIndex":tabIndex}
         />
     }
     
@@ -173,7 +174,8 @@ let make = (
                 <tbody>
                     <tr>
                         <td>
-                            {rndExpr(~label="Replace what", ~value=state.expr1Str, ~autoFocus=true, ~onChange=actExpr1Change)}
+                            {rndExpr(~label="Replace what", ~value=state.expr1Str, ~autoFocus=true, 
+                                ~onChange=actExpr1Change, ~tabIndex=1)}
                         </td>
                         <td>
                             {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
@@ -183,7 +185,8 @@ let make = (
                 </tbody>
             </table>
             {rndError(state.expr1Err)}
-            {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false, ~onChange=actExpr2Change)}
+            {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false, 
+                ~onChange=actExpr2Change, ~tabIndex=2)}
             {rndError(state.expr2Err)}
             <Row>
                 <Button onClick={_=>actDetermineSubs()} variant=#contained>
