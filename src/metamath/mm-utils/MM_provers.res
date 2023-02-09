@@ -326,7 +326,7 @@ let proveBottomUp = (
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
-    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
+    let progressState = ref(progressTrackerMutableMake( ~step=0.01, ~onProgress = _ => (), () ))
 
     tree->ptClearDists
     let rootNode = tree->ptGetOrCreateNode(expr)
@@ -347,7 +347,7 @@ let proveBottomUp = (
                     if (lastDist.contents != curDist) {
                         lastDist.contents = curDist
                         let curDistStr = curDist->Belt.Int.toString
-                        progressState.contents = progressTrackerMake(
+                        progressState.contents = progressTrackerMutableMake(
                             ~step=0.01,
                             ~onProgress= pct => {
                                 let pctStr = (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
@@ -358,7 +358,7 @@ let proveBottomUp = (
                         maxCnt.contents = nodesToCreateParentsFor->Belt_MutableQueue.size + 1
                         cnt.contents = 0
                     }
-                    progressState.contents = progressState.contents->progressTrackerSetCurrPct(
+                    progressState.contents->progressTrackerMutableSetCurrPct(
                         cnt.contents->Belt_Int.toFloat /. maxCnt.contents->Belt_Int.toFloat
                     )
                     cnt.contents = cnt.contents + 1
