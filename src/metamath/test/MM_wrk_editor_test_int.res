@@ -193,7 +193,7 @@ describe("MM_wrk_editor integration tests", _ => {
         )
     })
 
-    it("filtering bottom-up proof has same results for search depth 3 and 4 for ifbieq2d", _ => {
+    it("filtering bottom-up proof has same results for search depth 3 and 4", _ => {
         setTestDataDir("bottom-up-ifbieq2d")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
 

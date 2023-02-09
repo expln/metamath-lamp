@@ -78,15 +78,15 @@ let doesntHaveBackRefs = (newStmtsDto:newStmtsDto):bool => {
             switch res {
                 | Error(_) => res
                 | Ok(refs) => {
+                    switch stmt.jstf {
+                        | None => ()
+                        | Some(jstf) => {
+                            jstf.args->Js.Array2.forEach(ref => refs->Js_array2.push(ref)->ignore)
+                        }
+                    }
                     if (refs->Js_array2.includes(stmt.label)) {
                         Error(())
                     } else {
-                        switch stmt.jstf {
-                            | None => ()
-                            | Some(jstf) => {
-                                jstf.args->Js.Array2.forEach(ref => refs->Js_array2.push(ref)->ignore)
-                            }
-                        }
                         Ok(refs)
                     }
                 }
@@ -107,7 +107,6 @@ let srcToNewStmts = (
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~proof: option<exprSourceDto>,
 ):option<newStmtsDto> => {
     switch src {
         | Assertion({args, label}) => {
@@ -245,7 +244,7 @@ let srcToNewStmts = (
                 ~label=stmtToProve.label, 
                 ~expr = stmtToProve.expr, 
                 ~jstf = Some(src), 
-                ~isProved = proof->Belt_Option.map(exprSourceDtoEq(_, src))->Belt_Option.getWithDefault(false)
+                ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
             tree.disj->disjForEach((n,m) => {
                 if (res.newVars->Js.Array2.includes(n) || res.newVars->Js.Array2.includes(m)) {
@@ -283,10 +282,10 @@ let proofTreeDtoToNewStmtsDto = (
                     ~newVarTypes,
                     ~ctx,
                     ~typeToPrefix: Belt_MapString.t<string>,
-                    ~proof = proofNode.proof,
                 ))
                 ->Js.Array2.filter(Belt_Option.isSome)
                 ->Js.Array2.map(Belt_Option.getExn)
+                ->Js.Array2.filter(doesntHaveBackRefs)
         }
     }
 }
