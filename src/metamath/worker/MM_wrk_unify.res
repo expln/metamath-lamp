@@ -246,8 +246,10 @@ let srcToNewStmts = (
                 ~jstf = Some(src), 
                 ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
+            let varIsNew = v => res.newVars->Js.Array2.includes(v)
+            let varIsUsed = v => v <= maxCtxVar || varIsNew(v)
             tree.disj->disjForEach((n,m) => {
-                if (res.newVars->Js.Array2.includes(n) || res.newVars->Js.Array2.includes(m)) {
+                if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {
                     res.newDisj->disjAddPair(n,m)
                     res.newDisjStr->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
                 }

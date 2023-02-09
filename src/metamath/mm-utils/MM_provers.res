@@ -398,8 +398,6 @@ let proveStmtBottomUp = (
     ~params:bottomUpProverParams, 
     ~onProgress:option<string=>unit>,
 ):proofNode => {
-    let ctxMaxVar = tree->ptGetCtxMaxVar
-    let exprHasNewVars = expr => expr->Js_array2.some(s => ctxMaxVar < s)
     let rootExprs = tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr)
 
     let getParents = (expr:expr, dist:int):array<exprSource> => {

@@ -14,7 +14,7 @@ open MM_statements_dto
 
 let setMmPath = "/books/metamath/set.mm"
 let failOnMismatch = true
-let debug = true
+let debug = false
 
 let parenCnt = ref(parenCntMake([], ()))
 
@@ -244,6 +244,7 @@ let unifyBottomUp = (st,stmtId,
                     lengthRestriction,
                     allowNewVars
                 },
+                //~onProgress = msg => Js.Console.log(msg),
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
