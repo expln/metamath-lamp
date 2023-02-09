@@ -578,14 +578,11 @@ let make = (
         }
     }
 
-    let rndResultButtons = () => {
-        <Row>
-            <Button onClick={_=>actChooseSelected()} variant=#contained 
-                    disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
-                {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
-            </Button>
-            <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
-        </Row>
+    let rndApplyButton = () => {
+        <Button onClick={_=>actChooseSelected()} variant=#contained 
+                disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
+            {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
+        </Button>
     }
 
     let rndResults = () => {
@@ -600,6 +597,7 @@ let make = (
                     let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
                     <Col>
                         <Row alignItems=#center>
+                            {rndApplyButton()}
                             {rndSortBySelector()}
                             {rndPagination(totalNumOfResults)}
                         </Row>
@@ -635,7 +633,7 @@ let make = (
                             })->React.array
                         }
                         {rndPagination(totalNumOfResults)}
-                        {rndResultButtons()}
+                        {rndApplyButton()}
                     </Col>
                 }
             }
