@@ -19,7 +19,6 @@ let createEditorState = (mmFile) => {
         settingsV: 1,
         settings: {
             parens,
-            asrtsToSkip: "idi",
             typeSettings: [ ],
         },
         typeColors: Belt_HashMapString.make(~hintSize=0),

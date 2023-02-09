@@ -33,7 +33,6 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
         settingsV: 1,
         settings: {
             parens,
-            asrtsToSkip: "idi",
             typeSettings: [ ],
         },
         typeColors: Belt_HashMapString.make(~hintSize=0),
@@ -212,7 +211,6 @@ let unifyAll = (st):editorState => {
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
-                ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
@@ -246,7 +244,6 @@ let unifyBottomUp = (st,stmtId,
                     lengthRestriction,
                     allowNewVars
                 },
-                ~framesToSkip=st.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray,
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))

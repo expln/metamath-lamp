@@ -16,7 +16,6 @@ let proveFloatings: (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<expr>,
-    ~framesToSkip: array<string>=?,
     ~parenCnt: parenCnt,
     (),
 ) => proofTree
@@ -26,7 +25,6 @@ let unifyAll: (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<rootStmt>,
-    ~framesToSkip: array<string>=?,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~onProgress: string=>unit=?,

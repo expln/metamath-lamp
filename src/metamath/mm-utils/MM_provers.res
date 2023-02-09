@@ -19,13 +19,12 @@ let findAsrtParentsWithoutNewVars = (
     ~tree, 
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
-    ~framesToSkip: array<string>,
 ):array<exprSource> => {
     let exprLen = expr->Js_array2.length
     let foundParents = []
     tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
         let frmExpr = frm.frame.asrt
-        if (frmExpr[0] == expr[0] && !(framesToSkip->Js.Array2.includes(frm.frame.label))) {
+        if (frmExpr[0] == expr[0]) {
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
@@ -76,7 +75,6 @@ let findAsrtParentsWithoutNewVars = (
 let proveFloating = (
     ~tree:proofTree, 
     ~node:proofNode, 
-    ~framesToSkip:array<string>,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -125,7 +123,7 @@ let proveFloating = (
                                 | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
                                 | None => {
                                     findAsrtParentsWithoutNewVars(
-                                        ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~framesToSkip
+                                        ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
                                     )->Js.Array2.forEach(parent => {
                                         curNode->pnAddParent(parent)
                                         switch parent {
@@ -152,7 +150,6 @@ let findAsrtParentsWithNewVars = (
     ~tree,
     ~expr:expr,
     ~stmts:array<expr>,
-    ~framesToSkip: array<string>,
     ~exactOrderOfStmts:bool,
     ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool,
@@ -169,8 +166,7 @@ let findAsrtParentsWithNewVars = (
         ~exactOrderOfStmts,
         ~allowEmptyArgs,
         ~result = expr,
-        ~frameFilter = frame => !(framesToSkip->Js.Array2.includes(frame.label))
-                                && asrtLabel
+        ~frameFilter = frame => asrtLabel
                                     ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
                                     ->Belt_Option.getWithDefault(true),
         ~onMatchFound = res => {
@@ -218,7 +214,7 @@ let findAsrtParentsWithNewVars = (
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode
             if (frame.hyps[argIdx.contents].typ == F) {
-                proveFloating(~tree, ~node=argNode, ~framesToSkip)
+                proveFloating(~tree, ~node=argNode)
                 typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isSome
             }
             argIdx.contents = argIdx.contents + 1
@@ -230,14 +226,13 @@ let findAsrtParentsWithNewVars = (
     foundParents
 }
 
-let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~framesToSkip: array<string>):proofNode => {
+let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
     let node = tree->ptGetOrCreateNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
         let parents = findAsrtParentsWithNewVars( 
             ~tree, 
             ~expr, 
-            ~framesToSkip, 
-            ~stmts=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr), 
+            ~stmts=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr),
             ~exactOrderOfStmts=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
@@ -281,7 +276,6 @@ let proveWithJustification = (
     ~tree:proofTree, 
     ~expr:expr, 
     ~jstf: justification, 
-    ~framesToSkip: array<string>,
 ):proofNode => {
     let node = tree->ptGetOrCreateNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
@@ -296,8 +290,7 @@ let proveWithJustification = (
                     ~allowEmptyArgs=false,
                     ~allowNewVars=false,
                     ~asrtLabel=jstf.asrt,
-                    ~framesToSkip,
-                    () 
+                    ()
                 )
                 parents->Expln_utils_common.arrForEach(parent => {
                     node->pnAddParent(parent)
@@ -403,7 +396,6 @@ let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
     ~params:bottomUpProverParams, 
-    ~framesToSkip: array<string>,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
     let ctxMaxVar = tree->ptGetCtxMaxVar
@@ -415,7 +407,6 @@ let proveStmtBottomUp = (
             ~tree,
             ~expr,
             ~stmts=rootExprs,
-            ~framesToSkip,
             ~exactOrderOfStmts=false,
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
             ~allowEmptyArgs = true,
@@ -466,16 +457,15 @@ let proveStmt = (
     ~tree, 
     ~expr:expr, 
     ~jstf:option<justification>, 
-    ~framesToSkip: array<string>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
     ~onProgress:option<string=>unit>,
 ) => {
     switch bottomUpProverParams {
-        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~framesToSkip, ~onProgress, )->ignore
+        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~onProgress, )->ignore
         | None => {
             switch jstf {
-                | None => proveWithoutJustification( ~tree, ~expr, ~framesToSkip, )->ignore
-                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, ~framesToSkip, )->ignore
+                | None => proveWithoutJustification( ~tree, ~expr, )->ignore
+                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, )->ignore
             }
         }
     }
@@ -532,7 +522,6 @@ let proveFloatings = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<expr>,
-    ~framesToSkip: array<string>=[],
     ~parenCnt: parenCnt,
     ()
 ) => {
@@ -544,7 +533,7 @@ let proveFloatings = (
     )
 
     stmts->Js.Array2.forEach(stmt => {
-        proveFloating( ~tree, ~node=tree->ptGetOrCreateNode(stmt), ~framesToSkip )
+        proveFloating( ~tree, ~node=tree->ptGetOrCreateNode(stmt) )
     })
     tree
 }
@@ -553,7 +542,6 @@ let unifyAll = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~stmts: array<rootStmt>,
-    ~framesToSkip: array<string>=[],
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~onProgress:option<string=>unit>=?,
@@ -582,8 +570,7 @@ let unifyAll = (
             ~expr=stmt.expr, 
             ~jstf=stmt.justification,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
-            ~framesToSkip,
-            ~onProgress = 
+            ~onProgress =
                 if (stmtIdx != maxStmtIdx || bottomUpProverParams->Belt.Option.isNone) {
                     None
                 } else {

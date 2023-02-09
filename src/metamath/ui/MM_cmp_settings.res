@@ -14,8 +14,6 @@ type settingsState = {
     parens: string,
     parensErr: option<string>,
 
-    asrtsToSkip: string,
-
     typeSettings: array<typeSettingsState>,
 }
 
@@ -30,7 +28,6 @@ let createDefaultSettings = () => {
         nextId: 4,
         parens: "( ) [ ] { }",
         parensErr: None,
-        asrtsToSkip: "idi",
         typeSettings: [
             {
                 id: "0",
@@ -130,14 +127,12 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     } else {
         Some("Number of parentheses must be even.")
     }
-    let newAsrtsToSkip = st.asrtsToSkip->Js_string2.trim
 
     {
         ...st,
         nextId: newNextId,
         parens: newParens,
         parensErr,
-        asrtsToSkip: newAsrtsToSkip,
         typeSettings: validatedTypeSettings,
     }
 }
@@ -145,7 +140,6 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
 let stateToSettings = (st:settingsState):settings => {
     {
         parens: st.parens,
-        asrtsToSkip: st.asrtsToSkip,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -159,7 +153,6 @@ let settingsToState = (ls:settings):settingsState => {
         nextId: 0,
         parens: ls.parens,
         parensErr: None,
-        asrtsToSkip: ls.asrtsToSkip,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
             typ: lts.typ,
@@ -190,7 +183,6 @@ let readStateFromLocStor = ():settingsState => {
                     nextId: 0,
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
-                    asrtsToSkip: d->str("asrtsToSkip", ~default=()=>defaultSettings.asrtsToSkip, ()),
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
                         typ: d->str("typ", ()),
@@ -225,7 +217,6 @@ let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {
 
 let eqState = (st1, st2) => {
     st1.parens == st2.parens
-        && st1.asrtsToSkip == st2.asrtsToSkip
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
 }
@@ -235,13 +226,6 @@ let updateParens = (st,parens) => {
         ...st,
         parens,
         parensErr: None,
-    }
-}
-
-let updateAsrtsToSkip = (st,asrtsToSkip) => {
-    {
-        ...st,
-        asrtsToSkip,
     }
 }
 
@@ -307,10 +291,6 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
 
     let actParensChange = parens => {
         setState(updateParens(_, parens))
-    }
-
-    let actAsrtsToSkipChange = asrtsToSkip => {
-        setState(updateAsrtsToSkip(_, asrtsToSkip))
     }
 
     let actTypeSettingAdd = () => {
@@ -381,14 +361,6 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
                 | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
             }
         }
-        <TextField 
-            size=#small
-            style=ReactDOM.Style.make(~width="400px", ())
-            label="Assertions to skip"
-            value=state.asrtsToSkip
-            onChange=evt2str(actAsrtsToSkipChange)
-            title="Space separated list of assertion labels to skip during the unification process"
-        />
         <Divider/>
         <MM_cmp_type_settings
             typeSettings=state.typeSettings

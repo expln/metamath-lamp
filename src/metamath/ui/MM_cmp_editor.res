@@ -456,7 +456,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             | Some(wrkCtx) => {
                 let preCtxVer=state.preCtxV
                 let preCtx=state.preCtx
-                let framesToSkip={state.settings.asrtsToSkip->getSpaceSeparatedValuesAsArray}
                 let parenStr=state.settings.parens
                 let varsText=state.varsText
                 let disjText=state.disjText
@@ -471,7 +470,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
-                                    modalRef preCtxVer preCtx wrkCtx framesToSkip parenStr varsText disjText hyps stmts
+                                    modalRef preCtxVer preCtx wrkCtx parenStr varsText disjText hyps stmts
                                     userStmtToProve=singleProvableSelected
                                     frms=state.frms parenCnt=state.parenCnt
                                     onResultSelected={newStmtsDto => {
@@ -496,7 +495,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 )
                             )
                             unify(
-                                ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
+                                ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts,
                                 ~bottomUpProverParams=None,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(

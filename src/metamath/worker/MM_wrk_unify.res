@@ -12,7 +12,6 @@ let procName = "MM_wrk_unify"
 type request = 
     | Unify({
         stmts: array<rootStmt>, 
-        framesToSkip:array<string>, 
         bottomUpProverParams:option<bottomUpProverParams>,
     })
 
@@ -23,7 +22,6 @@ type response =
 let unify = (
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~framesToSkip:array<string>,
     ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
@@ -41,7 +39,7 @@ let unify = (
             ~disjText,
             ~hyps,
             ~procName,
-            ~initialRequest = Unify({stmts:stmts, framesToSkip, bottomUpProverParams}),
+            ~initialRequest = Unify({stmts:stmts, bottomUpProverParams}),
             ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(msg) => onProgress(msg)
@@ -59,13 +57,12 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({stmts, bottomUpProverParams, framesToSkip}) => {
+        | Unify({stmts, bottomUpProverParams}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~stmts,
-                ~framesToSkip,
                 ~bottomUpProverParams?,
                 ~onProgress = msg => sendToClient(OnProgress(msg)),
                 ()

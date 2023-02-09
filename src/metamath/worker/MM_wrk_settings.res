@@ -6,6 +6,5 @@ type typeSettings = {
 
 type settings = {
     parens: string,
-    asrtsToSkip: string,
     typeSettings: array<typeSettings>,
 }

@@ -75,15 +75,11 @@ let stmtMayMatchAsrt = (
 let getAvailableAsrtLabels = (
     ~frms: Belt_MapString.t<frmSubsData>, 
     ~parenCnt: parenCnt, 
-    ~framesToSkip:array<string>, 
     ~stmtToProve:expr,
 ) => {
     let availableAsrtLabels = []
     frms->Belt_MapString.forEach((label,frm) => {
-        if (
-            !(framesToSkip->Js_array2.includes(label))
-            && stmtMayMatchAsrt(~stmt=stmtToProve, ~frm, ~parenCnt)
-        ) {
+        if ( stmtMayMatchAsrt(~stmt=stmtToProve, ~frm, ~parenCnt) ) {
             availableAsrtLabels->Js_array2.push(label)->ignore
         }
     })
@@ -96,7 +92,6 @@ let makeInitialState = (
     ~stmts: array<rootStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
-    ~framesToSkip:array<string>,
 ) => {
     let stmtToProve = stmts[stmts->Js_array2.length-1].expr
     {
@@ -108,7 +103,7 @@ let makeInitialState = (
                 { MM_cmp_user_stmt.rndContText(userStmtToProve.cont) }
             </span>,
         
-        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~framesToSkip, ~stmtToProve, ),
+        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~stmtToProve, ),
         label: None,
         depthStr: "4",
         depth: 4,
@@ -362,7 +357,6 @@ let make = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~wrkCtx: mmContext,
-    ~framesToSkip:array<string>,
     ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
@@ -374,7 +368,7 @@ let make = (
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~wrkCtx, ~userStmtToProve, ~stmts, ~frms, ~parenCnt, ~framesToSkip, 
+        ~wrkCtx, ~userStmtToProve, ~stmts, ~frms, ~parenCnt,
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -437,7 +431,7 @@ let make = (
                     )
                 )
                 unify(
-                    ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts, ~framesToSkip,
+                    ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts,
                     ~bottomUpProverParams=Some({
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,

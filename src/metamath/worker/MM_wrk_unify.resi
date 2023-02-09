@@ -14,7 +14,6 @@ type response
 let unify: (
     ~preCtxVer: int,
     ~preCtx: MM_context.mmContext,
-    ~framesToSkip: array<string>,
     ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
