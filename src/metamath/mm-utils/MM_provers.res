@@ -144,8 +144,6 @@ let proveFloating = (
     }
 }
 
-let dummyOnDistProgress = _ => ()
-
 let findAsrtParentsWithNewVars = (
     ~tree,
     ~expr:expr,
@@ -316,6 +314,8 @@ let proveBottomUp = (
     ~maxSearchDepth:int,
     ~onProgress:option<string=>unit>,
 ) => {
+    onProgress->Belt.Option.forEach(onProgress => onProgress("Proving bottom-up: initialization"))
+
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
