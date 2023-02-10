@@ -631,3 +631,47 @@ let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~pare
     )->ignore
     result
 }
+
+let constPartsClone = cp => {
+    {
+        length: cp.length,
+        begins: cp.begins->Js_array2.copy,
+        ends: cp.ends->Js_array2.copy,
+        remainingMinLength: cp.remainingMinLength->Js_array2.copy,
+    }
+}
+
+let varGroupClone = vg => {
+    {
+        ...vg,
+        exprBeginIdx:vg.exprBeginIdx,
+        exprEndIdx:vg.exprEndIdx,
+    }
+}
+
+let subsClone = subs => {
+    {
+        size:subs.size,
+        begins:subs.begins->Js_array2.copy,
+        ends:subs.ends->Js_array2.copy,
+        exprs:subs.exprs->Js_array2.copy,
+        isDefined:subs.isDefined->Js_array2.copy,
+    }
+}
+
+let frmSubsDataClone = (frm:frmSubsData):frmSubsData => {
+    {
+        ...frm,
+        frmConstParts: frm.frmConstParts->Js_array2.map(constPartsClone),
+        constParts: frm.constParts->Js_array2.map(constPartsClone),
+        varGroups: frm.varGroups->Js_array2.map(Js_array2.map(_, varGroupClone)),
+        subs:subsClone(frm.subs),
+    }
+}
+
+let frmsClone = (frms: Belt_MapString.t<frmSubsData>):Belt_MapString.t<frmSubsData> => {
+    frms
+        ->Belt_MapString.toArray
+        ->Js.Array2.map(((label,frm)) => (label,frmSubsDataClone(frm)))
+        ->Belt_MapString.fromArray
+}

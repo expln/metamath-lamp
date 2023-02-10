@@ -144,7 +144,12 @@ let proveFloating = (
     }
 }
 
-let dummyOnDistProgress = _ => ()
+let srcIsBackRef = (expr:expr, src:exprSource):bool => {
+    switch src {
+        | Assertion({args}) => args->Js_array2.some(arg => expr->exprEq(arg->pnGetExpr))
+        | _ => false
+    }
+}
 
 let findAsrtParentsWithNewVars = (
     ~tree,
@@ -156,29 +161,7 @@ let findAsrtParentsWithNewVars = (
     ~allowNewVars:bool,
     ()
 ):array<exprSource> => {
-    let applResults = []
-    applyAssertions(
-        ~maxVar = tree->ptGetMaxVar,
-        ~frms = tree->ptGetFrms,
-        ~isDisjInCtx = tree->ptIsDisj,
-        ~parenCnt=tree->ptGetParenCnt,
-        ~statements = stmts,
-        ~exactOrderOfStmts,
-        ~allowEmptyArgs,
-        ~result = expr,
-        ~frameFilter = frame => asrtLabel
-                                    ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
-                                    ->Belt_Option.getWithDefault(true),
-        ~onMatchFound = res => {
-            if (allowNewVars || res.newVars->Js.Array2.length == 0) {
-                applResults->Js_array2.push(res)->ignore
-            }
-            Continue
-        },
-        ()
-    )
-    let foundParents = []
-    applResults->Js_array2.forEach(applResult => {
+    let applResToSrc = (applResult:applyAssertionResult):option<exprSource> => {
         let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
         applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
             let newVarType = applResult.newVarTypes[i]
@@ -220,9 +203,46 @@ let findAsrtParentsWithNewVars = (
             argIdx.contents = argIdx.contents + 1
         }
         if (typesAreCorrect.contents) {
-            foundParents->Js.Array2.push( Assertion({ args, label:applResult.asrtLabel, frame}) )->ignore
+            Some( Assertion({ args, label:applResult.asrtLabel, frame}) )
+        } else {
+            None
         }
-    })
+    }
+
+    let applResultCnt = ref(0.)
+    let parentCnt = ref(0.)
+
+    let foundParents = []
+    applyAssertions(
+        ~maxVar = tree->ptGetMaxVar,
+        ~frms = tree->ptGetFrms->frmsClone,
+        ~isDisjInCtx = tree->ptIsDisj,
+        ~parenCnt=tree->ptGetParenCnt,
+        ~statements = stmts,
+        ~exactOrderOfStmts,
+        ~allowEmptyArgs,
+        ~result = expr,
+        ~frameFilter = frame => asrtLabel
+                                    ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
+                                    ->Belt_Option.getWithDefault(true),
+        ~onMatchFound = res => {
+            if (allowNewVars || res.newVars->Js.Array2.length == 0) {
+                switch applResToSrc(res) {
+                    | None => ()
+                    | Some(src) => {
+                        applResultCnt.contents = applResultCnt.contents +. 1.
+                        if (!srcIsBackRef(expr,src)) {
+                            parentCnt.contents = parentCnt.contents +. 1.
+                            foundParents->Js.Array2.push(src)->ignore
+                            Js.Console.log3("parentCnt", parentCnt.contents, (parentCnt.contents /. applResultCnt.contents))
+                        }
+                    }
+                }
+            }
+            Continue
+        },
+        ()
+    )
     foundParents
 }
 
@@ -302,13 +322,6 @@ let proveWithJustification = (
     node
 }
 
-let srcIsBackRef = (expr:expr, src:exprSource):bool => {
-    switch src {
-        | Assertion({args}) => args->Js_array2.some(arg => expr->exprEq(arg->pnGetExpr))
-        | _ => false
-    }
-}
-
 let proveBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
@@ -316,6 +329,7 @@ let proveBottomUp = (
     ~maxSearchDepth:int,
     ~onProgress:option<string=>unit>,
 ) => {
+    onProgress->Belt.Option.forEach(onProgress => onProgress("Proving bottom-up: initialization"))
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString

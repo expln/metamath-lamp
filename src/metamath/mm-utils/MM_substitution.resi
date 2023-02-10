@@ -50,6 +50,7 @@ let createVarGroups: (~frmExpr:expr, ~frmConstParts:constParts) => array<varGrou
 let createSubs: (~numOfVars:int) => subs
 let prepareFrmSubsDataForFrame: frame => frmSubsData
 let prepareFrmSubsData: mmContext => Belt_MapString.t<frmSubsData>
+let frmsClone: Belt_MapString.t<frmSubsData> => Belt_MapString.t<frmSubsData>
 let iterateSubstitutions: (
     ~frmExpr:expr, 
     ~expr:expr, 
