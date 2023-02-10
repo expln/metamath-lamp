@@ -409,17 +409,21 @@ let iterateSubstitutions = (
                 ~idxToMatch=0,
                 ~parenCnt,
                 ~consumer = constParts => {
-                    initVarGroups(~varGroups, ~constParts, ~expr)
-                    iterateVarGroups(
-                        ~expr,
-                        ~subs,
-                        ~varGroups,
-                        ~curGrpIdx = 0,
-                        ~curVarIdx = 0,
-                        ~subExprBeginIdx = varGroups[0].exprBeginIdx,
-                        ~parenCnt,
-                        ~consumer
-                    )
+                    if (varGroups->Js.Array2.length > 0) {
+                        initVarGroups(~varGroups, ~constParts, ~expr)
+                        iterateVarGroups(
+                            ~expr,
+                            ~subs,
+                            ~varGroups,
+                            ~curGrpIdx = 0,
+                            ~curVarIdx = 0,
+                            ~subExprBeginIdx = varGroups[0].exprBeginIdx,
+                            ~parenCnt,
+                            ~consumer
+                        )
+                    } else {
+                        consumer(subs)
+                    }
                 }
             )
         }

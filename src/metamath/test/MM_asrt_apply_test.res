@@ -295,6 +295,7 @@ let testApplyAssertions = (
 
 describe("applyAssertions", _ => {
     let demo0 = "./src/metamath/test/resources/demo0.mm"
+    let asrtWithoutVars = "./src/metamath/test/resources/asrt-without-vars.mm"
     it("applies assertions when there are no statements", _ => {
         testApplyAssertions(
             ~mmFilePath = demo0,
@@ -341,6 +342,18 @@ describe("applyAssertions", _ => {
             ~frameFilter = frame => frame.label == "mp",
             ~result="|- P",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-with-result.txt",
+            ()
+        )
+    })
+    it("doesn't fail when there are no variables in the frame's assertion", _ => {
+        testApplyAssertions(
+            ~mmFilePath = asrtWithoutVars,
+            ~stopAfter = "asrt-without-vars",
+            ~additionalStatements = [],
+            ~statements = [ ],
+            ~frameFilter = frame => frame.label == "asrt-without-vars",
+            ~result="|- T.",
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt",
             ()
         )
     })
