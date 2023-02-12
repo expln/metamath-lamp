@@ -373,6 +373,39 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
+    let actCancelEditJstf = (stmtId, newJstfText):unit => {
+        switch state->editorGetStmtById(stmtId) {
+            | None => ()
+            | Some(stmt) => {
+                let jstfOld = stmt.jstfText
+                let jstfNew = newJstfText->Js_string2.trim
+                if (jstfOld == jstfNew) {
+                    setState(completeJstfEditMode(_,stmtId,jstfOld))
+                } else {
+                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                        updateModal(modalRef, modalId, () => {
+                            <MM_cmp_save_or_discard
+                                contOld={React.string(jstfOld)}
+                                contNew={React.string(jstfNew)}
+                                onDiscard={() => {
+                                    closeModal(modalRef, modalId)
+                                    setState(completeJstfEditMode(_,stmtId,jstfOld))
+                                }}
+                                onSave={() => {
+                                    closeModal(modalRef, modalId)
+                                    setState(completeJstfEditMode(_,stmtId,jstfNew))
+                                }}
+                                onContinueEditing={() => {
+                                    closeModal(modalRef, modalId)
+                                }}
+                            />
+                        })
+                    })->ignore
+                }
+            }
+        }
+    }
+
     let actAsrtSearchResultsSelected = selectedResults => {
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
@@ -700,6 +733,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     
                     onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
                     onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}
+                    onJstfEditCancel={newJstf => actCancelEditJstf(stmt.id,newJstf)}
 
                     onGenerateProof={()=>actExportProof(stmt.id)}
                 />

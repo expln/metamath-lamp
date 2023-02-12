@@ -7,7 +7,7 @@ open MM_react_common
 let rndIconButton = (
     ~icon:reElem, 
     ~onClick:unit=>unit, 
-    ~active:bool, 
+    ~active:bool=true, 
     ~title:option<string>=?, 
     ~color:option<string>=Some("primary"),
     ()
@@ -87,7 +87,7 @@ let make = (
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
     ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
-    ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit,
+    ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
@@ -141,6 +141,10 @@ let make = (
         actExpandProof(true)
         onJstfEditDone(state.newText)
     }
+    
+    let actJstfEditCancel = () => {
+        onJstfEditCancel(state.newText)
+    }
 
     let ctrlEnterHnd = (kbrdEvt, clbk) => {
         if (kbrdEvt->ReactEvent.Keyboard.ctrlKey && kbrdEvt->ReactEvent.Keyboard.keyCode == 13) {
@@ -162,7 +166,7 @@ let make = (
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
                     ~onClick=actLabelEditDone, ~title="Save, Ctrl+Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>, ~active= state.newText->Js.String2.trim != "",  
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                     ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
@@ -190,7 +194,7 @@ let make = (
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
                     ~onClick=actContEditDone, ~title="Save, Ctrl+Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>, ~active= state.newText->Js.String2.trim != "",  
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
                     ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
@@ -278,11 +282,13 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=ctrlEnterHnd(_, actJstfEditDone)
-                    title="Ctrl+Enter to save"
+                    onKeyDown=kbrdHnd(~onCtrlEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
+                    title="Ctrl+Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
                     ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
+                    ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
             <Paper 
