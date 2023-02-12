@@ -146,12 +146,6 @@ let make = (
         onJstfEditCancel(state.newText)
     }
 
-    let ctrlEnterHnd = (kbrdEvt, clbk) => {
-        if (kbrdEvt->ReactEvent.Keyboard.ctrlKey && kbrdEvt->ReactEvent.Keyboard.keyCode == 13) {
-            clbk()
-        }
-    }
-
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Row>

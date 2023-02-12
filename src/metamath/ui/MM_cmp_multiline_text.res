@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open MM_react_common
 
 type state = {
     newText: string,
@@ -17,16 +18,26 @@ let setNewText = (st,text):state => {
     }
 }
 
-let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
+let rndIconButton = (
+    ~icon:reElem, 
+    ~onClick:unit=>unit, 
+    ~active:bool=true, 
+    ~title:option<string>=?, 
+    ~color:option<string>=Some("primary"),
+    ()
+) => {
     <span ?title>
-        <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
+        <IconButton disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
     </span>
 }
 
 @react.component
 let make = (
     ~text:string, 
-    ~editMode:bool, ~onEditRequested:unit=>unit, ~onEditDone:string=>unit,
+    ~editMode:bool, 
+    ~onEditRequested:unit=>unit, 
+    ~onEditDone:string=>unit,
+    ~onEditCancel:string=>unit,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -44,11 +55,9 @@ let make = (
     let actEditDone = () => {
         onEditDone(state.newText)
     }
-
-    let ctrlEnterHnd = (kbrdEvt, clbk) => {
-        if (kbrdEvt->ReactEvent.Keyboard.ctrlKey && kbrdEvt->ReactEvent.Keyboard.keyCode == 13) {
-            clbk()
-        }
+    
+    let actEditCancel = () => {
+        onEditCancel(state.newText)
     }
 
     let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
@@ -67,10 +76,12 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=ctrlEnterHnd(_, actEditDone)
-                    title="Ctrl+Enter to save"
+                    onKeyDown=kbrdHnd(~onCtrlEnter=actEditDone, ~onEsc=actEditCancel, ())
+                    title="Ctrl+Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
+                    ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
             let style = if (text->Js.String2.trim == "") {

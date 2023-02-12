@@ -406,6 +406,62 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
+    let actCancelEditVars = (newText):unit => {
+        let textOld = state.varsText
+        let textNew = newText->Js_string2.trim
+        if (textOld == textNew) {
+            setState(completeVarsEditMode(_,textOld))
+        } else {
+            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                updateModal(modalRef, modalId, () => {
+                    <MM_cmp_save_or_discard
+                        contOld={React.string(textOld)}
+                        contNew={React.string(textNew)}
+                        onDiscard={() => {
+                            closeModal(modalRef, modalId)
+                            setState(completeVarsEditMode(_,textOld))
+                        }}
+                        onSave={() => {
+                            closeModal(modalRef, modalId)
+                            setState(completeVarsEditMode(_,textNew))
+                        }}
+                        onContinueEditing={() => {
+                            closeModal(modalRef, modalId)
+                        }}
+                    />
+                })
+            })->ignore
+        }
+    }
+
+    let actCancelEditDisj = (newText):unit => {
+        let textOld = state.disjText
+        let textNew = newText->Js_string2.trim
+        if (textOld == textNew) {
+            setState(completeDisjEditMode(_,textOld))
+        } else {
+            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                updateModal(modalRef, modalId, () => {
+                    <MM_cmp_save_or_discard
+                        contOld={React.string(textOld)}
+                        contNew={React.string(textNew)}
+                        onDiscard={() => {
+                            closeModal(modalRef, modalId)
+                            setState(completeDisjEditMode(_,textOld))
+                        }}
+                        onSave={() => {
+                            closeModal(modalRef, modalId)
+                            setState(completeDisjEditMode(_,textNew))
+                        }}
+                        onContinueEditing={() => {
+                            closeModal(modalRef, modalId)
+                        }}
+                    />
+                })
+            })->ignore
+        }
+    }
+
     let actAsrtSearchResultsSelected = selectedResults => {
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
@@ -751,6 +807,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     editMode=state.varsEditMode
                     onEditRequested={() => actBeginEdit0(setVarsEditMode)}
                     onEditDone={newText => actCompleteEdit(completeVarsEditMode(_,newText))}
+                    onEditCancel={newText => actCancelEditVars(newText)}
                 />
                 {rndError(state.varsErr)}
             </Col>
@@ -766,6 +823,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     editMode=state.disjEditMode
                     onEditRequested={() => actBeginEdit0(setDisjEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDisjEditMode(_,newText))}
+                    onEditCancel={newText => actCancelEditDisj(newText)}
                 />
                 {rndError(state.disjErr)}
             </Col>
