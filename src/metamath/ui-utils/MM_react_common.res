@@ -51,3 +51,18 @@ let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>
     })->ignore
 }
 
+let kbrdHnd = (
+    ~onCtrlEnter: option<() => unit>=?,
+    ~onEsc: option<() => unit>=?,
+    ()
+):(ReactEvent.Keyboard.t => unit) => {
+    (kbrdEvt:ReactEvent.Keyboard.t) => {
+        if (onCtrlEnter->Belt.Option.isSome
+                && kbrdEvt->ReactEvent.Keyboard.ctrlKey && kbrdEvt->ReactEvent.Keyboard.keyCode == 13) {
+            onCtrlEnter->Belt.Option.getExn()
+        } else if (onEsc->Belt.Option.isSome
+                && kbrdEvt->ReactEvent.Keyboard.keyCode == 27) {
+            onEsc->Belt.Option.getExn()
+        }
+    }
+}

@@ -291,6 +291,44 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actCompleteEdit = (setter:editorState=>editorState) => {
         setState(setter)
     }
+    let actCancelEditCont = (stmtId, newContText):unit => {
+        switch state->editorGetStmtById(stmtId) {
+            | None => ()
+            | Some(stmt) => {
+                let contOld = stmt.cont
+                let contNew = newContText->strToCont(())
+                let textOld = contOld->contToStr->Js_string2.trim
+                let textNew = contNew->contToStr->Js_string2.trim
+                if (textOld == textNew) {
+                    if (textOld == "") {
+                        setState(deleteStmt(_,stmtId))
+                    } else {
+                        setState(completeContEditMode(_,stmtId,textOld))
+                    }
+                } else {
+                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                        updateModal(modalRef, modalId, () => {
+                            <MM_cmp_save_or_discard_stmt
+                                contOld
+                                contNew
+                                onDiscard={() => {
+                                    closeModal(modalRef, modalId)
+                                    setState(completeContEditMode(_,stmtId,textOld))
+                                }}
+                                onSave={() => {
+                                    closeModal(modalRef, modalId)
+                                    setState(completeContEditMode(_,stmtId,textNew))
+                                }}
+                                onContinueEditing={() => {
+                                    closeModal(modalRef, modalId)
+                                }}
+                            />
+                        })
+                    })->ignore
+                }
+            }
+        }
+    }
 
     let actAsrtSearchResultsSelected = selectedResults => {
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
@@ -614,6 +652,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
 
                     onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
                     onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
+                    onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
                     
                     onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
                     onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}

@@ -2,6 +2,7 @@ open MM_syntax_tree
 open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
+open MM_react_common
 
 let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
     <span ?title>
@@ -78,7 +79,7 @@ let make = (
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
-    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit,
+    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit,
     ~onGenerateProof:unit=>unit,
 ) => {
@@ -119,6 +120,10 @@ let make = (
     
     let actContEditDone = () => {
         onContEditDone(state.newText)
+    }
+    
+    let actContEditCancel = () => {
+        onContEditCancel(state.newText)
     }
     
     let actJstfEditDone = () => {
@@ -167,7 +172,7 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=ctrlEnterHnd(_, actContEditDone)
+                    onKeyDown=kbrdHnd(~onCtrlEnter=actContEditDone, ~onEsc=actContEditCancel, ())
                     title="Ctrl+Enter to save"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actContEditDone,

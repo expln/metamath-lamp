@@ -8,7 +8,7 @@ let make: (
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
-    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit,
+    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit,
     ~onGenerateProof:unit=>unit,
 ) => React.element

@@ -401,7 +401,7 @@ let setContEditMode = (st, stmtId) => {
     }
 }
 
-let completeContEditMode = (st, stmtId, newContText) => {
+let completeContEditMode = (st, stmtId, newContText):editorState => {
     updateStmt(st, stmtId, stmt => {
         if (newContText->Js_string2.trim == "") {
             stmt
