@@ -415,8 +415,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                 updateModal(modalRef, modalId, () => {
                     <MM_cmp_save_or_discard
-                        contOld={React.string(textOld)}
-                        contNew={React.string(textNew)}
+                        contOld={<pre>{React.string(textOld)}</pre>}
+                        contNew={<pre>{React.string(textNew)}</pre>}
                         onDiscard={() => {
                             closeModal(modalRef, modalId)
                             setState(completeVarsEditMode(_,textOld))
@@ -443,8 +443,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                 updateModal(modalRef, modalId, () => {
                     <MM_cmp_save_or_discard
-                        contOld={React.string(textOld)}
-                        contNew={React.string(textNew)}
+                        contOld={<pre>{React.string(textOld)}</pre>}
+                        contNew={<pre>{React.string(textNew)}</pre>}
                         onDiscard={() => {
                             closeModal(modalRef, modalId)
                             setState(completeDisjEditMode(_,textOld))

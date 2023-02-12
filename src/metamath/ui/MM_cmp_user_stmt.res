@@ -155,7 +155,7 @@ let make = (
                     autoFocus=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=kbrdHnd(~onCtrlEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
+                    onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
                     title="Ctrl+Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
@@ -183,7 +183,7 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=kbrdHnd(~onCtrlEnter=actContEditDone, ~onEsc=actContEditCancel, ())
+                    onKeyDown=kbrdHnd(~onEnter=actContEditDone, ~onEsc=actContEditCancel, ())
                     title="Ctrl+Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
@@ -276,7 +276,7 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=kbrdHnd(~onCtrlEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
+                    onKeyDown=kbrdHnd(~onEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
                     title="Ctrl+Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,

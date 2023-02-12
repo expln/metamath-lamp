@@ -58,13 +58,27 @@ let kbrdHnd = (
     ()
 ):(ReactEvent.Keyboard.t => unit) => {
     (kbrdEvt:ReactEvent.Keyboard.t) => {
-        if (onCtrlEnter->Belt.Option.isSome
-                && kbrdEvt->ReactEvent.Keyboard.ctrlKey && kbrdEvt->ReactEvent.Keyboard.keyCode == 13) {
-            onCtrlEnter->Belt.Option.getExn()
-        } else if (onEnter->Belt.Option.isSome && kbrdEvt->ReactEvent.Keyboard.keyCode == 13) {
-            onEnter->Belt.Option.getExn()
-        } else if (onEsc->Belt.Option.isSome && kbrdEvt->ReactEvent.Keyboard.keyCode == 27) {
-            onEsc->Belt.Option.getExn()
-        }
+        let isAlt = kbrdEvt->ReactEvent.Keyboard.altKey
+        let isCtrl = kbrdEvt->ReactEvent.Keyboard.ctrlKey
+        let isShift = kbrdEvt->ReactEvent.Keyboard.shiftKey
+        let keyCode = kbrdEvt->ReactEvent.Keyboard.keyCode
+
+        onCtrlEnter->Belt.Option.forEach(onCtrlEnter => {
+            if (!isAlt && isCtrl && !isShift && keyCode == 13) {
+                onCtrlEnter()
+            }
+        })
+        
+        onEnter->Belt.Option.forEach(onEnter => {
+            if (!isAlt && !isCtrl && !isShift && keyCode == 13) {
+                onEnter()
+            }
+        })
+        
+        onEsc->Belt.Option.forEach(onEsc => {
+            if (!isAlt && !isCtrl && !isShift && keyCode == 27) {
+                onEsc()
+            }
+        })
     }
 }

@@ -76,7 +76,7 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=kbrdHnd(~onCtrlEnter=actEditDone, ~onEsc=actEditCancel, ())
+                    onKeyDown=kbrdHnd(~onEnter=actEditDone, ~onEsc=actEditCancel, ())
                     title="Ctrl+Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Ctrl+Enter", ())}
