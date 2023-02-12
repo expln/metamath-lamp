@@ -294,7 +294,7 @@ let createNewLabel = (st:editorState, prefix:string):string => {
 
 let addNewStmt = (st:editorState):(editorState,string) => {
     let newId = st.nextStmtId->Belt_Int.toString
-    let newLabel = createNewLabel(st, "stmt")
+    let newLabel = createNewLabel(st, "")
     let idToAddBefore = st.stmts->Js_array2.find(stmt => st.checkedStmtIds->Js_array2.includes(stmt.id))->Belt_Option.map(stmt => stmt.id)
     (
         {
@@ -989,7 +989,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         })
                     }
                     | _ => {
-                        let ctxLabel = createNewLabel(stMut.contents, "stmt")
+                        let ctxLabel = createNewLabel(stMut.contents, "")
                         newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
                         let exprText = stmt.expr
                             ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))

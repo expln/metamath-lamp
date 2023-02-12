@@ -5,6 +5,7 @@ open MM_wrk_editor
 @react.component
 let make = (
     ~contOld:reElem,
+    ~removeStmt:bool=false,
     ~contNew:reElem,
     ~onDiscard:unit=>unit,
     ~onSave:unit=>unit,
@@ -22,11 +23,17 @@ let make = (
                     <tr>
                         <td>
                             <Button onClick={_=>onDiscard()}>
-                                {React.string("Discard, use this \u2192")}
+                                {React.string(
+                                    if (removeStmt) {
+                                        "Discard, remove statement"
+                                    } else {
+                                        "Discard, use this \u2192"
+                                    }
+                                )}
                             </Button>
                         </td>
                         <td>
-                            {contOld}
+                            { if (removeStmt) { React.null } else { contOld } }
                         </td>
                     </tr>
                     <tr>

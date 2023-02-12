@@ -352,11 +352,16 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_save_or_discard
+                                removeStmt={textOld == ""}
                                 contOld={MM_cmp_user_stmt.rndContText(contOld)}
                                 contNew={MM_cmp_user_stmt.rndContText(contNew)}
                                 onDiscard={() => {
                                     closeModal(modalRef, modalId)
-                                    setState(completeContEditMode(_,stmtId,textOld))
+                                    if (textOld == "") {
+                                        setState(deleteStmt(_,stmtId))
+                                    } else {
+                                        setState(completeContEditMode(_,stmtId,textOld))
+                                    }
                                 }}
                                 onSave={() => {
                                     closeModal(modalRef, modalId)
