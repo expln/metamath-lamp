@@ -136,3 +136,4 @@ let updateColorsInAllStmts: editorState => editorState
 let getTheOnlySelectedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, string) => option<userStmt>
 let mergeStmts: (editorState, string, string) => result<editorState, string>
+let renameStmt: (editorState, string, string) => result<editorState, string>

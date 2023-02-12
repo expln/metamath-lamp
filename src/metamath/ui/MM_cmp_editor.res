@@ -291,6 +291,49 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actCompleteEdit = (setter:editorState=>editorState) => {
         setState(setter)
     }
+
+    let actCompleteEditLabel = (stmtId, newLabel):unit => {
+        let newLabelTrimed = newLabel->Js_string2.trim
+        switch state->renameStmt(stmtId, newLabelTrimed) {
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this statement: ${msg}`, () )
+            | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabelTrimed))
+        }
+    }
+
+    let actCancelEditLabel = (stmtId, newLabel):unit => {
+        let newLabelTrimed = newLabel->Js_string2.trim
+        switch state->editorGetStmtById(stmtId) {
+            | None => ()
+            | Some(stmt) => {
+                let labelOld = stmt.label
+                let labelNew = newLabelTrimed
+                if (labelOld == labelNew) {
+                    setState(completeLabelEditMode(_,stmtId,labelOld))
+                } else {
+                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                        updateModal(modalRef, modalId, () => {
+                            <MM_cmp_save_or_discard
+                                contOld={React.string(labelOld)}
+                                contNew={React.string(labelNew)}
+                                onDiscard={() => {
+                                    closeModal(modalRef, modalId)
+                                    setState(completeLabelEditMode(_,stmtId,labelOld))
+                                }}
+                                onSave={() => {
+                                    closeModal(modalRef, modalId)
+                                    actCompleteEditLabel(stmtId, labelNew)
+                                }}
+                                onContinueEditing={() => {
+                                    closeModal(modalRef, modalId)
+                                }}
+                            />
+                        })
+                    })->ignore
+                }
+            }
+        }
+    }
+
     let actCancelEditCont = (stmtId, newContText):unit => {
         switch state->editorGetStmtById(stmtId) {
             | None => ()
@@ -308,9 +351,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 } else {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
-                            <MM_cmp_save_or_discard_stmt
-                                contOld
-                                contNew
+                            <MM_cmp_save_or_discard
+                                contOld={MM_cmp_user_stmt.rndContText(contOld)}
+                                contNew={MM_cmp_user_stmt.rndContText(contNew)}
                                 onDiscard={() => {
                                     closeModal(modalRef, modalId)
                                     setState(completeContEditMode(_,stmtId,textOld))
@@ -645,7 +688,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     stmt
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
-                    onLabelEditDone={newLabel => actCompleteEdit(completeLabelEditMode(_,stmt.id,newLabel))}
+                    onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
+                    onLabelEditCancel={newLabel => actCancelEditLabel(stmt.id,newLabel)}
 
                     onTypEditRequested={() => actBeginEdit(setTypEditMode,stmt.id)}
                     onTypEditDone={newTyp => actCompleteEdit(completeTypEditMode(_,stmt.id,newTyp))}

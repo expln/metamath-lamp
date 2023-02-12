@@ -379,7 +379,7 @@ let setLabelEditMode = (st:editorState, stmtId) => {
     }
 }
 
-let completeLabelEditMode = (st, stmtId, newLabel) => {
+let completeLabelEditMode = (st, stmtId, newLabel):editorState => {
     updateStmt(st, stmtId, stmt => {
         if (newLabel->Js_string2.trim != "") {
             {
@@ -1510,6 +1510,30 @@ let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,strin
                             | Ok(st) => {
                                 let st = st->deleteStmt(id2)
                                 Ok(st)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorState,string> => {
+    let newLabelTrimed = newLabel->Js_string2.trim
+    switch st.stmts->Js_array2.find(stmt => stmt.id != stmtId && stmt.label == newLabelTrimed) {
+        | Some(stmt) => Error(`Label '${newLabelTrimed}' is used by another statement.`)
+        | None => {
+            switch st->editorGetStmtById(stmtId) {
+                | None => Ok(st)
+                | Some(stmt) => {
+                    if (stmt.label == newLabelTrimed) {
+                        Ok(st)
+                    } else {
+                        switch replaceRef(st, ~replaceWhat=stmt.label, ~replaceWith=newLabelTrimed) {
+                            | Error(msg) => Error(msg)
+                            | Ok(st) => {
+                                Ok(st->updateStmt(stmtId, stmt => {...stmt, label:newLabelTrimed}))
                             }
                         }
                     }

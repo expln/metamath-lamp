@@ -1,10 +1,11 @@
 open Expln_React_Mui
+open Expln_React_common
 open MM_wrk_editor
 
 @react.component
 let make = (
-    ~contOld:stmtCont,
-    ~contNew:stmtCont,
+    ~contOld:reElem,
+    ~contNew:reElem,
     ~onDiscard:unit=>unit,
     ~onSave:unit=>unit,
     ~onContinueEditing:unit=>unit,
@@ -13,7 +14,7 @@ let make = (
         <Col spacing=1.>
             <Row>
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                    {React.string("Discard or save?")}
+                    {React.string("Discard changes or save?")}
                 </span>
             </Row>
             <table>
@@ -25,7 +26,7 @@ let make = (
                             </Button>
                         </td>
                         <td>
-                            {MM_cmp_user_stmt.rndContText(contOld)}
+                            {contOld}
                         </td>
                     </tr>
                     <tr>
@@ -35,7 +36,7 @@ let make = (
                             </Button>
                         </td>
                         <td>
-                            {MM_cmp_user_stmt.rndContText(contNew)}
+                            {contNew}
                         </td>
                     </tr>
                 </tbody>

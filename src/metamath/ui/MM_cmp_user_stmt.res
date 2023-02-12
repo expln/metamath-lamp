@@ -84,7 +84,7 @@ let rndContText = (stmtCont) => {
 @react.component
 let make = (
     ~stmt:userStmt, 
-    ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit,
+    ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
     ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit,
@@ -121,6 +121,10 @@ let make = (
         onLabelEditDone(state.newText)
     }
     
+    let actLabelEditCancel = () => {
+        onLabelEditCancel(state.newText)
+    }
+    
     let actTypEditDone = newTypStr => {
         onTypEditDone(userStmtTypeFromStr(newTypStr))
     }
@@ -153,11 +157,13 @@ let make = (
                     autoFocus=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=ctrlEnterHnd(_, actLabelEditDone)
-                    title="Ctrl+Enter to save"
+                    onKeyDown=kbrdHnd(~onCtrlEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
+                    title="Ctrl+Enter to save, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actLabelEditDone,
-                    ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                    ~onClick=actLabelEditDone, ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>, ~active= state.newText->Js.String2.trim != "",  
+                    ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
             <span 

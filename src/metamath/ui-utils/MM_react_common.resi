@@ -11,6 +11,7 @@ let openInfoDialog: (
 
 let kbrdHnd: (
     ~onCtrlEnter: unit => unit=?,
+    ~onEnter: unit => unit=?,
     ~onEsc: unit => unit=?,
     unit,
     ReactEvent.Keyboard.t,
