@@ -1,3 +1,5 @@
+- load *.mm files from metamath.org
+- add onEnter and onEscape wherever possible.
 - fix a bug:
     1. load set.mm, read all
     2. load my-editor-state.json
@@ -5,11 +7,7 @@
     4. remove jstf of stmt2-spcgv.11 and stmt2
     5. unify all. stmt2-spcgv.11 and stmt2 are "cannot find jstf"
 - Make new stmt prefix configurable.
-- fix a bug: allow new vars on all dists in bottom-up, run 'prove sgnval' - there will be an exception "a variable cannot be found".
 - before merging of statements check if some statements should be moved up because they are referenced by above statements and don't merge in that case.
-- remove framesToSkip from the settings.
-- write unit tests for exprIsBackRef and srcIsBackRef.
-- in bottom-up proof dialog show proved results first in any case of orderBy
 - autofocus label selector after scope is set to StopBefore or StopAfter
 - in cmp_search use array2.slice and store idx in the rendered elem the same way as in cmp_bottom_up
 - add an int test with few hypotheses.
@@ -17,18 +15,8 @@
 - fix a bug:
     1) load an MM file, apply changes;
     2) load same file in the same file selector - nothing happens.
-- check min and max in parentCounter, place all parentheses in the beginning in the ctx.
-- don't store nextStmtId to loc stor.
-- add arrJoinWith: (array<'a>, 'a) => array<'a> to rescript-utils
-- don't load assertion descriptions; store assertion descriptions in a separate container.
-- prefixes for work vars
 - prefix for new statements
 - add logs to applyAssertions (using array)
-- merge identical statements which appear as a result of substitution
-- rename applyAssertions to findSubstitutions
-- render disjoint vars in search results
-- simplify search of assertions by filtering frms (don't use applyAssertions() ).
-- try to replace the array with a map in MM_parenCounter.
 - write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)
 - add possibility to comment statements
 - make error messages more informative: add the statement caused the error (for example in "variables" or in justifications).
@@ -36,9 +24,6 @@
 - renaming of a statement should automatically rename all references (after user confirms this action).
 - correct methods related to movement of statements, they became incorrect after automatic reordering.
 - use Async/Await.
-- don't show scope selector when no file chosen.
 - precalculate number of combinations (store in an array)
 - use uncurried functions everywhere
 - replace a[i] with a->Js_array2.unsafe_get(i), or open Belt and replace with Option.getExn
-- in editorReadStateFromLocStor: make nextStmtId and stmts optional, and check/update nextStmtId after reading
-- add possibility to stop running worker.
