@@ -81,6 +81,9 @@ let rndContText = (stmtCont) => {
     }
 }
 
+let whitespaceRegex = %re("/\s+/g")
+let removeWhitespaces = str => str->Js_string2.replaceByRe(whitespaceRegex, "")
+
 @react.component
 let make = (
     ~stmt:userStmt, 
@@ -118,11 +121,11 @@ let make = (
     }
     
     let actLabelEditDone = () => {
-        onLabelEditDone(state.newText)
+        onLabelEditDone(state.newText->removeWhitespaces)
     }
     
     let actLabelEditCancel = () => {
-        onLabelEditCancel(state.newText)
+        onLabelEditCancel(state.newText->removeWhitespaces)
     }
     
     let actTypEditDone = newTypStr => {
@@ -154,7 +157,7 @@ let make = (
                     style=ReactDOM.Style.make(~width="100px", ())
                     autoFocus=true
                     value=state.newText
-                    onChange=evt2str(actNewTextUpdated)
+                    onChange=evt2str(str => actNewTextUpdated(str->removeWhitespaces))
                     onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
                     title="Ctrl+Enter to save, Esc to cancel"
                 />

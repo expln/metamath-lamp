@@ -301,13 +301,13 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actCancelEditLabel = (stmtId, newLabel):unit => {
-        let newLabelTrimed = newLabel->Js_string2.trim
+        let newLabelTrimed = newLabel->Js_string2.replaceByRe(%re("/\s+/g"), "")
         switch state->editorGetStmtById(stmtId) {
             | None => ()
             | Some(stmt) => {
                 let labelOld = stmt.label
                 let labelNew = newLabelTrimed
-                if (labelOld == labelNew) {
+                if (labelOld == labelNew || labelNew == "") {
                     setState(completeLabelEditMode(_,stmtId,labelOld))
                 } else {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -349,30 +349,34 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         setState(completeContEditMode(_,stmtId,textOld))
                     }
                 } else {
-                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                        updateModal(modalRef, modalId, () => {
-                            <MM_cmp_save_or_discard
-                                removeStmt={textOld == ""}
-                                contOld={MM_cmp_user_stmt.rndContText(contOld)}
-                                contNew={MM_cmp_user_stmt.rndContText(contNew)}
-                                onDiscard={() => {
-                                    closeModal(modalRef, modalId)
-                                    if (textOld == "") {
-                                        setState(deleteStmt(_,stmtId))
-                                    } else {
-                                        setState(completeContEditMode(_,stmtId,textOld))
-                                    }
-                                }}
-                                onSave={() => {
-                                    closeModal(modalRef, modalId)
-                                    setState(completeContEditMode(_,stmtId,textNew))
-                                }}
-                                onContinueEditing={() => {
-                                    closeModal(modalRef, modalId)
-                                }}
-                            />
-                        })
-                    })->ignore
+                    if (textNew == "") {
+                        setState(completeContEditMode(_,stmtId,textOld))
+                    } else {
+                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <MM_cmp_save_or_discard
+                                    removeStmt={textOld == ""}
+                                    contOld={MM_cmp_user_stmt.rndContText(contOld)}
+                                    contNew={MM_cmp_user_stmt.rndContText(contNew)}
+                                    onDiscard={() => {
+                                        closeModal(modalRef, modalId)
+                                        if (textOld == "") {
+                                            setState(deleteStmt(_,stmtId))
+                                        } else {
+                                            setState(completeContEditMode(_,stmtId,textOld))
+                                        }
+                                    }}
+                                    onSave={() => {
+                                        closeModal(modalRef, modalId)
+                                        setState(completeContEditMode(_,stmtId,textNew))
+                                    }}
+                                    onContinueEditing={() => {
+                                        closeModal(modalRef, modalId)
+                                    }}
+                                />
+                            })
+                        })->ignore
+                    }
                 }
             }
         }
@@ -384,7 +388,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             | Some(stmt) => {
                 let jstfOld = stmt.jstfText
                 let jstfNew = newJstfText->Js_string2.trim
-                if (jstfOld == jstfNew) {
+                if (jstfOld == jstfNew || jstfNew == "") {
                     setState(completeJstfEditMode(_,stmtId,jstfOld))
                 } else {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -414,7 +418,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actCancelEditVars = (newText):unit => {
         let textOld = state.varsText
         let textNew = newText->Js_string2.trim
-        if (textOld == textNew) {
+        if (textOld == textNew || textNew == "") {
             setState(completeVarsEditMode(_,textOld))
         } else {
             openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -442,7 +446,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actCancelEditDisj = (newText):unit => {
         let textOld = state.disjText
         let textNew = newText->Js_string2.trim
-        if (textOld == textNew) {
+        if (textOld == textNew || textNew == "") {
             setState(completeDisjEditMode(_,textOld))
         } else {
             openModal(modalRef, _ => React.null)->promiseMap(modalId => {
