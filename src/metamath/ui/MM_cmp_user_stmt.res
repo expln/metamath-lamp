@@ -4,9 +4,16 @@ open Expln_React_Mui
 open MM_wrk_editor
 open MM_react_common
 
-let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
+let rndIconButton = (
+    ~icon:reElem, 
+    ~onClick:unit=>unit, 
+    ~active:bool, 
+    ~title:option<string>=?, 
+    ~color:option<string>=Some("primary"),
+    ()
+) => {
     <span ?title>
-        <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
+        <IconButton disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
     </span>
 }
 
@@ -173,10 +180,12 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd(~onCtrlEnter=actContEditDone, ~onEsc=actContEditCancel, ())
-                    title="Ctrl+Enter to save"
+                    title="Ctrl+Enter to save, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  ~onClick=actContEditDone,
-                    ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                    ~onClick=actContEditDone, ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>, ~active= state.newText->Js.String2.trim != "",  
+                    ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
             <Paper 
