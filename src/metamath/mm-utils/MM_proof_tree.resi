@@ -18,7 +18,7 @@ type proofNode
 type exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, label:string, frame:frame})
+    | Assertion({args:array<proofNode>, frame:frame})
 
 type proofTree
 

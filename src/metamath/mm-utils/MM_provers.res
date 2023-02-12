@@ -13,6 +13,7 @@ type bottomUpProverParams = {
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
     allowNewVars: bool,
+    useRootStmtsAsArgs: bool,
 }
 
 let findAsrtParentsWithoutNewVars = ( 
@@ -61,7 +62,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( Assertion({ args, label:frm.frame.label, frame:frm.frame }) )->ignore
+                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame }) )->ignore
                         }
                     }
                     Continue
@@ -218,7 +219,7 @@ let findAsrtParentsWithNewVars = (
             argIdx.contents = argIdx.contents + 1
         }
         if (typesAreCorrect.contents) {
-            foundParents->Js.Array2.push( Assertion({ args, label:applResult.asrtLabel, frame}) )->ignore
+            foundParents->Js.Array2.push( Assertion({ args, frame}) )->ignore
         }
     })
     foundParents
@@ -404,7 +405,7 @@ let proveStmtBottomUp = (
         let parents = findAsrtParentsWithNewVars(
             ~tree,
             ~expr,
-            ~stmts=rootExprs,
+            ~stmts = if (params.useRootStmtsAsArgs || dist == 0) {rootExprs} else {[]},
             ~exactOrderOfStmts=false,
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
             ~allowEmptyArgs = true,

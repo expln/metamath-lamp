@@ -31,7 +31,7 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
     switch src {
         | VarType => Some(VarType)
         | Hypothesis({label}) => Some(Hypothesis({label:label}))
-        | Assertion({args, label}) => {
+        | Assertion({args, frame}) => {
             if (args->Js.Array2.some(arg => arg->pnIsInvalidFloating && arg->pnGetProof->Belt.Option.isNone)) {
                 None
             } else {
@@ -42,7 +42,7 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
                             | Some(idx) => idx
                         }
                     }), 
-                    label
+                    label: frame.label
                 }))
             }
         }

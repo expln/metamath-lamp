@@ -35,6 +35,7 @@ type state = {
     depthStr: string,
     lengthRestrict: lengthRestrict,
     allowNewVars: bool,
+    useRootStmtsAsArgs: bool,
 
     results: option<array<newStmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
@@ -108,6 +109,7 @@ let makeInitialState = (
         depth: 4,
         lengthRestrict: Less,
         allowNewVars: true,
+        useRootStmtsAsArgs: false,
 
         results: None,
         resultsRendered: None,
@@ -145,6 +147,13 @@ let toggleAllowNewVars = (st) => {
     {
         ...st,
         allowNewVars: !st.allowNewVars
+    }
+}
+
+let toggleUseRootStmtsAsArgs = (st) => {
+    {
+        ...st,
+        useRootStmtsAsArgs: !st.useRootStmtsAsArgs
     }
 }
 
@@ -391,6 +400,10 @@ let make = (
         setState(toggleAllowNewVars)
     }
 
+    let actToggleUseRootStmtsAsArgs = () => {
+        setState(toggleUseRootStmtsAsArgs)
+    }
+
     let rndTitle = () => {
         state.title
     }
@@ -436,6 +449,7 @@ let make = (
                         maxSearchDepth: st.depth,
                         lengthRestriction: st.lengthRestrict,
                         allowNewVars: st.allowNewVars,
+                        useRootStmtsAsArgs: st.useRootStmtsAsArgs,
                     }),
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
@@ -527,39 +541,52 @@ let make = (
         if (state.availableLabels->Js.Array2.length == 0) {
             <Col>
                 {
-                    React.string("The statement to prove doesn't math any existing assertion. " 
+                    React.string("The statement to prove doesn't match any existing assertion. " 
                         ++ "Bottom-up proving is not available for such statements.")
                 }
                 <Button onClick={_=>onCancel()}> {React.string("Ok")} </Button>
             </Col>
         } else {
-            <Row>
-                <AutocompleteVirtualized value=state.label options=state.availableLabels size=#small width=200
-                    onChange=actLabelUpdated
-                />
-                <TextField 
-                    label="Search depth"
-                    size=#small
-                    style=ReactDOM.Style.make(~width="100px", ())
-                    autoFocus=true
-                    value=state.depthStr
-                    onChange=evt2str(actDepthUpdated)
-                />
-                {rndLengthRestrictSelector(state.lengthRestrict)}
-                <FormControlLabel
-                    control={
-                        <Checkbox
-                            checked=state.allowNewVars
-                            onChange={_ => actToggleAllowNewVars()}
-                        />
-                    }
-                    label="Allow new variables"
-                />
-                <Button onClick={_=>actProve()} variant=#outlined>
-                    {React.string("Prove")}
-                </Button>
-                <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
-            </Row>
+            <Col>
+                <Row>
+                    <AutocompleteVirtualized value=state.label options=state.availableLabels size=#small width=200
+                        onChange=actLabelUpdated
+                    />
+                    <TextField 
+                        label="Search depth"
+                        size=#small
+                        style=ReactDOM.Style.make(~width="100px", ())
+                        autoFocus=true
+                        value=state.depthStr
+                        onChange=evt2str(actDepthUpdated)
+                    />
+                    {rndLengthRestrictSelector(state.lengthRestrict)}
+                    <Button onClick={_=>actProve()} variant=#outlined>
+                        {React.string("Prove")}
+                    </Button>
+                    <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
+                </Row>
+                <Row>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked=state.allowNewVars
+                                onChange={_ => actToggleAllowNewVars()}
+                            />
+                        }
+                        label="Allow new variables"
+                    />
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked=state.useRootStmtsAsArgs
+                                onChange={_ => actToggleUseRootStmtsAsArgs()}
+                            />
+                        }
+                        label="Derive from root statements"
+                    />
+                </Row>
+            </Col>
         }
     }
 

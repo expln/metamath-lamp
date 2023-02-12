@@ -17,7 +17,7 @@ let createFrame = (asrt:expr, varTypes:array<int>):frame => {
 }
 
 describe("frameMatchesPattern", _ => {
-    it("matches patters correctly", _ => {
+    it("matches patterns correctly", _ => {
         assertEq(
             frameMatchesPattern(createFrame([-1],[]), []), 
             true

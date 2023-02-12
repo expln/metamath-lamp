@@ -224,6 +224,7 @@ let unifyBottomUp = (st,stmtId,
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
     ~allowNewVars:bool=true,
+    ~useRootStmtsAsArgs:bool=true,
     ~chooseLabel:string,
     ()
 ):(editorState, array<newStmtsDto>) => {
@@ -242,7 +243,8 @@ let unifyBottomUp = (st,stmtId,
                     asrtLabel,
                     maxSearchDepth,
                     lengthRestriction,
-                    allowNewVars
+                    allowNewVars,
+                    useRootStmtsAsArgs
                 },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()

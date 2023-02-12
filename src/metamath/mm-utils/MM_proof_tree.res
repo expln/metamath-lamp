@@ -27,7 +27,7 @@ type rec proofNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, label:string, frame:frame})
+    | Assertion({args:array<proofNode>, frame:frame})
 
 and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -59,10 +59,10 @@ let exprSourceEq = (s1,s2) => {
                 | _ => false
             }
         }
-        | Assertion({ args:args1, label:label1, }) => {
+        | Assertion({ args:args1, frame:frame1, }) => {
             switch s2 {
-                | Assertion({ args:args2, label:label2, }) => {
-                    label1 == label2
+                | Assertion({ args:args2, frame:frame2, }) => {
+                    frame1.label == frame2.label
                     && args1->Js.Array2.length == args2->Js.Array2.length
                     && args1->Js.Array2.everyi((arg1,idx) => exprEq(arg1.expr, args2[idx].expr))
                 }

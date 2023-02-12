@@ -10,6 +10,7 @@ type bottomUpProverParams = {
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
     allowNewVars: bool,
+    useRootStmtsAsArgs: bool,
 }
 
 let proveFloatings: (
