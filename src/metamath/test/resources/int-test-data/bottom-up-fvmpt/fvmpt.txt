@@ -1,5 +1,5 @@
 $d A setvar1 $.
-1    |- ( setvar1 = A -> class1 = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
-2    |- sgn = ( setvar1 e. RR* |-> class1 )
-3    |- if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) e. _V
-stmt1 [1 2 3 : fvmpt ]   |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
+2    |- ( setvar1 = A -> class1 = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
+3    |- sgn = ( setvar1 e. RR* |-> class1 )
+4    |- if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) e. _V
+1 [2 3 4 : fvmpt ]   |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )

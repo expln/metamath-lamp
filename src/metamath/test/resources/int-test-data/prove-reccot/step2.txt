@@ -6,7 +6,7 @@ Disjoints:
 
 
 --- p -------------------------------------------------------------------------------
-stmt1
+1
 : tanval
 |- ( ( class1 e. CC /\ ( cos ` class1 ) =/= 0 ) -> ( tan ` class1 ) = ( ( sin ` class1 ) / ( cos ` class1 ) ) )
 None
