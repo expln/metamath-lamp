@@ -64,6 +64,7 @@ let getVarType = (ctx:mmContext, vName:string) => {
 let demo0 = "./src/metamath/test/resources/demo0.mm"
 let findPossibleSubsSimpleCase = "./src/metamath/test/resources/findPossibleSubs-test-data/simple-case.mm"
 let findPossibleSubsDisjointsCase = "./src/metamath/test/resources/findPossibleSubs-test-data/disjoints-case.mm"
+let findPossibleSubsTypeCase = "./src/metamath/test/resources/findPossibleSubs-test-data/type-case.mm"
 
 describe("refreshWrkCtx", _ => {
     it("detects an error in variable declaration", _ => {
@@ -551,14 +552,18 @@ describe("findPossibleSubs", _ => {
         )
 
         assertEq(
-            possibleSubs->Js.Array2.map(wrkSubs => wrkSubs.subs),
+            possibleSubs,
             [
-                Belt_MapInt.fromArray([
-                    (t, ctx->ctxStrToIntsExn("t")),
-                    (x, ctx->ctxStrToIntsExn("z")),
-                    (y, ctx->ctxStrToIntsExn("z")),
-                    (z, ctx->ctxStrToIntsExn("z")),
-                ]),
+                {
+                    newDisj: disjMutableMake(),
+                    subs: Belt_MapInt.fromArray([
+                        (t, ctx->ctxStrToIntsExn("t")),
+                        (x, ctx->ctxStrToIntsExn("z")),
+                        (y, ctx->ctxStrToIntsExn("z")),
+                        (z, ctx->ctxStrToIntsExn("z")),
+                    ]),
+                    err: None
+                },
             ]
         )
 
@@ -574,7 +579,78 @@ describe("findPossibleSubs", _ => {
         )
 
         //then
-        assertEq( possibleSubs, [] )
+        assertEq(
+            possibleSubs,
+            [
+                {
+                    newDisj: disjMutableMake(),
+                    subs: Belt_MapInt.fromArray([
+                        (t, ctx->ctxStrToIntsExn("t")),
+                        (x, ctx->ctxStrToIntsExn("z")),
+                        (y, ctx->ctxStrToIntsExn("z")),
+                        (z, ctx->ctxStrToIntsExn("z")),
+                    ]),
+                    err: Some(CommonVar({var1:x, var2:y, commonVar:z}))
+                },
+            ]
+        )
+    })
+
+    it("doesn't return substitutions which don't satisfy types", _ => {
+        //given
+        let st = createEditorState(findPossibleSubsTypeCase)
+        let st = prepareEditorForUnification(st)
+        let ctx = st.wrkCtx->Belt_Option.getExn
+
+        let t = ctx->ctxSymToIntExn("t")
+        let x = ctx->ctxSymToIntExn("x")
+        let y = ctx->ctxSymToIntExn("y")
+        let z = ctx->ctxSymToIntExn("z")
+
+        let stmt1 = "x + y"
+        let stmt2 = "y + z + t"
+
+        //when
+        let possibleSubs = findPossibleSubs(
+            st, 
+            ctx->ctxStrToIntsExn(stmt1),
+            ctx->ctxStrToIntsExn(stmt2),
+        )
+
+        //then
+        assertEq(
+            possibleSubs,
+            [
+                {
+                    newDisj: disjMutableMake(),
+                    subs: Belt_MapInt.fromArray([
+                        (t, ctx->ctxStrToIntsExn("t")),
+                        (x, ctx->ctxStrToIntsExn("y")),
+                        (y, ctx->ctxStrToIntsExn("z + t")),
+                        (z, ctx->ctxStrToIntsExn("z")),
+                    ]),
+                    err: Some(TypeMismatch({
+                        var:y, 
+                        subsExpr:ctx->ctxStrToIntsExn("z + t"), 
+                        typeExpr:ctx->ctxStrToIntsExn("term z + t")
+                    }))
+                },
+                {
+                    newDisj: disjMutableMake(),
+                    subs: Belt_MapInt.fromArray([
+                        (t, ctx->ctxStrToIntsExn("t")),
+                        (x, ctx->ctxStrToIntsExn("y + z")),
+                        (y, ctx->ctxStrToIntsExn("t")),
+                        (z, ctx->ctxStrToIntsExn("z")),
+                    ]),
+                    err: Some(TypeMismatch({
+                        var:x, 
+                        subsExpr:ctx->ctxStrToIntsExn("y + z"), 
+                        typeExpr:ctx->ctxStrToIntsExn("term y + z")
+                    }))
+                },
+            ]
+        )
     })
 
     it("returns substitutions which satisfy disjoints", _ => {
