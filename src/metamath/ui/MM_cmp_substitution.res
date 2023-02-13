@@ -287,8 +287,8 @@ let make = (
                             ++ `have common variable ${wrkCtx->ctxIntToSymExn(commonVar)}`
                     }
                     | TypeMismatch({var, subsExpr, typeExpr}) => {
-                        `could not prove "${wrkCtx->ctxIntsToStrExn(typeExpr)}" for ${wrkCtx->ctxIntToSymExn(var)} `
-                            ++ "\u2192" ++ ` ${wrkCtx->ctxIntsToStrExn(subsExpr)}`
+                        `could not prove [${wrkCtx->ctxIntsToStrExn(typeExpr)}] for ${wrkCtx->ctxIntToSymExn(var)} `
+                            ++ Js_string2.fromCharCode(8594) ++ ` [${wrkCtx->ctxIntsToStrExn(subsExpr)}]`
                     }
                 }
                 <div>
@@ -316,7 +316,7 @@ let make = (
             | Some(invalidResults) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        <Col>
+                        <Col spacing=1. style=ReactDOM.Style.make(~margin="10px", ())>
                             <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                                 {React.string("Invalid substitutions:")}
                             </span>
@@ -335,8 +335,8 @@ let make = (
                                     </Paper>
                                 })->React.array
                             }
-                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#contained> 
-                                {React.string("Close")} 
+                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#contained>
+                                {React.string("Close")}
                             </Button>
                         </Col>
                     })
