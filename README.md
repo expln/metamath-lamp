@@ -1,3 +1,5 @@
+# Lite Assistant for Metamath Proofs
+
 ***How to run locally:***
 
 1. Clone the source code
