@@ -353,11 +353,28 @@ let make = (
         switch state.results {
             | None => React.null
             | Some(results) => {
-                let summary = React.string(
-                    `Found substitutions: `
-                        ++ `${getNumberOfResults(state.results)->Belt_Int.toString} valid, `
-                        ++ `${getNumberOfResults(state.invalidResults)->Belt_Int.toString} invalid.`
-                )
+                let numOfInvalidResults = getNumberOfResults(state.invalidResults)
+                let summary = 
+                    <>
+                        {
+                            React.string(
+                                `Found substitutions: `
+                                    ++ `${getNumberOfResults(state.results)->Belt_Int.toString} valid, `
+                            )
+                        }
+                        {
+                            if (numOfInvalidResults == 0) {
+                                React.string( `0 invalid.` )
+                            } else {
+                                <span
+                                    onClick={_=> actShowInvalidSubs() }
+                                    style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+                                >
+                                    {React.string( numOfInvalidResults->Belt_Int.toString ++ ` invalid.` )}
+                                </span>
+                            }
+                        }
+                    </>
                 let numOfResults = results->Js.Array2.length
                 <Col>
                     summary
