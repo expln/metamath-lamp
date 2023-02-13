@@ -592,6 +592,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_substitution
+                            modalRef
                             editorState=state
                             expr1Init
                             expr2Init

@@ -3,6 +3,8 @@ open Expln_React_Mui
 open MM_wrk_editor
 open MM_context
 open MM_parser
+open Expln_utils_promise
+open Expln_React_Modal
 
 type state = {
     expr1Str: string,
@@ -84,6 +86,7 @@ let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:opt
 
 @react.component
 let make = (
+    ~modalRef:modalRef,
     ~editorState: editorState,
     ~expr1Init:option<string>,
     ~expr2Init:option<string>,
@@ -206,17 +209,23 @@ let make = (
     }
 
     let rndResultButtons = () => {
-        let onlyOneSubstitutionIsAvailable = switch state.results {
-            | None => false
-            | Some(results) => results->Js_array2.length == 1
+        switch state.results {
+            | None => React.null
+            | Some(results) => {
+                let numOfResults = results->Js_array2.length
+                if (numOfResults > 0) {
+                    <Row>
+                        <Button onClick={_=>actChooseSelected()} variant=#contained
+                                disabled={state.checkedResultIdx->Belt.Option.isNone}>
+                            {React.string(if numOfResults == 1 {"Apply"} else {"Apply selected"})}
+                        </Button>
+                        <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
+                    </Row>
+                } else {
+                    React.null
+                }
+            }
         }
-        <Row>
-            <Button onClick={_=>actChooseSelected()} variant=#contained 
-                    disabled={state.checkedResultIdx->Belt.Option.isNone}>
-                {React.string(if onlyOneSubstitutionIsAvailable {"Apply substitution"} else {"Apply selected"})}
-            </Button>
-            <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
-        </Row>
     }
 
     let rndNewDisj = (wrkSubs:wrkSubs):React.element => {
@@ -301,74 +310,86 @@ let make = (
         </>
     }
 
-    let rndResults = () => {
-        switch state.results {
-            | None => React.null
-            | Some(results) => {
-                let numOfResults = results->Js.Array2.length
-                if (numOfResults == 0) {
-                    <span>
-                    {React.string("No substitution can be extracted from the provided expressions.")}
-                    </span>
-                } else {
-                    <Col>
-                        {
-                            results->Js_array2.mapi((res,i) => {
-                                <Paper key={i->Belt_Int.toString}>
-                                    <table>
-                                        <tbody>
-                                            <tr>
-                                                {
-                                                    if (numOfResults > 1) {
-                                                        <td>
-                                                            <Checkbox
-                                                                checked={state.checkedResultIdx == Some(i)}
-                                                                onChange={_ => actToggleResultChecked(i)}
-                                                            />
-                                                        </td>
-                                                    } else {
-                                                        React.null
-                                                    }
-                                                }
-                                                <td>
-                                                    {rndWrkSubs(res)}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </Paper>
-                            })->React.array
-                        }
-                        {rndResultButtons()}
-                    </Col>
-                }
+    let actShowInvalidSubs = ():unit => {
+        switch state.invalidResults {
+            | None => ()
+            | Some(invalidResults) => {
+                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    updateModal(modalRef, modalId, () => {
+                        <Col>
+                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                                {React.string("Invalid substitutions:")}
+                            </span>
+                            {
+                                invalidResults->Js_array2.mapi((res,i) => {
+                                    <Paper key={i->Belt_Int.toString}>
+                                        <table>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        {rndWrkSubs(res)}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </Paper>
+                                })->React.array
+                            }
+                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#contained> 
+                                {React.string("Close")} 
+                            </Button>
+                        </Col>
+                    })
+                })->ignore
             }
         }
     }
 
-    let actShowInvalidSubs = () => {
-        switch state.invalidResults {
+    let getNumberOfResults = (arrOpt:option<array<'a>>):int => {
+        arrOpt->Belt_Option.map(arr => arr->Js.Array2.length)->Belt.Option.getWithDefault(0)
+    }
+
+    let rndResults = () => {
+        switch state.results {
             | None => React.null
-            | Some(invalidResults) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                    updateModal(modalRef, modalId, () => {
-                        <MM_cmp_save_or_discard
-                            contOld={React.string(textOld)}
-                            contNew={React.string(textNew)}
-                            onDiscard={() => {
-                                closeModal(modalRef, modalId)
-                                setState(completeLabelEditMode(_,stmtId,textOld))
-                            }}
-                            onSave={() => {
-                                closeModal(modalRef, modalId)
-                                actCompleteEditLabel(stmtId, textNew)
-                            }}
-                            onContinueEditing={() => {
-                                closeModal(modalRef, modalId)
-                            }}
-                        />
-                    })
-                })->ignore
+            | Some(results) => {
+                let summary = React.string(
+                    `Found substitutions: `
+                        ++ `${getNumberOfResults(state.results)->Belt_Int.toString} valid, `
+                        ++ `${getNumberOfResults(state.invalidResults)->Belt_Int.toString} invalid.`
+                )
+                let numOfResults = results->Js.Array2.length
+                <Col>
+                    summary
+                    {
+                        results->Js_array2.mapi((res,i) => {
+                            <Paper key={i->Belt_Int.toString}>
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            {
+                                                if (numOfResults > 1) {
+                                                    <td>
+                                                        <Checkbox
+                                                            checked={state.checkedResultIdx == Some(i)}
+                                                            onChange={_ => actToggleResultChecked(i)}
+                                                        />
+                                                    </td>
+                                                } else {
+                                                    React.null
+                                                }
+                                            }
+                                            <td>
+                                                {rndWrkSubs(res)}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </Paper>
+                        })->React.array
+                    }
+                    {rndResultButtons()}
+                </Col>
             }
         }
     }
