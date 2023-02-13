@@ -1521,11 +1521,11 @@ let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,strin
     }
 }
 
-let whitespaceRegex = %re("/\s+/g")
-let removeWhitespaces = str => str->Js_string2.replaceByRe(whitespaceRegex, "")
+let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
+let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
 let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorState,string> => {
-    let newLabel = newLabel->removeWhitespaces
+    let newLabel = newLabel->removeSymbolsNotAllowedInLabel
     if (newLabel == "") {
         Error(`label must not be empty.`)
     } else {

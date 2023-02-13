@@ -81,8 +81,8 @@ let rndContText = (stmtCont) => {
     }
 }
 
-let whitespaceRegex = %re("/\s+/g")
-let removeWhitespaces = str => str->Js_string2.replaceByRe(whitespaceRegex, "")
+let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
+let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
 @react.component
 let make = (
@@ -121,11 +121,11 @@ let make = (
     }
     
     let actLabelEditDone = () => {
-        onLabelEditDone(state.newText->removeWhitespaces)
+        onLabelEditDone(state.newText->removeSymbolsNotAllowedInLabel)
     }
     
     let actLabelEditCancel = () => {
-        onLabelEditCancel(state.newText->removeWhitespaces)
+        onLabelEditCancel(state.newText->removeSymbolsNotAllowedInLabel)
     }
     
     let actTypEditDone = newTypStr => {
@@ -157,7 +157,7 @@ let make = (
                     style=ReactDOM.Style.make(~width="100px", ())
                     autoFocus=true
                     value=state.newText
-                    onChange=evt2str(str => actNewTextUpdated(str->removeWhitespaces))
+                    onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
                     onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
                     title="Ctrl+Enter to save, Esc to cancel"
                 />
