@@ -86,9 +86,14 @@ type editorState = {
     unifyAllIsRequiredCnt: int,
 }
 
+type wrkSubsErr = 
+    | CommonVar({var1:int, var2:int, commonVar:int})
+    | TypeMismatch({var:int, subsExpr:expr, typeExpr:expr})
+
 type wrkSubs = {
     newDisj: disjMutable,
     subs: Belt_MapInt.t<expr>,
+    mutable err: option<wrkSubsErr>,
 }
 
 let updateStmt: (editorState, string, userStmt => userStmt) => editorState

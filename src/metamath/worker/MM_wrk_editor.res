@@ -7,7 +7,6 @@ open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
 open MM_wrk_ctx
-open MM_wrk_unify
 open MM_provers
 open MM_statements_dto
 
@@ -146,9 +145,14 @@ type editorState = {
     unifyAllIsRequiredCnt: int
 }
 
+type wrkSubsErr =
+    | CommonVar({var1:int, var2:int, commonVar:int})
+    | TypeMismatch({var:int, subsExpr:expr, typeExpr:expr})
+
 type wrkSubs = {
     newDisj: disjMutable,
     subs: Belt_MapInt.t<expr>,
+    mutable err: option<wrkSubsErr>,
 }
 
 let updateStmt = (st:editorState,id,update):editorState => {
@@ -1032,10 +1036,11 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
     }
 }
 
-let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
-    let typesToProve = wrkSubs.subs
-        ->Belt_MapInt.toArray
-        ->Js_array2.map(((var,expr)) => [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr))
+let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):unit => {
+    let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
+    let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
+        [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
+    )
     let proofTree = proveFloatings(
         ~ctx,
         ~frms,
@@ -1043,12 +1048,19 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):bool => {
         ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens), ()),
         ()
     )
-    typesToProve->Js_array2.every(typeExpr => {
-        switch proofTree->ptGetNodeByExpr(typeExpr) {
-            | None => raise(MmException({msg:`Unexpected condition met: the proofTree was expected to contain nodes for each typeExpr.`}))
-            | Some(node) => node->pnGetProof->Belt_Option.isSome
+    varToExprArr->Js_array2.forEachi(((var,expr), i) =>
+        if (wrkSubs.err->Belt_Option.isNone) {
+            let typeExpr = typesToProve[i]
+            switch proofTree->ptGetNodeByExpr(typeExpr) {
+                | None => raise(MmException({msg:`Unexpected condition met: the proofTree was expected to contain nodes for each typeExpr.`}))
+                | Some(node) => {
+                    if (node->pnGetProof->Belt_Option.isNone) {
+                        wrkSubs.err = Some(TypeMismatch({ var, subsExpr:expr, typeExpr, }))
+                    }
+                }
+            }
         }
-    })
+    )
 }
 
 let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
@@ -1079,12 +1091,13 @@ let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
     }
     {
         subs: res->Belt_MutableMapInt.toArray->Belt_MapInt.fromArray,
-        newDisj: disjMutableMake()
+        newDisj: disjMutableMake(),
+        err: None,
     }
     
 }
 
-let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):bool => {
+let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
     let varToSubVars = Belt_MutableMapInt.make()
 
     let getSubVars = var => {
@@ -1103,15 +1116,20 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):bool => {
         }
     }
 
-    let res = ref(true)
     disj->disjForEach((n,m) => {
-        if (res.contents) {
+        if (wrkSubs.err->Belt_Option.isNone) {
             getSubVars(n)->Js_array2.forEach(nv => {
-                if (res.contents) {
+                if (wrkSubs.err->Belt_Option.isNone) {
                     getSubVars(m)->Js_array2.forEach(mv => {
-                        if (res.contents) {
-                            res.contents = nv != mv
-                            if (res.contents && !(disj->disjContains(nv,mv))) {
+                        if (wrkSubs.err->Belt_Option.isNone) {
+                            if (nv == mv) {
+                                wrkSubs.err = Some(CommonVar({
+                                    var1:n,
+                                    var2:m,
+                                    commonVar:nv
+                                }))
+                            }
+                            if (wrkSubs.err->Belt_Option.isNone && !(disj->disjContains(nv,mv))) {
                                 wrkSubs.newDisj->disjAddPair(nv,mv)
                             }
                         }
@@ -1120,7 +1138,6 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):bool => {
             })
         }
     })
-    res.contents
 }
 
 let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
@@ -1128,7 +1145,8 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
             let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
-            let (tmpFrame, _) = wrkCtx->createFrame(axLabel, wrkCtx->ctxIntsToSymsExn(frmExpr), ~skipHyps=true, ~skipFirstSymCheck=true, ())
+            let (tmpFrame, _) = wrkCtx->createFrame(axLabel, wrkCtx->ctxIntsToSymsExn(frmExpr), ~skipHyps=true, 
+                                                    ~skipFirstSymCheck=true, ())
             let frm = prepareFrmSubsDataForFrame(tmpFrame)
             let disj = wrkCtx->getAllDisj
             let foundSubs = []
@@ -1142,11 +1160,11 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
                 ~parenCnt=parenCntMake(prepareParenInts(wrkCtx, st.settings.parens), ()),
                 ~consumer = subs => {
                     let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
-                    if (verifyDisjoints(~wrkSubs, ~disj)
-                        && verifyTypesForSubstitution(~settings=st.settings, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
-                    ) {
-                        foundSubs->Js_array2.push(wrkSubs)->ignore
+                    verifyDisjoints(~wrkSubs, ~disj)
+                    if (wrkSubs.err->Belt_Option.isNone) {
+                        verifyTypesForSubstitution(~settings=st.settings, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
                     }
+                    foundSubs->Js_array2.push(wrkSubs)->ignore
                     Continue
                 }
             )->ignore

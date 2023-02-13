@@ -10,7 +10,8 @@ type state = {
     expr2Str: string,
     expr2Err: option<string>,
     results: option<array<wrkSubs>>,
-    checkedResultIdx: int
+    checkedResultIdx: option<int>,
+    invalidResults: option<array<wrkSubs>>,
 }
 
 let makeInitialState = (
@@ -23,15 +24,17 @@ let makeInitialState = (
         expr2Str: expr2Init->Belt.Option.getWithDefault(""),
         expr2Err: None,
         results: None,
-        checkedResultIdx: -1
+        checkedResultIdx: None,
+        invalidResults: None,
     }
 }
 
 let setResults = (st,results):state => {
     {
         ...st,
-        results:Some(results),
-        checkedResultIdx: if (results->Js_array2.length == 1) {0} else {-1},
+        results:Some(results->Js_array2.filter(res => res.err->Belt_Option.isNone)),
+        checkedResultIdx: if (results->Js_array2.length == 1) {Some(0)} else {None},
+        invalidResults:Some(results->Js_array2.filter(res => res.err->Belt_Option.isSome)),
     }
 }
 
@@ -60,15 +63,15 @@ let swapExprs = (st):state => {
 }
 
 let toggleResultChecked = (st,idx) => {
-    if (st.checkedResultIdx ==idx) {
+    if (st.checkedResultIdx == Some(idx)) {
         {
             ...st,
-            checkedResultIdx: -1
+            checkedResultIdx: None
         }
     } else {
         {
             ...st,
-            checkedResultIdx: idx
+            checkedResultIdx: Some(idx)
         }
     }
 }
@@ -130,9 +133,14 @@ let make = (
         switch state.results {
             | None => ()
             | Some(results) => {
-                if (0 <= state.checkedResultIdx && state.checkedResultIdx < results->Js.Array2.length) {
-                    onSubstitutionSelected(results[state.checkedResultIdx])
-                }
+                switch state.checkedResultIdx {
+                    | Some(idx) => {
+                        if (0 <= idx && idx < results->Js.Array2.length) {
+                            onSubstitutionSelected(results[idx])
+                        }
+                    }
+                    | None => ()
+                } 
             }
         }
     }
@@ -185,11 +193,11 @@ let make = (
                 </tbody>
             </table>
             {rndError(state.expr1Err)}
-            {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false, 
+            {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false,
                 ~onChange=actExpr2Change, ~tabIndex=2)}
             {rndError(state.expr2Err)}
             <Row>
-                <Button onClick={_=>actDetermineSubs()} variant=#contained>
+                <Button onClick={_=>actDetermineSubs()} variant=#outlined>
                     {React.string("Extract substitution")}
                 </Button>
                 <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
@@ -203,7 +211,8 @@ let make = (
             | Some(results) => results->Js_array2.length == 1
         }
         <Row>
-            <Button onClick={_=>actChooseSelected()} variant=#contained disabled={state.checkedResultIdx < 0}>
+            <Button onClick={_=>actChooseSelected()} variant=#contained 
+                    disabled={state.checkedResultIdx->Belt.Option.isNone}>
                 {React.string(if onlyOneSubstitutionIsAvailable {"Apply substitution"} else {"Apply selected"})}
             </Button>
             <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
@@ -233,7 +242,7 @@ let make = (
         }
     }
 
-    let rndWrkSubs = (wrkSubs:wrkSubs):React.element => {
+    let rndSubs = (wrkSubs:wrkSubs):React.element => {
         <table>
             <tbody>
             {React.array(
@@ -259,6 +268,39 @@ let make = (
         </table>
     }
 
+    let rndSubsErr = (err:option<wrkSubsErr>):React.element => {
+        switch err {
+            | None => React.null
+            | Some(err) => {
+                let errDescr = switch err {
+                    | CommonVar({var1, var2, commonVar}) => {
+                        `substitutions for ${wrkCtx->ctxIntToSymExn(var1)} and ${wrkCtx->ctxIntToSymExn(var2)} `
+                            ++ `have common variable ${wrkCtx->ctxIntToSymExn(commonVar)}`
+                    }
+                    | TypeMismatch({var, subsExpr, typeExpr}) => {
+                        `could not prove "${wrkCtx->ctxIntsToStrExn(typeExpr)}" for ${wrkCtx->ctxIntToSymExn(var)} `
+                            ++ "\u2192" ++ ` ${wrkCtx->ctxIntsToStrExn(subsExpr)}`
+                    }
+                }
+                <div>
+                    <span style=ReactDOM.Style.make(~color="red", ())>
+                        {React.string("Error: ")}
+                    </span>
+                    {React.string(errDescr)}
+                </div>
+            }
+        }
+
+    }
+
+    let rndWrkSubs = (wrkSubs:wrkSubs):React.element => {
+        <>
+            {rndNewDisj(wrkSubs)}
+            {rndSubs(wrkSubs)}
+            {rndSubsErr(wrkSubs.err)}
+        </>
+    }
+
     let rndResults = () => {
         switch state.results {
             | None => React.null
@@ -280,7 +322,7 @@ let make = (
                                                     if (numOfResults > 1) {
                                                         <td>
                                                             <Checkbox
-                                                                checked={state.checkedResultIdx == i}
+                                                                checked={state.checkedResultIdx == Some(i)}
                                                                 onChange={_ => actToggleResultChecked(i)}
                                                             />
                                                         </td>
@@ -289,7 +331,6 @@ let make = (
                                                     }
                                                 }
                                                 <td>
-                                                    {rndNewDisj(res)}
                                                     {rndWrkSubs(res)}
                                                 </td>
                                             </tr>
@@ -301,6 +342,33 @@ let make = (
                         {rndResultButtons()}
                     </Col>
                 }
+            }
+        }
+    }
+
+    let actShowInvalidSubs = () => {
+        switch state.invalidResults {
+            | None => React.null
+            | Some(invalidResults) => {
+                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    updateModal(modalRef, modalId, () => {
+                        <MM_cmp_save_or_discard
+                            contOld={React.string(textOld)}
+                            contNew={React.string(textNew)}
+                            onDiscard={() => {
+                                closeModal(modalRef, modalId)
+                                setState(completeLabelEditMode(_,stmtId,textOld))
+                            }}
+                            onSave={() => {
+                                closeModal(modalRef, modalId)
+                                actCompleteEditLabel(stmtId, textNew)
+                            }}
+                            onContinueEditing={() => {
+                                closeModal(modalRef, modalId)
+                            }}
+                        />
+                    })
+                })->ignore
             }
         }
     }
