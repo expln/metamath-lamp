@@ -11,6 +11,8 @@ open MM_wrk_unify
 open MM_provers
 open MM_statements_dto
 
+let newLabelPrefix = ""
+
 type stmtSym = {
     id: string,
     sym: string,
@@ -294,7 +296,7 @@ let createNewLabel = (st:editorState, prefix:string):string => {
 
 let addNewStmt = (st:editorState):(editorState,string) => {
     let newId = st.nextStmtId->Belt_Int.toString
-    let newLabel = createNewLabel(st, "")
+    let newLabel = createNewLabel(st, newLabelPrefix)
     let idToAddBefore = st.stmts->Js_array2.find(stmt => st.checkedStmtIds->Js_array2.includes(stmt.id))->Belt_Option.map(stmt => stmt.id)
     (
         {
@@ -325,7 +327,7 @@ let duplicateCheckedStmt = st => {
         st
     } else {
         let newId = st.nextStmtId->Belt_Int.toString
-        let newLabel = createNewLabel(st, "stmt")
+        let newLabel = createNewLabel(st, newLabelPrefix)
         let idToAddAfter = st.checkedStmtIds[0]
         {
             ...st,
@@ -989,7 +991,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         })
                     }
                     | _ => {
-                        let ctxLabel = createNewLabel(stMut.contents, "")
+                        let ctxLabel = createNewLabel(stMut.contents, newLabelPrefix)
                         newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
                         let exprText = stmt.expr
                             ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
@@ -1519,21 +1521,28 @@ let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,strin
     }
 }
 
+let whitespaceRegex = %re("/\s+/g")
+let removeWhitespaces = str => str->Js_string2.replaceByRe(whitespaceRegex, "")
+
 let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorState,string> => {
-    let newLabelTrimed = newLabel->Js_string2.trim
-    switch st.stmts->Js_array2.find(stmt => stmt.id != stmtId && stmt.label == newLabelTrimed) {
-        | Some(stmt) => Error(`Label '${newLabelTrimed}' is used by another statement.`)
-        | None => {
-            switch st->editorGetStmtById(stmtId) {
-                | None => Ok(st)
-                | Some(stmt) => {
-                    if (stmt.label == newLabelTrimed) {
-                        Ok(st)
-                    } else {
-                        switch replaceRef(st, ~replaceWhat=stmt.label, ~replaceWith=newLabelTrimed) {
-                            | Error(msg) => Error(msg)
-                            | Ok(st) => {
-                                Ok(st->updateStmt(stmtId, stmt => {...stmt, label:newLabelTrimed}))
+    let newLabel = newLabel->removeWhitespaces
+    if (newLabel == "") {
+        Error(`label must not be empty.`)
+    } else {
+        switch st.stmts->Js_array2.find(stmt => stmt.id != stmtId && stmt.label == newLabel) {
+            | Some(_) => Error(`label '${newLabel}' is used by another statement.`)
+            | None => {
+                switch st->editorGetStmtById(stmtId) {
+                    | None => Ok(st)
+                    | Some(stmt) => {
+                        if (stmt.label == newLabel) {
+                            Ok(st)
+                        } else {
+                            switch replaceRef(st, ~replaceWhat=stmt.label, ~replaceWith=newLabel) {
+                                | Error(msg) => Error(msg)
+                                | Ok(st) => {
+                                    Ok(st->updateStmt(stmtId, stmt => {...stmt, label:newLabel}))
+                                }
                             }
                         }
                     }

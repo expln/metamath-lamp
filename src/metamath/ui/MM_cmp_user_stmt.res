@@ -133,26 +133,26 @@ let make = (
     }
     
     let actContEditDone = () => {
-        onContEditDone(state.newText)
+        onContEditDone(state.newText->Js_string2.trim)
     }
     
     let actContEditCancel = () => {
-        onContEditCancel(state.newText)
+        onContEditCancel(state.newText->Js_string2.trim)
     }
     
     let actJstfEditDone = () => {
         actExpandProof(true)
-        onJstfEditDone(state.newText)
+        onJstfEditDone(state.newText->Js_string2.trim)
     }
     
     let actJstfEditCancel = () => {
-        onJstfEditCancel(state.newText)
+        onJstfEditCancel(state.newText->Js_string2.trim)
     }
 
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Row>
-                <TextField 
+                <TextField
                     size=#small
                     style=ReactDOM.Style.make(~width="100px", ())
                     autoFocus=true

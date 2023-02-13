@@ -7,9 +7,6 @@ open MM_wrk_settings
 open MM_wrk_ctx
 open MM_wrk_unify
 open MM_substitution
-open MM_parser
-open MM_proof_tree
-open MM_proof_table
 open Expln_utils_promise
 open MM_react_common
 open MM_parenCounter
@@ -293,35 +290,34 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
-        let newLabelTrimed = newLabel->Js_string2.trim
-        switch state->renameStmt(stmtId, newLabelTrimed) {
+        let newLabel = newLabel->Js_string2.trim
+        switch state->renameStmt(stmtId, newLabel) {
             | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this statement: ${msg}`, () )
-            | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabelTrimed))
+            | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabel))
         }
     }
 
     let actCancelEditLabel = (stmtId, newLabel):unit => {
-        let newLabelTrimed = newLabel->Js_string2.replaceByRe(%re("/\s+/g"), "")
         switch state->editorGetStmtById(stmtId) {
             | None => ()
             | Some(stmt) => {
-                let labelOld = stmt.label
-                let labelNew = newLabelTrimed
-                if (labelOld == labelNew || labelNew == "") {
-                    setState(completeLabelEditMode(_,stmtId,labelOld))
+                let textOld = stmt.label
+                let textNew = newLabel
+                if (textOld == textNew || textNew == "") {
+                    setState(completeLabelEditMode(_,stmtId,textOld))
                 } else {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_save_or_discard
-                                contOld={React.string(labelOld)}
-                                contNew={React.string(labelNew)}
+                                contOld={React.string(textOld)}
+                                contNew={React.string(textNew)}
                                 onDiscard={() => {
                                     closeModal(modalRef, modalId)
-                                    setState(completeLabelEditMode(_,stmtId,labelOld))
+                                    setState(completeLabelEditMode(_,stmtId,textOld))
                                 }}
                                 onSave={() => {
                                     closeModal(modalRef, modalId)
-                                    actCompleteEditLabel(stmtId, labelNew)
+                                    actCompleteEditLabel(stmtId, textNew)
                                 }}
                                 onContinueEditing={() => {
                                     closeModal(modalRef, modalId)
@@ -340,8 +336,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             | Some(stmt) => {
                 let contOld = stmt.cont
                 let contNew = newContText->strToCont(())
-                let textOld = contOld->contToStr->Js_string2.trim
-                let textNew = contNew->contToStr->Js_string2.trim
+                let textOld = contOld->contToStr
+                let textNew = contNew->contToStr
                 if (textOld == textNew) {
                     if (textOld == "") {
                         setState(deleteStmt(_,stmtId))
@@ -386,23 +382,23 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         switch state->editorGetStmtById(stmtId) {
             | None => ()
             | Some(stmt) => {
-                let jstfOld = stmt.jstfText
-                let jstfNew = newJstfText->Js_string2.trim
-                if (jstfOld == jstfNew || jstfNew == "") {
-                    setState(completeJstfEditMode(_,stmtId,jstfOld))
+                let textOld = stmt.jstfText->Js_string2.trim
+                let textNew = newJstfText->Js_string2.trim
+                if (textOld == textNew || textNew == "") {
+                    setState(completeJstfEditMode(_,stmtId,textOld))
                 } else {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                         updateModal(modalRef, modalId, () => {
                             <MM_cmp_save_or_discard
-                                contOld={React.string(jstfOld)}
-                                contNew={React.string(jstfNew)}
+                                contOld={React.string(textOld)}
+                                contNew={React.string(textNew)}
                                 onDiscard={() => {
                                     closeModal(modalRef, modalId)
-                                    setState(completeJstfEditMode(_,stmtId,jstfOld))
+                                    setState(completeJstfEditMode(_,stmtId,textOld))
                                 }}
                                 onSave={() => {
                                     closeModal(modalRef, modalId)
-                                    setState(completeJstfEditMode(_,stmtId,jstfNew))
+                                    setState(completeJstfEditMode(_,stmtId,textNew))
                                 }}
                                 onContinueEditing={() => {
                                     closeModal(modalRef, modalId)
@@ -416,7 +412,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actCancelEditVars = (newText):unit => {
-        let textOld = state.varsText
+        let textOld = state.varsText->Js_string2.trim
         let textNew = newText->Js_string2.trim
         if (textOld == textNew || textNew == "") {
             setState(completeVarsEditMode(_,textOld))
@@ -444,7 +440,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actCancelEditDisj = (newText):unit => {
-        let textOld = state.disjText
+        let textOld = state.disjText->Js_string2.trim
         let textNew = newText->Js_string2.trim
         if (textOld == textNew || textNew == "") {
             setState(completeDisjEditMode(_,textOld))

@@ -53,11 +53,11 @@ let make = (
     }
     
     let actEditDone = () => {
-        onEditDone(state.newText)
+        onEditDone(state.newText->Js_string2.trim)
     }
     
     let actEditCancel = () => {
-        onEditCancel(state.newText)
+        onEditCancel(state.newText->Js_string2.trim)
     }
 
     let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
