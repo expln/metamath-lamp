@@ -1,3 +1,5 @@
+- don't remove vars prefixed with an exclamation mark.
+- tooltip: To start a new line in a multiline text editor press Shift+Enter
 - load *.mm files from metamath.org
 - add onEnter and onEscape wherever possible.
 - fix a bug:
