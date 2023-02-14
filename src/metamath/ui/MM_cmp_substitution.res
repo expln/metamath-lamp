@@ -201,7 +201,7 @@ let make = (
             {rndError(state.expr2Err)}
             <Row>
                 <Button onClick={_=>actDetermineSubs()} variant=#outlined>
-                    {React.string("Extract substitution")}
+                    {React.string("Find substitution")}
                 </Button>
                 <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
             </Row>
@@ -283,8 +283,8 @@ let make = (
             | Some(err) => {
                 let errDescr = switch err {
                     | CommonVar({var1, var2, commonVar}) => {
-                        `substitutions for ${wrkCtx->ctxIntToSymExn(var1)} and ${wrkCtx->ctxIntToSymExn(var2)} `
-                            ++ `have common variable ${wrkCtx->ctxIntToSymExn(commonVar)}`
+                        `substitutions for disjoint variables ${wrkCtx->ctxIntToSymExn(var1)} and ${wrkCtx->ctxIntToSymExn(var2)} `
+                            ++ `have a common variable ${wrkCtx->ctxIntToSymExn(commonVar)}`
                     }
                     | TypeMismatch({var, subsExpr, typeExpr}) => {
                         `could not prove [${wrkCtx->ctxIntsToStrExn(typeExpr)}] for ${wrkCtx->ctxIntToSymExn(var)} `
