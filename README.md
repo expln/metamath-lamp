@@ -4,7 +4,7 @@
 
 1. Clone the source code
 
-`git clone https://github.com/expln/metamath-proof-assistant.git`
+`git clone https://github.com/expln/metamath-lamp.git`
 
 2. Navigate to the project's directory
 
