@@ -1,3 +1,11 @@
+- fix a bug: prove "|- ( ; 9 5 + 1 ) = ; 9 6" from https://github.com/digama0/mmj2/blob/master/mmj2jar/PATutorial/Page501.mmp
+- restrict names of labels due to the error:
+    ?Error on line 732616 of file "set-check-new-proofs.mm" at statement 203351,
+    label "1", type "$e":
+            1 $e |- ch $.
+            ^
+    This label has the same name as the math token declared on line 108187 of file
+
 - implement table view in the editor.
 - don't remove vars prefixed with an exclamation mark.
 - tooltip: To start a new line in a multiline text editor press Shift+Enter
