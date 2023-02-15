@@ -8,7 +8,7 @@
 
 2. Navigate to the project's directory
 
-`cd metamath-proof-assistant`
+`cd metamath-lamp`
 
 3. Install npm dependencies
 
