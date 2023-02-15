@@ -22,11 +22,13 @@ let printProofRec = (ctx,r) => {
     `${proofStr} | ${exprStr}`
 }
 
-let proofTablePrint = (ctx,tbl,title) => {
+let proofTableToString = (ctx,tbl):string => {
+    tbl->Js_array2.mapi((r,i) => `${Belt_Int.toString((i+1))}: ${printProofRec(ctx, r)}`)->Js.Array2.joinWith("\n")
+}
+
+let proofTablePrint = (ctx,tbl,title):unit => {
     Js.Console.log(`--- TBL ${title} ---------------------------------------------------------------------------`)
-    tbl->Js_array2.map(printProofRec(ctx, _))->Js_array2.forEachi((str,i) => {
-        Js.Console.log(`${Belt_Int.toString((i+1))}: ${str}`)
-    })
+    Js.Console.log(proofTableToString(ctx,tbl))
     Js.Console.log("-----------------------------------------------------------------------------------")
 }
 

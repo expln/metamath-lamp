@@ -1006,9 +1006,10 @@ let loadContext = (
     ~initialContext=?,
     ~stopBefore="",
     ~stopAfter="",
-    ~expectedNumOfAssertions=-1, 
-    ~onProgress= _=>(), 
-    ~debug:bool=false, 
+    ~onPreProcess: option<(mmContext,MM_parser.stmt)=>unit>=?,
+    ~expectedNumOfAssertions=-1,
+    ~onProgress= _=>(),
+    ~debug:bool=false,
     ()
 ) => {
     let expectedNumOfAssertionsF = expectedNumOfAssertions->Belt_Int.toFloat
@@ -1029,6 +1030,10 @@ let loadContext = (
         },
         ast,
         ~preProcess = (ctx,node) => {
+            switch onPreProcess {
+                | None => ()
+                | Some(onPreProcess) => onPreProcess(ctx, node.stmt)
+            }
             switch node {
                 | {stmt:Block({level})} => {
                     if (level > 0) {
