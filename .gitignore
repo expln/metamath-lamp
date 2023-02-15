@@ -22,7 +22,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 /.idea/
-/learn-js-react-app.iml
+/*.iml
 /lib/bs
 /.merlin
 /src/**/*.bs.js
