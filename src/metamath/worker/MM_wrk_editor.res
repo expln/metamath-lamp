@@ -87,10 +87,12 @@ let userStmtTypeToStr = typ => {
     }
 }
 
+type stmtId = string
+
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
 type userStmt = {
-    id: string,
+    id: stmtId,
 
     label: string,
     labelEditMode: bool,
@@ -147,7 +149,7 @@ type editorState = {
 
     nextStmtId: int,
     stmts: array<userStmt>,
-    checkedStmtIds: array<string>,
+    checkedStmtIds: array<stmtId>,
 
     unifyAllIsRequiredCnt: int
 }
@@ -209,7 +211,7 @@ let deleteCheckedStmts = (st:editorState):editorState => {
     }
 }
 
-let deleteStmt = (st:editorState, id:string):editorState => {
+let deleteStmt = (st:editorState, id:stmtId):editorState => {
     {
         ...st,
         stmts: st.stmts->Js_array2.filter(stmt => stmt.id != id),

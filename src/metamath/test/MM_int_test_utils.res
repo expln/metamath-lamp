@@ -1,67 +1,16 @@
 open Expln_test
 open MM_parser
-open MM_context
-open MM_proof_tree
-open MM_proof_tree_dto
-open MM_provers
 open MM_wrk_editor
-open MM_wrk_settings
-open MM_wrk_search_asrt
-open MM_wrk_unify
-open MM_substitution
-open MM_parenCounter
 open MM_statements_dto
 
 let setMmPath = "/books/metamath/set.mm"
 let failOnMismatch = true
 let debug = false
 
-let parenCnt = ref(parenCntMake([], ()))
+let curTestDataDir = ref("")
 
-let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stopAfter:option<string>=?, ()) => {
-    let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(mmFileText, ())
-    let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ~debug, ())
-    while (ctx->getNestingLevel != 0) {
-        ctx->closeChildContext
-    }
-    let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
-    let frms = prepareFrmSubsData(ctx)
-    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens), ())
-    let st = {
-        settingsV: 1,
-        settings: {
-            parens,
-            typeSettings: [ ],
-        },
-        typeColors: Belt_HashMapString.make(~hintSize=0),
-
-        preCtxV: 1,
-        preCtx: ctx,
-        parenCnt: parenCnt.contents,
-        frms,
-        preCtxColors: Belt_HashMapString.make(~hintSize=0),
-
-        varsText: "",
-        varsEditMode: false,
-        varsErr: None,
-        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
-
-        disjText: "",
-        disjEditMode: false,
-        disjErr: None,
-        disj: Belt_MapInt.fromArray([]),
-
-        wrkCtx: None,
-
-        nextStmtId: 0,
-        stmts: [],
-        checkedStmtIds: [],
-
-        unifyAllIsRequiredCnt: 0
-    }
-    recalcAllColors(st)
+let setTestDataDir = dirName => {
+    curTestDataDir.contents = "./src/metamath/test/resources/int-test-data/" ++ dirName
 }
 
 let proofStatusToStr = status => {
@@ -71,85 +20,6 @@ let proofStatusToStr = status => {
         | NoJstf => "noJstf"
         | JstfIsIncorrect => "jstfIsIncorrect"
     }
-}
-
-let unifyBottomUp = (st,stmtId, 
-    ~asrtLabel:option<string>=?,
-    ~maxSearchDepth:int=4, 
-    ~lengthRestriction:lengthRestrict=Less,
-    ~allowNewVars:bool=true,
-    ~useRootStmtsAsArgs:bool=true,
-    ~chooseLabel:string,
-    ()
-):(editorState, array<newStmtsDto>) => {
-    switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
-        | Some(wrkCtx) => {
-            let st = st->uncheckAllStmts
-            let st = st->toggleStmtChecked(stmtId)
-            let stmts = st->getStmtsForUnification
-            let proofTree = MM_provers.unifyAll(
-                ~parenCnt = parenCnt.contents,
-                ~frms = st.frms,
-                ~ctx = wrkCtx,
-                ~stmts,
-                ~bottomUpProverParams = {
-                    asrtLabel,
-                    maxSearchDepth,
-                    lengthRestriction,
-                    allowNewVars,
-                    useRootStmtsAsArgs
-                },
-                //~onProgress = msg => Js.Console.log(msg),
-                ()
-            )
-            let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
-            let newStmts = proofTreeDtoToNewStmtsDto(
-                ~treeDto = proofTreeDto, 
-                ~rootStmts = stmts,
-                ~ctx = wrkCtx,
-                ~typeToPrefix = 
-                    Belt_MapString.fromArray(
-                        st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
-                    )
-            )
-            let result = newStmts
-                ->Js_array2.map(newStmtsDto => {
-                    let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
-                    switch lastStmt.jstf {
-                        | Some({label}) => (label, newStmtsDto)
-                        | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
-                    }
-                })
-                ->Js_array2.filter(((label, _)) => label == chooseLabel)
-                ->Js.Array2.sortInPlaceWith(((la, _),(lb, _)) => la->Js_string2.localeCompare(lb)->Belt.Float.toInt)
-                ->Js_array2.map(((_, newStmtsDto)) => newStmtsDto)
-            (st, result)
-        }
-    }
-}
-
-let newStmtsDtoToStr = (newStmtsDto:newStmtsDto):string => {
-    let disjStr = newStmtsDto.newDisjStr->Js.Array2.sortInPlace->Js.Array2.joinWith("\n")
-    let stmtsStr = newStmtsDto.stmts
-        ->Js.Array2.map(stmt => {
-            [
-                stmt.label,
-                switch stmt.jstf {
-                    | None => ""
-                    | Some({args, label}) => "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
-                },
-                if (stmt.isProved) {"\u2713"} else {" "},
-                stmt.exprStr
-            ]->Js.Array2.joinWith(" ")
-        })->Js.Array2.joinWith("\n")
-    disjStr ++ "\n" ++ stmtsStr
-}
-
-let arrNewStmtsDtoToStr = (arr:array<newStmtsDto>):string => {
-    arr
-        ->Js_array2.map(newStmtsDtoToStr)
-        ->Js_array2.joinWith("\n------------------------------------------------------------------------------------\n")
 }
 
 let editorStateToStr = st => {
@@ -179,10 +49,21 @@ let editorStateToStr = st => {
     lines->Js.Array2.joinWith("\n")
 }
 
-let curTestDataDir = ref("")
-
-let setTestDataDir = dirName => {
-    curTestDataDir.contents = "./src/metamath/test/resources/int-test-data/" ++ dirName
+let newStmtsDtoToStr = (newStmtsDto:newStmtsDto):string => {
+    let disjStr = newStmtsDto.newDisjStr->Js.Array2.sortInPlace->Js.Array2.joinWith("\n")
+    let stmtsStr = newStmtsDto.stmts
+        ->Js.Array2.map(stmt => {
+            [
+                stmt.label,
+                switch stmt.jstf {
+                    | None => ""
+                    | Some({args, label}) => "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
+                },
+                if (stmt.isProved) {"\u2713"} else {" "},
+                stmt.exprStr
+            ]->Js.Array2.joinWith(" ")
+        })->Js.Array2.joinWith("\n")
+    disjStr ++ "\n" ++ stmtsStr
 }
 
 let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
@@ -239,13 +120,4 @@ let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:str
 
 let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
     assertStrEqFile(actualStr, expectedStrFileName)
-}
-
-let getStmtId = (st:editorState, ~contains:string) => {
-    let found = st.stmts->Js_array2.filter(stmt => stmt.cont->contToStr->Js.String2.includes(contains))
-    if (found->Js_array2.length != 1) {
-        raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
-    } else {
-        found[0].id
-    }
 }

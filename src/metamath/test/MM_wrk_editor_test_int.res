@@ -1,10 +1,11 @@
 open Expln_test
 open MM_int_test_utils
+open MM_int_test_editor_methods
 
 describe("MM_wrk_editor integration tests", _ => {
     it("prove reccot", _ => {
         setTestDataDir("prove-reccot")
-        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="reccsc", ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="reccsc", ~debug, ())
 
         let (st, trgtStmtId) = st->addStmt(
             ~label="reccot", 
@@ -136,7 +137,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
     it("prove nfv", _ => {
         setTestDataDir("prove-nfv")
-        let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="nfv", ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="nfv", ~debug, ())
 
         let (st, _) = st->addStmt( ~stmt="|- ( E. x ph -> ph )", () )
         let (st, _) = st->addStmt( ~stmt="|- ( ph -> A. x ph )", () )
@@ -155,17 +156,17 @@ describe("MM_wrk_editor integration tests", _ => {
 
     it("filtering bottom-up proof results in two ways for xmulasslem", _ => {
         setTestDataDir("bottom-up-xmulasslem")
-        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
         let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="xmulasslem", ())
-        let resultsWhenLabelParamIsNotSpecified = stmts1->arrNewStmtsDtoToStr
+        let resultsWhenLabelParamIsNotSpecified = stmts1->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "xmulasslem")
 
         let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
-        let resultsWhenLabelParamIsSpecified = stmts2->arrNewStmtsDtoToStr
+        let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
             resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
@@ -175,17 +176,17 @@ describe("MM_wrk_editor integration tests", _ => {
 
     it("filtering bottom-up proof results in two ways for fvmpt", _ => {
         setTestDataDir("bottom-up-fvmpt")
-        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
         let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="fvmpt", ())
-        let resultsWhenLabelParamIsNotSpecified = stmts1->arrNewStmtsDtoToStr
+        let resultsWhenLabelParamIsNotSpecified = stmts1->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "fvmpt")
 
         let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
-        let resultsWhenLabelParamIsSpecified = stmts2->arrNewStmtsDtoToStr
+        let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
             resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
@@ -195,18 +196,18 @@ describe("MM_wrk_editor integration tests", _ => {
 
     it("filtering bottom-up proof has same results for search depth 3 and 4", _ => {
         setTestDataDir("bottom-up-ifbieq2d")
-        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
         let st = st->MM_wrk_editor.completeDisjEditMode("x,A")
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( x = A -> if ( x = 0 , 0 , if ( x < 0 , -u 1 , 1 ) ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
         let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
-        let resultsWhenDepth3 = stmts1->arrNewStmtsDtoToStr
+        let resultsWhenDepth3 = stmts1->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenDepth3, "ifbieq2d")
 
         let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
-        let resultsWhenDepth4 = stmts2->arrNewStmtsDtoToStr
+        let resultsWhenDepth4 = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
             resultsWhenDepth3, "resultsWhenDepth3", 
@@ -216,13 +217,12 @@ describe("MM_wrk_editor integration tests", _ => {
 
     it("prove sgnval", _ => {
         setTestDataDir("prove-sgnval")
-        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
         let (st, stmts) = st->unifyBottomUp(trgtStmtId, 
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
-        assertEq(stmts->Js.Array2.length, 1)
-        let st = st->MM_wrk_editor.addNewStatements(stmts[0])
+        let st = st->MM_wrk_editor.addNewStatements(stmts)
         let st = st->MM_wrk_editor.uncheckAllStmts
         let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
         let st = st->unifyAll

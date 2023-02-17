@@ -1,4 +1,3 @@
-open Expln_test
 open MM_parser
 open MM_context
 open MM_proof_tree
@@ -12,13 +11,64 @@ open MM_substitution
 open MM_parenCounter
 open MM_statements_dto
 
+let createEditorState = (
+    ~mmFilePath:string, 
+    ~stopBefore:option<string>=?, 
+    ~stopAfter:option<string>=?, 
+    ~debug:option<bool>=?, 
+    ()
+) => {
+    let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
+    let (ast, _) = parseMmFile(mmFileText, ())
+    let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ~debug?, ())
+    while (ctx->getNestingLevel != 0) {
+        ctx->closeChildContext
+    }
+    let parens = "( ) { } [ ]"
+    ctx->moveConstsToBegin(parens)
+    let frms = prepareFrmSubsData(ctx)
+    let st = {
+        settingsV: 1,
+        settings: {
+            parens,
+            typeSettings: [ ],
+        },
+        typeColors: Belt_HashMapString.make(~hintSize=0),
+
+        preCtxV: 1,
+        preCtx: ctx,
+        parenCnt: parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens), ()),
+        frms,
+        preCtxColors: Belt_HashMapString.make(~hintSize=0),
+
+        varsText: "",
+        varsEditMode: false,
+        varsErr: None,
+        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
+
+        disjText: "",
+        disjEditMode: false,
+        disjErr: None,
+        disj: Belt_MapInt.fromArray([]),
+
+        wrkCtx: None,
+
+        nextStmtId: 0,
+        stmts: [],
+        checkedStmtIds: [],
+
+        unifyAllIsRequiredCnt: 0
+    }
+    recalcAllColors(st)
+}
+
 let addStmt = (
     st:editorState, 
     ~typ:option<userStmtType>=?, 
     ~label:option<string>=?, 
     ~stmt:string, 
     ()
-):(editorState,string) => {
+):(editorState,stmtId) => {
     let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
     let st = switch label {
@@ -32,7 +82,7 @@ let addStmt = (
     (st->updateEditorStateWithPostupdateActions(st => st), stmtId)
 }
 
-let duplicateStmt = (st, stmtId):(editorState,string) => {
+let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)
     let st = st->duplicateCheckedStmt
@@ -93,7 +143,7 @@ let updateStmt = (
 
 let addStmtsBySearch = (
     st,
-    ~addBefore:option<string>=?,
+    ~addBefore:option<stmtId>=?,
     ~filterLabel:option<string>=?, 
     ~filterTyp:option<string>=?, 
     ~filterPattern:option<string>=?, 
@@ -128,6 +178,15 @@ let addStmtsBySearch = (
         }
     }
     st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let getStmtId = (st:editorState, ~contains:string) => {
+    let found = st.stmts->Js_array2.filter(stmt => stmt.cont->contToStr->Js.String2.includes(contains))
+    if (found->Js_array2.length != 1) {
+        raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
+    } else {
+        found[0].id
+    }
 }
 
 let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorState => {
@@ -189,7 +248,7 @@ let unifyBottomUp = (
     ~useRootStmtsAsArgs:bool=false,
     ~chooseLabel:string,
     ()
-):(editorState, array<newStmtsDto>) => {
+):(editorState, newStmtsDto) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -221,139 +280,17 @@ let unifyBottomUp = (
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                     )
             )
-            let result = newStmts
-                ->Js_array2.map(newStmtsDto => {
-                    let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
-                    switch lastStmt.jstf {
-                        | Some({label}) => (label, newStmtsDto)
-                        | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
-                    }
-                })
-                ->Js_array2.filter(((label, _)) => label == chooseLabel)
-                ->Js.Array2.sortInPlaceWith(((la, _),(lb, _)) => la->Js_string2.localeCompare(lb)->Belt.Float.toInt)
-                ->Js_array2.map(((_, newStmtsDto)) => newStmtsDto)
-            (st, result)
-        }
-    }
-}
-
-let newStmtsDtoToStr = (newStmtsDto:newStmtsDto):string => {
-    let disjStr = newStmtsDto.newDisjStr->Js.Array2.sortInPlace->Js.Array2.joinWith("\n")
-    let stmtsStr = newStmtsDto.stmts
-        ->Js.Array2.map(stmt => {
-            [
-                stmt.label,
-                switch stmt.jstf {
-                    | None => ""
-                    | Some({args, label}) => "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
-                },
-                if (stmt.isProved) {"\u2713"} else {" "},
-                stmt.exprStr
-            ]->Js.Array2.joinWith(" ")
-        })->Js.Array2.joinWith("\n")
-    disjStr ++ "\n" ++ stmtsStr
-}
-
-let arrNewStmtsDtoToStr = (arr:array<newStmtsDto>):string => {
-    arr
-        ->Js_array2.map(newStmtsDtoToStr)
-        ->Js_array2.joinWith("\n------------------------------------------------------------------------------------\n")
-}
-
-let editorStateToStr = st => {
-    let lines = []
-    lines->Js_array2.push("Variables:")->ignore
-    lines->Js_array2.push(st.varsText)->ignore
-    lines->Js_array2.push("")->ignore
-    lines->Js_array2.push("Disjoints:")->ignore
-    lines->Js_array2.push(st.disjText)->ignore
-    lines->Js_array2.push("")->ignore
-    st.stmts->Js.Array2.forEach(stmt => {
-        lines->Js_array2.push("")->ignore
-        lines->Js_array2.push(
-            "--- "
-            ++ (stmt.typ->userStmtTypeToStr)
-            ++ " -------------------------------------------------------------------------------"
-        )->ignore
-        lines->Js_array2.push(stmt.label)->ignore
-        lines->Js_array2.push(stmt.jstfText)->ignore
-        lines->Js_array2.push(contToStr(stmt.cont))->ignore
-        lines->Js_array2.push(
-            stmt.proofStatus
-                ->Belt_Option.map(status => (status->proofStatusToStr))
-                ->Belt_Option.getWithDefault("None")
-        )->ignore
-    })
-    lines->Js.Array2.joinWith("\n")
-}
-
-let curTestDataDir = ref("")
-
-let setTestDataDir = dirName => {
-    curTestDataDir.contents = "./src/metamath/test/resources/int-test-data/" ++ dirName
-}
-
-let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
-    let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
-    let expectedResultStr = try {
-        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
-    } catch {
-        | Js.Exn.Error(exn) => {
-            if (
-                exn->Js.Exn.message
-                    ->Belt_Option.getWithDefault("")
-                    ->Js_string2.includes("no such file or directory")
-            ) {
-                ""
-            } else {
-                raise(MmException({msg:`Could not read from ${fileWithExpectedResult}`}))
+            let resultOpt = newStmts->Js_array2.find(newStmtsDto => {
+                let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
+                switch lastStmt.jstf {
+                    | Some({label}) => label == chooseLabel
+                    | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
+                }
+            })
+            switch resultOpt {
+                | None => raise(MmException({msg:`Cannot find bottom-up result by label.`}))
+                | Some(result) => (st, result)
             }
         }
-    }
-    if (actualStr != expectedResultStr) {
-        let fileWithActualResult = fileWithExpectedResult ++ ".actual"
-        Expln_utils_files.writeStringToFile(fileWithActualResult, actualStr)
-        if (failOnMismatch) {
-            assertEq( fileWithActualResult, fileWithExpectedResult )
-        }
-    }
-}
-
-let assertEditorState = (st, expectedStrFileName:string) => {
-    let actualStr = st->editorStateToStr
-    assertStrEqFile(actualStr, expectedStrFileName)
-}
-
-let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
-    let actualStr = st->generateCompressedProof(stmtId)
-        ->Belt.Option.getWithDefault("no proof generated")
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
-    assertStrEqFile(actualStr, expectedStrFileName)
-}
-
-let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:string):unit => {
-    if (text1 != text2) {
-        Expln_utils_files.writeStringToFile(
-            curTestDataDir.contents ++ "/" ++ fileName1 ++ ".txt", 
-            text1
-        )
-        Expln_utils_files.writeStringToFile(
-            curTestDataDir.contents ++ "/" ++ fileName2 ++ ".txt", 
-            text2
-        )
-        assertEq( text1, text2 )
-    }
-}
-
-let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
-    assertStrEqFile(actualStr, expectedStrFileName)
-}
-
-let getStmtId = (st:editorState, ~contains:string) => {
-    let found = st.stmts->Js_array2.filter(stmt => stmt.cont->contToStr->Js.String2.includes(contains))
-    if (found->Js_array2.length != 1) {
-        raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
-    } else {
-        found[0].id
     }
 }

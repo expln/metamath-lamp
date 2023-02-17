@@ -32,10 +32,12 @@ type userStmtType = E | P
 let userStmtTypeFromStr: string => userStmtType
 let userStmtTypeToStr: userStmtType => string
 
+type stmtId = string
+
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
 type userStmt = {
-    id: string,
+    id: stmtId,
 
     label: string,
     labelEditMode: bool,
@@ -82,7 +84,7 @@ type editorState = {
 
     nextStmtId: int,
     stmts: array<userStmt>,
-    checkedStmtIds: array<string>,
+    checkedStmtIds: array<stmtId>,
 
     unifyAllIsRequiredCnt: int,
 }
