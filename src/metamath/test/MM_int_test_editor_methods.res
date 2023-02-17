@@ -12,64 +12,36 @@ open MM_substitution
 open MM_parenCounter
 open MM_statements_dto
 
-let setMmPath = "/books/metamath/set.mm"
-let failOnMismatch = true
-let debug = false
-
-let parenCnt = ref(parenCntMake([], ()))
-
-let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stopAfter:option<string>=?, ()) => {
-    let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(mmFileText, ())
-    let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ~debug, ())
-    while (ctx->getNestingLevel != 0) {
-        ctx->closeChildContext
+let addStmt = (
+    st:editorState, 
+    ~typ:option<userStmtType>=?, 
+    ~label:option<string>=?, 
+    ~stmt:string, 
+    ()
+):(editorState,string) => {
+    let (st,stmtId) = st->addNewStmt
+    let st = st->completeContEditMode(stmtId, stmt)
+    let st = switch label {
+        | Some(label) => st->completeLabelEditMode(stmtId, label)
+        | None => st
     }
-    let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
-    let frms = prepareFrmSubsData(ctx)
-    parenCnt.contents = parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens), ())
-    let st = {
-        settingsV: 1,
-        settings: {
-            parens,
-            typeSettings: [ ],
-        },
-        typeColors: Belt_HashMapString.make(~hintSize=0),
-
-        preCtxV: 1,
-        preCtx: ctx,
-        parenCnt: parenCnt.contents,
-        frms,
-        preCtxColors: Belt_HashMapString.make(~hintSize=0),
-
-        varsText: "",
-        varsEditMode: false,
-        varsErr: None,
-        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
-
-        disjText: "",
-        disjEditMode: false,
-        disjErr: None,
-        disj: Belt_MapInt.fromArray([]),
-
-        wrkCtx: None,
-
-        nextStmtId: 0,
-        stmts: [],
-        checkedStmtIds: [],
-
-        unifyAllIsRequiredCnt: 0
+    let st = switch typ {
+        | Some(typ) => st->completeTypEditMode(stmtId, typ)
+        | None => st
     }
-    recalcAllColors(st)
+    (st->updateEditorStateWithPostupdateActions(st => st), stmtId)
 }
 
-let proofStatusToStr = status => {
-    switch status {
-        | Ready => "ready"
-        | Waiting => "waiting"
-        | NoJstf => "noJstf"
-        | JstfIsIncorrect => "jstfIsIncorrect"
+let duplicateStmt = (st, stmtId):(editorState,string) => {
+    let st = st->uncheckAllStmts
+    let st = st->toggleStmtChecked(stmtId)
+    let st = st->duplicateCheckedStmt
+    if (st.checkedStmtIds->Js.Array2.length != 1) {
+        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
+    } else {
+        let newStmtId = st.checkedStmtIds[0]
+        let st = st->uncheckAllStmts
+        (st->updateEditorStateWithPostupdateActions(st => st), newStmtId)
     }
 }
 
