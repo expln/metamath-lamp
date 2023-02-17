@@ -55,11 +55,16 @@ let updateStmt = (
     ~contReplaceWith:option<string>=?,
     ()
 ):editorState => {
-    let st = st->updateStmt(stmtId, stmt => {
-        let stmt = switch label {
-            | None => stmt
-            | Some(label) => {...stmt, label}
+    let st = switch label {
+        | None => st
+        | Some(label) => {
+            switch st->renameStmt(stmtId, label) {
+                | Error(msg) => raise(MmException({msg:msg}))
+                | Ok(st) => st
+            }
         }
+    }
+    let st = st->updateStmt(stmtId, stmt => {
         let stmt = switch typ {
             | None => stmt
             | Some(typ) => {...stmt, typ}
@@ -111,7 +116,7 @@ let addStmtsBySearch = (
                 ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
                 ()
             )
-            switch searchResults->Js_array2.find(res => res.stmts[res.stmts->Js_array2.length-1].label == chooseLabel) {
+            let st = switch searchResults->Js_array2.find(res => res.stmts[res.stmts->Js_array2.length-1].label == chooseLabel) {
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
@@ -119,6 +124,7 @@ let addStmtsBySearch = (
                     }))
                 | Some(searchResult) => st->addNewStatements(searchResult)
             }
+            st->uncheckAllStmts
         }
     }
     st->updateEditorStateWithPostupdateActions(st => st)
@@ -132,7 +138,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
                 st, 
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
                 wrkCtx->ctxStrToIntsExn(replaceWith)
-            )
+            )->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
             if (wrkSubs->Js.Array2.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {
@@ -161,7 +167,7 @@ let unifyAll = (st):editorState => {
                     }
                 })
             let proofTree = unifyAll(
-                ~parenCnt = parenCnt.contents,
+                ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
                 ~stmts,
@@ -173,12 +179,14 @@ let unifyAll = (st):editorState => {
     }
 }
 
-let unifyBottomUp = (st,stmtId, 
+let unifyBottomUp = (
+    st,
+    stmtId,
     ~asrtLabel:option<string>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
     ~allowNewVars:bool=true,
-    ~useRootStmtsAsArgs:bool=true,
+    ~useRootStmtsAsArgs:bool=false,
     ~chooseLabel:string,
     ()
 ):(editorState, array<newStmtsDto>) => {
@@ -187,12 +195,12 @@ let unifyBottomUp = (st,stmtId,
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
-            let stmts = st->getStmtsForUnification
+            let rootStmts = st->getStmtsForUnification
             let proofTree = MM_provers.unifyAll(
-                ~parenCnt = parenCnt.contents,
+                ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
-                ~stmts,
+                ~stmts = rootStmts,
                 ~bottomUpProverParams = {
                     asrtLabel,
                     maxSearchDepth,
@@ -203,10 +211,10 @@ let unifyBottomUp = (st,stmtId,
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )
-            let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
             let newStmts = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~rootStmts = stmts,
+                ~rootStmts,
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(

@@ -1,9 +1,7 @@
 open MM_context
-open MM_asrt_apply
 open Expln_utils_promise
 open MM_wrk_ctx
 open MM_substitution
-open MM_parenCounter
 open MM_statements_dto
 open MM_progress_tracker
 
@@ -16,7 +14,7 @@ type response =
     | OnProgress(float)
     | SearchResult({found:array<newStmtsDto>})
 
-let rec frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
+let frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
     let patLen = pat->Js.Array2.length
     let asrtLen = frm.asrt->Js.Array2.length
     let pIdx = ref(0)
@@ -78,7 +76,7 @@ let doSearchAssertions = (
     ~pattern:array<int>, 
     ~onProgress:option<float=>unit>=?,
     ()
-) => {
+):array<newStmtsDto> => {
     let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
