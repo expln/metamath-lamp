@@ -102,7 +102,7 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
         stmts: state.stmts->Js_array2.map(stmt => {
             {
                 label: stmt.label,
-                typ: (stmt.typ :> string),
+                typ: (stmt.typ->userStmtTypeToStr),
                 cont: contToStr(stmt.cont),
                 jstfText: stmt.jstfText,
             }
@@ -200,7 +200,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
     let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
     let singleProvableSelected = switch getTheOnlySelectedStmt(state) {
-        | Some(stmt) if stmt.typ == #p => Some(stmt)
+        | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
     }
     let oneStatementIsSelected = state.checkedStmtIds->Js.Array2.length == 1
@@ -554,7 +554,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             disjText=state.disjText
                             hyps={
                                 state.stmts
-                                    ->Js_array2.filter(stmt => stmt.typ == #e)
+                                    ->Js_array2.filter(stmt => stmt.typ == E)
                                     ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                             }
                             wrkCtx
@@ -635,7 +635,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 let disjText=state.disjText
                 let hyps={
                     state.stmts
-                        ->Js_array2.filter(stmt => stmt.typ == #e)
+                        ->Js_array2.filter(stmt => stmt.typ == E)
                         ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                 }
                 let stmts={state->getStmtsForUnification}

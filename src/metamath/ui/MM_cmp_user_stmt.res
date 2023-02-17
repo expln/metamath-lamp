@@ -99,7 +99,7 @@ let make = (
         if (stmt.labelEditMode) {
             setState(setNewText(_,stmt.label))
         } else if (stmt.typEditMode) {
-            setState(setNewText(_,stmt.typ :> string))
+            setState(setNewText(_,stmt.typ->userStmtTypeToStr))
         } else if (stmt.contEditMode) {
             setState(setNewText(_,contToStr(stmt.cont)))
         } else if (stmt.jstfEditMode) {
@@ -210,27 +210,27 @@ let make = (
             | None => React.null
             | Some(status) => {
                 switch status {
-                    | #ready => 
+                    | Ready =>
                         <span 
                             title="Proof is ready, left-click to generate compressed proof"
                             style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ~cursor="pointer", ())
                             onClick={_=>onGenerateProof()}
                         >{React.string("\u2713")}</span>
-                    | #waiting => 
+                    | Waiting =>
                         <span 
                             title="Justification for this statement is correct"
                             style=ReactDOM.Style.make(~color="orange", ~fontWeight="bold", ())
                         >
                             {React.string("\u223F")}
                         </span>
-                    | #noJstf => 
+                    | NoJstf =>
                         <span 
                             title="Justification cannot be determined automatically"
                             style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
                         >
                             {React.string("?")}
                         </span>
-                    | #jstfIsIncorrect => 
+                    | JstfIsIncorrect =>
                         <span 
                             title="Justification is incorrect"
                             style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
@@ -255,8 +255,8 @@ let make = (
             </FormControl>
         } else {
             let typStr = switch stmt.typ {
-                | #e => "H"
-                | #p => "P"
+                | E => "H"
+                | P => "P"
             }
             <span 
                 onClick=altLeftClickHnd(_, onTypEditRequested, _ => actToggleInfoExpanded()) 
@@ -300,7 +300,7 @@ let make = (
     }
 
     let rndInfoBody = () => {
-        if (stmt.typ == #p) {
+        if (stmt.typ == P) {
             if (state.infoExpanded || stmt.jstfEditMode) {
                 rndJstf()
             } else {

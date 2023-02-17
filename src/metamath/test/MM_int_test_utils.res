@@ -64,6 +64,15 @@ let createEditorState = (~mmFilePath:string, ~stopBefore:option<string>=?, ~stop
     recalcAllColors(st)
 }
 
+let proofStatusToStr = status => {
+    switch status {
+        | Ready => "ready"
+        | Waiting => "waiting"
+        | NoJstf => "noJstf"
+        | JstfIsIncorrect => "jstfIsIncorrect"
+    }
+}
+
 let addStmt = (st, ~typ:option<userStmtType>=?, ~label:option<string>=?, ~stmt:string, ()):(editorState,string) => {
     let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
@@ -194,7 +203,7 @@ let unifyAll = (st):editorState => {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
             let stmts = st.stmts
-                ->Js_array2.filter(stmt => stmt.typ == #p)
+                ->Js_array2.filter(stmt => stmt.typ == P)
                 ->Js_array2.map(stmt => {
                     {
                         label:stmt.label,
@@ -310,7 +319,7 @@ let editorStateToStr = st => {
         lines->Js_array2.push("")->ignore
         lines->Js_array2.push(
             "--- "
-            ++ (stmt.typ :> string) 
+            ++ (stmt.typ->userStmtTypeToStr)
             ++ " -------------------------------------------------------------------------------"
         )->ignore
         lines->Js_array2.push(stmt.label)->ignore
@@ -318,7 +327,7 @@ let editorStateToStr = st => {
         lines->Js_array2.push(contToStr(stmt.cont))->ignore
         lines->Js_array2.push(
             stmt.proofStatus
-                ->Belt_Option.map(status => (status :> string))
+                ->Belt_Option.map(status => (status->proofStatusToStr))
                 ->Belt_Option.getWithDefault("None")
         )->ignore
     })

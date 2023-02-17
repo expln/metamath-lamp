@@ -28,10 +28,11 @@ let strToCont: (
     ()
 ) => stmtCont
 
-type userStmtType = [#e | #p]
+type userStmtType = E | P
 let userStmtTypeFromStr: string => userStmtType
+let userStmtTypeToStr: userStmtType => string
 
-type proofStatus = [ #ready | #waiting | #noJstf | #jstfIsIncorrect ]
+type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
 type userStmt = {
     id: string,

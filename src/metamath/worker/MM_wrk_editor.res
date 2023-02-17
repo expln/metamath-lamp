@@ -70,17 +70,24 @@ let jstfToStr = (jstf:justification) => {
     (jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.asrt)->Js_string2.trim
 }
 
-type userStmtType = [ #e | #p ]
+type userStmtType = E | P
 
 let userStmtTypeFromStr = str => {
     switch str {
-        | "e" => #e
-        | "p" => #p
+        | "e" => E
+        | "p" => P
         | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtType`}))
     }
 }
 
-type proofStatus = [ #ready | #waiting | #noJstf | #jstfIsIncorrect ]
+let userStmtTypeToStr = typ => {
+    switch typ {
+        | E => "e"
+        | P => "p"
+    }
+}
+
+type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
 type userStmt = {
     id: string,
@@ -266,7 +273,7 @@ let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == i
 
 let getStmtsForUnification = (st):array<rootStmt> => {
     st->getAllStmtsUpToChecked
-        ->Js_array2.filter(stmt => stmt.typ == #p)
+        ->Js_array2.filter(stmt => stmt.typ == P)
         ->Js_array2.map(stmt => {
             {
                 label:stmt.label,
@@ -311,13 +318,13 @@ let addNewStmt = (st:editorState):(editorState,string) => {
                     | Some(idToAddBefore) => {
                         st.stmts->Js_array2.map(stmt => {
                             if (stmt.id == idToAddBefore) {
-                                [createEmptyUserStmt(newId,#p,newLabel), stmt]
+                                [createEmptyUserStmt(newId,P,newLabel), stmt]
                             } else {
                                 [stmt]
                             }
                         })->Belt_Array.concatMany
                     }
-                    | None => st.stmts->Js_array2.concat([createEmptyUserStmt(newId, #p, newLabel)])
+                    | None => st.stmts->Js_array2.concat([createEmptyUserStmt(newId, P, newLabel)])
                 }
         },
         newId
@@ -623,8 +630,8 @@ let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {
 let sortStmtsByType = st => {
     let stmtToInt = stmt => {
         switch stmt.typ {
-            | #e => 1
-            | #p => 2
+            | E => 1
+            | P => 2
         }
     }
     st->stableSortStmts((a,b) => stmtToInt(a) - stmtToInt(b))
@@ -693,7 +700,7 @@ let refreshWrkCtx = (st:editorState):editorState => {
         ~varsText=st.varsText,
         ~disjText=st.disjText,
         ~hyps=st.stmts
-            ->Js_array2.filter( stmt => stmt.typ == #e)
+            ->Js_array2.filter( stmt => stmt.typ == E)
             ->Js_array2.map( stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
     )
     let st = switch wrkCtxRes {
@@ -702,7 +709,7 @@ let refreshWrkCtx = (st:editorState):editorState => {
             let st = {...st, wrkCtx:Some(wrkCtx)}
             let st = st.stmts->Js_array2.reduce(
                 (st,stmt) => {
-                    if (stmt.typ == #e) {
+                    if (stmt.typ == E) {
                         st->updateStmt(stmt.id, stmt => {...stmt, expr:Some(wrkCtx->ctxSymsToIntsExn(stmt.cont->contToArrStr))})
                     } else {
                         st
@@ -827,7 +834,7 @@ let prepareProvablesForUnification = (st:editorState):editorState => {
             let usedLabels = Belt_MutableSetString.make()
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
-                    if (editorStateHasErrors(st) || stmt.typ != #p) {
+                    if (editorStateHasErrors(st) || stmt.typ != P) {
                         st
                     } else {
                         let stmt = setExprAndJstf(stmt, wrkCtx)
@@ -1015,7 +1022,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {
                             {
                                 ...stmt,
-                                typ: #p,
+                                typ: P,
                                 label: ctxLabel,
                                 cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
                                 contEditMode: false,
@@ -1336,17 +1343,17 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
     }
 
     switch stmt.proof {
-        | Some(_) => {...stmt, proofStatus:Some(#ready)}
+        | Some(_) => {...stmt, proofStatus:Some(Ready)}
         | None => {
             switch stmt.jstf {
-                | None => {...stmt, proofStatus:Some(#noJstf)}
+                | None => {...stmt, proofStatus:Some(NoJstf)}
                 | Some(jstf) => {
                     switch proofNode.parents {
-                        | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
+                        | None => {...stmt, proofStatus:Some(JstfIsIncorrect)}
                         | Some(parents) => {
                             switch parents->Js.Array2.find(parentEqJstf(_, jstf)) {
-                                | Some(_) => {...stmt, proofStatus:Some(#waiting)}
-                                | None => {...stmt, proofStatus:Some(#jstfIsIncorrect)}
+                                | Some(_) => {...stmt, proofStatus:Some(Waiting)}
+                                | None => {...stmt, proofStatus:Some(JstfIsIncorrect)}
                             }
                         }
                     }
@@ -1370,7 +1377,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}
-                    if (stmt.typ == #p) {
+                    if (stmt.typ == P) {
                         st->updateStmt(stmt.id, stmt => {
                             switch stmt.expr {
                                 | None => stmt
