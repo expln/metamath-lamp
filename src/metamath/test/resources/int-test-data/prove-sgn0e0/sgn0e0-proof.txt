@@ -1,0 +1,1 @@
+sgn0e0 $p |- ( sgn ` 0 ) = 0 $= ( cc0 cxr wcel csgn cfv wceq clt wbr c1 cneg cif wi sgnval 0xr 2th eqid iftruei eqeq12i 3imtr3i ax-mp ) AZBCZUADEZUAUAFZUAUAUAGHIZJUEKZKZFZLZUCUAFZUAMZUBU HUIUJUKUBUINUKOUCUCUGUAUCPUDUAUFUAPQRST $.

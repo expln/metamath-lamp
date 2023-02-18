@@ -265,5 +265,33 @@ describe("MM_wrk_editor integration tests", _ => {
         assertProof(st, trgtStmtId, "sgnval-proof")
 
     })
+
+    it("prove sgn0e0", _ => {
+        setTestDataDir("prove-sgn0e0")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="sgnval", ~debug, ())
+
+        let (st, trgtStmtId) = st->addStmt( ~label="sgn0e0", ~stmt="|- ( sgn ` 0 ) = 0", () )
+
+        let st = st->addStmtsBySearch( ~filterLabel="sgn", ~chooseLabel="sgnval", () )
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let st = st->applySubstitution( ~replaceWhat="class1", ~replaceWith="0", )
+        assertEditorState(st, "step2")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=trgtStmtId, 
+            ~maxSearchDepth=6,
+            ~allowNewVars=false, 
+            ~useRootStmtsAsArgs=true,
+            ~chooseLabel="ax-mp",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step3")
+        assertProof(st, trgtStmtId, "sgn0e0-proof")
+
+    })
     
 })
