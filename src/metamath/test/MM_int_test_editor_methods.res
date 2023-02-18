@@ -64,11 +64,19 @@ let createEditorState = (
 
 let addStmt = (
     st:editorState, 
+    ~before:option<stmtId>=?,
     ~typ:option<userStmtType>=?, 
     ~label:option<string>=?, 
     ~stmt:string, 
     ()
 ):(editorState,stmtId) => {
+    let st = switch before {
+        | None => st
+        | Some(beforeStmtId) => {
+            let st = st->uncheckAllStmts
+            st->toggleStmtChecked(beforeStmtId)
+        }
+    }
     let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
     let st = switch label {
@@ -79,6 +87,7 @@ let addStmt = (
         | Some(typ) => st->completeTypEditMode(stmtId, typ)
         | None => st
     }
+    let st = st->uncheckAllStmts
     (st->updateEditorStateWithPostupdateActions(st => st), stmtId)
 }
 
@@ -177,6 +186,19 @@ let addStmtsBySearch = (
             st->uncheckAllStmts
         }
     }
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let addNewStmts = (st:editorState, newStmts:newStmtsDto, ~before:option<stmtId>=?, ()):editorState => {
+    let st = switch before {
+        | None => st
+        | Some(beforeStmtId) => {
+            let st = st->uncheckAllStmts
+            st->toggleStmtChecked(beforeStmtId)
+        }
+    }
+    let st = st->addNewStatements(newStmts)
+    let st = st->uncheckAllStmts
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
@@ -293,4 +315,31 @@ let unifyBottomUp = (
             }
         }
     }
+}
+
+let removeAllJstf = (st:editorState):editorState => {
+    let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let newLineRegex = %re("/[\n\r]/")
+let addDisj = (st:editorState, disj:string):editorState => {
+    let disjLines = st.disjText
+        ->Js_string2.splitByRe(newLineRegex)
+        ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
+        ->Js_array2.filter(s => s->Js_string2.length > 0)
+    disjLines->Js_array2.push(disj)->ignore
+    let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let removeDisj = (st:editorState, disj:string):editorState => {
+    let disjLines = st.disjText
+        ->Js_string2.splitByRe(newLineRegex)
+        ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
+        ->Js_array2.filter(s => s->Js_string2.length > 0)
+    let st = st->completeDisjEditMode(
+        disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
+    )
+    st->updateEditorStateWithPostupdateActions(st => st)
 }

@@ -73,13 +73,11 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step10")
 
-        let st = st->MM_wrk_editor.uncheckAllStmts
-        let st = st->MM_wrk_editor.toggleStmtChecked(st.stmts[0].id)
         let (st, _) = st->addStmt(
+            ~before=st.stmts[0].id,
             ~stmt="|- ( A e. CC -> ( cos ` A ) e. CC )",
             ()
         )
-        let st = st->MM_wrk_editor.uncheckAllStmts
         let st = st->unifyAll
         assertEditorState(st, "step11")
 
@@ -126,8 +124,7 @@ describe("MM_wrk_editor integration tests", _ => {
         
         let st = st->updateStmt(hyp1Id, ~typ=P, () )
         let st = st->updateStmt(hyp2Id, ~typ=P, () )
-        let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
-        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        let st = st->removeAllJstf
         assertEditorState(st, "step16-no-jstf-before-unify-all")
 
         let st = st->unifyAll
@@ -146,8 +143,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step1")
         
-        let st = st->MM_wrk_editor.completeDisjEditMode("x,ph")
-        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        let st = st->addDisj("x,ph")
         let st = st->unifyAll
         assertEditorState(st, "step2")
         assertProof(st, trgtStmtId, "proof1")
@@ -165,7 +161,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "xmulasslem")
 
-        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
+        let (_, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
         let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
@@ -185,7 +181,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "fvmpt")
 
-        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
+        let (_, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
         let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
@@ -198,7 +194,7 @@ describe("MM_wrk_editor integration tests", _ => {
         setTestDataDir("bottom-up-ifbieq2d")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
-        let st = st->MM_wrk_editor.completeDisjEditMode("x,A")
+        let st = st->addDisj("x,A")
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( x = A -> if ( x = 0 , 0 , if ( x < 0 , -u 1 , 1 ) ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
         let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
@@ -206,7 +202,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         assertTextEqFile(resultsWhenDepth3, "ifbieq2d")
 
-        let (st, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
+        let (_, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
         let resultsWhenDepth4 = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
@@ -222,9 +218,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
         let (st, stmts) = st->unifyBottomUp(trgtStmtId, 
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
-        let st = st->MM_wrk_editor.addNewStatements(stmts)
-        let st = st->MM_wrk_editor.uncheckAllStmts
-        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 

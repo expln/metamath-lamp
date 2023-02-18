@@ -11,6 +11,7 @@ let createEditorState: (
 
 let addStmt: (
     editorState,
+    ~before:stmtId=?,
     ~typ: userStmtType=?,
     ~label: string=?,
     ~stmt: string,
@@ -40,6 +41,8 @@ let addStmtsBySearch: (
     unit,
 ) => editorState
 
+let addNewStmts: ( editorState, newStmtsDto, ~before: stmtId=?, unit, ) => editorState
+
 let getStmtId: (editorState, ~contains: string) => stmtId
 
 let applySubstitution: (
@@ -61,3 +64,7 @@ let unifyBottomUp: (
     ~chooseLabel: string,
     unit,
 ) => (editorState, newStmtsDto)
+
+let removeAllJstf: editorState => editorState
+let addDisj: ( editorState, string, ) => editorState
+let removeDisj: ( editorState, string ) => editorState
