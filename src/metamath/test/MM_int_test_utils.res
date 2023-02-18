@@ -45,6 +45,10 @@ let editorStateToStr = st => {
                 ->Belt_Option.map(status => (status->proofStatusToStr))
                 ->Belt_Option.getWithDefault("None")
         )->ignore
+        switch stmt.stmtErr {
+            | None => ()
+            | Some(msg) => lines->Js_array2.push("Error: " ++ msg)->ignore
+        }
     })
     lines->Js.Array2.joinWith("\n")
 }

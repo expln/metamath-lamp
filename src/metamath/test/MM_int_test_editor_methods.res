@@ -202,8 +202,18 @@ let addNewStmts = (st:editorState, newStmts:newStmtsDto, ~before:option<stmtId>=
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let getStmtId = (st:editorState, ~contains:string) => {
-    let found = st.stmts->Js_array2.filter(stmt => stmt.cont->contToStr->Js.String2.includes(contains))
+let getStmtId = (st:editorState, ~contains:option<string>=?, ~label:option<string>=?, ()) => {
+    let found = st.stmts->Js_array2.filter(stmt => {
+        switch contains {
+            | Some(contains) => stmt.cont->contToStr->Js.String2.includes(contains)
+            | None => {
+                switch label {
+                    | Some(label) => stmt.label == label
+                    | None => raise(MmException({msg:"Either 'contains' or 'label' must be provided."}))
+                }
+            }
+        }
+    })
     if (found->Js_array2.length != 1) {
         raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
     } else {
@@ -342,4 +352,19 @@ let removeDisj = (st:editorState, disj:string):editorState => {
         disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
     )
     st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let mergeStmt = (st:editorState, stmtId):editorState => {
+    switch st->findStmtsToMerge {
+        | Error(msg) => raise(MmException({msg:msg}))
+        | Ok((stmt1,stmt2)) => {
+            let stmtIdToUse = if (stmt1.id == stmtId) {stmt1.id} else {stmt2.id}
+            let stmtIdToRemove = if (stmt1.id == stmtId) {stmt2.id} else {stmt1.id}
+            let st = switch st->mergeStmts(stmtIdToUse, stmtIdToRemove) {
+                | Ok(st) => st->uncheckAllStmts
+                | Error(msg) => raise(MmException({msg:msg}))
+            }
+            st->updateEditorStateWithPostupdateActions(st => st)
+        }
+    }
 }

@@ -43,7 +43,7 @@ let addStmtsBySearch: (
 
 let addNewStmts: ( editorState, newStmtsDto, ~before: stmtId=?, unit, ) => editorState
 
-let getStmtId: (editorState, ~contains: string) => stmtId
+let getStmtId: (editorState, ~contains:string=?, ~label:string=?, ()) => stmtId
 
 let applySubstitution: (
     editorState,
@@ -68,3 +68,4 @@ let unifyBottomUp: (
 let removeAllJstf: editorState => editorState
 let addDisj: ( editorState, string, ) => editorState
 let removeDisj: ( editorState, string ) => editorState
+let mergeStmt: ( editorState, stmtId ) => editorState

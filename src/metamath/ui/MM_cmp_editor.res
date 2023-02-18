@@ -497,44 +497,28 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let actMergeTwoStmts = () => {
-        if (state.checkedStmtIds->Js.Array2.length == 1) {
-            switch state->editorGetStmtById(state.checkedStmtIds[0]) {
-                | None => ()
-                | Some(stmt1) => {
-                    let contStr = stmt1.cont->contToStr
-                    switch state.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
-                        | None => {
-                            openInfoDialog(
-                                ~modalRef, 
-                                ~text="Cannot find another statement to merge with.",
-                                ()
-                            )
-                        }
-                        | Some(stmt2) => {
-                            if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
-                                openInfoDialog(
-                                    ~modalRef, 
-                                    ~text="Statements to merge must have identical expressions.",
-                                    ()
-                                )
-                            } else {
-                                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                    updateModal(modalRef, modalId, () => {
-                                        <MM_cmp_merge_two_stmts
-                                            stmt1
-                                            stmt2
-                                            onStmtSelected={(stmtToUse,stmtToRemove)=>{
-                                                closeModal(modalRef, modalId)
-                                                actOnMergeStmtsSelected(stmtToUse,stmtToRemove)
-                                            }}
-                                            onCancel={()=>closeModal(modalRef, modalId)}
-                                        />
-                                    })
-                                })->ignore
-                            }
-                        }
-                    }
-                }
+        switch state->findStmtsToMerge {
+            | Error(msg) => {
+                openInfoDialog(
+                    ~modalRef, 
+                    ~text=msg,
+                    ()
+                )
+            }
+            | Ok((stmt1,stmt2)) => {
+                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    updateModal(modalRef, modalId, () => {
+                        <MM_cmp_merge_two_stmts
+                            stmt1
+                            stmt2
+                            onStmtSelected={(stmtToUse,stmtToRemove)=>{
+                                closeModal(modalRef, modalId)
+                                actOnMergeStmtsSelected(stmtToUse,stmtToRemove)
+                            }}
+                            onCancel={()=>closeModal(modalRef, modalId)}
+                        />
+                    })
+                })->ignore
             }
         }
     }

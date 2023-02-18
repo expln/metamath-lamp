@@ -1578,3 +1578,26 @@ let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorS
         }
     }
 }
+
+let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
+    if (st.checkedStmtIds->Js.Array2.length == 1) {
+        switch st->editorGetStmtById(st.checkedStmtIds[0]) {
+            | None => Error("One statement should be selected.")
+            | Some(stmt1) => {
+                let contStr = stmt1.cont->contToStr
+                switch st.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
+                    | None => Error("Cannot find another statement to merge with.")
+                    | Some(stmt2) => {
+                        if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
+                            Error("Statements to merge must have identical expressions.")
+                        } else {
+                            Ok((stmt1, stmt2))
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Error("One statement should be selected.")
+    }
+}

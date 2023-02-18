@@ -2,6 +2,8 @@ open Expln_test
 open MM_int_test_utils
 open MM_int_test_editor_methods
 
+module Ed = MM_int_test_editor_methods
+
 describe("MM_wrk_editor integration tests", _ => {
     it("prove reccot", _ => {
         setTestDataDir("prove-reccot")
@@ -221,6 +223,21 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
+
+        let st = st->addStmtsBySearch(
+            ~addBefore=st->getStmtId(~contains="|- sgn ="),
+            ~filterLabel="sgn",
+            ~chooseLabel="df-sgn",
+            ()
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+        let st = st->applySubstitution(
+            ~replaceWhat="|- sgn = ( setvar1 e. RR* |-> class1 )",
+            ~replaceWith="|- sgn = ( setvar2 e. RR* |-> if ( setvar2 = 0 , 0 , if ( setvar2 < 0 , -u 1 , 1 ) ) )",
+        )
+        assertEditorState(st, "step3")
 
     })
     
