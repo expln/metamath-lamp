@@ -20,7 +20,7 @@ describe("MM_wrk_editor integration tests", _ => {
         assertEditorState(st, "step2")
 
         let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="A")
-        let tanvalId = st->getStmtId(~contains="-> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) )")
+        let tanvalId = st->getStmtId(~contains="-> ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) )", ())
         assertEditorState(st, "step3")
 
         let st = st->unifyAll
@@ -28,7 +28,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let st = st->addStmtsBySearch( ~filterLabel="cotval", ~chooseLabel="cotval", () )
         let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="A")
-        let cotvalId = st->getStmtId(~contains="-> ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) )")
+        let cotvalId = st->getStmtId(~contains="-> ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) )", ())
         let st = st->unifyAll
         assertEditorState(st, "step5")
 
@@ -88,7 +88,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step12")
 
-        let result1Id = st->getStmtId(~contains="1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )")
+        let result1Id = st->getStmtId(~contains="1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )", ())
         let (st, result2Id) = st->duplicateStmt(result1Id)
         let st = st->updateStmt(result2Id, 
             ~contReplaceWhat="( cos ` A ) e. CC /\\ ( cos ` A ) =/= 0",
@@ -158,12 +158,12 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
-        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="xmulasslem", ())
+        let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="xmulasslem", ())
         let resultsWhenLabelParamIsNotSpecified = stmts1->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "xmulasslem")
 
-        let (_, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
+        let (_, stmts2) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
         let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
@@ -178,12 +178,12 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
-        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="fvmpt", ())
+        let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="fvmpt", ())
         let resultsWhenLabelParamIsNotSpecified = stmts1->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "fvmpt")
 
-        let (_, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
+        let (_, stmts2) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
         let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
@@ -199,12 +199,12 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->addDisj("x,A")
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( x = A -> if ( x = 0 , 0 , if ( x < 0 , -u 1 , 1 ) ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
-        let (st, stmts1) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
+        let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
         let resultsWhenDepth3 = stmts1->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenDepth3, "ifbieq2d")
 
-        let (_, stmts2) = st->unifyBottomUp(trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
+        let (_, stmts2) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
         let resultsWhenDepth4 = stmts2->newStmtsDtoToStr
 
         assertTextsEq(
@@ -217,15 +217,19 @@ describe("MM_wrk_editor integration tests", _ => {
         setTestDataDir("prove-sgnval")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
-        let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
-        let (st, stmts) = st->unifyBottomUp(trgtStmtId, 
+        let (st, trgtStmtId) = st->addStmt( 
+            ~label="sgnval",
+            ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", 
+            () 
+        )
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId, 
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
         let st = st->addStmtsBySearch(
-            ~addBefore=st->getStmtId(~contains="|- sgn ="),
+            ~addBefore=st->getStmtId(~contains="|- sgn =", ()),
             ~filterLabel="sgn",
             ~chooseLabel="df-sgn",
             ()
@@ -238,6 +242,27 @@ describe("MM_wrk_editor integration tests", _ => {
             ~replaceWith="|- sgn = ( setvar2 e. RR* |-> if ( setvar2 = 0 , 0 , if ( setvar2 < 0 , -u 1 , 1 ) ) )",
         )
         assertEditorState(st, "step3")
+
+        let st = st->Ed.mergeStmt(
+            st->Ed.getStmtId(~predicate=stmt=>stmt.jstfText == ": df-sgn", ())
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step4")
+
+        let st = st->Ed.applySubstitution( ~replaceWhat="setvar2", ~replaceWith="x" )
+        let st = st->unifyAll
+        assertEditorState(st, "step5")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->Ed.getStmtId(~contains="|- ( x = A -> if", ()), 
+            ~allowNewVars=false, 
+            ~chooseLabel="ifbieq2d",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step6")
+        assertProof(st, trgtStmtId, "sgnval-proof")
 
     })
     

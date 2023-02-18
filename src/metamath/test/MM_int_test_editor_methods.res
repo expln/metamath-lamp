@@ -106,7 +106,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
 
 let updateStmt = (
     st, 
-    stmtId, 
+    stmtId,
     ~label:option<string>=?,
     ~typ:option<userStmtType>=?,
     ~content:option<string>=?,
@@ -202,18 +202,27 @@ let addNewStmts = (st:editorState, newStmts:newStmtsDto, ~before:option<stmtId>=
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let getStmtId = (st:editorState, ~contains:option<string>=?, ~label:option<string>=?, ()) => {
-    let found = st.stmts->Js_array2.filter(stmt => {
-        switch contains {
-            | Some(contains) => stmt.cont->contToStr->Js.String2.includes(contains)
-            | None => {
-                switch label {
-                    | Some(label) => stmt.label == label
-                    | None => raise(MmException({msg:"Either 'contains' or 'label' must be provided."}))
-                }
-            }
-        }
-    })
+let getStmtId = (
+    st:editorState, 
+    ~predicate:option<userStmt=>bool>=?,
+    ~contains:option<string>=?, 
+    ~label:option<string>=?, 
+    ()
+) => {
+    let predicate = switch predicate {
+        | None => _ => true
+        | Some(predicate) => predicate
+    }
+    let predicate = switch contains {
+        | None => predicate
+        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->Js.String2.includes(contains)
+    }
+    let predicate = switch label {
+        | None => predicate
+        | Some(label) => stmt => predicate(stmt) && stmt.label == label
+    }
+
+    let found = st.stmts->Js_array2.filter(predicate)
     if (found->Js_array2.length != 1) {
         raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
     } else {
@@ -272,7 +281,7 @@ let unifyAll = (st):editorState => {
 
 let unifyBottomUp = (
     st,
-    stmtId,
+    ~stmtId:stmtId,
     ~asrtLabel:option<string>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
@@ -355,6 +364,8 @@ let removeDisj = (st:editorState, disj:string):editorState => {
 }
 
 let mergeStmt = (st:editorState, stmtId):editorState => {
+    let st = st->uncheckAllStmts
+    let st = st->toggleStmtChecked(stmtId)
     switch st->findStmtsToMerge {
         | Error(msg) => raise(MmException({msg:msg}))
         | Ok((stmt1,stmt2)) => {
@@ -364,6 +375,7 @@ let mergeStmt = (st:editorState, stmtId):editorState => {
                 | Ok(st) => st->uncheckAllStmts
                 | Error(msg) => raise(MmException({msg:msg}))
             }
+            let st = st->uncheckAllStmts
             st->updateEditorStateWithPostupdateActions(st => st)
         }
     }

@@ -43,7 +43,13 @@ let addStmtsBySearch: (
 
 let addNewStmts: ( editorState, newStmtsDto, ~before: stmtId=?, unit, ) => editorState
 
-let getStmtId: (editorState, ~contains:string=?, ~label:string=?, ()) => stmtId
+let getStmtId: (
+    editorState, 
+    ~predicate:userStmt=>bool=?,
+    ~contains:string=?, 
+    ~label:string=?,
+    ()
+) => stmtId
 
 let applySubstitution: (
     editorState,
@@ -55,7 +61,7 @@ let unifyAll: editorState => editorState
 
 let unifyBottomUp: (
     editorState,
-    string,
+    ~stmtId:stmtId,
     ~asrtLabel: string=?,
     ~maxSearchDepth: int=?,
     ~lengthRestriction: MM_provers.lengthRestrict=?,
