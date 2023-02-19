@@ -5,25 +5,18 @@ open MM_react_common
 open MM_context
 
 type state = {
+    isExpanded: bool,
     expandedSrcs: array<int>,
-    expandedArgs: Belt_MapInt.t<array<int>>,
 }
 
 let makeInitialState = ():state => {
     {
+        isExpanded: false,
         expandedSrcs: [],
-        expandedArgs: Belt_MapInt.empty,
     }
 }
 
 let isExpandedSrc = (st,srcIdx) => st.expandedSrcs->Js_array2.includes(srcIdx)
-
-let isExpandedArg = (st,srcIdx,argIdx) => {
-    switch st.expandedArgs->Belt_MapInt.get(srcIdx) {
-        | None => false
-        | Some(argIdxs) => argIdxs->Js_array2.includes(argIdx)
-    }
-}
 
 let expandCollapseSrc = (st,srcIdx) => {
     if (st.expandedSrcs->Js_array2.includes(srcIdx)) {
@@ -39,30 +32,6 @@ let expandCollapseSrc = (st,srcIdx) => {
     }
 }
 
-let expandCollapseArg = (st,srcIdx,argIdx) => {
-    switch st.expandedArgs->Belt_MapInt.get(srcIdx) {
-        | None => {
-            {
-                ...st,
-                expandedArgs: Belt_MapInt.fromArray([(srcIdx,[argIdx])])
-            }
-        }
-        | Some(argIdxs) => {
-            if (argIdxs->Js_array2.includes(argIdx)) {
-                {
-                    ...st,
-                    expandedArgs: st.expandedArgs->Belt_MapInt.set(srcIdx, argIdxs->Js.Array2.filter(i => i != argIdx)) 
-                }
-            } else {
-                {
-                    ...st,
-                    expandedArgs: st.expandedArgs->Belt_MapInt.set(srcIdx, argIdxs->Js.Array2.concat([argIdx]))
-                }
-            }
-        }
-    }
-}
-
 @react.component
 let rec make = (
     ~tree: proofTreeDto,
@@ -74,34 +43,21 @@ let rec make = (
 
     let node = tree.nodes[nodeIdx]
 
-    let rndArgs = (srcIdx,args) => {
+    let rndArgs = (args) => {
         <table>
             <tbody>
                 {
                     args->Js_array2.mapi((arg,argIdx) => {
-                        <>
-                            <tr key={argIdx->Belt_Int.toString}>
-                                <td> {React.string(nodeIdxToLabel(arg))} </td>
-                                <td> {exprToReElem(tree.nodes[arg].expr)} </td>
-                            </tr>
-                            {
-                                if (isExpandedArg(state,srcIdx,argIdx)) {
-                                    <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
-                                        <td> React.null </td>
-                                        <td>
-                                            {React.createElement(make, {
-                                                "tree": tree,
-                                                "nodeIdx": arg,
-                                                "nodeIdxToLabel": nodeIdxToLabel,
-                                                "exprToReElem": exprToReElem,
-                                            })}
-                                        </td>
-                                    </tr>
-                                } else {
-                                    React.null
-                                }
-                            }
-                        </>
+                        <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
+                            <td>
+                                {React.createElement(make, {
+                                    "tree": tree,
+                                    "nodeIdx": arg,
+                                    "nodeIdxToLabel": nodeIdxToLabel,
+                                    "exprToReElem": exprToReElem,
+                                })}
+                            </td>
+                        </tr>
                     })->React.array
                 }
             </tbody>
@@ -109,83 +65,77 @@ let rec make = (
     }
 
     let rndSrc = (src,srcIdx) => {
-        <table key={srcIdx->Belt_Int.toString}>
-            <tbody>
-                {
-                    switch src {
-                        | VarType => {
-                            <tr>
-                                <td> {React.string("VarType")} </td>
-                            </tr>
-                        }
-                        | Hypothesis({label}) => {
-                            <tr>
-                                <td> {React.string("Hypothesis: " ++ label)} </td>
-                            </tr>
-                        }
-                        | Assertion({args, label}) => {
-                            <>
-                                <tr>
-                                    <td> {React.string(label ++ " :")} </td>
-                                    <td> {React.string(args->Js_array2.map(nodeIdxToLabel)->Js_array2.joinWith(" "))} </td>
-                                </tr>
-                                {
-                                    if (isExpandedSrc(state,srcIdx)) {
-                                        <tr key={srcIdx->Belt_Int.toString ++ "-exp"}>
-                                            <td> React.null </td>
-                                            <td> {rndArgs(srcIdx, args)} </td>
-                                        </tr>
-                                    } else {
-                                        React.null
-                                    }
-                                }
-                            </>
-                        }
-                    }
-                }
-            </tbody>
-        </table>
+        let key = srcIdx->Belt_Int.toString
+        switch src {
+            | VarType => {
+                <tr key>
+                    <td> {React.string("VarType")} </td>
+                    <td> {React.null} </td>
+                </tr>
+            }
+            | Hypothesis({label}) => {
+                <tr key>
+                    <td> {React.string("Hyp " ++ label)} </td>
+                    <td> {React.null} </td>
+                </tr>
+            }
+            | Assertion({args, label}) => {
+                <tr key>
+                    <td> {React.string(label ++ " :")} </td>
+                    <td> 
+                        {
+                            if (state->isExpandedSrc(srcIdx)) {
+                                rndArgs(args)
+                            } else {
+                                React.string(args->Js_array2.map(nodeIdxToLabel)->Js_array2.joinWith(" "))
+                            }
+                        } 
+                    </td>
+                    <td> {React.string(args->Js_array2.map(nodeIdxToLabel)->Js_array2.joinWith(" "))} </td>
+                </tr>
+            }
+        }
     }
 
     let rndSrcs = () => {
+        switch node.parents {
+            | None => {
+                React.string("Parents are not set.")
+            }
+            | Some(parents) => {
+                <table>
+                    <tbody>
+                        {
+                            parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+    }
+
+    let rndNode = () => {
         <table>
             <tbody>
+                <tr>
+                    <td> {React.string(nodeIdxToLabel(nodeIdx))} </td>
+                    <td> {exprToReElem(tree.nodes[nodeIdx].expr)} </td>
+                </tr>
                 {
-                    switch node.parents {
-                        | None => {
-                            <tr>
-                                <td>
-                                    {React.string("Parents are not set.")}
-                                </td>
-                            </tr>
-                        }
-                        | Some(parents) => {
-                            React.array(parents->Js_array2.mapi((src,srcIdx) => {
-                                <tr key={srcIdx->Belt_Int.toString}>
-                                {
-                                    switch src {
-                                        | VarType => {
-                                            <td> {React.string("VarType")} </td>
-                                        }
-                                        | Hypothesis({label}) => {
-                                            <td> {React.string("Hypothesis: " ++ label)} </td>
-                                        }
-                                        | Assertion({args, label}) => {
-                                            <>
-                                                <td> {React.string(label ++ " :")} </td>
-                                                <td> {React.string(args->Js_array2.map(nodeIdxToLabel)->Js_array2.joinWith(" "))} </td>
-                                            </>
-                                        }
-                                    }
-                                }
-                                </tr>
-                            }))
-                        }
+                    if (state.isExpanded) {
+                        <tr>
+                            <td> React.null </td>
+                            <td>
+                                {rndSrcs()}
+                            </td>
+                        </tr>
+                    } else {
+                        React.null
                     }
                 }
             </tbody>
         </table>
     }
 
-    React.string("")
+    rndNode()
 }
