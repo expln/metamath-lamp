@@ -11,6 +11,7 @@ open Expln_React_Modal
 open MM_statements_dto
 open MM_provers
 open MM_proof_tree
+open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
 
@@ -27,6 +28,7 @@ type resultRendered = {
 }
 
 type state = {
+    exprToProve:expr,
     title: reElem,
 
     availableLabels: array<string>,
@@ -37,6 +39,7 @@ type state = {
     allowNewVars: bool,
     useRootStmtsAsArgs: bool,
 
+    tree: option<proofTreeDto>,
     results: option<array<newStmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
     sortBy: sortBy,
@@ -95,6 +98,7 @@ let makeInitialState = (
 ) => {
     let stmtToProve = stmts[stmts->Js_array2.length-1].expr
     {
+        exprToProve: stmtToProve,
         title:
             <span>
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
@@ -111,6 +115,7 @@ let makeInitialState = (
         allowNewVars: true,
         useRootStmtsAsArgs: false,
 
+        tree: None,
         results: None,
         resultsRendered: None,
         sortBy: UnprovedStmtsNum,
@@ -250,11 +255,12 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     }
 }
 
-let setResults = (st,results) => {
+let setResults = (st,tree,results) => {
     switch results {
         | None => {
             {
                 ...st,
+                tree: None,
                 results,
                 resultsRendered: None,
                 resultsSorted: None,
@@ -267,6 +273,7 @@ let setResults = (st,results) => {
             let resultsRendered = Some(results->Js_array2.mapi((dto,i) => newStmtsDtoToResultRendered(dto,i)))
             {
                 ...st,
+                tree,
                 results:Some(results),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
@@ -422,7 +429,7 @@ let make = (
             ~ctx = wrkCtx,
             ~typeToPrefix,
         )
-        setState(setResults(_, Some(results)))
+        setState(setResults(_, Some(treeDto), Some(results)))
     }
 
     let actProve = () => {
@@ -490,6 +497,32 @@ let make = (
                         | Some(checkedResultIdx) => onResultSelected(results[checkedResultIdx])
                     }
                 }
+            }
+        }
+    }
+
+    let actShowProofTree = () => {
+        switch state.tree {
+            | None => ()
+            | Some(tree) => {
+                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    updateModal(modalRef, modalId, () => {
+                        <Col>
+                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                                {React.string("Close")}
+                            </Button>
+                            <MM_cmp_proof_tree
+                                tree
+                                rootExpr=state.exprToProve
+                                wrkCtx
+                                rootStmts=stmts
+                            />
+                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                                {React.string("Close")}
+                            </Button>
+                        </Col>
+                    })
+                })->ignore
             }
         }
     }
@@ -605,13 +638,27 @@ let make = (
         </Button>
     }
 
+    let rndShowProofTreeBtn = () => {
+        switch state.tree {
+            | None => React.null
+            | Some(tree) => {
+                <Button onClick={_=>()} variant=#outlined>
+                    {React.string("Show proof tree")}
+                </Button>
+            }
+        }
+    }
+
     let rndResults = () => {
         switch state.resultsSorted {
             | None => React.null
             | Some(resultsSorted) => {
                 let totalNumOfResults = resultsSorted->Js.Array2.length
                 if (totalNumOfResults == 0) {
-                    React.string("Nothing found.")
+                    <Row>
+                        {React.string("Nothing found.")}
+                        {rndShowProofTreeBtn()}
+                    </Row>
                 } else {
                     let start = (state.resultsPage - 1) * state.resultsPerPage
                     let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
@@ -620,6 +667,7 @@ let make = (
                             {rndApplyButton()}
                             {rndSortBySelector()}
                             {rndPagination(totalNumOfResults)}
+                            {rndShowProofTreeBtn()}
                         </Row>
                         {
                             items->Js_array2.map(item => {
