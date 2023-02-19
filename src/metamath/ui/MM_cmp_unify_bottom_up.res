@@ -507,7 +507,7 @@ let make = (
             | Some(tree) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        <Col>
+                        <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                                 {React.string("Close")}
                             </Button>
@@ -642,7 +642,7 @@ let make = (
         switch state.tree {
             | None => React.null
             | Some(tree) => {
-                <Button onClick={_=>()} variant=#outlined>
+                <Button onClick={_=>actShowProofTree()} variant=#outlined>
                     {React.string("Show proof tree")}
                 </Button>
             }
