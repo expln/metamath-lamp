@@ -1,6 +1,7 @@
 open MM_context
 open MM_substitution
 open MM_parenCounter
+open MM_unification_debug
 
 type justification = {
     args: array<string>,
@@ -18,7 +19,7 @@ type proofNode
 type exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, frame:frame})
+    | Assertion({args:array<proofNode>, frame:frame, err:option<unifErr>})
 
 type proofTree
 

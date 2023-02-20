@@ -1,5 +1,6 @@
 open MM_parenCounter
 open MM_context
+open MM_unification_debug
 
 type contunieInstruction = Continue | Stop
 
@@ -44,6 +45,7 @@ type frmSubsData = {
     subs:subs,
 }
 
+let subsClone: subs => subs
 let createConstParts: expr => constParts
 let createMatchingConstParts: constParts => constParts
 let createVarGroups: (~frmExpr:expr, ~frmConstParts:constParts) => array<varGroup>
@@ -61,7 +63,12 @@ let iterateSubstitutions: (
     ~consumer: subs => contunieInstruction
 ) => contunieInstruction
 let applySubs: (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int) => expr
-let verifyDisjoints: (~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, ~subs:subs, ~isDisjInCtx:(int,int)=>bool) => bool
+let verifyDisjoints: (
+    ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, 
+    ~subs:subs, 
+    ~isDisjInCtx:(int,int)=>bool,
+    ~debugLevel:int,
+) => option<unifErr>
 
 //------------------------- TEST ---------------------------
 

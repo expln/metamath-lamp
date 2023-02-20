@@ -2,6 +2,7 @@ open MM_substitution
 open MM_context
 open MM_parenCounter
 open MM_progress_tracker
+open MM_unification_debug
 
 type applyAssertionResult = {
     newVars: array<int>,
@@ -9,7 +10,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
-    comb: array<int>,//debug
+    err:option<unifErr>,
 }
 
 let rec iterateCombinationsRec = (
@@ -246,21 +247,21 @@ let extractNewDisj = (
     ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, 
     ~subs:subs, 
     ~maxCtxVar:int, 
-    ~isDisjInCtx:(int,int)=>bool
-):option<disjMutable> => {
-    let result = disjMutableMake()
-    let disjIsValid = verifyDisjoints(~frmDisj, ~subs, ~isDisjInCtx = (n,m) => {
+    ~isDisjInCtx:(int,int)=>bool,
+    ~debugLevel:int,
+):result<disjMutable,unifErr> => {
+    let resultDisj = disjMutableMake()
+    let verifRes = verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
         if (n <= maxCtxVar && m <= maxCtxVar) {
             isDisjInCtx(n,m)
         } else {
-            result->disjAddPair(n,m)
+            resultDisj->disjAddPair(n,m)
             true
         }
     })
-    if (disjIsValid) {
-        Some(result)
-    } else {
-        None
+    switch verifRes {
+        | None => Ok(resultDisj)
+        | Some(err) => Error(err)
     }
 }
 
@@ -298,6 +299,7 @@ let applyAssertions = (
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=_=>true,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
+    ~debugLevel:int=0,
     ~onProgress:option<float=>unit>=?,
     ()
 ):unit => {
@@ -306,7 +308,7 @@ let applyAssertions = (
     let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     frms->Belt_MapString.forEach((_,frm) => {
-        if (frameFilter(frm.frame) 
+        if (frameFilter(frm.frame)
             && result->Belt.Option.map(result => result[0] == frm.frame.asrt[0])->Belt_Option.getWithDefault(true)) {
             iterateSubstitutionsForResult(
                 ~frm,
@@ -349,25 +351,34 @@ let applyAssertions = (
                                         ~isDisjInCtx, 
                                         ~frmDisj=frm.frame.disj, 
                                         ~subs=frm.subs, 
-                                        ~maxCtxVar=maxVar
+                                        ~maxCtxVar=maxVar,
+                                        ~debugLevel,
                                     ) {
-                                        | None => Continue
-                                        | Some(newDisj) => {
+                                        | Ok(newDisj) => {
                                             let res = {
                                                 newVars: workVars.newVars->Js.Array2.copy,
                                                 newVarTypes: workVars.newVarTypes->Js.Array2.copy,
                                                 newDisj,
                                                 asrtLabel: frm.frame.label,
-                                                subs: {
-                                                    size: frm.subs.size,
-                                                    begins: frm.subs.begins->Js.Array2.copy,
-                                                    ends: frm.subs.ends->Js.Array2.copy,
-                                                    exprs: frm.subs.exprs->Js.Array2.copy,
-                                                    isDefined: frm.subs.isDefined->Js.Array2.copy,
-                                                },
-                                                comb: comb->Js.Array2.copy,
+                                                subs: subsClone(frm.subs),
+                                                err:None
                                             }
                                             onMatchFound(res)
+                                        }
+                                        | Error(err) => {
+                                            if (debugLevel == 0) {
+                                                Continue
+                                            } else {
+                                                let res = {
+                                                    newVars: workVars.newVars->Js.Array2.copy,
+                                                    newVarTypes: workVars.newVarTypes->Js.Array2.copy,
+                                                    newDisj: disjMutableMake(),
+                                                    asrtLabel: frm.frame.label,
+                                                    subs: subsClone(frm.subs),
+                                                    err:Some(err)
+                                                }
+                                                onMatchFound(res)
+                                            }
                                         }
                                     }
                                 }

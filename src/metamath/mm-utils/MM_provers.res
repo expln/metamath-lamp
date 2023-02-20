@@ -153,6 +153,7 @@ let findAsrtParentsWithNewVars = (
     ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
+    ~debugLevel:int=0,
     ()
 ):array<exprSource> => {
     let applResults = []
@@ -168,6 +169,7 @@ let findAsrtParentsWithNewVars = (
         ~frameFilter = frame => asrtLabel
                                     ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
                                     ->Belt_Option.getWithDefault(true),
+        ~debugLevel,
         ~onMatchFound = res => {
             if (allowNewVars || res.newVars->Js.Array2.length == 0) {
                 applResults->Js_array2.push(res)->ignore
@@ -197,10 +199,13 @@ let findAsrtParentsWithNewVars = (
         }
         let numOfArgs = frame.hyps->Js_array2.length
         let args = Expln_utils_common.createArray(numOfArgs)
-        let typesAreCorrect = ref(true)
+        let unprovedFloating = ref(None)
         let argIdx = ref(0)
         let maxArgIdx = numOfArgs - 1
-        while (argIdx.contents <= maxArgIdx && typesAreCorrect.contents) {
+
+        //check error from asrtAppl
+
+        while (argIdx.contents <= maxArgIdx && unprovedFloating.contents->Belt_Option.isNone) {
             let argExpr = applySubs(
                 ~frmExpr = frame.hyps[argIdx.contents].expr, 
                 ~subs=applResult.subs,
@@ -214,12 +219,18 @@ let findAsrtParentsWithNewVars = (
             args[argIdx.contents] = argNode
             if (frame.hyps[argIdx.contents].typ == F) {
                 proveFloating(~tree, ~node=argNode)
-                typesAreCorrect.contents = argNode->pnGetProof->Belt.Option.isSome
+                if (argNode->pnGetProof->Belt.Option.isNone) {
+                    unprovedFloating.contents = Some(argNode->pnGetExpr)
+                }
             }
             argIdx.contents = argIdx.contents + 1
         }
-        if (typesAreCorrect.contents) {
-            foundParents->Js.Array2.push( Assertion({ args, frame}) )->ignore
+        if (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0) {
+            foundParents->Js.Array2.push( Assertion({ 
+                args, 
+                frame,
+                err: unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr}))
+            }) )->ignore
         }
     })
     foundParents
@@ -543,6 +554,7 @@ let unifyAll = (
     ~stmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
+    ~debugLevel:int=0,
     ~onProgress:option<string=>unit>=?,
     ()
 ) => {

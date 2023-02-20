@@ -1,6 +1,7 @@
 open Expln_utils_common
 open MM_parenCounter
 open MM_context
+open MM_unification_debug
 
 type contunieInstruction = Continue | Stop
 
@@ -43,6 +44,16 @@ type frmSubsData = {
     constParts:array<constParts>,
     varGroups:array<array<varGroup>>,
     subs:subs,
+}
+
+let subsClone = subs => {
+    {
+        size: subs.size,
+        begins: subs.begins->Js.Array2.copy,
+        ends: subs.ends->Js.Array2.copy,
+        exprs: subs.exprs->Js.Array2.copy,
+        isDefined: subs.isDefined->Js.Array2.copy,
+    }
 }
 
 let lengthOfGap = (leftConstPartIdx:int, constParts:array<array<int>>, exprLength:int):int => {
@@ -535,12 +546,17 @@ let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
     res
 }
 
-let verifyDisjoints = (~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, ~subs:subs, ~isDisjInCtx:(int,int)=>bool) => {
-    let res = ref(true)
+let verifyDisjoints = (
+    ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, 
+    ~subs:subs, 
+    ~isDisjInCtx:(int,int)=>bool,
+    ~debugLevel:int,
+):option<unifErr> => {
+    let res = ref(None)
     frmDisj->Belt_MapInt.forEach((n,ms) => {
-        if (res.contents) {
+        if (res.contents->Belt.Option.isNone) {
             ms->Belt_SetInt.forEach(m => {
-                if (res.contents) {
+                if (res.contents->Belt.Option.isNone) {
                     let nExpr = subs.exprs[n]
                     let nExprBegin = subs.begins[n]
                     let nExprEnd = subs.ends[n]
@@ -548,14 +564,39 @@ let verifyDisjoints = (~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, ~subs:subs, ~isDis
                     let mExprBegin = subs.begins[m]
                     let mExprEnd = subs.ends[m]
                     for nExprI in nExprBegin to nExprEnd {
-                        if (res.contents) {
+                        if (res.contents->Belt.Option.isNone) {
                             let nExprSym = nExpr[nExprI]
                             if (nExprSym >= 0) {
                                 for mExprI in mExprBegin to mExprEnd {
-                                    if (res.contents) {
+                                    if (res.contents->Belt.Option.isNone) {
                                         let mExprSym = mExpr[mExprI]
                                         if (mExprSym >= 0) {
-                                            res.contents = nExprSym != mExprSym && isDisjInCtx(nExprSym, mExprSym)
+                                            if (nExprSym == mExprSym) {
+                                                if (debugLevel == 0) {
+                                                    res.contents = Some(Err)
+                                                } else {
+                                                    res.contents = Some(DisjCommonVar({
+                                                        frmVar1:n, 
+                                                        expr1:nExpr->Js_array2.slice(~start=nExprBegin, ~end_=nExprEnd+1),
+                                                        frmVar2:m, 
+                                                        expr2:mExpr->Js_array2.slice(~start=mExprBegin, ~end_=mExprEnd+1),
+                                                        commonVar:nExprSym,
+                                                    }))
+                                                }
+                                            } else if (!isDisjInCtx(nExprSym, mExprSym)) {
+                                                if (debugLevel == 0) {
+                                                    res.contents = Some(Err)
+                                                } else {
+                                                    res.contents = Some(Disj({
+                                                        frmVar1:n, 
+                                                        expr1:nExpr->Js_array2.slice(~start=nExprBegin, ~end_=nExprEnd+1),
+                                                        var1:nExprSym,
+                                                        frmVar2:m, 
+                                                        expr2:mExpr->Js_array2.slice(~start=mExprBegin, ~end_=mExprEnd+1),
+                                                        var2:mExprSym,
+                                                    }))
+                                                }
+                                            }
                                         }
                                     }
                                 }

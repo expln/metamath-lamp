@@ -2,6 +2,7 @@ open MM_parser
 open MM_context
 open MM_substitution
 open MM_parenCounter
+open MM_unification_debug
 
 type justification = {
     args: array<string>,
@@ -27,7 +28,7 @@ type rec proofNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, frame:frame})
+    | Assertion({args:array<proofNode>, frame:frame, err:option<unifErr>})
 
 and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,

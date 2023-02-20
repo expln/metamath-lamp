@@ -1,6 +1,7 @@
 open MM_substitution
 open MM_context
 open MM_parenCounter
+open MM_unification_debug
 
 type applyAssertionResult = {
     newVars: array<int>,
@@ -8,7 +9,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
-    comb: array<int>,//debug
+    err:option<unifErr>,
 }
 
 let applyAssertions: (
@@ -22,6 +23,7 @@ let applyAssertions: (
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=?,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
+    ~debugLevel:int=?,
     ~onProgress:float=>unit=?,
     ()
 ) => unit

@@ -28,6 +28,7 @@ let unifyAll: (
     ~stmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
+    ~debugLevel:int=?,
     ~onProgress: string=>unit=?,
     (),
 ) => proofTree
