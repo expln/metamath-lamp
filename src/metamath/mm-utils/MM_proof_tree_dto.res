@@ -2,11 +2,12 @@ open MM_parser
 open MM_context
 open MM_proof_table
 open MM_proof_tree
+open MM_unification_debug
 
 type exprSourceDto =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<int>, label:string})
+    | Assertion({args:array<int>, label:string, err:option<unifErr>})
 
 type proofNodeDto = {
     expr:expr,
@@ -31,7 +32,7 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
     switch src {
         | VarType => Some(VarType)
         | Hypothesis({label}) => Some(Hypothesis({label:label}))
-        | Assertion({args, frame}) => {
+        | Assertion({args, frame, err}) => {
             if (args->Js.Array2.some(arg => arg->pnIsInvalidFloating && arg->pnGetProof->Belt.Option.isNone)) {
                 None
             } else {
@@ -42,7 +43,8 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
                             | Some(idx) => idx
                         }
                     }), 
-                    label: frame.label
+                    label: frame.label,
+                    err
                 }))
             }
         }

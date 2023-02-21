@@ -5,6 +5,7 @@ open MM_asrt_apply
 open MM_parenCounter
 open MM_progress_tracker
 open MM_proof_tree
+open MM_unification_debug
 
 type lengthRestrict = No | LessEq | Less
 
@@ -36,7 +37,13 @@ let findAsrtParentsWithoutNewVars = (
                 ~parenCnt=tree->ptGetParenCnt,
                 ~consumer = subs => {
                     if (subs.isDefined->Js_array2.every(b=>b)
-                        && verifyDisjoints(~frmDisj=frm.frame.disj, ~subs, ~isDisjInCtx=tree->ptIsDisj)) {
+                        && verifyDisjoints(
+                                ~frmDisj=frm.frame.disj, 
+                                ~subs, 
+                                ~isDisjInCtx=tree->ptIsDisj, 
+                                ~debugLevel=0
+                            )->Belt.Option.isNone
+                    ) {
                         let hyps = frm.frame.hyps
                         let numOfArgs = hyps->Js_array2.length
                         let args = Expln_utils_common.createArray(numOfArgs)
@@ -62,7 +69,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame }) )->ignore
+                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame, err:None }) )->ignore
                         }
                     }
                     Continue
@@ -203,9 +210,7 @@ let findAsrtParentsWithNewVars = (
         let argIdx = ref(0)
         let maxArgIdx = numOfArgs - 1
 
-        //check error from asrtAppl
-
-        while (argIdx.contents <= maxArgIdx && unprovedFloating.contents->Belt_Option.isNone) {
+        while (argIdx.contents <= maxArgIdx && (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0)) {
             let argExpr = applySubs(
                 ~frmExpr = frame.hyps[argIdx.contents].expr, 
                 ~subs=applResult.subs,
@@ -217,7 +222,12 @@ let findAsrtParentsWithNewVars = (
             }
             let argNode = tree->ptGetOrCreateNode(argExpr)
             args[argIdx.contents] = argNode
-            if (frame.hyps[argIdx.contents].typ == F) {
+            if (frame.hyps[argIdx.contents].typ == F
+                    && (
+                            debugLevel == 0 
+                            || applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
+                       )
+            ) {
                 proveFloating(~tree, ~node=argNode)
                 if (argNode->pnGetProof->Belt.Option.isNone) {
                     unprovedFloating.contents = Some(argNode->pnGetExpr)
@@ -225,11 +235,22 @@ let findAsrtParentsWithNewVars = (
             }
             argIdx.contents = argIdx.contents + 1
         }
-        if (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0) {
+        if (debugLevel == 0) {
+            if (unprovedFloating.contents->Belt_Option.isNone) {
+                foundParents->Js.Array2.push( Assertion({ 
+                    args, 
+                    frame,
+                    err: None
+                }) )->ignore
+            }
+        } else {
             foundParents->Js.Array2.push( Assertion({ 
                 args, 
                 frame,
-                err: unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr}))
+                err: switch applResult.err {
+                    | Some(_) => applResult.err
+                    | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))
+                }
             }) )->ignore
         }
     })
@@ -384,7 +405,7 @@ let proveBottomUp = (
                                 if (!srcIsBackRef(curExpr, src)) {
                                     curNode->pnAddParent(src)
                                     switch src {
-                                        | Assertion({args}) => 
+                                        | Assertion({args,err:None}) => 
                                             args->Js_array2.forEach(arg => {
                                                 if (arg->pnGetProof->Belt.Option.isNone
                                                         && arg->pnGetDist->Belt.Option.isNone) {
@@ -407,7 +428,8 @@ let proveBottomUp = (
 let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
-    ~params:bottomUpProverParams, 
+    ~params:bottomUpProverParams,
+    ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
     let rootExprs = tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr)
@@ -421,6 +443,7 @@ let proveStmtBottomUp = (
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
             ~allowEmptyArgs = true,
             ~allowNewVars = dist == 0 && params.allowNewVars,
+            ~debugLevel,
             ()
         )
         if (dist == 0) {
@@ -468,10 +491,11 @@ let proveStmt = (
     ~expr:expr, 
     ~jstf:option<justification>, 
     ~bottomUpProverParams:option<bottomUpProverParams>,
+    ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ) => {
     switch bottomUpProverParams {
-        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~onProgress, )->ignore
+        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~debugLevel, ~onProgress, )->ignore
         | None => {
             switch jstf {
                 | None => proveWithoutJustification( ~tree, ~expr, )->ignore
@@ -554,10 +578,10 @@ let unifyAll = (
     ~stmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
-    ~debugLevel:int=0,
+    ~debugLevel:int=1,
     ~onProgress:option<string=>unit>=?,
     ()
-) => {
+):proofTree => {
     let progressState = progressTrackerMutableMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
@@ -581,6 +605,7 @@ let unifyAll = (
             ~expr=stmt.expr, 
             ~jstf=stmt.justification,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
+            ~debugLevel,
             ~onProgress =
                 if (stmtIdx != maxStmtIdx || bottomUpProverParams->Belt.Option.isNone) {
                     None

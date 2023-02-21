@@ -1,11 +1,12 @@
 open MM_context
 open MM_proof_table
 open MM_proof_tree
+open MM_unification_debug
 
 type exprSourceDto =
     | VarType
     | Hypothesis({label: string})
-    | Assertion({args: array<int>, label: string})
+    | Assertion({args:array<int>, label:string, err:option<unifErr>})
 
 type proofNodeDto = {
     expr: expr,

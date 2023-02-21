@@ -3,6 +3,7 @@ open Expln_React_Mui
 open MM_proof_tree_dto
 open MM_react_common
 open MM_context
+open MM_unification_debug
 
 type state = {
     expanded: bool,
@@ -88,6 +89,20 @@ module rec ProofNodeDtoCmp: {
             </table>
         }
 
+        let rndErrorIcon = (err:option<unifErr>) => {
+            switch err {
+                | None => React.null
+                | Some(_) => {
+                    <span
+                        title="Click to see error details"
+                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
+                    >
+                        {React.string("\u2717")}
+                    </span>
+                }
+            }
+        }
+
         let rndSrc = (src,srcIdx) => {
             let key = srcIdx->Belt_Int.toString
             switch src {
@@ -103,14 +118,16 @@ module rec ProofNodeDtoCmp: {
                         <td> {React.null} </td>
                     </tr>
                 }
-                | Assertion({args, label}) => {
+                | Assertion({args, label, err}) => {
                     <tr key>
-                        <td 
+                        <td> {rndErrorIcon(err)} </td>
+                        <td
                             onClick={_=>actToggleSrcExpanded(srcIdx)}
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
                         >
-                            {React.string(label ++ " :")} </td>
-                        <td> 
+                            {React.string(label ++ " :")}
+                        </td>
+                        <td>
                             {
                                 if (state->isExpandedSrc(srcIdx)) {
                                     rndArgs(args)
