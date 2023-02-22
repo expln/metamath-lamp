@@ -14,6 +14,8 @@
     - sort srcs by var type, hyp, asrt
     - filter by asrt, min number of srcs
 - error messages for some specific cases (number of args doesn't match, could not prove type of floating, etc.)
+- fix the bug discovered in save-proofs-to-files
+- In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 
 - write tests for collecting debug info
 - restrict names of labels due to the error:
