@@ -293,5 +293,27 @@ describe("MM_wrk_editor integration tests", _ => {
         assertProof(st, trgtStmtId, "sgn0e0-proof")
 
     })
+
+    it("prove 95p1e96", _ => {
+        setTestDataDir("prove-95p1e96")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ())
+
+        let (st, trgtStmtId) = st->addStmt( 
+            ~label="95p1e96",
+            ~stmt="|- ( ; 9 5 + 1 ) = ; 9 6", 
+            () 
+        )
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId, 
+            ~maxSearchDepth=1, ~lengthRestriction=No, ~allowNewVars=true, ~chooseLabel="decsuc", ())
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let st = st->applySubstitution(~replaceWhat="class1", ~replaceWith="5")
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+        assertProof(st, trgtStmtId, "95p1e96-proof")
+    })
     
 })

@@ -1,4 +1,4 @@
-- fix a bug: prove "|- ( ; 9 5 + 1 ) = ; 9 6" from https://github.com/digama0/mmj2/blob/master/mmj2jar/PATutorial/Page501.mmp
+- write tests for collecting debug info
 - restrict names of labels due to the error:
     ?Error on line 732616 of file "set-check-new-proofs.mm" at statement 203351,
     label "1", type "$e":

@@ -144,7 +144,7 @@ module rec ProofNodeDtoCmp: {
         let rndSrcs = () => {
             switch node.parents {
                 | None => {
-                    React.string("Parents are not set.")
+                    React.string("Sources are not set.")
                 }
                 | Some(parents) => {
                     <table>

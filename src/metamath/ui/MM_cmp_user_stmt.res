@@ -148,6 +148,11 @@ let make = (
     let actJstfEditCancel = () => {
         onJstfEditCancel(state.newText->Js_string2.trim)
     }
+    
+    let actJstfDeleted = () => {
+        actExpandProof(false)
+        onJstfEditDone("")
+    }
 
     let rndLabel = () => {
         if (stmt.labelEditMode) {
@@ -288,14 +293,20 @@ let make = (
                     ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
-            <Paper 
-                onClick=leftClickHnd(_, onJstfEditRequested, _ => ()) 
-                style=ReactDOM.Style.make(~padding="3px", ())
-                title="<left-click> to change"
-            >
-                {React.string("Justification: ")}
-                {React.string(stmt.jstfText)}
-            </Paper>
+            <Row >
+                <Paper 
+                    onClick=leftClickHnd(_, onJstfEditRequested, _ => ()) 
+                    style=ReactDOM.Style.make(~padding="3px", ~marginTop="5px", ())
+                    title="<left-click> to change"
+                >
+                    {React.string("Justification: ")}
+                    {React.string(stmt.jstfText)}
+                </Paper>
+                <span>
+                    {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
+                        ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
+                </span>
+            </Row>
         }
     }
 
