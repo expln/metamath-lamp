@@ -89,9 +89,34 @@ module rec ProofNodeDtoCmp: {
             </table>
         }
 
-        let rndErrorIcon = (err:option<unifErr>) => {
+        let rndStatusIconForStmt = (node) => {
+            if (node.proof->Belt_Option.isSome) {
+                <span
+                    title="This is proved"
+                    style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())
+                >
+                    {React.string("\u2713")}
+                </span>
+            } else {
+                React.null
+            }
+        }
+
+        let rndStatusIconForSrc = (args:array<int>, err:option<unifErr>) => {
             switch err {
-                | None => React.null
+                | None => {
+                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
+                    if (allArgsAreProved) {
+                        <span
+                            title="This is a valid proof"
+                            style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())
+                        >
+                            {React.string("\u2713")}
+                        </span>
+                    } else {
+                        React.null
+                    }
+                }
                 | Some(_) => {
                     <span
                         title="Click to see error details"
@@ -120,12 +145,12 @@ module rec ProofNodeDtoCmp: {
                 }
                 | Assertion({args, label, err}) => {
                     <tr key>
-                        <td> {rndErrorIcon(err)} </td>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(args, err)} </td>
                         <td
                             onClick={_=>actToggleSrcExpanded(srcIdx)}
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
                         >
-                            {React.string(label ++ " :")}
+                            {React.string(label ++ ":")}
                         </td>
                         <td>
                             {
@@ -162,6 +187,7 @@ module rec ProofNodeDtoCmp: {
             <table>
                 <tbody>
                     <tr>
+                        <td> {rndStatusIconForStmt(tree.nodes[nodeIdx])} </td>
                         <td
                             style=ReactDOM.Style.make(~cursor="pointer", ())
                             onClick={_=>actToggleExpanded()}
@@ -173,6 +199,7 @@ module rec ProofNodeDtoCmp: {
                     {
                         if (state.expanded) {
                             <tr>
+                                <td> React.null </td>
                                 <td> React.null </td>
                                 <td>
                                     {rndSrcs()}
