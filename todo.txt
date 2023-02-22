@@ -1,3 +1,18 @@
+-fix a bug: in bottom-up proof dialog, when applying selected statements, jstf should be set not only for the stmt being proved but for other unproved root stmts too.
+    1. load set.mm, read all
+    2. load my-editor-state.json
+    3. unify bottom-up. stmt14 (ralbidv, depth=4, length=less, no new vars). The statement gets proved via [stmt13 : ralbidv ]
+    4. apply.
+    5. stmt13 is still unproved, stmt14 is "waiting".
+- new settings in bottom-up dialog:
+    - max number of parents
+    - debug mode on/off
+- discouraged assertions
+- possibility to select root statements in bottom-up dialog.
+- proof tree improvements:
+    - 1000 items per page
+    - sort srcs by var type, hyp, asrt
+    - filter by asrt, min number of srcs
 - error messages for some specific cases (number of args doesn't match, could not prove type of floating, etc.)
 
 - write tests for collecting debug info
