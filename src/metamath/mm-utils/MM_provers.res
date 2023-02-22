@@ -181,7 +181,11 @@ let findAsrtParentsWithNewVars = (
             if (allowNewVars || res.newVars->Js.Array2.length == 0) {
                 applResults->Js_array2.push(res)->ignore
             }
-            Continue
+            if (applResults->Js.Array2.length > 1000) {
+                Stop
+            } else {
+                Continue
+            }
         },
         ()
     )

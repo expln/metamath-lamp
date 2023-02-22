@@ -45,6 +45,7 @@ module rec ProofNodeDtoCmp: {
     let make: (
         ~tree: proofTreeDto,
         ~nodeIdx: int,
+        ~isRootStmt: int=>bool,
         ~nodeIdxToLabel: int=>string,
         ~exprToReElem: expr=>reElem,
     ) => reElem
@@ -53,6 +54,7 @@ module rec ProofNodeDtoCmp: {
     let make = (
         ~tree: proofTreeDto,
         ~nodeIdx: int,
+        ~isRootStmt: int=>bool,
         ~nodeIdxToLabel: int=>string,
         ~exprToReElem: expr=>reElem,
     ) => {
@@ -68,7 +70,30 @@ module rec ProofNodeDtoCmp: {
             setState(expandCollapseSrc(_, srcIdx))
         }
 
-        let rndArgs = (args) => {
+        let getColorForLabel = nodeIdx => {
+            if(isRootStmt(nodeIdx)) {
+                "black"
+            } else {
+                "lightgrey"
+            }
+        }
+
+        let rndCollapsedArgs = (args) => {
+            <span>
+                {
+                    args->Js_array2.mapi((arg,i) => {
+                        <span
+                            key={i->Belt_Int.toString} 
+                            style=ReactDOM.Style.make(~color=getColorForLabel(arg), ())
+                        >
+                            {React.string(nodeIdxToLabel(arg) ++ " ")}
+                        </span>
+                    })->React.array
+                }
+            </span>
+        }
+
+        let rndExpandedArgs = (args) => {
             <table>
                 <tbody>
                     {
@@ -78,6 +103,7 @@ module rec ProofNodeDtoCmp: {
                                     <ProofNodeDtoCmp
                                         tree
                                         nodeIdx=arg
+                                        isRootStmt
                                         nodeIdxToLabel
                                         exprToReElem
                                     />
@@ -155,9 +181,9 @@ module rec ProofNodeDtoCmp: {
                         <td>
                             {
                                 if (state->isExpandedSrc(srcIdx)) {
-                                    rndArgs(args)
+                                    rndExpandedArgs(args)
                                 } else {
-                                    React.string(args->Js_array2.map(nodeIdxToLabel)->Js_array2.joinWith(" "))
+                                    rndCollapsedArgs(args)
                                 }
                             } 
                         </td>
@@ -187,9 +213,12 @@ module rec ProofNodeDtoCmp: {
             <table>
                 <tbody>
                     <tr>
-                        <td> {rndStatusIconForStmt(tree.nodes[nodeIdx])} </td>
+                        <td> {rndStatusIconForStmt(node)} </td>
                         <td
-                            style=ReactDOM.Style.make(~cursor="pointer", ())
+                            style=ReactDOM.Style.make(
+                                ~cursor="pointer", 
+                                ~color=getColorForLabel(nodeIdx), ()
+                            )
                             onClick={_=>actToggleExpanded()}
                         > 
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")} 
@@ -221,12 +250,14 @@ module rec ProofNodeDtoCmp: {
 let make = (
     ~tree: proofTreeDto,
     ~nodeIdx: int,
+    ~isRootStmt: int=>bool,
     ~nodeIdxToLabel: int=>string,
     ~exprToReElem: expr=>reElem,
 ) => {
     <ProofNodeDtoCmp
         tree
         nodeIdx
+        isRootStmt
         nodeIdxToLabel
         exprToReElem
     />

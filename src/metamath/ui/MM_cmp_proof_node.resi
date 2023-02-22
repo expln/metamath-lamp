@@ -6,6 +6,7 @@ open Expln_React_common
 let make: (
   ~tree: proofTreeDto,
   ~nodeIdx: int,
+  ~isRootStmt: int=>bool,
   ~nodeIdxToLabel: int => string,
   ~exprToReElem: expr => reElem,
 ) => React.element

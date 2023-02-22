@@ -29,7 +29,7 @@ let rec make = (
     let nodeIdxToLabel = idx => {
         switch state.exprToLabel->Belt_HashMap.get(tree.nodes[idx].expr) {
             | Some(label) => label
-            | None => "@" ++ idx->Belt_Int.toString
+            | None => idx->Belt_Int.toString
         }
     }
 
@@ -49,12 +49,15 @@ let rec make = (
         <span> {exprToStr(expr)->React.string} </span>
     }
 
+    let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has(tree.nodes[idx].expr)
+
     switch tree.nodes->Js.Array2.findIndex(node => node.expr->exprEq(rootExpr)) {
         | -1 => React.string(`The proof tree doesn't contain expression [${exprToStr(rootExpr)}]`)
         | nodeIdx => {
             <MM_cmp_proof_node 
                 tree
                 nodeIdx
+                isRootStmt
                 nodeIdxToLabel
                 exprToReElem
             />

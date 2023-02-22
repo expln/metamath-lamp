@@ -1,3 +1,5 @@
+- error messages for some specific cases (number of args doesn't match, could not prove type of floating, etc.)
+
 - write tests for collecting debug info
 - restrict names of labels due to the error:
     ?Error on line 732616 of file "set-check-new-proofs.mm" at statement 203351,
