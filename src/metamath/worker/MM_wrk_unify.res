@@ -146,6 +146,12 @@ let srcToNewStmts = (
                 }
             }
 
+            let isRootStmtWithJstf = expr => {
+                rootStmts
+                    ->Js.Array2.find(stmt => stmt.expr->exprEq(expr) && stmt.justification->Belt_Option.isSome)
+                    ->Belt.Option.isSome
+            }
+
             let addExprToResult = (~label, ~expr, ~jstf, ~isProved) => {
                 expr->Js_array2.forEach(ei => {
                     if (ei > maxCtxVar && !(res.newVars->Js_array2.includes(ei))) {
@@ -198,13 +204,14 @@ let srcToNewStmts = (
                 }
             })
             eArgs->Js.Array2.forEach(node => {
+                let childrenReturnedFor = Belt_HashSet.make(~hintSize=2, ~id=module(ExprHash))
                 Expln_utils_data.traverseTree(
                     (),
                     node,
                     (_,node) => {
-                        if (exprToLabel->Belt_HashMap.has(node.expr)) {
+                        if (childrenReturnedFor->Belt_HashSet.has(node.expr)) {
                             None
-                        } else {
+                        } else if ( !isRootStmtWithJstf(node.expr) ) {
                             switch node.proof {
                                 | Some(Assertion({args,label})) => {
                                     let children = []
@@ -216,6 +223,7 @@ let srcToNewStmts = (
                                             }
                                         }
                                     })
+                                    childrenReturnedFor->Belt_HashSet.add(node.expr)
                                     Some(children)
                                 }
                                 | _ => None
@@ -256,7 +264,7 @@ let srcToNewStmts = (
             })
             Some(res)
         }
-        | _ => None
+        | _ => raise(MmException({msg:`Implement this.`}))
     }
 }
 

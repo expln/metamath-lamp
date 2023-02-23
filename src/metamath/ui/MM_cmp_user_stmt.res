@@ -150,7 +150,6 @@ let make = (
     }
     
     let actJstfDeleted = () => {
-        actExpandProof(false)
         onJstfEditDone("")
     }
 

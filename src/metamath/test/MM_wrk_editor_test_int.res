@@ -315,5 +315,36 @@ describe("MM_wrk_editor integration tests", _ => {
 
         assertProof(st, trgtStmtId, "95p1e96-proof")
     })
+
+    it("set jstf for root stmts when applying bottom-up results", _ => {
+        setTestDataDir("set-jstf-for-root-stmts")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="sgnval", ~debug, ())
+
+        let (st, trgtStmtId) = st->addStmt( ~label="sgn0e0", ~stmt="|- ( sgn ` 0 ) = 0", () )
+        let st = st->addStmtsBySearch( ~filterLabel="sgn", ~chooseLabel="sgnval", () )
+        let st = st->applySubstitution( ~replaceWhat="class1", ~replaceWith="0", )
+        let (st, _) = st->addStmt( ~before=st->Ed.getStmtId(~contains="|- ( 0 e. RR*", ()),
+            ~stmt="|- ( ( sgn ` 0 ) = if ( 0 = 0 , 0 , if ( 0 < 0 , -u 1 , 1 ) ) <-> ( sgn ` 0 ) = 0 )", () )
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=trgtStmtId,
+            ~asrtLabel="ax-mp",
+            ~maxSearchDepth=6,
+            ~allowNewVars=false, 
+            ~useRootStmtsAsArgs=true,
+            ~chooseLabel="ax-mp",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+        assertProof(st, trgtStmtId, "proof")
+    })
+
+    it("shows bottom-up results for a Hyp proof", _ => {
+        raise(MmException({msg:"implement this test"}))
+    })
     
 })

@@ -10,6 +10,7 @@
 - discouraged assertions
 - possibility to select root statements in bottom-up dialog.
 - proof tree improvements:
+    - pass error icon from src to all unproved children
     - 1000 items per page
     - sort srcs by var type, hyp, asrt
     - filter by asrt, min number of srcs

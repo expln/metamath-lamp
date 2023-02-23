@@ -1,12 +1,12 @@
 open MM_context
 
-type newStmtJstfDto = {
+type stmtJstfDto = {
     args:array<string>,
     label:string,
 }
 
 
-type newStmtDto = {
+type stmtDto = {
     label:string,
     expr:expr,
     exprStr:string,
@@ -14,11 +14,12 @@ type newStmtDto = {
     isProved: bool,
 }
 
-type newStmtsDto = {
+type stmtsDto = {
     newVars: array<int>,
     newVarTypes: array<int>,
     newDisj:disjMutable,
     newDisjStr:array<string>,
-    stmts: array<newStmtDto>,
+    stmts: array<stmtDto>,
+    newUnprovedStmts: option<array<stmtDto>>,
 }
     
