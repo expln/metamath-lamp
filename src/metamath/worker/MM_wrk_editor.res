@@ -164,6 +164,23 @@ type wrkSubs = {
     mutable err: option<wrkSubsErr>,
 }
 
+let getStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
+    switch st.stmts->Js_array2.find(stmt => stmt.id == id) {
+        | None => raise(MmException({msg:`getStmtByIdExn: Cannot find a statement by statement id.`}))
+        | Some(stmt) => stmt
+    }
+}
+
+let getStmtIdx = (st:editorState,id:stmtId):int => {
+    let res = ref(-1)
+    st.stmts->Js_array2.forEachi((stmt,i) => {
+        if (stmt.id == id) {
+            res.contents = i
+        }
+    })
+    res.contents
+}
+
 let updateStmt = (st:editorState,id,update):editorState => {
     {
         ...st,
@@ -307,7 +324,7 @@ let createNewLabel = (st:editorState, prefix:string):string => {
     newLabel.contents
 }
 
-let addNewStmt = (st:editorState):(editorState,string) => {
+let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let newLabel = createNewLabel(st, newLabelPrefix)
     let idToAddBefore = st.stmts->Js_array2.find(stmt => st.checkedStmtIds->Js_array2.includes(stmt.id))->Belt_Option.map(stmt => stmt.id)
@@ -331,6 +348,19 @@ let addNewStmt = (st:editorState):(editorState,string) => {
         },
         newId
     )
+}
+
+let addNewStmtAtIdx = (st:editorState, idx:int):(editorState,stmtId) => {
+    let savedCheckedStmtIds = st.checkedStmtIds
+    let st = st->uncheckAllStmts
+    let st = if (0 <= idx && idx < st.stmts->Js_array2.length) {
+        st->toggleStmtChecked(st.stmts[idx].id)
+    } else {
+        st
+    }
+    let (st,stmtId) = st->addNewStmt
+    let st = {...st, checkedStmtIds:savedCheckedStmtIds}
+    (st,stmtId)
 }
 
 let isSingleStmtChecked = st => st.checkedStmtIds->Js_array2.length == 1
@@ -975,10 +1005,11 @@ let insertProvable = (
             res.contents
         }
     }
-    let minIdx = switch parseJstf(jstfText) {
+    let newJstf:result<option<justification>,_> = parseJstf(jstfText)
+    let minIdx = switch newJstf {
         | Ok(Some({args})) => {
             let remainingLabels = Belt_HashSet.fromArray(args)
-            st.stmts->Js_array2.reducei(
+            let minIdx = st.stmts->Js_array2.reducei(
                 (minIdx,stmt,idx) => {
                     if (remainingLabels->Belt_HashSet.isEmpty) {
                         minIdx
@@ -989,8 +1020,46 @@ let insertProvable = (
                 },
                 0
             )
+            if (maxIdx < minIdx) { maxIdx } else { minIdx }
         }
         | _ => 0
+    }
+    switch st.stmts->Js_array2.find(stmt => stmt.cont->contToStr == exprStr) {
+        | None => {
+            let (st,newStmtId) = st->addNewStmtAtIdx(maxIdx)
+            (st, newStmtId, st->getStmtByIdExn(newStmtId).label)
+        }
+        | Some(existingStmt) => {
+            switch parseJstf(existingStmt.jstfText) {
+                | Ok(None) => {
+                    let st = switch newJstf {
+                        | Ok(Some(newJstf)) => {
+                            st->updateStmt(existingStmt.id, stmt => {
+                                {
+                                    ...stmt,
+                                    jstfText: jstfToStr(newJstf)
+                                }
+                            })
+                        }
+                        | _ => st
+                    }
+                    (st, existingStmt.id, existingStmt.label)
+                }
+                | Ok(Some(existingJstf)) => {
+
+                }
+                | Ok(Error(_)) => {
+                    let existingStmtIdx = st->getStmtIdx(existingStmt.id)
+                    let newIdx = existingStmtIdx + 1
+                    let (st,newStmtId) = if (minIdx <= newIdx && newIdx <= maxIdx) {
+                        st->addNewStmtAtIdx(newIdx)
+                    } else {
+                        st->addNewStmtAtIdx(maxIdx)
+                    }
+                    (st, newStmtId, st->getStmtByIdExn(newStmtId).label)
+                }
+            }
+        }
     }
 }
 
