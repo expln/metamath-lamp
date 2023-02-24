@@ -117,6 +117,7 @@ let srcToNewStmts = (
                 newDisj: disjMutableMake(),
                 newDisjStr: [],
                 stmts: [],
+                newUnprovedStmts: [],
             }
             let exprToLabel = rootStmts
                 ->Js.Array2.map(stmt=>(stmt.expr,stmt.label))
@@ -146,9 +147,9 @@ let srcToNewStmts = (
                 }
             }
 
-            let isRootStmtWithJstf = expr => {
+            let isRootStmt = expr => {
                 rootStmts
-                    ->Js.Array2.find(stmt => stmt.expr->exprEq(expr) && stmt.justification->Belt_Option.isSome)
+                    ->Js.Array2.find(stmt => stmt.expr->exprEq(expr))
                     ->Belt.Option.isSome
             }
 
@@ -185,15 +186,17 @@ let srcToNewStmts = (
                     }
                     | _ => None
                 }
-                res.stmts->Js_array2.push(
-                    {
-                        label,
-                        expr,
-                        exprStr,
-                        jstf,
-                        isProved,
-                    }
-                )->ignore
+                let stmt = {
+                    label,
+                    expr,
+                    exprStr,
+                    jstf,
+                    isProved,
+                }
+                res.stmts->Js_array2.push( stmt )->ignore
+                if (!isProved && !isRootStmt(expr)) {
+                    res.newUnprovedStmts->Js_array2.push( stmt )->ignore
+                }
             }
 
             let frame = getFrame(label)
@@ -204,26 +207,24 @@ let srcToNewStmts = (
                 }
             })
             eArgs->Js.Array2.forEach(node => {
-                let childrenReturnedFor = Belt_HashSet.make(~hintSize=2, ~id=module(ExprHash))
+                let childrenReturnedFor = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
+                let savedExprs = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
                 Expln_utils_data.traverseTree(
                     (),
                     node,
                     (_,node) => {
                         if (childrenReturnedFor->Belt_HashSet.has(node.expr)) {
                             None
-                        } else if ( !isRootStmtWithJstf(node.expr) ) {
+                        } else {
+                            childrenReturnedFor->Belt_HashSet.add(node.expr)
                             switch node.proof {
                                 | Some(Assertion({args,label})) => {
                                     let children = []
                                     getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                                         if (hyp.typ == E) {
-                                            let argNode = tree.nodes[args[i]]
-                                            if (!(exprToLabel->Belt_HashMap.has(argNode.expr))) {
-                                                children->Js_array2.push(argNode)->ignore
-                                            }
+                                            children->Js_array2.push( tree.nodes[args[i]] )->ignore
                                         }
                                     })
-                                    childrenReturnedFor->Belt_HashSet.add(node.expr)
                                     Some(children)
                                 }
                                 | _ => None
@@ -231,12 +232,16 @@ let srcToNewStmts = (
                         }
                     },
                     ~postProcess = (_,node) => {
-                        if (!(exprToLabel->Belt_HashMap.has(node.expr))) {
-                            let newLabel = generateNewLabels(~ctx, ~prefix="", ~amount=1, ~usedLabels, ())[0]
-                            exprToLabel->Belt_HashMap.set(node.expr, newLabel)
-                            usedLabels->Belt_HashSetString.add(newLabel)
+                        if (!(savedExprs->Belt_HashSet.has(node.expr))) {
+                            savedExprs->Belt_HashSet.add(node.expr)
+                            let label = switch exprToLabel->Belt_HashMap.get(node.expr) {
+                                | Some(label) => label
+                                | None => generateNewLabels(~ctx, ~prefix="", ~amount=1, ~usedLabels, ())[0]
+                            }
+                            exprToLabel->Belt_HashMap.set(node.expr, label)
+                            usedLabels->Belt_HashSetString.add(label)
                             addExprToResult(
-                                ~label=newLabel, 
+                                ~label, 
                                 ~expr = node.expr, 
                                 ~jstf = node.proof, 
                                 ~isProved=node.proof->Belt_Option.isSome
@@ -249,13 +254,12 @@ let srcToNewStmts = (
             })
             let stmtToProve = rootStmts[rootStmts->Js.Array2.length-1]
             addExprToResult(
-                ~label=stmtToProve.label, 
-                ~expr = stmtToProve.expr, 
-                ~jstf = Some(src), 
+                ~label=stmtToProve.label,
+                ~expr = stmtToProve.expr,
+                ~jstf = Some(src),
                 ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
-            let varIsNew = v => res.newVars->Js.Array2.includes(v)
-            let varIsUsed = v => v <= maxCtxVar || varIsNew(v)
+            let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
             tree.disj->disjForEach((n,m) => {
                 if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {
                     res.newDisj->disjAddPair(n,m)

@@ -955,6 +955,45 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     }
 }
 
+let insertProvable = (
+    st:editorState, 
+    ~exprStr:string, 
+    ~jstfText:string, 
+    ~before:option<stmtId>
+):(editorState,stmtId,string) => {
+    let maxIdx = switch before {
+        | None => st.stmts->Js_array2.length
+        | Some(stmtId) => {
+            let res = ref(st.stmts->Js_array2.length)
+            let found = ref(false)
+            st.stmts->Js_array2.forEachi((stmt,i) => {
+                if (!found.contents && stmt.id == stmtId) {
+                    found.contents = true
+                    res.contents = i
+                }
+            })
+            res.contents
+        }
+    }
+    let minIdx = switch parseJstf(jstfText) {
+        | Ok(Some({args})) => {
+            let remainingLabels = Belt_HashSet.fromArray(args)
+            st.stmts->Js_array2.reducei(
+                (minIdx,stmt,idx) => {
+                    if (remainingLabels->Belt_HashSet.isEmpty) {
+                        minIdx
+                    } else {
+                        remainingLabels->Belt_HashSet.remove(stmt.label)
+                        idx + 1
+                    }
+                },
+                0
+            )
+        }
+        | _ => 0
+    }
+}
+
 let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot add assertion search result without wrkCtx.`}))
@@ -1004,8 +1043,6 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         })
                     }
                     | _ => {
-                        let ctxLabel = createNewLabel(stMut.contents, newLabelPrefix)
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
                         let exprText = stmt.expr
                             ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
                             ->ctxIntsToStrExn(wrkCtx, _)
@@ -1019,6 +1056,8 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                                 })
                             })
                             ->Belt.Option.getWithDefault("")
+                        let ctxLabel = createNewLabel(stMut.contents, newLabelPrefix)
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
                         let (st, newStmtId) = addNewStmt(stMut.contents)
                         stMut.contents = st
                         stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {

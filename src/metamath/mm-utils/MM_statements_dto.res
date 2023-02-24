@@ -5,12 +5,11 @@ type stmtJstfDto = {
     label:string,
 }
 
-
 type stmtDto = {
     label:string,
     expr:expr,
     exprStr:string,
-    jstf:option<newStmtJstfDto>,
+    jstf:option<stmtJstfDto>,
     isProved: bool,
 }
 
@@ -20,6 +19,6 @@ type stmtsDto = {
     newDisj:disjMutable,
     newDisjStr:array<string>,
     stmts: array<stmtDto>,
-    newUnprovedStmts: option<array<stmtDto>>,
+    newUnprovedStmts: array<stmtDto>,
 }
     
