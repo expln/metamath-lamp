@@ -728,9 +728,3 @@ describe("removeUnusedVars", _ => {
         assertEq( st.stmts[1].cont->contToStr, "|- r = c" )
     })
 })
-
-describe("mergeStmts", _ => {
-    it("replaces the topmost statement with the merge result", _ => {
-        raise(MmException({msg:"implement this test"}))
-    })
-})

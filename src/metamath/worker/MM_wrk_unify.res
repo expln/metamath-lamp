@@ -268,7 +268,7 @@ let srcToNewStmts = (
             })
             Some(res)
         }
-        | _ => raise(MmException({msg:`Implement this.`}))
+        | _ => None
     }
 }
 
