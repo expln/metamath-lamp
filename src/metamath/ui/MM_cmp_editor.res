@@ -471,7 +471,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
 
-    let actBottomUpResultSelected = (selectedResult:newStmtsDto) => {
+    let actBottomUpResultSelected = (selectedResult:stmtsDto) => {
         setState(st => {
             let st = st->addNewStatements(selectedResult)
             let st = st->uncheckAllStmts

@@ -20,7 +20,7 @@ type state = {
     typ: int,
     patternStr: string,
     patternErr: option<string>,
-    results: option<array<newStmtsDto>>,
+    results: option<array<stmtsDto>>,
     resultsForRender: option<array<resultForRender>>,
     resultsPerPage:int,
     resultsMaxPage:int,
@@ -162,7 +162,7 @@ let make = (
     ~initialTyp:option<int>,
     ~onTypChange:int=>unit,
     ~onCanceled:unit=>unit,
-    ~onResultsSelected:array<newStmtsDto>=>unit
+    ~onResultsSelected:array<stmtsDto>=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(frms, initialTyp))
 

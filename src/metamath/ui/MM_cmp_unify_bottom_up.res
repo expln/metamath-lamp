@@ -40,7 +40,7 @@ type state = {
     useRootStmtsAsArgs: bool,
 
     tree: option<proofTreeDto>,
-    results: option<array<newStmtsDto>>,
+    results: option<array<stmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
     sortBy: sortBy,
     resultsSorted: option<array<resultRendered>>,
@@ -162,7 +162,7 @@ let toggleUseRootStmtsAsArgs = (st) => {
     }
 }
 
-let newStmtsDtoToResultRendered = (newStmtsDto:newStmtsDto, idx:int):resultRendered => {
+let newStmtsDtoToResultRendered = (newStmtsDto:stmtsDto, idx:int):resultRendered => {
     let elem = 
         <Col>
             {
@@ -379,7 +379,7 @@ let make = (
     ~userStmtToProve:userStmt,
     ~stmts: array<rootStmt>,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~onResultSelected:newStmtsDto=>unit,
+    ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 

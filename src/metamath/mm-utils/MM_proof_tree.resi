@@ -32,6 +32,8 @@ let ptMake: (
     ~exprToStr: option<expr=>string>,
 ) => proofTree
 
+let jstfEq: (justification, justification) => bool
+
 let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptGetHypByLabel: (proofTree, string) => option<hypothesis>

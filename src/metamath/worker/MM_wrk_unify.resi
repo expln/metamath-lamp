@@ -30,4 +30,4 @@ let proofTreeDtoToNewStmtsDto: (
     ~rootStmts:array<rootStmt>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
-) => array<newStmtsDto>
+) => array<stmtsDto>

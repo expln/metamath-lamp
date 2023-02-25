@@ -5,7 +5,7 @@ let setMmPath: string
 let failOnMismatch: bool
 let debug: bool
 
-let newStmtsDtoToStr: newStmtsDto => string
+let newStmtsDtoToStr: stmtsDto => string
 
 let setTestDataDir: string => unit
 let assertEditorState: (editorState, string) => unit

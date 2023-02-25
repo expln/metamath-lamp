@@ -18,7 +18,7 @@ let doSearchAssertions: (
     ~pattern: array<int>,
     ~onProgress: float => unit=?,
     unit,
-) => array<newStmtsDto>
+) => array<stmtsDto>
 
 let searchAssertions: (
     ~preCtxVer: int,
@@ -31,7 +31,7 @@ let searchAssertions: (
     ~typ: int,
     ~pattern: array<int>,
     ~onProgress:float=>unit,
-) => promise<array<newStmtsDto>>
+) => promise<array<stmtsDto>>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 

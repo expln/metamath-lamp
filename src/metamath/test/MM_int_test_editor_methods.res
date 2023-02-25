@@ -189,7 +189,7 @@ let addStmtsBySearch = (
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let addNewStmts = (st:editorState, newStmts:newStmtsDto, ~before:option<stmtId>=?, ()):editorState => {
+let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, ()):editorState => {
     let st = switch before {
         | None => st
         | Some(beforeStmtId) => {
@@ -289,7 +289,7 @@ let unifyBottomUp = (
     ~useRootStmtsAsArgs:bool=false,
     ~chooseLabel:string,
     ()
-):(editorState, newStmtsDto) => {
+):(editorState, stmtsDto) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
         | Some(wrkCtx) => {

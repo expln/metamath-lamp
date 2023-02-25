@@ -987,7 +987,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
 
 let insertProvable = (
     st:editorState, 
-    ~exprStr:string, 
+    ~exprText:string, 
     ~jstfText:string, 
     ~before:option<stmtId>
 ):(editorState,stmtId,string) => {
@@ -1008,13 +1008,13 @@ let insertProvable = (
     let newJstf:result<option<justification>,_> = parseJstf(jstfText)
     let minIdx = switch newJstf {
         | Ok(Some({args})) => {
-            let remainingLabels = Belt_HashSet.fromArray(args)
+            let remainingLabels = Belt_HashSetString.fromArray(args)
             let minIdx = st.stmts->Js_array2.reducei(
                 (minIdx,stmt,idx) => {
-                    if (remainingLabels->Belt_HashSet.isEmpty) {
+                    if (remainingLabels->Belt_HashSetString.isEmpty) {
                         minIdx
                     } else {
-                        remainingLabels->Belt_HashSet.remove(stmt.label)
+                        remainingLabels->Belt_HashSetString.remove(stmt.label)
                         idx + 1
                     }
                 },
@@ -1024,46 +1024,73 @@ let insertProvable = (
         }
         | _ => 0
     }
-    switch st.stmts->Js_array2.find(stmt => stmt.cont->contToStr == exprStr) {
-        | None => {
-            let (st,newStmtId) = st->addNewStmtAtIdx(maxIdx)
-            (st, newStmtId, st->getStmtByIdExn(newStmtId).label)
+
+    let jstfEqNewJstf = jstf => {
+        switch newJstf {
+            | Ok(Some(newJstf)) => jstfEq(newJstf, jstf)
+            | _ => false
         }
+    }
+
+    let updateExistingStmt = (st,existingStmt,newJstf):(editorState,stmtId,string) => {
+        let st = switch newJstf {
+            | Ok(Some(newJstf)) => {
+                st->updateStmt(existingStmt.id, stmt => {
+                    {
+                        ...stmt,
+                        jstfText: jstfToStr(newJstf)
+                    }
+                })
+            }
+            | _ => st
+        }
+        (st, existingStmt.id, existingStmt.label)
+    }
+
+    let insertNewStmt = (st,existingStmt:option<userStmt>):(editorState,stmtId,string) => {
+        let newIdx = switch existingStmt {
+            | None => maxIdx
+            | Some(existingStmt) => {
+                let newIdx = st->getStmtIdx(existingStmt.id) + 1
+                if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { maxIdx }
+            }
+        }
+        let (st,newStmtId) = st->addNewStmtAtIdx(newIdx)
+        let newLabel = st->createNewLabel(newLabelPrefix)
+        let st = st->updateStmt(newStmtId, stmt => {
+            {
+                ...stmt,
+                typ: P,
+                label: newLabel,
+                cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
+                contEditMode: false,
+                jstfText,
+            }
+        })
+        (st, newStmtId, newLabel)
+    }
+
+    switch st.stmts->Js_array2.find(stmt => stmt.cont->contToStr == exprText) {
+        | None => insertNewStmt(st,None)
         | Some(existingStmt) => {
             switch parseJstf(existingStmt.jstfText) {
-                | Ok(None) => {
-                    let st = switch newJstf {
-                        | Ok(Some(newJstf)) => {
-                            st->updateStmt(existingStmt.id, stmt => {
-                                {
-                                    ...stmt,
-                                    jstfText: jstfToStr(newJstf)
-                                }
-                            })
-                        }
-                        | _ => st
-                    }
-                    (st, existingStmt.id, existingStmt.label)
-                }
+                | Ok(None) => updateExistingStmt(st,existingStmt,newJstf)
                 | Ok(Some(existingJstf)) => {
-
-                }
-                | Ok(Error(_)) => {
-                    let existingStmtIdx = st->getStmtIdx(existingStmt.id)
-                    let newIdx = existingStmtIdx + 1
-                    let (st,newStmtId) = if (minIdx <= newIdx && newIdx <= maxIdx) {
-                        st->addNewStmtAtIdx(newIdx)
+                    if (existingJstf->jstfEqNewJstf) {
+                        (st, existingStmt.id, existingStmt.label)
                     } else {
-                        st->addNewStmtAtIdx(maxIdx)
+                        insertNewStmt(st,Some(existingStmt))
                     }
-                    (st, newStmtId, st->getStmtByIdExn(newStmtId).label)
+                }
+                | Error(_) => {
+                    insertNewStmt(st,Some(existingStmt))
                 }
             }
         }
     }
 }
 
-let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
+let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot add assertion search result without wrkCtx.`}))
         | Some(wrkCtx) => {
@@ -1088,6 +1115,21 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
             }
             let checkedStmt = st->getTheOnlySelectedStmt
             let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
+
+            let getJstfTextFromStmtDto = (~stmt:stmtDto, ~defaultJstfText:string):string => {
+                switch stmt.jstf {
+                    | None => defaultJstfText
+                    | Some({args, label}) => {
+                        jstfToStr({
+                            args: args->Js_array2.map(argLabel => {
+                                newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
+                            }), 
+                            asrt:label
+                        })
+                    }
+                }
+            }
+
             let stMut = ref(st)
             newStmts.stmts->Js_array2.forEach(stmt => {
                 switch checkedStmt {
@@ -1097,17 +1139,7 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
                             {
                                 ...stmtToUpdate,
-                                jstfText: switch stmt.jstf {
-                                    | None => stmtToUpdate.jstfText
-                                    | Some({args, label}) => {
-                                        jstfToStr({
-                                            args: args->Js_array2.map(argLabel => {
-                                                newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
-                                            }), 
-                                            asrt:label
-                                        })
-                                    }
-                                }
+                                jstfText: getJstfTextFromStmtDto(~stmt, ~defaultJstfText=stmtToUpdate.jstfText)
                             }
                         })
                     }
@@ -1115,30 +1147,14 @@ let addNewStatements = (st:editorState, newStmts:newStmtsDto):editorState => {
                         let exprText = stmt.expr
                             ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
                             ->ctxIntsToStrExn(wrkCtx, _)
-                        let jstfText = stmt.jstf
-                            ->Belt.Option.map(jstf => {
-                                jstfToStr({
-                                    args: jstf.args->Js_array2.map(label => {
-                                        newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(label,label)
-                                    }), 
-                                    asrt: jstf.label
-                                })
-                            })
-                            ->Belt.Option.getWithDefault("")
-                        let ctxLabel = createNewLabel(stMut.contents, newLabelPrefix)
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
-                        let (st, newStmtId) = addNewStmt(stMut.contents)
+                        let jstfText = getJstfTextFromStmtDto(~stmt, ~defaultJstfText="")
+                        let (st, newStmtId, ctxLabel) = insertProvable(stMut.contents,
+                            ~exprText, 
+                            ~jstfText, 
+                            ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
+                        )
                         stMut.contents = st
-                        stMut.contents = updateStmt(stMut.contents, newStmtId, stmt => {
-                            {
-                                ...stmt,
-                                typ: P,
-                                label: ctxLabel,
-                                cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
-                                contEditMode: false,
-                                jstfText,
-                            }
-                        })
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
                     }
                     
                 }

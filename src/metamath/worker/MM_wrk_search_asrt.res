@@ -12,7 +12,7 @@ type request =
 
 type response =
     | OnProgress(float)
-    | SearchResult({found:array<newStmtsDto>})
+    | SearchResult({found:array<stmtsDto>})
 
 let frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
     let patLen = pat->Js.Array2.length
@@ -42,7 +42,7 @@ let searchAssertions = (
     ~typ:int, 
     ~pattern:array<int>,
     ~onProgress:float=>unit,
-): promise<array<newStmtsDto>> => {
+): promise<array<stmtsDto>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~preCtxVer,
@@ -76,7 +76,7 @@ let doSearchAssertions = (
     ~pattern:array<int>, 
     ~onProgress:option<float=>unit>=?,
     ()
-):array<newStmtsDto> => {
+):array<stmtsDto> => {
     let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
@@ -131,6 +131,7 @@ let doSearchAssertions = (
                 newDisj,
                 newDisjStr,
                 stmts,
+                newUnprovedStmts: [],
             })->ignore
         }
 

@@ -53,7 +53,7 @@ let editorStateToStr = st => {
     lines->Js.Array2.joinWith("\n")
 }
 
-let newStmtsDtoToStr = (newStmtsDto:newStmtsDto):string => {
+let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
     let disjStr = newStmtsDto.newDisjStr->Js.Array2.sortInPlace->Js.Array2.joinWith("\n")
     let stmtsStr = newStmtsDto.stmts
         ->Js.Array2.map(stmt => {

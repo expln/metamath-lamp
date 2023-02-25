@@ -41,7 +41,7 @@ let addStmtsBySearch: (
     unit,
 ) => editorState
 
-let addNewStmts: ( editorState, newStmtsDto, ~before: stmtId=?, unit, ) => editorState
+let addNewStmts: ( editorState, stmtsDto, ~before: stmtId=?, unit, ) => editorState
 
 let getStmtId: (
     editorState, 
@@ -69,7 +69,7 @@ let unifyBottomUp: (
     ~useRootStmtsAsArgs: bool=?,
     ~chooseLabel: string,
     unit,
-) => (editorState, newStmtsDto)
+) => (editorState, stmtsDto)
 
 let removeAllJstf: editorState => editorState
 let addDisj: ( editorState, string, ) => editorState

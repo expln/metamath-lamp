@@ -72,7 +72,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
     }
 }
 
-let doesntHaveBackRefs = (newStmtsDto:newStmtsDto):bool => {
+let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
     let res = newStmtsDto.stmts->Js.Array2.reduce(
         (res, stmt) => {
             switch res {
@@ -107,7 +107,7 @@ let srcToNewStmts = (
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
-):option<newStmtsDto> => {
+):option<stmtsDto> => {
     switch src {
         | Assertion({args, label}) => {
             let maxCtxVar = ctx->getNumOfVars - 1
@@ -277,7 +277,7 @@ let proofTreeDtoToNewStmtsDto = (
     ~rootStmts:array<rootStmt>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
-):array<newStmtsDto> => {
+):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
     let stmtToProve = rootStmts[rootStmts->Js_array2.length-1]
     let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(stmtToProve.expr)) {

@@ -46,6 +46,10 @@ and proofTree = {
     exprToStr: option<expr=>string>, //for debug purposes
 }
 
+let jstfEq = (jstf1, jstf2) => {
+    jstf1.args == jstf1.args && jstf1.asrt == jstf1.asrt
+}
+
 let exprSourceEq = (s1,s2) => {
     switch s1 {
         | VarType => {
