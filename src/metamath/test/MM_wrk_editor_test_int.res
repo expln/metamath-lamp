@@ -343,9 +343,4 @@ describe("MM_wrk_editor integration tests", _ => {
         assertEditorState(st, "step2")
         assertProof(st, trgtStmtId, "proof")
     })
-
-    it("shows bottom-up results for a Hyp proof", _ => {
-        raise(MmException({msg:"implement this test"}))
-    })
-    
 })

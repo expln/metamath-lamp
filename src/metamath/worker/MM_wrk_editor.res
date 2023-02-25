@@ -1049,25 +1049,23 @@ let insertProvable = (
 
     let insertNewStmt = (st,existingStmt:option<userStmt>):(editorState,stmtId,string) => {
         let newIdx = switch existingStmt {
-            | None => maxIdx
+            | None => minIdx
             | Some(existingStmt) => {
                 let newIdx = st->getStmtIdx(existingStmt.id) + 1
                 if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { maxIdx }
             }
         }
         let (st,newStmtId) = st->addNewStmtAtIdx(newIdx)
-        let newLabel = st->createNewLabel(newLabelPrefix)
         let st = st->updateStmt(newStmtId, stmt => {
             {
                 ...stmt,
                 typ: P,
-                label: newLabel,
                 cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
                 contEditMode: false,
                 jstfText,
             }
         })
-        (st, newStmtId, newLabel)
+        (st, newStmtId, (st->getStmtByIdExn(newStmtId)).label)
     }
 
     switch st.stmts->Js_array2.find(stmt => stmt.cont->contToStr == exprText) {
@@ -1148,7 +1146,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                             ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
                             ->ctxIntsToStrExn(wrkCtx, _)
                         let jstfText = getJstfTextFromStmtDto(~stmt, ~defaultJstfText="")
-                        let (st, newStmtId, ctxLabel) = insertProvable(stMut.contents,
+                        let (st, _, ctxLabel) = insertProvable(stMut.contents,
                             ~exprText, 
                             ~jstfText, 
                             ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
