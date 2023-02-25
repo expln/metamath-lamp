@@ -19,6 +19,5 @@ type stmtsDto = {
     newDisj:disjMutable,
     newDisjStr:array<string>,
     stmts: array<stmtDto>,
-    newUnprovedStmts: array<stmtDto>,
 }
     

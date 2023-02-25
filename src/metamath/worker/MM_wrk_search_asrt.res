@@ -131,7 +131,6 @@ let doSearchAssertions = (
                 newDisj,
                 newDisjStr,
                 stmts,
-                newUnprovedStmts: [],
             })->ignore
         }
 

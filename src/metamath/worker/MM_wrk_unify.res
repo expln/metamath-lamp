@@ -117,7 +117,6 @@ let srcToNewStmts = (
                 newDisj: disjMutableMake(),
                 newDisjStr: [],
                 stmts: [],
-                newUnprovedStmts: [],
             }
             let exprToLabel = rootStmts
                 ->Js.Array2.map(stmt=>(stmt.expr,stmt.label))
@@ -145,12 +144,6 @@ let srcToNewStmts = (
                         | Some(name) => name
                     }
                 }
-            }
-
-            let isRootStmt = expr => {
-                rootStmts
-                    ->Js.Array2.find(stmt => stmt.expr->exprEq(expr))
-                    ->Belt.Option.isSome
             }
 
             let addExprToResult = (~label, ~expr, ~jstf, ~isProved) => {
@@ -186,17 +179,7 @@ let srcToNewStmts = (
                     }
                     | _ => None
                 }
-                let stmt = {
-                    label,
-                    expr,
-                    exprStr,
-                    jstf,
-                    isProved,
-                }
-                res.stmts->Js_array2.push( stmt )->ignore
-                if (!isProved && !isRootStmt(expr)) {
-                    res.newUnprovedStmts->Js_array2.push( stmt )->ignore
-                }
+                res.stmts->Js_array2.push( { label, expr, exprStr, jstf, isProved, } )->ignore
             }
 
             let frame = getFrame(label)
@@ -206,9 +189,9 @@ let srcToNewStmts = (
                     eArgs->Js_array2.push(tree.nodes[args[i]])->ignore
                 }
             })
+            let childrenReturnedFor = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
+            let savedExprs = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
             eArgs->Js.Array2.forEach(node => {
-                let childrenReturnedFor = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
-                let savedExprs = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
                 Expln_utils_data.traverseTree(
                     (),
                     node,
