@@ -1,7 +1,6 @@
 open Expln_test
 open MM_int_test_utils
 open MM_int_test_editor_methods
-open MM_parser
 
 module Ed = MM_int_test_editor_methods
 
