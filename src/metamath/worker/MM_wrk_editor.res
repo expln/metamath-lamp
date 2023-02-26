@@ -989,7 +989,8 @@ let insertProvable = (
     st:editorState, 
     ~exprText:string, 
     ~jstfText:string, 
-    ~before:option<stmtId>
+    ~before:option<stmtId>,
+    ~placeAtMaxIdxByDefault:bool,
 ):(editorState,stmtId,string) => {
     let maxIdx = switch before {
         | None => st.stmts->Js_array2.length
@@ -1049,7 +1050,7 @@ let insertProvable = (
 
     let insertNewStmt = (st,existingStmt:option<userStmt>):(editorState,stmtId,string) => {
         let newIdx = switch existingStmt {
-            | None => minIdx
+            | None => if placeAtMaxIdxByDefault {maxIdx} else {minIdx}
             | Some(existingStmt) => {
                 let newIdx = st->getStmtIdx(existingStmt.id) + 1
                 if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { maxIdx }
@@ -1128,6 +1129,9 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                 }
             }
 
+            let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmt => {
+                st.stmts->Js_array2.some(rootStmt => rootStmt.cont->contToStr == stmt.exprStr)
+            })
             let stMut = ref(st)
             newStmts.stmts->Js_array2.forEach(stmt => {
                 switch checkedStmt {
@@ -1150,6 +1154,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                             ~exprText, 
                             ~jstfText, 
                             ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
+                            ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
                         )
                         stMut.contents = st
                         newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
