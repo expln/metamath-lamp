@@ -7,11 +7,11 @@ describe("verifyProof", _ => {
     it("successfully verifies a valid uncompressed proof", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
-        let (ast, _) = parseMmFile(mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="th1", ())
         let foundTheorem = traverseAst((), ast, ~process=(_,node) => {
             switch node {
-                | {stmt:Provable({label:"th1",expr,proof})} => Some((expr,proof))
+                | {stmt:Provable({label:"th1",expr,proof:Some(proof)})} => Some((expr,proof))
                 | _ => None
             }
         }, ())
@@ -33,11 +33,11 @@ describe("verifyProof", _ => {
     it("shows an error for an invalid uncompressed proof", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
-        let (ast, _) = parseMmFile(mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="th2", ())
         let foundTheorem = traverseAst((), ast, ~process=(_,node) => {
             switch node {
-                | {stmt:Provable({label:"th2",expr,proof})} => Some((expr,proof))
+                | {stmt:Provable({label:"th2",expr,proof:Some(proof)})} => Some((expr,proof))
                 | _ => None
             }
         }, ())
@@ -59,11 +59,11 @@ describe("verifyProof", _ => {
     it("successfully verifies a valid compressed proof", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/set-reduced.mm")
-        let (ast, _) = parseMmFile(mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="dfbi1ALT", ())
         let foundTheorem = traverseAst((), ast, ~process=(_,node) => {
             switch node {
-                | {stmt:Provable({label:"dfbi1ALT",expr,proof})} => Some((expr,proof))
+                | {stmt:Provable({label:"dfbi1ALT",expr,proof:Some(proof)})} => Some((expr,proof))
                 | _ => None
             }
         }, ())

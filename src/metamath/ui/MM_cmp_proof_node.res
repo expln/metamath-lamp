@@ -115,7 +115,7 @@ module rec ProofNodeDtoCmp: {
             </table>
         }
 
-        let rndStatusIconForStmt = (node) => {
+        let rndStatusIconForStmt = (node:proofNodeDto) => {
             if (node.proof->Belt_Option.isSome) {
                 <span
                     title="This is proved"

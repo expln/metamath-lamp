@@ -24,7 +24,7 @@ and stmt =
     | Floating({label:string, expr:array<string>})
     | Essential({label:string, expr:array<string>})
     | Axiom({label:string, expr:array<string>})
-    | Provable({label:string, expr:array<string>, proof:proof})
+    | Provable({label:string, expr:array<string>, proof:option<proof>})
 
 type mmException = {
     msg:string,
@@ -41,7 +41,13 @@ let textAt = (text,i) => {
     "'" ++ text->Js.String2.substrAtMost(~from=i, ~length=lengthToShow) ++ ellipsis ++ "'"
 }
 
-let parseMmFile = (text:string, ~onProgress: float=>unit = _ => (), ()): (mmAstNode,array<string>) => {
+let parseMmFile = (
+    ~mmFileContent as text:string, 
+    ~skipComments:bool=false,
+    ~skipProofs:bool=false,
+    ~onProgress: float=>unit = _ => (), 
+    ()
+): (mmAstNode,array<string>) => {
     let textLength = text->Js_string2.length
     let textLengthFlt = textLength->Belt_Int.toFloat
     let idx = ref(0) // index of the next char to read.
@@ -199,21 +205,50 @@ let parseMmFile = (text:string, ~onProgress: float=>unit = _ => (), ()): (mmAstN
                         | Some(proofLabels) => {
                             switch readAllTokensTill("$.") {
                                 | None => raise(MmException({msg:`A probale statement is not closed[3] at ${textAt(beginIdx)}`}))
-                                | Some(compressedProofBlocks) =>
-                                    {begin:beginIdx, end:idx.contents-1, stmt:Provable({label, expr:expression,
-                                        proof:Compressed({labels:proofLabels, compressedProofBlock:""->Js_string2.concatMany(compressedProofBlocks)})
-                                    })}
+                                | Some(compressedProofBlocks) => {
+                                    {
+                                        begin:beginIdx, 
+                                        end:idx.contents-1, 
+                                        stmt:Provable({
+                                            label, 
+                                            expr:expression,
+                                            proof:
+                                                if (skipProofs) {
+                                                    None
+                                                } else {
+                                                    Some(Compressed({
+                                                        labels:proofLabels, 
+                                                        compressedProofBlock:
+                                                            ""->Js_string2.concatMany(compressedProofBlocks)
+                                                    }))
+                                                }
+                                        })
+                                    }
+                                }
                             }
                         }
                     }
                 } else {
                     switch readAllTokensTill("$.") {
                         | None => raise(MmException({msg:`A provable statement is not closed[4] at ${textAt(beginIdx)}`}))
-                        | Some(proofLabels) =>
+                        | Some(proofLabels) => {
                             {
-                                begin:beginIdx, end:idx.contents-1, 
-                                stmt:Provable({label, expr:expression, proof:Uncompressed({labels:[firstProofToken]->Js.Array2.concat(proofLabels)})})
+                                begin:beginIdx, 
+                                end:idx.contents-1, 
+                                stmt:Provable({
+                                    label, 
+                                    expr:expression, 
+                                    proof:
+                                        if (skipProofs) {
+                                            None
+                                        } else {
+                                            Some(Uncompressed({
+                                                labels:[firstProofToken]->Js.Array2.concat(proofLabels)
+                                            }))
+                                        },
+                                })
                             }
+                        }
                     }
                 }
             }
@@ -242,7 +277,10 @@ let parseMmFile = (text:string, ~onProgress: float=>unit = _ => (), ()): (mmAstN
             } else if (token == "${") {
                 pushStmt(parseBlock(~beginIdx=tokenIdx, ~level=level+1))
             } else if (token == "$(") {
-                pushStmt(parseComment(~beginIdx=tokenIdx))
+                let comment = parseComment(~beginIdx=tokenIdx)
+                if (!skipComments) {
+                    pushStmt(comment)
+                }
             } else if (token == "$c") {
                 pushStmt(parseConst(~beginIdx=tokenIdx))
             } else if (token == "$v") {
@@ -302,6 +340,15 @@ let traverseAst: (
         ()
     )
 
+let proofToStr = proof => {
+    switch proof {
+        | Some(Uncompressed({labels})) => labels->Js_array2.joinWith(" ")
+        | Some(Compressed({labels, compressedProofBlock})) =>
+            "( " ++ labels->Js_array2.joinWith(" ") ++ " ) " ++ compressedProofBlock
+        | None => "?"
+    }
+}
+
 let stmtToStr: mmAstNode => string = node => {
     switch node {
         | {stmt:Block({level})} => `block(level=${level->Belt_Int.toString})`
@@ -312,10 +359,8 @@ let stmtToStr: mmAstNode => string = node => {
         | {stmt:Floating({label, expr})} =>  label ++ " $f " ++ expr->Js_array2.joinWith(" ") ++ " $."
         | {stmt:Essential({label, expr})} =>  label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $."
         | {stmt:Axiom({label, expr})} =>  label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Provable({label, expr, proof})} =>  label ++ " $p " ++ expr->Js_array2.joinWith(" ") ++ " $= " ++ switch proof {
-            | Uncompressed({labels}) => labels->Js_array2.joinWith(" ")
-            | _ => "..."
-        } ++ " $."
+        | {stmt:Provable({label, expr, proof})} =>  label ++ " $p " ++ expr->Js_array2.joinWith(" ")
+            ++ " $= " ++ proofToStr(proof) ++ " $."
     }
 }
 
@@ -371,20 +416,7 @@ let getSpaceSeparatedValuesAsArray = str => {
         ->Js_array2.filter(s => s->Js_string2.length > 0)
 }
 
-let proofToStr = proof => {
-    switch proof {
-        | Uncompressed({labels}) => labels->Js_array2.joinWith(" ")
-        | Compressed({labels, compressedProofBlock}) => 
-            "( " ++ labels->Js_array2.joinWith(" ") ++ " ) " ++ compressedProofBlock
-    }
-}
-
-let astToStr = (
-    ast:mmAstNode, 
-    ~skipComments:bool=false,
-    ~skipProofs:bool=false,
-    ()
-):string => {
+let astToStr = ( ast:mmAstNode ):string => {
     let res = []
     let save = str => res->Js_array2.push(str)->ignore
     traverseAst(
@@ -399,7 +431,7 @@ let astToStr = (
         },
         ~process = (_,node) => {
             switch node {
-                | {stmt:Comment({text})} if !skipComments => save("$( " ++ text ++ " $)")
+                | {stmt:Comment({text})} => save("$( " ++ text ++ " $)")
                 | {stmt:Const({symbols})} =>  save( "$c " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
                 | {stmt:Var({symbols})} =>  save( "$v " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
                 | {stmt:Disj({vars})} =>  save( "$d " ++ vars->Js_array2.joinWith(" ") ++ " $." )
@@ -407,9 +439,7 @@ let astToStr = (
                 | {stmt:Essential({label, expr})} =>  save( label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $." )
                 | {stmt:Axiom({label, expr})} =>  save( label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $." )
                 | {stmt:Provable({label, expr, proof})} => save(
-                    label ++ " $p " ++ expr->Js_array2.joinWith(" ") ++ " $= " 
-                    ++ if skipProofs {"?"} else {proofToStr(proof)}
-                    ++ " $."
+                    label ++ " $p " ++ expr->Js_array2.joinWith(" ") ++ " $= " ++ proofToStr(proof) ++ " $."
                 )
                 | _ => ()
             }

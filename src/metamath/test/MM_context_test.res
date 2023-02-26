@@ -6,7 +6,7 @@ describe("findParentheses", _ => {
     it("finds all parentheses", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
-        let (ast, _) = parseMmFile(mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
 
         //when
@@ -92,7 +92,7 @@ describe("moveConstsToBegin", _ => {
     it("descreases int codes of the specified constants", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
-        let (ast, _) = parseMmFile(mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
         let constsToMove = "( ) [ ] { }"
         assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
@@ -107,7 +107,7 @@ describe("moveConstsToBegin", _ => {
     it("doesn't fail if variables or unrecognized symbols are provided", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
-        let (ast, _) = parseMmFile(mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
         let constsToMove = "( ) [ ] { }"
         assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])

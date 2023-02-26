@@ -29,6 +29,8 @@ type frame = {
     varTypes: array<int>,
     numOfVars: int,
     numOfArgs: int,
+    descr:option<string>,
+    proof:option<proof>,
     dbg: option<frameDbg>,
 }
 
@@ -73,9 +75,16 @@ let ctxIntsToSymsExn: (mmContext, expr) => array<string>
 let ctxIntsToStrExn: (mmContext, expr) => string
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
-let createFrame: (mmContext, string, array<string>, ~skipHyps:bool=?, ~skipFirstSymCheck:bool=?, ()) => (frame, string)
+let createFrame: (
+    ~ctx:mmContext, 
+    ~label:string, 
+    ~exprStr:array<string>, 
+    ~proof:option<proof>,
+    ~skipHyps:bool=?, 
+    ~skipFirstSymCheck:bool=?, 
+    ()
+) => frame
 
-let ctxRemoveFrameDescriptions: mmContext => unit
 let moveConstsToBegin: (mmContext, string) => unit
 
 let generateNewVarNames: ( 

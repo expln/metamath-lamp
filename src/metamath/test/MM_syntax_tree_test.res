@@ -32,7 +32,7 @@ let rec syntaxTreeToSyntaxTreeTest = (node:syntaxTreeNode) => {
 let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest) => {
     //given
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
-    let (ast, _) = parseMmFile(mmFileText, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)

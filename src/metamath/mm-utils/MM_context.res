@@ -28,6 +28,8 @@ type frame = {
     varTypes: array<int>,
     numOfVars: int,
     numOfArgs: int,
+    descr:option<string>,
+    proof:option<proof>,
     dbg: option<frameDbg>,
 }
 
@@ -47,9 +49,8 @@ type rec mmContextContents = {
     disj: disjMutable,
     hyps: array<hypothesis>,
     symToHyp: mutableMapStr<hypothesis>,
-    mutable lastComment: string,
+    mutable lastComment: option<string>,
     frames: mutableMapStr<frame>,
-    frameDescr: mutableMapStr<string>,
     debug:bool,
 }
 
@@ -731,9 +732,8 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             disj: disjMutableMake(),
             hyps: [],
             symToHyp: mutableMapStrMake(),
-            lastComment: "",
+            lastComment: None,
             frames: mutableMapStrMake(),
-            frameDescr: mutableMapStrMake(),
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
@@ -756,7 +756,7 @@ let resetToParentContext: mmContext => unit = ctx => {
 }
 
 let addComment: (mmContext,string) => unit = (ctx,str) => {
-    ctx.contents.lastComment = str
+    ctx.contents.lastComment = Some(str)
 }
 
 let addConstPriv: (mmContextContents,string) => unit = (ctx,cName) => {
@@ -779,7 +779,6 @@ let closeChildContext: mmContext => unit = ctx => {
         | None => raise(MmException({msg:`Cannot close the root context.`}))
         | Some(parent) => {
             ctx.contents.frames->mutableMapStrForEach((k,v) => parent.frames->mutableMapStrPut(k,v))
-            ctx.contents.frameDescr->mutableMapStrForEach((k,v) => parent.frameDescr->mutableMapStrPut(k,v))
             parent
         }
     }
@@ -913,13 +912,14 @@ let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_
 }
 
 let createFramePriv = (
-    ctx:mmContextContents, 
-    label:string, 
-    exprStr:array<string>, 
+    ~ctx:mmContextContents, 
+    ~label:string, 
+    ~exprStr:array<string>,
+    ~proof:option<proof>,
     ~skipHyps:bool=false, 
     ~skipFirstSymCheck:bool=false, 
     ()
-):(frame,string) => {
+):frame => {
     if (label->Js_string2.trim == "") {
         raise(MmException({msg:`Cannot use empty string as a label.`}))
     } else if (ctx->getHypothesisPriv(label)->Belt_Option.isSome || ctx->getFramePriv(label)->Belt_Option.isSome) {
@@ -963,29 +963,24 @@ let createFramePriv = (
                     varTypes,
                     numOfVars: varTypes->Js_array2.length,
                     numOfArgs: hyps->Js_array2.length,
+                    descr: ctx.lastComment,
+                    proof,
                     dbg
                 }
-                (frame, ctx.lastComment)
+                frame
             }
         }
     }
 }
 
-let createFrame = ( ctx, label, exprStr, ~skipHyps:bool=false, ~skipFirstSymCheck:bool=false, () ) => 
-    createFramePriv(ctx.contents, label, exprStr, ~skipHyps, ~skipFirstSymCheck, ())
+let createFrame = ( ~ctx:mmContext, ~label, ~exprStr, ~proof, ~skipHyps:bool=false, ~skipFirstSymCheck:bool=false, () ) => 
+    createFramePriv(~ctx=ctx.contents, ~label, ~exprStr, ~proof, ~skipHyps, ~skipFirstSymCheck, ())
 
-let ctxRemoveFrameDescriptions = ctx => {
-    ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.frameDescr->mutableMapStrClear
-        None
-    })->ignore
-}
-
-let addAssertion: (mmContext, ~label:string, ~exprStr:array<string>) => unit = (ctx, ~label, ~exprStr) => {
+let addAssertion: (mmContext, ~label:string, ~exprStr:array<string>, ~proof:option<proof>) => unit = (
+    ctx, ~label, ~exprStr, ~proof
+) => {
     let ctx = ctx.contents
-    let (frame, descr) = createFramePriv(ctx, label, exprStr, ())
-    ctx.frames->mutableMapStrPut(label, frame)
-    ctx.frameDescr->mutableMapStrPut(label, descr)
+    ctx.frames->mutableMapStrPut(label, createFramePriv(~ctx, ~label, ~exprStr, ~proof, ()))
 }
 
 let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
@@ -997,7 +992,8 @@ let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
         | Disj({vars}) => addDisj(ctx, vars)
         | Floating({label, expr}) => addFloating(ctx, ~label, ~exprStr=expr)
         | Essential({label, expr}) => addEssential(ctx, ~label, ~exprStr=expr)
-        | Axiom({label, expr}) | Provable({label, expr}) => addAssertion(ctx, ~label, ~exprStr=expr)
+        | Axiom({label, expr}) => addAssertion(ctx, ~label, ~exprStr=expr, ~proof=None)
+        | Provable({label, expr, proof}) => addAssertion(ctx, ~label, ~exprStr=expr, ~proof)
     }
 }
 
@@ -1034,6 +1030,7 @@ let loadContext = (
                     if (level > 0) {
                         openChildContext(ctx)
                     }
+                    ctx.contents.lastComment = None
                     None
                 }
                 | {stmt:Axiom({label}) | Provable({label})} => {

@@ -12,7 +12,7 @@ open MM_substitution
 let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     //given
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
-    let (ast, _) = parseMmFile(mmFileText, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)

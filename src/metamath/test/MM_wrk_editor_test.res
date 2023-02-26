@@ -11,7 +11,7 @@ open MM_wrk_ctx
 
 let createEditorState = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
-    let (ast, _) = parseMmFile(mmFileText, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)

@@ -19,7 +19,7 @@ let createEditorState = (
     ()
 ) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(mmFileText, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
     let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ~debug?, ())
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext

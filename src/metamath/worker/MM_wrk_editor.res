@@ -1276,8 +1276,10 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
             let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
-            let (tmpFrame, _) = wrkCtx->createFrame(axLabel, wrkCtx->ctxIntsToSymsExn(frmExpr), ~skipHyps=true, 
-                                                    ~skipFirstSymCheck=true, ())
+            let tmpFrame = createFrame(
+                ~ctx=wrkCtx, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
+                ~skipHyps=true, ~skipFirstSymCheck=true, ()
+            )
             let frm = prepareFrmSubsDataForFrame(tmpFrame)
             let disj = wrkCtx->getAllDisj
             let foundSubs = []

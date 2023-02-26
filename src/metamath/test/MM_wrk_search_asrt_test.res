@@ -12,6 +12,8 @@ let createFrame = (asrt:expr, varTypes:array<int>):frame => {
         varTypes,
         numOfVars: varTypes->Js.Array2.length,
         numOfArgs: 0,
+        descr: None,
+        proof: None,
         dbg: None,
     }
 }

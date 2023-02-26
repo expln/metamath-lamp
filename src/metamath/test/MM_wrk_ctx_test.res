@@ -5,7 +5,7 @@ open MM_wrk_ctx
 
 let createMmCtx = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
-    let (ast, _) = parseMmFile(mmFileText, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     loadContext(ast, ())
 }
 

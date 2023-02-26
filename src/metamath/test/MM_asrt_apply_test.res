@@ -194,7 +194,7 @@ let testApplyAssertions = (
                         workCtx->applySingleStmt(Provable({
                             label, 
                             expr:exprArrStr,
-                            proof:Uncompressed({labels:[]})
+                            proof:Some(Uncompressed({labels:[]}))
                         }))
                         args->Js_array2.push(`${label}: ${exprArrStr->Js_array2.joinWith(" ")}`)->ignore
                         argLabels->Js_array2.push(label)->ignore
@@ -231,7 +231,7 @@ let testApplyAssertions = (
 
     //given
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(mmFileText, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
     let parens = "( ) { } [ ]"
     preCtx->moveConstsToBegin(parens)
