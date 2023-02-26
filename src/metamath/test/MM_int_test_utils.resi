@@ -12,3 +12,11 @@ let assertEditorState: (editorState, string) => unit
 let assertProof: (editorState, string, string) => unit
 let assertTextsEq: (string, string, string, string) => unit
 let assertTextEqFile: (string, string) => unit
+
+let generateReducedMmFile: (
+    ~pathToFullMmFile:string,
+    ~pathToSaveTo:string,
+    ~skipComments:bool=?,
+    ~skipProofs:bool=?,
+    ()
+) => unit

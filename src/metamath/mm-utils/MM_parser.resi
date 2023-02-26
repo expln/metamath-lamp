@@ -37,3 +37,9 @@ let traverseAst: ('c, mmAstNode,
 let stmtToStr: mmAstNode => string
 let stmtToStrRec: mmAstNode => array<string>
 let getSpaceSeparatedValuesAsArray: string => array<string>
+let astToStr: (
+    mmAstNode,
+    ~skipComments:bool=?,
+    ~skipProofs:bool=?,
+    ()
+) => string

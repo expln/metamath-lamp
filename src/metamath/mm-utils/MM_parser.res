@@ -370,3 +370,59 @@ let getSpaceSeparatedValuesAsArray = str => {
         ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
         ->Js_array2.filter(s => s->Js_string2.length > 0)
 }
+
+let proofToStr = proof => {
+    switch proof {
+        | Uncompressed({labels}) => labels->Js_array2.joinWith(" ")
+        | Compressed({labels, compressedProofBlock}) => 
+            "( " ++ labels->Js_array2.joinWith(" ") ++ " ) " ++ compressedProofBlock
+    }
+}
+
+let astToStr = (
+    ast:mmAstNode, 
+    ~skipComments:bool=false,
+    ~skipProofs:bool=false,
+    ()
+):string => {
+    let res = []
+    let save = str => res->Js_array2.push(str)->ignore
+    traverseAst(
+        (),
+        ast,
+        ~preProcess = (_,node) => {
+            switch node {
+                | {stmt:Block({level})} if level > 0 => save("${")
+                | _ => ()
+            }
+            None
+        },
+        ~process = (_,node) => {
+            switch node {
+                | {stmt:Comment({text})} if !skipComments => save("$( " ++ text ++ " $)")
+                | {stmt:Const({symbols})} =>  save( "$c " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Var({symbols})} =>  save( "$v " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Disj({vars})} =>  save( "$d " ++ vars->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Floating({label, expr})} =>  save( label ++ " $f " ++ expr->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Essential({label, expr})} =>  save( label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Axiom({label, expr})} =>  save( label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Provable({label, expr, proof})} => save(
+                    label ++ " $p " ++ expr->Js_array2.joinWith(" ") ++ " $= " 
+                    ++ if skipProofs {"?"} else {proofToStr(proof)}
+                    ++ " $."
+                )
+                | _ => ()
+            }
+            None
+        },
+        ~postProcess = (_,node) => {
+            switch node {
+                | {stmt:Block({level})} if level > 0 => save("$}")
+                | _ => ()
+            }
+            None
+        },
+        ()
+    )->ignore
+    res->Js_array2.joinWith("\n")
+}

@@ -3,7 +3,7 @@ open MM_parser
 open MM_wrk_editor
 open MM_statements_dto
 
-let setMmPath = "/books/metamath/set.mm"
+let setMmPath = "./src/metamath/test/resources/set-no-proofs.mm"
 let failOnMismatch = true
 let debug = false
 
@@ -124,4 +124,17 @@ let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:str
 
 let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
     assertStrEqFile(actualStr, expectedStrFileName)
+}
+
+let generateReducedMmFile = (
+    ~pathToFullMmFile:string,
+    ~pathToSaveTo:string,
+    ~skipComments:bool=false,
+    ~skipProofs:bool=false,
+    ()
+) => {
+    let fullMmFileText = Expln_utils_files.readStringFromFile(pathToFullMmFile)
+    let (ast, _) = parseMmFile(fullMmFileText, ())
+    let reducedContent = astToStr(ast, ~skipComments, ~skipProofs, ())
+    Expln_utils_files.writeStringToFile( pathToSaveTo, reducedContent )
 }
