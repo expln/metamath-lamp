@@ -134,7 +134,7 @@ let generateReducedMmFile = (
     ()
 ) => {
     let fullMmFileText = Expln_utils_files.readStringFromFile(pathToFullMmFile)
-    let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments=true, ~skipProofs=true, ())
+    let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs, ())
     let reducedContent = astToStr(ast)
     Expln_utils_files.writeStringToFile( pathToSaveTo, reducedContent )
 }
