@@ -23,11 +23,12 @@ type resultRendered = {
     isProved: bool,
     asrtLabel:string,
     numOfNewVars: int,
-    numOfNewUnprovedStmts: int,
+    numOfUnprovedStmts: int,
     numOfStmts: int,
 }
 
 type state = {
+    rootStmts: array<rootStmt>,
     exprToProve:expr,
     title: reElem,
 
@@ -98,6 +99,7 @@ let makeInitialState = (
 ) => {
     let stmtToProve = stmts[stmts->Js_array2.length-1].expr
     {
+        rootStmts: stmts,
         exprToProve: stmtToProve,
         title:
             <span>
@@ -162,11 +164,29 @@ let toggleUseRootStmtsAsArgs = (st) => {
     }
 }
 
-let newStmtsDtoToResultRendered = (newStmtsDto:stmtsDto, idx:int):resultRendered => {
+let isStmtToShow = (
+    ~stmt:stmtDto, 
+    ~rootJstfs:Belt_HashMap.t<expr,option<stmtJstfDto>,ExprHash.identity>
+):bool => {
+    if (!stmt.isProved) {
+        true
+    } else {
+        stmt.jstf != switch rootJstfs->Belt_HashMap.get(stmt.expr) {
+            | None => None
+            | Some(jstf) => jstf
+        }
+    }
+}
+
+let stmtsDtoToResultRendered = (
+    stmtsDto:stmtsDto, 
+    idx:int,
+    isStmtToShow:stmtDto=>bool
+):resultRendered => {
     let elem = 
         <Col>
             {
-                newStmtsDto.newDisjStr
+                stmtsDto.newDisjStr
                     ->Js.Array2.map(disjStr => {
                         <span key=disjStr>
                             {disjStr->React.string}
@@ -177,11 +197,13 @@ let newStmtsDtoToResultRendered = (newStmtsDto:stmtsDto, idx:int):resultRendered
             <table>
                 <tbody>
                     {
-                        newStmtsDto.stmts
+                        let maxI = stmtsDto.stmts->Js.Array2.length - 1
+                        stmtsDto.stmts
+                            ->Js.Array2.filteri((stmt,i) => i == maxI || isStmtToShow(stmt))
                             ->Js.Array2.map(stmt => {
                                 <tr key=stmt.exprStr>
                                     <td>
-                                        { React.string(stmt.label) } 
+                                        { React.string(stmt.label) }
                                     </td>
                                     <td style=ReactDOM.Style.make(~textAlign="right", ())>
                                         {
@@ -213,30 +235,30 @@ let newStmtsDtoToResultRendered = (newStmtsDto:stmtsDto, idx:int):resultRendered
         idx,
         elem,
         asrtLabel:
-            newStmtsDto.stmts[newStmtsDto.stmts->Js.Array2.length-1].jstf
+            stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1].jstf
                 ->Belt_Option.map(jstf => jstf.label)
                 ->Belt_Option.getWithDefault(""),
-        numOfNewVars: newStmtsDto.newVars->Js.Array2.length,
-        numOfNewUnprovedStmts: newStmtsDto.stmts->Js.Array2.reduce(
+        numOfNewVars: stmtsDto.newVars->Js.Array2.length,
+        numOfUnprovedStmts: stmtsDto.stmts->Js.Array2.reduce(
             (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
             0
         ),
-        isProved: newStmtsDto.stmts[newStmtsDto.stmts->Js.Array2.length-1].isProved,
-        numOfStmts: newStmtsDto.stmts->Js.Array2.length,
+        isProved: stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1].isProved,
+        numOfStmts: stmtsDto.stmts->Js.Array2.length,
     }
 }
 
 let compareByIsProved = Expln_utils_common.comparatorBy(res => if (res.isProved) {0} else {1})
 let compareByNumberOfStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 
-let compareByNumOfNewUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfNewUnprovedStmts)
+let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfUnprovedStmts)
 let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
 let compareByAsrtLabel = (a,b) => a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
 
 let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> => {
     open Expln_utils_common
     let mainCmp = switch sortBy {
-        | UnprovedStmtsNum => compareByNumOfNewUnprovedStmts
+        | UnprovedStmtsNum => compareByNumOfUnprovedStmts
         | NumOfNewVars => compareByNumOfNewVars
         | AsrtLabel => compareByAsrtLabel
     }
@@ -255,6 +277,13 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     }
 }
 
+let jstfToDto = (jstf:justification):stmtJstfDto => {
+    {
+        args: jstf.args,
+        label: jstf.asrt,
+    }
+}
+
 let setResults = (st,tree,results) => {
     switch results {
         | None => {
@@ -270,7 +299,11 @@ let setResults = (st,tree,results) => {
             }
         }
         | Some(results) => {
-            let resultsRendered = Some(results->Js_array2.mapi((dto,i) => newStmtsDtoToResultRendered(dto,i)))
+            let rootJstfs = st.rootStmts
+                ->Js_array2.map(stmt => (stmt.expr, stmt.justification->Belt_Option.map(jstfToDto)))
+                ->Belt_HashMap.fromArray(~id=module(ExprHash))
+            let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
+            let resultsRendered = Some(results->Js_array2.mapi((dto,i) => stmtsDtoToResultRendered(dto,i,isStmtToShow)))
             {
                 ...st,
                 tree,
@@ -409,10 +442,6 @@ let make = (
 
     let actToggleUseRootStmtsAsArgs = () => {
         setState(toggleUseRootStmtsAsArgs)
-    }
-
-    let rndTitle = () => {
-        state.title
     }
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
@@ -559,7 +588,7 @@ let make = (
                             label="Sort results by"
                             onChange=evt2str(str => actSortByChange(sortByFromStr(str)))
                         >
-                            <MenuItem value="UnprovedStmtsNum">{React.string("Number of new unproved statements")}</MenuItem>
+                            <MenuItem value="UnprovedStmtsNum">{React.string("Number of unproved statements")}</MenuItem>
                             <MenuItem value="NumOfNewVars">{React.string("Number of new variables")}</MenuItem>
                             <MenuItem value="AsrtLabel">{React.string("Assertion label")}</MenuItem>
                         </Select>
@@ -706,6 +735,10 @@ let make = (
                 }
             }
         }
+    }
+
+    let rndTitle = () => {
+        state.title
     }
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>

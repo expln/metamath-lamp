@@ -1,3 +1,5 @@
+- rename rootStmt.justification to jstf and other related fields.
+- rename stmtJstfDto to jstfDto.
 -fix a bug: in bottom-up proof dialog, when applying selected statements, jstf should be set not only for the stmt being proved but for other unproved root stmts too.
     1. load set.mm, read all
     2. load my-editor-state.json
