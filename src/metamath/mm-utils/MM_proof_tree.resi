@@ -2,16 +2,12 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_unification_debug
-
-type justification = {
-    args: array<string>,
-    asrt: string
-}
+open MM_statements_dto
 
 type rootStmt = {
     label: string,
     expr: expr,
-    justification: option<justification>,
+    jstf: option<jstf>,
 }
 
 type proofNode
@@ -32,7 +28,7 @@ let ptMake: (
     ~exprToStr: option<expr=>string>,
 ) => proofTree
 
-let jstfEq: (justification, justification) => bool
+let jstfEq: (jstf, jstf) => bool
 
 let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>

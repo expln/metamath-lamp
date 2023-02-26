@@ -66,8 +66,8 @@ let strToCont = (
     )
 }
 
-let jstfToStr = (jstf:justification) => {
-    (jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.asrt)->Js_string2.trim
+let jstfToStr = (jstf:jstf) => {
+    (jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.label)->Js_string2.trim
 }
 
 type userStmtType = E | P
@@ -107,7 +107,7 @@ type userStmt = {
     stmtErr: option<string>,
 
     expr: option<expr>,
-    jstf: option<justification>,
+    jstf: option<jstf>,
     proof: option<(proofTreeDto, proofNodeDto)>,
     proofStatus: option<proofStatus>,
 }
@@ -301,7 +301,7 @@ let getStmtsForUnification = (st):array<rootStmt> => {
                         | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
                         | Some(expr) => expr
                     },
-                justification: stmt.jstf,
+                jstf: stmt.jstf,
             }
         })
 }
@@ -755,7 +755,7 @@ let refreshWrkCtx = (st:editorState):editorState => {
     st
 }
 
-let parseJstf = (jstfText:string):result<option<justification>,string> => {
+let parseJstf = (jstfText:string):result<option<jstf>,string> => {
     let jstfTrim = jstfText->Js_string2.trim
     if (jstfTrim->Js_string2.length == 0) {
         Ok(None)
@@ -766,7 +766,7 @@ let parseJstf = (jstfText:string):result<option<justification>,string> => {
         } else {
             Ok(Some({
                 args: argsAndAsrt[0]->getSpaceSeparatedValuesAsArray,
-                asrt: argsAndAsrt[1]->Js_string2.trim
+                label: argsAndAsrt[1]->Js_string2.trim
             }))
         }
     }
@@ -801,14 +801,14 @@ let validateJstfRefs = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_Mutable
     } else {
         switch stmt.jstf {
             | None => stmt
-            | Some({args,asrt}) => {
+            | Some({args,label}) => {
                 switch args->Js_array2.find(ref => !isLabelDefined(ref,wrkCtx,usedLabels)) {
                     | Some(ref) => {
                         {...stmt, stmtErr:Some(`The reference '${ref}' is not defined.`)}
                     }
                     | None => {
-                        if (!(wrkCtx->isAsrt(asrt))) {
-                            {...stmt, stmtErr:Some(`The label '${asrt}' doesn't refer to any assertion.`)}
+                        if (!(wrkCtx->isAsrt(label))) {
+                            {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
                         } else {
                             stmt
                         }
@@ -1005,7 +1005,7 @@ let insertProvable = (
             res.contents
         }
     }
-    let newJstf:result<option<justification>,_> = parseJstf(jstfText)
+    let newJstf:result<option<jstf>,_> = parseJstf(jstfText)
     let minIdx = switch newJstf {
         | Ok(Some({args})) => {
             let remainingLabels = Belt_HashSetString.fromArray(args)
@@ -1122,7 +1122,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                             args: args->Js_array2.map(argLabel => {
                                 newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
                             }), 
-                            asrt:label
+                            label
                         })
                     }
                 }
@@ -1389,7 +1389,7 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSourceDto, exprToUserStmt):option<justification> => {
+let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSourceDto, exprToUserStmt):option<jstf> => {
     switch exprSrc {
         | Assertion({args, label:asrtLabel}) => {
             switch wrkCtx->getFrame(asrtLabel) {
@@ -1413,7 +1413,7 @@ let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSourceDto, expr
                     if (argLabelsValid.contents) {
                         Some({
                             args: argLabels,
-                            asrt: asrtLabel
+                            label: asrtLabel
                         })
                     } else {
                         None

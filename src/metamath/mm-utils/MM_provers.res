@@ -6,6 +6,7 @@ open MM_parenCounter
 open MM_progress_tracker
 open MM_proof_tree
 open MM_unification_debug
+open MM_statements_dto
 
 type lengthRestrict = No | LessEq | Less
 
@@ -283,7 +284,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
 
 let getStatementsFromJustification = (
     ~tree:proofTree,
-    ~jstf: justification,
+    ~jstf: jstf,
 ):option<array<expr>> => {
     let getStmtByLabel = label => {
         switch tree->ptGetRootStmts->Js.Array2.find(stmt => stmt.label == label) {
@@ -310,7 +311,7 @@ let getStatementsFromJustification = (
 let proveWithJustification = (
     ~tree:proofTree, 
     ~expr:expr, 
-    ~jstf: justification, 
+    ~jstf: jstf,
 ):proofNode => {
     let node = tree->ptGetOrCreateNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
@@ -324,7 +325,7 @@ let proveWithJustification = (
                     ~exactOrderOfStmts=true,
                     ~allowEmptyArgs=false,
                     ~allowNewVars=false,
-                    ~asrtLabel=jstf.asrt,
+                    ~asrtLabel=jstf.label,
                     ()
                 )
                 parents->Expln_utils_common.arrForEach(parent => {
@@ -493,7 +494,7 @@ let proveStmtBottomUp = (
 let proveStmt = (
     ~tree, 
     ~expr:expr, 
-    ~jstf:option<justification>, 
+    ~jstf:option<jstf>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
@@ -548,7 +549,7 @@ let createProofTree = (
                 tree->ptAddRootStmt({
                     label,
                     expr: hyp.expr,
-                    justification: None,
+                    jstf: None,
                 })->ignore
             }
         })
@@ -607,7 +608,7 @@ let unifyAll = (
         proveStmt(
             ~tree, 
             ~expr=stmt.expr, 
-            ~jstf=stmt.justification,
+            ~jstf=stmt.jstf,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
             ~debugLevel,
             ~onProgress =

@@ -263,7 +263,7 @@ let unifyAll = (st):editorState => {
                                 | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
                                 | Some(expr) => expr
                             },
-                        justification: stmt.jstf,
+                        jstf: stmt.jstf,
                     }
                 })
             let proofTree = unifyAll(

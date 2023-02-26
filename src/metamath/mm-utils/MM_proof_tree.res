@@ -3,16 +3,12 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_unification_debug
-
-type justification = {
-    args: array<string>,
-    asrt: string
-}
+open MM_statements_dto
 
 type rootStmt = {
     label: string,
     expr: expr,
-    justification: option<justification>,
+    jstf: option<jstf>,
 }
 
 type rec proofNode = {
@@ -47,7 +43,7 @@ and proofTree = {
 }
 
 let jstfEq = (jstf1, jstf2) => {
-    jstf1.args == jstf1.args && jstf1.asrt == jstf1.asrt
+    jstf1.args == jstf1.args && jstf1.label == jstf1.label
 }
 
 let exprSourceEq = (s1,s2) => {

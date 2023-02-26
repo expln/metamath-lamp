@@ -52,7 +52,7 @@ type userStmt = {
     stmtErr: option<string>,
 
     expr: option<expr>,
-    jstf: option<justification>,
+    jstf: option<jstf>,
     proof: option<(proofTreeDto, proofNodeDto)>,
     proofStatus: option<proofStatus>,
 }

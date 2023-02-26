@@ -1,15 +1,15 @@
 open MM_context
 
-type stmtJstfDto = {
-    args:array<string>,
-    label:string,
+type jstf = {
+    args: array<string>,
+    label: string
 }
 
 type stmtDto = {
     label:string,
     expr:expr,
     exprStr:string,
-    jstf:option<stmtJstfDto>,
+    jstf:option<jstf>,
     isProved: bool,
 }
 

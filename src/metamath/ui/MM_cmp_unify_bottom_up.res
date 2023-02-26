@@ -166,7 +166,7 @@ let toggleUseRootStmtsAsArgs = (st) => {
 
 let isStmtToShow = (
     ~stmt:stmtDto, 
-    ~rootJstfs:Belt_HashMap.t<expr,option<stmtJstfDto>,ExprHash.identity>
+    ~rootJstfs:Belt_HashMap.t<expr,option<jstf>,ExprHash.identity>
 ):bool => {
     if (!stmt.isProved) {
         true
@@ -277,13 +277,6 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     }
 }
 
-let jstfToDto = (jstf:justification):stmtJstfDto => {
-    {
-        args: jstf.args,
-        label: jstf.asrt,
-    }
-}
-
 let setResults = (st,tree,results) => {
     switch results {
         | None => {
@@ -300,7 +293,7 @@ let setResults = (st,tree,results) => {
         }
         | Some(results) => {
             let rootJstfs = st.rootStmts
-                ->Js_array2.map(stmt => (stmt.expr, stmt.justification->Belt_Option.map(jstfToDto)))
+                ->Js_array2.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
             let resultsRendered = Some(results->Js_array2.mapi((dto,i) => stmtsDtoToResultRendered(dto,i,isStmtToShow)))

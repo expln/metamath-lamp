@@ -453,7 +453,7 @@ describe("prepareProvablesForUnification", _ => {
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(st.stmts[3].stmtErr->Belt_Option.isNone, true)
         assertEq(st.stmts[3].expr->Belt_Option.isSome, true)
-        assertEq(st.stmts[3].jstf, Some({args:["pr1", "hyp1"], asrt:"mp"}))
+        assertEq(st.stmts[3].jstf, Some({args:["pr1", "hyp1"], label:"mp"}))
     })
 })
 
