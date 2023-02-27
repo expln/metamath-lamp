@@ -11,6 +11,11 @@ open MM_substitution
 open MM_parenCounter
 open MM_statements_dto
 
+type rootStmtsToUse =
+    | All
+    | None
+    | Some(array<stmtId>)
+
 let createEditorState = (
     ~mmFilePath:string, 
     ~stopBefore:option<string>=?, 
@@ -267,9 +272,20 @@ let unifyAll = (st):editorState => {
     }
 }
 
+let filterRootStmts = (stmts:array<userStmt>, rootStmtsToUse:rootStmtsToUse):array<expr> => {
+    let stmtsFiltered = switch rootStmtsToUse {
+        | All => stmts
+        | None => []
+        | Some(ids) => stmts->Js_array2.filter(stmt => ids->Js_array2.includes(stmt.id))
+    }
+    stmtsFiltered->Js_array2.map(stmt => userStmtToRootStmt(stmt).expr)
+}
+
 let unifyBottomUp = (
     st,
     ~stmtId:stmtId,
+    ~args0:rootStmtsToUse=All,
+    ~args1:rootStmtsToUse=None,
     ~asrtLabel:option<string>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
@@ -282,6 +298,7 @@ let unifyBottomUp = (
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
+            let rootUserStmts = st->getRootStmtsForUnification
             let rootProvables = st->getRootProvablesForUnification
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
@@ -293,8 +310,8 @@ let unifyBottomUp = (
                     maxSearchDepth,
                     lengthRestriction,
                     allowNewVars,
-                    args0:[],
-                    args1:[],
+                    args0:filterRootStmts(rootUserStmts, args0),
+                    args1:filterRootStmts(rootUserStmts, args1),
                 },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
@@ -302,7 +319,7 @@ let unifyBottomUp = (
             let proofTreeDto = proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))
             let newStmts = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~rootStmts = st->getRootStmtsForUnification->Js_array2.map(userStmtToRootStmt),
+                ~rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt),
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(

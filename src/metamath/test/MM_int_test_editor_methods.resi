@@ -1,6 +1,11 @@
 open MM_wrk_editor
 open MM_statements_dto
 
+type rootStmtsToUse =
+    | All
+    | None
+    | Some(array<stmtId>)
+
 let createEditorState: (
     ~mmFilePath: string,
     ~stopBefore: string=?,
@@ -62,6 +67,8 @@ let unifyAll: editorState => editorState
 let unifyBottomUp: (
     editorState,
     ~stmtId:stmtId,
+    ~args0:rootStmtsToUse=?,
+    ~args1:rootStmtsToUse=?,
     ~asrtLabel: string=?,
     ~maxSearchDepth: int=?,
     ~lengthRestriction: MM_provers.lengthRestrict=?,

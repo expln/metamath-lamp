@@ -222,7 +222,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", 
             () 
         )
-        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId, 
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
@@ -255,6 +255,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=st->Ed.getStmtId(~contains="|- ( x = A -> if", ()), 
+            ~args0=None,
             ~allowNewVars=false, 
             ~chooseLabel="ifbieq2d",
             ()
@@ -283,7 +284,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~stmtId=trgtStmtId, 
             ~maxSearchDepth=6,
             ~allowNewVars=false, 
-            //~useRootStmtsAsArgs=true,
+            ~args1=All,
             ~chooseLabel="ax-mp",
             ()
         )
@@ -333,7 +334,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~asrtLabel="ax-mp",
             ~maxSearchDepth=6,
             ~allowNewVars=false, 
-            //~useRootStmtsAsArgs=true,
+            ~args1=All,
             ~chooseLabel="ax-mp",
             ()
         )
