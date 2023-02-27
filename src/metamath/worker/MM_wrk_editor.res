@@ -112,18 +112,6 @@ type userStmt = {
     proofStatus: option<proofStatus>,
 }
 
-let createEmptyUserStmt = (id, typ, label):userStmt => {
-    { 
-        id, 
-        label, labelEditMode:false, 
-        typ, typEditMode:false, 
-        cont:Text([]), contEditMode:true,
-        jstfText:"", jstfEditMode:false,
-        stmtErr: None,
-        expr:None, jstf:None, proof:None, proofStatus:None,
-    }
-}
-
 type editorState = {
     settingsV:int,
     settings:settings,
@@ -162,6 +150,31 @@ type wrkSubs = {
     newDisj: disjMutable,
     subs: Belt_MapInt.t<expr>,
     mutable err: option<wrkSubsErr>,
+}
+
+let createEmptyUserStmt = (id, typ, label):userStmt => {
+    { 
+        id, 
+        label, labelEditMode:false, 
+        typ, typEditMode:false, 
+        cont:Text([]), contEditMode:true,
+        jstfText:"", jstfEditMode:false,
+        stmtErr: None,
+        expr:None, jstf:None, proof:None, proofStatus:None,
+    }
+}
+
+let userStmtToRootStmt = (stmt:userStmt):rootStmt => {
+    {
+        isHyp:stmt.typ == E,
+        label:stmt.label,
+        expr:
+            switch stmt.expr {
+                | None => raise(MmException({msg:`Expr must be set for a userStmt before converting to rootStmt.`}))
+                | Some(expr) => expr
+            },
+        jstf: stmt.jstf,
+    }
 }
 
 let getStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
@@ -290,20 +303,14 @@ let getAllStmtsUpToChecked = (st):array<userStmt> => {
 
 let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
 
-let getStmtsForUnification = (st):array<rootStmt> => {
+let getRootStmtsForUnification = (st):array<userStmt> => {
     st->getAllStmtsUpToChecked
+}
+
+let getRootProvablesForUnification = (st):array<rootStmt> => {
+    st->getRootStmtsForUnification
         ->Js_array2.filter(stmt => stmt.typ == P)
-        ->Js_array2.map(stmt => {
-            {
-                label:stmt.label,
-                expr:
-                    switch stmt.expr {
-                        | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
-                        | Some(expr) => expr
-                    },
-                jstf: stmt.jstf,
-            }
-        })
+        ->Js_array2.map(userStmtToRootStmt)
 }
 
 let createNewLabel = (st:editorState, prefix:string):string => {
@@ -1072,17 +1079,21 @@ let insertProvable = (
     switch st.stmts->Js_array2.find(stmt => stmt.cont->contToStr == exprText) {
         | None => insertNewStmt(st,None)
         | Some(existingStmt) => {
-            switch parseJstf(existingStmt.jstfText) {
-                | Ok(None) => updateExistingStmt(st,existingStmt,newJstf)
-                | Ok(Some(existingJstf)) => {
-                    if (existingJstf->jstfEqNewJstf) {
-                        (st, existingStmt.id, existingStmt.label)
-                    } else {
+            if (existingStmt.typ == E) {
+                (st, existingStmt.id, existingStmt.label)
+            } else {
+                switch parseJstf(existingStmt.jstfText) {
+                    | Ok(None) => updateExistingStmt(st,existingStmt,newJstf)
+                    | Ok(Some(existingJstf)) => {
+                        if (existingJstf->jstfEqNewJstf) {
+                            (st, existingStmt.id, existingStmt.label)
+                        } else {
+                            insertNewStmt(st,Some(existingStmt))
+                        }
+                    }
+                    | Error(_) => {
                         insertNewStmt(st,Some(existingStmt))
                     }
-                }
-                | Error(_) => {
-                    insertNewStmt(st,Some(existingStmt))
                 }
             }
         }
@@ -1180,7 +1191,7 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):unit => {
     let proofTree = proveFloatings(
         ~ctx,
         ~frms,
-        ~stmts=typesToProve,
+        ~floatingsToProve=typesToProve,
         ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens), ()),
         ()
     )

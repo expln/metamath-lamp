@@ -6,6 +6,7 @@ open MM_unification_debug
 open MM_statements_dto
 
 type rootStmt = {
+    isHyp: bool,
     label: string,
     expr: expr,
     jstf: option<jstf>,
@@ -149,11 +150,6 @@ let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
 }
 
 let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
-
-let ptGetStats = (tree:proofTree) => {
-    let hist = Belt_HashMap.getBucketHistogram(tree.nodes)
-    // Js.Console.log2("hist", hist)
-}
 
 let ptGetRootStmts = tree => {
     tree.rootStmts

@@ -622,14 +622,15 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         ->Js_array2.filter(stmt => stmt.typ == E)
                         ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                 }
-                let stmts={state->getStmtsForUnification}
+                let rootStmts = state->getRootStmtsForUnification
+                let rootProvables = state->getRootProvablesForUnification
                 switch singleProvableSelected {
-                    | Some(singleProvableSelected) => {
+                    | Some(_) => {
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
-                                    modalRef preCtxVer preCtx wrkCtx parenStr varsText disjText hyps stmts
-                                    userStmtToProve=singleProvableSelected
+                                    modalRef preCtxVer preCtx wrkCtx parenStr varsText disjText hyps rootProvables
+                                    rootStmts
                                     frms=state.frms parenCnt=state.parenCnt
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
@@ -653,7 +654,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 )
                             )
                             unify(
-                                ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts,
+                                ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~rootProvables,
                                 ~bottomUpProverParams=None,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(

@@ -17,8 +17,8 @@ let unify: (
     ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<MM_wrk_ctx.wrkCtxHyp>,
-    ~stmts: array<MM_proof_tree.rootStmt>,
+    ~hyps: array<wrkCtxHyp>,
+    ~rootProvables: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
     ~onProgress: string => unit,
 ) => Expln_utils_promise.promise<MM_proof_tree_dto.proofTreeDto>

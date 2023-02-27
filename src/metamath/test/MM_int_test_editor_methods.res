@@ -253,27 +253,15 @@ let unifyAll = (st):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
-            let stmts = st.stmts
-                ->Js_array2.filter(stmt => stmt.typ == P)
-                ->Js_array2.map(stmt => {
-                    {
-                        label:stmt.label,
-                        expr:
-                            switch stmt.expr {
-                                | None => raise(MmException({msg:`Expr must be set for all statements before unification.`}))
-                                | Some(expr) => expr
-                            },
-                        jstf: stmt.jstf,
-                    }
-                })
+            let rootProvables = st->getRootProvablesForUnification
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
-                ~stmts,
+                ~rootProvables,
                 ()
             )
-            let proofTreeDto = proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)
         }
     }
@@ -286,7 +274,6 @@ let unifyBottomUp = (
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
     ~allowNewVars:bool=true,
-    ~useRootStmtsAsArgs:bool=false,
     ~chooseLabel:string,
     ()
 ):(editorState, stmtsDto) => {
@@ -295,26 +282,27 @@ let unifyBottomUp = (
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
-            let rootStmts = st->getStmtsForUnification
+            let rootProvables = st->getRootProvablesForUnification
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
-                ~stmts = rootStmts,
+                ~rootProvables,
                 ~bottomUpProverParams = {
                     asrtLabel,
                     maxSearchDepth,
                     lengthRestriction,
                     allowNewVars,
-                    useRootStmtsAsArgs
+                    args0:[],
+                    args1:[],
                 },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )
-            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))
             let newStmts = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~rootStmts,
+                ~rootStmts = st->getRootStmtsForUnification->Js_array2.map(userStmtToRootStmt),
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(

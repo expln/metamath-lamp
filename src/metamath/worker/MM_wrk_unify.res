@@ -11,7 +11,7 @@ let procName = "MM_wrk_unify"
 
 type request = 
     | Unify({
-        stmts: array<rootStmt>, 
+        rootProvables: array<rootStmt>, 
         bottomUpProverParams:option<bottomUpProverParams>,
     })
 
@@ -26,7 +26,7 @@ let unify = (
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
-    ~stmts: array<rootStmt>,
+    ~rootProvables: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
     ~onProgress:string=>unit,
 ): promise<proofTreeDto> => {
@@ -39,8 +39,8 @@ let unify = (
             ~disjText,
             ~hyps,
             ~procName,
-            ~initialRequest = Unify({stmts:stmts, bottomUpProverParams}),
-            ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
+            ~initialRequest = Unify({rootProvables:rootProvables, bottomUpProverParams}),
+            ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(msg) => onProgress(msg)
                     | Result(proofTree) => {
@@ -57,17 +57,17 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({stmts, bottomUpProverParams}) => {
+        | Unify({rootProvables, bottomUpProverParams}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
-                ~stmts,
+                ~rootProvables,
                 ~bottomUpProverParams?,
                 ~onProgress = msg => sendToClient(OnProgress(msg)),
                 ()
             )
-            sendToClient(Result(proofTree->proofTreeToDto(stmts->Js_array2.map(stmt=>stmt.expr))))
+            sendToClient(Result(proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))))
         }
     }
 }
@@ -124,6 +124,10 @@ let srcToNewStmts = (
             let varNames = Belt_HashMapInt.make(~hintSize=8)
             let usedVarNames = Belt_HashSetString.make(~hintSize=8)
             let usedLabels = rootStmts->Js.Array2.map(stmt=>stmt.label)->Belt_HashSetString.fromArray
+            let hyps = rootStmts
+                ->Js.Array2.filter(stmt => stmt.isHyp)
+                ->Js.Array2.map(stmt => stmt.expr)
+                ->Belt_HashSet.fromArray(~id=module(ExprHash))
 
             let getFrame = label => {
                 switch ctx->getFrame(label) {
@@ -215,7 +219,7 @@ let srcToNewStmts = (
                         }
                     },
                     ~postProcess = (_,node) => {
-                        if (!(savedExprs->Belt_HashSet.has(node.expr))) {
+                        if (!(savedExprs->Belt_HashSet.has(node.expr)) && !(hyps->Belt_HashSet.has(node.expr))) {
                             savedExprs->Belt_HashSet.add(node.expr)
                             let label = switch exprToLabel->Belt_HashMap.get(node.expr) {
                                 | Some(label) => label

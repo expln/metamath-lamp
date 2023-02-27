@@ -10,13 +10,14 @@ type bottomUpProverParams = {
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
     allowNewVars: bool,
-    useRootStmtsAsArgs: bool,
+    args0: array<expr>,
+    args1: array<expr>,
 }
 
 let proveFloatings: (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~stmts: array<expr>,
+    ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
     (),
 ) => proofTree
@@ -25,7 +26,7 @@ let proveFloatings: (
 let unifyAll: (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~stmts: array<rootStmt>,
+    ~rootProvables: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~debugLevel:int=?,

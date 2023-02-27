@@ -66,7 +66,6 @@ let unifyBottomUp: (
     ~maxSearchDepth: int=?,
     ~lengthRestriction: MM_provers.lengthRestrict=?,
     ~allowNewVars: bool=?,
-    ~useRootStmtsAsArgs: bool=?,
     ~chooseLabel: string,
     unit,
 ) => (editorState, stmtsDto)

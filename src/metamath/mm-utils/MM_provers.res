@@ -15,7 +15,8 @@ type bottomUpProverParams = {
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
     allowNewVars: bool,
-    useRootStmtsAsArgs: bool,
+    args0: array<expr>,
+    args1: array<expr>,
 }
 
 let findAsrtParentsWithoutNewVars = ( 
@@ -156,8 +157,8 @@ let proveFloating = (
 let findAsrtParentsWithNewVars = (
     ~tree,
     ~expr:expr,
-    ~stmts:array<expr>,
-    ~exactOrderOfStmts:bool,
+    ~args:array<expr>,
+    ~exactOrderOfArgs:bool,
     ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
@@ -170,8 +171,8 @@ let findAsrtParentsWithNewVars = (
         ~frms = tree->ptGetFrms,
         ~isDisjInCtx = tree->ptIsDisj,
         ~parenCnt=tree->ptGetParenCnt,
-        ~statements = stmts,
-        ~exactOrderOfStmts,
+        ~statements = args,
+        ~exactOrderOfStmts = exactOrderOfArgs,
         ~allowEmptyArgs,
         ~result = expr,
         ~frameFilter = frame => asrtLabel
@@ -268,8 +269,8 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
         let parents = findAsrtParentsWithNewVars( 
             ~tree, 
             ~expr, 
-            ~stmts=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr),
-            ~exactOrderOfStmts=false,
+            ~args=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr),
+            ~exactOrderOfArgs=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
             () 
@@ -318,11 +319,11 @@ let proveWithJustification = (
         switch getStatementsFromJustification( ~tree, ~jstf, ) {
             | None => ()
             | Some(args) => {
-                let parents = findAsrtParentsWithNewVars( 
+                let parents = findAsrtParentsWithNewVars(
                     ~tree,
                     ~expr,
-                    ~stmts=args,
-                    ~exactOrderOfStmts=true,
+                    ~args,
+                    ~exactOrderOfArgs=true,
                     ~allowEmptyArgs=false,
                     ~allowNewVars=false,
                     ~asrtLabel=jstf.label,
@@ -443,8 +444,8 @@ let proveStmtBottomUp = (
         let parents = findAsrtParentsWithNewVars(
             ~tree,
             ~expr,
-            ~stmts = if (params.useRootStmtsAsArgs || dist == 0) {rootExprs} else {[]},
-            ~exactOrderOfStmts=false,
+            ~args = if (dist == 0) {params.args0} else {params.args1},
+            ~exactOrderOfArgs=false,
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
             ~allowEmptyArgs = true,
             ~allowNewVars = dist == 0 && params.allowNewVars,
@@ -547,6 +548,7 @@ let createProofTree = (
                 let node = tree->ptGetOrCreateNode(hyp.expr)
                 node->pnAddParent(Hypothesis({label:label}))
                 tree->ptAddRootStmt({
+                    isHyp: true,
                     label,
                     expr: hyp.expr,
                     jstf: None,
@@ -560,7 +562,7 @@ let createProofTree = (
 let proveFloatings = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~stmts: array<expr>,
+    ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
     ()
 ) => {
@@ -571,8 +573,8 @@ let proveFloatings = (
         ~addEssentials=false,
     )
 
-    stmts->Js.Array2.forEach(stmt => {
-        proveFloating( ~tree, ~node=tree->ptGetOrCreateNode(stmt) )
+    floatingsToProve->Js.Array2.forEach(expr => {
+        proveFloating( ~tree, ~node=tree->ptGetOrCreateNode(expr) )
     })
     tree
 }
@@ -580,7 +582,7 @@ let proveFloatings = (
 let unifyAll = (
     ~ctx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~stmts: array<rootStmt>,
+    ~rootProvables: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~debugLevel:int=1,
@@ -602,9 +604,9 @@ let unifyAll = (
         ~addEssentials=true,
     )
 
-    let numOfStmts = stmts->Js_array2.length
+    let numOfStmts = rootProvables->Js_array2.length
     let maxStmtIdx = numOfStmts - 1
-    stmts->Js.Array2.forEachi((stmt,stmtIdx) => {
+    rootProvables->Js.Array2.forEachi((stmt,stmtIdx) => {
         proveStmt(
             ~tree, 
             ~expr=stmt.expr, 
@@ -624,13 +626,6 @@ let unifyAll = (
             (stmtIdx+1)->Belt_Int.toFloat /. numOfStmts->Belt_Int.toFloat
         )
     })
-
-    if (ctx->isDebug) {
-        tree->ptGetStats
-        let nodes = stmts->Js.Array2.map(stmt => tree->ptGetOrCreateNode(stmt.expr))
-        //to doto: too many children
-        // Js.Console.log2("nodes.length", nodes->Js_array2.length)
-    }
 
     tree
 }

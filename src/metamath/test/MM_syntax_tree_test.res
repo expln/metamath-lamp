@@ -40,7 +40,7 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     let proofTree = proveFloatings(
         ~ctx,
         ~frms=prepareFrmSubsData(ctx),
-        ~stmts = [expr],
+        ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
         (),
     )

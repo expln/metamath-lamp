@@ -57,8 +57,6 @@ type userStmt = {
     proofStatus: option<proofStatus>,
 }
 
-let createEmptyUserStmt: (string, userStmtType, string) => userStmt
-
 type editorState = {
     settingsV:int,
     settings:settings,
@@ -99,6 +97,9 @@ type wrkSubs = {
     mutable err: option<wrkSubsErr>,
 }
 
+let createEmptyUserStmt: (string, userStmtType, string) => userStmt
+let userStmtToRootStmt: userStmt => rootStmt
+
 let updateStmt: (editorState, string, userStmt => userStmt) => editorState
 let isStmtChecked: (editorState, string) => bool
 let toggleStmtChecked: (editorState, string) => editorState
@@ -108,7 +109,8 @@ let deleteCheckedStmts: editorState => editorState
 let deleteStmt: (editorState, string) => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
-let getStmtsForUnification: editorState => array<rootStmt>
+let getRootStmtsForUnification: editorState => array<userStmt>
+let getRootProvablesForUnification: editorState => array<rootStmt>
 let addNewStmt: editorState => (editorState,string)
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: editorState => editorState

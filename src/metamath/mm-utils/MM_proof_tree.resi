@@ -5,6 +5,7 @@ open MM_unification_debug
 open MM_statements_dto
 
 type rootStmt = {
+    isHyp: bool,
     label: string,
     expr: expr,
     jstf: option<jstf>,
@@ -50,7 +51,6 @@ let ptAddRootStmt: (proofTree, rootStmt) => unit
 let ptClearDists: proofTree => unit
 
 let ptGetNuberOfNodes: proofTree => int
-let ptGetStats: proofTree => unit
 
 let pnGetExpr: proofNode => expr
 let pnGetExprStr: proofNode => option<string>

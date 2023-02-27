@@ -27,18 +27,27 @@ type resultRendered = {
     numOfStmts: int,
 }
 
+type rootStmtRendered = {
+    id: string,
+    expr:expr,
+    elem:reElem,
+}
+
 type state = {
-    rootStmts: array<rootStmt>,
+    rootStmts: array<userStmt>,
+    rootStmtsRendered: array<rootStmtRendered>,
     exprToProve:expr,
     title: reElem,
+    rootProvables: array<rootStmt>,
 
+    args0: array<bool>,
+    args1: array<bool>,
     availableLabels: array<string>,
     label:option<string>,
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
     allowNewVars: bool,
-    useRootStmtsAsArgs: bool,
 
     tree: option<proofTreeDto>,
     results: option<array<stmtsDto>>,
@@ -51,18 +60,18 @@ type state = {
     checkedResultIdx: option<int>,
 }
 
-let stmtMayMatchAsrt = (
-    ~stmt:expr,
+let exprMayMatchAsrt = (
+    ~expr:expr,
     ~frm:frmSubsData,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (stmt[0] != frm.frame.asrt[0]) {
+    if (expr[0] != frm.frame.asrt[0]) {
         false
     } else {
         let res = ref(false)
         iterateSubstitutions(
             ~frmExpr = frm.frame.asrt,
-            ~expr = stmt,
+            ~expr,
             ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
             ~constParts = frm.constParts[frm.numOfHypsE], 
             ~varGroups = frm.varGroups[frm.numOfHypsE],
@@ -80,11 +89,11 @@ let stmtMayMatchAsrt = (
 let getAvailableAsrtLabels = (
     ~frms: Belt_MapString.t<frmSubsData>, 
     ~parenCnt: parenCnt, 
-    ~stmtToProve:expr,
+    ~exprToProve:expr,
 ) => {
     let availableAsrtLabels = []
     frms->Belt_MapString.forEach((label,frm) => {
-        if ( stmtMayMatchAsrt(~stmt=stmtToProve, ~frm, ~parenCnt) ) {
+        if ( exprMayMatchAsrt(~expr=exprToProve, ~frm, ~parenCnt) ) {
             availableAsrtLabels->Js_array2.push(label)->ignore
         }
     })
@@ -92,30 +101,48 @@ let getAvailableAsrtLabels = (
 }
 
 let makeInitialState = (
-    ~userStmtToProve:userStmt,
-    ~stmts: array<rootStmt>,
+    ~rootStmts: array<userStmt>,
+    ~rootProvables: array<rootStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
 ) => {
-    let stmtToProve = stmts[stmts->Js_array2.length-1].expr
+    let rootStmtsLen = rootStmts->Js_array2.length
+    let maxRootStmtIdx = rootStmtsLen-1
+    let exprToProve = switch rootStmts[maxRootStmtIdx].expr {
+        | None => raise(MmException({msg:`expr must be set on the statement to prove.`}))
+        | Some(expr) => expr
+    }
     {
-        rootStmts: stmts,
-        exprToProve: stmtToProve,
+        rootStmts,
+        rootStmtsRendered: rootStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js.Array2.map(stmt => {
+            {
+                id: stmt.id,
+                expr: switch stmt.expr {
+                    | None => raise(MmException({msg:`expr must be set on a root statement.`}))
+                    | Some(expr) => expr
+                },
+                elem: MM_cmp_user_stmt.rndContText(stmt.cont)
+            }
+        })
+        ,
+        exprToProve,
         title:
             <span>
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up "->React.string}
                 </span>
-                { MM_cmp_user_stmt.rndContText(userStmtToProve.cont) }
+                { MM_cmp_user_stmt.rndContText(rootStmts[maxRootStmtIdx].cont) }
             </span>,
+        rootProvables,
         
-        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~stmtToProve, ),
+        args0: Belt_Array.make(rootStmtsLen, true),
+        args1: Belt_Array.make(rootStmtsLen, false),
+        availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label: None,
         depthStr: "4",
         depth: 4,
         lengthRestrict: Less,
         allowNewVars: true,
-        useRootStmtsAsArgs: false,
 
         tree: None,
         results: None,
@@ -157,12 +184,20 @@ let toggleAllowNewVars = (st) => {
     }
 }
 
-let toggleUseRootStmtsAsArgs = (st) => {
+let toggleArg0 = (st,idx) => {
     {
         ...st,
-        useRootStmtsAsArgs: !st.useRootStmtsAsArgs
+        args0: st.args0->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
     }
 }
+
+let toggleArg = (idx,args) => args->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
+let selectAllArgs = args => args->Js_array2.map(v => true)
+let unselectAllArgs = args => args->Js_array2.map(v => false)
+let invertArgs = args => args->Js_array2.map(v => !v)
+
+let updateArgs0 = (st, update: array<bool> => array<bool>) => { ...st, args0: st.args0->update }
+let updateArgs1 = (st, update: array<bool> => array<bool>) => { ...st, args1: st.args1->update }
 
 let isStmtToShow = (
     ~stmt:stmtDto, 
@@ -292,7 +327,7 @@ let setResults = (st,tree,results) => {
             }
         }
         | Some(results) => {
-            let rootJstfs = st.rootStmts
+            let rootJstfs = st.rootProvables
                 ->Js_array2.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
@@ -402,14 +437,14 @@ let make = (
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
-    ~userStmtToProve:userStmt,
-    ~stmts: array<rootStmt>,
+    ~rootProvables: array<rootStmt>,
+    ~rootStmts: array<userStmt>,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~userStmtToProve, ~stmts, ~frms, ~parenCnt,
+        ~rootStmts, ~rootProvables, ~frms, ~parenCnt
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -433,10 +468,6 @@ let make = (
         setState(toggleAllowNewVars)
     }
 
-    let actToggleUseRootStmtsAsArgs = () => {
-        setState(toggleUseRootStmtsAsArgs)
-    }
-
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
             MM_wrk_client.terminateWorker()
@@ -447,7 +478,7 @@ let make = (
     let actOnResultsReady = (treeDto) => {
         let results = proofTreeDtoToNewStmtsDto(
             ~treeDto, 
-            ~rootStmts = stmts,
+            ~rootStmts = rootStmts->Js_array2.map(userStmtToRootStmt),
             ~ctx = wrkCtx,
             ~typeToPrefix,
         )
@@ -472,13 +503,20 @@ let make = (
                     )
                 )
                 unify(
-                    ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~stmts,
+                    ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~rootProvables,
                     ~bottomUpProverParams=Some({
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,
                         lengthRestriction: st.lengthRestrict,
                         allowNewVars: st.allowNewVars,
-                        useRootStmtsAsArgs: st.useRootStmtsAsArgs,
+                        args0: 
+                            st.rootStmtsRendered
+                                ->Js_array2.filteri((stmt,i) => st.args0[i])
+                                ->Js_array2.map(stmt => stmt.expr),
+                        args1:
+                            st.rootStmtsRendered
+                                ->Js_array2.filteri((stmt,i) => st.args1[i])
+                                ->Js_array2.map(stmt => stmt.expr),
                     }),
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
@@ -537,7 +575,7 @@ let make = (
                                 tree
                                 rootExpr=state.exprToProve
                                 wrkCtx
-                                rootStmts=stmts
+                                rootStmts={rootStmts->Js_array2.map(userStmtToRootStmt)}
                             />
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                                 {React.string("Close")}
@@ -630,15 +668,6 @@ let make = (
                             />
                         }
                         label="Allow new variables"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked=state.useRootStmtsAsArgs
-                                onChange={_ => actToggleUseRootStmtsAsArgs()}
-                            />
-                        }
-                        label="Derive from root statements"
                     />
                 </Row>
             </Col>

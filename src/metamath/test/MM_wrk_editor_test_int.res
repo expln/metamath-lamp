@@ -283,7 +283,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~stmtId=trgtStmtId, 
             ~maxSearchDepth=6,
             ~allowNewVars=false, 
-            ~useRootStmtsAsArgs=true,
+            //~useRootStmtsAsArgs=true,
             ~chooseLabel="ax-mp",
             ()
         )
@@ -333,7 +333,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~asrtLabel="ax-mp",
             ~maxSearchDepth=6,
             ~allowNewVars=false, 
-            ~useRootStmtsAsArgs=true,
+            //~useRootStmtsAsArgs=true,
             ~chooseLabel="ax-mp",
             ()
         )
