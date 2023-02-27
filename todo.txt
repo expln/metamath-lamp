@@ -21,6 +21,10 @@
 - fix the bug discovered in save-proofs-to-files
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 
+- fix a bug:
+    1. start proving sgnval.
+    2. after the first bottom-up proof, repeat the same bottom-up proof: results will contain 2 duplicated items.
+
 - write tests for collecting debug info
 - restrict names of labels due to the error:
     ?Error on line 732616 of file "set-check-new-proofs.mm" at statement 203351,

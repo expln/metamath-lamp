@@ -73,8 +73,9 @@ let unifyBottomUp: (
     ~maxSearchDepth: int=?,
     ~lengthRestriction: MM_provers.lengthRestrict=?,
     ~allowNewVars: bool=?,
-    ~chooseLabel: string,
-    unit,
+    ~chooseLabel: string=?,
+    ~chooseResult: stmtsDto=>bool =?,
+    (),
 ) => (editorState, stmtsDto)
 
 let removeAllJstf: editorState => editorState

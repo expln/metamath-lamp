@@ -70,6 +70,11 @@ let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
     disjStr ++ "\n" ++ stmtsStr
 }
 
+let readEditorStateToString = (fileName:string):string => {
+    Expln_utils_files.readStringFromFile(curTestDataDir.contents ++ "/" ++ fileName ++ ".txt")
+        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+}
+
 let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {

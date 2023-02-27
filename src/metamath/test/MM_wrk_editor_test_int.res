@@ -267,6 +267,52 @@ describe("MM_wrk_editor integration tests", _ => {
 
     })
 
+    it("prove sgnval with hyps", _ => {
+        setTestDataDir("prove-sgnval-with-hyps")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
+
+        let (st, trgtStmtId) = st->addStmt( 
+            ~label="sgnval",
+            ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", 
+            () 
+        )
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let notProvedStmtId = st->getStmtId(~label="1", ())
+
+        let st = st.stmts->Js_array2.reduce(
+            (st,stmt) => {
+                if (trgtStmtId == stmt.id || notProvedStmtId == stmt.id) {
+                    st
+                } else {
+                    st->updateStmt(stmt.id, ~typ=E, ())
+                }
+            },
+            st
+        )
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, 
+            ~chooseResult=stmts=>stmts.newVars->Js_array2.length==0, 
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step3")
+
+        let state2Text = readEditorStateToString("step2")
+        let state3Text = readEditorStateToString("step3")
+
+        assertEq(state2Text, state3Text)
+
+    })
+
     it("prove sgn0e0", _ => {
         setTestDataDir("prove-sgn0e0")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="sgnval", ~debug, ())

@@ -290,7 +290,8 @@ let unifyBottomUp = (
     ~maxSearchDepth:int=4, 
     ~lengthRestriction:lengthRestrict=Less,
     ~allowNewVars:bool=true,
-    ~chooseLabel:string,
+    ~chooseLabel:option<string>=?,
+    ~chooseResult:option<stmtsDto => bool>=?,
     ()
 ):(editorState, stmtsDto) => {
     switch st.wrkCtx {
@@ -317,7 +318,7 @@ let unifyBottomUp = (
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))
-            let newStmts = proofTreeDtoToNewStmtsDto(
+            let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
                 ~rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt),
                 ~ctx = wrkCtx,
@@ -326,16 +327,26 @@ let unifyBottomUp = (
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                     )
             )
-            let resultOpt = newStmts->Js_array2.find(newStmtsDto => {
-                let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
-                switch lastStmt.jstf {
-                    | Some({label}) => label == chooseLabel
-                    | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
+            let result = switch chooseLabel {
+                | None => result
+                | Some(chooseLabel) => {
+                    result->Js_array2.filter(newStmtsDto => {
+                        let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
+                        switch lastStmt.jstf {
+                            | Some({label}) => label == chooseLabel
+                            | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
+                        }
+                    })
                 }
-            })
-            switch resultOpt {
-                | None => raise(MmException({msg:`Cannot find bottom-up result by label.`}))
-                | Some(result) => (st, result)
+            }
+            let result = switch chooseResult {
+                | None => result
+                | Some(chooseResult) => result->Js_array2.filter(chooseResult)
+            }
+            if (result->Js_array2.length != 1) {
+                raise(MmException({msg:`Cannot find a bottom-up result by filters provided.`}))
+            } else {
+                (st, result[0])
             }
         }
     }
