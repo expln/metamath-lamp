@@ -377,12 +377,10 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=trgtStmtId,
-            ~asrtLabel="ax-mp",
-            ~maxSearchDepth=6,
+            ~asrtLabel="mp2",
+            ~maxSearchDepth=4,
             ~allowNewVars=false,
-            ~args1=All,
-            ~chooseLabel="ax-mp",
-            //~chooseResult=
+            ~chooseLabel="mp2",
             ()
         )
         let st = st->addNewStmts(stmts, ())
