@@ -105,6 +105,7 @@ let makeInitialState = (
     ~rootProvables: array<rootStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
+    ~initialLabel: option<string>,
 ) => {
     let rootStmtsLen = rootStmts->Js_array2.length
     let maxRootStmtIdx = rootStmtsLen-1
@@ -146,7 +147,7 @@ let makeInitialState = (
         args0: Belt_Array.make(rootStmtsLen-1, true),
         args1: Belt_Array.make(rootStmtsLen-1, false),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
-        label: None,
+        label: initialLabel,
         depthStr: "4",
         depth: 4,
         lengthRestrict: Less,
@@ -441,11 +442,12 @@ let make = (
     ~rootProvables: array<rootStmt>,
     ~rootStmts: array<userStmt>,
     ~typeToPrefix: Belt_MapString.t<string>,
+    ~initialLabel: option<string>,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootStmts, ~rootProvables, ~frms, ~parenCnt
+        ~rootStmts, ~rootProvables, ~frms, ~parenCnt, ~initialLabel
     ))
 
     let onlyOneResultIsAvailable = switch state.results {

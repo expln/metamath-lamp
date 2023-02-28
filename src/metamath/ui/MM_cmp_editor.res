@@ -625,7 +625,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 let rootStmts = state->getRootStmtsForUnification
                 let rootProvables = state->getRootProvablesForUnification
                 switch singleProvableSelected {
-                    | Some(_) => {
+                    | Some(singleProvableSelected) => {
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
@@ -641,6 +641,12 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                         Belt_MapString.fromArray(
                                             state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                                         )
+                                    }
+                                    initialLabel={
+                                        switch singleProvableSelected.jstfText->parseJstf {
+                                            | Ok(Some({label})) => Some(label)
+                                            | _ => None
+                                        }
                                     }
                                 />
                             })

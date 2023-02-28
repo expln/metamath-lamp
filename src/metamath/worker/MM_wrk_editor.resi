@@ -148,3 +148,4 @@ let editorGetStmtById: (editorState, string) => option<userStmt>
 let mergeStmts: (editorState, string, string) => result<editorState, string>
 let renameStmt: (editorState, string, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
+let parseJstf: string => result<option<jstf>,string>
