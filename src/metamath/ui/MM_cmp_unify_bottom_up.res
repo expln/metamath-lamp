@@ -121,7 +121,15 @@ let makeInitialState = (
                     | None => raise(MmException({msg:`expr must be set on a root statement.`}))
                     | Some(expr) => expr
                 },
-                elem: MM_cmp_user_stmt.rndContText(stmt.cont)
+                elem:
+                    <Row>
+                        <span>
+                            {React.string(stmt.label ++ ": ")}
+                        </span>
+                        <span>
+                            {MM_cmp_user_stmt.rndContText(stmt.cont)}
+                        </span>
+                    </Row>
             }
         })
         ,
@@ -758,11 +766,88 @@ let make = (
         state.title
     }
 
-    let rndRootStmtsForLevelShort = (
-        ~title:string, 
+    let actOpenRootStmtsDialog = (
+        ~title:string,
         ~getFlags: state => array<bool>,
         ~setFlags: array<bool> => unit,
-        ~onOpenDialog:()=>unit
+    ) => {
+
+        let rec updateFlags = (~modalId, ~newFlags) => {
+            setFlags(newFlags)
+            updateDialog(~modalId, ~flags=newFlags)
+        }
+        and let toggleFlag = (~modalId, ~flags, ~idx) => {
+            updateFlags(~modalId, ~newFlags=toggleArg(idx, flags))
+        }
+        and let selectAll = (~modalId, ~flags) => {
+            updateFlags(~modalId, ~newFlags=selectAllArgs(flags))
+        }
+        and let unselectAll = (~modalId, ~flags) => {
+            updateFlags(~modalId, ~newFlags=unselectAllArgs(flags))
+        }
+        and let inverseSelection = (~modalId, ~flags) => {
+            updateFlags(~modalId, ~newFlags=invertArgs(flags))
+        }
+        and let rndButtons = (~modalId, ~flags) => {
+            <Row>
+                <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                    {React.string("Close")}
+                </Button>
+                <Button onClick={_=>selectAll(~modalId, ~flags)} >
+                    {React.string("Select All")}
+                </Button>
+                <Button onClick={_=>unselectAll(~modalId, ~flags)} >
+                    {React.string("Unselect All")}
+                </Button>
+                <Button onClick={_=>inverseSelection(~modalId, ~flags)} >
+                    {React.string("Inverse Selection")}
+                </Button>
+            </Row>
+        }
+        and let rndStmts = (~modalId, ~flags) => {
+            <table>
+                <tbody>
+                    {
+                        flags->Js_array2.mapi((flag,i) => {
+                            <tr key={i->Belt_Int.toString}>
+                                <td>
+                                    <Checkbox
+                                        checked=flag
+                                        onChange={_ => toggleFlag(~modalId, ~flags, ~idx=i)}
+                                    />
+                                </td>
+                                <td>
+                                    {state.rootStmtsRendered[i].elem}
+                                </td>
+                            </tr>
+                        })->React.array
+                    }
+                </tbody>
+            </table>
+        }
+        and updateDialog = (~modalId, ~flags) => {
+            updateModal(modalRef, modalId, () => {
+                <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
+                    <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                        {React.string(title)}
+                    </span>
+                    {rndButtons(~modalId, ~flags)}
+                    {rndStmts(~modalId, ~flags)}
+                    {rndButtons(~modalId, ~flags)}
+                </Col>
+            })
+        }
+
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateDialog( ~modalId, ~flags = state->getFlags )
+        })->ignore
+    }
+
+    let rndRootStmtsForLevelShort = (
+        ~title: string, 
+        ~dialogTitle: string,
+        ~getFlags: state => array<bool>,
+        ~setFlags: array<bool> => unit,
     ) => {
         let flags = state->getFlags
         let allSelected = flags->Js_array2.every(b => b)
@@ -784,7 +869,7 @@ let make = (
         <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
             {React.string(title)}
             <span
-                onClick={_=> onOpenDialog() }
+                onClick={_=> { actOpenRootStmtsDialog( ~title = dialogTitle, ~getFlags, ~setFlags, ) }}
                 style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
             >
                 {React.string(numberOfSelected)}
@@ -803,59 +888,6 @@ let make = (
         </Row>
     }
 
-    let actOpenRootStmtsDialog = (
-        ~title:string,
-        ~getFlags: state => array<bool>,
-        ~setFlags: array<bool> => unit,
-    ) => {
-        let rec rndButtons = (modalId) => {
-            <Row>
-                <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
-                    {React.string("Close")}
-                </Button>
-            </Row>
-        } and let rndStmts = (~modalId, ~flags) => {
-            <table>
-                <tbody>
-                    {
-                        flags->Js_array2.mapi((flag,i) => {
-                            <tr key={i->Belt_Int.toString}>
-                                <td>
-                                    <Checkbox
-                                        checked=flag
-                                        onChange={_ => {
-                                            let newFlags = toggleArg(i, flags)
-                                            setFlags(newFlags)
-                                            updateDialog(~modalId, ~flags=newFlags)
-                                        }}
-                                    />
-                                </td>
-                                <td>
-                                    {state.rootStmtsRendered[i].elem}
-                                </td>
-                            </tr>
-                        })->React.array
-                    }
-                </tbody>
-            </table>
-        } and updateDialog = (~modalId, ~flags) => {
-            updateModal(modalRef, modalId, () => {
-                <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
-                    <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                        {React.string(title)}
-                    </span>
-                    {rndButtons(modalId)}
-                    {rndStmts(~modalId, ~flags)}
-                    {rndButtons(modalId)}
-                </Col>
-            })
-        }
-
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-            updateDialog( ~modalId, ~flags = state->getFlags )
-        })->ignore
-    }
-
     let rndRootStmts = () => {
         if (state.rootStmtsRendered->Js_array2.length == 0) {
             React.null
@@ -863,35 +895,19 @@ let make = (
             <Row alignItems=#center>
                 {React.string("Root statements: ")}
                 {
-                    let getFlags = state => state.args0
-                    let setFlags = newFlags => setState(updateArgs0(_, newFlags))
                     rndRootStmtsForLevelShort(
                         ~title = "level 0", 
-                        ~getFlags,
-                        ~setFlags,
-                        ~onOpenDialog = () => {
-                            actOpenRootStmtsDialog(
-                                ~title = "Select statements to derive from on level 0",
-                                ~getFlags,
-                                ~setFlags,
-                            )
-                        }
+                        ~dialogTitle = "Select statements to derive from on level 0", 
+                        ~getFlags = state => state.args0,
+                        ~setFlags = newFlags => setState(updateArgs0(_, newFlags)),
                     )
                 }
                 {
-                    let getFlags = state => state.args1
-                    let setFlags = newFlags => setState(updateArgs1(_, newFlags))
                     rndRootStmtsForLevelShort(
                         ~title = "other levels", 
-                        ~getFlags,
-                        ~setFlags,
-                        ~onOpenDialog = () => {
-                            actOpenRootStmtsDialog(
-                                ~title = "Select statements to derive from on other levels",
-                                ~getFlags,
-                                ~setFlags,
-                            )
-                        }
+                        ~dialogTitle = "Select statements to derive from on other levels", 
+                        ~getFlags = state => state.args1,
+                        ~setFlags = newFlags => setState(updateArgs1(_, newFlags)),
                     )
                 }
             </Row>
