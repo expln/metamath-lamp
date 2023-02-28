@@ -41,7 +41,9 @@ type state = {
     rootProvables: array<rootStmt>,
 
     args0: array<bool>,
+    args0Opened: bool,
     args1: array<bool>,
+    args1Opened: bool,
     availableLabels: array<string>,
     label:option<string>,
     depth: int,
@@ -136,7 +138,9 @@ let makeInitialState = (
         rootProvables,
         
         args0: Belt_Array.make(rootStmtsLen, true),
+        args0Opened: false,
         args1: Belt_Array.make(rootStmtsLen, false),
+        args1Opened: false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label: None,
         depthStr: "4",
@@ -184,13 +188,6 @@ let toggleAllowNewVars = (st) => {
     }
 }
 
-let toggleArg0 = (st,idx) => {
-    {
-        ...st,
-        args0: st.args0->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
-    }
-}
-
 let toggleArg = (idx,args) => args->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
 let selectAllArgs = args => args->Js_array2.map(v => true)
 let unselectAllArgs = args => args->Js_array2.map(v => false)
@@ -198,6 +195,9 @@ let invertArgs = args => args->Js_array2.map(v => !v)
 
 let updateArgs0 = (st, update: array<bool> => array<bool>) => { ...st, args0: st.args0->update }
 let updateArgs1 = (st, update: array<bool> => array<bool>) => { ...st, args1: st.args1->update }
+
+let toggleArgs0Opened = st => { ...st, args0Opened: !st.args0Opened }
+let toggleArgs1Opened = st => { ...st, args1Opened: !st.args1Opened }
 
 let isStmtToShow = (
     ~stmt:stmtDto, 
@@ -654,10 +654,6 @@ let make = (
                         onChange=evt2str(actDepthUpdated)
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
-                    <Button onClick={_=>actProve()} variant=#outlined>
-                        {React.string("Prove")}
-                    </Button>
-                    <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
                 </Row>
                 <Row>
                     <FormControlLabel
@@ -669,6 +665,10 @@ let make = (
                         }
                         label="Allow new variables"
                     />
+                    <Button onClick={_=>actProve()} variant=#outlined>
+                        {React.string("Prove")}
+                    </Button>
+                    <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
                 </Row>
             </Col>
         }
@@ -707,6 +707,7 @@ let make = (
                 let totalNumOfResults = resultsSorted->Js.Array2.length
                 if (totalNumOfResults == 0) {
                     <Row>
+                        <Divider/>
                         {React.string("Nothing found.")}
                         {rndShowProofTreeBtn()}
                     </Row>
@@ -714,6 +715,7 @@ let make = (
                     let start = (state.resultsPage - 1) * state.resultsPerPage
                     let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
                     <Col>
+                        <Divider/>
                         <Row alignItems=#center>
                             {rndApplyButton()}
                             {rndSortBySelector()}
@@ -763,9 +765,87 @@ let make = (
         state.title
     }
 
+    let rndRootStmtsForLevel = (
+        ~title:string, 
+        ~stmtFlags: array<bool>, 
+        ~opened:bool, 
+        ~stateUpd:(state, array<bool> => array<bool>) => state,
+        ~onOpenDialog:()=>unit
+    ) => {
+        // if (opened) {
+        //     React.null
+        // } else {
+            let allSelected = stmtFlags->Js_array2.every(b => b)
+            let noneSelected = stmtFlags->Js_array2.every(b => !b)
+            let numberOfSelected = if (allSelected) {
+                "All"
+            } else if (noneSelected) {
+                "None"
+            } else {
+                let numSelected = stmtFlags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
+                let numAll = stmtFlags->Js_array2.length
+                numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
+            }
+            let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
+                ("select all", () => setState(stateUpd(_, selectAllArgs)))
+            } else {
+                ("select none", () => setState(stateUpd(_, unselectAllArgs)))
+            }
+            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+                {React.string(title)}
+                <span
+                    onClick={_=> onOpenDialog() }
+                    style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+                >
+                    {React.string(numberOfSelected)}
+                </span>
+                <span
+                    onClick={_=> selectUnselectAct() }
+                    style=ReactDOM.Style.make(
+                        ~cursor="pointer", 
+                        ~border="solid lightgrey 0px", ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
+                        ~paddingLeft="5px", ~paddingRight="5px", 
+                        ()
+                    )
+                >
+                    {React.string(selectUnselectText)}
+                </span>
+            </Row>
+        // }
+    }
+
+    let rndRootStmts = () => {
+        if (state.rootStmtsRendered->Js_array2.length == 0) {
+            React.null
+        } else {
+            <Row alignItems=#center>
+                {React.string("Root statements: ")}
+                {
+                    rndRootStmtsForLevel(
+                        ~title = "level 0", 
+                        ~stmtFlags = state.args0, 
+                        ~opened = state.args0Opened, 
+                        ~stateUpd = updateArgs0,
+                        ~onOpenDialog = () => setState(toggleArgs0Opened)
+                    )
+                }
+                {
+                    rndRootStmtsForLevel(
+                        ~title = "other levels", 
+                        ~stmtFlags = state.args1, 
+                        ~opened = state.args1Opened, 
+                        ~stateUpd = updateArgs1,
+                        ~onOpenDialog = () => setState(toggleArgs1Opened)
+                    )
+                }
+            </Row>
+        }
+    }
+
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.5>
             {rndTitle()}
+            {rndRootStmts()}
             {rndParams()}
             {rndResults()}
         </Col>

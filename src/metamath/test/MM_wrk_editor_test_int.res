@@ -379,9 +379,10 @@ describe("MM_wrk_editor integration tests", _ => {
             ~stmtId=trgtStmtId,
             ~asrtLabel="ax-mp",
             ~maxSearchDepth=6,
-            ~allowNewVars=false, 
+            ~allowNewVars=false,
             ~args1=All,
             ~chooseLabel="ax-mp",
+            //~chooseResult=
             ()
         )
         let st = st->addNewStmts(stmts, ())
