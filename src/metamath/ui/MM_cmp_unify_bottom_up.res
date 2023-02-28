@@ -41,9 +41,7 @@ type state = {
     rootProvables: array<rootStmt>,
 
     args0: array<bool>,
-    args0Opened: bool,
     args1: array<bool>,
-    args1Opened: bool,
     availableLabels: array<string>,
     label:option<string>,
     depth: int,
@@ -137,10 +135,8 @@ let makeInitialState = (
             </span>,
         rootProvables,
         
-        args0: Belt_Array.make(rootStmtsLen, true),
-        args0Opened: false,
-        args1: Belt_Array.make(rootStmtsLen, false),
-        args1Opened: false,
+        args0: Belt_Array.make(rootStmtsLen-1, true),
+        args1: Belt_Array.make(rootStmtsLen-1, false),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label: None,
         depthStr: "4",
@@ -193,11 +189,8 @@ let selectAllArgs = args => args->Js_array2.map(v => true)
 let unselectAllArgs = args => args->Js_array2.map(v => false)
 let invertArgs = args => args->Js_array2.map(v => !v)
 
-let updateArgs0 = (st, update: array<bool> => array<bool>) => { ...st, args0: st.args0->update }
-let updateArgs1 = (st, update: array<bool> => array<bool>) => { ...st, args1: st.args1->update }
-
-let toggleArgs0Opened = st => { ...st, args0Opened: !st.args0Opened }
-let toggleArgs1Opened = st => { ...st, args1Opened: !st.args1Opened }
+let updateArgs0 = (st, args0) => { ...st, args0 }
+let updateArgs1 = (st, args1) => { ...st, args1 }
 
 let isStmtToShow = (
     ~stmt:stmtDto, 
@@ -765,53 +758,102 @@ let make = (
         state.title
     }
 
-    let rndRootStmtsForLevel = (
+    let rndRootStmtsForLevelShort = (
         ~title:string, 
-        ~stmtFlags: array<bool>, 
-        ~opened:bool, 
-        ~stateUpd:(state, array<bool> => array<bool>) => state,
+        ~getFlags: state => array<bool>,
+        ~setFlags: array<bool> => unit,
         ~onOpenDialog:()=>unit
     ) => {
-        // if (opened) {
-        //     React.null
-        // } else {
-            let allSelected = stmtFlags->Js_array2.every(b => b)
-            let noneSelected = stmtFlags->Js_array2.every(b => !b)
-            let numberOfSelected = if (allSelected) {
-                "All"
-            } else if (noneSelected) {
-                "None"
-            } else {
-                let numSelected = stmtFlags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
-                let numAll = stmtFlags->Js_array2.length
-                numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
-            }
-            let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
-                ("select all", () => setState(stateUpd(_, selectAllArgs)))
-            } else {
-                ("select none", () => setState(stateUpd(_, unselectAllArgs)))
-            }
-            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
-                {React.string(title)}
-                <span
-                    onClick={_=> onOpenDialog() }
-                    style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
-                >
-                    {React.string(numberOfSelected)}
-                </span>
-                <span
-                    onClick={_=> selectUnselectAct() }
-                    style=ReactDOM.Style.make(
-                        ~cursor="pointer", 
-                        ~border="solid lightgrey 0px", ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
-                        ~paddingLeft="5px", ~paddingRight="5px", 
-                        ()
-                    )
-                >
-                    {React.string(selectUnselectText)}
-                </span>
+        let flags = state->getFlags
+        let allSelected = flags->Js_array2.every(b => b)
+        let noneSelected = flags->Js_array2.every(b => !b)
+        let numberOfSelected = if (allSelected) {
+            "All"
+        } else if (noneSelected) {
+            "None"
+        } else {
+            let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
+            let numAll = flags->Js_array2.length
+            numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
+        }
+        let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
+            ("select all", () => setFlags(flags->selectAllArgs))
+        } else {
+            ("select none", () => setFlags(flags->unselectAllArgs))
+        }
+        <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+            {React.string(title)}
+            <span
+                onClick={_=> onOpenDialog() }
+                style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+            >
+                {React.string(numberOfSelected)}
+            </span>
+            <span
+                onClick={_=> selectUnselectAct() }
+                style=ReactDOM.Style.make(
+                    ~cursor="pointer", 
+                    ~border="solid lightgrey 0px", ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
+                    ~paddingLeft="5px", ~paddingRight="5px", 
+                    ()
+                )
+            >
+                {React.string(selectUnselectText)}
+            </span>
+        </Row>
+    }
+
+    let actOpenRootStmtsDialog = (
+        ~title:string,
+        ~getFlags: state => array<bool>,
+        ~setFlags: array<bool> => unit,
+    ) => {
+        let rec rndButtons = (modalId) => {
+            <Row>
+                <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                    {React.string("Close")}
+                </Button>
             </Row>
-        // }
+        } and let rndStmts = (~modalId, ~flags) => {
+            <table>
+                <tbody>
+                    {
+                        flags->Js_array2.mapi((flag,i) => {
+                            <tr key={i->Belt_Int.toString}>
+                                <td>
+                                    <Checkbox
+                                        checked=flag
+                                        onChange={_ => {
+                                            let newFlags = toggleArg(i, flags)
+                                            setFlags(newFlags)
+                                            updateDialog(~modalId, ~flags=newFlags)
+                                        }}
+                                    />
+                                </td>
+                                <td>
+                                    {state.rootStmtsRendered[i].elem}
+                                </td>
+                            </tr>
+                        })->React.array
+                    }
+                </tbody>
+            </table>
+        } and updateDialog = (~modalId, ~flags) => {
+            updateModal(modalRef, modalId, () => {
+                <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
+                    <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                        {React.string(title)}
+                    </span>
+                    {rndButtons(modalId)}
+                    {rndStmts(~modalId, ~flags)}
+                    {rndButtons(modalId)}
+                </Col>
+            })
+        }
+
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateDialog( ~modalId, ~flags = state->getFlags )
+        })->ignore
     }
 
     let rndRootStmts = () => {
@@ -821,21 +863,35 @@ let make = (
             <Row alignItems=#center>
                 {React.string("Root statements: ")}
                 {
-                    rndRootStmtsForLevel(
+                    let getFlags = state => state.args0
+                    let setFlags = newFlags => setState(updateArgs0(_, newFlags))
+                    rndRootStmtsForLevelShort(
                         ~title = "level 0", 
-                        ~stmtFlags = state.args0, 
-                        ~opened = state.args0Opened, 
-                        ~stateUpd = updateArgs0,
-                        ~onOpenDialog = () => setState(toggleArgs0Opened)
+                        ~getFlags,
+                        ~setFlags,
+                        ~onOpenDialog = () => {
+                            actOpenRootStmtsDialog(
+                                ~title = "Select statements to derive from on level 0",
+                                ~getFlags,
+                                ~setFlags,
+                            )
+                        }
                     )
                 }
                 {
-                    rndRootStmtsForLevel(
+                    let getFlags = state => state.args1
+                    let setFlags = newFlags => setState(updateArgs1(_, newFlags))
+                    rndRootStmtsForLevelShort(
                         ~title = "other levels", 
-                        ~stmtFlags = state.args1, 
-                        ~opened = state.args1Opened, 
-                        ~stateUpd = updateArgs1,
-                        ~onOpenDialog = () => setState(toggleArgs1Opened)
+                        ~getFlags,
+                        ~setFlags,
+                        ~onOpenDialog = () => {
+                            actOpenRootStmtsDialog(
+                                ~title = "Select statements to derive from on other levels",
+                                ~getFlags,
+                                ~setFlags,
+                            )
+                        }
                     )
                 }
             </Row>
