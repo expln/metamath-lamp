@@ -795,11 +795,11 @@ let make = (
                 <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                     {React.string("Close")}
                 </Button>
-                <Button onClick={_=>selectAll(~modalId, ~flags)} >
-                    {React.string("Select All")}
-                </Button>
                 <Button onClick={_=>unselectAll(~modalId, ~flags)} >
                     {React.string("Unselect All")}
+                </Button>
+                <Button onClick={_=>selectAll(~modalId, ~flags)} >
+                    {React.string("Select All")}
                 </Button>
                 <Button onClick={_=>inverseSelection(~modalId, ~flags)} >
                     {React.string("Inverse Selection")}
