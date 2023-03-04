@@ -15,6 +15,9 @@ type settingsState = {
     parensErr: option<string>,
 
     typeSettings: array<typeSettingsState>,
+
+    asrtsToSkip: array<string>,
+    asrtsToSkipRegex: string,
 }
 
 let allColors = [
@@ -58,6 +61,8 @@ let createDefaultSettings = () => {
                 err: None,
             },
         ],
+        asrtsToSkip: [],
+        asrtsToSkipRegex: "",
     }
 }
 
@@ -145,8 +150,8 @@ let stateToSettings = (st:settingsState):settings => {
             color: typSett.color,
             prefix: typSett.prefix,
         }),
-        asrtsToSkip: [],
-        asrtsToSkipRegex: "",
+        asrtsToSkip: st.asrtsToSkip,
+        asrtsToSkipRegex: st.asrtsToSkipRegex,
     }
 }
 
@@ -162,6 +167,8 @@ let settingsToState = (ls:settings):settingsState => {
             prefix: lts.prefix,
             err: None,
         }),
+        asrtsToSkip: ls.asrtsToSkip,
+        asrtsToSkipRegex: ls.asrtsToSkipRegex,
     }
     validateAndCorrectState(res)
 }
@@ -192,6 +199,8 @@ let readStateFromLocStor = ():settingsState => {
                         prefix: d->str("prefix", ()),
                         err: None,
                     }, ()), ~default=()=>defaultSettings.typeSettings, ()),
+                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>[], ()),
+                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>"", ()),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -272,6 +281,9 @@ let deleteTypeSetting = (st, id) => {
     }
 }
 
+let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
+let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
+
 @react.component
 let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onChange: settings => unit) => {
     let (state, setState) = React.useState(_ => initialSettings->settingsToState)
@@ -340,6 +352,40 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
         })->ignore
     }
 
+    let actOpenAsrtsToSkipDialog = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                    <MM_cmp_asrts_to_skip 
+                        initText={state.asrtsToSkip->Js.Array2.joinWith("\n")}
+                        initRegex=state.asrtsToSkipRegex
+                        onSave={res=>{
+                            Js.Console.log2("asrtsToSkipResult", res)
+                        }}
+                        onCancel={()=> {
+                            closeModal(modalRef, modalId)
+                        }}
+                    />
+                </Paper>
+            })
+        })->ignore
+    }
+
+    let rndAsrtsToSkip = () => {
+        let asrtsSelected = state.asrtsToSkip->Js_array2.length->Belt.Int.toString
+        <Row style=ReactDOM.Style.make(~marginTop="5px", ~marginBottom="5px", ())>
+            <span>
+                {`Assertions to skip: ${asrtsSelected} assertions selected.`->React.string}
+            </span>
+            <span
+                onClick={_=> { actOpenAsrtsToSkipDialog() }}
+                style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+            >
+                {React.string("edit")}
+            </span>
+        </Row>
+    }
+
     <Col spacing=1. style=ReactDOM.Style.make(~margin="30px", ())>
         <Row alignItems=#center>
             <TextField 
@@ -357,6 +403,7 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
                 </IconButton>
             </span>
         </Row>
+        {rndAsrtsToSkip()}
         {
             switch state.parensErr {
                 | None => React.null

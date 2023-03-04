@@ -1,12 +1,5 @@
-open MM_parser
-open MM_context
 open Expln_React_common
 open Expln_React_Mui
-open Expln_React_Modal
-open Expln_utils_promise
-open MM_wrk_settings
-open MM_react_common
-open MM_cmp_type_settings
 
 type state = {
     text: string,
@@ -92,7 +85,7 @@ let make = (
             style=ReactDOM.Style.make(~width="800px", ())
             autoFocus=true
             multiline=true
-            maxRows=20
+            maxRows=10
             value=state.text
             onChange=evt2str(actUpdateText)
         />
