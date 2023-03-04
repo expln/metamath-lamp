@@ -39,10 +39,17 @@ let toggleApplyRegex = (st) => {
             ->Js_array2.map(userRegex->Js.Re.exec_)
             ->Js_array2.filter(Belt_Option.isSome)
             ->Js_array2.map(resOpt => resOpt->Belt_Option.getExn->Js.Re.captures)
+            ->Js_array2.filter(captures => captures->Js_array2.length > 1)
+            ->Js_array2.map(captures => captures->Js_array2.sliceFrom(1))
+            ->Expln_utils_common.arrFlatMap(captures => captures)
+            ->Js_array2.map(Js.Nullable.toOption)
+            ->Js_array2.filter(Belt_Option.isSome)
+            ->Js_array2.map(Belt_Option.getExn)
+            ->Js_array2.joinWith("\n")
 
         Js.Console.log2("textAfterRegex", textAfterRegex)
 
-        st
+        { ...st, applyRegex:true, textAfterRegex }
     }
 }
 
@@ -91,7 +98,29 @@ let make = (
         />
     }
 
-    <Col>
+    let rndRegex = () => {
+        <Row>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.applyRegex
+                        onChange={_ => actToggleApplyRegex()}
+                    />
+                }
+                label="apply regular expression: "
+            />
+            <TextField
+                label="Regex to apply to each line"
+                size=#small
+                style=ReactDOM.Style.make(~width="300px", ())
+                value=state.regex
+                onChange=evt2str(actUpdateRegex)
+            />
+        </Row>
+    }
+
+    <Col spacing=1.>
         {rndText()}
+        {rndRegex()}
     </Col>
 }

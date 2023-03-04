@@ -26,6 +26,8 @@ let allColors = [
     "#000000"
 ]
 
+let asrtsToSkipRegexDefault = "New usage of \"([^\"]+)\" is discouraged"
+
 let createDefaultSettings = () => {
     {
         nextId: 4,
@@ -62,7 +64,7 @@ let createDefaultSettings = () => {
             },
         ],
         asrtsToSkip: [],
-        asrtsToSkipRegex: "",
+        asrtsToSkipRegex: asrtsToSkipRegexDefault,
     }
 }
 
@@ -200,7 +202,7 @@ let readStateFromLocStor = ():settingsState => {
                         err: None,
                     }, ()), ~default=()=>defaultSettings.typeSettings, ()),
                     asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>[], ()),
-                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>"", ()),
+                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>asrtsToSkipRegexDefault, ()),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
