@@ -8,6 +8,11 @@ type state = {
     textAfterRegex: string,
 }
 
+type asrtsToSkipResult = {
+    regex: string,
+    asrtsToSkip: array<string>,
+}
+
 let makeInitState = (
     ~initText:string, 
     ~initRegex:string, 
@@ -20,22 +25,27 @@ let makeInitState = (
     }
 }
 
-let unsetApplyRegex = (st) => { ...st, applyRegex:false }
+let unsetApplyRegex = (st:state) => { ...st, applyRegex:false }
 
-let setText = (st,text) => { ...st, text }
+let setText = (st:state,text) => { ...st, text }
 
-let setRegex = (st,regex) => { ...st, regex }
+let setRegex = (st:state,regex) => { ...st, regex }
 
 let newLineRegex = %re("/[\n\r]/")
-let toggleApplyRegex = (st) => {
+let multilineTextToNonEmptyLines = str => {
+    str
+        ->Js_string2.splitByRe(newLineRegex)
+        ->Js_array2.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
+        ->Js_array2.filter(str => str->Js_string2.length > 0)
+}
+
+let toggleApplyRegex = (st:state) => {
     if (st.applyRegex) {
         { ...st, applyRegex:false }
     } else {
         let userRegex = Js.Re.fromString(st.regex)
         let textAfterRegex = st.text
-            ->Js_string2.splitByRe(newLineRegex)
-            ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
-            ->Js_array2.filter(s => s->Js_string2.length > 0)
+            ->multilineTextToNonEmptyLines
             ->Js_array2.map(userRegex->Js.Re.exec_)
             ->Js_array2.filter(Belt_Option.isSome)
             ->Js_array2.map(resOpt => resOpt->Belt_Option.getExn->Js.Re.captures)
@@ -51,11 +61,6 @@ let toggleApplyRegex = (st) => {
 
         { ...st, applyRegex:true, textAfterRegex }
     }
-}
-
-type asrtsToSkipResult = {
-    regex: string,
-    asrtsToSkip: array<string>,
 }
 
 @react.component
@@ -85,38 +90,93 @@ let make = (
         setState(toggleApplyRegex)
     }
 
+    let actOnSave = () => {
+        onSave({
+            regex: state.regex,
+            asrtsToSkip: 
+                if (state.applyRegex) {
+                    state.textAfterRegex->multilineTextToNonEmptyLines
+                } else {
+                    state.text->multilineTextToNonEmptyLines
+                }
+        })
+    }
+
+    let rndButtons = () => {
+        <Row>
+            <Button onClick={_=>actOnSave()} variant=#contained>
+                {React.string("Save")}
+            </Button>
+            <Button onClick={_=>onCancel()} variant=#outlined>
+                {React.string("Cancel")}
+            </Button>
+        </Row>
+    }
+
     let rndText = () => {
-        <TextField
-            label="Assertions to skip"
-            size=#small
-            style=ReactDOM.Style.make(~width="800px", ())
-            autoFocus=true
-            multiline=true
-            maxRows=10
-            value=state.text
-            onChange=evt2str(actUpdateText)
-        />
+        <Col>
+            <TextField
+                label="Assertions to skip"
+                size=#small
+                style=ReactDOM.Style.make(~width="800px", ())
+                autoFocus=true
+                multiline=true
+                maxRows=10
+                value=state.text
+                onChange=evt2str(actUpdateText)
+            />
+            {
+                if (state.applyRegex) {
+                    React.null
+                } else {
+                    rndButtons()
+                }
+            }
+        </Col>
     }
 
     let rndRegex = () => {
-        <Row>
-            <FormControlLabel
-                control={
-                    <Checkbox
-                        checked=state.applyRegex
-                        onChange={_ => actToggleApplyRegex()}
+        <Col>
+            <Row>
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked=state.applyRegex
+                            onChange={_ => actToggleApplyRegex()}
+                        />
+                    }
+                    label="apply regular expression: "
+                />
+                <TextField
+                    label="Regex to apply to each line"
+                    size=#small
+                    style=ReactDOM.Style.make(~width="300px", ())
+                    value=state.regex
+                    onChange=evt2str(actUpdateRegex)
+                />
+            </Row>
+            {
+                if (state.applyRegex) {
+                    <TextField
+                        label="Assertions to skip (after regex applied)"
+                        size=#small
+                        style=ReactDOM.Style.make(~width="800px", ())
+                        multiline=true
+                        maxRows=10
+                        value=state.textAfterRegex
                     />
+                } else {
+                    React.null
                 }
-                label="apply regular expression: "
-            />
-            <TextField
-                label="Regex to apply to each line"
-                size=#small
-                style=ReactDOM.Style.make(~width="300px", ())
-                value=state.regex
-                onChange=evt2str(actUpdateRegex)
-            />
-        </Row>
+            }
+            {
+                if (state.applyRegex) {
+                    rndButtons()
+                } else {
+                    React.null
+                }
+            }
+        </Col>
     }
 
     <Col spacing=1.>
