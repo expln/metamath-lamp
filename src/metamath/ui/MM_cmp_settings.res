@@ -145,6 +145,8 @@ let stateToSettings = (st:settingsState):settings => {
             color: typSett.color,
             prefix: typSett.prefix,
         }),
+        asrtsToSkip: [],
+        asrtsToSkipRegex: "",
     }
 }
 

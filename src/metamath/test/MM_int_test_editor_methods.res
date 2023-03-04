@@ -37,6 +37,8 @@ let createEditorState = (
         settings: {
             parens,
             typeSettings: [ ],
+            asrtsToSkip: [],
+            asrtsToSkipRegex: "",
         },
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
