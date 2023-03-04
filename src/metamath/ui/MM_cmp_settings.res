@@ -230,6 +230,8 @@ let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {
 
 let eqState = (st1, st2) => {
     st1.parens == st2.parens
+        && st1.asrtsToSkip == st2.asrtsToSkip
+        && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
 }
@@ -329,6 +331,14 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
         setState(updatePrefix(_, id, prefix))
     }
 
+    let actAsrtsToSkipChange = (res:MM_cmp_asrts_to_skip.asrtsToSkipResult) => {
+        setState(st => {
+            let st = st->setAsrtsToSkip(res.asrtsToSkip)
+            let st = st->setAsrtsToSkipRegex(res.regex)
+            st
+        })
+    }
+
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
         modalId->Belt.Option.map(modalId => () => {
             MM_wrk_client.terminateWorker()
@@ -361,8 +371,9 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
                     <MM_cmp_asrts_to_skip 
                         initText={state.asrtsToSkip->Js.Array2.joinWith("\n")}
                         initRegex=state.asrtsToSkipRegex
-                        onSave={res=>{
-                            Js.Console.log2("asrtsToSkipResult", res)
+                        onSave={res => {
+                            closeModal(modalRef, modalId)
+                            actAsrtsToSkipChange(res)
                         }}
                         onCancel={()=> {
                             closeModal(modalRef, modalId)
