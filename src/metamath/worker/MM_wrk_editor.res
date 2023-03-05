@@ -6,7 +6,7 @@ open MM_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
-open MM_wrk_ctx
+open MM_wrk_ctx_data
 open MM_provers
 open MM_statements_dto
 
