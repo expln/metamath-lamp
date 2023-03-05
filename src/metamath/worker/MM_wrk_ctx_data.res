@@ -1,10 +1,5 @@
 open MM_context
-open MM_wrk_client
-open MM_wrk_settings
-open MM_parenCounter
-open MM_substitution
 open MM_parser
-open Common
 
 type wrkCtxHyp = {
     id: string,

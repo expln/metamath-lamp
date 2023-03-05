@@ -5,7 +5,6 @@ open Expln_React_Modal
 open MM_wrk_editor
 open MM_wrk_settings
 open MM_wrk_ctx_data
-open MM_wrk_ctx_proc
 open MM_wrk_unify
 open MM_substitution
 open Expln_utils_promise

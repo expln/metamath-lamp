@@ -1,8 +1,6 @@
 open MM_context
-open MM_asrt_apply
 open Expln_utils_promise
 open MM_wrk_ctx_data
-open MM_wrk_ctx_proc
 open MM_substitution
 open MM_statements_dto
 open MM_wrk_settings

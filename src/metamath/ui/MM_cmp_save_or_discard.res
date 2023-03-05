@@ -1,6 +1,5 @@
 open Expln_React_Mui
 open Expln_React_common
-open MM_wrk_editor
 
 @react.component
 let make = (

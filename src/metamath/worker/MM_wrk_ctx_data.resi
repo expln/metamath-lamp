@@ -1,6 +1,4 @@
 open MM_context
-open MM_substitution
-open MM_parenCounter
 
 type wrkCtxHyp = {
     id: string,

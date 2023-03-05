@@ -3,7 +3,6 @@ open MM_parser
 open MM_context
 open MM_proof_table
 open MM_proof_verifier
-open MM_proof_tree
 open MM_proof_tree_dto
 open MM_provers
 open MM_parenCounter

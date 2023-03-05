@@ -1,7 +1,5 @@
 open Expln_React_common
-open Expln_React_Mui
 open MM_proof_tree_dto
-open MM_react_common
 open MM_context
 open MM_unification_debug
 

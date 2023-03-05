@@ -4,7 +4,6 @@ open MM_context
 open MM_parenCounter
 open MM_syntax_tree
 open MM_substitution
-open MM_proof_tree
 open MM_proof_tree_dto
 open MM_provers
 
