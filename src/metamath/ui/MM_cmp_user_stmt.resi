@@ -3,6 +3,16 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
 
+let rndProofStatus: (
+    ~proofStatus:option<proofStatus>,
+    ~readyTooltip:string=?,
+    ~waitingTooltip:string=?,
+    ~noJstfTooltip:string=?,
+    ~jstfIsIncorrectTooltip:string=?,
+    ~onReadyIconClicked:unit=>unit =?,
+    ()
+) => React.element
+
 @react.component
 let make: (
     ~stmt:userStmt, 

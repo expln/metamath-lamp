@@ -15,6 +15,7 @@ open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
 open MM_wrk_settings
+open MM_cmp_user_stmt
 
 type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -31,7 +32,10 @@ type resultRendered = {
 type rootStmtRendered = {
     id: string,
     expr:expr,
-    elem:reElem,
+    isHyp:bool,
+    label:string,
+    proofStatus: option<proofStatus>,
+    exprReElem:reElem,
 }
 
 type state = {
@@ -59,6 +63,14 @@ type state = {
     resultsMaxPage:int,
     resultsPage:int,
     checkedResultIdx: option<int>,
+}
+
+let getProofStatus = (stmt:rootStmtRendered):option<proofStatus> => {
+    if (stmt.isHyp) {
+        Some(Ready)
+    } else {
+        stmt.proofStatus
+    }
 }
 
 let exprMayMatchAsrt = (
@@ -123,15 +135,10 @@ let makeInitialState = (
                     | None => raise(MmException({msg:`expr must be set on a root statement.`}))
                     | Some(expr) => expr
                 },
-                elem:
-                    <Row>
-                        <span>
-                            {React.string(stmt.label ++ ": ")}
-                        </span>
-                        <span>
-                            {MM_cmp_user_stmt.rndContText(stmt.cont)}
-                        </span>
-                    </Row>
+                isHyp:stmt.typ == E,
+                label:stmt.label,
+                proofStatus:stmt.proofStatus,
+                exprReElem: <span> {MM_cmp_user_stmt.rndContText(stmt.cont)} </span>
             }
         })
         ,
@@ -198,6 +205,10 @@ let toggleArg = (idx,args) => args->Js_array2.mapi((v,i) => if (i == idx) {!v} e
 let selectAllArgs = args => args->Js_array2.map(_ => true)
 let unselectAllArgs = args => args->Js_array2.map(_ => false)
 let invertArgs = args => args->Js_array2.map(v => !v)
+
+let selectProvedArgs = (st,args:array<bool>):array<bool> => {
+    args->Js_array2.mapi((_,i) => getProofStatus(st.rootStmtsRendered[i])->Belt_Option.isSome)
+}
 
 let updateArgs0 = (st, args0) => { ...st, args0 }
 let updateArgs1 = (st, args1) => { ...st, args1 }
@@ -286,7 +297,7 @@ let stmtsDtoToResultRendered = (
     }
 }
 
-let compareByIsProved = Expln_utils_common.comparatorBy(res => if (res.isProved) {0} else {1})
+let compareByIsProved = Expln_utils_common.comparatorBy((res:resultRendered) => if (res.isProved) {0} else {1})
 let compareByNumberOfStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 
 let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfUnprovedStmts)
@@ -776,6 +787,10 @@ let make = (
         ~setFlags: array<bool> => unit,
     ) => {
 
+        let proofStatusesAreAvailable = state.rootStmtsRendered->Js.Array2.every(stmt => 
+            getProofStatus(stmt)->Belt_Option.isSome
+        )
+
         let rec updateFlags = (~modalId, ~newFlags) => {
             setFlags(newFlags)
             updateDialog(~modalId, ~flags=newFlags)
@@ -792,36 +807,62 @@ let make = (
         and let inverseSelection = (~modalId, ~flags) => {
             updateFlags(~modalId, ~newFlags=invertArgs(flags))
         }
+        and let selectProved = (~modalId, ~flags) => {
+            updateFlags(~modalId, ~newFlags=selectProvedArgs(state,flags))
+        }
         and let rndButtons = (~modalId, ~flags) => {
             <Row>
                 <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                     {React.string("Close")}
                 </Button>
                 <Button onClick={_=>unselectAll(~modalId, ~flags)} >
-                    {React.string("Unselect All")}
+                    {React.string("None")}
                 </Button>
                 <Button onClick={_=>selectAll(~modalId, ~flags)} >
-                    {React.string("Select All")}
+                    {React.string("All")}
                 </Button>
                 <Button onClick={_=>inverseSelection(~modalId, ~flags)} >
-                    {React.string("Inverse Selection")}
+                    {React.string("Inverse")}
                 </Button>
+                {
+                    if (proofStatusesAreAvailable) {
+                        <Button onClick={_=>selectProved(~modalId, ~flags)} >
+                            {React.string("Proved")}
+                        </Button>
+                    } else {
+                        React.null
+                    }
+                }
             </Row>
         }
         and let rndStmts = (~modalId, ~flags) => {
+            let paddingTop="10px"
             <table>
                 <tbody>
                     {
                         flags->Js_array2.mapi((flag,i) => {
-                            <tr key={i->Belt_Int.toString}>
+                            let stmt = state.rootStmtsRendered[i]
+                            <tr key={i->Belt_Int.toString} style=ReactDOM.Style.make(~verticalAlign="top", ())>
                                 <td>
                                     <Checkbox
                                         checked=flag
                                         onChange={_ => toggleFlag(~modalId, ~flags, ~idx=i)}
                                     />
                                 </td>
-                                <td>
-                                    {state.rootStmtsRendered[i].elem}
+                                <td style=ReactDOM.Style.make(~paddingTop, ())>
+                                    { 
+                                        if (proofStatusesAreAvailable) {
+                                            rndProofStatus(~proofStatus=getProofStatus(stmt), ())
+                                        } else {
+                                            React.null
+                                        }
+                                    }
+                                </td>
+                                <td style=ReactDOM.Style.make(~paddingTop, ())>
+                                    {React.string(stmt.label ++ ": ")} 
+                                </td>
+                                <td style=ReactDOM.Style.make(~paddingTop, ())>
+                                    {stmt.exprReElem} 
                                 </td>
                             </tr>
                         })->React.array

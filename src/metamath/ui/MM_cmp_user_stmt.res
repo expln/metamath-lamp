@@ -84,6 +84,51 @@ let rndContText = (stmtCont) => {
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
+let rndProofStatus = (
+    ~proofStatus:option<proofStatus>,
+    ~readyTooltip:option<string>=?,
+    ~waitingTooltip:option<string>=?,
+    ~noJstfTooltip:option<string>=?,
+    ~jstfIsIncorrectTooltip:option<string>=?,
+    ~onReadyIconClicked:option<unit=>unit>=?,
+    ()
+):React.element => {
+    switch proofStatus {
+        | None => React.null
+        | Some(status) => {
+            switch status {
+                | Ready =>
+                    <span 
+                        title=?readyTooltip
+                        style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ~cursor="pointer", ())
+                        onClick={_=>onReadyIconClicked->Belt_Option.forEach(clbk => clbk())}
+                    >{React.string("\u2713")}</span>
+                | Waiting =>
+                    <span 
+                        title=?waitingTooltip
+                        style=ReactDOM.Style.make(~color="orange", ~fontWeight="bold", ())
+                    >
+                        {React.string("\u223F")}
+                    </span>
+                | NoJstf =>
+                    <span 
+                        title=?noJstfTooltip
+                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
+                    >
+                        {React.string("?")}
+                    </span>
+                | JstfIsIncorrect =>
+                    <span 
+                        title=?jstfIsIncorrectTooltip
+                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
+                    >
+                        {React.string("\u2717")}
+                    </span>
+            }
+        }
+    }
+}
+
 @react.component
 let make = (
     ~stmt:userStmt, 
@@ -209,43 +254,6 @@ let make = (
         }
     }
 
-    let rndProofStatus = () => {
-        switch stmt.proofStatus {
-            | None => React.null
-            | Some(status) => {
-                switch status {
-                    | Ready =>
-                        <span 
-                            title="Proof is ready, left-click to generate compressed proof"
-                            style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ~cursor="pointer", ())
-                            onClick={_=>onGenerateProof()}
-                        >{React.string("\u2713")}</span>
-                    | Waiting =>
-                        <span 
-                            title="Justification for this statement is correct"
-                            style=ReactDOM.Style.make(~color="orange", ~fontWeight="bold", ())
-                        >
-                            {React.string("\u223F")}
-                        </span>
-                    | NoJstf =>
-                        <span 
-                            title="Justification cannot be determined automatically"
-                            style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
-                        >
-                            {React.string("?")}
-                        </span>
-                    | JstfIsIncorrect =>
-                        <span 
-                            title="Justification is incorrect"
-                            style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
-                        >
-                            {React.string("\u2717")}
-                        </span>
-                }
-            }
-        }
-    }
-
     let rndTyp = () => {
         if (stmt.typEditMode) {
             <FormControl size=#small >
@@ -325,7 +333,17 @@ let make = (
         <tbody>
             <tr>
                 <td>
-                    {rndProofStatus()}
+                    {
+                        rndProofStatus(
+                            ~proofStatus=stmt.proofStatus, 
+                            ~readyTooltip="Proof is ready, left-click to generate compressed proof",
+                            ~waitingTooltip="Justification for this statement is correct",
+                            ~noJstfTooltip="Justification cannot be determined automatically",
+                            ~jstfIsIncorrectTooltip="Justification is incorrect",
+                            ~onReadyIconClicked=onGenerateProof,
+                            ()
+                        )
+                    }
                 </td>
                 <td>
                     {rndLabel()}
