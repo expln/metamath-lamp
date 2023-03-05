@@ -15,3 +15,17 @@ type workerResponse = {
 let serialize: 'a => serialized
 
 let deserialize: serialized => 'a
+
+let logClientIsSendingRequest: (
+    ~clientId:int,
+    ~procName:string,
+    ~req:'req,
+    ~reqToStr:option<'req=>string>,
+) => unit
+
+let logClientReceivedResponse: (
+    ~clientId:int,
+    ~procName:string,
+    ~resp:'resp,
+    ~respToStr:option<'resp=>string>,
+) => unit

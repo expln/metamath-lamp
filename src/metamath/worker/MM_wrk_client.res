@@ -58,10 +58,6 @@ let sendToWorkerPriv: workerRequest => unit = req => {
             let resp:workerResponse = msg["data"]
             clients->Expln_utils_common.arrForEach(client => {
                 if (client.id == resp.clientId) {
-                    if (client.traceEnabled) {
-                        Js.Console.log(`${currTimeStr()} [clientId=${resp.clientId->Belt_Int.toString}] ` 
-                                            ++ `client received a response`)
-                    }
                     client.callback(resp.body)
                     Some(())
                 } else {
@@ -82,20 +78,26 @@ let beginWorkerInteraction = (
     ~initialRequest:'req, 
     ~onResponse:(~resp:'resp, ~sendToWorker:'req=>unit, ~endWorkerInteraction:unit=>unit)=>unit,
     ~enableTrace: bool=false,
+    ~reqToStr:option<'req=>string>=?,
+    ~respToStr:option<'resp=>string>=?,
     ()
 ) => {
     let id = ref(-1)
     let localSendToWorker = ref(_=>())
     id.contents = regClient(~enableTrace, ~callback = respBody => {
+        let resp=deserialize(respBody)
+        if (enableTrace) {
+            logClientReceivedResponse( ~clientId=id.contents, ~procName, ~resp, ~respToStr, )
+        }
         onResponse(
-            ~resp=deserialize(respBody),
+            ~resp,
             ~sendToWorker=localSendToWorker.contents,
             ~endWorkerInteraction= _=>unregClient(id.contents)
         )
     })
     localSendToWorker.contents = req => {
         if (enableTrace) {
-            Js.Console.log(`${currTimeStr()} [clientId=${id.contents->Belt_Int.toString}] client is sending a request, procName = ${procName}`)
+            logClientIsSendingRequest( ~clientId=id.contents, ~procName, ~req, ~reqToStr, )
         }
         sendToWorkerPriv({clientId:id.contents, procName, body:serialize(req), traceEnabled: enableTrace})
     }
