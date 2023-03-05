@@ -22,7 +22,7 @@ let beginLoadingMmContext = (~scopes:array<mmScope>, ~onProgress:float=>unit, ~o
     beginWorkerInteraction(
         ~procName,
         ~initialRequest = LoadMmContext({ scopes:scopes }),
-        ~onResponse = (~resp:response, ~sendToWorker, ~endWorkerInteraction:unit=>unit) => {
+        ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | MmContextLoadProgress({pct}) => onProgress(pct)
                 | MmContextLoaded({ctx}) => {

@@ -14,7 +14,7 @@ let beginFindParens = (~ctx, ~onProgress:float=>unit, ~onDone:string=>unit) => {
     beginWorkerInteraction(
         ~procName,
         ~initialRequest = FindParens({ctx:ctx}),
-        ~onResponse = (~resp:response, ~sendToWorker, ~endWorkerInteraction:unit=>unit) => {
+        ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | FindParensProgress({pct}) => onProgress(pct)
                 | FindParensDone({parens}) => {

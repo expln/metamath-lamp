@@ -70,10 +70,6 @@ let createDefaultSettings = () => {
 
 let strContainsWhitespaceRegex = %re("/\s+/")
 let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
-    let newId = switch Belt_Int.fromString(ts.id) {
-        | None => "0"
-        | Some(_) => ts.id
-    }
     let newTyp = ts.typ->Js_string2.trim
     let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
     let typIsEmpty = newTyp->Js_string2.length == 0
@@ -113,7 +109,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     )
     let validatedTypeSettings = if (distinctIds->Belt_SetInt.size != validatedTypeSettings->Js_array2.length) {
         let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
-        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i)->Belt_Int.toString})
+        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
     } else {
         validatedTypeSettings
     }

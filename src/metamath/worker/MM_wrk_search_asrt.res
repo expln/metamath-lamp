@@ -57,7 +57,7 @@ let searchAssertions = (
             ~hyps,
             ~procName,
             ~initialRequest = FindAssertions({label:label->Js.String2.toLowerCase, typ, pattern}),
-            ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
+            ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
                     | SearchResult({found}) => {
@@ -105,7 +105,7 @@ let doSearchAssertions = (
             })
             let stmts = []
             let argLabels = []
-            frame.hyps->Js_array2.forEachi((hyp, i) => {
+            frame.hyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == E) {
                     let argLabel = hyp.label
                     argLabels->Js_array2.push(argLabel)->ignore

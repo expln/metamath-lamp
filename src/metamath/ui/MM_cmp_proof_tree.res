@@ -18,13 +18,13 @@ let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>,) => {
 }
 
 @react.component
-let rec make = (
+let make = (
     ~tree: proofTreeDto,
     ~rootExpr: expr,
     ~wrkCtx:mmContext,
     ~rootStmts: array<rootStmt>,
 ) => {
-    let (state, setState) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
+    let (state, _) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
 
     let nodeIdxToLabel = idx => {
         switch state.exprToLabel->Belt_HashMap.get(tree.nodes[idx].expr) {

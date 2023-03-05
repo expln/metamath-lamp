@@ -16,7 +16,7 @@ let beginParsingMmFile = (~mmFileText, ~onProgress:float=>unit, ~onDone:parseRes
     beginWorkerInteraction(
         ~procName,
         ~initialRequest = ParseMmFile({mmFileText:mmFileText}),
-        ~onResponse = (~resp:response, ~sendToWorker, ~endWorkerInteraction:unit=>unit) => {
+        ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | MmFileParseProgress({pct}) => onProgress(pct)
                 | MmFileParsed({parseResult}) => {

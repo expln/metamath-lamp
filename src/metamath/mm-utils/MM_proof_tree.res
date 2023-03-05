@@ -44,7 +44,7 @@ and proofTree = {
 }
 
 let jstfEq = (jstf1, jstf2) => {
-    jstf1.args == jstf1.args && jstf1.label == jstf1.label
+    jstf1.args == jstf2.args && jstf1.label == jstf2.label
 }
 
 let exprSourceEq = (s1,s2) => {

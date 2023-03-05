@@ -613,9 +613,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
-                let preCtxVer=state.preCtxV
-                let preCtx=state.preCtx
-                let parenStr=state.settings.parens
                 let varsText=state.varsText
                 let disjText=state.disjText
                 let hyps={

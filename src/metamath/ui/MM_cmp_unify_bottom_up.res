@@ -195,8 +195,8 @@ let toggleAllowNewVars = (st) => {
 }
 
 let toggleArg = (idx,args) => args->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
-let selectAllArgs = args => args->Js_array2.map(v => true)
-let unselectAllArgs = args => args->Js_array2.map(v => false)
+let selectAllArgs = args => args->Js_array2.map(_ => true)
+let unselectAllArgs = args => args->Js_array2.map(_ => false)
 let invertArgs = args => args->Js_array2.map(v => !v)
 
 let updateArgs0 = (st, args0) => { ...st, args0 }
@@ -516,11 +516,11 @@ let make = (
                         allowNewVars: st.allowNewVars,
                         args0: 
                             st.rootStmtsRendered
-                                ->Js_array2.filteri((stmt,i) => st.args0[i])
+                                ->Js_array2.filteri((_,i) => st.args0[i])
                                 ->Js_array2.map(stmt => stmt.expr),
                         args1:
                             st.rootStmtsRendered
-                                ->Js_array2.filteri((stmt,i) => st.args1[i])
+                                ->Js_array2.filteri((_,i) => st.args1[i])
                                 ->Js_array2.map(stmt => stmt.expr),
                     }),
                     ~onProgress = msg => updateModal( 
@@ -697,7 +697,7 @@ let make = (
     let rndShowProofTreeBtn = () => {
         switch state.tree {
             | None => React.null
-            | Some(tree) => {
+            | Some(_) => {
                 <Button onClick={_=>actShowProofTree()} variant=#outlined>
                     {React.string("Show proof tree")}
                 </Button>

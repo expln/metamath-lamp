@@ -55,7 +55,7 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
     }
 }
 
-let setResults = (st,results,ctx,frms):state => {
+let setResults = (st,results):state => {
     let maxPage = Js.Math.ceil_int(results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
         ...st,
@@ -167,7 +167,7 @@ let make = (
     let (state, setState) = React.useState(() => makeInitialState(frms, initialTyp))
 
     let actResultsRetrieved = results => {
-        setState(setResults(_, results, wrkCtx, frms))
+        setState(setResults(_, results))
     }
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
@@ -227,7 +227,7 @@ let make = (
         switch state.results {
             | None => ()
             | Some(results) => {
-                onResultsSelected(results->Js_array2.filteri((res,i) => state.checkedResultsIdx->Js.Array2.includes(i)))
+                onResultsSelected(results->Js_array2.filteri((_,i) => state.checkedResultsIdx->Js.Array2.includes(i)))
             }
         }
     }

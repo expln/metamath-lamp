@@ -287,7 +287,7 @@ let rec forEachCtxInReverseOrder = (ctx:mmContextContents,consumer:mmContextCont
 
 let isDebug = ctx => ctx.contents.debug
 
-let rec isConstPriv: (mmContextContents,string) => bool = (ctx, sym) => {
+let isConstPriv: (mmContextContents,string) => bool = (ctx, sym) => {
     (ctx.root->Belt.Option.getExn).symToInt
         ->mutableMapStrGet(sym)
         ->Belt_Option.map(i => i < 0)

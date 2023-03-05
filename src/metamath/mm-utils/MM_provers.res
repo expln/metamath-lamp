@@ -438,7 +438,6 @@ let proveStmtBottomUp = (
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
-    let rootExprs = tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr)
 
     let getParents = (expr:expr, dist:int):array<exprSource> => {
         let parents = findAsrtParentsWithNewVars(
