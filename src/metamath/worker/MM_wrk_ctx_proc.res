@@ -57,7 +57,7 @@ let getWrkFrmsExn = () => {
 }
 
 let settingsCache = cacheMake(
-    ~recalc = settings => (ctx,prepareFrmSubsData(ctx)),
+    ~recalc = settings => settings,
     ~depVerEq = (v1,v2) => v1 == v2
 )
 
@@ -67,14 +67,14 @@ let preCtxCache = cacheMake(
 )
 
 let frmsCache = cacheMake(
-    ~recalc = (settings,ctx) => {
-        prepareFrmSubsData(~ctx, ~asrtsToSkip=Belt_HashSetString.fromArray(settings.asrtsToSkip))
+    ~recalc = ((settings,ctx)) => {
+        prepareFrmSubsData(~ctx, ~asrtsToSkip=Belt_HashSetString.fromArray(settings.asrtsToSkip), ())
     },
     ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
 )
 
 let parenCntCache = cacheMake(
-    ~recalc = (settings,ctx) => parenCntMake(prepareParenInts(ctx, settings.parens), ()),
+    ~recalc = ((settings,ctx)) => parenCntMake(prepareParenInts(ctx, settings.parens), ()),
     ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
 )
 
@@ -86,10 +86,10 @@ let makeWrkPrecalcData = (
     ~hyps: array<wrkCtxHyp>,
 ):result<wrkPrecalcData,response> => {
     switch settingsCache->cacheGetByDepVer(settingsVer) {
-        | None => Error(GetSettings({ settingsVer }))
+        | None => Error(GetSettings({ settingsVer:settingsVer }))
         | Some(settings) => {
             switch preCtxCache->cacheGetByDepVer(preCtxVer) {
-                | None => Error(GetPreCtx({ preCtxVer }))
+                | None => Error(GetPreCtx({ preCtxVer:preCtxVer }))
                 | Some(preCtx) => {
                     switch createWrkCtx( ~preCtx, ~varsText, ~disjText, ~hyps, ) {
                         | Error(_) => raise(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
@@ -129,9 +129,10 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
 }
 
 let beginWorkerInteractionUsingCtx = (
+    ~settingsVer:int,
+    ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
@@ -141,14 +142,22 @@ let beginWorkerInteractionUsingCtx = (
     ~enableTrace: bool=false,
     ()
 ) => {
+    let prepareWrkPrecalcDataReq = PrepareWrkPrecalcData({ settingsVer, preCtxVer, varsText, disjText, hyps, })
     beginWorkerInteraction(
         ~procName = thisProcName,
-        ~initialRequest = PrepareWrkPrecalcData({ preCtxVer, parenStr, varsText, disjText, hyps, }), 
+        ~initialRequest = prepareWrkPrecalcDataReq, 
         ~onResponse = (~resp, ~sendToWorker, ~endWorkerInteraction) => {
             switch resp {
+                | GetSettings({settingsVer:requestedSettingsVer}) => {
+                    if (requestedSettingsVer == settingsVer) {
+                        sendToWorker(SetSettings({ settingsVer, settings }))
+                        sendToWorker(prepareWrkPrecalcDataReq)
+                    }
+                }
                 | GetPreCtx({preCtxVer:requestedPreCtxVer}) => {
                     if (requestedPreCtxVer == preCtxVer) {
                         sendToWorker(SetPreCtx({ preCtxVer, preCtx }))
+                        sendToWorker(prepareWrkPrecalcDataReq)
                     }
                 }
                 | Ok => {

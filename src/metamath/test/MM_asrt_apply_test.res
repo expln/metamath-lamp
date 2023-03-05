@@ -237,7 +237,7 @@ let testApplyAssertions = (
     preCtx->moveConstsToBegin(parens)
     additionalStatements->Js_array2.forEach(preCtx->applySingleStmt)
     let workCtx = createContext(~parent=preCtx, ())
-    let frms = prepareFrmSubsData(workCtx)
+    let frms = prepareFrmSubsData(~ctx=workCtx, ())
     let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()

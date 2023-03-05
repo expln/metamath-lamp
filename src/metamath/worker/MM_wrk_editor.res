@@ -630,7 +630,7 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         ...st, 
         preCtxV, 
         preCtx, 
-        frms: prepareFrmSubsData(preCtx),
+        frms: prepareFrmSubsData(~ctx=preCtx, ()),
         parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
     let st = recalcPreCtxColors(st)

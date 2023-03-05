@@ -31,7 +31,7 @@ let createEditorState = (
     }
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
-    let frms = prepareFrmSubsData(ctx)
+    let frms = prepareFrmSubsData(~ctx, ())
     let st = {
         settingsV: 1,
         settings: {
@@ -44,7 +44,7 @@ let createEditorState = (
 
         preCtxV: 1,
         preCtx: ctx,
-        parenCnt: parenCntMake(MM_wrk_ctx.prepareParenInts(ctx, parens), ()),
+        parenCnt: parenCntMake(MM_wrk_ctx_data.prepareParenInts(ctx, parens), ()),
         frms,
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 

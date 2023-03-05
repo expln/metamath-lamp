@@ -2,15 +2,17 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_wrk_ctx_data
+open MM_wrk_settings
 
 let procName: string
 type request
 type response
 
 let beginWorkerInteractionUsingCtx: (
+    ~settingsVer:int,
+    ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,

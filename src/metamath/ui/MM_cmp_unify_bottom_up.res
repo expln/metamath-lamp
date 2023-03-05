@@ -2,7 +2,8 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_react_common
 open Expln_utils_promise
-open MM_wrk_ctx
+open MM_wrk_ctx_data
+open MM_wrk_ctx_proc
 open MM_wrk_editor
 open MM_context
 open MM_substitution
@@ -14,6 +15,7 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
+open MM_wrk_settings
 
 type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -430,12 +432,13 @@ let sortByFromStr = str => {
 @react.component
 let make = (
     ~modalRef:modalRef,
+    ~settingsVer:int,
+    ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~wrkCtx: mmContext,
-    ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
@@ -506,7 +509,7 @@ let make = (
                     )
                 )
                 unify(
-                    ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~rootProvables,
+                    ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~hyps, ~rootProvables,
                     ~bottomUpProverParams=Some({
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,

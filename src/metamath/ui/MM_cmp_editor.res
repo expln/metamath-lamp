@@ -4,7 +4,8 @@ open Expln_React_Mui
 open Expln_React_Modal
 open MM_wrk_editor
 open MM_wrk_settings
-open MM_wrk_ctx
+open MM_wrk_ctx_data
+open MM_wrk_ctx_proc
 open MM_wrk_unify
 open MM_substitution
 open Expln_utils_promise
@@ -58,7 +59,7 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
 
         preCtxV,
         preCtx,
-        frms: prepareFrmSubsData(preCtx),
+        frms: prepareFrmSubsData(~ctx=preCtx, ()),
         parenCnt: parenCntMake(prepareParenInts(preCtx, settings.parens), ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
@@ -531,9 +532,10 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_search_asrt
                             modalRef
+                            settingsVer=state.settingsV
+                            settings=state.settings
                             preCtxVer=state.preCtxV
                             preCtx=state.preCtx
-                            parenStr=state.settings.parens
                             varsText=state.varsText
                             disjText=state.disjText
                             hyps={
@@ -629,7 +631,12 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
-                                    modalRef preCtxVer preCtx wrkCtx parenStr varsText disjText hyps rootProvables
+                                    modalRef
+                                    settingsVer=state.settingsV
+                                    settings=state.settings
+                                    preCtxVer=state.preCtxV
+                                    preCtx=state.preCtx
+                                    wrkCtx varsText disjText hyps rootProvables
                                     rootStmts
                                     frms=state.frms parenCnt=state.parenCnt
                                     onResultSelected={newStmtsDto => {
@@ -660,7 +667,14 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 )
                             )
                             unify(
-                                ~preCtxVer, ~preCtx, ~parenStr, ~varsText, ~disjText, ~hyps, ~rootProvables,
+                                ~settingsVer=state.settingsV,
+                                ~settings=state.settings,
+                                ~preCtxVer=state.preCtxV,
+                                ~preCtx=state.preCtx,
+                                ~varsText,
+                                ~disjText,
+                                ~hyps,
+                                ~rootProvables,
                                 ~bottomUpProverParams=None,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(

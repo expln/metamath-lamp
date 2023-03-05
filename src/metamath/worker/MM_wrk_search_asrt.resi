@@ -1,9 +1,11 @@
 open MM_context
 open MM_asrt_apply
 open Expln_utils_promise
-open MM_wrk_ctx
+open MM_wrk_ctx_data
+open MM_wrk_ctx_proc
 open MM_substitution
 open MM_statements_dto
+open MM_wrk_settings
 
 let procName: string
 
@@ -21,9 +23,10 @@ let doSearchAssertions: (
 ) => array<stmtsDto>
 
 let searchAssertions: (
+    ~settingsVer:int,
+    ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,

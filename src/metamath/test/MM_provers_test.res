@@ -17,7 +17,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
     let expr = ctx->ctxStrToIntsExn(exprStr)
-    let frms = prepareFrmSubsData(ctx)
+    let frms = prepareFrmSubsData(~ctx, ())
 
     //when
     let proofTree = proveFloatings(

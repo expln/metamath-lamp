@@ -1,10 +1,11 @@
 open MM_context
 open Expln_utils_promise
-open MM_wrk_ctx
+open MM_wrk_ctx_data
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_provers
 open MM_statements_dto
+open MM_wrk_settings
 
 let procName: string
 
@@ -12,9 +13,10 @@ type request
 type response
 
 let unify: (
+    ~settingsVer:int,
+    ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: MM_context.mmContext,
-    ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,

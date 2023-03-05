@@ -7,7 +7,7 @@ open MM_wrk_editor
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
-open MM_wrk_ctx
+open MM_wrk_ctx_data
 
 let createEditorState = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
@@ -27,7 +27,7 @@ let createEditorState = (mmFile) => {
 
         preCtxV: 1,
         preCtx: ctx,
-        frms: prepareFrmSubsData(ctx),
+        frms: prepareFrmSubsData(~ctx, ()),
         parenCnt: parenCntMake(prepareParenInts(ctx, parens), ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 

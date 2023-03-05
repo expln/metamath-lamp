@@ -3,7 +3,8 @@ open Expln_React_Mui
 open MM_react_common
 open Expln_utils_promise
 open MM_asrt_apply
-open MM_wrk_ctx
+open MM_wrk_ctx_data
+open MM_wrk_ctx_proc
 open MM_wrk_editor
 open MM_wrk_search_asrt
 open MM_context
@@ -11,6 +12,7 @@ open MM_substitution
 open MM_parser
 open Expln_React_Modal
 open MM_statements_dto
+open MM_wrk_settings
 
 type resultForRender = React.element
 
@@ -151,9 +153,10 @@ let toggleResultChecked = (st,idx) => {
 @react.component
 let make = (
     ~modalRef:modalRef,
+    ~settingsVer:int,
+    ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~parenStr: string,
     ~varsText: string,
     ~disjText: string,
     ~hyps: array<wrkCtxHyp>,
@@ -191,9 +194,10 @@ let make = (
                         )
                     )
                     searchAssertions(
+                        ~settingsVer,
+                        ~settings,
                         ~preCtxVer,
                         ~preCtx,
-                        ~parenStr,
                         ~varsText,
                         ~disjText,
                         ~hyps,

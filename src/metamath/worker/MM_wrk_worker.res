@@ -26,8 +26,8 @@ let processors: Belt_MapString.t<requestProcessor> = Belt_MapString.fromArray([
         makeRequestProcessor(MM_wrk_FindParens.processOnWorkerSide)
     ),
     (
-        MM_wrk_ctx.procName, 
-        makeRequestProcessor(MM_wrk_ctx.processOnWorkerSide)
+        MM_wrk_ctx_proc.procName,
+        makeRequestProcessor(MM_wrk_ctx_proc.processOnWorkerSide)
     ),
     (
         MM_wrk_search_asrt.procName, 
