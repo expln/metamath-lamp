@@ -10,6 +10,19 @@ type response =
     | FindParensProgress({pct: float})
     | FindParensDone({parens: string})
 
+let reqToStr = req => {
+    switch req {
+        | FindParens(_) => "FindParens"
+    }
+}
+
+let respToStr = resp => {
+    switch resp {
+        | FindParensProgress({pct}) => `FindParensProgress(pct=${pct->Belt_Float.toString})`
+        | FindParensDone({parens}) => `FindParensDone(parens="${parens}")`
+    }
+}
+
 let beginFindParens = (~ctx, ~onProgress:float=>unit, ~onDone:string=>unit) => {
     beginWorkerInteraction(
         ~procName,

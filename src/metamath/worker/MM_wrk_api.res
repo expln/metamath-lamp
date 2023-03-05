@@ -36,3 +36,21 @@ let logClientReceivedResponse = (
     let respStr = respToStr->Belt_Option.map(f => f(resp))->Belt.Option.getWithDefault("")
     Js.Console.log(`${currTimeStr()} [${clientId->Belt_Int.toString},${procName}] ->C ${respStr}`)
 }
+
+let logWorkerIsSendingResponse = (
+    ~clientId:int,
+    ~procName:string,
+    ~resp:'resp,
+    ~respToStr:'resp=>string,
+):unit => {
+    Js.Console.log(`${currTimeStr()} [${clientId->Belt_Int.toString},${procName}] W~> ${respToStr(resp)}`)
+}
+
+let logWorkerReceivedRequest = (
+    ~clientId:int,
+    ~procName:string,
+    ~req:'req,
+    ~reqToStr:'req=>string,
+):unit => {
+    Js.Console.log(`${currTimeStr()} [${clientId->Belt_Int.toString},${procName}] ->W ${reqToStr(req)}`)
+}

@@ -29,3 +29,17 @@ let logClientReceivedResponse: (
     ~resp:'resp,
     ~respToStr:option<'resp=>string>,
 ) => unit
+
+let logWorkerIsSendingResponse: (
+    ~clientId:int,
+    ~procName:string,
+    ~resp:'resp,
+    ~respToStr:'resp=>string,
+) => unit
+
+let logWorkerReceivedRequest: (
+    ~clientId:int,
+    ~procName:string,
+    ~req:'req,
+    ~reqToStr:'req=>string,
+) => unit

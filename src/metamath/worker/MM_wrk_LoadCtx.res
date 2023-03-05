@@ -18,6 +18,19 @@ type response =
     | MmContextLoadProgress({pct:float})
     | MmContextLoaded({ctx:result<mmContext,string>})
 
+let reqToStr = req => {
+    switch req {
+        | LoadMmContext(_) => "LoadMmContext"
+    }
+}
+
+let respToStr = resp => {
+    switch resp {
+        | MmContextLoadProgress({pct}) => `MmContextLoadProgress(pct=${pct->Belt_Float.toString})`
+        | MmContextLoaded(_) => `MmContextLoaded`
+    }
+}
+
 let beginLoadingMmContext = (~scopes:array<mmScope>, ~onProgress:float=>unit, ~onDone:result<mmContext,string>=>unit) => {
     beginWorkerInteraction(
         ~procName,

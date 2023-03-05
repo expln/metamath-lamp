@@ -12,6 +12,19 @@ type response =
     | MmFileParseProgress({pct: float})
     | MmFileParsed({parseResult: parseResult})
 
+let reqToStr = req => {
+    switch req {
+        | ParseMmFile(_) => "ParseMmFile"
+    }
+}
+
+let respToStr = resp => {
+    switch resp {
+        | MmFileParseProgress({pct}) => `MmFileParseProgress(pct=${pct->Belt_Float.toString})`
+        | MmFileParsed(_) => `MmFileParsed`
+    }
+}
+
 let beginParsingMmFile = (~mmFileText, ~onProgress:float=>unit, ~onDone:parseResult=>unit) => {
     beginWorkerInteraction(
         ~procName,

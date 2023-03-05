@@ -37,3 +37,6 @@ let searchAssertions: (
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 
 let frameMatchesPattern: (frame, array<int>) => bool
+
+let reqToStr: request => string
+let respToStr: response => string

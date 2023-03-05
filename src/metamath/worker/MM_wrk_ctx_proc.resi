@@ -29,4 +29,5 @@ let getWrkFrmsExn: () => Belt_MapString.t<frmSubsData>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 
-
+let reqToStr: request => string
+let respToStr: response => string

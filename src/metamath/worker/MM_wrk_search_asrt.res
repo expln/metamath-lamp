@@ -16,6 +16,21 @@ type response =
     | OnProgress(float)
     | SearchResult({found:array<stmtsDto>})
 
+let reqToStr = req => {
+    switch req {
+        | FindAssertions({label, typ, pattern}) => 
+            `FindAssertions(label="${label}", typ=${typ->Belt_Int.toString}, `
+                ++ `pattern=[${pattern->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(", ")}])`
+    }
+}
+
+let respToStr = resp => {
+    switch resp {
+        | OnProgress(pct) => `OnProgress(pct=${pct->Belt_Float.toString})`
+        | SearchResult(_) => `SearchResult`
+    }
+}
+
 let frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
     let patLen = pat->Js.Array2.length
     let asrtLen = frm.asrt->Js.Array2.length

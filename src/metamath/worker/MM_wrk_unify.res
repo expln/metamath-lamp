@@ -21,6 +21,19 @@ type response =
     | OnProgress(string)
     | Result(proofTreeDto)
 
+let reqToStr = req => {
+    switch req {
+        | Unify(_) => `Unify`
+    }
+}
+
+let respToStr = resp => {
+    switch resp {
+        | OnProgress(msg) => `OnProgress("${msg}")`
+        | Result(_) => `Result`
+    }
+}
+
 let unify = (
     ~settingsVer:int,
     ~settings:settings,

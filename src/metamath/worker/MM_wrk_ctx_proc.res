@@ -27,6 +27,22 @@ type response =
     | GetPreCtx({preCtxVer: int})
     | Ok
 
+let reqToStr = req => {
+    switch req {
+        | PrepareWrkPrecalcData(_) => "PrepareWrkPrecalcData"
+        | SetSettings({ settingsVer}) => `SetSettings(settingsVer=${settingsVer->Belt_Int.toString})`
+        | SetPreCtx({ preCtxVer }) => `SetPreCtx(preCtxVer=${preCtxVer->Belt_Int.toString})`
+    }
+}
+
+let respToStr = resp => {
+    switch resp {
+        | GetSettings({ settingsVer }) => `GetSettings(settingsVer=${settingsVer->Belt_Int.toString})`
+        | GetPreCtx({preCtxVer }) => `GetPreCtx(preCtxVer=${preCtxVer->Belt_Int.toString})`
+        | Ok => `Ok`
+    }
+}
+
 type wrkPrecalcData = {
     wrkFrms: Belt_MapString.t<frmSubsData>,
     wrkParenCnt: parenCnt,
