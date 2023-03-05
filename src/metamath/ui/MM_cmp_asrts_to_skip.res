@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open MM_parser
 
 type state = {
     text: string,
@@ -56,11 +57,12 @@ let toggleApplyRegex = (st:state) => {
             ->Js_array2.filter(Belt_Option.isSome)
             ->Js_array2.map(Belt_Option.getExn)
             ->Js_array2.joinWith("\n")
-
-        Js.Console.log2("textAfterRegex", textAfterRegex)
-
         { ...st, applyRegex:true, textAfterRegex }
     }
+}
+
+let textToArrayOfAsrts = str => {
+    str->multilineTextToNonEmptyLines->Expln_utils_common.arrFlatMap(getSpaceSeparatedValuesAsArray)
 }
 
 @react.component
@@ -93,12 +95,13 @@ let make = (
     let actOnSave = () => {
         onSave({
             regex: state.regex,
-            asrtsToSkip: 
+            asrtsToSkip: textToArrayOfAsrts(
                 if (state.applyRegex) {
-                    state.textAfterRegex->multilineTextToNonEmptyLines
+                    state.textAfterRegex
                 } else {
-                    state.text->multilineTextToNonEmptyLines
+                    state.text
                 }
+            )
         })
     }
 
