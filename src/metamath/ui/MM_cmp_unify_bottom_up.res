@@ -710,6 +710,7 @@ let make = (
                     <TextField 
                         label="Max num of branches"
                         size=#small
+                        disabled={!state.debug}
                         style=ReactDOM.Style.make(~width="200px", ())
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)

@@ -38,6 +38,14 @@ let expandCollapseSrc = (st,srcIdx) => {
     }
 }
 
+let validProofIcon = 
+    <span
+        title="This is a valid proof"
+        style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())
+    >
+        {React.string("\u2713")}
+    </span>
+
 module rec ProofNodeDtoCmp: {
     @react.component
     let make: (
@@ -94,6 +102,11 @@ module rec ProofNodeDtoCmp: {
         let rndExpandedArgs = (args) => {
             <table>
                 <tbody>
+                    <tr key="c-args">
+                        <td>
+                            {rndCollapsedArgs(args)}
+                        </td>
+                    </tr>
                     {
                         args->Js_array2.mapi((arg,argIdx) => {
                             <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
@@ -126,28 +139,28 @@ module rec ProofNodeDtoCmp: {
             }
         }
 
-        let rndStatusIconForSrc = (args:array<int>, err:option<unifErr>) => {
-            switch err {
-                | None => {
-                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
-                    if (allArgsAreProved) {
-                        <span
-                            title="This is a valid proof"
-                            style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())
-                        >
-                            {React.string("\u2713")}
-                        </span>
-                    } else {
-                        React.null
+        let rndStatusIconForSrc = (src:exprSourceDto, err:option<unifErr>) => {
+            switch src {
+                | VarType | Hypothesis(_) => validProofIcon
+                | Assertion({args, label, err}) => {
+                    switch err {
+                        | None => {
+                            let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
+                            if (allArgsAreProved) {
+                                validProofIcon
+                            } else {
+                                React.null
+                            }
+                        }
+                        | Some(_) => {
+                            <span
+                                title="Click to see error details"
+                                style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
+                            >
+                                {React.string("\u2717")}
+                            </span>
+                        }
                     }
-                }
-                | Some(_) => {
-                    <span
-                        title="Click to see error details"
-                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
-                    >
-                        {React.string("\u2717")}
-                    </span>
                 }
             }
         }
@@ -157,19 +170,21 @@ module rec ProofNodeDtoCmp: {
             switch src {
                 | VarType => {
                     <tr key>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src, None)} </td>
                         <td> {React.string("VarType")} </td>
                         <td> {React.null} </td>
                     </tr>
                 }
                 | Hypothesis({label}) => {
                     <tr key>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src, None)} </td>
                         <td> {React.string("Hyp " ++ label)} </td>
                         <td> {React.null} </td>
                     </tr>
                 }
                 | Assertion({args, label, err}) => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(args, err)} </td>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src, err)} </td>
                         <td
                             onClick={_=>actToggleSrcExpanded(srcIdx)}
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
