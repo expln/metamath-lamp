@@ -536,6 +536,12 @@ let make = (
                             st.rootStmtsRendered
                                 ->Js_array2.filteri((_,i) => st.args1[i])
                                 ->Js_array2.map(stmt => stmt.expr),
+                        maxNumberOfBranches: 
+                            if (state.maxNumberOfBranchesStr == "") {
+                                None
+                            } else {
+                                state.maxNumberOfBranchesStr->Belt_Int.fromString
+                            },
                     }),
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(

@@ -12,6 +12,7 @@ type bottomUpProverParams = {
     allowNewVars: bool,
     args0: array<expr>,
     args1: array<expr>,
+    maxNumberOfBranches: option<int>,
 }
 
 let proveFloatings: (

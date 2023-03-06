@@ -315,6 +315,7 @@ let unifyBottomUp = (
                     allowNewVars,
                     args0:filterRootStmts(rootUserStmts, args0),
                     args1:filterRootStmts(rootUserStmts, args1),
+                    maxNumberOfBranches: None,
                 },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
