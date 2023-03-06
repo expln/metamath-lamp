@@ -44,6 +44,8 @@ type state = {
     depthStr: string,
     lengthRestrict: lengthRestrict,
     allowNewVars: bool,
+    debug:bool,
+    maxNumberOfBranchesStr:string,
 
     tree: option<proofTreeDto>,
     results: option<array<stmtsDto>>,
@@ -151,6 +153,8 @@ let makeInitialState = (
         depth: 4,
         lengthRestrict: Less,
         allowNewVars: true,
+        debug: false,
+        maxNumberOfBranchesStr: "",
 
         tree: None,
         results: None,
@@ -192,14 +196,24 @@ let toggleAllowNewVars = (st) => {
     }
 }
 
-let toggleArg = (idx,args) => args->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
+let toggleDebug = (st) => {
+    {
+        ...st,
+        debug: !st.debug
+    }
+}
+
+let nonDigitPattern = %re("/\D/g")
+
+let setMaxNumberOfBranchesStr = (st, maxNumberOfBranchesStr) => {
+    {
+        ...st,
+        maxNumberOfBranchesStr: maxNumberOfBranchesStr->Js.String2.replaceByRe(nonDigitPattern, "")
+    }
+}
+
 let selectAllArgs = args => args->Js_array2.map(_ => true)
 let unselectAllArgs = args => args->Js_array2.map(_ => false)
-let invertArgs = args => args->Js_array2.map(v => !v)
-
-let selectProvedArgs = (st,args:array<bool>):array<bool> => {
-    args->Js_array2.mapi((_,i) => getProofStatus(st.rootStmtsRendered[i])->Belt_Option.isSome)
-}
 
 let updateArgs0 = (st, args0) => { ...st, args0 }
 let updateArgs1 = (st, args1) => { ...st, args1 }
@@ -395,8 +409,6 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
-let notDigitPattern = %re("/\D/g")
-
 let lengthRestrictToStr = (len:lengthRestrict) => {
     switch len {
         | No => "No"
@@ -464,7 +476,7 @@ let make = (
     }
 
     let actDepthUpdated = depthStr => {
-        setState(setDepthStr(_,depthStr->Js.String2.replaceByRe(notDigitPattern, "")))
+        setState(setDepthStr(_,depthStr->Js.String2.replaceByRe(nonDigitPattern, "")))
     }
 
     let actLengthRestrictUpdated = lengthRestrict => {
@@ -594,6 +606,14 @@ let make = (
         }
     }
 
+    let actToggleDebug = () => {
+        setState(toggleDebug)
+    }
+
+    let actMaxNumberOfBranchesStrUpdated = maxNumberOfBranchesStr => {
+        setState(setMaxNumberOfBranchesStr(_, maxNumberOfBranchesStr))
+    }
+
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
         <FormControl size=#small>
             <InputLabel id="length-restrict-select-label">"Length restriction"</InputLabel>
@@ -634,7 +654,6 @@ let make = (
                 }
             }
         }
-        
     }
 
     let rndParams = () => {
@@ -661,8 +680,6 @@ let make = (
                         onChange=evt2str(actDepthUpdated)
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
-                </Row>
-                <Row>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -672,7 +689,27 @@ let make = (
                         }
                         label="Allow new variables"
                     />
-                    <Button onClick={_=>actProve()} variant=#outlined>
+                </Row>
+                <Row>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked=state.debug
+                                onChange={_ => actToggleDebug()}
+                            />
+                        }
+                        label="Debug"
+                    />
+                    <TextField 
+                        label="Max num of branches"
+                        size=#small
+                        style=ReactDOM.Style.make(~width="200px", ())
+                        value=state.maxNumberOfBranchesStr
+                        onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
+                    />
+                </Row>
+                <Row>
+                    <Button onClick={_=>actProve()} variant=#outlined >
                         {React.string("Prove")}
                     </Button>
                     <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
@@ -851,7 +888,7 @@ let make = (
                 {React.string("Root statements: ")}
                 {
                     rndRootStmtsForLevelShort(
-                        ~title = "level 0", 
+                        ~title = "first level", 
                         ~dialogTitle = "Select statements to derive from on level 0", 
                         ~getFlags = state => state.args0,
                         ~setFlags = newFlags => setState(updateArgs0(_, newFlags)),
