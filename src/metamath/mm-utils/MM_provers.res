@@ -163,6 +163,7 @@ let findAsrtParentsWithNewVars = (
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
     ~debugLevel:int=0,
+    ~onProgress:option<int=>unit>=?,
     ()
 ):array<exprSource> => {
     let applResults = []
@@ -183,7 +184,16 @@ let findAsrtParentsWithNewVars = (
             if (allowNewVars || res.newVars->Js.Array2.length == 0) {
                 applResults->Js_array2.push(res)->ignore
             }
-            if (applResults->Js.Array2.length > 1000) {
+            let resLen = applResults->Js.Array2.length
+            switch onProgress {
+                | Some(onProgress) => {
+                    if (mod(resLen, 100) == 0) {
+                        onProgress(resLen)
+                    }
+                }
+                | _ => ()
+            }
+            if (resLen > 10000000) {
                 Stop
             } else {
                 Continue
@@ -349,12 +359,10 @@ let srcIsBackRef = (expr:expr, src:exprSource):bool => {
 let proveBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
-    ~getParents:(expr,int)=>array<exprSource>,
+    ~getParents:(expr,int,option<int=>unit>)=>array<exprSource>,
     ~maxSearchDepth:int,
     ~onProgress:option<string=>unit>,
 ) => {
-    onProgress->Belt.Option.forEach(onProgress => onProgress("Proving bottom-up: initialization"))
-
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
@@ -367,6 +375,9 @@ let proveBottomUp = (
     let lastDist = ref(0)
     let maxCnt = ref(1)
     let cnt = ref(0)
+    let onProgressP:ref<option<int=>unit>> = ref(onProgress->Belt_Option.map(onProgress => numOfParents => {
+        onProgress(`Proving bottom-up: 0/${maxSearchDepthStr} ${numOfParents->Belt_Int.toString}`)
+    }))
     while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
         let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
         if (curNode->pnGetProof->Belt.Option.isNone) {
@@ -377,6 +388,7 @@ let proveBottomUp = (
             switch onProgress {
                 | Some(onProgress) => {
                     if (lastDist.contents != curDist) {
+                        onProgressP.contents = None
                         lastDist.contents = curDist
                         let curDistStr = curDist->Belt.Int.toString
                         progressState.contents = progressTrackerMutableMake(
@@ -407,7 +419,7 @@ let proveBottomUp = (
                     | None => {
                         let newDist = curDist + 1
                         if (newDist <= maxSearchDepth) {
-                            getParents(curExpr, curDist)->Js.Array2.forEach(src => {
+                            getParents(curExpr, curDist, onProgressP.contents)->Js.Array2.forEach(src => {
                                 if (!srcIsBackRef(curExpr, src)) {
                                     curNode->pnAddParent(src)
                                     switch src {
@@ -439,7 +451,7 @@ let proveStmtBottomUp = (
     ~onProgress:option<string=>unit>,
 ):proofNode => {
 
-    let getParents = (expr:expr, dist:int):array<exprSource> => {
+    let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSource> => {
         let parents = findAsrtParentsWithNewVars(
             ~tree,
             ~expr,
@@ -449,6 +461,7 @@ let proveStmtBottomUp = (
             ~allowEmptyArgs = true,
             ~allowNewVars = dist == 0 && params.allowNewVars,
             ~debugLevel,
+            ~onProgress?,
             ()
         )
         if (dist == 0) {
