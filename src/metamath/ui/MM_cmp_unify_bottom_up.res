@@ -15,7 +15,7 @@ open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
 open MM_wrk_settings
-open MM_cmp_user_stmt
+open MM_cmp_root_stmts
 
 type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -27,15 +27,6 @@ type resultRendered = {
     numOfNewVars: int,
     numOfUnprovedStmts: int,
     numOfStmts: int,
-}
-
-type rootStmtRendered = {
-    id: string,
-    expr:expr,
-    isHyp:bool,
-    label:string,
-    proofStatus: option<proofStatus>,
-    exprReElem:reElem,
 }
 
 type state = {
@@ -791,100 +782,19 @@ let make = (
             getProofStatus(stmt)->Belt_Option.isSome
         )
 
-        let rec updateFlags = (~modalId, ~newFlags) => {
-            setFlags(newFlags)
-            updateDialog(~modalId, ~flags=newFlags)
-        }
-        and let toggleFlag = (~modalId, ~flags, ~idx) => {
-            updateFlags(~modalId, ~newFlags=toggleArg(idx, flags))
-        }
-        and let selectAll = (~modalId, ~flags) => {
-            updateFlags(~modalId, ~newFlags=selectAllArgs(flags))
-        }
-        and let unselectAll = (~modalId, ~flags) => {
-            updateFlags(~modalId, ~newFlags=unselectAllArgs(flags))
-        }
-        and let inverseSelection = (~modalId, ~flags) => {
-            updateFlags(~modalId, ~newFlags=invertArgs(flags))
-        }
-        and let selectProved = (~modalId, ~flags) => {
-            updateFlags(~modalId, ~newFlags=selectProvedArgs(state,flags))
-        }
-        and let rndButtons = (~modalId, ~flags) => {
-            <Row>
-                <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
-                    {React.string("Close")}
-                </Button>
-                <Button onClick={_=>unselectAll(~modalId, ~flags)} >
-                    {React.string("None")}
-                </Button>
-                <Button onClick={_=>selectAll(~modalId, ~flags)} >
-                    {React.string("All")}
-                </Button>
-                <Button onClick={_=>inverseSelection(~modalId, ~flags)} >
-                    {React.string("Inverse")}
-                </Button>
-                {
-                    if (proofStatusesAreAvailable) {
-                        <Button onClick={_=>selectProved(~modalId, ~flags)} >
-                            {React.string("Proved")}
-                        </Button>
-                    } else {
-                        React.null
-                    }
-                }
-            </Row>
-        }
-        and let rndStmts = (~modalId, ~flags) => {
-            let paddingTop="10px"
-            <table>
-                <tbody>
-                    {
-                        flags->Js_array2.mapi((flag,i) => {
-                            let stmt = state.rootStmtsRendered[i]
-                            <tr key={i->Belt_Int.toString} style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                                <td>
-                                    <Checkbox
-                                        checked=flag
-                                        onChange={_ => toggleFlag(~modalId, ~flags, ~idx=i)}
-                                    />
-                                </td>
-                                <td style=ReactDOM.Style.make(~paddingTop, ())>
-                                    { 
-                                        if (proofStatusesAreAvailable) {
-                                            rndProofStatus(~proofStatus=getProofStatus(stmt), ())
-                                        } else {
-                                            React.null
-                                        }
-                                    }
-                                </td>
-                                <td style=ReactDOM.Style.make(~paddingTop, ())>
-                                    {React.string(stmt.label ++ ": ")} 
-                                </td>
-                                <td style=ReactDOM.Style.make(~paddingTop, ())>
-                                    {stmt.exprReElem} 
-                                </td>
-                            </tr>
-                        })->React.array
-                    }
-                </tbody>
-            </table>
-        }
-        and updateDialog = (~modalId, ~flags) => {
-            updateModal(modalRef, modalId, () => {
-                <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
-                    <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                        {React.string(title)}
-                    </span>
-                    {rndButtons(~modalId, ~flags)}
-                    {rndStmts(~modalId, ~flags)}
-                    {rndButtons(~modalId, ~flags)}
-                </Col>
-            })
-        }
-
         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-            updateDialog( ~modalId, ~flags = state->getFlags )
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_root_stmts 
+                    title
+                    rootStmtsRendered=state.rootStmtsRendered
+                    proofStatusesAreAvailable
+                    flags=getFlags(state)
+                    onClose={newFlags => {
+                        setFlags(newFlags)
+                        closeModal(modalRef, modalId)
+                    }}
+                />
+            })
         })->ignore
     }
 

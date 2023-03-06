@@ -230,7 +230,7 @@ let make = (
             <Row>
                 <TextField
                     size=#small
-                    style=ReactDOM.Style.make(~width="600px", ())
+                    style=ReactDOM.Style.make(~width="800px", ())
                     autoFocus=true
                     multiline=true
                     value=state.newText

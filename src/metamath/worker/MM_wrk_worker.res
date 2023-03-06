@@ -1,5 +1,4 @@
 open MM_wrk_api
-open Common
 
 @val external sendToClient: workerResponse => unit = "postMessage"
 
