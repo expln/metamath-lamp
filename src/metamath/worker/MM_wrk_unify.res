@@ -15,6 +15,7 @@ type request =
     | Unify({
         rootProvables: array<rootStmt>, 
         bottomUpProverParams:option<bottomUpProverParams>,
+        debugLevel:int,
     })
 
 type response =
@@ -23,7 +24,7 @@ type response =
 
 let reqToStr = req => {
     switch req {
-        | Unify(_) => `Unify`
+        | Unify({debugLevel}) => `Unify(debugLevel=${debugLevel->Belt_Int.toString})`
     }
 }
 
@@ -44,6 +45,7 @@ let unify = (
     ~hyps: array<wrkCtxHyp>,
     ~rootProvables: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
+    ~debugLevel:int,
     ~onProgress:string=>unit,
 ): promise<proofTreeDto> => {
     promise(resolve => {
@@ -56,7 +58,7 @@ let unify = (
             ~disjText,
             ~hyps,
             ~procName,
-            ~initialRequest = Unify({rootProvables:rootProvables, bottomUpProverParams}),
+            ~initialRequest = Unify({rootProvables:rootProvables, bottomUpProverParams, debugLevel}),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(msg) => onProgress(msg)
@@ -74,13 +76,14 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({rootProvables, bottomUpProverParams}) => {
+        | Unify({rootProvables, bottomUpProverParams, debugLevel}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
                 ~rootProvables,
                 ~bottomUpProverParams?,
+                ~debugLevel,
                 ~onProgress = msg => sendToClient(OnProgress(msg)),
                 ()
             )

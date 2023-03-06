@@ -602,7 +602,7 @@ let unifyAll = (
     ~rootProvables: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
-    ~debugLevel:int=1,
+    ~debugLevel:int=0,
     ~onProgress:option<string=>unit>=?,
     ()
 ):proofTree => {

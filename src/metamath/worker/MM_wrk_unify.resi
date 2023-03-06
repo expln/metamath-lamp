@@ -20,6 +20,7 @@ let unify: (
     ~hyps: array<wrkCtxHyp>,
     ~rootProvables: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
+    ~debugLevel:int,
     ~onProgress: string => unit,
 ) => Expln_utils_promise.promise<MM_proof_tree_dto.proofTreeDto>
 

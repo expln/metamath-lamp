@@ -501,7 +501,7 @@ let make = (
             ~ctx = wrkCtx,
             ~typeToPrefix,
         )
-        setState(setResults(_, Some(treeDto), Some(results)))
+        setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
     }
 
     let actProve = () => {
@@ -543,6 +543,7 @@ let make = (
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
+                    ~debugLevel = if (st.debug) {1} else {0},
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
                             ~text=msg, ~onTerminate=makeActTerminate(modalId), ()

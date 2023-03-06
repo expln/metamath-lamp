@@ -672,6 +672,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 ~hyps,
                                 ~rootProvables,
                                 ~bottomUpProverParams=None,
+                                ~debugLevel=0,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(
                                         ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
