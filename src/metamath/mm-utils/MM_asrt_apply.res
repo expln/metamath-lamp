@@ -307,10 +307,14 @@ let applyAssertions = (
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
     let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
+    let continueInstr = ref(Continue)
     frms->Belt_MapString.forEach((_,frm) => {
-        if (frameFilter(frm.frame)
-            && result->Belt.Option.map(result => result[0] == frm.frame.asrt[0])->Belt_Option.getWithDefault(true)) {
-            iterateSubstitutionsForResult(
+        if (
+            continueInstr.contents == Continue 
+            && frameFilter(frm.frame)
+            && result->Belt.Option.map(result => result[0] == frm.frame.asrt[0])->Belt_Option.getWithDefault(true)
+        ) {
+            continueInstr.contents = iterateSubstitutionsForResult(
                 ~frm,
                 ~result,
                 ~parenCnt,
@@ -386,7 +390,7 @@ let applyAssertions = (
                         },
                     )
                 }
-            )->ignore
+            )
         }
         framesProcessed.contents = framesProcessed.contents +. 1.
         progressState->progressTrackerMutableSetCurrPct(

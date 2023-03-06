@@ -171,8 +171,6 @@ let findAsrtParentsWithNewVars = (
     let applResults = []
     let restrictResLen = maxNumberOfResults->Belt_Option.isSome
     let maxResLen = maxNumberOfResults->Belt_Option.getWithDefault(0)
-    Js.Console.log2("restrictResLen", restrictResLen)
-    Js.Console.log2("maxResLen", maxResLen)
     applyAssertions(
         ~maxVar = tree->ptGetMaxVar,
         ~frms = tree->ptGetFrms,
@@ -207,7 +205,6 @@ let findAsrtParentsWithNewVars = (
         },
         ()
     )
-    Js.Console.log2("applResults->Js.Array2.length", applResults->Js.Array2.length)
     let foundParents = []
     applResults->Js_array2.forEach(applResult => {
         let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
