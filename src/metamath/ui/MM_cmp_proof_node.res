@@ -84,6 +84,13 @@ module rec ProofNodeDtoCmp: {
             }
         }
 
+        let rndExpandCollapseIcon = (expand) => {
+            let char = if (expand) {"\u229E"} else {"\u229F"}
+            <span style=ReactDOM.Style.make(~fontSize="13px", ())>
+                {React.string(char)}
+            </span>
+        }
+
         let rndCollapsedArgs = (args) => {
             <span>
                 {
@@ -127,22 +134,23 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndStatusIconForStmt = (node:proofNodeDto) => {
-            if (node.proof->Belt_Option.isSome) {
-                <span
-                    title="This is proved"
-                    style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())
-                >
-                    {React.string("\u2713")}
-                </span>
-            } else {
-                React.null
-            }
+            <span
+                title="This is proved"
+                style=ReactDOM.Style.make(
+                    ~color="green", 
+                    ~fontWeight="bold", 
+                    ~visibility=if (node.proof->Belt_Option.isSome) {"visible"} else {"hidden"},
+                    ()
+                )
+            >
+                {React.string("\u2713")}
+            </span>
         }
 
-        let rndStatusIconForSrc = (src:exprSourceDto, err:option<unifErr>) => {
+        let rndStatusIconForSrc = (src:exprSourceDto) => {
             switch src {
                 | VarType | Hypothesis(_) => validProofIcon
-                | Assertion({args, label, err}) => {
+                | Assertion({args, err}) => {
                     switch err {
                         | None => {
                             let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
@@ -170,26 +178,27 @@ module rec ProofNodeDtoCmp: {
             switch src {
                 | VarType => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src, None)} </td>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
                         <td> {React.string("VarType")} </td>
                         <td> {React.null} </td>
                     </tr>
                 }
                 | Hypothesis({label}) => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src, None)} </td>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
                         <td> {React.string("Hyp " ++ label)} </td>
                         <td> {React.null} </td>
                     </tr>
                 }
-                | Assertion({args, label, err}) => {
+                | Assertion({args, label}) => {
                     <tr key>
-                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src, err)} </td>
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
                         <td
                             onClick={_=>actToggleSrcExpanded(srcIdx)}
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
                         >
-                            {React.string(label ++ ":")}
+                            {rndExpandCollapseIcon(!(state->isExpandedSrc(srcIdx)))}
+                            <i>{React.string(label ++ ":")}</i>
                         </td>
                         <td>
                             {
@@ -234,7 +243,8 @@ module rec ProofNodeDtoCmp: {
                             )
                             onClick={_=>actToggleExpanded()}
                         > 
-                            {React.string(nodeIdxToLabel(nodeIdx) ++ ":")} 
+                            {rndExpandCollapseIcon(!state.expanded)}
+                            {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
                         <td> {exprToReElem(tree.nodes[nodeIdx].expr)} </td>
                     </tr>
