@@ -43,6 +43,7 @@ type state = {
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
+    allowNewStmts: bool,
     allowNewVars: bool,
     debug:bool,
     maxNumberOfBranchesStr:string,
@@ -152,6 +153,7 @@ let makeInitialState = (
         depthStr: "4",
         depth: 4,
         lengthRestrict: Less,
+        allowNewStmts: true,
         allowNewVars: true,
         debug: false,
         maxNumberOfBranchesStr: "",
@@ -186,6 +188,13 @@ let setLengthRestrict = (st,lengthRestrict) => {
     {
         ...st,
         lengthRestrict
+    }
+}
+
+let toggleAllowNewStmts = (st) => {
+    {
+        ...st,
+        allowNewStmts: !st.allowNewStmts
     }
 }
 
@@ -483,6 +492,10 @@ let make = (
         setState(setLengthRestrict(_,lengthRestrict))
     }
 
+    let actToggleAllowNewStmts = () => {
+        setState(toggleAllowNewStmts)
+    }
+
     let actToggleAllowNewVars = () => {
         setState(toggleAllowNewVars)
     }
@@ -690,11 +703,36 @@ let make = (
                     <FormControlLabel
                         control={
                             <Checkbox
+                                checked=state.allowNewStmts
+                                onChange={_ => actToggleAllowNewStmts()}
+                            />
+                        }
+                        label="Allow new statements"
+                        style=ReactDOM.Style.make(
+                            ~border="solid 1px lightgrey", 
+                            ~borderRadius="7px", 
+                            ~paddingRight="3px",
+                            ~marginTop="-2px",
+                            ~marginLeft="2px",
+                            ()
+                        )
+                    />
+                    <FormControlLabel
+                        control={
+                            <Checkbox
                                 checked=state.allowNewVars
                                 onChange={_ => actToggleAllowNewVars()}
                             />
                         }
                         label="Allow new variables"
+                        disabled={!state.allowNewStmts}
+                        style=ReactDOM.Style.make(
+                            ~border="solid 1px lightgrey", 
+                            ~borderRadius="7px", 
+                            ~paddingRight="3px",
+                            ~marginTop="-2px",
+                            ()
+                        )
                     />
                 </Row>
                 <Row>
