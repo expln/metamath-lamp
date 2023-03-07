@@ -313,6 +313,29 @@ describe("MM_wrk_editor integration tests", _ => {
 
     })
 
+    it("prove bottom-up does not produce duplicated results", _ => {
+        setTestDataDir("prove-bottom-up-no-duplicates")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
+
+        let (st, trgtStmtId) = st->addStmt( 
+            ~label="sgnval",
+            ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", 
+            () 
+        )
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, 
+            ~chooseResult = dto => dto.newVars->Js_array2.length != 0,
+            ()
+        )
+        assertStmtsDto(stmts, "stmtsDto")
+    })
+
     it("prove sgn0e0", _ => {
         setTestDataDir("prove-sgn0e0")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="sgnval", ~debug, ())

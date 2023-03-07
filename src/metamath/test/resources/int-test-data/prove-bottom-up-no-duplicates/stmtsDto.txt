@@ -1,0 +1,9 @@
+$d A setvar2 $.
+8    |- ( setvar2 = A -> class2 = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )
+9    |- sgn = ( setvar2 e. RR* |-> class2 )
+3 [ : c0ex ] ✓ |- 0 e. _V
+4 [ : negex ] ✓ |- -u 1 e. _V
+5 [ : 1ex ] ✓ |- 1 e. _V
+6 [4 5 : ifcli ] ✓ |- if ( A < 0 , -u 1 , 1 ) e. _V
+7 [3 6 : ifcli ] ✓ |- if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) e. _V
+sgnval [8 9 7 : fvmpt ]   |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )

@@ -106,6 +106,11 @@ let assertEditorState = (st, expectedStrFileName:string) => {
     assertStrEqFile(actualStr, expectedStrFileName)
 }
 
+let assertStmtsDto = (stmtsDto, expectedStrFileName:string) => {
+    let actualStr = stmtsDto->newStmtsDtoToStr
+    assertStrEqFile(actualStr, expectedStrFileName)
+}
+
 let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
     let actualStr = st->generateCompressedProof(stmtId)
         ->Belt.Option.getWithDefault("no proof generated")
