@@ -1,4 +1,10 @@
-- use HashMap for frms.
+- Fix a bug:
+    1. load my-editor-state.json, prove everything.
+    2. Set disjoints to:
+        x,y,k,A,u,r
+        r,u,v,x,y,F
+    3. Begin bottom-up proving for stmt9 with "allow new stmts"=false. It is shown as proved, but it also has an error.
+
 - add an int test when a hyp is used in a bottom-up proof being applied.
 - proof tree improvements:
     - pass error icon from src to all unproved children
