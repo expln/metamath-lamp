@@ -96,11 +96,11 @@ let generateNewVarNames: (
 ) => array<string>
 
 let generateNewLabels: (
-  ~ctx: mmContext,
-  ~prefix: string,
-  ~amount: int,
-  ~usedLabels: Belt_HashSetString.t=?,
-  unit,
+    ~ctx: mmContext,
+    ~prefix: string,
+    ~amount: int,
+    ~usedLabels: Belt_HashSetString.t=?,
+    unit,
 ) => array<string>
 
 let disjMutableMake: unit => disjMutable
@@ -114,14 +114,14 @@ let disjIsEmpty: disjMutable => bool
 let exprEq: (expr,expr) => bool
 
 module ExprCmp: {
-  type identity
-  type t = expr
-  let cmp: Belt_Id.cmp<t, identity>
+    type identity
+    type t = expr
+    let cmp: Belt_Id.cmp<t, identity>
 }
 
 module ExprHash: {
-  type identity
-  type t = expr
-  let hash: Belt_Id.hash<t, identity>
-  let eq: Belt_Id.eq<t, identity>
+    type identity
+    type t = expr
+    let hash: Belt_Id.hash<t, identity>
+    let eq: Belt_Id.eq<t, identity>
 }

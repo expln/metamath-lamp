@@ -25,6 +25,12 @@ let applyAssertionResultHash = (a:applyAssertionResult):int => {
     
 }
 
+module ApplyAssertionResultHash = Belt.Id.MakeHashable({
+    type t = applyAssertionResult
+    let hash = applyAssertionResultHash
+    let eq = applyAssertionResultEq
+})
+
 let rec iterateCombinationsRec = (
     ~candidatesPerHyp:array<array<int>>,
     ~comb:array<int>,
@@ -145,6 +151,7 @@ let stmtCanMatchHyp = (
 let iterateSubstitutionsWithWorkVars = (
     ~workVars:workVars,
     ~frm:frmSubsData,
+    ~allowNewVars:bool,
     ~hypIdx: int,
     ~continue: () => contunieInstruction
 ):contunieInstruction => {
@@ -188,7 +195,11 @@ let iterateSubstitutionsWithWorkVars = (
     }
     workVars.hypIdxToExprWithWorkVars[hypIdx] = Some(newExprWithWorkVars)
 
-    let res = continue()
+    let res = if (allowNewVars || workVars.newVars->Js_array2.length == 0) {
+        continue()
+    } else {
+        Continue
+    }
 
     predefinedSubs->Js_array2.forEachi((predefined,i) => frm.subs.isDefined[i]=predefined)
     workVars.newVars->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
@@ -203,6 +214,7 @@ let rec iterateSubstitutionsForHyps = (
     ~frm:frmSubsData,
     ~parenCnt:parenCnt,
     ~statements:array<expr>,
+    ~allowNewVars:bool,
     ~comb:array<int>,
     ~hypIdx:int,
     ~onMatchFound: () => contunieInstruction
@@ -211,6 +223,7 @@ let rec iterateSubstitutionsForHyps = (
         iterateSubstitutionsWithWorkVars(
             ~workVars,
             ~frm,
+            ~allowNewVars,
             ~hypIdx,
             ~continue = onMatchFound
         )
@@ -229,6 +242,7 @@ let rec iterateSubstitutionsForHyps = (
                     ~frm,
                     ~parenCnt,
                     ~statements,
+                    ~allowNewVars,
                     ~comb,
                     ~hypIdx = hypIdx+1,
                     ~onMatchFound
@@ -239,6 +253,7 @@ let rec iterateSubstitutionsForHyps = (
         iterateSubstitutionsWithWorkVars(
             ~workVars,
             ~frm,
+            ~allowNewVars,
             ~hypIdx,
             ~continue = () => {
                 iterateSubstitutionsForHyps(
@@ -246,6 +261,7 @@ let rec iterateSubstitutionsForHyps = (
                     ~frm,
                     ~parenCnt,
                     ~statements,
+                    ~allowNewVars,
                     ~comb,
                     ~hypIdx = hypIdx+1,
                     ~onMatchFound
@@ -307,6 +323,7 @@ let applyAssertions = (
     ~statements:array<expr>,
     ~exactOrderOfStmts:bool=false,
     ~allowEmptyArgs:bool=true,
+    ~allowNewVars:bool=true,
     ~result:option<expr>=?,
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=_=>true,
@@ -355,12 +372,12 @@ let applyAssertions = (
                             }
                         },
                         ~combinationConsumer = comb => {
-//                            Js.Console.log4("frame", frm.frame.label, "comb", comb)
                             iterateSubstitutionsForHyps(
                                 ~workVars,
                                 ~frm,
                                 ~parenCnt,
                                 ~statements,
+                                ~allowNewVars,
                                 ~comb,
                                 ~hypIdx=0,
                                 ~onMatchFound = () => {

@@ -170,8 +170,22 @@ let findAsrtParentsWithNewVars = (
     ()
 ):array<exprSource> => {
     let applResults = []
-    let restrictResLen = maxNumberOfResults->Belt_Option.isSome
-    let maxResLen = maxNumberOfResults->Belt_Option.getWithDefault(0)
+    let foundValidApplResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
+    let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
+    let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
+
+    let saveResult = res => {
+        switch res.err {
+            | Some(_) => applResults->Js_array2.push(res)->ignore
+            | None => {
+                if (!(foundValidApplResults->Belt_HashSet.has(res))) {
+                    foundValidApplResults->Belt_HashSet.add(res)
+                    applResults->Js_array2.push(res)->ignore
+                }
+            }
+        }
+    }
+
     applyAssertions(
         ~maxVar = tree->ptGetMaxVar,
         ~frms = tree->ptGetFrms,
@@ -180,25 +194,25 @@ let findAsrtParentsWithNewVars = (
         ~statements = args,
         ~exactOrderOfStmts = exactOrderOfArgs,
         ~allowEmptyArgs,
+        ~allowNewVars,
         ~result = expr,
         ~frameFilter = frame => asrtLabel
                                     ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
                                     ->Belt_Option.getWithDefault(true),
         ~debugLevel,
         ~onMatchFound = res => {
-            if (allowNewVars || res.newVars->Js.Array2.length == 0) {
-                applResults->Js_array2.push(res)->ignore
-            }
-            let resLen = applResults->Js.Array2.length
+            saveResult(res)
+
+            let foundCnt = applResults->Js.Array2.length
             switch onProgress {
                 | Some(onProgress) => {
-                    if (mod(resLen, 100) == 0) {
-                        onProgress(resLen)
+                    if (mod(foundCnt, 100) == 0) {
+                        onProgress(foundCnt)
                     }
                 }
                 | _ => ()
             }
-            if (restrictResLen && resLen >= maxResLen) {
+            if (restrictFoundCnt && foundCnt >= maxFoundCnt) {
                 Stop
             } else {
                 Continue
@@ -206,7 +220,6 @@ let findAsrtParentsWithNewVars = (
         },
         ()
     )
-//    Js.Console.log2("applResults.length", applResults->Js.Array2.length)
     let foundParents = []
     applResults->Js_array2.forEach(applResult => {
         let applNewVarToTreeNewVar = Belt_MutableMapInt.make()

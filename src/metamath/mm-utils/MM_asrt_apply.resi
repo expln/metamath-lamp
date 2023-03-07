@@ -16,6 +16,13 @@ let applyAssertionResultEq: (applyAssertionResult, applyAssertionResult) => bool
 
 let applyAssertionResultHash: applyAssertionResult => int
 
+module ApplyAssertionResultHash: {
+    type identity
+    type t = applyAssertionResult
+    let hash: Belt_Id.hash<t, identity>
+    let eq: Belt_Id.eq<t, identity>
+}
+
 let applyAssertions: (
     ~maxVar:int,
     ~frms:Belt_MapString.t<frmSubsData>,
@@ -23,6 +30,7 @@ let applyAssertions: (
     ~statements:array<expr>,
     ~exactOrderOfStmts:bool=?,
     ~allowEmptyArgs:bool=?,
+    ~allowNewVars:bool=?,
     ~result:expr=?,
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=?,
