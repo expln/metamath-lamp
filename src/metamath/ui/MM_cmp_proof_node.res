@@ -115,19 +115,27 @@ module rec ProofNodeDtoCmp: {
                         </td>
                     </tr>
                     {
-                        args->Js_array2.mapi((arg,argIdx) => {
-                            <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
+                        if (args->Js_array2.length == 0) {
+                            <tr key={"-exp"}>
                                 <td>
-                                    <ProofNodeDtoCmp
-                                        tree
-                                        nodeIdx=arg
-                                        isRootStmt
-                                        nodeIdxToLabel
-                                        exprToReElem
-                                    />
+                                    {React.string("This assertion doesn't have hypotheses.")}
                                 </td>
                             </tr>
-                        })->React.array
+                        } else {
+                            args->Js_array2.mapi((arg,argIdx) => {
+                                <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
+                                    <td>
+                                        <ProofNodeDtoCmp
+                                            tree
+                                            nodeIdx=arg
+                                            isRootStmt
+                                            nodeIdxToLabel
+                                            exprToReElem
+                                        />
+                                    </td>
+                                </tr>
+                            })->React.array
+                        }
                     }
                 </tbody>
             </table>
