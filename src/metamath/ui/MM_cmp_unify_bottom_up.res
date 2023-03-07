@@ -540,6 +540,7 @@ let make = (
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,
                         lengthRestriction: st.lengthRestrict,
+                        allowNewStmts: st.allowNewStmts,
                         allowNewVars: st.allowNewVars,
                         args0: 
                             st.rootStmtsRendered
@@ -711,7 +712,7 @@ let make = (
                         style=ReactDOM.Style.make(
                             ~border="solid 1px lightgrey", 
                             ~borderRadius="7px", 
-                            ~paddingRight="3px",
+                            ~paddingRight="10px",
                             ~marginTop="-2px",
                             ~marginLeft="2px",
                             ()
@@ -729,7 +730,7 @@ let make = (
                         style=ReactDOM.Style.make(
                             ~border="solid 1px lightgrey", 
                             ~borderRadius="7px", 
-                            ~paddingRight="3px",
+                            ~paddingRight="10px",
                             ~marginTop="-2px",
                             ()
                         )
