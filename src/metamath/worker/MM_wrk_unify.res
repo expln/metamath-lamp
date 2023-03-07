@@ -129,7 +129,7 @@ let srcToNewStmts = (
     ~typeToPrefix: Belt_MapString.t<string>,
 ):option<stmtsDto> => {
     switch src {
-        | Assertion({args, label}) => {
+        | Assertion({args, label, err}) => {
             let maxCtxVar = ctx->getNumOfVars - 1
             let res = {
                 newVars: [],
@@ -264,7 +264,9 @@ let srcToNewStmts = (
                 ~label=stmtToProve.label,
                 ~expr = stmtToProve.expr,
                 ~jstf = Some(src),
-                ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
+                ~isProved = 
+                    err->Belt_Option.isNone
+                    && args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
             let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
             tree.disj->disjForEach((n,m) => {

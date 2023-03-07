@@ -180,7 +180,9 @@ let ptClearDists = tree => {
 let esIsProved = (exprSrc:exprSource): bool => {
     switch exprSrc {
         | VarType | Hypothesis(_) => true
-        | Assertion({args}) => args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
+        | Assertion({args, err}) => 
+            err->Belt_Option.isNone
+            && args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
     }
 }
 
