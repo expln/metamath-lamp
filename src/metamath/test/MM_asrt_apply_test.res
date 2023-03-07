@@ -358,3 +358,214 @@ describe("applyAssertions", _ => {
         )
     })
 })
+
+describe("applyAssertionResultEq", _ => {
+    it("returns false when both results have errors", _ => {
+        assertEq(
+            applyAssertionResultEq(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:Some(Err),
+                },
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:Some(Err),
+                }
+            ),
+            false
+        )
+    })
+    it("returns false when only one result has error", _ => {
+        assertEq(
+            applyAssertionResultEq(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:None,
+                },
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:Some(Err),
+                }
+            ),
+            false
+        )
+        assertEq(
+            applyAssertionResultEq(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:Some(Err),
+                },
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:None,
+                }
+            ),
+            false
+        )
+    })
+    it("returns false when labels are different", _ => {
+        assertEq(
+            applyAssertionResultEq(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "a",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:None,
+                },
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "bc",
+                    subs: {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    },
+                    err:None,
+                }
+            ),
+            false
+        )
+    })
+    it("returns false when subs are different", _ => {
+        assertEq(
+            applyAssertionResultEq(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                },
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,90,10,11,12]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                }
+            ),
+            false
+        )
+    })
+    it("returns true when labels and subs are same", _ => {
+        assertEq(
+            applyAssertionResultEq(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                },
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                }
+            ),
+            true
+        )
+    })
+})

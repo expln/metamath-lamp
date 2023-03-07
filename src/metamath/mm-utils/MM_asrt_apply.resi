@@ -12,6 +12,8 @@ type applyAssertionResult = {
     err:option<unifErr>,
 }
 
+let applyAssertionResultEq: (applyAssertionResult, applyAssertionResult) => bool
+
 let applyAssertions: (
     ~maxVar:int,
     ~frms:Belt_MapString.t<frmSubsData>,

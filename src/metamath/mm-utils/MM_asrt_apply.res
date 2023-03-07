@@ -13,6 +13,10 @@ type applyAssertionResult = {
     err:option<unifErr>,
 }
 
+let applyAssertionResultEq = (a:applyAssertionResult, b:applyAssertionResult):bool => {
+    a.err->Belt_Option.isNone && b.err->Belt_Option.isNone && a.asrtLabel == b.asrtLabel && subsEq(a.subs, b.subs)
+}
+
 let rec iterateCombinationsRec = (
     ~candidatesPerHyp:array<array<int>>,
     ~comb:array<int>,
