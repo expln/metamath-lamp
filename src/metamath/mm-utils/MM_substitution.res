@@ -56,6 +56,38 @@ let subsClone = subs => {
     }
 }
 
+let subsEq = (a:subs, b:subs):bool => {
+    if (a.size == b.size && a.isDefined->Js_array2.every(b => b) && b.isDefined->Js_array2.every(b => b)) {
+        let res = ref(true)
+        let v = ref(0)
+        while (res.contents && v.contents < a.size) {
+            let aExpr = a.exprs[v.contents]
+            let aBegin = a.begins[v.contents]
+            let aEnd = a.ends[v.contents]
+            let aExprLen = aEnd - aBegin + 1
+            let bExpr = b.exprs[v.contents]
+            let bBegin = b.begins[v.contents]
+            let bEnd = b.ends[v.contents]
+            let bExprLen = bEnd - bBegin + 1
+            if (aExprLen == bExprLen) {
+                let ai = ref(aBegin)
+                let bi = ref(bBegin)
+                while (res.contents && ai.contents <= aEnd) {
+                    res.contents = aExpr[ai.contents] == bExpr[bi.contents]
+                    ai.contents = ai.contents + 1
+                    bi.contents = bi.contents + 1
+                }
+            } else {
+                res.contents = false
+            }
+            v.contents = v.contents + 1
+        }
+        res.contents
+    } else {
+        false
+    }
+}
+
 let lengthOfGap = (leftConstPartIdx:int, constParts:array<array<int>>, exprLength:int):int => {
     if (leftConstPartIdx < 0) {
         constParts[0][0]

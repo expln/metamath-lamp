@@ -322,3 +322,202 @@ describe("iterateSubstitutions", _ => {
         )
     })
 })
+
+describe("subsEq", _ => {
+    it("returns true for subs of zero size", _ => {
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    }
+                },
+                {
+                    {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    }
+                }
+            ),
+            true
+        )
+    })
+    it("returns false for subs of different size", _ => {
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [false,true],
+                    }
+                },
+                {
+                    {
+                        size: 3, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            false
+        )
+    })
+    it("returns false if at least one variable is not defined", _ => {
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                },
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,false],
+                    }
+                }
+            ),
+            false
+        )
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [false,true],
+                    }
+                },
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            false
+        )
+    })
+    it("returns false if exprs have different size", _ => {
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                },
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,8],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            false
+        )
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                },
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,6],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            false
+        )
+    })
+    it("returns false if exprs have same size but different content", _ => {
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                },
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,100,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,100,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            false
+        )
+    })
+    it("returns true if subs are equal", _ => {
+        assertEq(
+            subsEq(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                },
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            true
+        )
+    })
+})

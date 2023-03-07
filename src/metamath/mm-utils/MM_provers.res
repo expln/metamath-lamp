@@ -206,6 +206,7 @@ let findAsrtParentsWithNewVars = (
         },
         ()
     )
+//    Js.Console.log2("applResults.length", applResults->Js.Array2.length)
     let foundParents = []
     applResults->Js_array2.forEach(applResult => {
         let applNewVarToTreeNewVar = Belt_MutableMapInt.make()

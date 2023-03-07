@@ -343,6 +343,7 @@ let applyAssertions = (
                             }
                         },
                         ~combinationConsumer = comb => {
+//                            Js.Console.log4("frame", frm.frame.label, "comb", comb)
                             iterateSubstitutionsForHyps(
                                 ~workVars,
                                 ~frm,
