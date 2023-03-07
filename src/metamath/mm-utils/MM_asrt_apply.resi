@@ -14,6 +14,8 @@ type applyAssertionResult = {
 
 let applyAssertionResultEq: (applyAssertionResult, applyAssertionResult) => bool
 
+let applyAssertionResultHash: applyAssertionResult => int
+
 let applyAssertions: (
     ~maxVar:int,
     ~frms:Belt_MapString.t<frmSubsData>,

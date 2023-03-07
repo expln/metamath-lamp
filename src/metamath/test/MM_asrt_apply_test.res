@@ -521,7 +521,7 @@ describe("applyAssertionResultEq", _ => {
                     newDisj:disjMutableMake(),
                     asrtLabel: "asrt",
                     subs: {
-                        size: 2, //2,3,4; 8,9,10,11;
+                        size: 2, //2,3,4; 8,90,10,11;
                         begins: [1,2],
                         ends: [3,5],
                         exprs: [[1,2,3,4,5],[6,7,8,90,10,11,12]],
@@ -566,6 +566,89 @@ describe("applyAssertionResultEq", _ => {
                 }
             ),
             true
+        )
+    })
+})
+
+describe("applyAssertionResultHash", _ => {
+    it("returns same hash for equal results", _ => {
+        assertEq(
+            applyAssertionResultHash(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                }
+            ),
+            93430539
+        )
+        assertEq(
+            applyAssertionResultHash(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                }
+            ),
+            93430539
+        )
+    })
+    it("returns different hashes for not equal results", _ => {
+        assertEq(
+            applyAssertionResultHash(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                }
+            ),
+            93430539
+        )
+        assertEq(
+            applyAssertionResultHash(
+                {
+                    newVars: [],
+                    newVarTypes: [],
+                    newDisj:disjMutableMake(),
+                    asrtLabel: "asrt",
+                    subs: {
+                        size: 2, //2,3,4; 8,90,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,90,10,11]],
+                        isDefined: [true,true],
+                    },
+                    err:None,
+                }
+            ),
+            93508380
         )
     })
 })

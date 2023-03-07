@@ -17,6 +17,14 @@ let applyAssertionResultEq = (a:applyAssertionResult, b:applyAssertionResult):bo
     a.err->Belt_Option.isNone && b.err->Belt_Option.isNone && a.asrtLabel == b.asrtLabel && subsEq(a.subs, b.subs)
 }
 
+let applyAssertionResultHash = (a:applyAssertionResult):int => {
+    Expln_utils_common.hash2(
+        Expln_utils_common.hashStr(a.asrtLabel),
+        subsHash(a.subs)
+    )
+    
+}
+
 let rec iterateCombinationsRec = (
     ~candidatesPerHyp:array<array<int>>,
     ~comb:array<int>,
