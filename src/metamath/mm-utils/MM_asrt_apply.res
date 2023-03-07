@@ -337,6 +337,7 @@ let applyAssertions = (
     let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
+    let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
     frms->Belt_MapString.forEach((_,frm) => {
         if (
             continueInstr.contents == Continue 
@@ -397,7 +398,12 @@ let applyAssertions = (
                                                 subs: subsClone(frm.subs),
                                                 err:None
                                             }
-                                            onMatchFound(res)
+                                            if (!(sentValidResults->Belt_HashSet.has(res))) {
+                                                sentValidResults->Belt_HashSet.add(res)
+                                                onMatchFound(res)
+                                            } else {
+                                                Continue
+                                            }
                                         }
                                         | Error(err) => {
                                             if (debugLevel == 0) {
