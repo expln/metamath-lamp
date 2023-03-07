@@ -47,6 +47,7 @@ type frmSubsData = {
 
 let subsClone: subs => subs
 let subsEq: (subs, subs) => bool
+let subsHash: subs => int
 let createConstParts: expr => constParts
 let createMatchingConstParts: constParts => constParts
 let createVarGroups: (~frmExpr:expr, ~frmConstParts:constParts) => array<varGroup>

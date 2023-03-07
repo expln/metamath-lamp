@@ -521,3 +521,98 @@ describe("subsEq", _ => {
         )
     })
 })
+
+describe("subsHash", _ => {
+    it("returns 0 for subs of zero size", _ => {
+        assertEq(
+            subsHash(
+                {
+                    {
+                        size: 0,
+                        begins: [],
+                        ends: [],
+                        exprs: [],
+                        isDefined: [],
+                    }
+                }
+            ),
+            0
+        )
+    })
+    it("returns 0 for not fully defined subs", _ => {
+        assertEq(
+            subsHash(
+                {
+                    {
+                        size: 2,
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,false],
+                    }
+                }
+            ),
+            0
+        )
+    })
+    it("returns same value for equal subs", _ => {
+        assertEq(
+            subsHash(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            309887
+        )
+        assertEq(
+            subsHash(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            309887
+        )
+    })
+    it("returns different values for not equal subs", _ => {
+        assertEq(
+            subsHash(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [1,2],
+                        ends: [3,5],
+                        exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            309887
+        )
+        assertEq(
+            subsHash(
+                {
+                    {
+                        size: 2, //2,3,4; 8,9,10,11;
+                        begins: [0,4],
+                        ends: [2,7],
+                        exprs: [[2,33,4,50],[6,7,7,7,8,9,10,11]],
+                        isDefined: [true,true],
+                    }
+                }
+            ),
+            338717
+        )
+    })
+})

@@ -88,6 +88,27 @@ let subsEq = (a:subs, b:subs):bool => {
     }
 }
 
+let subsHash = (subs:subs):int => {
+    if (subs.isDefined->Js_array2.every(b => b)) {
+        let hash = ref(0)
+        let v = ref(0)
+        while (v.contents < subs.size) {
+            hash.contents = Expln_utils_common.hash2(
+                hash.contents,
+                Expln_utils_common.hashArrIntFromTo(
+                    subs.exprs[v.contents],
+                    subs.begins[v.contents],
+                    subs.ends[v.contents],
+                )
+            )
+            v.contents = v.contents + 1
+        }
+        hash.contents
+    } else {
+        0
+    }
+}
+
 let lengthOfGap = (leftConstPartIdx:int, constParts:array<array<int>>, exprLength:int):int => {
     if (leftConstPartIdx < 0) {
         constParts[0][0]
