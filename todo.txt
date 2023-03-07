@@ -1,9 +1,5 @@
 - use HashMap for frms.
 - add an int test when a hyp is used in a bottom-up proof being applied.
-- new settings in bottom-up dialog:
-    - max number of parents
-    - debug mode on/off
-- discouraged assertions
 - proof tree improvements:
     - pass error icon from src to all unproved children
     - sort srcs by var type, hyp, asrt
