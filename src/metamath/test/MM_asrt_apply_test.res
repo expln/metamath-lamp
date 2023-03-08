@@ -376,7 +376,7 @@ describe("applyAssertionResultEq", _ => {
                         isDefined: [],
                     },
                     missingDisj:None,
-                    err:Some(Err),
+                    err:Some(UnifErr),
                 },
                 {
                     newVars: [],
@@ -391,7 +391,7 @@ describe("applyAssertionResultEq", _ => {
                         isDefined: [],
                     },
                     missingDisj:None,
-                    err:Some(Err),
+                    err:Some(UnifErr),
                 }
             ),
             false
@@ -428,7 +428,7 @@ describe("applyAssertionResultEq", _ => {
                         isDefined: [],
                     },
                     missingDisj:None,
-                    err:Some(Err),
+                    err:Some(UnifErr),
                 }
             ),
             false
@@ -448,7 +448,7 @@ describe("applyAssertionResultEq", _ => {
                         isDefined: [],
                     },
                     missingDisj:None,
-                    err:Some(Err),
+                    err:Some(UnifErr),
                 },
                 {
                     newVars: [],

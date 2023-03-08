@@ -632,7 +632,7 @@ let verifyDisjoints = (
                                         if (mExprSym >= 0) {
                                             if (nExprSym == mExprSym) {
                                                 if (debugLevel == 0) {
-                                                    res.contents = Some(Err)
+                                                    res.contents = Some(UnifErr)
                                                 } else {
                                                     res.contents = Some(DisjCommonVar({
                                                         frmVar1:n, 
@@ -644,7 +644,7 @@ let verifyDisjoints = (
                                                 }
                                             } else if (!isDisjInCtx(nExprSym, mExprSym)) {
                                                 if (debugLevel == 0) {
-                                                    res.contents = Some(Err)
+                                                    res.contents = Some(UnifErr)
                                                 } else {
                                                     res.contents = Some(Disj({
                                                         frmVar1:n, 
