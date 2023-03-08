@@ -7,7 +7,8 @@ open MM_unification_debug
 type exprSourceDto =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>, err:option<unifErr>})
+    | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>})
+    | AssertionWithErr({args:array<int>, label:string, err:unifErr})
 
 type proofNodeDto = {
     expr:expr,
@@ -28,23 +29,39 @@ type proofTreeDto = {
     dbg: option<dbgProofTreeDto>,
 }
 
-let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):option<exprSourceDto> => {
+let exprSourceToDto = (
+    ~src:exprSource, 
+    ~exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
+    ~debugLevel:int,
+):option<exprSourceDto> => {
+    let nodeToIdx = (node:proofNode):int => {
+        switch exprToIdx->Belt_HashMap.get(node->pnGetExpr) {
+            | None => raise(MmException({msg:`exprSourceToDto: cannot get idx by expr.`}))
+            | Some(idx) => idx
+        }
+    }
+
     switch src {
         | VarType => Some(VarType)
         | Hypothesis({label}) => Some(Hypothesis({label:label}))
-        | Assertion({args, frame, missingDisj, err}) => {
+        | Assertion({args, frame, missingDisj}) => {
             if (args->Js.Array2.some(arg => arg->pnIsInvalidFloating && arg->pnGetProof->Belt.Option.isNone)) {
                 None
             } else {
                 Some(Assertion({
-                    args: args->Js_array2.map(arg => {
-                        switch exprToIdx->Belt_HashMap.get(arg->pnGetExpr) {
-                            | None => raise(MmException({msg:`exprSourceToDto: cannot get idx by expr.`}))
-                            | Some(idx) => idx
-                        }
-                    }), 
+                    args: args->Js_array2.map(nodeToIdx), 
                     label: frame.label,
                     missingDisj,
+                }))
+            }
+        }
+        | AssertionWithErr({args, frame, err}) => {
+            if (debugLevel == 0) {
+                None
+            } else {
+                Some(AssertionWithErr({
+                    args: args->Js_array2.map(nodeToIdx), 
+                    label: frame.label,
                     err
                 }))
             }
@@ -52,7 +69,11 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
     }
 }
 
-let proofNodeToDto = (node:proofNode, exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>):proofNodeDto => {
+let proofNodeToDto = (
+    ~node:proofNode, 
+    ~exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
+    ~debugLevel:int
+):proofNodeDto => {
     {
         expr:node->pnGetExpr,
         exprStr:node->pnGetExprStr,
@@ -66,7 +87,11 @@ let proofNodeToDto = (node:proofNode, exprToIdx:Belt_HashMap.t<expr,int,ExprHash
     }
 }
 
-let collectAllExprs = (tree:proofTree, roots:array<expr>):Belt_HashMap.t<expr,int,ExprHash.identity> => {
+let collectAllExprs = (
+    ~tree:proofTree, 
+    ~roots:array<expr>,
+    ~debugLevel:int,
+):Belt_HashMap.t<expr,int,ExprHash.identity> => {
     let nodesToProcess = Belt_MutableStack.make()
     roots->Js_array2.forEach(expr => nodesToProcess->Belt_MutableStack.push(tree->ptGetOrCreateNode(expr)))
     let processedNodes = Belt_HashSet.make(~id=module(ExprHash), ~hintSize=100)
@@ -75,6 +100,13 @@ let collectAllExprs = (tree:proofTree, roots:array<expr>):Belt_HashMap.t<expr,in
     let saveNodesFromSrc = (src:exprSource) => {
         switch src {
             | Assertion({args}) => {
+                args->Js_array2.forEach(arg => {
+                    if (!(arg->pnIsInvalidFloating) || arg->pnGetProof->Belt.Option.isSome) {
+                        nodesToProcess->Belt_MutableStack.push(arg)
+                    }
+                })
+            }
+            | AssertionWithErr({args}) if debugLevel != 0 => {
                 args->Js_array2.forEach(arg => {
                     if (!(arg->pnIsInvalidFloating) || arg->pnGetProof->Belt.Option.isSome) {
                         nodesToProcess->Belt_MutableStack.push(arg)
@@ -98,7 +130,11 @@ let collectAllExprs = (tree:proofTree, roots:array<expr>):Belt_HashMap.t<expr,in
     res
 }
 
-let proofTreeToDto = (tree:proofTree, stmts:array<expr>):proofTreeDto => {
+let proofTreeToDto = (
+    ~tree:proofTree, 
+    ~stmts:array<expr>, 
+    ~debugLevel:int
+):proofTreeDto => {
     let exprToIdx = collectAllExprs(tree, stmts)
     let nodes = Expln_utils_common.createArray(exprToIdx->Belt_HashMap.size)
     exprToIdx->Belt_HashMap.forEach((expr,idx) => {

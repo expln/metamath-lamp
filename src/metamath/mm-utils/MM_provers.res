@@ -21,6 +21,17 @@ type bottomUpProverParams = {
     maxNumberOfBranches: option<int>,
 }
 
+let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSource> => {
+    if (tree->ptIsNewVarDef(expr)) {
+        Some(VarType)
+    } else {
+        switch tree->ptGetHypByExpr(expr) {
+            | Some(hyp) => Some(Hypothesis({label:hyp.label}))
+            | None => None
+        }
+    }
+}
+
 let findAsrtParentsWithoutNewVars = ( 
     ~tree, 
     ~expr, 
@@ -86,7 +97,7 @@ let findAsrtParentsWithoutNewVars = (
 
 let proveFloating = (
     ~tree:proofTree, 
-    ~node:proofNode, 
+    ~node:proofNode,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -112,41 +123,34 @@ let proveFloating = (
             }
         }
 
+        let saveArgs = (src:exprSource) => {
+            switch src {
+                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
+                | _ => ()
+            }
+        }
+
         let rootNode = node
         saveNodeToCreateParentsFor(rootNode)
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
-                switch curNode->pnGetParents {
-                    | Some(parents) => {
-                        parents->Js.Array2.forEach(parent => {
-                            switch parent {
-                                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
-                                | _ => ()
-                            }
-                        })
-                    }
-                    | None => {
-                        let curExpr = curNode->pnGetExpr
-                        if (tree->ptIsNewVarDef(curExpr)) {
-                            curNode->pnAddParent(VarType)
-                        } else {
-                            switch tree->ptGetHypByExpr(curExpr) {
-                                | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
-                                | None => {
-                                    findAsrtParentsWithoutNewVars(
-                                        ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
-                                    )->Js.Array2.forEach(parent => {
-                                        curNode->pnAddParent(parent)
-                                        switch parent {
-                                            | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
-                                            | _ => ()
-                                        }
-                                    })
-                                }
-                            }
+                if (curNode->pnIsFloatingParentsAreSet) {
+                    parents->Js.Array2.forEach(saveArgs)
+                } else {
+                    let curExpr = curNode->pnGetExpr
+                    switch findNonAsrtParent(~tree, ~expr=curExpr) {
+                        | Some(parent) => curNode->pnAddParent(parent)
+                        | None => {
+                            findAsrtParentsWithoutNewVars(
+                                ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
+                            )->Js.Array2.forEach(parent => {
+                                curNode->pnAddParent(parent)
+                                saveArgs(parent)
+                            })
                         }
                     }
+                    curNode->pnSetFloatingParentsAreSet
                 }
             }
         }
@@ -259,35 +263,37 @@ let findAsrtParentsWithNewVars = (
             }
             argIdx.contents = argIdx.contents + 1
         }
-        let missingDisj = applResult.missingDisj->Belt_Option.map(applMissingDisj => {
-            let treeMissingDisj = disjMutableMake()
-            applMissingDisj->disjForEach((n,m) => {
-                treeMissingDisj->disjAddPair(
-                    applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
-                    applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
-                )
-            })
-            treeMissingDisj
-        })
-        if (debugLevel == 0) {
-            if (unprovedFloating.contents->Belt_Option.isNone) {
+        let err = switch applResult.err {
+            | Some(_) => applResult.err
+            | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))
+        }
+        switch err {
+            | None => {
+                let missingDisj = applResult.missingDisj->Belt_Option.map(applMissingDisj => {
+                    let treeMissingDisj = disjMutableMake()
+                    applMissingDisj->disjForEach((n,m) => {
+                        treeMissingDisj->disjAddPair(
+                            applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
+                            applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
+                        )
+                    })
+                    treeMissingDisj
+                })
                 foundParents->Js.Array2.push( Assertion({ 
                     args, 
                     frame,
                     missingDisj,
-                    err: None
                 }) )->ignore
             }
-        } else {
-            foundParents->Js.Array2.push( Assertion({ 
-                args, 
-                frame,
-                missingDisj,
-                err: switch applResult.err {
-                    | Some(_) => applResult.err
-                    | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))
+            | Some(err) => {
+                if (debugLevel != 0) {
+                    foundParents->Js.Array2.push( AssertionWithErr({ 
+                        args, 
+                        frame,
+                        err
+                    }) )->ignore
                 }
-            }) )->ignore
+            }
         }
     })
     foundParents
@@ -379,8 +385,8 @@ let srcIsBackRef = (expr:expr, src:exprSource):bool => {
 }
 
 let proveBottomUp = (
-    ~tree:proofTree, 
-    ~expr:expr, 
+    ~tree:proofTree,
+    ~expr:expr,
     ~getParents:(expr,int,option<int=>unit>)=>array<exprSource>,
     ~maxSearchDepth:int,
     ~onProgress:option<string=>unit>,
@@ -433,31 +439,27 @@ let proveBottomUp = (
             }
 
             let curExpr = curNode->pnGetExpr
-            if (tree->ptIsNewVarDef(curExpr)) {
-                curNode->pnAddParent(VarType)
-            } else {
-                switch tree->ptGetHypByExpr(curExpr) {
-                    | Some(hyp) => curNode->pnAddParent(Hypothesis({label:hyp.label}))
-                    | None => {
-                        let newDist = curDist + 1
-                        if (newDist <= maxSearchDepth) {
-                            getParents(curExpr, curDist, onProgressP.contents)->Js.Array2.forEach(src => {
-                                if (!srcIsBackRef(curExpr, src)) {
-                                    curNode->pnAddParent(src)
-                                    switch src {
-                                        | Assertion({args,err:None}) => 
-                                            args->Js_array2.forEach(arg => {
-                                                if (arg->pnGetProof->Belt.Option.isNone
-                                                        && arg->pnGetDist->Belt.Option.isNone) {
-                                                    arg->pnSetDist(newDist)
-                                                    nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
-                                                }
-                                            })
-                                        | _ => ()
-                                    }
+            switch findNonAsrtParent(~tree, ~expr=curExpr) {
+                | Some(parent) => curNode->pnAddParent(parent)
+                | None => {
+                    let newDist = curDist + 1
+                    if (newDist <= maxSearchDepth) {
+                        getParents(curExpr, curDist, onProgressP.contents)->Js.Array2.forEach(src => {
+                            if (!srcIsBackRef(curExpr, src)) {
+                                curNode->pnAddParent(src)
+                                switch src {
+                                    | Assertion({args,err:None}) => 
+                                        args->Js_array2.forEach(arg => {
+                                            if (arg->pnGetProof->Belt.Option.isNone
+                                                    && arg->pnGetDist->Belt.Option.isNone) {
+                                                arg->pnSetDist(newDist)
+                                                nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
+                                            }
+                                        })
+                                    | _ => ()
                                 }
-                            })
-                        }
+                            }
+                        })
                     }
                 }
             }

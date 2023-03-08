@@ -12,20 +12,32 @@ type rootStmt = {
     jstf: option<jstf>,
 }
 
-type rec proofNode = {
-    expr:expr,
-    exprStr:option<string>, //for debug purposes
-    mutable parents: option<array<exprSource>>,
-    mutable children: array<proofNode>,
-    mutable proof: option<exprSource>,
-    mutable isInvalidFloating: bool,
-    mutable dist: option<int>,
+type proofNodeDbg = {
+    exprStr:string,
 }
 
-and exprSource =
+type proofTreeDbg = {
+    newVars: array<string>,
+    disj: array<string>,
+    exprToStr: expr=>string,
+}
+
+type rec proofNode = {
+    expr:expr,
+    mutable fParents: option<array<exprSrc>>,
+    mutable eParents: array<exprSrc>,
+    mutable children: array<proofNode>,
+    mutable proof: option<exprSrc>,
+    mutable isInvalidFloating: bool,
+    mutable dist: option<int>,
+    dbg: option<proofNodeDbg>,
+}
+
+and exprSrc =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, frame:frame, missingDisj:option<disjMutable>, err:option<unifErr>})
+    | Assertion({args:array<proofNode>, frame:frame, missingDisj:option<disjMutable>})
+    | AssertionWithErr({args:array<proofNode>, frame:frame, err:unifErr})
 
 and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -34,50 +46,72 @@ and proofTree = {
     ctxMaxVar:int,
     mutable maxVar:int,
     newVars: Belt_HashSet.t<expr,ExprHash.identity>,
-    dbgNewVars: array<string>,
     disj: disjMutable,
-    dbgDisj: array<string>,
     parenCnt:parenCnt,
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     rootStmts:array<rootStmt>,
-    exprToStr: option<expr=>string>, //for debug purposes
+    dbg: option<proofTreeDbg>,
 }
 
-let jstfEq = (jstf1, jstf2) => {
-    jstf1.args == jstf2.args && jstf1.label == jstf2.label
-}
-
-let exprSourceEq = (s1,s2) => {
-    switch s1 {
+let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
+    switch a {
         | VarType => {
-            switch s2 {
+            switch b {
                 | VarType => true
                 | _ => false
             }
         }
-        | Hypothesis({label:label1}) => {
-            switch s2 {
-                | Hypothesis({label:label2}) => label1 == label2
+        | Hypothesis({label:aLlabel}) => {
+            switch b {
+                | Hypothesis({label:bLabel}) => aLabel == bLabel
                 | _ => false
             }
         }
-        | Assertion({ args:args1, frame:frame1, }) => {
-            switch s2 {
-                | Assertion({ args:args2, frame:frame2, }) => {
-                    frame1.label == frame2.label
-                    && args1->Js.Array2.length == args2->Js.Array2.length
-                    && args1->Js.Array2.everyi((arg1,idx) => exprEq(arg1.expr, args2[idx].expr))
+        | Assertion({ args:aArgs, frame:aFrame, }) => {
+            switch b {
+                | Assertion({ args:bArgs, frame:bFrame, }) => {
+                    aFrame.label == bFrame.label
+                    && aArgs->Js.Array2.length == bArgs->Js.Array2.length
+                    && aArgs->Js.Array2.everyi((aArg,idx) => exprEq(aArg.expr, bArgs[idx].expr))
                 }
                 | _ => false
             }
         }
+        | AssertionWithErr(_) => false
     }
 }
+
+let exprSrcIsProved = (exprSrc:exprSrc): bool => {
+    switch exprSrc {
+        | VarType | Hypothesis(_) => true
+        | Assertion({args, missingDisj}) => 
+            missingDisj->Belt_Option.isNone
+            && args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
+        | AssertionWithErr(_) => false
+    }
+}
+
+let pnGetExpr = node => node.expr
+let pnGetProof = node => node.proof
+let pnGetFParents = node => node.fParents
+let pnGetEParents = node => node.eParents
+let pnIsInvalidFloating = node => node.isInvalidFloating
+let pnSetInvalidFloating = node => node.isInvalidFloating = true
+let pnGetDist = node => node.dist
+let pnSetDist = (node,dist) => node.dist = Some(dist)
 
 let ptGetFrms = tree => tree.frms
 let ptGetParenCnt = tree => tree.parenCnt
 let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
 let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_HashSet.has(expr)
+let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => tree.hypsByExpr->Belt_HashMap.get(expr)
+let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> => 
+    tree.hypsByLabel->Belt_HashMapString.get(label)
+let ptGetMaxVar = tree => tree.maxVar
+let ptGetCtxMaxVar = tree => tree.ctxMaxVar
+let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
+let ptGetRootStmts = tree => tree.rootStmts
+let ptGetDbg = tree => tree.dbg
 
 let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -87,82 +121,58 @@ let ptMake = (
     ~parenCnt: parenCnt,
     ~exprToStr: option<expr=>string>,
 ) => {
+    let hypsArr = hyps->Belt_MapString.toArray
     {
         frms,
-        hypsByLabel: hyps->Belt_MapString.toArray->Belt_HashMapString.fromArray,
-        hypsByExpr: hyps
-                        ->Belt_MapString.toArray
-                        ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
-                        ->Belt_HashMap.fromArray(~id=module(ExprHash)),
+        hypsByLabel: hypsArr->Belt_HashMapString.fromArray,
+        hypsByExpr: hypsArr
+                    ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
+                    ->Belt_HashMap.fromArray(~id=module(ExprHash)),
         ctxMaxVar,
         maxVar:ctxMaxVar,
         newVars: Belt_HashSet.make(~id=module(ExprHash), ~hintSize=16),
-        dbgNewVars: [],
         disj,
-        dbgDisj: [],
         parenCnt,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
         rootStmts: [],
-        exprToStr,
+        dbg: exprToStr->Belt_Option.map(exprToStr => {
+            {
+                newVars: [],
+                disj: [],
+                exprToStr,
+            }
+        })
     }
 }
 
-let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => {
-    tree.hypsByExpr->Belt_HashMap.get(expr)
-}
-
-let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> => {
-    tree.hypsByLabel->Belt_HashMapString.get(label)
-}
-
-let ptGetMaxVar = tree => tree.maxVar
-
-let ptGetCtxMaxVar = tree => tree.ctxMaxVar
-
-let proofNodeGetExprStr = (node:proofNode):string => {
-    switch node.exprStr {
-        | Some(str) => str
+let pnGetExprStr = (node:proofNode):string => {
+    switch node.dbg {
+        | Some({exprStr}) => exprStr
         | None => node.expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ")
     }
 }
 
-let ptMakeNode = ( tree:proofTree, expr:expr, ):proofNode => {
+let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
     switch tree.nodes->Belt_HashMap.get(expr) {
-        | Some(existingNode) => 
-            raise(MmException({
-                msg:`Creation of a new node was requested, ` 
-                    ++ `but a node with the same expression already exists '${existingNode->proofNodeGetExprStr}'.`
-            }))
+        | Some(node) => node
         | None => {
             let node = {
                 expr,
-                exprStr: tree.exprToStr->Belt.Option.map(f => f(expr)),
-                parents: None,
+                fParents: [],
+                eParents: [],
                 proof: None,
                 children: [],
                 isInvalidFloating: false,
                 dist: None,
+                dbg: tree.exprToStr->Belt_Option.map(exprToStr => {
+                    {
+                        exprStr: exprToStr(expr),
+                    }
+                })
             }
             tree.nodes->Belt_HashMap.set(expr, node)->ignore
             node
         }
-    }
-}
-
-let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
-
-let ptGetRootStmts = tree => {
-    tree.rootStmts
-}
-
-let ptGetNodeByExpr = ( tree:proofTree, expr:expr ):option<proofNode> => {
-    tree.nodes->Belt_HashMap.get(expr)
-}
-
-let ptGetOrCreateNode = ( tree:proofTree, expr:expr):proofNode => {
-    switch tree->ptGetNodeByExpr(expr) {
-        | Some(node) => node
-        | None => tree->ptMakeNode(expr)
     }
 }
 
@@ -177,41 +187,36 @@ let ptClearDists = tree => {
     tree.nodes->Belt_HashMap.forEach((_,node) => node.dist = None)
 }
 
-let esIsProved = (exprSrc:exprSource): bool => {
-    switch exprSrc {
-        | VarType | Hypothesis(_) => true
-        | Assertion({args, missingDisj, err}) => 
-            missingDisj->Belt_Option.isNone
-            && err->Belt_Option.isNone
-            && args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
-    }
-}
-
 let pnGetProofFromParents = (node):option<exprSource> => {
-    switch node.parents {
+    let fProof = switch node.fParents {
         | None => None
-        | Some(parents) => parents->Js_array2.find(esIsProved)
+        | Some(fParents) => fParents->Js_array2.find(exprSrcIsProved)
+    }
+    if (fProof->Belt_Option.isSome) {
+        fProof
+    } else {
+        switch node.eParents {
+            | None => None
+            | Some(eParents) => eParents->Js_array2.find(exprSrcIsProved)
+        }
     }
 }
 
 let pnMarkProved = ( node:proofNode ):unit => {
-    switch node.proof {
-        | Some(_) => ()
-        | None => {
-            switch pnGetProofFromParents(node) {
-                | None => ()
-                | Some(nodeProof) => {
-                    node.proof = Some(nodeProof)
-                    let nodesToMarkProved = node.children->Belt_MutableQueue.fromArray
-                    while (!(nodesToMarkProved->Belt_MutableQueue.isEmpty)) {
-                        let curNode = nodesToMarkProved->Belt_MutableQueue.pop->Belt_Option.getExn
-                        if (curNode.proof->Belt_Option.isNone) {
-                            switch pnGetProofFromParents(curNode) {
-                                | None => ()
-                                | Some(curNodeProof) => {
-                                    curNode.proof = Some(curNodeProof)
-                                    curNode.children->Js_array2.forEach( nodesToMarkProved->Belt_MutableQueue.add )
-                                }
+    if (node.proof->Belt_Option.isNone) {
+        switch pnGetProofFromParents(node) {
+            | None => ()
+            | Some(nodeProof) => {
+                node.proof = Some(nodeProof)
+                let nodesToMarkProved = node.children->Belt_MutableQueue.fromArray
+                while (!(nodesToMarkProved->Belt_MutableQueue.isEmpty)) {
+                    let curNode = nodesToMarkProved->Belt_MutableQueue.pop->Belt_Option.getExn
+                    if (curNode.proof->Belt_Option.isNone) {
+                        switch pnGetProofFromParents(curNode) {
+                            | None => ()
+                            | Some(curNodeProof) => {
+                                curNode.proof = Some(curNodeProof)
+                                curNode.children->Js_array2.forEach( nodesToMarkProved->Belt_MutableQueue.add )
                             }
                         }
                     }
@@ -230,76 +235,65 @@ let pnAddChild = (node, child): unit => {
     }
 }
 
-let pnGetExpr = node => node.expr
-let pnGetExprStr = node => node.exprStr
-let pnGetProof = node => node.proof
-let pnGetParents = node => node.parents
-
-let pnAddParent = (node:proofNode, parent:exprSource):unit => {
-    switch node.proof {
-        | Some(_) => ()
-        | None => {
-            let newParentWasAdded = ref(false)
-            switch node.parents {
+let pnAddParent = (node:proofNode, parent:exprSource, isEssential:bool):unit => {
+    if (node.proof->Belt.Option.isNone) {
+        let newParentWasAdded = ref(false)
+        let parents = if (isEssential) {
+            node.eParents
+        } else {
+            switch node.fParents {
                 | None => {
-                    node.parents = Some([parent])
+                    let parents = [parent]
+                    node.fParents = Some(parents)
                     newParentWasAdded.contents = true
+                    parents
                 }
-                | Some(parents) => {
-                    switch parents->Js_array2.find(par => exprSourceEq(par, parent)) {
-                        | Some(existingParent) => {
-                            if (esIsProved(existingParent)) {
-                                raise(MmException({
-                                    msg:`Unexpected: an unproved node '${proofNodeGetExprStr(node)}' has a proved parent.`
-                                }))
-                            }
-                        }
-                        | None => {
-                            parents->Js_array2.push(parent)->ignore
-                            newParentWasAdded.contents = true
-                        }
+                | Some(parents) => parents
+            }
+        }
+        if (!newParentWasAdded.contents) {
+            switch parents->Js_array2.find(par => exprSrcEq(par, parent)) {
+                | Some(existingParent) => {
+                    if (esIsProved(existingParent)) {
+                        raise(MmException({
+                            msg:`Unexpected: an unproved node '${pnGetExprStr(node)}' has a proved parent.`
+                        }))
                     }
                 }
+                | None => {
+                    parents->Js_array2.push(parent)->ignore
+                    newParentWasAdded.contents = true
+                }
             }
-            if (newParentWasAdded.contents) {
-                switch parent {
-                    | VarType | Hypothesis(_) => ()
-                    | Assertion({args}) => args->Js_array2.forEach(pnAddChild(_, node))
-                }
-                if (esIsProved(parent)) {
-                    pnMarkProved(node)
-                }
+        }
+        if (newParentWasAdded.contents) {
+            switch parent {
+                | Assertion({args}) => args->Js_array2.forEach(pnAddChild(_, node))
+                | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
+            }
+            if (exprSrcIsProved(parent)) {
+                pnMarkProved(node)
             }
         }
     }
 }
 
-let pnSetInvalidFloating = (node,isInvalidFloating) => {
-    node.isInvalidFloating = isInvalidFloating
-}
-
-let pnGetDist = node => node.dist
-
-let pnSetDist = (node,dist) => node.dist = Some(dist)
-
-let pnIsInvalidFloating = node => node.isInvalidFloating
-
 let ptAddNewVar = (tree, typ):int => {
     tree.maxVar = tree.maxVar + 1
     let newVar = tree.maxVar
     tree.newVars->Belt_HashSet.add([typ, newVar])
-    switch tree.exprToStr {
+    switch tree.dbg {
         | None => ()
-        | Some(exprToStr) => tree.dbgNewVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
+        | Some({exprToStr, newVars}) => newVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
     }
     newVar
 }
 
 let ptAddDisjPair = (tree, n, m) => {
     tree.disj->disjAddPair( n,m )
-    switch tree.exprToStr {
+    switch tree.dbg {
         | None => ()
-        | Some(exprToStr) => tree.dbgDisj->Js.Array2.push(exprToStr([n,m]))->ignore
+        | Some({exprToStr, disj}) => disj->Js.Array2.push(exprToStr([n,m]))->ignore
     }
 }
 
@@ -310,5 +304,3 @@ let ptGetCopyOfDisj = tree => {
     tree.disj->disjForEach(disj->disjAddPair)
     disj
 }
-
-let ptGetExprToStr = tree => tree.exprToStr

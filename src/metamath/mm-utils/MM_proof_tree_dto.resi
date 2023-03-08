@@ -6,7 +6,8 @@ open MM_unification_debug
 type exprSourceDto =
     | VarType
     | Hypothesis({label: string})
-    | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>, err:option<unifErr>})
+    | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>})
+    | AssertionWithErr({args:array<int>, label:string, err:unifErr})
 
 type proofNodeDto = {
     expr: expr,
@@ -27,6 +28,6 @@ type proofTreeDto = {
     dbg: option<dbgProofTreeDto>,
 }
 
-let proofTreeToDto: (proofTree, array<expr>) => proofTreeDto
+let proofTreeToDto: (~tree:proofTree, ~stmts:array<expr>, ~debugLevel:int) => proofTreeDto
 
 let createProofTable: (proofTreeDto, proofNodeDto) => proofTable

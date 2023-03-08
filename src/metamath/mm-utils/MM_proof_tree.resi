@@ -16,7 +16,8 @@ type proofNode
 type exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, frame:frame, missingDisj:option<disjMutable>, err:option<unifErr>})
+    | Assertion({args:array<proofNode>, frame:frame, missingDisj:option<disjMutable>})
+    | AssertionWithErr({args:array<proofNode>, frame:frame, err:unifErr}mak)
 
 type proofTree
 
