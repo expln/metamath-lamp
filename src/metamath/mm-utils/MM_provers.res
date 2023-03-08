@@ -70,7 +70,7 @@ let findAsrtParentsWithoutNewVars = (
                                 ~frmExpr = hyps[argIdx.contents].expr, 
                                 ~subs,
                                 ~createWorkVar = _ => raise(MmException({
-                                    msg:`Work variables are not supported in addAsrtParentsWithoutNewVars().`
+                                    msg:`Work variables are not supported in findAsrtParentsWithoutNewVars().`
                                 }))
                             )
                             argsAreCorrect.contents = switch restrictExprLen {
@@ -79,12 +79,14 @@ let findAsrtParentsWithoutNewVars = (
                                 | Less => newExpr->Js_array2.length < exprLen
                             }
                             if (argsAreCorrect.contents) {
-                                args[argIdx.contents] = tree->ptGetOrCreateNode(newExpr)
+                                args[argIdx.contents] = tree->ptGetNode(newExpr)
                             }
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame, missingDisj:None, err:None }) )->ignore
+                            foundParents->Js_array2.push( 
+                                Assertion({ args, frame:frm.frame, missingDisj:None })
+                            )->ignore
                         }
                     }
                     Continue
@@ -135,22 +137,22 @@ let proveFloating = (
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
-                if (curNode->pnIsFloatingParentsAreSet) {
-                    parents->Js.Array2.forEach(saveArgs)
-                } else {
-                    let curExpr = curNode->pnGetExpr
-                    switch findNonAsrtParent(~tree, ~expr=curExpr) {
-                        | Some(parent) => curNode->pnAddParent(parent)
-                        | None => {
-                            findAsrtParentsWithoutNewVars(
-                                ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
-                            )->Js.Array2.forEach(parent => {
-                                curNode->pnAddParent(parent)
-                                saveArgs(parent)
-                            })
+                switch curNode->pnGetFParents {
+                    | Some(fParents) => fParents->Js_array2.forEach(saveArgs)
+                    | None => {
+                        let curExpr = curNode->pnGetExpr
+                        switch findNonAsrtParent(~tree, ~expr=curExpr) {
+                            | Some(parent) => curNode->pnAddParent(parent, false)
+                            | None => {
+                                findAsrtParentsWithoutNewVars(
+                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
+                                )->Js.Array2.forEach(parent => {
+                                    curNode->pnAddParent(parent, false)
+                                    saveArgs(parent)
+                                })
+                            }
                         }
                     }
-                    curNode->pnSetFloatingParentsAreSet
                 }
             }
         }
@@ -177,6 +179,10 @@ let findAsrtParentsWithNewVars = (
     let applResults = []
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
+    let frameFilter = switch asrtLabel {
+        | None => _ => true
+        | Some(asrtLabel) => frame => frame.label == asrtLabel
+    }
 
     applyAssertions(
         ~maxVar = tree->ptGetMaxVar,
@@ -188,9 +194,7 @@ let findAsrtParentsWithNewVars = (
         ~allowEmptyArgs,
         ~allowNewVars,
         ~result = expr,
-        ~frameFilter = frame => asrtLabel
-                                    ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
-                                    ->Belt_Option.getWithDefault(true),
+        ~frameFilter,
         ~strictDisj,
         ~debugLevel,
         ~onMatchFound = res => {

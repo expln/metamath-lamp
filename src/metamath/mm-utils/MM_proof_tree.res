@@ -109,7 +109,6 @@ let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> =>
     tree.hypsByLabel->Belt_HashMapString.get(label)
 let ptGetMaxVar = tree => tree.maxVar
 let ptGetCtxMaxVar = tree => tree.ctxMaxVar
-let ptGetNuberOfNodes = (tree:proofTree) => tree.nodes->Belt_HashMap.size
 let ptGetRootStmts = tree => tree.rootStmts
 let ptGetDbg = tree => tree.dbg
 
