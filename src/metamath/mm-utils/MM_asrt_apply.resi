@@ -9,7 +9,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
-    strictDisj:bool,
+    missingDisj:option<disjMutable>,
     err:option<unifErr>,
 }
 

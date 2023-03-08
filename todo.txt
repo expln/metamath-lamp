@@ -1,3 +1,4 @@
+- check what exprSourceToDto() returns for Assertion (it might skip some useful results).
 - split Src to Src and SrcWithError
 - Fix a bug:
     1. load my-editor-state.json, prove everything.
@@ -10,13 +11,18 @@
     - pass error icon from src to all unproved children
     - sort srcs by var type, hyp, asrt
     - filter by asrt, min number of srcs
-- error messages for some specific cases (number of args doesn't match, could not prove type of floating, etc.)
+- error messages for some specific cases
+    * number of args doesn't match
+    * could not prove type of floating
+    * missing disjoint
+    * failing disjoint
 - fix the bug discovered in save-proofs-to-files
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 - fix a bug:
     1. start proving sgnval.
     2. after the first bottom-up proof, repeat the same bottom-up proof: results will contain 2 duplicated items.
 - write tests for collecting debug info
+
 - restrict names of labels due to the error:
     ?Error on line 732616 of file "set-check-new-proofs.mm" at statement 203351,
     label "1", type "$e":

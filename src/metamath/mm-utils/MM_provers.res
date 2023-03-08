@@ -73,7 +73,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame, strictDisj:true, err:None }) )->ignore
+                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame, missingDisj:None, err:None }) )->ignore
                         }
                     }
                     Continue
@@ -259,12 +259,22 @@ let findAsrtParentsWithNewVars = (
             }
             argIdx.contents = argIdx.contents + 1
         }
+        let missingDisj = applResult.missingDisj->Belt_Option.map(applMissingDisj => {
+            let treeMissingDisj = disjMutableMake()
+            applMissingDisj->disjForEach((n,m) => {
+                treeMissingDisj->disjAddPair(
+                    applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
+                    applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
+                )
+            })
+            treeMissingDisj
+        })
         if (debugLevel == 0) {
             if (unprovedFloating.contents->Belt_Option.isNone) {
                 foundParents->Js.Array2.push( Assertion({ 
                     args, 
                     frame,
-                    strictDisj: applResult.strictDisj,
+                    missingDisj,
                     err: None
                 }) )->ignore
             }
@@ -272,7 +282,7 @@ let findAsrtParentsWithNewVars = (
             foundParents->Js.Array2.push( Assertion({ 
                 args, 
                 frame,
-                strictDisj: applResult.strictDisj,
+                missingDisj,
                 err: switch applResult.err {
                     | Some(_) => applResult.err
                     | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))

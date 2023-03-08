@@ -10,7 +10,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
-    strictDisj:bool,
+    missingDisj:option<disjMutable>,
     err:option<unifErr>,
 }
 
@@ -23,7 +23,6 @@ let applyAssertionResultHash = (a:applyAssertionResult):int => {
         Expln_utils_common.hashStr(a.asrtLabel),
         subsHash(a.subs)
     )
-    
 }
 
 module ApplyAssertionResultHash = Belt.Id.MakeHashable({
@@ -384,14 +383,22 @@ let applyAssertions = (
                                 ~comb,
                                 ~hypIdx=0,
                                 ~onMatchFound = () => {
-                                    let strictDisjActual = ref(true)
+                                    let missingDisj = ref(None)
                                     switch checkDisj(
                                         ~isDisjInCtx = (n,m) => {
                                             if (strictDisj) {
                                                 isDisjInCtx(n,m)
                                             } else {
                                                 if (!isDisjInCtx(n,m)) {
-                                                    strictDisjActual.contents = false
+                                                    let mDisj = switch missingDisj.contents {
+                                                        | None => {
+                                                            let mDisj = disjMutableMake()
+                                                            missingDisj.contents = Some(mDisj)
+                                                            mDisj
+                                                        }
+                                                        | Some(mDisj) => mDisj
+                                                    }
+                                                    mDisj->disjAddPair(n,m)
                                                 }
                                                 true
                                             }
@@ -408,7 +415,7 @@ let applyAssertions = (
                                                 newDisj,
                                                 asrtLabel: frm.frame.label,
                                                 subs: subsClone(frm.subs),
-                                                strictDisj: strictDisjActual.contents,
+                                                missingDisj: missingDisj.contents,
                                                 err:None
                                             }
                                             if (!(sentValidResults->Belt_HashSet.has(res))) {
@@ -428,7 +435,7 @@ let applyAssertions = (
                                                     newDisj: disjMutableMake(),
                                                     asrtLabel: frm.frame.label,
                                                     subs: subsClone(frm.subs),
-                                                    strictDisj: strictDisjActual.contents,
+                                                    missingDisj: None,
                                                     err:Some(err)
                                                 }
                                                 onMatchFound(res)
