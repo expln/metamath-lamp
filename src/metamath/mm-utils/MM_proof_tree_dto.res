@@ -7,7 +7,7 @@ open MM_unification_debug
 type exprSourceDto =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<int>, label:string, err:option<unifErr>})
+    | Assertion({args:array<int>, label:string, strictDisj:bool, err:option<unifErr>})
 
 type proofNodeDto = {
     expr:expr,
@@ -32,7 +32,7 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
     switch src {
         | VarType => Some(VarType)
         | Hypothesis({label}) => Some(Hypothesis({label:label}))
-        | Assertion({args, frame, err}) => {
+        | Assertion({args, frame, strictDisj, err}) => {
             if (args->Js.Array2.some(arg => arg->pnIsInvalidFloating && arg->pnGetProof->Belt.Option.isNone)) {
                 None
             } else {
@@ -44,6 +44,7 @@ let exprSourceToDto = (src:exprSource, exprToIdx:Belt_HashMap.t<expr,int,ExprHas
                         }
                     }), 
                     label: frame.label,
+                    strictDisj,
                     err
                 }))
             }

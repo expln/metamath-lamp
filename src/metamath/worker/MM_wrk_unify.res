@@ -129,7 +129,7 @@ let srcToNewStmts = (
     ~typeToPrefix: Belt_MapString.t<string>,
 ):option<stmtsDto> => {
     switch src {
-        | Assertion({args, label, err}) => {
+        | Assertion({args, label, err}) if err->Belt.Option.isNone => {
             let maxCtxVar = ctx->getNumOfVars - 1
             let res = {
                 newVars: [],
@@ -225,7 +225,7 @@ let srcToNewStmts = (
                         } else {
                             childrenReturnedFor->Belt_HashSet.add(node.expr)
                             switch node.proof {
-                                | Some(Assertion({args,label})) => {
+                                | Some(Assertion({args,label,err})) if err->Belt_Option.isNone => {
                                     let children = []
                                     getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                                         if (hyp.typ == E) {
@@ -264,9 +264,7 @@ let srcToNewStmts = (
                 ~label=stmtToProve.label,
                 ~expr = stmtToProve.expr,
                 ~jstf = Some(src),
-                ~isProved = 
-                    err->Belt_Option.isNone
-                    && args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
+                ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
             let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
             tree.disj->disjForEach((n,m) => {

@@ -25,7 +25,7 @@ type rec proofNode = {
 and exprSource =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, frame:frame, err:option<unifErr>})
+    | Assertion({args:array<proofNode>, frame:frame, strictDisj:bool, err:option<unifErr>})
 
 and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
@@ -180,8 +180,9 @@ let ptClearDists = tree => {
 let esIsProved = (exprSrc:exprSource): bool => {
     switch exprSrc {
         | VarType | Hypothesis(_) => true
-        | Assertion({args, err}) => 
-            err->Belt_Option.isNone
+        | Assertion({args, strictDisj, err}) => 
+            strictDisj
+            && err->Belt_Option.isNone
             && args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
     }
 }

@@ -998,7 +998,7 @@ let loadContext = (
 ) => {
     let expectedNumOfAssertionsF = expectedNumOfAssertions->Belt_Int.toFloat
     let assertionsProcessed = ref(0.)
-    let progressTracker = progressTrackerMutableMake(~step=0.01, ~onProgress, ())
+    let progressTracker = progressTrackerMutableMake(~step=0.1, ~onProgress, ())
 
     let onAsrtProcess = () => {
         if (expectedNumOfAssertions > 0) {

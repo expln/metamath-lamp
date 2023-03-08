@@ -9,6 +9,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
+    strictDisj:bool,
     err:option<unifErr>,
 }
 
@@ -34,6 +35,7 @@ let applyAssertions: (
     ~result:expr=?,
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=?,
+    ~strictDisj:bool=?,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=?,
     ~onProgress:float=>unit=?,

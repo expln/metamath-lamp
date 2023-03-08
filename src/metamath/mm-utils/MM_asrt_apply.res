@@ -10,6 +10,7 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
+    strictDisj:bool,
     err:option<unifErr>,
 }
 
@@ -271,7 +272,7 @@ let rec iterateSubstitutionsForHyps = (
     }
 }
 
-let extractNewDisj = (
+let checkDisj = (
     ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, 
     ~subs:subs, 
     ~maxCtxVar:int, 
@@ -327,6 +328,7 @@ let applyAssertions = (
     ~result:option<expr>=?,
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=_=>true,
+    ~strictDisj:bool=true,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=0,
     ~onProgress:option<float=>unit>=?,
@@ -382,8 +384,18 @@ let applyAssertions = (
                                 ~comb,
                                 ~hypIdx=0,
                                 ~onMatchFound = () => {
-                                    switch extractNewDisj(
-                                        ~isDisjInCtx, 
+                                    let strictDisjActual = ref(true)
+                                    switch checkDisj(
+                                        ~isDisjInCtx = (n,m) => {
+                                            if (strictDisj) {
+                                                isDisjInCtx(n,m)
+                                            } else {
+                                                if (!isDisjInCtx(n,m)) {
+                                                    strictDisjActual.contents = false
+                                                }
+                                                true
+                                            }
+                                        },
                                         ~frmDisj=frm.frame.disj, 
                                         ~subs=frm.subs, 
                                         ~maxCtxVar=maxVar,
@@ -396,6 +408,7 @@ let applyAssertions = (
                                                 newDisj,
                                                 asrtLabel: frm.frame.label,
                                                 subs: subsClone(frm.subs),
+                                                strictDisj: strictDisjActual.contents,
                                                 err:None
                                             }
                                             if (!(sentValidResults->Belt_HashSet.has(res))) {
@@ -415,6 +428,7 @@ let applyAssertions = (
                                                     newDisj: disjMutableMake(),
                                                     asrtLabel: frm.frame.label,
                                                     subs: subsClone(frm.subs),
+                                                    strictDisj: strictDisjActual.contents,
                                                     err:Some(err)
                                                 }
                                                 onMatchFound(res)

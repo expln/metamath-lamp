@@ -73,7 +73,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame, err:None }) )->ignore
+                            foundParents->Js_array2.push( Assertion({ args, frame:frm.frame, strictDisj:true, err:None }) )->ignore
                         }
                     }
                     Continue
@@ -164,6 +164,7 @@ let findAsrtParentsWithNewVars = (
     ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
+    ~strictDisj:bool,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
     ~onProgress:option<int=>unit>=?,
@@ -186,6 +187,7 @@ let findAsrtParentsWithNewVars = (
         ~frameFilter = frame => asrtLabel
                                     ->Belt_Option.map(asrtLabel => frame.label == asrtLabel)
                                     ->Belt_Option.getWithDefault(true),
+        ~strictDisj,
         ~debugLevel,
         ~onMatchFound = res => {
             applResults->Js_array2.push(res)->ignore
@@ -262,6 +264,7 @@ let findAsrtParentsWithNewVars = (
                 foundParents->Js.Array2.push( Assertion({ 
                     args, 
                     frame,
+                    strictDisj: applResult.strictDisj,
                     err: None
                 }) )->ignore
             }
@@ -269,6 +272,7 @@ let findAsrtParentsWithNewVars = (
             foundParents->Js.Array2.push( Assertion({ 
                 args, 
                 frame,
+                strictDisj: applResult.strictDisj,
                 err: switch applResult.err {
                     | Some(_) => applResult.err
                     | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))
@@ -289,6 +293,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
             ~exactOrderOfArgs=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
+            ~strictDisj=true,
             () 
         )
         parents->Expln_utils_common.arrForEach(parent => {
@@ -343,6 +348,7 @@ let proveWithJustification = (
                     ~allowEmptyArgs=false,
                     ~allowNewVars=false,
                     ~asrtLabel=jstf.label,
+                    ~strictDisj=true,
                     ()
                 )
                 parents->Expln_utils_common.arrForEach(parent => {
@@ -466,6 +472,7 @@ let proveStmtBottomUp = (
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
             ~allowEmptyArgs = params.allowNewStmts,
             ~allowNewVars = dist == 0 && params.allowNewVars,
+            ~strictDisj=true,
             ~debugLevel,
             ~maxNumberOfResults=?params.maxNumberOfBranches,
             ~onProgress?,
