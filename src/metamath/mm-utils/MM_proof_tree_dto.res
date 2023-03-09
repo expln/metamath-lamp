@@ -21,7 +21,7 @@ type proofTreeDbgDto = {
 
 type proofNodeDto = {
     expr:expr,
-    parents: option<array<exprSrcDto>>,
+    parents: array<exprSrcDto>,
     proof: option<exprSrcDto>,
     dbg:option<proofNodeDbgDto>,
 }

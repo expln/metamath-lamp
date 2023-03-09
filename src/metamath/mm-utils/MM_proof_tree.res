@@ -99,6 +99,7 @@ let pnIsInvalidFloating = node => node.isInvalidFloating
 let pnSetInvalidFloating = node => node.isInvalidFloating = true
 let pnGetDist = node => node.dist
 let pnSetDist = (node,dist) => node.dist = Some(dist)
+let pnGetDbg = node => node.dbg
 
 let ptGetFrms = tree => tree.frms
 let ptGetParenCnt = tree => tree.parenCnt
@@ -110,7 +111,7 @@ let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> =>
 let ptGetMaxVar = tree => tree.maxVar
 let ptGetCtxMaxVar = tree => tree.ctxMaxVar
 let ptGetRootStmts = tree => tree.rootStmts
-let ptGetDbg = tree => tree.dbg
+let ptGetDbg = (tree:proofTree) => tree.dbg
 let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
 let ptGetDisj = tree => tree.disj
 
@@ -159,15 +160,15 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
         | None => {
             let node = {
                 expr,
-                fParents: [],
+                fParents: None,
                 eParents: [],
                 proof: None,
                 children: [],
                 isInvalidFloating: false,
                 dist: None,
-                dbg: tree.exprToStr->Belt_Option.map(exprToStr => {
+                dbg: tree.dbg->Belt_Option.map(dbg => {
                     {
-                        exprStr: exprToStr(expr),
+                        exprStr: dbg.exprToStr(expr),
                     }
                 })
             }
@@ -188,7 +189,7 @@ let ptClearDists = tree => {
     tree.nodes->Belt_HashMap.forEach((_,node) => node.dist = None)
 }
 
-let pnGetProofFromParents = (node):option<exprSource> => {
+let pnGetProofFromParents = (node):option<exprSrc> => {
     let fProof = switch node.fParents {
         | None => None
         | Some(fParents) => fParents->Js_array2.find(exprSrcIsProved)
@@ -196,10 +197,7 @@ let pnGetProofFromParents = (node):option<exprSource> => {
     if (fProof->Belt_Option.isSome) {
         fProof
     } else {
-        switch node.eParents {
-            | None => None
-            | Some(eParents) => eParents->Js_array2.find(exprSrcIsProved)
-        }
+        node.eParents->Js_array2.find(exprSrcIsProved)
     }
 }
 
@@ -236,7 +234,7 @@ let pnAddChild = (node, child): unit => {
     }
 }
 
-let pnAddParent = (node:proofNode, parent:exprSource, isEssential:bool):unit => {
+let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool):unit => {
     if (node.proof->Belt.Option.isNone) {
         let newParentWasAdded = ref(false)
         let parents = if (isEssential) {
@@ -255,7 +253,7 @@ let pnAddParent = (node:proofNode, parent:exprSource, isEssential:bool):unit => 
         if (!newParentWasAdded.contents) {
             switch parents->Js_array2.find(par => exprSrcEq(par, parent)) {
                 | Some(existingParent) => {
-                    if (esIsProved(existingParent)) {
+                    if (exprSrcIsProved(existingParent)) {
                         raise(MmException({
                             msg:`Unexpected: an unproved node '${pnGetExprStr(node)}' has a proved parent.`
                         }))

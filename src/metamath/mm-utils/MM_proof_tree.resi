@@ -11,6 +11,10 @@ type rootStmt = {
     jstf: option<jstf>,
 }
 
+type proofNodeDbg = {
+    exprStr:string,
+}
+
 type proofTreeDbg = {
     newVars: array<string>,
     disj: array<string>,
@@ -48,20 +52,20 @@ let ptGetRootStmts: proofTree => array<rootStmt>
 let ptGetNode: (proofTree, expr) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
-let ptGetDbg: proofTree => option<proofTreeDbg>
 let ptAddRootStmt: (proofTree, rootStmt) => unit
 let ptClearDists: proofTree => unit
+let ptGetDbg: proofTree => option<proofTreeDbg>
 
 let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetDisj: proofTree => disjMutable
 
 let pnGetExpr: proofNode => expr
-let pnGetExprStr: proofNode => option<string>
-let pnGetProof: proofNode => option<exprSource>
-let pnGetFParents: proofNode => option<array<exprSource>>
-let pnGetEParents: proofNode => array<exprSource>
-let pnAddParent: (proofNode, exprSource, bool) => unit
+let pnGetProof: proofNode => option<exprSrc>
+let pnGetFParents: proofNode => option<array<exprSrc>>
+let pnGetEParents: proofNode => array<exprSrc>
+let pnAddParent: (proofNode, exprSrc, bool) => unit
 let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: proofNode => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode,int) => unit
+let pnGetDbg: proofNode => option<proofNodeDbg>

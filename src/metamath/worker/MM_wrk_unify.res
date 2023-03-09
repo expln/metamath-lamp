@@ -122,14 +122,14 @@ let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
 
 let srcToNewStmts = (
     ~rootStmts:array<rootStmt>,
-    ~src:exprSourceDto, 
+    ~src:exprSrcDto,
     ~tree:proofTreeDto, 
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
 ):option<stmtsDto> => {
     switch src {
-        | Assertion({args, label, err}) if err->Belt.Option.isNone => {
+        | Assertion({args, label}) => {
             let maxCtxVar = ctx->getNumOfVars - 1
             let res = {
                 newVars: [],
@@ -225,7 +225,7 @@ let srcToNewStmts = (
                         } else {
                             childrenReturnedFor->Belt_HashSet.add(node.expr)
                             switch node.proof {
-                                | Some(Assertion({args,label,err})) if err->Belt_Option.isNone => {
+                                | Some(Assertion({args,label})) => {
                                     let children = []
                                     getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                                         if (hyp.typ == E) {
@@ -292,21 +292,16 @@ let proofTreeDtoToNewStmtsDto = (
         | Some(node) => node
     }
 
-    switch proofNode.parents {
-        | None => []
-        | Some(parents) => {
-            parents
-                ->Js_array2.map(src => srcToNewStmts(
-                    ~rootStmts,
-                    ~src, 
-                    ~tree = treeDto, 
-                    ~newVarTypes,
-                    ~ctx,
-                    ~typeToPrefix: Belt_MapString.t<string>,
-                ))
-                ->Js.Array2.filter(Belt_Option.isSome)
-                ->Js.Array2.map(Belt_Option.getExn)
-                ->Js.Array2.filter(doesntHaveBackRefs)
-        }
-    }
+    proofNode.parents
+        ->Js_array2.map(src => srcToNewStmts(
+            ~rootStmts,
+            ~src,
+            ~tree = treeDto,
+            ~newVarTypes,
+            ~ctx,
+            ~typeToPrefix: Belt_MapString.t<string>,
+        ))
+        ->Js.Array2.filter(Belt_Option.isSome)
+        ->Js.Array2.map(Belt_Option.getExn)
+        ->Js.Array2.filter(doesntHaveBackRefs)
 }

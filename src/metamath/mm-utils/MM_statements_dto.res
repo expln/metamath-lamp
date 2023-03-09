@@ -21,6 +21,6 @@ type stmtsDto = {
     stmts: array<stmtDto>,
 }
     
-let jstfEq = (a, b) => {
+let jstfEq = (a:jstf, b:jstf):bool => {
     a.label == b.label && a.args == b.args
 }

@@ -3,31 +3,35 @@ open MM_proof_table
 open MM_proof_tree
 open MM_unification_debug
 
-type exprSourceDto =
+type exprSrcDto =
     | VarType
-    | Hypothesis({label: string})
+    | Hypothesis({label:string})
     | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>})
     | AssertionWithErr({args:array<int>, label:string, err:unifErr})
 
-type proofNodeDto = {
-    expr: expr,
-    exprStr: option<string>,
-    parents: option<array<exprSourceDto>>,
-    proof: option<exprSourceDto>,
+type proofNodeDbgDto = {
+    exprStr:string,
 }
 
-type dbgProofTreeDto = {
+type proofTreeDbgDto = {
     newVars: array<string>,
     disj: array<string>,
+}
+
+type proofNodeDto = {
+    expr:expr,
+    parents: array<exprSrcDto>,
+    proof: option<exprSrcDto>,
+    dbg:option<proofNodeDbgDto>,
 }
 
 type proofTreeDto = {
     newVars: array<expr>,
     disj: disjMutable,
     nodes: array<proofNodeDto>,
-    dbg: option<dbgProofTreeDto>,
+    dbg: option<proofTreeDbgDto>,
 }
 
-let proofTreeToDto: (~tree:proofTree, ~stmts:array<expr>, ~debugLevel:int) => proofTreeDto
+let proofTreeToDto: (proofTree, array<expr>) => proofTreeDto
 
 let createProofTable: (proofTreeDto, proofNodeDto) => proofTable

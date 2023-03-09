@@ -155,28 +155,24 @@ module rec ProofNodeDtoCmp: {
             </span>
         }
 
-        let rndStatusIconForSrc = (src:exprSourceDto) => {
+        let rndStatusIconForSrc = (src:exprSrcDto) => {
             switch src {
                 | VarType | Hypothesis(_) => validProofIcon
-                | Assertion({args, err}) => {
-                    switch err {
-                        | None => {
-                            let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
-                            if (allArgsAreProved) {
-                                validProofIcon
-                            } else {
-                                React.null
-                            }
-                        }
-                        | Some(_) => {
-                            <span
-                                title="Click to see error details"
-                                style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
-                            >
-                                {React.string("\u2717")}
-                            </span>
-                        }
+                | Assertion({args}) => {
+                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
+                    if (allArgsAreProved) {
+                        validProofIcon
+                    } else {
+                        React.null
                     }
+                }
+                | AssertionWithErr({err}) => {
+                    <span
+                        title="Click to see error details"
+                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
+                    >
+                        {React.string("\u2717")}
+                    </span>
                 }
             }
         }
@@ -223,19 +219,16 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndSrcs = () => {
-            switch node.parents {
-                | None => {
-                    React.string("Sources are not set.")
-                }
-                | Some(parents) => {
-                    <table>
-                        <tbody>
-                            {
-                                parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
-                            }
-                        </tbody>
-                    </table>
-                }
+            if (node.parents->Js.Array2.length == 0) {
+                React.string("Sources are not set.")
+            } else {
+                <table>
+                    <tbody>
+                        {
+                            node.parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
+                        }
+                    </tbody>
+                </table>
             }
         }
 

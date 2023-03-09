@@ -1198,13 +1198,8 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):unit => {
     varToExprArr->Js_array2.forEachi(((var,expr), i) =>
         if (wrkSubs.err->Belt_Option.isNone) {
             let typeExpr = typesToProve[i]
-            switch proofTree->ptGetNodeByExpr(typeExpr) {
-                | None => raise(MmException({msg:`Unexpected condition met: the proofTree was expected to contain nodes for each typeExpr.`}))
-                | Some(node) => {
-                    if (node->pnGetProof->Belt_Option.isNone) {
-                        wrkSubs.err = Some(TypeMismatch({ var, subsExpr:expr, typeExpr, }))
-                    }
-                }
+            if (proofTree->ptGetNode(typeExpr)->pnGetProof->Belt_Option.isNone) {
+                wrkSubs.err = Some(TypeMismatch({ var, subsExpr:expr, typeExpr, }))
             }
         }
     )
@@ -1407,7 +1402,7 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSourceDto, exprToUserStmt):option<jstf> => {
+let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserStmt):option<jstf> => {
     switch exprSrc {
         | Assertion({args, label:asrtLabel}) => {
             switch wrkCtx->getFrame(asrtLabel) {
@@ -1490,14 +1485,9 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
             switch stmt.jstf {
                 | None => {...stmt, proofStatus:Some(NoJstf)}
                 | Some(jstf) => {
-                    switch proofNode.parents {
+                    switch proofNode.parents->Js.Array2.find(parentEqJstf(_, jstf)) {
+                        | Some(_) => {...stmt, proofStatus:Some(Waiting)}
                         | None => {...stmt, proofStatus:Some(JstfIsIncorrect)}
-                        | Some(parents) => {
-                            switch parents->Js.Array2.find(parentEqJstf(_, jstf)) {
-                                | Some(_) => {...stmt, proofStatus:Some(Waiting)}
-                                | None => {...stmt, proofStatus:Some(JstfIsIncorrect)}
-                            }
-                        }
                     }
                 }
             }

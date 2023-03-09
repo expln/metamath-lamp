@@ -21,7 +21,7 @@ type bottomUpProverParams = {
     maxNumberOfBranches: option<int>,
 }
 
-let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSource> => {
+let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSrc> => {
     if (tree->ptIsNewVarDef(expr)) {
         Some(VarType)
     } else {
@@ -36,7 +36,7 @@ let findAsrtParentsWithoutNewVars = (
     ~tree, 
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
-):array<exprSource> => {
+):array<exprSrc> => {
     let exprLen = expr->Js_array2.length
     let foundParents = []
     tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
@@ -125,7 +125,7 @@ let proveFloating = (
             }
         }
 
-        let saveArgs = (src:exprSource) => {
+        let saveArgs = (src:exprSrc) => {
             switch src {
                 | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
                 | _ => ()
@@ -157,7 +157,7 @@ let proveFloating = (
             }
         }
         if (rootNode->pnGetProof->Belt.Option.isNone) {
-            rootNode->pnSetInvalidFloating(true)
+            rootNode->pnSetInvalidFloating
         }
     }
 }
@@ -175,13 +175,13 @@ let findAsrtParentsWithNewVars = (
     ~maxNumberOfResults: option<int>=?,
     ~onProgress:option<int=>unit>=?,
     ()
-):array<exprSource> => {
+):array<exprSrc> => {
     let applResults = []
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
     let frameFilter = switch asrtLabel {
         | None => _ => true
-        | Some(asrtLabel) => frame => frame.label == asrtLabel
+        | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel
     }
 
     let maxVarBeforeSearch = tree->ptGetMaxVar
@@ -487,7 +487,7 @@ let proveStmtBottomUp = (
     ~onProgress:option<string=>unit>,
 ):proofNode => {
 
-    let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSource> => {
+    let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSrc> => {
         let parents = findAsrtParentsWithNewVars(
             ~tree,
             ~expr,
