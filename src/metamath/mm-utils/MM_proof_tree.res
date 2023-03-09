@@ -61,7 +61,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
                 | _ => false
             }
         }
-        | Hypothesis({label:aLlabel}) => {
+        | Hypothesis({label:aLabel}) => {
             switch b {
                 | Hypothesis({label:bLabel}) => aLabel == bLabel
                 | _ => false
@@ -111,6 +111,8 @@ let ptGetMaxVar = tree => tree.maxVar
 let ptGetCtxMaxVar = tree => tree.ctxMaxVar
 let ptGetRootStmts = tree => tree.rootStmts
 let ptGetDbg = tree => tree.dbg
+let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
+let ptGetDisj = tree => tree.disj
 
 let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -296,10 +298,3 @@ let ptAddDisjPair = (tree, n, m) => {
     }
 }
 
-let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
-
-let ptGetCopyOfDisj = tree => {
-    let disj = disjMutableMake()
-    tree.disj->disjForEach(disj->disjAddPair)
-    disj
-}

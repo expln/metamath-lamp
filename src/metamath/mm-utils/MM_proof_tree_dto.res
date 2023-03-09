@@ -4,116 +4,96 @@ open MM_proof_table
 open MM_proof_tree
 open MM_unification_debug
 
-type exprSourceDto =
+type exprSrcDto =
     | VarType
     | Hypothesis({label:string})
     | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>})
     | AssertionWithErr({args:array<int>, label:string, err:unifErr})
 
-type proofNodeDto = {
-    expr:expr,
-    exprStr:option<string>, //for debug purposes
-    parents: option<array<exprSourceDto>>,
-    proof: option<exprSourceDto>,
+type proofNodeDbgDto = {
+    exprStr:string,
 }
 
-type dbgProofTreeDto = {
+type proofTreeDbgDto = {
     newVars: array<string>,
     disj: array<string>,
+}
+
+type proofNodeDto = {
+    expr:expr,
+    parents: option<array<exprSrcDto>>,
+    proof: option<exprSrcDto>,
+    dbg:option<proofNodeDbgDto>,
 }
 
 type proofTreeDto = {
     newVars: array<expr>,
     disj: disjMutable,
     nodes: array<proofNodeDto>,
-    dbg: option<dbgProofTreeDto>,
+    dbg: option<proofTreeDbgDto>,
 }
 
-let exprSourceToDto = (
-    ~src:exprSource, 
-    ~exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
-    ~debugLevel:int,
-):option<exprSourceDto> => {
+let exprSrcToDto = (
+    src:exprSrc, 
+    exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
+):exprSrcDto => {
     let nodeToIdx = (node:proofNode):int => {
         switch exprToIdx->Belt_HashMap.get(node->pnGetExpr) {
-            | None => raise(MmException({msg:`exprSourceToDto: cannot get idx by expr.`}))
+            | None => raise(MmException({msg:`exprSrcToDto: cannot get idx by expr.`}))
             | Some(idx) => idx
         }
     }
 
     switch src {
-        | VarType => Some(VarType)
-        | Hypothesis({label}) => Some(Hypothesis({label:label}))
+        | VarType => VarType
+        | Hypothesis({label}) => Hypothesis({label:label})
         | Assertion({args, frame, missingDisj}) => {
-            if (args->Js.Array2.some(arg => arg->pnIsInvalidFloating && arg->pnGetProof->Belt.Option.isNone)) {
-                None
-            } else {
-                Some(Assertion({
-                    args: args->Js_array2.map(nodeToIdx), 
-                    label: frame.label,
-                    missingDisj,
-                }))
-            }
+            Assertion({
+                args: args->Js_array2.map(nodeToIdx), 
+                label: frame.label,
+                missingDisj,
+            })
         }
         | AssertionWithErr({args, frame, err}) => {
-            if (debugLevel == 0) {
-                None
-            } else {
-                Some(AssertionWithErr({
-                    args: args->Js_array2.map(nodeToIdx), 
-                    label: frame.label,
-                    err
-                }))
-            }
+            AssertionWithErr({
+                args: args->Js_array2.map(nodeToIdx), 
+                label: frame.label,
+                err
+            })
         }
     }
 }
 
 let proofNodeToDto = (
-    ~node:proofNode, 
-    ~exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
-    ~debugLevel:int
+    node:proofNode, 
+    exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
 ):proofNodeDto => {
     {
         expr:node->pnGetExpr,
-        exprStr:node->pnGetExprStr,
-        parents: node->pnGetParents->Belt.Option.map(parents => {
-            parents
-                ->Js_array2.map(exprSourceToDto(_,exprToIdx))
-                ->Js_array2.filter(Belt_Option.isSome)
-                ->Js_array2.map(Belt_Option.getExn)
+        dbg:node->pnGetDbg->Belt_Option.map(dbg => {
+            {
+                exprStr: dbg.exprStr,
+            }
         }),
-        proof: node->pnGetProof->Belt.Option.flatMap(exprSourceToDto(_,exprToIdx)),
+        parents: node->pnGetEParents->Js_array2.map(exprSrcToDto(_,exprToIdx)),
+        proof: node->pnGetProof->Belt.Option.map(exprSrcToDto(_,exprToIdx)),
     }
 }
 
 let collectAllExprs = (
-    ~tree:proofTree, 
-    ~roots:array<expr>,
-    ~debugLevel:int,
+    tree:proofTree, 
+    roots:array<expr>,
 ):Belt_HashMap.t<expr,int,ExprHash.identity> => {
     let nodesToProcess = Belt_MutableStack.make()
-    roots->Js_array2.forEach(expr => nodesToProcess->Belt_MutableStack.push(tree->ptGetOrCreateNode(expr)))
+    roots->Js_array2.forEach(expr => nodesToProcess->Belt_MutableStack.push(tree->ptGetNode(expr)))
     let processedNodes = Belt_HashSet.make(~id=module(ExprHash), ~hintSize=100)
     let res = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=100)
 
-    let saveNodesFromSrc = (src:exprSource) => {
+    let saveNodesFromSrc = (src:exprSrc) => {
         switch src {
-            | Assertion({args}) => {
-                args->Js_array2.forEach(arg => {
-                    if (!(arg->pnIsInvalidFloating) || arg->pnGetProof->Belt.Option.isSome) {
-                        nodesToProcess->Belt_MutableStack.push(arg)
-                    }
-                })
-            }
-            | AssertionWithErr({args}) if debugLevel != 0 => {
-                args->Js_array2.forEach(arg => {
-                    if (!(arg->pnIsInvalidFloating) || arg->pnGetProof->Belt.Option.isSome) {
-                        nodesToProcess->Belt_MutableStack.push(arg)
-                    }
-                })
-            }
-            | _ => ()
+            | Assertion({args}) | AssertionWithErr({args}) =>
+                args->Js_array2.forEach(arg => nodesToProcess->Belt_MutableStack.push(arg))
+            | VarType | Hypothesis(_) => ()
         }
     }
 
@@ -123,7 +103,7 @@ let collectAllExprs = (
         if (!(processedNodes->Belt_HashSet.has(curExpr))) {
             processedNodes->Belt_HashSet.add(curExpr)
             res->Belt_HashMap.set(curExpr, res->Belt_HashMap.size)
-            curNode->pnGetParents->Belt_Option.forEach(Js_array2.forEach(_, saveNodesFromSrc))
+            curNode->pnGetEParents->Js_array2.forEach(saveNodesFromSrc)
             curNode->pnGetProof->Belt_Option.forEach(saveNodesFromSrc)
         }
     }
@@ -131,29 +111,26 @@ let collectAllExprs = (
 }
 
 let proofTreeToDto = (
-    ~tree:proofTree, 
-    ~stmts:array<expr>, 
-    ~debugLevel:int
+    tree:proofTree, 
+    rootStmts:array<expr>, 
 ):proofTreeDto => {
-    let exprToIdx = collectAllExprs(tree, stmts)
+    let exprToIdx = collectAllExprs(tree, rootStmts)
     let nodes = Expln_utils_common.createArray(exprToIdx->Belt_HashMap.size)
     exprToIdx->Belt_HashMap.forEach((expr,idx) => {
-        nodes[idx] = proofNodeToDto(tree->ptGetOrCreateNode(expr), exprToIdx)
+        nodes[idx] = proofNodeToDto(tree->ptGetNode(expr), exprToIdx)
     })
-    let newVars = tree->ptGetCopyOfNewVars
-    let disj = tree->ptGetCopyOfDisj
-    let dbg = switch tree->ptGetExprToStr {
-        | None => None
-        | Some(exprToStr) => {
-            let dbgNewVars = newVars->Js.Array2.map(exprToStr)
-            let dbgDisj = []
-            disj->disjForEach((n,m) => {
-                dbgDisj->Js.Array2.push(exprToStr([n,m]))->ignore
-            })
-            Some({ newVars:dbgNewVars, disj:dbgDisj })
-        }
+
+    {
+        newVars: tree->ptGetCopyOfNewVars,
+        disj: tree->ptGetDisj,
+        nodes,
+        dbg: tree->ptGetDbg->Belt_Option.map(dbg => {
+            {
+                newVars: dbg.newVars,
+                disj: dbg.disj,
+            }
+        })
     }
-    { newVars, disj, nodes, dbg }
 }
 
 let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {

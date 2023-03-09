@@ -48,11 +48,12 @@ let ptGetRootStmts: proofTree => array<rootStmt>
 let ptGetNode: (proofTree, expr) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
-let ptGetCopyOfNewVars: proofTree => array<expr>
-let ptGetCopyOfDisj: proofTree => disjMutable
 let ptGetDbg: proofTree => option<proofTreeDbg>
 let ptAddRootStmt: (proofTree, rootStmt) => unit
 let ptClearDists: proofTree => unit
+
+let ptGetCopyOfNewVars: proofTree => array<expr>
+let ptGetDisj: proofTree => disjMutable
 
 let pnGetExpr: proofNode => expr
 let pnGetExprStr: proofNode => option<string>
