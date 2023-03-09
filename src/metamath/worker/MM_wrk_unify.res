@@ -129,7 +129,8 @@ let srcToNewStmts = (
     ~typeToPrefix: Belt_MapString.t<string>,
 ):option<stmtsDto> => {
     switch src {
-        | Assertion({args, label}) => {
+        | VarType | Hypothesis(_) | AssertionWithErr(_) => None
+        | Assertion({args, label, missingDisj}) => {
             let maxCtxVar = ctx->getNumOfVars - 1
             let res = {
                 newVars: [],
@@ -159,22 +160,22 @@ let srcToNewStmts = (
             let intToSym = i => {
                 if (i <= maxCtxVar) {
                     switch ctx->ctxIntToSym(i) {
-                        | None => raise(MmException({msg:`Cannot determine sym for an existing int in nodeToNewStmts.`}))
+                        | None => raise(MmException({msg:`Cannot determine sym for an existing int in srcToNewStmts.`}))
                         | Some(sym) => sym
                     }
                 } else {
                     switch varNames->Belt_HashMapInt.get(i) {
-                        | None => raise(MmException({msg:`Cannot determine name of a new var in nodeToNewStmts.`}))
+                        | None => raise(MmException({msg:`Cannot determine name of a new var in srcToNewStmts.`}))
                         | Some(name) => name
                     }
                 }
             }
 
-            let addExprToResult = (~label, ~expr, ~jstf, ~isProved) => {
+            let addExprToResult = (~label, ~expr, ~src, ~isProved) => {
                 expr->Js_array2.forEach(ei => {
                     if (ei > maxCtxVar && !(res.newVars->Js_array2.includes(ei))) {
                         switch newVarTypes->Belt_HashMapInt.get(ei) {
-                            | None => raise(MmException({msg:`Cannot determine type of a new var in nodeToNewStmts.`}))
+                            | None => raise(MmException({msg:`Cannot determine type of a new var in srcToNewStmts.`}))
                             | Some(typ) => {
                                 res.newVars->Js_array2.push(ei)->ignore
                                 res.newVarTypes->Js_array2.push(typ)->ignore
@@ -188,7 +189,7 @@ let srcToNewStmts = (
                     }
                 })
                 let exprStr = expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
-                let jstf = switch jstf {
+                let jstf = switch src {
                     | Some(Assertion({args, label})) => {
                         let argLabels = []
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
@@ -250,7 +251,7 @@ let srcToNewStmts = (
                             addExprToResult(
                                 ~label, 
                                 ~expr = node.expr, 
-                                ~jstf = node.proof, 
+                                ~src = node.proof, 
                                 ~isProved=node.proof->Belt_Option.isSome
                             )
                         }
@@ -263,7 +264,7 @@ let srcToNewStmts = (
             addExprToResult(
                 ~label=stmtToProve.label,
                 ~expr = stmtToProve.expr,
-                ~jstf = Some(src),
+                ~src = Some(src),
                 ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
             let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
@@ -275,7 +276,6 @@ let srcToNewStmts = (
             })
             Some(res)
         }
-        | _ => None
     }
 }
 
@@ -303,5 +303,5 @@ let proofTreeDtoToNewStmtsDto = (
         ))
         ->Js.Array2.filter(Belt_Option.isSome)
         ->Js.Array2.map(Belt_Option.getExn)
-        ->Js.Array2.filter(doesntHaveBackRefs)
+        // ->Js.Array2.filter(doesntHaveBackRefs)
 }
