@@ -93,6 +93,7 @@ module rec ProofNodeDtoCmp: {
 
         let rndCollapsedArgs = (args) => {
             <span>
+                {React.string("( ")}
                 {
                     args->Js_array2.mapi((arg,i) => {
                         <span
@@ -103,6 +104,7 @@ module rec ProofNodeDtoCmp: {
                         </span>
                     })->React.array
                 }
+                {React.string(" )")}
             </span>
         }
 
@@ -194,7 +196,7 @@ module rec ProofNodeDtoCmp: {
                         <td> {React.null} </td>
                     </tr>
                 }
-                | Assertion({args, label}) => {
+                | Assertion({args, label}) | AssertionWithErr({args, label}) => {
                     <tr key>
                         <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
                         <td
@@ -202,7 +204,7 @@ module rec ProofNodeDtoCmp: {
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
                         >
                             {rndExpandCollapseIcon(!(state->isExpandedSrc(srcIdx)))}
-                            <i>{React.string(label ++ ":")}</i>
+                            <i>{React.string(label)}</i>
                         </td>
                         <td>
                             {
@@ -219,13 +221,22 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndSrcs = () => {
-            if (node.parents->Js.Array2.length == 0) {
+            let parents = 
+                if (node.parents->Js.Array2.length == 0) {
+                    switch node.proof {
+                        | None => []
+                        | Some(src) => [src]
+                    }
+                } else {
+                    node.parents
+                }
+            if (parents->Js.Array2.length == 0) {
                 React.string("Sources are not set.")
             } else {
                 <table>
                     <tbody>
                         {
-                            node.parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
+                            parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
                         }
                     </tbody>
                 </table>

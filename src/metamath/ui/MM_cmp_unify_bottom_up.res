@@ -797,11 +797,13 @@ let make = (
             | Some(resultsSorted) => {
                 let totalNumOfResults = resultsSorted->Js.Array2.length
                 if (totalNumOfResults == 0) {
-                    <Row>
+                    <Col>
                         <Divider/>
-                        {React.string("Nothing found.")}
-                        {rndShowProofTreeBtn()}
-                    </Row>
+                        <Row>
+                            {React.string("Nothing found.")}
+                            {rndShowProofTreeBtn()}
+                        </Row>
+                    </Col>
                 } else {
                     let start = (state.resultsPage - 1) * state.resultsPerPage
                     let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
