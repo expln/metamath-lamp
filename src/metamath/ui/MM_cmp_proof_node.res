@@ -91,8 +91,11 @@ module rec ProofNodeDtoCmp: {
             </span>
         }
 
-        let rndCollapsedArgs = (args) => {
-            <span>
+        let rndCollapsedArgs = (args, srcIdx) => {
+            <span
+                onClick={_=>actToggleSrcExpanded(srcIdx)}
+                style=ReactDOM.Style.make(~cursor="pointer", ())
+            >
                 {React.string("( ")}
                 {
                     args->Js_array2.mapi((arg,i) => {
@@ -108,12 +111,12 @@ module rec ProofNodeDtoCmp: {
             </span>
         }
 
-        let rndExpandedArgs = (args) => {
+        let rndExpandedArgs = (args, srcIdx) => {
             <table>
                 <tbody>
                     <tr key="c-args">
                         <td>
-                            {rndCollapsedArgs(args)}
+                            {rndCollapsedArgs(args, srcIdx)}
                         </td>
                     </tr>
                     {
@@ -209,9 +212,9 @@ module rec ProofNodeDtoCmp: {
                         <td>
                             {
                                 if (state->isExpandedSrc(srcIdx)) {
-                                    rndExpandedArgs(args)
+                                    rndExpandedArgs(args, srcIdx)
                                 } else {
-                                    rndCollapsedArgs(args)
+                                    rndCollapsedArgs(args, srcIdx)
                                 }
                             } 
                         </td>
@@ -258,7 +261,12 @@ module rec ProofNodeDtoCmp: {
                             {rndExpandCollapseIcon(!state.expanded)}
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
-                        <td> {exprToReElem(tree.nodes[nodeIdx].expr)} </td>
+                        <td
+                            style=ReactDOM.Style.make( ~cursor="pointer", ())
+                            onClick={_=>actToggleExpanded()}
+                        > 
+                            {exprToReElem(tree.nodes[nodeIdx].expr)} 
+                        </td>
                     </tr>
                     {
                         if (state.expanded) {

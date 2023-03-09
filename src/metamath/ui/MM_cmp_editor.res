@@ -232,7 +232,17 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>
-                        {React.string("Delete selected statements?")}
+                        {
+                            let numOfSelectedStmts = state.checkedStmtIds->Js.Array2.length
+                            if (numOfSelectedStmts == state.stmts->Js.Array2.length) {
+                                React.string("Delete all statements?")
+                            } else if (numOfSelectedStmts == 1) {
+                                React.string("Delete the selected statement?")
+                            } else {
+                                React.string(`Delete ${state.checkedStmtIds->Js.Array2.length->Belt.Int.toString}` 
+                                                ++ ` selected statements?`)
+                            }
+                        }
                         <Row>
                             <Button onClick={_=>closeModal(modalRef, modalId)}> {React.string("Cancel")} </Button>
                             <Button
