@@ -59,6 +59,7 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
         preCtxV,
         preCtx,
         frms: prepareFrmSubsData(~ctx=preCtx, ()),
+        exprToPreCtxHyp: preCtx->ctxMakeExprToHyp,
         parenCnt: parenCntMake(prepareParenInts(preCtx, settings.parens), ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 

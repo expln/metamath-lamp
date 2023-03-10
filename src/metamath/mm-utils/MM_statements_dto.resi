@@ -21,10 +21,5 @@ type stmtsDto = {
     stmts: array<stmtDto>,
 }
     
-let jstfEq = (a:jstf, b:jstf):bool => {
-    a.label == b.label && a.args == b.args
-}
-
-let jstfToStr = (jstf:jstf):string => {
-    (jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.label)->Js_string2.trim
-}
+let jstfEq: (jstf, jstf) => bool
+let jstfToStr: jstf => string

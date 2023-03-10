@@ -125,3 +125,5 @@ module ExprHash: {
     let hash: Belt_Id.hash<t, identity>
     let eq: Belt_Id.eq<t, identity>
 }
+
+let ctxMakeExprToHyp: mmContext => Belt_HashMap.t<expr,hypothesis,ExprHash.identity>

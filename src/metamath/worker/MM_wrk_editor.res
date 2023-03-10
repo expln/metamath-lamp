@@ -66,10 +66,6 @@ let strToCont = (
     )
 }
 
-let jstfToStr = (jstf:jstf) => {
-    (jstf.args->Js.Array2.joinWith(" ") ++ " : " ++ jstf.label)->Js_string2.trim
-}
-
 type userStmtType = E | P
 
 let userStmtTypeFromStr = str => {
@@ -120,6 +116,7 @@ type editorState = {
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
+    exprToPreCtxHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
 
@@ -631,6 +628,7 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         preCtxV, 
         preCtx, 
         frms: prepareFrmSubsData(~ctx=preCtx, ()),
+        exprToPreCtxHyp: preCtx->ctxMakeExprToHyp,
         parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
     let st = recalcPreCtxColors(st)
@@ -839,7 +837,7 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_Mutabl
 }
 
 let checkAllStmtsAreUnique = (st:editorState):editorState => {
-    let declaredStmts = Belt_MutableMap.make(~id=module(ExprCmp))
+    let declaredStmts = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=st.stmts->Js.Array2.length)
     st.stmts->Js_array2.reduce(
         (st,stmt) => {
             if (editorStateHasErrors(st)) {
@@ -848,13 +846,22 @@ let checkAllStmtsAreUnique = (st:editorState):editorState => {
                 let stmt = switch stmt.expr {
                     | None => raise(MmException({msg:`Cannot checkAllStmtsAreUnique without expr.`}))
                     | Some(expr) => {
-                        switch declaredStmts->Belt_MutableMap.get(expr) {
-                            | Some(prevStmtLabel) => {
-                                {...stmt, stmtErr:Some(`This statement is the same as the previous one - '${prevStmtLabel}'`)}
+                        switch st.exprToPreCtxHyp->Belt_HashMap.get(expr) {
+                            | Some(hyp) => {
+                                {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
+                                    ++ ` hypothesis - '${hyp.label}'`)}
                             }
                             | None => {
-                                declaredStmts->Belt_MutableMap.set(expr, stmt.label)
-                                stmt
+                                switch declaredStmts->Belt_HashMap.get(expr) {
+                                    | Some(prevStmtLabel) => {
+                                        {...stmt, stmtErr:Some(`This statement is the same as the previous` 
+                                            ++ ` one - '${prevStmtLabel}'`)}
+                                    }
+                                    | None => {
+                                        declaredStmts->Belt_HashMap.set(expr, stmt.label)
+                                        stmt
+                                    }
+                                }
                             }
                         }
                     }
@@ -906,6 +913,14 @@ let prepareEditorForUnification = st => {
         },
         st
     )
+}
+
+let getTopmostSelectedStmt = (st):option<userStmt> => {
+    if (st.checkedStmtIds->Js.Array2.length == 0) {
+        None
+    } else {
+        st.stmts->Js_array2.find(stmt => st.checkedStmtIds->Js_array2.includes(stmt.id))
+    }
 }
 
 let getTheOnlySelectedStmt = (st):option<userStmt> => {
@@ -992,6 +1007,17 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     }
 }
 
+let stmtsHaveSameExpr = (
+    ~ctx:mmContext, 
+    ~stmt:userStmt, 
+    ~stmtDto:stmtDto,
+    ~dtoVarToCtxVar: Belt_MutableMapInt.t,
+):bool => {
+    stmtDto.expr
+        ->Js_array2.map(i => dtoVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
+        ->exprEq(stmt.cont->contToStr->ctxStrToIntsExn(ctx, _))
+}
+
 let insertProvable = (
     st:editorState, 
     ~exprText:string, 
@@ -1002,15 +1028,10 @@ let insertProvable = (
     let maxIdx = switch before {
         | None => st.stmts->Js_array2.length
         | Some(stmtId) => {
-            let res = ref(st.stmts->Js_array2.length)
-            let found = ref(false)
-            st.stmts->Js_array2.forEachi((stmt,i) => {
-                if (!found.contents && stmt.id == stmtId) {
-                    found.contents = true
-                    res.contents = i
-                }
-            })
-            res.contents
+            switch st.stmts->Js_array2.findIndex(stmt => stmt.id == stmtId) {
+                | -1 => st.stmts->Js_array2.length
+                | idx => idx
+            }
         }
     }
     let newJstf:result<option<jstf>,_> = parseJstf(jstfText)
@@ -1102,7 +1123,7 @@ let insertProvable = (
 
 let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot add assertion search result without wrkCtx.`}))
+        | None => raise(MmException({msg:`Cannot add new statements without wrkCtx.`}))
         | Some(wrkCtx) => {
             let (st, newCtxVarInts) = createNewVars(st,newStmts.newVarTypes)
             let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
@@ -1123,10 +1144,10 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
             } else {
                 st->toggleStmtChecked(st.stmts[0].id)
             }
-            let checkedStmt = st->getTheOnlySelectedStmt
+            let checkedStmt = st->getTopmostSelectedStmt
             let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
 
-            let getJstfTextFromStmtDto = (~stmt:stmtDto, ~defaultJstfText:string):string => {
+            let getJstfTextFromStmtDto = (stmt:stmtDto, defaultJstfText:string):string => {
                 switch stmt.jstf {
                     | None => defaultJstfText
                     | Some({args, label}) => {
@@ -1140,35 +1161,42 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                 }
             }
 
-            let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmt => {
-                st.stmts->Js_array2.some(rootStmt => rootStmt.cont->contToStr == stmt.exprStr)
+            let stmtsHaveSameExpr = (userStmt, stmtDto) => {
+                stmtsHaveSameExpr(
+                    ~ctx = wrkCtx, 
+                    ~stmt = userStmt, 
+                    ~stmtDto,
+                    ~dtoVarToCtxVar = newStmtsVarToCtxVar
+                )
+            }
+
+            let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmtDto => {
+                st.stmts->Js_array2.some(rootStmt => stmtsHaveSameExpr(rootStmt, stmtDto))
             })
             let stMut = ref(st)
-            newStmts.stmts->Js_array2.forEach(stmt => {
+            newStmts.stmts->Js_array2.forEach(stmtDto => {
+                let newJstfText = getJstfTextFromStmtDto(stmtDto, "")
                 switch checkedStmt {
-                    | Some(checkedStmt) if checkedStmt.expr
-                                                ->Belt_Option.map(exprEq(_,stmt.expr))
-                                                ->Belt_Option.getWithDefault(false) => {
+                    | Some(checkedStmt) if stmtsHaveSameExpr(checkedStmt, stmtDto) => {
                         stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
                             {
                                 ...stmtToUpdate,
-                                jstfText: getJstfTextFromStmtDto(~stmt, ~defaultJstfText=stmtToUpdate.jstfText)
+                                jstfText: newJstfText
                             }
                         })
                     }
                     | _ => {
-                        let exprText = stmt.expr
+                        let exprText = stmtDto.expr
                             ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
                             ->ctxIntsToStrExn(wrkCtx, _)
-                        let jstfText = getJstfTextFromStmtDto(~stmt, ~defaultJstfText="")
                         let (st, _, ctxLabel) = insertProvable(stMut.contents,
                             ~exprText, 
-                            ~jstfText, 
+                            ~jstfText = newJstfText, 
                             ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
                             ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
                         )
                         stMut.contents = st
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmt.label,ctxLabel)
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
                     }
                     
                 }

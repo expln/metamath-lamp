@@ -1169,3 +1169,14 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
     })->ignore
 
 }
+
+let ctxMakeExprToHyp = (ctx:mmContext):Belt_HashMap.t<expr,hypothesis,ExprHash.identity> => {
+    let res = Belt_HashMap.make(
+        ~id=module(ExprHash), 
+        ~hintSize=ctx.contents.root->Belt_Option.map(root => root.hyps->Js_array.length)->Belt_Option.getWithDefault(0)
+    )
+    ctx.contents->forEachCtxInDeclarationOrder(ctx => {
+        ctx.hyps->Js_array2.forEach(hyp => res->Belt_HashMap.set(hyp.expr, hyp))
+    })
+    res
+}
