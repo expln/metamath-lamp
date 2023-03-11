@@ -466,6 +466,7 @@ let make = (
     ~hyps: array<wrkCtxHyp>,
     ~rootProvables: array<rootStmt>,
     ~rootStmts: array<userStmt>,
+    ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialLabel: option<string>,
     ~onResultSelected:stmtsDto=>unit,
@@ -513,6 +514,7 @@ let make = (
             ~rootStmts = rootStmts->Js_array2.map(userStmtToRootStmt),
             ~ctx = wrkCtx,
             ~typeToPrefix,
+            ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label)
         )
         setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
     }

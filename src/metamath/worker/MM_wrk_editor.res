@@ -116,7 +116,6 @@ type editorState = {
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
-    exprToPreCtxHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
 
@@ -628,7 +627,6 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         preCtxV, 
         preCtx, 
         frms: prepareFrmSubsData(~ctx=preCtx, ()),
-        exprToPreCtxHyp: preCtx->ctxMakeExprToHyp,
         parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
     let st = recalcPreCtxColors(st)
@@ -837,40 +835,45 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_Mutabl
 }
 
 let checkAllStmtsAreUnique = (st:editorState):editorState => {
-    let declaredStmts = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=st.stmts->Js.Array2.length)
-    st.stmts->Js_array2.reduce(
-        (st,stmt) => {
-            if (editorStateHasErrors(st)) {
-                st
-            } else {
-                let stmt = switch stmt.expr {
-                    | None => raise(MmException({msg:`Cannot checkAllStmtsAreUnique without expr.`}))
-                    | Some(expr) => {
-                        switch st.exprToPreCtxHyp->Belt_HashMap.get(expr) {
-                            | Some(hyp) => {
-                                {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
-                                    ++ ` hypothesis - '${hyp.label}'`)}
-                            }
-                            | None => {
-                                switch declaredStmts->Belt_HashMap.get(expr) {
-                                    | Some(prevStmtLabel) => {
-                                        {...stmt, stmtErr:Some(`This statement is the same as the previous` 
-                                            ++ ` one - '${prevStmtLabel}'`)}
+    switch st.wrkCtx {
+        | None => raise(MmException({msg:`Cannot checkAllStmtsAreUnique without wrkCtx.`}))
+        | Some(wrkCtx) => {
+            let declaredStmts = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=st.stmts->Js.Array2.length)
+            st.stmts->Js_array2.reduce(
+                (st,stmt) => {
+                    if (editorStateHasErrors(st)) {
+                        st
+                    } else {
+                        let stmt = switch stmt.expr {
+                            | None => raise(MmException({msg:`Cannot checkAllStmtsAreUnique without expr.`}))
+                            | Some(expr) => {
+                                switch wrkCtx->getHypByExpr(expr) {
+                                    | Some(hyp) if stmt.typ != E => {
+                                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
+                                            ++ ` hypothesis - '${hyp.label}'`)}
                                     }
-                                    | None => {
-                                        declaredStmts->Belt_HashMap.set(expr, stmt.label)
-                                        stmt
+                                    | _ => {
+                                        switch declaredStmts->Belt_HashMap.get(expr) {
+                                            | Some(prevStmtLabel) => {
+                                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
+                                                    ++ ` one - '${prevStmtLabel}'`)}
+                                            }
+                                            | None => {
+                                                declaredStmts->Belt_HashMap.set(expr, stmt.label)
+                                                stmt
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
+                        st->updateStmt(stmt.id, _ => stmt)
                     }
-                }
-                st->updateStmt(stmt.id, _ => stmt)
-            }
-        },
-        st
-    )
+                },
+                st
+            )
+        }
+    }
 }
 
 let prepareProvablesForUnification = (st:editorState):editorState => {
@@ -1184,6 +1187,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                                 jstfText: newJstfText
                             }
                         })
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
                     }
                     | _ => {
                         let exprText = stmtDto.expr

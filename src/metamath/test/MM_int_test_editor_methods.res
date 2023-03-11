@@ -330,7 +330,8 @@ let unifyBottomUp = (
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
-                    )
+                    ),
+                ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label)
             )
             let result = switch chooseLabel {
                 | None => result

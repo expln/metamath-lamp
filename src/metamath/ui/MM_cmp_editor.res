@@ -645,6 +645,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                     preCtx=state.preCtx
                                     wrkCtx varsText disjText hyps rootProvables
                                     rootStmts
+                                    reservedLabels={st.stmts->Js.Array2.map(stmt => stmt.label)}
                                     frms=state.frms parenCnt=state.parenCnt
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)

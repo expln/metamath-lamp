@@ -49,6 +49,7 @@ type rec mmContextContents = {
     disj: disjMutable,
     hyps: array<hypothesis>,
     symToHyp: mutableMapStr<hypothesis>,
+    exprToHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     mutable lastComment: option<string>,
     frames: mutableMapStr<frame>,
     debug:bool,
@@ -365,6 +366,12 @@ let getHypothesisPriv = (ctx:mmContextContents,label):option<hypothesis> => {
 }
 
 let getHypothesis: (mmContext, string) => option<hypothesis> = (ctx, sym) => getHypothesisPriv(ctx.contents, sym)
+
+let getHypByExpr: (mmContext, string) => option<hypothesis> = (ctx, sym) => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.exprToHyp->Belt_HashMap.get(expr)
+    })
+}
 
 let getFramePriv = (ctx:mmContextContents,label):option<frame> => {
     ctx->forEachCtxInReverseOrder(ctx => {
@@ -721,6 +728,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             disj: disjMutableMake(),
             hyps: [],
             symToHyp: mutableMapStrMake(),
+            exprToHyp: Belt_HashMap.make(~hintSize=5, ~id=module(ExprHash)),
             lastComment: None,
             frames: mutableMapStrMake(),
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
@@ -821,6 +829,7 @@ let addFloating: (mmContext, ~label:string, ~exprStr:array<string>) => unit = (c
             let hyp = {typ:F, label, expr}
             ctx.hyps->Js_array2.push(hyp)->ignore
             ctx.symToHyp->mutableMapStrPut(label, hyp)
+            ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
         }
     }
 }
@@ -836,6 +845,7 @@ let addEssential: (mmContext, ~label:string, ~exprStr:array<string>) => unit = (
         let hyp = {typ:E, label, expr}
         ctx.hyps->Js_array2.push(hyp)->ignore
         ctx.symToHyp->mutableMapStrPut(label, hyp)
+        ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
    }
 }
 

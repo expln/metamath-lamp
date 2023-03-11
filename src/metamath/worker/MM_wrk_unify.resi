@@ -31,6 +31,7 @@ let proofTreeDtoToNewStmtsDto: (
     ~rootStmts:array<rootStmt>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
+    ~reservedLabels: array<string>,
 ) => array<stmtsDto>
 
 let reqToStr: request => string

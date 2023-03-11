@@ -122,6 +122,7 @@ let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
 
 let srcToNewStmts = (
     ~rootStmts:array<rootStmt>,
+    ~reservedLabels: array<string>,
     ~src:exprSrcDto,
     ~tree:proofTreeDto, 
     ~newVarTypes:Belt_HashMapInt.t<int>,
@@ -139,16 +140,12 @@ let srcToNewStmts = (
                 newDisjStr: [],
                 stmts: [],
             }
-            let exprToLabel = rootStmts
+            let newVarNames = Belt_HashMapInt.make(~hintSize=8)
+            let usedVarNames = Belt_HashSetString.make(~hintSize=8)
+            let newLabels = rootStmts
                 ->Js.Array2.map(stmt=>(stmt.expr,stmt.label))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
-            let varNames = Belt_HashMapInt.make(~hintSize=8)
-            let usedVarNames = Belt_HashSetString.make(~hintSize=8)
-            let usedLabels = rootStmts->Js.Array2.map(stmt=>stmt.label)->Belt_HashSetString.fromArray
-            let hyps = rootStmts
-                ->Js.Array2.filter(stmt => stmt.isHyp)
-                ->Js.Array2.map(stmt => stmt.expr)
-                ->Belt_HashSet.fromArray(~id=module(ExprHash))
+            let usedLabels = reservedLabels->Belt_HashSetString.fromArray
 
             let getFrame = label => {
                 switch ctx->getFrame(label) {
@@ -164,11 +161,39 @@ let srcToNewStmts = (
                         | Some(sym) => sym
                     }
                 } else {
-                    switch varNames->Belt_HashMapInt.get(i) {
+                    switch newVarNames->Belt_HashMapInt.get(i) {
                         | None => raise(MmException({msg:`Cannot determine name of a new var in srcToNewStmts.`}))
                         | Some(name) => name
                     }
                 }
+            }
+
+            let exprToLabel = (expr:expr):string => {
+                switch ctx->getHypByExpr(expr) {
+                    | Some(hyp) => hyp.label
+                    | None => {
+                        switch newLabels->Belt_HashMap.get(expr) {
+                            | Some(label) => label
+                            | None => {
+                                let newLabel = generateNewLabels(~ctx, ~prefix="", ~amount=1, ~usedLabels, ())[0]
+                                newLabels->Belt_HashMap.set(expr, newLabel)
+                                usedLabels->Belt_HashSetString.add(newLabel)
+                                newLabel
+                            }
+                        }
+                    }
+                }
+            }
+
+            let addNewVarToResult = (~newVarInt:int, ~newVarType:int):unit => {
+                res.newVars->Js_array2.push(newVarInt)->ignore
+                res.newVarTypes->Js_array2.push(newVarType)->ignore
+                let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
+                    ~typeToPrefix, ~usedNames=usedVarNames, ()
+                )[0]
+                newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
+                usedVarNames->Belt_HashSetString.add(newVarName)
+                exprToLabel([newVarType, newVarInt])->ignore
             }
 
             let addExprToResult = (~label, ~expr, ~src, ~isProved) => {
@@ -176,33 +201,24 @@ let srcToNewStmts = (
                     if (ei > maxCtxVar && !(res.newVars->Js_array2.includes(ei))) {
                         switch newVarTypes->Belt_HashMapInt.get(ei) {
                             | None => raise(MmException({msg:`Cannot determine type of a new var in srcToNewStmts.`}))
-                            | Some(typ) => {
-                                res.newVars->Js_array2.push(ei)->ignore
-                                res.newVarTypes->Js_array2.push(typ)->ignore
-                                let newVarName = generateNewVarNames( ~ctx, ~types = [typ],
-                                    ~typeToPrefix, ~usedNames=usedVarNames, ()
-                                )[0]
-                                usedVarNames->Belt_HashSetString.add(newVarName)
-                                varNames->Belt_HashMapInt.set(ei, newVarName)
-                            }
+                            | Some(typ) => addNewVarToResult(~newVarInt=ei, ~newVarType=typ)
                         }
                     }
                 })
                 let exprStr = expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
                 let jstf = switch src {
+                    | Some(VarType) | Hypothesis(_) | AssertionWithErr(_) => None
                     | Some(Assertion({args, label})) => {
                         let argLabels = []
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                             if (hyp.typ == E) {
-                                switch exprToLabel->Belt_HashMap.get(tree.nodes[args[i]].expr) {
-                                    | None => raise(MmException({msg:`Cannot get a label for an arg by arg's expr.`}))
-                                    | Some(argLabel) => argLabels->Js_array2.push(argLabel)->ignore
-                                }
+                                argLabels->Js_array2.push(
+                                    exprToLabel(tree.nodes[args[i]].expr)
+                                )->ignore
                             }
                         })
                         Some({ args:argLabels, label})
                     }
-                    | _ => None
                 }
                 res.stmts->Js_array2.push( { label, expr, exprStr, jstf, isProved, } )->ignore
             }
@@ -284,6 +300,7 @@ let proofTreeDtoToNewStmtsDto = (
     ~rootStmts:array<rootStmt>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
+    ~reservedLabels: array<string>,
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
     let stmtToProve = rootStmts[rootStmts->Js_array2.length-1]
@@ -295,6 +312,7 @@ let proofTreeDtoToNewStmtsDto = (
     proofNode.parents
         ->Js_array2.map(src => srcToNewStmts(
             ~rootStmts,
+            ~reservedLabels,
             ~src,
             ~tree = treeDto,
             ~newVarTypes,
