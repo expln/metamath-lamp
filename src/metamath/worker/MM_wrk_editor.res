@@ -705,11 +705,11 @@ let refreshWrkCtx = (st:editorState):editorState => {
 }
 
 let parseJstf = (jstfText:string):result<option<jstf>,string> => {
-    let jstfTrim = jstfText->Js_string2.trim
-    if (jstfTrim->Js_string2.length == 0) {
+    let jstfText = jstfText->Js_string2.trim
+    if (jstfText->Js_string2.length == 0) {
         Ok(None)
     } else {
-        let argsAndAsrt = jstfTrim->Js_string2.split(":")
+        let argsAndAsrt = jstfText->Js_string2.split(":")
         if (argsAndAsrt->Js_array2.length != 2) {
             Error(`Cannot parse justification: '${jstfText}' [1].`)
         } else {
@@ -721,7 +721,7 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
     }
 }
 
-let setExprAndJstf = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
+let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
     } else {
@@ -729,10 +729,6 @@ let setExprAndJstf = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
             {
                 ...stmt,
                 expr: Some(wrkCtx->ctxSymsToIntsExn(stmt.cont->contToArrStr)),
-                jstf: switch parseJstf(stmt.jstfText) {
-                    | Error(msg) => raise(MmException({msg:msg}))
-                    | Ok(jstf) => jstf
-                }
             }
         } catch {
             | MmException({msg}) => {...stmt, stmtErr:Some(msg)}
@@ -740,24 +736,39 @@ let setExprAndJstf = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
     }
 }
 
-let isLabelDefined = (~label:string, ~wrkCtx:mmContext, ~definedUserLabels:Belt_HashSetString.t) => {
-    definedUserLabels->Belt_HashSetString.has(label) || wrkCtx->isHyp(label) || wrkCtx->isAsrt(label)
+let setStmtJstf = (stmt:userStmt):userStmt => {
+    if (userStmtHasErrors(stmt) || stmt.typ == E) {
+        stmt
+    } else {
+        switch parseJstf(stmt.jstfText) {
+            | Error(msg) => {...stmt, stmtErr:Some(msg)}
+            | Ok(jstf) => {...stmt, jstf}
+        }
+    }
 }
 
-let validateJstfRefs = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_MutableSetString.t):userStmt => {
+let isLabelDefined = (label:string, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t) => {
+    definedUserLabels->Belt_HashSetString.has(label) || wrkCtx->isHyp(label)
+}
+
+let validateStmtJstf = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
     } else {
         switch stmt.jstf {
             | None => stmt
             | Some({args,label}) => {
-                switch args->Js_array2.find(ref => !isLabelDefined(ref,wrkCtx,usedLabels)) {
-                    | Some(ref) => {
-                        {...stmt, stmtErr:Some(`The reference '${ref}' is not defined.`)}
+                switch args->Js_array2.find(ref => !isLabelDefined(ref,wrkCtx,definedUserLabels) ) {
+                    | Some(jstfArgLabel) => {
+                        {...stmt, stmtErr:Some(`The reference '${jstfArgLabel}' is not defined.`)}
                     }
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
-                            {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
+                            if (st.settings.asrtsToSkip->Js_array2.includes(label)) {
+                                {...stmt, stmtErr:Some(`The label '${label}' refers to a skipped assertion.`)}
+                            } else {
+                                {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
+                            }
                         } else {
                             stmt
                         }
@@ -768,50 +779,56 @@ let validateJstfRefs = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_Mutable
     }
 }
 
-let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_MutableSetString.t):userStmt => {
+let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
     } else {
-        if (isLabelDefined(stmt.label,wrkCtx,usedLabels)) {
-            {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}'.`)}
+        if (stmt.typ == E) {
+            switch wrkCtx->getTokenType(stmt.label) {
+                | Some(_) => {
+                    {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [1].`)}
+                }
+                | None => {
+                    if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
+                        {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [2].`)}
+                    } else {
+                        stmt
+                    }
+                }
+            }
         } else {
-            stmt
+            if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
+                {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [3].`)}
+            } else {
+                stmt
+            }
         }
     }
 }
 
-let validateStmtIsUnique = (
-    wrkCtx:mmContext,
+let validateStmtExpr = (
     stmt:userStmt, 
-    usedLabels:Belt_HashSetString.t,
-    usedExprs:Belt_HashMap.t<expr,string,ExprHash.identity>,
+    wrkCtx:mmContext,
+    definedUserExprs:Belt_HashMap.t<expr,string,ExprHash.identity>,
 ):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
     } else {
-        if (isLabelDefined(stmt.label,wrkCtx,usedLabels)) {
-            {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}'.`)}
-        } else {
-            stmt
-        }
-    }
-    let stmt = switch stmt.expr {
-        | None => raise(MmException({msg:`Cannot validateStmtIsUnique without expr.`}))
-        | Some(expr) => {
-            switch wrkCtx->getHypByExpr(expr) {
-                | Some(hyp) if stmt.typ != E => {
-                    {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
-                        ++ ` hypothesis - '${hyp.label}'`)}
-                }
-                | _ => {
-                    switch declaredStmts->Belt_HashMap.get(expr) {
-                        | Some(prevStmtLabel) => {
-                            {...stmt, stmtErr:Some(`This statement is the same as the previous` 
-                                ++ ` one - '${prevStmtLabel}'`)}
-                        }
-                        | None => {
-                            declaredStmts->Belt_HashMap.set(expr, stmt.label)
-                            stmt
+        switch stmt.expr {
+            | None => raise(MmException({msg:`Cannot validateStmtExpr without expr.`}))
+            | Some(expr) => {
+                switch wrkCtx->getHypByExpr(expr) {
+                    | Some(hyp) => {
+                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
+                            ++ ` hypothesis - '${hyp.label}'`)}
+                    }
+                    | _ => {
+                        switch definedUserExprs->Belt_HashMap.get(expr) {
+                            | Some(prevStmtLabel) => {
+                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
+                                    ++ ` one - '${prevStmtLabel}'`)}
+                            }
+                            | None => stmt
                         }
                     }
                 }
@@ -820,63 +837,41 @@ let validateStmtIsUnique = (
     }
 }
 
-let checkAllStmtsAreUnique = (st:editorState):editorState => {
-    switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot checkAllStmtsAreUnique without wrkCtx.`}))
-        | Some(wrkCtx) => {
-            let declaredStmts = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=st.stmts->Js.Array2.length)
-            st.stmts->Js_array2.reduce(
-                (st,stmt) => {
-                    if (editorStateHasErrors(st)) {
-                        st
-                    } else {
-                        let stmt = switch stmt.expr {
-                            | None => raise(MmException({msg:`Cannot checkAllStmtsAreUnique without expr.`}))
-                            | Some(expr) => {
-                                switch wrkCtx->getHypByExpr(expr) {
-                                    | Some(hyp) if stmt.typ != E => {
-                                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
-                                            ++ ` hypothesis - '${hyp.label}'`)}
-                                    }
-                                    | _ => {
-                                        switch declaredStmts->Belt_HashMap.get(expr) {
-                                            | Some(prevStmtLabel) => {
-                                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
-                                                    ++ ` one - '${prevStmtLabel}'`)}
-                                            }
-                                            | None => {
-                                                declaredStmts->Belt_HashMap.set(expr, stmt.label)
-                                                stmt
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        st->updateStmt(stmt.id, _ => stmt)
-                    }
-                },
-                st
-            )
-        }
-    }
-}
-
 let prepareUserStmtsForUnification = (st:editorState):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot prepareUserStmtsForUnification without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let usedLabels = Belt_HashMapString.make()
+            let stmtsLen = st.stmts->Js_array2.length
+            let definedUserLabels = Belt_HashSetString.make(~hintSize=stmtsLen)
+            let definedUserExprs = Belt_HashMap.make(~hintSize=stmtsLen)
+            let actions = [
+                validateStmtLabel(_, wrkCtx, definedUserLabels),
+                setStmtExpr(_, wrkCtx),
+                validateStmtExpr(_, wrkCtx, definedUserExprs),
+                setStmtJstf,
+                validateStmtJstf(_, wrkCtx, definedUserLabels),
+            ]
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
                     if (editorStateHasErrors(st)) {
                         st
                     } else {
-                        let stmt = setExprAndJstf(stmt, wrkCtx)
-                        let stmt = setExprAndJstf(stmt, wrkCtx)
-                        let stmt = validateJstfRefs(stmt, wrkCtx, usedLabels)
-                        let stmt = validateStmtLabel(stmt, wrkCtx, usedLabels)
-                        usedLabels->Belt_MutableSetString.add(stmt.label)
+                        let stmt = actions->Js_array2.reduce(
+                            (stmt,action) => {
+                                if (userStmtHasErrors(stmt)) {
+                                    stmt
+                                } else {
+                                    action(stmt)
+                                }
+                            },
+                            stmt
+                        )
+
+                        definedUserLabels->Belt_HashSetString.add(stmt.label)
+                        switch stmt.expr {
+                            | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
+                            | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
+                        }
                         st->updateStmt(stmt.id, _ => stmt)
                     }
                 },
@@ -892,7 +887,6 @@ let prepareEditorForUnification = st => {
         sortStmtsByType,
         refreshWrkCtx,
         prepareUserStmtsForUnification,
-        checkAllStmtsAreUnique,
     ]->Js.Array2.reduce(
         (st,act) => {
             if (editorStateHasErrors(st)) {

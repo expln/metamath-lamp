@@ -49,6 +49,7 @@ let isHyp: (mmContext,string) => bool
 let isAsrt: (mmContext,string) => bool
 let isDisj: (mmContext,int,int) => bool
 let getHypothesis: (mmContext,string) => option<hypothesis>
+let getHypByExpr: (mmContext, expr) => option<hypothesis>
 let getMandHyps: (mmContext, expr) => array<hypothesis>
 let getAllHyps: mmContext => Belt_MapString.t<hypothesis>
 let getAllFrames: mmContext => Belt_MapString.t<frame>
