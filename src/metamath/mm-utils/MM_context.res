@@ -1,8 +1,6 @@
 open MM_parser
 open MM_progress_tracker
 
-// cdblk #types ===========================================================================================
-
 type expr = array<int>
 
 type hypothesisType = F | E
@@ -201,10 +199,10 @@ let disjForEach = (disjMutable, consumer) => {
     })
 }
 
-let disjToArr = (disj:Belt_MapInt.t<Belt_SetInt.t>):array<array<int>> => {
+let disjToArr = (disj:disjMutable):array<array<int>> => {
     let res = []
-    disj->Belt_MapInt.forEach((n,ms) => {
-        ms->Belt_SetInt.forEach(m => {
+    disj->Belt_HashMapInt.forEach((n,ms) => {
+        ms->Belt_HashSetInt.forEach(m => {
             res->Js_array2.push([n,m])->ignore
         })
     })
@@ -701,17 +699,6 @@ let ctxIntToFrameInt = (ctxToFrameRenum: Belt_HashMapInt.t<int>, ctxInt:int):int
     }
 }
 
-let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMutable): disjMutable => {
-    let newDisj = disjMake()
-    disj->disjForEach((n,m) => {
-        newDisj->disjAddPair(
-            ctxToFrameRenum->ctxIntToFrameInt(n),
-            ctxToFrameRenum->ctxIntToFrameInt(m)
-        )
-    })
-    newDisj
-}
-
 let renumberVarsInExpr = (ctxToFrameRenum: Belt_HashMapInt.t<int>, expr: expr): expr => {
     expr->Js_array2.map(ctxToFrameRenum->ctxIntToFrameInt)
 }
@@ -723,41 +710,17 @@ let renumberVarsInHypothesis = (ctxToFrameRenum: Belt_HashMapInt.t<int>, hyp: hy
     }
 }
 
-// let createFrameVarToSymbMap = (
-//     ctx:mmContext, 
-//     mandatoryHypotheses:array<hypothesis>, 
-//     asrt:expr, 
-//     ctxIntToFrameInt: Belt_HashMapInt.t<int>
-// ): array<string> => {
-//     let allVars = mutableSetIntMake()
-//     mandatoryHypotheses->Js.Array2.forEach(hyp => {
-//         hyp.expr->Js_array2.forEach(i => {
-//             if (i >= 0) {
-//                 allVars->mutableSetIntAdd(i)
-//             }
-//         })
-//     })
-//     asrt->Js_array2.forEach(i => {
-//         if (i >= 0) {
-//             allVars->mutableSetIntAdd(i)
-//         }
-//     })
-//     let frameVarToSymb = Expln_utils_common.createArray(allVars->mutableSetIntSize)
-//     allVars->mutableSetIntForEach(ctxVar => {
-//         frameVarToSymb[renumbering->Belt_MapInt.getExn(ctxVar)] = ctxIntToSymExnPriv(ctx,ctxVar)
-//     })
-//     frameVarToSymb
-// }
-
-// let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_MapInt.t<int>): array<int> => {
-//     let varTypes = Expln_utils_common.createArray(renumbering->Belt_MapInt.size)
-//     mandatoryHypotheses->Js_array2.forEach(hyp => {
-//         if (hyp.typ == F) {
-//             varTypes[renumbering->Belt_MapInt.getExn(hyp.expr[1])] = hyp.expr[0]
-//         }
-//     })
-//     varTypes
-// }
+let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMutable): Belt_MapInt.t<Belt_SetInt.t> => {
+    disj
+        ->Belt_HashMapInt.toArray
+        ->Js.Array2.map(((n,ms)) => {
+            (
+                ctxToFrameRenum->ctxIntToFrameInt(n),
+                ctxToFrameRenum->renumberVarsInExpr(ms->Belt_HashSetInt.toArray)->Belt_SetInt.fromArray
+            )
+        })
+        ->Belt_MapInt.fromArray
+}
 
 let createFrame = (
     ~ctx:mmContext, 
@@ -786,32 +749,27 @@ let createFrame = (
                 let ctxToFrameRenum = mandatoryVarsArr
                                         ->Js_array2.mapi((cv,fv) => (cv,fv))
                                         ->Belt_HashMapInt.fromArray
-                // let varTypes = mandatoryVarsArr->Js_array2.map(ctxVarToFrameVar->)
-                // let hyps = mandatoryHypotheses->Js_array2.map(renumberVarsInHypothesis(_, varRenumbering))
-                // let disj = mandatoryDisj->renumberVarsInDisj(varRenumbering)
-                let frameVarToSymb = createFrameVarToSymbMap(ctx, mandatoryHypotheses, asrt, varRenumbering)
-                let asrt = asrt->renumberVarsInExpr(varRenumbering)
-                let dbg = if (ctx.debug) {
-                    Some({
-                        disj: disj->disjToArr->Js_array2.map(frmIntsToStrExnPriv(ctx, frameVarToSymb, _)),
-                        hyps: hyps->Js_array2.map(hyp => frmIntsToStrExnPriv(ctx, frameVarToSymb, hyp.expr)),
-                        asrt: frmIntsToStrExnPriv(ctx, frameVarToSymb, asrt),
-                    })
-                } else {
-                    None
-                }
                 let frame = {
-                    disj,
-                    hyps,
-                    asrt,
+                    disj: ctxToFrameRenum->renumberVarsInDisj(mandatoryDisj),
+                    hyps: mandatoryHypotheses->Js_array2.map(ctxToFrameRenum->renumberVarsInHypothesis),
+                    asrt: ctxToFrameRenum->renumberVarsInExpr(asrt),
                     label,
-                    frameVarToSymb,
-                    varTypes,
-                    numOfVars: varTypes->Js_array2.length,
-                    numOfArgs: hyps->Js_array2.length,
+                    frameVarToSymb: mandatoryVarsArr->Js_array2.map(ctx->ctxIntToSymExn),
+                    varTypes: mandatoryVarsArr->Js_array2.map(ctx->getTypeOfVar),
+                    numOfVars: mandatoryVarsArr->Js_array2.length,
+                    numOfArgs: mandatoryHypotheses->Js_array2.length,
                     descr: ctx.lastComment,
                     proof,
-                    dbg
+                    dbg:
+                        if (ctx.debug) {
+                            Some({
+                                disj: mandatoryDisj->disjToArr->Js_array2.map(ctx->ctxIntsToStrExn),
+                                hyps: mandatoryHypotheses->Js_array2.map(hyp => ctx->ctxIntsToStrExn(hyp.expr)),
+                                asrt: ctx->ctxIntsToStrExn(asrt),
+                            })
+                        } else {
+                            None
+                        }
                 }
                 frame
             }
@@ -819,11 +777,15 @@ let createFrame = (
     }
 }
 
-let addAssertion: (mmContext, ~label:string, ~exprStr:array<string>, ~proof:option<proof>) => unit = (
-    ctx, ~label, ~exprStr, ~proof
-) => {
-    let ctx = ctx.contents
-    ctx.frames->mutableMapStrPut(label, createFramePriv(~ctx, ~label, ~exprStr, ~proof, ()))
+let addAssertion = ( ctx:mmContext, ~label:string, ~exprStr:array<string>, ~proof:option<proof> ):unit => {
+    ctx.frames->Belt_HashMapString.set(
+        label, 
+        createFrame(
+            ~ctx, ~label, ~exprStr, ~proof, 
+            ~tokenType = if (proof->Belt_Option.isNone) {"an axiom"} else {"a theorem"}, 
+            ()
+        )
+    )
 }
 
 let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
