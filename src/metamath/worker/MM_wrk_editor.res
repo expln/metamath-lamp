@@ -122,7 +122,6 @@ type editorState = {
     varsText: string,
     varsEditMode: bool,
     varsErr: option<string>,
-    wrkCtxColors: Belt_HashMapString.t<string>,
 
     disjText: string,
     disjEditMode: bool,
@@ -130,6 +129,7 @@ type editorState = {
     disj: Belt_MapInt.t<Belt_SetInt.t>,
 
     wrkCtx: option<mmContext>,
+    wrkCtxColors: Belt_HashMapString.t<string>,
 
     nextStmtId: int,
     stmts: array<userStmt>,
@@ -672,26 +672,21 @@ let sortStmtsByType = st => {
     st->stableSortStmts((a,b) => stmtToInt(a) - stmtToInt(b))
 }
 
-let removeAllErrorsInUserStmt = stmt => {
-    {
-        ...stmt,
-        stmtErr: None,
-    }
-}
-
-let removeAllErrorsInEditorState = st => {
+let removeAllTempData = st => {
     {
         ...st,
         varsErr: None,
         disjErr: None,
-        stmts: st.stmts->Js_array2.map(removeAllErrorsInUserStmt)
-    }
-}
-
-let removeAllProofData = st => {
-    {
-        ...st,
-        stmts: st.stmts->Js_array2.map(stmt => {...stmt, expr: None, jstf: None, proof: None, proofStatus: None})
+        stmts: st.stmts->Js_array2.map(stmt => {
+            {
+                ...stmt, 
+                stmtErr: None,
+                expr: None, 
+                jstf: None, 
+                proof: None, 
+                proofStatus: None
+            }
+        })
     }
 }
 
@@ -794,8 +789,8 @@ let setExprAndJstf = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
     }
 }
 
-let isLabelDefined = (label:string, wrkCtx:mmContext, usedLabels:Belt_MutableSetString.t) => {
-    usedLabels->Belt_MutableSetString.has(label) || wrkCtx->isHyp(label) || wrkCtx->isAsrt(label)
+let isLabelDefined = (~label:string, ~wrkCtx:mmContext, ~definedUserLabels:Belt_HashSetString.t) => {
+    definedUserLabels->Belt_HashSetString.has(label) || wrkCtx->isHyp(label) || wrkCtx->isAsrt(label)
 }
 
 let validateJstfRefs = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_MutableSetString.t):userStmt => {
@@ -830,6 +825,46 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, usedLabels:Belt_Mutabl
             {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}'.`)}
         } else {
             stmt
+        }
+    }
+}
+
+let validateStmtIsUnique = (
+    wrkCtx:mmContext,
+    stmt:userStmt, 
+    usedLabels:Belt_HashSetString.t,
+    usedExprs:Belt_HashMap.t<expr,string,ExprHash.identity>,
+):userStmt => {
+    if (userStmtHasErrors(stmt)) {
+        stmt
+    } else {
+        if (isLabelDefined(stmt.label,wrkCtx,usedLabels)) {
+            {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}'.`)}
+        } else {
+            stmt
+        }
+    }
+    let stmt = switch stmt.expr {
+        | None => raise(MmException({msg:`Cannot validateStmtIsUnique without expr.`}))
+        | Some(expr) => {
+            switch wrkCtx->getHypByExpr(expr) {
+                | Some(hyp) if stmt.typ != E => {
+                    {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
+                        ++ ` hypothesis - '${hyp.label}'`)}
+                }
+                | _ => {
+                    switch declaredStmts->Belt_HashMap.get(expr) {
+                        | Some(prevStmtLabel) => {
+                            {...stmt, stmtErr:Some(`This statement is the same as the previous` 
+                                ++ ` one - '${prevStmtLabel}'`)}
+                        }
+                        | None => {
+                            declaredStmts->Belt_HashMap.set(expr, stmt.label)
+                            stmt
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -876,16 +911,17 @@ let checkAllStmtsAreUnique = (st:editorState):editorState => {
     }
 }
 
-let prepareProvablesForUnification = (st:editorState):editorState => {
+let prepareUserStmtsForUnification = (st:editorState):editorState => {
     switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot prepareProvablesForUnification without wrkCtx.`}))
+        | None => raise(MmException({msg:`Cannot prepareUserStmtsForUnification without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let usedLabels = Belt_MutableSetString.make()
+            let usedLabels = Belt_HashMapString.make()
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
-                    if (editorStateHasErrors(st) || stmt.typ != P) {
+                    if (editorStateHasErrors(st)) {
                         st
                     } else {
+                        let stmt = setExprAndJstf(stmt, wrkCtx)
                         let stmt = setExprAndJstf(stmt, wrkCtx)
                         let stmt = validateJstfRefs(stmt, wrkCtx, usedLabels)
                         let stmt = validateStmtLabel(stmt, wrkCtx, usedLabels)
@@ -900,11 +936,10 @@ let prepareProvablesForUnification = (st:editorState):editorState => {
 }
 
 let prepareEditorForUnification = st => {
-    let st = removeAllErrorsInEditorState(st)
     [
-        removeAllProofData,
+        removeAllTempData,
         refreshWrkCtx,
-        prepareProvablesForUnification,
+        prepareUserStmtsForUnification,
         checkAllStmtsAreUnique,
     ]->Js.Array2.reduce(
         (st,act) => {
@@ -1021,13 +1056,13 @@ let stmtsHaveSameExpr = (
         ->exprEq(stmt.cont->contToStr->ctxStrToIntsExn(ctx, _))
 }
 
-let insertProvable = (
+let insertExpr = (
     st:editorState, 
     ~exprText:string, 
     ~jstfText:string, 
     ~before:option<stmtId>,
     ~placeAtMaxIdxByDefault:bool,
-):(editorState,stmtId,string) => {
+):(editorState,option<string>) => {
     let maxIdx = switch before {
         | None => st.stmts->Js_array2.length
         | Some(stmtId) => {

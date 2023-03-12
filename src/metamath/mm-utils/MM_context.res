@@ -20,7 +20,7 @@ type frameDbg = {
 }
 
 type frame = {
-    disj: Belt.Map.Int.t<Belt_SetInt.t>,
+    disj: Belt_MapInt.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
     asrt: expr,
     label: string,
@@ -33,11 +33,7 @@ type frame = {
     dbg: option<frameDbg>,
 }
 
-type mutableMapStr<'v> = Belt.HashMap.String.t<'v>
-type mutableMapInt<'v> = Belt.HashMap.Int.t<'v>
-type mutableSetInt = Belt.HashSet.Int.t
-
-type disjMutable = mutableMapInt<mutableSetInt>
+type disjMutable = Belt_HashMapInt.t<Belt_HashSetInt.t>
 
 type rec mmContextContents = {
     mutable root: option<mmContextContents>,
@@ -45,164 +41,26 @@ type rec mmContextContents = {
     consts: array<string>,
     varsBaseIdx: int,
     vars: array<string>,
-    symToInt: mutableMapStr<int>,
+    symToInt: Belt_HashMapString.t<int>,
     disj: disjMutable,
     hyps: array<hypothesis>,
-    symToHyp: mutableMapStr<hypothesis>,
+    symToHyp: Belt_HashMapString.t<hypothesis>,
     exprToHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     mutable lastComment: option<string>,
-    frames: mutableMapStr<frame>,
+    frames: Belt_HashMapString.t<frame>,
     debug:bool,
 }
 
 type mmContext = ref<mmContextContents>
-
-// cdblk #utils ===========================================================================================
-
-let mutableMapStrMake = () => {
-    Belt.HashMap.String.make(~hintSize=16)
-}
-
-let mutableMapStrPut = (map,k,v) => {
-    map->Belt.HashMap.String.set(k,v)
-}
-
-let mutableMapStrHas = (map,k) => {
-    map->Belt.HashMap.String.has(k)
-}
-
-let mutableMapStrGet = (map,k) => {
-    map->Belt.HashMap.String.get(k)
-}
-
-let mutableMapStrForEach = (map,func) => {
-    map->Belt.HashMap.String.forEach(func)
-}
-
-let mutableMapStrMakeFromArray = arr => {
-    let map = mutableMapStrMake()
-    arr->Js_array2.forEach(((k,v)) => map->mutableMapStrPut(k,v))
-    map
-}
-
-let mutableMapStrClone = (orig:mutableMapStr<'v>, cloneValue:'v=>'v) => {
-    let map = mutableMapStrMake()
-    orig->mutableMapStrForEach((k,v) => map->mutableMapStrPut(k,cloneValue(v)))
-    map
-}
-
-let mutableMapStrClear = map => {
-    map->Belt.HashMap.String.clear
-}
-
-let mutableMapIntMake = () => {
-    Belt.HashMap.Int.make(~hintSize=16)
-}
-
-let mutableMapIntSize = (map) => {
-    map->Belt.HashMap.Int.size
-}
-
-let mutableMapIntPut = (map,k,v) => {
-    map->Belt.HashMap.Int.set(k,v)
-}
-
-let mutableMapIntHas = (map,k) => {
-    map->Belt.HashMap.Int.has(k)
-}
-
-let mutableMapIntGet = (map,k) => {
-    map->Belt.HashMap.Int.get(k)
-}
-
-let mutableMapIntForEach = (map,func) => {
-    map->Belt.HashMap.Int.forEach(func)
-}
-
-let mutableMapIntForEachI = (map:mutableMapInt<'v>,func:(int,'v,int)=>unit) => {
-    let i = ref(0)
-    map->Belt.HashMap.Int.forEach((k,v) => {
-        func(k,v,i.contents)
-        i.contents = i.contents + 1
-    })
-}
-
-let mutableMapIntMakeFromArray = arr => {
-    let map = mutableMapIntMake()
-    arr->Js_array2.forEach(((k,v)) => map->mutableMapIntPut(k,v))
-    map
-}
-
-let mutableMapIntToArr = (map, valueMapper) => {
-    let res = []
-    map->mutableMapIntForEach((k,v) => res->Js.Array2.push((k, valueMapper(v)))->ignore)
-    res
-}
-
-let mutableMapIntClone = (orig:mutableMapInt<'v>, cloneValue:'v=>'v) => {
-    let map = mutableMapIntMake()
-    orig->mutableMapIntForEach((k,v) => map->mutableMapIntPut(k,cloneValue(v)))
-    map
-}
-
-let mutableSetIntMake = () => {
-    Belt.HashSet.Int.make(~hintSize=16)
-}
-
-let mutableSetIntSize = (set) => {
-    set->Belt.HashSet.Int.size
-}
-
-let mutableSetIntAdd = (set,k) => {
-    set->Belt.HashSet.Int.add(k)
-}
-
-let mutableSetIntHas = (set,k) => {
-    set->Belt.HashSet.Int.has(k)
-}
-
-let mutableSetIntForEach = (set,func) => {
-    set->Belt.HashSet.Int.forEach(func)
-}
-
-let mutableSetIntForEachI = (set,func) => {
-    let i = ref(0)
-    set->Belt.HashSet.Int.forEach(e => {
-        func(e,i.contents)
-        i.contents = i.contents + 1
-    })
-}
-
-let mutableSetIntMakeFromArray = arr => {
-    let set = mutableSetIntMake()
-    arr->Js_array2.forEach(v => set->mutableSetIntAdd(v))
-    set
-}
-
-let mutableSetIntToArray = set => {
-    let arr = Expln_utils_common.createArray(set->mutableSetIntSize)
-    let i = ref(0)
-    set->mutableSetIntForEach(e => {
-        arr[i.contents] = e
-        i.contents = i.contents + 1
-    })
-    arr
-}
-
-let mutableSetIntClone = (orig:mutableSetInt) => {
-    let set = mutableSetIntMake()
-    orig->mutableSetIntForEach(set->mutableSetIntAdd)
-    set
-}
 
 let disjAddPair = (disjMap:disjMutable, n, m) => {
     if (n != m) {
         let min = if (n <= m) {n} else {m}
         let max = if (n <= m) {m} else {n}
 
-        switch disjMap->mutableMapIntGet(min) {
-            | None => disjMap->mutableMapIntPut(min, mutableSetIntMakeFromArray([max]))
-            | Some(set) => set->mutableSetIntAdd(max)
+        switch disjMap->Belt_HashMapInt.get(min) {
+            | None => disjMap->Belt_HashMapInt.set(min, Belt_HashSetInt.fromArray([max]))
+            | Some(set) => set->Belt_HashSetInt.add(max)
         }
     }
 }
@@ -249,8 +107,6 @@ module ExprHash = Belt.Id.MakeHashable({
     let eq = exprEq
 })
 
-// cdblk #search ===========================================================================================
-
 let rec forEachCtxInDeclarationOrder = (ctx:mmContextContents,consumer:mmContextContents=>option<'a>):option<'a> => {
     switch ctx.parent {
         | Some(parent) => {
@@ -277,55 +133,68 @@ let rec forEachCtxInReverseOrder = (ctx:mmContextContents,consumer:mmContextCont
 
 let isDebug = ctx => ctx.contents.debug
 
-let isConstPriv: (mmContextContents,string) => bool = (ctx, sym) => {
-    (ctx.root->Belt.Option.getExn).symToInt
-        ->mutableMapStrGet(sym)
+type tokenType = C | V | F | E | A | P
+
+let getTokenType = (ctx:mmContext, token:string):option<tokenType> => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        switch ctx.frames->Belt_HashMapString.get(token) {
+            | Some(frame) => if (frame.proof->Belt_Option.isNone) {Some(A)} else {Some(P)}
+            | None => {
+                switch ctx.symToHyp->Belt_HashMapString.get(token) {
+                    | Some(hyp) => if (hyp.typ == F) {Some(F)} else {Some(E)}
+                    | None => {
+                        switch ctx.symToInt->Belt_HashMapString.get(token) {
+                            | Some(i) => if (i < 0) {Some(C)} else {Some(V)}
+                            | None => None
+                        }
+                    }
+                }
+            }
+        }
+    })->Belt_Option.isSome
+}
+
+let isConst = (ctx:mmContext, sym:string):bool => {
+    (ctx.contents.root->Belt.Option.getExn).symToInt
+        ->Belt_HashMapString.get(sym)
         ->Belt_Option.map(i => i < 0)
         ->Belt_Option.getWithDefault(false)
 }
 
-let isConst: (mmContext,string) => bool = (ctx, sym) => isConstPriv(ctx.contents, sym)
-
-let isVarPriv: (mmContextContents,string) => bool = (ctx, sym) => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.symToInt->mutableMapStrGet(sym)
+let isVar = (ctx:mmContext, sym:string) => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.symToInt->Belt_HashMapString.get(sym)
     })
         ->Belt_Option.map(i => 0 <= i)
         ->Belt_Option.getWithDefault(false)
 }
 
-let isVar: (mmContext,string) => bool = (ctx, sym) => isVarPriv(ctx.contents, sym)
-
-let isHypPriv: (mmContextContents,string) => bool = (ctx, label) => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.symToHyp->mutableMapStrGet(label)
+let isHyp = (ctx:mmContext, label:string) => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.symToHyp->Belt_HashMapString.get(label)
     })->Belt_Option.isSome
 }
 
-let isHyp: (mmContext,string) => bool = (ctx, label) => isHypPriv(ctx.contents, label)
-
-let isAsrtPriv: (mmContextContents,string) => bool = (ctx, label) => {
+let isAsrt = (ctx:mmContext, label:string) => {
     ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.frames->mutableMapStrGet(label)
+        ctx.frames->Belt_HashMapString.get(label)
     })->Belt_Option.isSome
 }
-
-let isAsrt: (mmContext,string) => bool = (ctx, label) => isAsrtPriv(ctx.contents, label)
 
 let disjContains = (disj:disjMutable, n, m):bool => {
     let min = if (n <= m) {n} else {m}
     let max = if (n <= m) {m} else {n}
-    switch disj->mutableMapIntGet(min) {
+    switch disj->Belt_HashMapInt.get(min) {
         | None => false
-        | Some(ms) => ms->mutableSetIntHas(max)
+        | Some(ms) => ms->Belt_HashSetInt.has(max)
     }
 }
 
-let disjNumOfGroups = disjMutable => disjMutable->mutableMapIntSize
+let disjNumOfGroups = disjMutable => disjMutable->Belt_HashMapInt.size
 
 let disjForEach = (disjMutable, consumer) => {
-    disjMutable->mutableMapIntForEach((n,ms) => {
-        ms->mutableSetIntForEach(m => {
+    disjMutable->Belt_HashMapInt.forEach((n,ms) => {
+        ms->Belt_HashSetInt.forEach(m => {
             consumer(n,m)
         })
     })
@@ -346,7 +215,7 @@ let disjForEachArr = (disjMutable, consumer) => {
 }
 
 let disjIsEmpty = disjMutable => {
-    disjMutable->mutableMapIntSize == 0
+    disjMutable->Belt_HashMapInt.size == 0
 }
 
 let isDisj = (ctx,n,m) => {
@@ -359,27 +228,23 @@ let isDisj = (ctx,n,m) => {
     })->Belt_Option.getWithDefault(false)
 }
 
-let getHypothesisPriv = (ctx:mmContextContents,label):option<hypothesis> => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.symToHyp->mutableMapStrGet(label)
+let getHypothesis = (ctx:mmContext,label):option<hypothesis> => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.symToHyp->Belt_HashMapString.get(label)
     })
 }
 
-let getHypothesis: (mmContext, string) => option<hypothesis> = (ctx, sym) => getHypothesisPriv(ctx.contents, sym)
-
-let getHypByExpr: (mmContext, string) => option<hypothesis> = (ctx, sym) => {
+let getHypByExpr = (ctx:mmContext, expr:expr) => {
     ctx.contents->forEachCtxInReverseOrder(ctx => {
         ctx.exprToHyp->Belt_HashMap.get(expr)
     })
 }
 
-let getFramePriv = (ctx:mmContextContents,label):option<frame> => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.frames->mutableMapStrGet(label)
+let getFrame = (ctx:mmContext,label):option<frame> => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.frames->Belt_HashMapString.get(label)
     })
 }
-
-let getFrame = (ctx:mmContext,label):option<frame> => getFramePriv(ctx.contents,label)
 
 let getLocalVars: mmContext => array<string> = ctx => {
     ctx.contents.vars->Js_array2.copy
@@ -393,49 +258,36 @@ let getNumOfVars = ctx => {
     ctx.contents.varsBaseIdx + ctx.contents.vars->Js_array2.length
 }
 
-let forEachHypothesisInDeclarationOrderPriv: (mmContextContents, hypothesis => option<'a>) => option<'a> = (ctx, consumer) => {
-    ctx->forEachCtxInDeclarationOrder(ctx => {
+let forEachHypothesisInDeclarationOrder = (ctx:mmContext, consumer:hypothesis=>option<'a>):option<'a> => {
+    ctx.contents->forEachCtxInDeclarationOrder(ctx => {
         Expln_utils_common.arrForEach(ctx.hyps, consumer)
     })
 }
 
-let forEachHypothesisInDeclarationOrder: (mmContext, hypothesis => option<'a>) => option<'a> = 
-    (ctx, consumer) => forEachHypothesisInDeclarationOrderPriv(ctx.contents, consumer)
-
-let ctxSymToIntPriv = (ctx:mmContextContents,sym) => {
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.symToInt->mutableMapStrGet(sym)
+let ctxSymToInt = (ctx:mmContext, sym:string):option<int> => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.symToInt->Belt_HashMapString.get(sym)
     })
 }
 
-let ctxSymToIntExnPriv = (ctx:mmContextContents,sym) => {
-    switch ctxSymToIntPriv(ctx,sym) {
+let ctxSymToIntExn = (ctx:mmContext,sym) => {
+    switch ctxSymToInt(ctx,sym) {
         | Some(i) => i
         | None => raise(MmException({msg:`The symbol '${sym}' is not declared.`}))
     }
 }
 
-let ctxSymsToIntsExnPriv: (mmContextContents,array<string>) => expr = (ctx, symbols) => {
-    symbols->Js_array2.map(ctx->ctxSymToIntExnPriv)
+let ctxSymsToIntsExn = (ctx:mmContext, symbols:array<string>):expr => {
+    symbols->Js_array2.map(ctx->ctxSymToIntExn)
 }
 
-let ctxSymsToIntsExn: (mmContext,array<string>) => expr = (ctx, symbols) => ctxSymsToIntsExnPriv(ctx.contents, symbols)
+let ctxStrToIntsExn = (ctx, str) => ctxSymsToIntsExn(ctx, str->getSpaceSeparatedValuesAsArray)
 
-let ctxStrToIntsExn: (mmContext,string) => expr = (ctx, str) => ctxSymsToIntsExnPriv(ctx.contents, str->getSpaceSeparatedValuesAsArray)
-
-let ctxSymToInt = (ctx:mmContext, sym:string):option<int> => {
-    ctxSymToIntPriv(ctx.contents,sym)
-}
-
-let ctxSymToIntExn = (ctx:mmContext, sym:string):int => {
-    ctx.contents->ctxSymToIntExnPriv(sym)
-}
-
-let ctxIntToSymPriv = (ctx:mmContextContents,i):option<string> => {
+let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
     if (i < 0) {
-        (ctx.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
+        (ctx.contents.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
     } else {
-        ctx->forEachCtxInReverseOrder(ctx => {
+        ctx.contents->forEachCtxInReverseOrder(ctx => {
             if (i < ctx.varsBaseIdx) {
                 None
             } else {
@@ -445,42 +297,29 @@ let ctxIntToSymPriv = (ctx:mmContextContents,i):option<string> => {
     }
 }
 
-let ctxIntToSymExnPriv = (ctx:mmContextContents,i) => {
-    switch ctxIntToSymPriv(ctx,i) {
+let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
+    switch ctxIntToSym(ctx,i) {
         | Some(str) => str
         | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
     }
 }
 
-let ctxIntToSymExn = (ctx:mmContext,i) => ctxIntToSymExnPriv(ctx.contents,i)
-
 let ctxIntsToSymsExn = (ctx,expr) => expr->Js_array2.map(ctxIntToSymExn(ctx, _))
 
-let ctxIntToSym = (ctx:mmContext,i) => ctxIntToSymPriv(ctx.contents,i)
-
-let ctxIntsToStrExnPriv: (mmContextContents, expr) => string = (ctx, expr) => {
-    expr->Js_array2.map(ctxIntToSymExnPriv(ctx, _))->Js_array2.joinWith(" ")
+let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
+    expr->Js_array2.map(ctxIntToSymExn(ctx, _))->Js_array2.joinWith(" ")
 }
 
-let ctxIntsToStrExn: (mmContext, expr) => string = (ctx, expr) => ctxIntsToStrExnPriv(ctx.contents,expr)
-
-let frmIntToSymExnPriv = (ctx:mmContextContents, frameVarToSymb:array<string>, i:int) => {
-    if (i < 0) {ctx->ctxIntToSymExnPriv(i)} else {frameVarToSymb[i]}
+let frmIntToSymExn = (ctx:mmContext, frameVarToSymb:array<string>, i:int) => {
+    if (i < 0) {ctx->ctxIntToSymExn(i)} else {frameVarToSymb[i]}
 }
 
-let frmIntToSymExn: (mmContext, frame, int) => string = (ctx, frame, i) => {
-    frmIntToSymExnPriv(ctx.contents,frame.frameVarToSymb,i)
+let frmIntsToStrExn = (ctx:mmContext, frameVarToSymb:array<string>, expr:expr):string => {
+    expr->Js_array2.map(frmIntToSymExn(ctx, frameVarToSymb, _))->Js_array2.joinWith(" ")
 }
 
-let frmIntsToStrExnPriv = (ctx:mmContextContents, frameVarToSymb:array<string>, expr:expr):string => {
-    expr->Js_array2.map(frmIntToSymExnPriv(ctx, frameVarToSymb, _))->Js_array2.joinWith(" ")
-}
-
-let frmIntsToStrExn: (mmContext, frame, expr) => string = (ctx, frame, expr) => 
-    frmIntsToStrExnPriv(ctx.contents, frame.frameVarToSymb, expr)
-
-let getTypeOfVarPriv = (ctx, varInt) => {
-    ctx->forEachHypothesisInDeclarationOrderPriv(hyp => {
+let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
+    ctx.contents->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F && hyp.expr[1] == varInt) {
             Some(hyp.expr[0])
         } else {
@@ -489,9 +328,7 @@ let getTypeOfVarPriv = (ctx, varInt) => {
     })
 }
 
-let getTypeOfVar = (ctx, varInt) => getTypeOfVarPriv(ctx.contents, varInt)
-
-let getTypeOfVarExn = (ctx, varInt) => {
+let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
     switch ctx->getTypeOfVar(varInt) {
         | None => {
             let varName = switch ctx->ctxIntToSym(varInt) {
@@ -504,22 +341,22 @@ let getTypeOfVarExn = (ctx, varInt) => {
     }
 }
 
-let extractMandatoryVariables = (ctx:mmContextContents,asrt, ~skipHyps:bool=false, ()): mutableSetInt => {
-    let res = mutableSetIntMake()
+let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipHyps:bool=false, ()):Belt_HashSetInt.t => {
+    let res = Belt_HashSetInt.make(~hintSize=16)
     if (!skipHyps) {
-        ctx->forEachHypothesisInDeclarationOrderPriv(hyp => {
+        ctx->forEachHypothesisInDeclarationOrder(hyp => {
             if (hyp.typ == E) {
-                hyp.expr->Js_array2.forEach(i => if i >= 0 {res->mutableSetIntAdd(i)})
+                hyp.expr->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
             }
             None
         })->ignore
     }
-    asrt->Js_array2.forEach(i => if i >= 0 {res->mutableSetIntAdd(i)})
+    asrt->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
     res
 }
 
-let extractMandatoryDisj = (ctx:mmContextContents, mandatoryVars:mutableSetInt): mutableMapInt<mutableSetInt> => {
-    let mandatoryDisj = mutableMapIntMake()
+let extractMandatoryDisj = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t): disjMutable => {
+    let mandatoryDisj = Belt_HashMapInt.make(~hintSize=16)
     ctx->forEachCtxInReverseOrder(ctx => {
         ctx.disj->mutableMapIntForEach((n,ms) => {
             if (mandatoryVars->mutableSetIntHas(n)) {
@@ -759,6 +596,8 @@ let addComment: (mmContext,string) => unit = (ctx,str) => {
 let addConstPriv: (mmContextContents,string) => unit = (ctx,cName) => {
     if (ctx.parent->Belt_Option.isSome) {
         raise(MmException({msg:`An attempt to declare a constant '${cName}' in an inner block.`}))
+    } else if (isConstPriv(ctx, cName) || isVarPriv(ctx, cName)) {
+        raise(MmException({msg:`An attempt to re-declare the math symbol '${cName}' as a constant.`}))
     } else if (isConstPriv(ctx, cName) || isVarPriv(ctx, cName)) {
         raise(MmException({msg:`An attempt to re-declare the math symbol '${cName}' as a constant.`}))
     } else {
