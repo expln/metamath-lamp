@@ -42,7 +42,7 @@ type rec mmContextContents = {
     symToInt: Belt_HashMapString.t<int>,
     disj: disjMutable,
     hyps: array<hypothesis>,
-    symToHyp: Belt_HashMapString.t<hypothesis>,
+    labelToHyp: Belt_HashMapString.t<hypothesis>,
     exprToHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     varTypes: Belt_HashMapInt.t<int>,
     mutable lastComment: option<string>,
@@ -139,7 +139,7 @@ let getTokenType = (ctx:mmContext, token:string):option<tokenType> => {
         switch ctx.frames->Belt_HashMapString.get(token) {
             | Some(frame) => if (frame.proof->Belt_Option.isNone) {Some(A)} else {Some(P)}
             | None => {
-                switch ctx.symToHyp->Belt_HashMapString.get(token) {
+                switch ctx.labelToHyp->Belt_HashMapString.get(token) {
                     | Some(hyp) => if (hyp.typ == F) {Some(F)} else {Some(E)}
                     | None => {
                         switch ctx.symToInt->Belt_HashMapString.get(token) {
@@ -170,7 +170,7 @@ let isVar = (ctx:mmContext, sym:string) => {
 
 let isHyp = (ctx:mmContext, label:string) => {
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.symToHyp->Belt_HashMapString.get(label)
+        ctx.labelToHyp->Belt_HashMapString.get(label)
     })->Belt_Option.isSome
 }
 
@@ -188,8 +188,6 @@ let disjContains = (disj:disjMutable, n, m):bool => {
         | Some(ms) => ms->Belt_HashSetInt.has(max)
     }
 }
-
-let disjNumOfGroups = disjMutable => disjMutable->Belt_HashMapInt.size
 
 let disjForEach = (disjMutable, consumer) => {
     disjMutable->Belt_HashMapInt.forEach((n,ms) => {
@@ -229,7 +227,7 @@ let isDisj = (ctx,n,m) => {
 
 let getHypothesis = (ctx:mmContext,label):option<hypothesis> => {
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.symToHyp->Belt_HashMapString.get(label)
+        ctx.labelToHyp->Belt_HashMapString.get(label)
     })
 }
 
@@ -553,7 +551,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             symToInt: Belt_HashMapString.make(~hintSize=0),
             disj: disjMutableMake(),
             hyps: [],
-            symToHyp: Belt_HashMapString.make(~hintSize=4),
+            labelToHyp: Belt_HashMapString.make(~hintSize=4),
             exprToHyp: Belt_HashMap.make(~hintSize=4, ~id=module(ExprHash)),
             varTypes: Belt_HashMapInt.make(~hintSize=4),
             lastComment: None,
@@ -663,7 +661,7 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
                 let expr = [typInt, varInt]
                 let hyp = {typ:F, label, expr}
                 ctx.hyps->Js_array2.push(hyp)->ignore
-                ctx.symToHyp->Belt_HashMapString.set(label, hyp)
+                ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
                 ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
                 ctx.varTypes->Belt_HashMapInt.set(varInt, typInt)
             }
@@ -680,7 +678,7 @@ let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =
         let expr = ctxSymsToIntsExn(ctx, exprStr)
         let hyp = {typ:E, label, expr}
         ctx.hyps->Js_array2.push(hyp)->ignore
-        ctx.symToHyp->Belt_HashMapString.set(label, hyp)
+        ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
         ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
    }
 }
@@ -931,7 +929,7 @@ let generateNewLabels = (
     res
 }
 
-let renumberConstsInExpr = (expr:expr, constRenum:Belt_HashMapInt.t<int>):unit => {
+let renumberConstsInExpr = (constRenum:Belt_HashMapInt.t<int>, expr:expr):unit => {
     let maxI = expr->Js_array2.length-1
     for i in 0 to maxI {
         let sym = expr[i]
@@ -944,20 +942,20 @@ let renumberConstsInExpr = (expr:expr, constRenum:Belt_HashMapInt.t<int>):unit =
 let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
     let rootCtx = ctx.contents.root->Belt_Option.getExn
     let constsToMove = constsStr->getSpaceSeparatedValuesAsArray
-        ->Js_array2.map(ctxSymToInt(ctx,_))
+        ->Js_array2.map(ctx->ctxSymToInt)
         ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
         ->Js.Array2.map(Belt_Option.getExn)
         ->Belt_HashSetInt.fromArray
     let constsLen = constsToMove->Belt_HashSetInt.size
-    let reservedIdxs = Belt_HashSetInt.make(~hintSize=constsLen)
 
+    let constToMoveFar = ref(-1)
     let getConstToMoveFar = () => {
-        let res= ref(1)
-        while (reservedIdxs->Belt_HashSetInt.has(res.contents) || constsToMove->Belt_HashSetInt.has(-res.contents)) {
-            res.contents = res.contents + 1
+        while (constsToMove->Belt_HashSetInt.has(constToMoveFar.contents)) {
+            constToMoveFar.contents = constToMoveFar.contents - 1
         }
-        reservedIdxs->Belt_HashSetInt.add(res.contents)
-        -res.contents
+        let res = constToMoveFar.contents
+        constToMoveFar.contents = constToMoveFar.contents - 1
+        res
     }
     
     let constRenum = Belt_HashMapInt.make(~hintSize=constsLen)
@@ -969,20 +967,17 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
             let symTmp = rootCtx.consts[-constToMoveClose]
             rootCtx.consts[-constToMoveClose] = rootCtx.consts[-constToMoveFar]
             rootCtx.consts[-constToMoveFar] = symTmp
-            rootCtx.symToInt->mutableMapStrPut(rootCtx.consts[-constToMoveClose], constToMoveClose)
-            rootCtx.symToInt->mutableMapStrPut(rootCtx.consts[-constToMoveFar], constToMoveFar)
+            rootCtx.symToInt->Belt_HashMapString.set(rootCtx.consts[-constToMoveClose], constToMoveClose)
+            rootCtx.symToInt->Belt_HashMapString.set(rootCtx.consts[-constToMoveFar], constToMoveFar)
         }
     })
 
-    ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.hyps->Js_array2.forEach(hyp => renumberConstsInExpr(hyp.expr, constRenum))
-        ctx.frames->mutableMapStrForEach((_,frame) => {
-            frame.hyps->Js_array2.forEach(hyp => renumberConstsInExpr(hyp.expr, constRenum))
-            renumberConstsInExpr(frame.asrt, constRenum)
-            renumberConstsInExpr(frame.varTypes, constRenum)
-        })
+    ctx.contents->forEachHypothesisInDeclarationOrder(hyp => constRenum->renumberConstsInExpr(hyp.expr))
+    ctx.contents->forEachFrame(frame => {
+        frame.hyps->Js_array2.forEach(hyp => constRenum->renumberConstsInExpr(hyp.expr))
+        constRenum->renumberConstsInExpr(frame.asrt)
+        constRenum->renumberConstsInExpr(frame.varTypes)
         None
     })->ignore
-
 }
 
