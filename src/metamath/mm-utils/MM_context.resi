@@ -103,7 +103,7 @@ let generateNewLabels: (
     unit,
 ) => array<string>
 
-let disjMutableMake: unit => disjMutable
+let disjMake: unit => disjMutable
 let disjAddPair: (disjMutable, int, int) => unit
 let disjContains: (disjMutable, int, int) => bool
 let disjNumOfGroups: disjMutable => int

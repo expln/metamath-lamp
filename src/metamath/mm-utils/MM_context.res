@@ -46,6 +46,7 @@ type rec mmContextContents = {
     hyps: array<hypothesis>,
     symToHyp: Belt_HashMapString.t<hypothesis>,
     exprToHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
+    varTypes: Belt_HashMapInt.t<int>,
     mutable lastComment: option<string>,
     frames: Belt_HashMapString.t<frame>,
     debug:bool,
@@ -176,7 +177,7 @@ let isHyp = (ctx:mmContext, label:string) => {
 }
 
 let isAsrt = (ctx:mmContext, label:string) => {
-    ctx->forEachCtxInReverseOrder(ctx => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
         ctx.frames->Belt_HashMapString.get(label)
     })->Belt_Option.isSome
 }
@@ -319,12 +320,8 @@ let frmIntsToStrExn = (ctx:mmContext, frameVarToSymb:array<string>, expr:expr):s
 }
 
 let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
-    ctx.contents->forEachHypothesisInDeclarationOrder(hyp => {
-        if (hyp.typ == F && hyp.expr[1] == varInt) {
-            Some(hyp.expr[0])
-        } else {
-            None
-        }
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.varTypes->Belt_HashMapInt.get(varInt)
     })
 }
 
@@ -341,9 +338,9 @@ let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
     }
 }
 
-let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipHyps:bool=false, ()):Belt_HashSetInt.t => {
+let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipEssentials:bool=false, ()):Belt_HashSetInt.t => {
     let res = Belt_HashSetInt.make(~hintSize=16)
-    if (!skipHyps) {
+    if (!skipEssentials) {
         ctx->forEachHypothesisInDeclarationOrder(hyp => {
             if (hyp.typ == E) {
                 hyp.expr->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
@@ -357,63 +354,62 @@ let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipHyps:bool=false,
 
 let extractMandatoryDisj = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t): disjMutable => {
     let mandatoryDisj = Belt_HashMapInt.make(~hintSize=16)
-    ctx->forEachCtxInReverseOrder(ctx => {
-        ctx.disj->mutableMapIntForEach((n,ms) => {
-            if (mandatoryVars->mutableSetIntHas(n)) {
-                ms->mutableSetIntForEach(m => {
-                    if (mandatoryVars->mutableSetIntHas(m)) {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.disj->Belt_HashMapInt.forEach((n,ms) => {
+            if (mandatoryVars->Belt_HashSetInt.has(n)) {
+                ms->Belt_HashSetInt.forEach(m => {
+                    if (mandatoryVars->Belt_HashSetInt.has(m)) {
                         disjAddPair(mandatoryDisj, n, m)
                     }
                 })
             }
-        })->ignore
+        })
         None
     })->ignore
     mandatoryDisj
 }
 
-let extractMandatoryHypotheses = (ctx:mmContextContents, mandatoryVars:mutableSetInt, ~skipHyps:bool=false, ()):array<hypothesis> => {
+let extractMandatoryHypotheses = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t, ~skipEssentials:bool=false, ()):array<hypothesis> => {
     let res = []
-    ctx->forEachCtxInDeclarationOrder(ctx=>{
-        ctx.hyps->Js.Array2.forEach(hyp => {
-            if ((hyp.typ == E && !skipHyps) || hyp.typ == F && mandatoryVars->mutableSetIntHas(hyp.expr[1])) {
-                res->Js.Array2.push(hyp)->ignore
-            }
-        })
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
+        if (
+            hyp.typ == E && !skipEssentials
+            || hyp.typ == F && mandatoryVars->Belt_HashSetInt.has(hyp.expr[1])
+        ) {
+            res->Js.Array2.push(hyp)->ignore
+        }
         None
-    })->ignore
+    })
     res
 }
 
-let getMandHypsPriv:(mmContextContents, expr) => array<hypothesis> = (ctx, expr) => {
-    let mandatoryVars: mutableSetInt = extractMandatoryVariables(ctx, expr, ())
+let getMandHyps = (ctx:mmContext, expr:expr):array<hypothesis> => {
+    let mandatoryVars = extractMandatoryVariables(ctx, expr, ())
     extractMandatoryHypotheses(ctx, mandatoryVars, ())
 }
 
-let getMandHyps:(mmContext, expr) => array<hypothesis> = (ctx, expr) => getMandHypsPriv(ctx.contents, expr)
-
-let getAllHyps = (ctx):Belt_MapString.t<hypothesis> => {
+let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
     let hyps = []
-    ctx->forEachHypothesisInDeclarationOrder(hyp => {
+    ctx.contents->forEachHypothesisInDeclarationOrder(hyp => {
         hyps->Js.Array2.push(hyp)->ignore
         None
     })->ignore
     Belt_MapString.fromArray(hyps->Js_array2.map(hyp => (hyp.label, hyp)))
 }
 
-let getAllFrames = (ctx):Belt_MapString.t<frame> => {
+let getAllFrames = (ctx:mmContext):Belt_MapString.t<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.frames->mutableMapStrForEach((k,v) => frames->Js.Array2.push((k,v))->ignore)
+        ctx.frames->Belt_HashMapString.forEach((k,v) => frames->Js.Array2.push((k,v))->ignore)
         None
     })->ignore
     Belt_MapString.fromArray(frames)
 }
 
-let forEachFramePriv: (mmContextContents, frame => option<'a>) => option<'a> = (ctx, consumer) => {
-    ctx->forEachCtxInDeclarationOrder(ctx => {
+let forEachFrame = (ctx:mmContext, consumer:frame => option<'a>):option<'a> => {
+    ctx.contents->forEachCtxInDeclarationOrder(ctx => {
         let result = ref(None)
-        ctx.frames->mutableMapStrForEach((_,frm) => {
+        ctx.frames->Belt_HashMapString.forEach((_,frm) => {
             if (result.contents->Belt_Option.isNone) {
                 result.contents = consumer(frm)
             }
@@ -422,23 +418,20 @@ let forEachFramePriv: (mmContextContents, frame => option<'a>) => option<'a> = (
     })
 }
 
-let forEachFrame: (mmContext, frame => option<'a>) => option<'a> = (ctx, consumer) => forEachFramePriv(ctx.contents, consumer)
-
-let rec getNestingLevelPriv: mmContextContents => int = ctx => {
+let rec getNestingLevelPriv = (ctx:mmContextContents):int => {
     switch ctx.parent {
         | None => 0
         | Some(pCtx) => 1 + getNestingLevelPriv(pCtx)
     }
 }
 
-let getNestingLevel: mmContext => int = ctx => getNestingLevelPriv(ctx.contents)
+let getNestingLevel = (ctx:mmContext):int => getNestingLevelPriv(ctx.contents)
 
-let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> = (ctx, ~onProgress=?, ()) => {
-    let ctx = ctx.contents
+let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):array<int> => {
 
     let getAllExprs = ctx => {
         let allExpr = []
-        ctx->forEachFramePriv(frame => {
+        ctx->forEachFrame(frame => {
             frame.hyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == E) {
                     allExpr->Js_array2.push(hyp.expr)->ignore
@@ -484,12 +477,12 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
     let allExprs = getAllExprs(ctx)
     let allConsts = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
         ->getSpaceSeparatedValuesAsArray
-        ->Js.Array2.filter(ctx->isConstPriv)
-        ->ctxSymsToIntsExnPriv(ctx, _)
+        ->Js.Array2.filter(ctx->isConst)
+        ->ctxSymsToIntsExn(ctx, _)
         ->Js_array2.concat(
             Belt_Array.range(
                 1,
-                (ctx.root->Belt.Option.getExn).consts->Js.Array2.length - 1
+                (ctx.contents.root->Belt.Option.getExn).consts->Js.Array2.length - 1
             )->Js_array2.map(i => -i)
         )
 
@@ -514,17 +507,15 @@ let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int> 
     foundParens
 }
 
-// cdblk #update ===========================================================================================
-
 let disjMutableMake = () => {
-    mutableMapIntMake()
+    Belt_HashMapInt.make(~hintSize=16)
 }
 
 let getAllDisj = (ctx:mmContext):disjMutable => {
-    let disj = disjMutableMake()
+    let disj = disjMake()
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.disj->mutableMapIntForEach((n,ms) => {
-            ms->mutableSetIntForEach(m => {
+        ctx.disj->Belt_HashMapInt.forEach((n,ms) => {
+            ms->Belt_HashSetInt.forEach(m => {
                 disj->disjAddPair(n,m)
             })
         })
@@ -534,9 +525,9 @@ let getAllDisj = (ctx:mmContext):disjMutable => {
 }
 
 let getLocalDisj = (ctx:mmContext):disjMutable => {
-    let disj = disjMutableMake()
-    ctx.contents.disj->mutableMapIntForEach((n,ms) => {
-        ms->mutableSetIntForEach(m => {
+    let disj = disjMake()
+    ctx.contents.disj->Belt_HashMapInt.forEach((n,ms) => {
+        ms->Belt_HashSetInt.forEach(m => {
             disj->disjAddPair(n,m)
         })
     })
@@ -561,13 +552,14 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
                 | Some(parent) => parent.varsBaseIdx + parent.vars->Js_array2.length
             },
             vars: [],
-            symToInt: mutableMapStrMake(),
+            symToInt: Belt_HashMapString.make(~hintSize=0),
             disj: disjMutableMake(),
             hyps: [],
-            symToHyp: mutableMapStrMake(),
-            exprToHyp: Belt_HashMap.make(~hintSize=5, ~id=module(ExprHash)),
+            symToHyp: Belt_HashMapString.make(~hintSize=4),
+            exprToHyp: Belt_HashMap.make(~hintSize=4, ~id=module(ExprHash)),
+            varTypes: Belt_HashMapInt.make(~hintSize=4),
             lastComment: None,
-            frames: mutableMapStrMake(),
+            frames: Belt_HashMapString.make(~hintSize=1),
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
@@ -578,209 +570,225 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
     ctx
 }
 
-let openChildContext: mmContext => unit = ctx => {
+let openChildContext = (ctx:mmContext):unit => {
     ctx.contents = createContext(~parent=ctx, ()).contents
 }
 
-let resetToParentContext: mmContext => unit = ctx => {
+let closeChildContext = (ctx:mmContext):unit => {
+    ctx.contents = switch ctx.contents.parent {
+        | None => raise(MmException({msg:`Cannot close the root context.`}))
+        | Some(parent) => {
+            ctx.contents.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
+            parent
+        }
+    }
+}
+
+let resetToParentContext = (ctx:mmContext):unit => {
     ctx.contents = switch ctx.contents.parent {
         | None => raise(MmException({msg:`Cannot reset the root context.`}))
         | Some(parent) => parent
     }
 }
 
-let addComment: (mmContext,string) => unit = (ctx,str) => {
+let addComment = (ctx:mmContext,str:string):unit => {
     ctx.contents.lastComment = Some(str)
 }
 
-let addConstPriv: (mmContextContents,string) => unit = (ctx,cName) => {
-    if (ctx.parent->Belt_Option.isSome) {
-        raise(MmException({msg:`An attempt to declare a constant '${cName}' in an inner block.`}))
-    } else if (isConstPriv(ctx, cName) || isVarPriv(ctx, cName)) {
-        raise(MmException({msg:`An attempt to re-declare the math symbol '${cName}' as a constant.`}))
-    } else if (isConstPriv(ctx, cName) || isVarPriv(ctx, cName)) {
-        raise(MmException({msg:`An attempt to re-declare the math symbol '${cName}' as a constant.`}))
+let assertNameIsUnique = (ctx:mmContext,name:string,tokenType:string):unit => {
+    if (name->Js_string2.trim == "") {
+        raise(MmException({msg:`Cannot use an empty string as a name of ${tokeType}.`}))
     } else {
-        ctx.symToInt->mutableMapStrPut(cName, -(ctx.consts->Js_array2.length))
-        ctx.consts->Js_array2.push(cName)->ignore
-    }
-}
-
-let addConst: (mmContext,string) => unit = (ctx,cName) => {
-    ctx.contents->addConstPriv(cName)
-}
-
-let closeChildContext: mmContext => unit = ctx => {
-    ctx.contents = switch ctx.contents.parent {
-        | None => raise(MmException({msg:`Cannot close the root context.`}))
-        | Some(parent) => {
-            ctx.contents.frames->mutableMapStrForEach((k,v) => parent.frames->mutableMapStrPut(k,v))
-            parent
+        switch getTokenType(ctx,name) {
+            | Some(C) => raise(MmException({msg:`An attempt to re-declare the constant '${name}' as ${tokenType}.`}))
+            | Some(V) => raise(MmException({msg:`An attempt to re-declare the variable '${name}' as ${tokenType}.`}))
+            | Some(F) => raise(MmException({msg:`An attempt to re-declare a floating label '${name}' as ${tokenType}.`}))
+            | Some(E) => raise(MmException({msg:`An attempt to re-declare an essential label '${name}' as ${tokenType}.`}))
+            | Some(A) => raise(MmException({msg:`An attempt to re-declare an axiom label '${name}' as ${tokenType}.`}))
+            | Some(P) => raise(MmException({msg:`An attempt to re-declare a provable label '${name}' as ${tokenType}.`}))
+            | None => ()
         }
     }
 }
 
-let addVar: (mmContext,string) => unit = (ctx,vName) => {
-    let ctx = ctx.contents
-    if (isConstPriv(ctx, vName) || isVarPriv(ctx, vName)) {
-        raise(MmException({msg:`An attempt to re-declare the math symbol '${vName}' as a variable.`}))
+let addConst = (ctx:mmContext,name:string):unit => {
+    if (ctx.contents.parent->Belt_Option.isSome) {
+        raise(MmException({msg:`An attempt to declare a constant '${name}' in an inner block.`}))
     } else {
-        ctx.symToInt->mutableMapStrPut(vName, ctx.varsBaseIdx + ctx.vars->Js_array2.length)
-        ctx.vars->Js_array2.push(vName)->ignore
+        assertNameIsUnique(ctx,name,"a constant")
+        ctx.symToInt->Belt_HashMapString.set(name, -(ctx.consts->Js_array2.length))
+        ctx.consts->Js_array2.push(name)->ignore
     }
 }
 
-let addDisjPair = (ctx:mmContextContents, n, m) => disjAddPair(ctx.disj,n,m)
+let addVar = (ctx:mmContext,name:string):unit => {
+    assertNameIsUnique(ctx,name,"a variable")
+    ctx.symToInt->Belt_HashMapString.set(name, ctx.varsBaseIdx + ctx.vars->Js_array2.length)
+    ctx.vars->Js_array2.push(vName)->ignore
+}
 
-let addDisj: (mmContext,array<string>) => unit = (ctx, vars) => {
-    let ctx = ctx.contents
-    switch vars->Js_array2.find(sym => !(ctx->isVarPriv(sym))) {
-        | Some(sym) => raise(MmException({msg:`The symbol '${sym}' is not a variable but it is used in a disjoint statement.`}))
+let addDisj = (ctx:mmContext, vars:array<string>):unit => {
+    switch vars->Js_array2.find(sym => !(ctx->isVar(sym))) {
+        | Some(sym) => 
+            raise(MmException({msg:`The symbol '${sym}' is not a variable but it is used in a disjoint statement.`}))
         | None => {
-            let varInts = vars->Js_array2.map(ctx->ctxSymToIntExnPriv)
+            let varInts = vars->Js_array2.map(ctx->ctxSymToIntExn)
             let maxIdx = varInts->Js_array2.length - 1
             for i in 0 to maxIdx {
                 for j in i+1 to maxIdx {
-                    ctx->addDisjPair(varInts[i],varInts[j])
+                    ctx.contents.disj->disjAddPair(varInts[i],varInts[j])
                 }
             }
         }
     }
 }
 
-let addFloating: (mmContext, ~label:string, ~exprStr:array<string>) => unit = (ctx, ~label, ~exprStr) => {
-    let ctx = ctx.contents
+let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit => {
     if (exprStr->Js_array2.length != 2) {
         raise(MmException({msg:`Length of a floating expression must be 2.`}))
-    } else if (!(ctx->isConstPriv(exprStr[0]))) {
-        raise(MmException({msg:`The first symbol in a floating expression must be a constant.`}))
-    } else if (!(ctx->isVarPriv(exprStr[1]))) {
-        raise(MmException({msg:`The second symbol in a floating expression must be a variable.`}))
-    } else if (ctx->getHypothesisPriv(label)->Belt_Option.isSome || ctx->getFramePriv(label)->Belt_Option.isSome) {
-        raise(MmException({msg:`Cannot reuse the label '${label}'`}))
     } else {
+        assertNameIsUnique(ctx,label,"a floating label")
+        let typName = exprStr[0]
         let varName = exprStr[1]
-        let varInt = ctx->ctxSymToIntExnPriv(varName)
-        if (ctx->getTypeOfVarPriv(varInt)->Belt_Option.isSome) {
+        if (!(ctx->isConst(typName))) {
+            raise(MmException({msg:`The first symbol in the floating '${label}' must be a constant.`}))
+        } else if (!(ctx->isVar(varName))) {
+            raise(MmException({msg:`The second symbol in the floating '${label}' must be a variable.`}))
+        } else if (ctx->getTypeOfVar(varInt)->Belt_Option.isSome) {
             raise(MmException({msg:`Cannot redefine typecode for the variable '${varName}'`}))
         } else {
-            let expr = ctxSymsToIntsExnPriv(ctx, exprStr)
-            let hyp = {typ:F, label, expr}
-            ctx.hyps->Js_array2.push(hyp)->ignore
-            ctx.symToHyp->mutableMapStrPut(label, hyp)
-            ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
+            let varInt = ctx->ctxSymToIntExn(varName)
+            if (ctx->getTypeOfVar(varInt)->Belt_Option.isSome) {
+                raise(MmException({msg:`Cannot redefine typecode for the variable '${varName}'`}))
+            } else {
+                let typInt = ctx->ctxSymToIntExn(typName)
+                let expr = [typInt, varInt]
+                let hyp = {typ:F, label, expr}
+                ctx.hyps->Js_array2.push(hyp)->ignore
+                ctx.symToHyp->Belt_HashMapString.set(label, hyp)
+                ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
+                ctx.varTypes->Belt_HashMapInt.set(varInt, typInt)
+            }
         }
     }
 }
 
-let addEssential: (mmContext, ~label:string, ~exprStr:array<string>) => unit = (ctx, ~label, ~exprStr) => {
-    let ctx = ctx.contents
+let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit => {
     if (exprStr->Js_array2.length < 1) {
         raise(MmException({msg:`Length of an essential expression must be at least 1.`}))
-    } else if (!(ctx->isConstPriv(exprStr[0]))) {
+    } else if (!(ctx->isConst(exprStr[0]))) {
         raise(MmException({msg:`The first symbol in an essential expression must be a constant.`}))
     } else {
-        let expr = ctxSymsToIntsExnPriv(ctx, exprStr)
+        let expr = ctxSymsToIntsExn(ctx, exprStr)
         let hyp = {typ:E, label, expr}
         ctx.hyps->Js_array2.push(hyp)->ignore
-        ctx.symToHyp->mutableMapStrPut(label, hyp)
+        ctx.symToHyp->Belt_HashMapString.set(label, hyp)
         ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
    }
 }
 
-let renumberVarsInDisj = (disj: mutableMapInt<mutableSetInt>, renumbering: Belt_MapInt.t<int>): Belt_MapInt.t<Belt_SetInt.t> => {
-    let disjArr = Expln_utils_common.createArray(disj->mutableMapIntSize)
-    disj->mutableMapIntForEachI((n,ms,ni) => {
-        let msArr = Expln_utils_common.createArray(ms->mutableSetIntSize)
-        ms->mutableSetIntForEachI((m,mi) => {
-            msArr[mi] = switch renumbering->Belt_MapInt.get(m) {
-                | None => raise(MmException({msg:`[1] Cannot determine frame variable for the context variable ${m->Belt_Int.toString}`}))
-                | Some(fv) => fv
-            }
-        })
-        disjArr[ni] = (
-            switch renumbering->Belt_MapInt.get(n) {
-                | None => raise(MmException({msg:`[2] Cannot determine frame variable for the context variable ${n->Belt_Int.toString}`}))
-                | Some(fv) => fv
-            }, 
-            Belt_Set.Int.fromArray(msArr)
+let ctxIntToFrameInt = (ctxToFrameRenum: Belt_HashMapInt.t<int>, ctxInt:int):int => {
+    if (ctxInt < 0) {
+        ctxInt
+    } else {
+        switch ctxToFrameRenum->Belt_HashMapInt.get(ctxInt) {
+            | None => 
+                raise(MmException({
+                    msg:`Cannot determine frame variable for the context variable ${ctxInt->Belt_Int.toString}.`
+                }))
+            | Some(frameInt) => frameInt
+        }
+    }
+}
+
+let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMutable): disjMutable => {
+    let newDisj = disjMake()
+    disj->disjForEach((n,m) => {
+        newDisj->disjAddPair(
+            ctxToFrameRenum->ctxIntToFrameInt(n),
+            ctxToFrameRenum->ctxIntToFrameInt(m)
         )
     })
-    Belt_MapInt.fromArray(disjArr)
+    newDisj
 }
 
-let renumberVarsInExpr = (expr: expr, renumbering: Belt_MapInt.t<int>): expr => {
-    expr->Js_array2.map(i => if (i<0) {i} else {renumbering->Belt_MapInt.getExn(i)})
+let renumberVarsInExpr = (ctxToFrameRenum: Belt_HashMapInt.t<int>, expr: expr): expr => {
+    expr->Js_array2.map(ctxToFrameRenum->ctxIntToFrameInt)
 }
 
-let renumberVarsInHypothesis = (hyp: hypothesis, renumbering: Belt_MapInt.t<int>): hypothesis => {
-    ...hyp,
-    expr: renumberVarsInExpr(hyp.expr, renumbering)
+let renumberVarsInHypothesis = (ctxToFrameRenum: Belt_HashMapInt.t<int>, hyp: hypothesis): hypothesis => {
+    {
+        ...hyp,
+        expr: ctxToFrameRenum->renumberVarsInExpr(hyp.expr)
+    }
 }
 
-let createFrameVarToSymbMap = (ctx:mmContextContents, mandatoryHypotheses:array<hypothesis>, asrt, renumbering: Belt_MapInt.t<int>): array<string> => {
-    let allVars = mutableSetIntMake()
-    mandatoryHypotheses->Js.Array2.forEach(hyp => {
-        hyp.expr->Js_array2.forEach(i => {
-            if (i >= 0) {
-                allVars->mutableSetIntAdd(i)
-            }
-        })
-    })
-    asrt->Js_array2.forEach(i => {
-        if (i >= 0) {
-            allVars->mutableSetIntAdd(i)
-        }
-    })
-    let frameVarToSymb = Expln_utils_common.createArray(allVars->mutableSetIntSize)
-    allVars->mutableSetIntForEach(ctxVar => {
-        frameVarToSymb[renumbering->Belt_MapInt.getExn(ctxVar)] = ctxIntToSymExnPriv(ctx,ctxVar)
-    })
-    frameVarToSymb
-}
+// let createFrameVarToSymbMap = (
+//     ctx:mmContext, 
+//     mandatoryHypotheses:array<hypothesis>, 
+//     asrt:expr, 
+//     ctxIntToFrameInt: Belt_HashMapInt.t<int>
+// ): array<string> => {
+//     let allVars = mutableSetIntMake()
+//     mandatoryHypotheses->Js.Array2.forEach(hyp => {
+//         hyp.expr->Js_array2.forEach(i => {
+//             if (i >= 0) {
+//                 allVars->mutableSetIntAdd(i)
+//             }
+//         })
+//     })
+//     asrt->Js_array2.forEach(i => {
+//         if (i >= 0) {
+//             allVars->mutableSetIntAdd(i)
+//         }
+//     })
+//     let frameVarToSymb = Expln_utils_common.createArray(allVars->mutableSetIntSize)
+//     allVars->mutableSetIntForEach(ctxVar => {
+//         frameVarToSymb[renumbering->Belt_MapInt.getExn(ctxVar)] = ctxIntToSymExnPriv(ctx,ctxVar)
+//     })
+//     frameVarToSymb
+// }
 
-let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_MapInt.t<int>): array<int> => {
-    let varTypes = Expln_utils_common.createArray(renumbering->Belt_MapInt.size)
-    mandatoryHypotheses->Js_array2.forEach(hyp => {
-        if (hyp.typ == F) {
-            varTypes[renumbering->Belt_MapInt.getExn(hyp.expr[1])] = hyp.expr[0]
-        }
-    })
-    varTypes
-}
+// let extractVarTypes = (mandatoryHypotheses:array<hypothesis>, renumbering: Belt_MapInt.t<int>): array<int> => {
+//     let varTypes = Expln_utils_common.createArray(renumbering->Belt_MapInt.size)
+//     mandatoryHypotheses->Js_array2.forEach(hyp => {
+//         if (hyp.typ == F) {
+//             varTypes[renumbering->Belt_MapInt.getExn(hyp.expr[1])] = hyp.expr[0]
+//         }
+//     })
+//     varTypes
+// }
 
-let createFramePriv = (
-    ~ctx:mmContextContents, 
+let createFrame = (
+    ~ctx:mmContext, 
     ~label:string, 
     ~exprStr:array<string>,
     ~proof:option<proof>,
-    ~skipHyps:bool=false, 
+    ~tokenType:string="a frame",
+    ~skipEssentials:bool=false, 
     ~skipFirstSymCheck:bool=false, 
     ()
 ):frame => {
-    if (label->Js_string2.trim == "") {
-        raise(MmException({msg:`Cannot use empty string as a label.`}))
-    } else if (ctx->getHypothesisPriv(label)->Belt_Option.isSome || ctx->getFramePriv(label)->Belt_Option.isSome) {
-        raise(MmException({msg:`Cannot reuse the label '${label}'`}))
-    } else if (exprStr->Js_array2.length < 1) {
+    assertNameIsUnique(ctx,label,tokenType)
+    if (exprStr->Js_array2.length < 1) {
         raise(MmException({msg:`Length of an assertion expression must be at least 1.`}))
-    } else if (!skipFirstSymCheck && !(ctx->isConstPriv(exprStr[0]))) {
+    } else if (!skipFirstSymCheck && !(ctx->isConst(exprStr[0]))) {
         raise(MmException({msg:`The first symbol in an assertion expression must be a constant.`}))
     } else {
-        switch exprStr->Js_array2.find(sym => ctx->ctxSymToIntPriv(sym)->Belt_Option.isNone) {
+        switch exprStr->Js_array2.find(sym => ctx->ctxSymToInt(sym)->Belt_Option.isNone) {
             | Some(sym) => raise(MmException({msg:`The symbol '${sym}' must be either a constant or a variable.`}))
             | None => {
-                let asrt: expr = exprStr->Js_array2.map(ctxSymToIntExnPriv(ctx, _))
-                let mandatoryVars: mutableSetInt = extractMandatoryVariables(ctx, asrt, ~skipHyps, ())
-                let mandatoryDisj: mutableMapInt<mutableSetInt> = extractMandatoryDisj(ctx, mandatoryVars)
-                let mandatoryHypotheses: array<hypothesis> = extractMandatoryHypotheses(ctx, mandatoryVars, ~skipHyps, ())
-                let varRenumbering: Belt_MapInt.t<int> = mandatoryVars
-                                                            ->mutableSetIntToArray
-                                                            ->Js_array2.mapi((cv,fv) => (cv,fv))
-                                                            ->Belt_MapInt.fromArray
-                let varTypes = extractVarTypes(mandatoryHypotheses, varRenumbering)
-                let hyps = mandatoryHypotheses->Js_array2.map(renumberVarsInHypothesis(_, varRenumbering))
-                let disj = mandatoryDisj->renumberVarsInDisj(varRenumbering)
+                let asrt = exprStr->Js_array2.map(ctx->ctxSymToIntExn)
+                let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ())
+                let mandatoryVarsArr = mandatoryVarsSet->Belt_HashSetInt.toArray
+                let mandatoryDisj = extractMandatoryDisj(ctx, mandatoryVarsSet)
+                let mandatoryHypotheses = extractMandatoryHypotheses(ctx, mandatoryVarsSet, ~skipEssentials, ())
+                let ctxToFrameRenum = mandatoryVarsArr
+                                        ->Js_array2.mapi((cv,fv) => (cv,fv))
+                                        ->Belt_HashMapInt.fromArray
+                // let varTypes = mandatoryVarsArr->Js_array2.map(ctxVarToFrameVar->)
+                // let hyps = mandatoryHypotheses->Js_array2.map(renumberVarsInHypothesis(_, varRenumbering))
+                // let disj = mandatoryDisj->renumberVarsInDisj(varRenumbering)
                 let frameVarToSymb = createFrameVarToSymbMap(ctx, mandatoryHypotheses, asrt, varRenumbering)
                 let asrt = asrt->renumberVarsInExpr(varRenumbering)
                 let dbg = if (ctx.debug) {
@@ -810,9 +818,6 @@ let createFramePriv = (
         }
     }
 }
-
-let createFrame = ( ~ctx:mmContext, ~label, ~exprStr, ~proof, ~skipHyps:bool=false, ~skipFirstSymCheck:bool=false, () ) => 
-    createFramePriv(~ctx=ctx.contents, ~label, ~exprStr, ~proof, ~skipHyps, ~skipFirstSymCheck, ())
 
 let addAssertion: (mmContext, ~label:string, ~exprStr:array<string>, ~proof:option<proof>) => unit = (
     ctx, ~label, ~exprStr, ~proof
