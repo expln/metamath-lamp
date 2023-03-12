@@ -498,26 +498,21 @@ let incUnifyAllIsRequiredCnt = st => {
     }
 }
 
-let extractVarColorsFromVarsText = (varsText, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
+let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
     let res = Belt_HashMapString.make(~hintSize=16)
-    varsText->Js_string2.splitByRe(newLineRegex)->Js_array2.forEach(lineOpt => {
-        switch lineOpt {
-            | None => ()
-            | Some(line) => {
-                switch getTypeAndVarFromVarsTextLine(line->Js_string2.trim) {
+    switch textToVarDefs(st.varsText) {
+        | Error(_) => ()
+        | Ok(varDefs) => {
+            varDefs->Js_array2.forEach(varDef => {
+                let varName = varDef[2]
+                let typ = varDef[1]
+                switch typeColors->Belt_HashMapString.get(typ) {
                     | None => ()
-                    | Some((typeStr,varStr)) => {
-                        switch typeColors->Belt_HashMapString.get(typeStr) {
-                            | None => ()
-                            | Some(color) => {
-                                res->Belt_HashMapString.set(varStr, color)
-                            }
-                        }
-                    }
+                    | Some(color) => res->Belt_HashMapString.set(varName, color)
                 }
-            }
+            })
         }
-    })
+    }
     res
 }
 
@@ -531,7 +526,7 @@ let recalcTypeColors = (st:editorState):editorState => {
 }
 
 let recalcPreCtxColors = (st:editorState):editorState => {
-    let varColorsArr = []
+    let preCtxColors = Belt_HashMapString.make(~hintSize=100)
     st.preCtx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F) {
             switch st.preCtx->ctxIntToSym(hyp.expr[0]) {
@@ -540,10 +535,10 @@ let recalcPreCtxColors = (st:editorState):editorState => {
                     switch st.typeColors->Belt_HashMapString.get(typeStr) {
                         | None => ()
                         | Some(color) => {
-                            varColorsArr->Js_array2.push((
+                            preCtxColors->Belt_HashMapString.set(
                                 st.preCtx->ctxIntToSymExn(hyp.expr[1]),
-                                color,
-                            ))->ignore
+                                color
+                            )
                         }
                     }
                 }
@@ -553,7 +548,7 @@ let recalcPreCtxColors = (st:editorState):editorState => {
     })->ignore
     {
         ...st,
-        preCtxColors: Belt_HashMapString.fromArray(varColorsArr),
+        preCtxColors
     }
 }
 
@@ -562,13 +557,6 @@ let recalcWrkCtxColors = (st:editorState):editorState => {
         ...st,
         wrkCtxColors: extractVarColorsFromVarsText(st.varsText, st.typeColors),
     }
-}
-
-let recalcAllColors = st => {
-    let st = recalcTypeColors(st)
-    let st = recalcPreCtxColors(st)
-    let st = recalcWrkCtxColors(st)
-    st
 }
 
 let updateColorsInAllStmts = st => {
@@ -581,24 +569,15 @@ let updateColorsInAllStmts = st => {
     }
 }
 
-let completeVarsEditMode = (st, newVarsText) => {
-    let st = {
-        ...st,
-        varsText:newVarsText,
-        varsEditMode: false
-    }
-    let st = recalcWrkCtxColors(st)
-    let st = updateColorsInAllStmts(st)
-    st
-}
-
 let setSettings = (st, settingsV, settings) => {
     let st = { 
         ...st, 
         settingsV, 
         settings,
     }
-    let st = recalcAllColors(st)
+    let st = recalcTypeColors(st)
+    let st = recalcPreCtxColors(st)
+    let st = recalcWrkCtxColors(st)
     let st = updateColorsInAllStmts(st)
     st
 }
@@ -612,6 +591,17 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
     let st = recalcPreCtxColors(st)
+    let st = recalcWrkCtxColors(st)
+    let st = updateColorsInAllStmts(st)
+    st
+}
+
+let completeVarsEditMode = (st, newVarsText) => {
+    let st = {
+        ...st,
+        varsText:newVarsText,
+        varsEditMode: false
+    }
     let st = recalcWrkCtxColors(st)
     let st = updateColorsInAllStmts(st)
     st
@@ -677,9 +667,9 @@ let userStmtHasErrors = stmt => {
 }
 
 let editorStateHasErrors = st => {
-    st.varsErr->Belt_Option.isSome ||
-        st.disjErr->Belt_Option.isSome ||
-        st.stmts->Js_array2.some(userStmtHasErrors)
+    st.varsErr->Belt_Option.isSome 
+        || st.disjErr->Belt_Option.isSome 
+        || st.stmts->Js_array2.some(userStmtHasErrors)
 }
 
 let parseWrkCtxErr = (st:editorState, wrkCtxErr:wrkCtxErr):editorState => {
@@ -695,40 +685,19 @@ let parseWrkCtxErr = (st:editorState, wrkCtxErr:wrkCtxErr):editorState => {
             {...st, disjErr:Some(msg)}
         }
     }
-    let st = switch wrkCtxErr.hypErr {
-        | None => st
-        | Some((stmtId, msg)) => {
-            st->updateStmt(stmtId, stmt => {...stmt, stmtErr:Some(msg)})
-        }
-    }
     st
 }
 
 let refreshWrkCtx = (st:editorState):editorState => {
-    let st = sortStmtsByType(st)
-    let st = removeAllErrorsInEditorState(st)
     let wrkCtxRes = createWrkCtx(
         ~preCtx=st.preCtx,
         ~varsText=st.varsText,
         ~disjText=st.disjText,
-        ~hyps=st.stmts
-            ->Js_array2.filter( stmt => stmt.typ == E)
-            ->Js_array2.map( stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
     )
     let st = switch wrkCtxRes {
         | Error(wrkCtxErr) => parseWrkCtxErr(st, wrkCtxErr)
         | Ok(wrkCtx) => {
             let st = {...st, wrkCtx:Some(wrkCtx)}
-            let st = st.stmts->Js_array2.reduce(
-                (st,stmt) => {
-                    if (stmt.typ == E) {
-                        st->updateStmt(stmt.id, stmt => {...stmt, expr:Some(wrkCtx->ctxSymsToIntsExn(stmt.cont->contToArrStr))})
-                    } else {
-                        st
-                    }
-                },
-                st
-            )
             st
         }
     }
@@ -920,6 +889,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
 let prepareEditorForUnification = st => {
     [
         removeAllTempData,
+        sortStmtsByType,
         refreshWrkCtx,
         prepareUserStmtsForUnification,
         checkAllStmtsAreUnique,

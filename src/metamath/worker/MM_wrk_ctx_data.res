@@ -1,22 +1,14 @@
 open MM_context
 open MM_parser
 
-type wrkCtxHyp = {
-    id: string,
-    label: string,
-    text: string,
-}
-
 type wrkCtxErr = {
     varsErr: option<string>,
     disjErr: option<string>,
-    hypErr: option<(string,string)>,
 }
 
 let makeEmptyWrkCtxErr = () => {
     varsErr: None,
     disjErr: None,
-    hypErr: None,
 }
 
 let prepareParenInts = (wrkCtx, parenStr) => {
@@ -115,34 +107,15 @@ let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {
     }
 }
 
-let addStmtToCtx = (wrkCtx:mmContext, stmt:wrkCtxHyp):option<wrkCtxErr> => {
-    try {
-        wrkCtx->applySingleStmt(Essential({label:stmt.label, expr:getSpaceSeparatedValuesAsArray(stmt.text)}))
-        None
-    } catch {
-        | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), hypErr:Some((stmt.id,msg))})
-    }
-}
-
 let createWrkCtx = (
     ~preCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
 ): result<mmContext,wrkCtxErr> => {
     let wrkCtx = createContext(~parent=preCtx, ())
     let err:option<wrkCtxErr> = [
         () => parseVariables(wrkCtx, varsText),
         () => parseDisjoints(wrkCtx, disjText),
-        () => hyps->Js.Array2.reduce(
-            (err,stmt) => {
-                switch err {
-                    | Some(_) => err
-                    | None => addStmtToCtx(wrkCtx, stmt)
-                }
-            },
-            None
-        )
     ]->Js.Array2.reduce(
         (err,nextStep) => {
             switch err {
