@@ -99,7 +99,8 @@ let generateNewLabels: (
     ~ctx: mmContext,
     ~prefix: string,
     ~amount: int,
-    ~usedLabels: Belt_HashSetString.t=?,
+    ~reservedLabels: Belt_HashSetString.t=?,
+    ~checkHypsOnly:bool=?,
     unit,
 ) => array<string>
 

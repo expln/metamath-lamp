@@ -14,6 +14,8 @@ type wrkCtxErr = {
 
 let prepareParenInts: (mmContext, string) => array<int>
 
+let textToVarDefs: string => result<array<array<string>>,string>
+
 let createWrkCtx: (
     ~preCtx: mmContext,
     ~varsText: string,

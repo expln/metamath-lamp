@@ -181,13 +181,7 @@ let getStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
 }
 
 let getStmtIdx = (st:editorState,id:stmtId):int => {
-    let res = ref(-1)
-    st.stmts->Js_array2.forEachi((stmt,i) => {
-        if (stmt.id == id) {
-            res.contents = i
-        }
-    })
-    res.contents
+    st.stmts->Js_array2.findIndex(stmt => stmt.id == id)
 }
 
 let updateStmt = (st:editorState,id,update):editorState => {
@@ -303,26 +297,24 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
     st->getAllStmtsUpToChecked
 }
 
-let getRootProvablesForUnification = (st):array<rootStmt> => {
-    st->getRootStmtsForUnification
-        ->Js_array2.filter(stmt => stmt.typ == P)
-        ->Js_array2.map(userStmtToRootStmt)
-}
-
 let createNewLabel = (st:editorState, prefix:string):string => {
-    let isLabelDefinedInCtx = label => {
-        switch st.wrkCtx {
-            | Some(wrkCtx) => wrkCtx->isHyp(label) || wrkCtx->isAsrt(label)
-            | None => false
+    let reservedLabels = Belt_HashSetString.fromArray(st.stmts->Js_array2.map(stmt=>stmt.label))
+    switch textToVarDefs(st.varsText) {
+        | Error(_) => ()
+        | Ok(varDefs) => {
+            varDefs->Js_array2.forEach(varDef => {
+                reservedLabels->Belt_HashSetString.add(varDef[0])
+            })
         }
     }
+
+    let labelIsReserved = label => reservedLabels->Belt_HashSetString.has(label) || st.preCtx->isHyp(label)
     
-    let usedLabels = st.stmts->Js_array2.map(stmt=>stmt.label)
-    let i = ref(1)
-    let newLabel = ref(prefix ++ i.contents->Belt_Int.toString)
-    while (usedLabels->Js.Array2.includes(newLabel.contents) || isLabelDefinedInCtx(newLabel.contents)) {
-        i.contents = i.contents + 1
-        newLabel.contents = prefix ++ i.contents->Belt_Int.toString
+    let cnt = ref(1)
+    let newLabel = ref(prefix ++ cnt.contents->Belt_Int.toString)
+    while (labelIsReserved(newLabel.contents)) {
+        cnt.contents = cnt.contents + 1
+        newLabel.contents = prefix ++ cnt.contents->Belt_Int.toString
     }
     newLabel.contents
 }
@@ -330,7 +322,7 @@ let createNewLabel = (st:editorState, prefix:string):string => {
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let newLabel = createNewLabel(st, newLabelPrefix)
-    let idToAddBefore = st.stmts->Js_array2.find(stmt => st.checkedStmtIds->Js_array2.includes(stmt.id))->Belt_Option.map(stmt => stmt.id)
+    let idToAddBefore = st.stmts->Js_array2.find(stmt => isStmtChecked(st,stmt.id))->Belt_Option.map(stmt => stmt.id)
     (
         {
             ...st,
@@ -506,16 +498,6 @@ let incUnifyAllIsRequiredCnt = st => {
     }
 }
 
-let getTypeAndVarFromVarsTextLine = (str):option<(string,string)> => {
-    let arr = getSpaceSeparatedValuesAsArray(str)
-    if (arr->Js_array2.length != 3) {
-        None
-    } else {
-        Some((arr[1], arr[2]))
-    }
-}
-
-let newLineRegex = %re("/[\n\r]/")
 let extractVarColorsFromVarsText = (varsText, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
     let res = Belt_HashMapString.make(~hintSize=16)
     varsText->Js_string2.splitByRe(newLineRegex)->Js_array2.forEach(lineOpt => {

@@ -42,30 +42,58 @@ let prepareParenInts = (wrkCtx, parenStr) => {
     parenInts
 }
 
-let addVarFromString = (wrkCtx, str) => {
-    let arr = getSpaceSeparatedValuesAsArray(str)
+let lineToVarDef = (line:string):result<array<string>,string> => {
+    let arr = getSpaceSeparatedValuesAsArray(line)
     if (arr->Js_array2.length != 3) {
-        raise(MmException({msg:`Cannot convert '${str}' to Var statement.`}))
+        Error(`A line representing a variable definition should consist of exactly three parts` 
+                        ++ ` separated with a whitespace.`)
     } else {
-        wrkCtx->applySingleStmt(Var({symbols:[arr[2]]}))
-        wrkCtx->applySingleStmt(Floating({label:arr[0], expr:[arr[1], arr[2]]}))
+        Ok(arr)
     }
 }
 
 let newLineRegex = %re("/[\n\r]/")
-let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
-    let varLines = varsText
+let textToVarDefs = (text:string):result<array<array<string>>,string> => {
+    let varLines = text
         ->Js_string2.splitByRe(newLineRegex)
-        ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(s => s->Js_string2.length > 0)
+        ->Js_array2.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
+        ->Js_array2.filter(str => str->Js_string2.length > 0)
     if (varLines->Js.Array2.length == 0) {
-        None
+        Ok([])
     } else {
-        try {
-            varLines->Js_array2.forEach(addVarFromString(wrkCtx))
-            None
-        } catch {
-            | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), varsErr:Some(msg)})
+        varLines->Js_array2.reduce(
+            (res,line) => {
+                switch res {
+                    | Error(_) => res
+                    | Ok(varDefs) => {
+                        switch lineToVarDef(line) {
+                            | Error(msg) => Error(msg)
+                            | Ok(varDef) => {
+                                varDefs->Js_array2.push(varDef)
+                                Ok(varDefs)
+                            }
+                        }
+                    }
+                }
+            },
+            Ok([])
+        )
+    }
+}
+
+let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
+    switch textToVarDefs(varsText) {
+        | Error(msg) => Some({...makeEmptyWrkCtxErr(), varsErr:Some(msg)})
+        | Ok(varDefs) => {
+            try {
+                varDefs->Js_array2.forEach(varDef => {
+                    wrkCtx->applySingleStmt(Var({symbols:[varDef[2]]}))
+                    wrkCtx->applySingleStmt(Floating({label:varDef[0], expr:[varDef[1], varDef[2]]}))
+                })
+                None
+            } catch {
+                | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), varsErr:Some(msg)})
+            }
         }
     }
 }

@@ -908,19 +908,22 @@ let generateNewLabels = (
     ~prefix:string, 
     ~amount:int,
     ~reservedLabels:option<Belt_HashSetString.t>=?,
+    ~checkHypsOnly:bool=false,
     ()
 ): array<string> => {
+    let labelIsReserved = label => {
+        reservedLabels->Belt.Option.map(Belt_HashSetString.has(_,label))->Belt_Option.getWithDefault(false)
+            || (!checkHypsOnly && ctx->getTokenType(newName.contents)->Belt_Option.isSome)
+            || (checkHypsOnly && ctx->isHyp(label))
+    }
+
     let maxI = amount - 1
     let cnt = ref(0)
     let res = []
     for _ in 0 to maxI {
         cnt.contents = cnt.contents + 1
         let newName = ref(prefix ++ cnt.contents->Belt_Int.toString)
-        while (ctx->getTokenType(newName.contents)->Belt_Option.isSome
-                    || reservedLabels
-                        ->Belt.Option.map(Belt_HashSetString.has(_,newName.contents))
-                        ->Belt_Option.getWithDefault(false)
-        ) {
+        while (labelIsReserved(newName.contents)) {
             cnt.contents = cnt.contents + 1
             newName.contents = prefix ++ cnt.contents->Belt_Int.toString
         }
