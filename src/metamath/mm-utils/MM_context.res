@@ -877,13 +877,13 @@ let generateNewVarNames = (
     ~ctx:mmContext, 
     ~types:array<int>, 
     ~typeToPrefix:Belt_MapString.t<string>,
-    ~usedNames:option<Belt_HashSetString.t>=?,
+    ~reservedNames:option<Belt_HashSetString.t>=?,
     ()
 ): array<string> => {
-    let prefixToCnt = Belt_MutableMapString.make()
+    let prefixToCnt = Belt_HashMapString.make(~hintSize=typeToPrefix->Belt_MapString.size)
 
-    let getCnt = prefix => prefixToCnt->Belt_MutableMapString.getWithDefault(prefix,0)
-    let incCnt = prefix => prefixToCnt->Belt_MutableMapString.set(prefix,getCnt(prefix)+1)
+    let getCnt = prefix => prefixToCnt->Belt_HashMapString.get(prefix)->Belt.Option.getWithDefault(0)
+    let incCnt = prefix => prefixToCnt->Belt_HashMapString.set(prefix,getCnt(prefix)+1)
 
     let maxI = types->Js.Array2.length - 1
     let res = []
@@ -892,8 +892,8 @@ let generateNewVarNames = (
         let prefix = typeToPrefix->Belt_MapString.getWithDefault(typeStr, typeStr)
         incCnt(prefix)
         let newName = ref(prefix ++ getCnt(prefix)->Belt_Int.toString)
-        while (ctx->isConst(newName.contents) || ctx->isVar(newName.contents)
-                || usedNames
+        while (ctx->getTokenType(newName.contents)->Belt_Option.isSome
+                || reservedNames
                         ->Belt.Option.map(Belt_HashSetString.has(_,newName.contents))
                         ->Belt_Option.getWithDefault(false)
         ) {
@@ -909,7 +909,7 @@ let generateNewLabels = (
     ~ctx:mmContext, 
     ~prefix:string, 
     ~amount:int,
-    ~usedLabels:option<Belt_HashSetString.t>=?,
+    ~reservedLabels:option<Belt_HashSetString.t>=?,
     ()
 ): array<string> => {
     let maxI = amount - 1
@@ -918,8 +918,8 @@ let generateNewLabels = (
     for _ in 0 to maxI {
         cnt.contents = cnt.contents + 1
         let newName = ref(prefix ++ cnt.contents->Belt_Int.toString)
-        while (ctx->isHyp(newName.contents) || ctx->isAsrt(newName.contents)
-                    || usedLabels
+        while (ctx->getTokenType(newName.contents)->Belt_Option.isSome
+                    || reservedLabels
                         ->Belt.Option.map(Belt_HashSetString.has(_,newName.contents))
                         ->Belt_Option.getWithDefault(false)
         ) {
@@ -986,13 +986,3 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
 
 }
 
-let ctxMakeExprToHyp = (ctx:mmContext):Belt_HashMap.t<expr,hypothesis,ExprHash.identity> => {
-    let res = Belt_HashMap.make(
-        ~id=module(ExprHash), 
-        ~hintSize=ctx.contents.root->Belt_Option.map(root => root.hyps->Js_array.length)->Belt_Option.getWithDefault(0)
-    )
-    ctx.contents->forEachCtxInDeclarationOrder(ctx => {
-        ctx.hyps->Js_array2.forEach(hyp => res->Belt_HashMap.set(hyp.expr, hyp))
-    })
-    res
-}
