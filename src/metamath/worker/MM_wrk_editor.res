@@ -981,112 +981,125 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     }
 }
 
-let stmtsHaveSameExpr = (
-    ~stmt:userStmt, 
-    ~stmtDto:stmtDto,
-):bool => {
+let stmtsHaveSameExpr = ( ~stmt:userStmt, ~stmtDto:stmtDto, ):bool => {
     switch stmt.expr {
         | None => raise(MmException({msg:`Cannot compare statements without expr.`}))
         | Some(expr) => expr->exprEq(stmtDto.expr)
     }
 }
 
-let insertExpr = (
+let getUserStmtByExpr = (st, expr):option<userStmt> => {
+    st.stmts->Js_array2.find(stmt => {
+        switch stmt.expr {
+            | None => raise(MmException({msg:`Cannot getUserStmtByExpr without stmt.expr.`}))
+            | Some(stmtExpr) => stmtExpr->exprEq(expr)
+        }
+    })
+}
+
+let insertStmt = (
     st:editorState, 
-    ~exprText:string, 
-    ~jstfText:string, 
+    ~expr:expr, 
+    ~jstf:option<jstf>, 
     ~before:option<stmtId>,
     ~placeAtMaxIdxByDefault:bool,
-):(editorState,option<string>) => {
-    let maxIdx = switch before {
-        | None => st.stmts->Js_array2.length
-        | Some(stmtId) => {
-            switch st.stmts->Js_array2.findIndex(stmt => stmt.id == stmtId) {
-                | -1 => st.stmts->Js_array2.length
-                | idx => idx
-            }
-        }
-    }
-    let newJstf:result<option<jstf>,_> = parseJstf(jstfText)
-    let minIdx = switch newJstf {
-        | Ok(Some({args})) => {
-            let remainingLabels = Belt_HashSetString.fromArray(args)
-            let minIdx = st.stmts->Js_array2.reducei(
-                (minIdx,stmt,idx) => {
-                    if (remainingLabels->Belt_HashSetString.isEmpty) {
-                        minIdx
-                    } else {
-                        remainingLabels->Belt_HashSetString.remove(stmt.label)
-                        idx + 1
-                    }
-                },
-                0
-            )
-            if (maxIdx < minIdx) { maxIdx } else { minIdx }
-        }
-        | _ => 0
-    }
-
-    let jstfEqNewJstf = jstf => {
-        switch newJstf {
-            | Ok(Some(newJstf)) => jstfEq(newJstf, jstf)
-            | _ => false
-        }
-    }
-
-    let updateExistingStmt = (st,existingStmt,newJstf):(editorState,stmtId,string) => {
-        let st = switch newJstf {
-            | Ok(Some(newJstf)) => {
-                st->updateStmt(existingStmt.id, stmt => {
-                    {
-                        ...stmt,
-                        jstfText: jstfToStr(newJstf)
-                    }
-                })
-            }
-            | _ => st
-        }
-        (st, existingStmt.id, existingStmt.label)
-    }
-
-    let insertNewStmt = (st,existingStmt:option<userStmt>):(editorState,stmtId,string) => {
-        let newIdx = switch existingStmt {
-            | None => if placeAtMaxIdxByDefault {maxIdx} else {minIdx}
-            | Some(existingStmt) => {
-                let newIdx = st->getStmtIdx(existingStmt.id) + 1
-                if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { maxIdx }
-            }
-        }
-        let (st,newStmtId) = st->addNewStmtAtIdx(newIdx)
-        let st = st->updateStmt(newStmtId, stmt => {
-            {
-                ...stmt,
-                typ: P,
-                cont: strToCont(exprText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
-                contEditMode: false,
-                jstfText,
-            }
-        })
-        (st, newStmtId, (st->getStmtByIdExn(newStmtId)).label)
-    }
-
-    switch st.stmts->Js_array2.find(stmt => stmt.cont->contToStr == exprText) {
-        | None => insertNewStmt(st,None)
-        | Some(existingStmt) => {
-            if (existingStmt.typ == E) {
-                (st, existingStmt.id, existingStmt.label)
-            } else {
-                switch parseJstf(existingStmt.jstfText) {
-                    | Ok(None) => updateExistingStmt(st,existingStmt,newJstf)
-                    | Ok(Some(existingJstf)) => {
-                        if (existingJstf->jstfEqNewJstf) {
-                            (st, existingStmt.id, existingStmt.label)
-                        } else {
-                            insertNewStmt(st,Some(existingStmt))
+):(editorState,string) => {
+    switch st.wrkCtx {
+        | None => raise(MmException({msg:`Cannot insertStmt without wrkCtx.`}))
+        | Some(wrkCtx) => {
+            switch wrkCtx->getHypByExpr(expr) {
+                | Some(hyp) => (st,hyp.label)
+                | None => {
+                    let maxIdx = switch before {
+                        | None => st.stmts->Js_array2.length
+                        | Some(stmtId) => {
+                            switch st.stmts->Js_array2.findIndex(stmt => stmt.id == stmtId) {
+                                | -1 => st.stmts->Js_array2.length
+                                | idx => idx
+                            }
                         }
                     }
-                    | Error(_) => {
-                        insertNewStmt(st,Some(existingStmt))
+                    let minIdx = switch jstf {
+                        | None => 0
+                        | Some({args}) => {
+                            let remainingLabels = Belt_HashSetString.fromArray(args)
+                            let minIdx = st.stmts->Js_array2.reducei(
+                                (minIdx,stmt,idx) => {
+                                    if (remainingLabels->Belt_HashSetString.isEmpty) {
+                                        minIdx
+                                    } else {
+                                        remainingLabels->Belt_HashSetString.remove(stmt.label)
+                                        idx + 1
+                                    }
+                                },
+                                0
+                            )
+                            if (maxIdx < minIdx) { maxIdx } else { minIdx }
+                        }
+                    }
+
+                    let updateExistingStmt = (st,existingStmt):(editorState,string) => {
+                        let st = switch jstf {
+                            | Some(jstf) => {
+                                st->updateStmt(existingStmt.id, stmt => { ...stmt, jstfText: jstfToStr(jstf) })
+                            }
+                            | _ => st
+                        }
+                        (st, existingStmt.label)
+                    }
+
+                    let insertNewStmt = (st,existingStmt:option<userStmt>):(editorState,string) => {
+                        let newIdx = switch existingStmt {
+                            | None => if placeAtMaxIdxByDefault {maxIdx} else {minIdx}
+                            | Some(existingStmt) => {
+                                let newIdx = st->getStmtIdx(existingStmt.id) + 1
+                                if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { minIdx }
+                            }
+                        }
+                        let (st,newStmtId) = st->addNewStmtAtIdx(newIdx)
+                        let st = st->updateStmt(newStmtId, stmt => {
+                            {
+                                ...stmt,
+                                typ: P,
+                                cont: strToCont( 
+                                    wrkCtx->ctxIntsToStrExn(expr), 
+                                    ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()
+                                ),
+                                contEditMode: false,
+                                jstfText: jstf->Belt_Option.mapWithDefault("", jstfToStr),
+                            }
+                        })
+                        (st, (st->getStmtByIdExn(newStmtId)).label)
+                    }
+
+                    let existingJstfEqNewJstf = existingJstf => {
+                        switch jstf {
+                            | Some(jstf) => jstfEq(existingJstf, jstf)
+                            | _ => false
+                        }
+                    }
+
+                    switch getUserStmtByExpr(st,expr) {
+                        | None => insertNewStmt(st,None)
+                        | Some(existingStmt) => {
+                            if (existingStmt.typ == E) {
+                                (st, existingStmt.label)
+                            } else {
+                                switch parseJstf(existingStmt.jstfText) {
+                                    | Ok(None) => updateExistingStmt(st,existingStmt)
+                                    | Ok(Some(existingJstf)) => {
+                                        if (existingJstf->existingJstfEqNewJstf) {
+                                            (st, existingStmt.label)
+                                        } else {
+                                            insertNewStmt(st,Some(existingStmt))
+                                        }
+                                    }
+                                    | Error(_) => {
+                                        insertNewStmt(st,Some(existingStmt))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
