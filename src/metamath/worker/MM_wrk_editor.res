@@ -319,10 +319,18 @@ let createNewLabel = (st:editorState, prefix:string):string => {
     newLabel.contents
 }
 
+let getTopmostSelectedStmt = (st):option<userStmt> => {
+    if (st.checkedStmtIds->Js.Array2.length == 0) {
+        None
+    } else {
+        st.stmts->Js_array2.find(stmt => isStmtChecked(st,stmt.id))
+    }
+}
+
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let newLabel = createNewLabel(st, newLabelPrefix)
-    let idToAddBefore = st.stmts->Js_array2.find(stmt => isStmtChecked(st,stmt.id))->Belt_Option.map(stmt => stmt.id)
+    let idToAddBefore = getTopmostSelectedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
             ...st,
@@ -899,23 +907,11 @@ let prepareEditorForUnification = st => {
     )
 }
 
-let getTopmostSelectedStmt = (st):option<userStmt> => {
-    if (st.checkedStmtIds->Js.Array2.length == 0) {
-        None
-    } else {
-        st.stmts->Js_array2.find(stmt => st.checkedStmtIds->Js_array2.includes(stmt.id))
-    }
-}
-
 let getTheOnlySelectedStmt = (st):option<userStmt> => {
     if (st.checkedStmtIds->Js.Array2.length != 1) {
         None
     } else {
-        let idToFind = st.checkedStmtIds[0]
-        switch st.stmts->Js_array2.find(stmt => stmt.id == idToFind) {
-            | None => None
-            | Some(stmt) => Some(stmt)
-        }
+        getTopmostSelectedStmt(st)
     }
 }
 
@@ -953,14 +949,11 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
                 })->Js_array2.joinWith("\n")
                 let st = {
                     ...st,
-                    varsText: st.varsText 
-                                ++ (if (st.varsText->Js.String2.trim->Js.String2.length != 0) {"\n"} else {""})
-                                ++ newVarsText
+                    varsText: [st.varsText, newVarsText]->Js.Array2.joinWith("\n")->Js.String2.trim
                 }
                 let st = recalcWrkCtxColors(st)
                 ( st, newVarInts )
             }
-            
         }
     }
 }
@@ -969,12 +962,11 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new disjoints without wrkCtx.`}))
         | Some(wrkCtx) => {
-            newDisj->disjForEachArr(varInts => {
-                wrkCtx->applySingleStmt(Disj({vars:wrkCtx->ctxIntsToSymsExn(varInts)}))
-            })
             let newDisjTextLines = []
             newDisj->disjForEachArr(varInts => {
-                newDisjTextLines->Js.Array2.push(wrkCtx->ctxIntsToSymsExn(varInts)->Js.Array2.joinWith(","))->ignore
+                let varsStr = wrkCtx->ctxIntsToSymsExn(varInts)
+                wrkCtx->applySingleStmt(Disj({vars:varsStr}))
+                newDisjTextLines->Js.Array2.push(varsStr->Js.Array2.joinWith(","))->ignore
             })
             if (newDisjTextLines->Js.Array2.length == 0) {
                 st
@@ -982,9 +974,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
                 let newDisjText = newDisjTextLines->Js.Array2.joinWith("\n")
                 {
                     ...st,
-                    disjText: st.disjText 
-                                ++ (if (st.disjText->Js.String2.trim->Js.String2.length != 0) {"\n"} else {""})
-                                ++ newDisjText
+                    disjText: [st.disjText, newDisjText]->Js.Array2.joinWith("\n")->Js.String2.trim
                 }
             }
         }
@@ -992,14 +982,13 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
 }
 
 let stmtsHaveSameExpr = (
-    ~ctx:mmContext, 
     ~stmt:userStmt, 
     ~stmtDto:stmtDto,
-    ~dtoVarToCtxVar: Belt_MutableMapInt.t,
 ):bool => {
-    stmtDto.expr
-        ->Js_array2.map(i => dtoVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
-        ->exprEq(stmt.cont->contToStr->ctxStrToIntsExn(ctx, _))
+    switch stmt.expr {
+        | None => raise(MmException({msg:`Cannot compare statements without expr.`}))
+        | Some(expr) => expr->exprEq(stmtDto.expr)
+    }
 }
 
 let insertExpr = (
@@ -1114,6 +1103,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
             newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
                 newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
             })
+            //update all stmtDto.expr
             let newCtxDisj = disjMutableMake()
             newStmts.newDisj->disjForEach((n,m) => {
                 newCtxDisj->disjAddPair(
