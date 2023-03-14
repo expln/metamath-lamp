@@ -120,6 +120,7 @@ let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
     }
 }
 
+//todo: review this function
 let srcToNewStmts = (
     ~rootStmts:array<rootStmt>,
     ~reservedLabels: array<string>,

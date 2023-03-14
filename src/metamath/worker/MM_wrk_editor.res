@@ -981,7 +981,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
     }
 }
 
-let stmtsHaveSameExpr = ( ~stmt:userStmt, ~stmtDto:stmtDto, ):bool => {
+let stmtsHaveSameExpr = ( stmt:userStmt, stmtDto:stmtDto ):bool => {
     switch stmt.expr {
         | None => raise(MmException({msg:`Cannot compare statements without expr.`}))
         | Some(expr) => expr->exprEq(stmtDto.expr)
@@ -1040,10 +1040,10 @@ let insertStmt = (
 
                     let updateExistingStmt = (st,existingStmt):(editorState,string) => {
                         let st = switch jstf {
+                            | None => st
                             | Some(jstf) => {
                                 st->updateStmt(existingStmt.id, stmt => { ...stmt, jstfText: jstfToStr(jstf) })
                             }
-                            | _ => st
                         }
                         (st, existingStmt.label)
                     }
@@ -1107,6 +1107,18 @@ let insertStmt = (
     }
 }
 
+let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:Belt_MutableMapInt.t):stmtsDto => {
+    {
+        ...newStmts,
+        stmts: newStmts.stmts->Js_array2.map(stmt => {
+            {
+                ...stmt,
+                expr: stmt.expr->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
+            }
+        })
+    }
+}
+
 let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot add new statements without wrkCtx.`}))
@@ -1116,7 +1128,8 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
             newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
                 newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
             })
-            //update all stmtDto.expr
+            let newStmts = replaceDtoVarsWithCtxVarsInExprs(newStmts, newStmtsVarToCtxVar)
+
             let newCtxDisj = disjMutableMake()
             newStmts.newDisj->disjForEach((n,m) => {
                 newCtxDisj->disjAddPair(
@@ -1125,76 +1138,52 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                 )
             })
             let st = createNewDisj(st, newCtxDisj)
-            let selectionWasEmpty = st.checkedStmtIds->Js.Array2.length == 0
-            let st = if (!selectionWasEmpty || st.stmts->Js.Array2.length == 0) {
-                st
-            } else {
-                st->toggleStmtChecked(st.stmts[0].id)
-            }
+
             let checkedStmt = st->getTopmostSelectedStmt
             let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
 
-            let getJstfTextFromStmtDto = (stmt:stmtDto, defaultJstfText:string):string => {
-                switch stmt.jstf {
-                    | None => defaultJstfText
-                    | Some({args, label}) => {
-                        jstfToStr({
-                            args: args->Js_array2.map(argLabel => {
-                                newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(argLabel,argLabel)
-                            }), 
-                            label
-                        })
-                    }
+            let replaceDtoLabelsWithCtxLabels = jstf => {
+                {
+                    ...jstf,
+                    args: jstf.args->Js_array2.map(arg => 
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(arg,arg)
+                    )
                 }
             }
 
-            let stmtsHaveSameExpr = (userStmt, stmtDto) => {
-                stmtsHaveSameExpr(
-                    ~ctx = wrkCtx, 
-                    ~stmt = userStmt, 
-                    ~stmtDto,
-                    ~dtoVarToCtxVar = newStmtsVarToCtxVar
-                )
-            }
-
             let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmtDto => {
-                st.stmts->Js_array2.some(rootStmt => stmtsHaveSameExpr(rootStmt, stmtDto))
+                st.stmts->Js_array2.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
             })
             let stMut = ref(st)
             newStmts.stmts->Js_array2.forEach(stmtDto => {
-                let newJstfText = getJstfTextFromStmtDto(stmtDto, "")
                 switch checkedStmt {
-                    | Some(checkedStmt) if stmtsHaveSameExpr(checkedStmt, stmtDto) => {
-                        stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
-                            {
-                                ...stmtToUpdate,
-                                jstfText: newJstfText
-                            }
-                        })
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
-                    }
-                    | _ => {
-                        let exprText = stmtDto.expr
-                            ->Js_array2.map(i => newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(i,i))
-                            ->ctxIntsToStrExn(wrkCtx, _)
-                        let (st, _, ctxLabel) = insertProvable(stMut.contents,
-                            ~exprText, 
-                            ~jstfText = newJstfText, 
+                    | None => {
+                        let (st, ctxLabel) = stMut.contents->insertStmt(
+                            ~expr=stmtDto.expr, 
+                            ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                             ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
                             ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
                         )
                         stMut.contents = st
                         newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
                     }
+                    | Some(checkedStmt) if stmtsHaveSameExpr(checkedStmt, stmtDto) => {
+                        stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
+                            {
+                                ...stmtToUpdate,
+                                jstfText:
+                                    switch stmtDto.jstf {
+                                        | None => stmtToUpdate.jstfText
+                                        | Some(jstf) => jstf->replaceDtoLabelsWithCtxLabels->jstfToStr
+                                    }
+                            }
+                        })
+                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
+                    }
                     
                 }
             })
-            let st = stMut.contents
-            if (selectionWasEmpty) {
-                st->uncheckAllStmts
-            } else {
-                st
-            }
+            stMut.contents
         }
     }
 }
