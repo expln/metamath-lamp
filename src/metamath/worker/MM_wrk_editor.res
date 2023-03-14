@@ -1188,7 +1188,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     }
 }
 
-let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):unit => {
+let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
     let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
         [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
@@ -1197,7 +1197,7 @@ let verifyTypesForSubstitution = (~settings, ~ctx, ~frms, ~wrkSubs):unit => {
         ~ctx,
         ~frms,
         ~floatingsToProve=typesToProve,
-        ~parenCnt=parenCntMake(prepareParenInts(ctx, settings.parens), ()),
+        ~parenCnt,
         ()
     )
     varToExprArr->Js_array2.forEachi(((var,expr), i) =>
@@ -1217,47 +1217,46 @@ let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
             | Some(ctxSym) => ctx->ctxSymToIntExn(ctxSym)
         }
     }
-    let res = Belt_Array.range(1,tmpFrame.numOfVars)
+    let res = Belt_Array.range(0,tmpFrame.numOfVars-1)
         ->Js.Array2.map(v => {
             (
-                frameVarToCtxVar(v-1),
+                frameVarToCtxVar(v),
                 applySubs(
-                    ~frmExpr=[v-1],
+                    ~frmExpr=[v],
                     ~subs,
                     ~createWorkVar = 
                         _ => raise(MmException({msg:`Work variables are not supported in convertSubsToWrkSubs().`}))
                 )
             )
         })
-        ->Belt_MutableMapInt.fromArray
+        ->Belt_HashMapInt.fromArray
     let maxVar = ctx->getNumOfVars-1
     for v in 0 to maxVar {
-        if (!(res->Belt_MutableMapInt.has(v))) {
-            res->Belt_MutableMapInt.set(v, [v])
+        if (!(res->Belt_HashMapInt.has(v))) {
+            res->Belt_HashMapInt.set(v, [v])
         }
     }
     {
-        subs: res->Belt_MutableMapInt.toArray->Belt_MapInt.fromArray,
-        newDisj: disjMutableMake(),
+        subs: res->Belt_HashMapInt.toArray->Belt_MapInt.fromArray,
+        newDisj: disjMake(),
         err: None,
     }
-    
 }
 
 let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
-    let varToSubVars = Belt_MutableMapInt.make()
+    let varToSubVars = Belt_HashMapInt.make(~hintSize=wrkSubs.subs->Belt_MapInt.size)
 
     let getSubVars = var => {
-        switch varToSubVars->Belt_MutableMapInt.get(var) {
+        switch varToSubVars->Belt_HashMapInt.get(var) {
             | None => {
-                varToSubVars->Belt_MutableMapInt.set(
+                varToSubVars->Belt_HashMapInt.set(
                     var, 
                     switch wrkSubs.subs->Belt_MapInt.get(var) {
                         | None => []
                         | Some(expr) => expr->Js_array2.filter(s => s >= 0)
                     }
                 )
-                varToSubVars->Belt_MutableMapInt.getExn(var)
+                varToSubVars->Belt_HashMapInt.getExn(var)
             }
             | Some(arr) => arr
         }
@@ -1294,7 +1293,7 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
             let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
             let tmpFrame = createFrame(
                 ~ctx=wrkCtx, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
-                ~skipHyps=true, ~skipFirstSymCheck=true, ()
+                ~skipEssentials=true, ~skipFirstSymCheck=true, ()
             )
             let frm = prepareFrmSubsDataForFrame(tmpFrame)
             let disj = wrkCtx->getAllDisj
@@ -1306,12 +1305,12 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
                 ~constParts = frm.constParts[frm.numOfHypsE], 
                 ~varGroups = frm.varGroups[frm.numOfHypsE],
                 ~subs = frm.subs,
-                ~parenCnt=parenCntMake(prepareParenInts(wrkCtx, st.settings.parens), ()),
+                ~parenCnt=st.parenCnt,
                 ~consumer = subs => {
                     let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
                     verifyDisjoints(~wrkSubs, ~disj)
                     if (wrkSubs.err->Belt_Option.isNone) {
-                        verifyTypesForSubstitution(~settings=st.settings, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
+                        verifyTypesForSubstitution(~parenCnt=st.parenCnt, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
                     }
                     foundSubs->Js_array2.push(wrkSubs)->ignore
                     Continue
