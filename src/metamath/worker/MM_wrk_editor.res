@@ -1409,21 +1409,21 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserStmt):option<jstf> => {
+let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserStmt):option<jstf> => {
     switch exprSrc {
-        | Assertion({args, label:asrtLabel}) => {
-            switch wrkCtx->getFrame(asrtLabel) {
-                | None => None
+        | Assertion({args, label}) => {
+            switch wrkCtx->getFrame(label) {
+                | None => raise(MmException({msg:`Cannot find an assertion '${label}' in srcToJstf.`}))
                 | Some(frame) => {
                     let argLabels = []
                     let argLabelsValid = ref(true)
                     frame.hyps->Js_array2.forEachi((hyp,i) => {
-                        if (hyp.typ == E) {
+                        if (hyp.typ == E && argLabelsValid.contents) {
                             switch args->Belt_Array.get(i) {
-                                | None => argLabelsValid.contents = false
-                                | Some(argIdx) => {
-                                    switch exprToUserStmt->Belt_Map.get(proofTree.nodes[argIdx].expr) {
-                                        | None => argLabelsValid.contents = false
+                                | None => raise(MmException({msg:`Too few arguments for '${label}' in srcToJstf.`}))
+                                | Some(nodeIdx) => {
+                                    switch exprToUserStmt->Belt_Map.get(proofTree.nodes[nodeIdx].expr) {
+                                        | None => argLabelsValid.contents = false //todo: return a meaningful error from here
                                         | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
                                 }
@@ -1431,10 +1431,7 @@ let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToU
                         }
                     })
                     if (argLabelsValid.contents) {
-                        Some({
-                            args: argLabels,
-                            label: asrtLabel
-                        })
+                        Some({ args: argLabels, label })
                     } else {
                         None
                     }
@@ -1447,8 +1444,9 @@ let exprSrcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToU
 
 let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
     switch proofNode.proof {
+        | None => stmt
         | Some(proofSrc) => {
-            switch exprSrcToJstf(wrkCtx, proofTree, proofSrc, exprToUserStmt) {
+            switch srcToJstf(wrkCtx, proofTree, proofSrc, exprToUserStmt) {
                 | None => stmt
                 | Some(jstfFromProof) => {
                     switch stmt.jstf {
@@ -1460,7 +1458,7 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
                             }
                         }
                         | Some(existingJstf) => {
-                            if (jstfFromProof == existingJstf) {
+                            if (jstfFromProof->jstfEq(existingJstf)) {
                                 {
                                     ...stmt,
                                     proof: Some((proofTree, proofNode)),
@@ -1473,16 +1471,14 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
                 }
             }
         }
-        | None => stmt
     }
-    
 }
 
 let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
-    let parentEqJstf = (parentSrc, jstf) => {
-        switch exprSrcToJstf(wrkCtx, proofTree, parentSrc, exprToUserStmt) {
+    let srcEqJstf = (src, jstf) => {
+        switch srcToJstf(wrkCtx, proofTree, src, exprToUserStmt) {
             | None => false
-            | Some(parentJstf) => parentJstf == jstf
+            | Some(jstfFromSrc) => jstf->jstfEq(jstfFromSrc)
         }
     }
 
@@ -1492,7 +1488,7 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
             switch stmt.jstf {
                 | None => {...stmt, proofStatus:Some(NoJstf)}
                 | Some(jstf) => {
-                    switch proofNode.parents->Js.Array2.find(parentEqJstf(_, jstf)) {
+                    switch proofNode.parents->Js.Array2.find(srcEqJstf(_, jstf)) {
                         | Some(_) => {...stmt, proofStatus:Some(Waiting)}
                         | None => {...stmt, proofStatus:Some(JstfIsIncorrect)}
                     }
@@ -1506,22 +1502,30 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot applyUnifyAllResults without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let nodes = proofTreeDto.nodes
+            let exprToNode = proofTreeDto.nodes
                 ->Js_array2.map(node => (node.expr,node))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let exprToUserStmt = st.stmts
-                                    ->Js_array2.filter(stmt => stmt.expr->Belt_Option.isSome)
-                                    ->Js_array2.map(stmt => (stmt.expr->Belt_Option.getExn, stmt))
-                                    ->Belt_Map.fromArray(~id=module(ExprCmp))
+                                    ->Js_array2.map(stmt => {
+                                        switch stmt.expr {
+                                            | None => 
+                                                raise(MmException({
+                                                    msg:`Cannot applyUnifyAllResults without stmt.expr [1].`
+                                                }))
+                                            | Some(expr) => (expr, stmt)
+                                        }
+                                    })
+                                    ->Belt_HashMap.fromArray(~id=module(ExprCmp))
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}
                     if (stmt.typ == P) {
                         st->updateStmt(stmt.id, stmt => {
                             switch stmt.expr {
-                                | None => stmt
+                                | None => 
+                                    raise(MmException({ msg:`Cannot applyUnifyAllResults without stmt.expr [2].`}))
                                 | Some(expr) => {
-                                    switch nodes->Belt_HashMap.get(expr) {
+                                    switch exprToNode->Belt_HashMap.get(expr) {
                                         | None => stmt
                                         | Some(node) => {
                                             let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
