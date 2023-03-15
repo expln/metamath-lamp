@@ -173,9 +173,11 @@ let userStmtToRootStmt = (stmt:userStmt):rootStmt => {
     }
 }
 
-let getStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
-    switch st.stmts->Js_array2.find(stmt => stmt.id == id) {
-        | None => raise(MmException({msg:`getStmtByIdExn: Cannot find a statement by statement id.`}))
+let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
+
+let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
+    switch editorGetStmtById(st,id) {
+        | None => raise(MmException({msg:`editorGetStmtByIdExn: Cannot find a statement by statement id.`}))
         | Some(stmt) => stmt
     }
 }
@@ -290,8 +292,6 @@ let getAllStmtsUpToChecked = (st):array<userStmt> => {
     }
     res
 }
-
-let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
 
 let getRootStmtsForUnification = (st):array<userStmt> => {
     st->getAllStmtsUpToChecked
@@ -1069,7 +1069,7 @@ let insertStmt = (
                                 jstfText: jstf->Belt_Option.mapWithDefault("", jstfToStr),
                             }
                         })
-                        (st, (st->getStmtByIdExn(newStmtId)).label)
+                        (st, (st->editorGetStmtByIdExn(newStmtId)).label)
                     }
 
                     let existingJstfEqNewJstf = existingJstf => {
@@ -1619,8 +1619,8 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                 | Some(stmt) => {
                     switch stmt.proof {
                         | None => None
-                        | Some((proofTable,proofNode)) => {
-                            let proofTable = createProofTable(proofTable,proofNode)
+                        | Some((proofTreeDto,proofNode)) => {
+                            let proofTable = createProofTable(proofTreeDto,proofNode)
                             let proof = MM_proof_table.createProof(wrkCtx, proofTable, proofTable->Js_array2.length-1)
                             Some(proofToText(wrkCtx,stmt,proof))
                         }
@@ -1638,7 +1638,8 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
                 | Error(_) => res
                 | Ok(st) => {
                     switch parseJstf(stmt.jstfText) {
-                        | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' for ${stmt.label}`)
+                        | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' ` 
+                                                ++ `for the statement '${stmt.label}'`)
                         | Ok(None) => Ok(st)
                         | Ok(Some(jstf)) => {
                             if (jstf.args->Js.Array2.includes(replaceWhat)) {
@@ -1725,22 +1726,16 @@ let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorS
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     if (st.checkedStmtIds->Js.Array2.length == 1) {
         switch st->editorGetStmtById(st.checkedStmtIds[0]) {
-            | None => Error("One statement should be selected.")
+            | None => Error("One statement should be selected [1].")
             | Some(stmt1) => {
                 let contStr = stmt1.cont->contToStr
                 switch st.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
                     | None => Error("Cannot find another statement to merge with.")
-                    | Some(stmt2) => {
-                        if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
-                            Error("Statements to merge must have identical expressions.")
-                        } else {
-                            Ok((stmt1, stmt2))
-                        }
-                    }
+                    | Some(stmt2) => Ok((stmt1, stmt2))
                 }
             }
         }
     } else {
-        Error("One statement should be selected.")
+        Error("One statement should be selected [2].")
     }
 }
