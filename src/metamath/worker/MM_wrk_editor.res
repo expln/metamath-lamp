@@ -1130,7 +1130,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
             })
             let newStmts = replaceDtoVarsWithCtxVarsInExprs(newStmts, newStmtsVarToCtxVar)
 
-            let newCtxDisj = disjMutableMake()
+            let newCtxDisj = disjMake()
             newStmts.newDisj->disjForEach((n,m) => {
                 newCtxDisj->disjAddPair(
                     newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(n,n), 

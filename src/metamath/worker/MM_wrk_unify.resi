@@ -17,7 +17,6 @@ let unify: (
     ~preCtx: MM_context.mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
     ~rootProvables: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
     ~debugLevel:int,

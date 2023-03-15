@@ -137,7 +137,7 @@ let srcToNewStmts = (
             let res = {
                 newVars: [],
                 newVarTypes: [],
-                newDisj: disjMutableMake(),
+                newDisj: disjMake(),
                 newDisjStr: [],
                 stmts: [],
             }

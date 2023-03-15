@@ -278,7 +278,7 @@ let checkDisj = (
     ~isDisjInCtx:(int,int)=>bool,
     ~debugLevel:int,
 ):result<disjMutable,unifErr> => {
-    let resultDisj = disjMutableMake()
+    let resultDisj = disjMake()
     let verifRes = verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
         if (n <= maxCtxVar && m <= maxCtxVar) {
             isDisjInCtx(n,m)
@@ -392,7 +392,7 @@ let applyAssertions = (
                                                 if (!isDisjInCtx(n,m)) {
                                                     let mDisj = switch missingDisj.contents {
                                                         | None => {
-                                                            let mDisj = disjMutableMake()
+                                                            let mDisj = disjMake()
                                                             missingDisj.contents = Some(mDisj)
                                                             mDisj
                                                         }
@@ -432,7 +432,7 @@ let applyAssertions = (
                                                 let res = {
                                                     newVars: workVars.newVars->Js.Array2.copy,
                                                     newVarTypes: workVars.newVarTypes->Js.Array2.copy,
-                                                    newDisj: disjMutableMake(),
+                                                    newDisj: disjMake(),
                                                     asrtLabel: frm.frame.label,
                                                     subs: subsClone(frm.subs),
                                                     missingDisj: None,

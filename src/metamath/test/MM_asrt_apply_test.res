@@ -366,7 +366,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "",
                     subs: {
                         size: 0,
@@ -381,7 +381,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "",
                     subs: {
                         size: 0,
@@ -403,7 +403,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "",
                     subs: {
                         size: 0,
@@ -418,7 +418,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "",
                     subs: {
                         size: 0,
@@ -438,7 +438,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "",
                     subs: {
                         size: 0,
@@ -453,7 +453,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "",
                     subs: {
                         size: 0,
@@ -475,7 +475,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "a",
                     subs: {
                         size: 0,
@@ -490,7 +490,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "bc",
                     subs: {
                         size: 0,
@@ -512,7 +512,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
@@ -527,7 +527,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,90,10,11;
@@ -549,7 +549,7 @@ describe("applyAssertionResultEq", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
@@ -558,13 +558,13 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:Some(disjMutableMake()),
+                    missingDisj:Some(disjMake()),
                     err:None,
                 },
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
@@ -589,7 +589,7 @@ describe("applyAssertionResultHash", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
@@ -598,7 +598,7 @@ describe("applyAssertionResultHash", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:Some(disjMutableMake()),
+                    missingDisj:Some(disjMake()),
                     err:None,
                 }
             ),
@@ -609,7 +609,7 @@ describe("applyAssertionResultHash", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
@@ -631,7 +631,7 @@ describe("applyAssertionResultHash", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
@@ -651,7 +651,7 @@ describe("applyAssertionResultHash", _ => {
                 {
                     newVars: [],
                     newVarTypes: [],
-                    newDisj:disjMutableMake(),
+                    newDisj:disjMake(),
                     asrtLabel: "asrt",
                     subs: {
                         size: 2, //2,3,4; 8,90,10,11;

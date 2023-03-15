@@ -81,7 +81,8 @@ let createFrame: (
     ~label:string, 
     ~exprStr:array<string>, 
     ~proof:option<proof>,
-    ~skipHyps:bool=?, 
+    ~tokenType:string=?,
+    ~skipEssentials:bool=?, 
     ~skipFirstSymCheck:bool=?, 
     ()
 ) => frame
@@ -92,7 +93,7 @@ let generateNewVarNames: (
     ~ctx: mmContext, 
     ~types: array<int>, 
     ~typeToPrefix: Belt_MapString.t<string>, 
-    ~usedNames: Belt_HashSetString.t=?, 
+    ~reservedNames: Belt_HashSetString.t=?, 
     unit
 ) => array<string>
 

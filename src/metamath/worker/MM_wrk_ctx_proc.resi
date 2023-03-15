@@ -15,7 +15,6 @@ let beginWorkerInteractionUsingCtx: (
     ~preCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
     ~procName: string,
     ~initialRequest: 'req,
     ~onResponse: ( ~resp: 'resp, ~sendToWorker: 'req => unit, ~endWorkerInteraction: unit => unit, ) => unit,

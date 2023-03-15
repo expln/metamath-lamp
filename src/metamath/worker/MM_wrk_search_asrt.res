@@ -109,7 +109,7 @@ let doSearchAssertions = (
             && frame.asrt[0] == typ 
             && frameMatchesPattern(frame, pattern)
         ) {
-            let newDisj = disjMutableMake()
+            let newDisj = disjMake()
             frame.disj->Belt_MapInt.forEach((n,ms) => {
                 ms->Belt_SetInt.forEach(m => {
                     newDisj->disjAddPair(n,m)

@@ -3,6 +3,48 @@ open MM_progress_tracker
 
 type expr = array<int>
 
+let exprEq: (expr,expr) => bool = (a,b) => {
+    let len1 = a->Js_array2.length
+    let len2 = b->Js_array2.length
+    if (len1 != len2) {
+        false
+    } else {
+        let eq = ref(true)
+        let i = ref(0)
+        while (eq.contents && i.contents < len1) {
+            eq.contents = a[i.contents] == b[i.contents]
+            i.contents = i.contents + 1
+        }
+        eq.contents
+    }
+}
+
+module ExprCmp = Belt.Id.MakeComparable({
+    type t = expr
+    let cmp = (e1,e2) => {
+        let len1 = e1->Js_array2.length
+        let len2 = e2->Js_array2.length
+        switch Expln_utils_common.intCmp(len1, len2) {
+            | 0 => {
+                let res = ref(0)
+                let i = ref(0)
+                while (i.contents < len1 && res.contents == 0) {
+                    res.contents = Expln_utils_common.intCmp(e1[i.contents], e2[i.contents])
+                    i.contents = i.contents + 1
+                }
+                res.contents
+            }
+            | r => r
+        }
+    }
+})
+
+module ExprHash = Belt.Id.MakeHashable({
+    type t = expr
+    let hash = Expln_utils_common.hashArrInt
+    let eq = exprEq
+})
+
 type hypothesisType = F | E
 
 type hypothesis = {
@@ -64,48 +106,6 @@ let disjAddPair = (disjMap:disjMutable, n, m) => {
     }
 }
 
-let exprEq: (expr,expr) => bool = (a,b) => {
-    let len1 = a->Js_array2.length
-    let len2 = b->Js_array2.length
-    if (len1 != len2) {
-        false
-    } else {
-        let eq = ref(true)
-        let i = ref(0)
-        while (eq.contents && i.contents < len1) {
-            eq.contents = a[i.contents] == b[i.contents]
-            i.contents = i.contents + 1
-        }
-        eq.contents
-    }
-}
-
-module ExprCmp = Belt.Id.MakeComparable({
-    type t = expr
-    let cmp = (e1,e2) => {
-        let len1 = e1->Js_array2.length
-        let len2 = e2->Js_array2.length
-        switch Expln_utils_common.intCmp(len1, len2) {
-            | 0 => {
-                let res = ref(0)
-                let i = ref(0)
-                while (i.contents < len1 && res.contents == 0) {
-                    res.contents = Expln_utils_common.intCmp(e1[i.contents], e2[i.contents])
-                    i.contents = i.contents + 1
-                }
-                res.contents
-            }
-            | r => r
-        }
-    }
-})
-
-module ExprHash = Belt.Id.MakeHashable({
-    type t = expr
-    let hash = Expln_utils_common.hashArrInt
-    let eq = exprEq
-})
-
 let rec forEachCtxInDeclarationOrder = (ctx:mmContextContents,consumer:mmContextContents=>option<'a>):option<'a> => {
     switch ctx.parent {
         | Some(parent) => {
@@ -150,7 +150,7 @@ let getTokenType = (ctx:mmContext, token:string):option<tokenType> => {
                 }
             }
         }
-    })->Belt_Option.isSome
+    })
 }
 
 let isConst = (ctx:mmContext, sym:string):bool => {
@@ -307,12 +307,12 @@ let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
     expr->Js_array2.map(ctxIntToSymExn(ctx, _))->Js_array2.joinWith(" ")
 }
 
-let frmIntToSymExn = (ctx:mmContext, frameVarToSymb:array<string>, i:int) => {
-    if (i < 0) {ctx->ctxIntToSymExn(i)} else {frameVarToSymb[i]}
+let frmIntToSymExn = (ctx:mmContext, frame:frame, i:int) => {
+    if (i < 0) {ctx->ctxIntToSymExn(i)} else {frame.frameVarToSymb[i]}
 }
 
-let frmIntsToStrExn = (ctx:mmContext, frameVarToSymb:array<string>, expr:expr):string => {
-    expr->Js_array2.map(frmIntToSymExn(ctx, frameVarToSymb, _))->Js_array2.joinWith(" ")
+let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
+    expr->Js_array2.map(frmIntToSymExn(ctx, frame, _))->Js_array2.joinWith(" ")
 }
 
 let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
@@ -375,7 +375,7 @@ let extractMandatoryHypotheses = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t
             res->Js.Array2.push(hyp)->ignore
         }
         None
-    })
+    })->ignore
     res
 }
 
@@ -386,7 +386,7 @@ let getMandHyps = (ctx:mmContext, expr:expr):array<hypothesis> => {
 
 let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
     let hyps = []
-    ctx.contents->forEachHypothesisInDeclarationOrder(hyp => {
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
         hyps->Js.Array2.push(hyp)->ignore
         None
     })->ignore
@@ -503,7 +503,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
     foundParens
 }
 
-let disjMutableMake = () => {
+let disjMake = () => {
     Belt_HashMapInt.make(~hintSize=16)
 }
 
@@ -549,7 +549,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             },
             vars: [],
             symToInt: Belt_HashMapString.make(~hintSize=0),
-            disj: disjMutableMake(),
+            disj: disjMake(),
             hyps: [],
             labelToHyp: Belt_HashMapString.make(~hintSize=4),
             exprToHyp: Belt_HashMap.make(~hintSize=4, ~id=module(ExprHash)),
@@ -593,7 +593,7 @@ let addComment = (ctx:mmContext,str:string):unit => {
 
 let assertNameIsUnique = (ctx:mmContext,name:string,tokenType:string):unit => {
     if (name->Js_string2.trim == "") {
-        raise(MmException({msg:`Cannot use an empty string as a name of ${tokeType}.`}))
+        raise(MmException({msg:`Cannot use an empty string as a name of ${tokenType}.`}))
     } else {
         switch getTokenType(ctx,name) {
             | Some(C) => raise(MmException({msg:`An attempt to re-declare the constant '${name}' as ${tokenType}.`}))
@@ -612,6 +612,7 @@ let addConst = (ctx:mmContext,name:string):unit => {
         raise(MmException({msg:`An attempt to declare a constant '${name}' in an inner block.`}))
     } else {
         assertNameIsUnique(ctx,name,"a constant")
+        let ctx = ctx.contents
         ctx.symToInt->Belt_HashMapString.set(name, -(ctx.consts->Js_array2.length))
         ctx.consts->Js_array2.push(name)->ignore
     }
@@ -619,8 +620,9 @@ let addConst = (ctx:mmContext,name:string):unit => {
 
 let addVar = (ctx:mmContext,name:string):unit => {
     assertNameIsUnique(ctx,name,"a variable")
+    let ctx = ctx.contents
     ctx.symToInt->Belt_HashMapString.set(name, ctx.varsBaseIdx + ctx.vars->Js_array2.length)
-    ctx.vars->Js_array2.push(vName)->ignore
+    ctx.vars->Js_array2.push(name)->ignore
 }
 
 let addDisj = (ctx:mmContext, vars:array<string>):unit => {
@@ -650,8 +652,6 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
             raise(MmException({msg:`The first symbol in the floating '${label}' must be a constant.`}))
         } else if (!(ctx->isVar(varName))) {
             raise(MmException({msg:`The second symbol in the floating '${label}' must be a variable.`}))
-        } else if (ctx->getTypeOfVar(varInt)->Belt_Option.isSome) {
-            raise(MmException({msg:`Cannot redefine typecode for the variable '${varName}'`}))
         } else {
             let varInt = ctx->ctxSymToIntExn(varName)
             if (ctx->getTypeOfVar(varInt)->Belt_Option.isSome) {
@@ -660,6 +660,7 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
                 let typInt = ctx->ctxSymToIntExn(typName)
                 let expr = [typInt, varInt]
                 let hyp = {typ:F, label, expr}
+                let ctx = ctx.contents
                 ctx.hyps->Js_array2.push(hyp)->ignore
                 ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
                 ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
@@ -675,8 +676,9 @@ let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =
     } else if (!(ctx->isConst(exprStr[0]))) {
         raise(MmException({msg:`The first symbol in an essential expression must be a constant.`}))
     } else {
-        let expr = ctxSymsToIntsExn(ctx, exprStr)
+        let expr = ctx->ctxSymsToIntsExn(exprStr)
         let hyp = {typ:E, label, expr}
+        let ctx = ctx.contents
         ctx.hyps->Js_array2.push(hyp)->ignore
         ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
         ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
@@ -753,13 +755,13 @@ let createFrame = (
                     asrt: ctxToFrameRenum->renumberVarsInExpr(asrt),
                     label,
                     frameVarToSymb: mandatoryVarsArr->Js_array2.map(ctx->ctxIntToSymExn),
-                    varTypes: mandatoryVarsArr->Js_array2.map(ctx->getTypeOfVar),
+                    varTypes: mandatoryVarsArr->Js_array2.map(ctx->getTypeOfVarExn),
                     numOfVars: mandatoryVarsArr->Js_array2.length,
                     numOfArgs: mandatoryHypotheses->Js_array2.length,
-                    descr: ctx.lastComment,
+                    descr: ctx.contents.lastComment,
                     proof,
                     dbg:
-                        if (ctx.debug) {
+                        if (ctx.contents.debug) {
                             Some({
                                 disj: mandatoryDisj->disjToArr->Js_array2.map(ctx->ctxIntsToStrExn),
                                 hyps: mandatoryHypotheses->Js_array2.map(hyp => ctx->ctxIntsToStrExn(hyp.expr)),
@@ -776,7 +778,7 @@ let createFrame = (
 }
 
 let addAssertion = ( ctx:mmContext, ~label:string, ~exprStr:array<string>, ~proof:option<proof> ):unit => {
-    ctx.frames->Belt_HashMapString.set(
+    ctx.contents.frames->Belt_HashMapString.set(
         label, 
         createFrame(
             ~ctx, ~label, ~exprStr, ~proof, 
@@ -913,7 +915,7 @@ let generateNewLabels = (
 ): array<string> => {
     let labelIsReserved = label => {
         reservedLabels->Belt.Option.map(Belt_HashSetString.has(_,label))->Belt_Option.getWithDefault(false)
-            || (!checkHypsOnly && ctx->getTokenType(newName.contents)->Belt_Option.isSome)
+            || (!checkHypsOnly && ctx->getTokenType(label)->Belt_Option.isSome)
             || (checkHypsOnly && ctx->isHyp(label))
     }
 
@@ -975,8 +977,11 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
         }
     })
 
-    ctx.contents->forEachHypothesisInDeclarationOrder(hyp => constRenum->renumberConstsInExpr(hyp.expr))
-    ctx.contents->forEachFrame(frame => {
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
+        constRenum->renumberConstsInExpr(hyp.expr)
+        None
+    })->ignore
+    ctx->forEachFrame(frame => {
         frame.hyps->Js_array2.forEach(hyp => constRenum->renumberConstsInExpr(hyp.expr))
         constRenum->renumberConstsInExpr(frame.asrt)
         constRenum->renumberConstsInExpr(frame.varTypes)

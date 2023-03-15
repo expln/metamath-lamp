@@ -555,7 +555,7 @@ describe("findPossibleSubs", _ => {
             possibleSubs,
             [
                 {
-                    newDisj: disjMutableMake(),
+                    newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
                         (t, ctx->ctxStrToIntsExn("t")),
                         (x, ctx->ctxStrToIntsExn("z")),
@@ -583,7 +583,7 @@ describe("findPossibleSubs", _ => {
             possibleSubs,
             [
                 {
-                    newDisj: disjMutableMake(),
+                    newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
                         (t, ctx->ctxStrToIntsExn("t")),
                         (x, ctx->ctxStrToIntsExn("z")),
@@ -622,7 +622,7 @@ describe("findPossibleSubs", _ => {
             possibleSubs,
             [
                 {
-                    newDisj: disjMutableMake(),
+                    newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
                         (t, ctx->ctxStrToIntsExn("t")),
                         (x, ctx->ctxStrToIntsExn("y")),
@@ -636,7 +636,7 @@ describe("findPossibleSubs", _ => {
                     }))
                 },
                 {
-                    newDisj: disjMutableMake(),
+                    newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
                         (t, ctx->ctxStrToIntsExn("t")),
                         (x, ctx->ctxStrToIntsExn("y + z")),

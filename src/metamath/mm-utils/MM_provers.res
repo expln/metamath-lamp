@@ -282,7 +282,7 @@ let findAsrtParentsWithNewVars = (
         switch err {
             | None => {
                 let missingDisj = applResult.missingDisj->Belt_Option.map(applMissingDisj => {
-                    let treeMissingDisj = disjMutableMake()
+                    let treeMissingDisj = disjMake()
                     applMissingDisj->disjForEach((n,m) => {
                         treeMissingDisj->disjAddPair(
                             applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
