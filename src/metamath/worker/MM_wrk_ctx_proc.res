@@ -17,7 +17,6 @@ type request =
         preCtxVer: int,
         varsText: string,
         disjText: string,
-        hyps: array<wrkCtxHyp>,
     })
     | SetSettings({ settingsVer: int, settings: settings, })
     | SetPreCtx({ preCtxVer: int, preCtx: mmContext, })
@@ -99,7 +98,6 @@ let makeWrkPrecalcData = (
     ~preCtxVer:int,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
 ):result<wrkPrecalcData,response> => {
     switch settingsCache->cacheGetByDepVer(settingsVer) {
         | None => Error(GetSettings({ settingsVer:settingsVer }))
@@ -107,7 +105,7 @@ let makeWrkPrecalcData = (
             switch preCtxCache->cacheGetByDepVer(preCtxVer) {
                 | None => Error(GetPreCtx({ preCtxVer:preCtxVer }))
                 | Some(preCtx) => {
-                    switch createWrkCtx( ~preCtx, ~varsText, ~disjText, ~hyps, ) {
+                    switch createWrkCtx( ~preCtx, ~varsText, ~disjText, ) {
                         | Error(_) => raise(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
                         | Ok(wrkCtx) => {
                             Ok({
@@ -125,9 +123,9 @@ let makeWrkPrecalcData = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | PrepareWrkPrecalcData({ settingsVer, preCtxVer, varsText, disjText, hyps, }) => {
+        | PrepareWrkPrecalcData({ settingsVer, preCtxVer, varsText, disjText, }) => {
             wrkPrecalcData.contents = None
-            switch makeWrkPrecalcData( ~settingsVer, ~preCtxVer, ~varsText, ~disjText, ~hyps, ) {
+            switch makeWrkPrecalcData( ~settingsVer, ~preCtxVer, ~varsText, ~disjText, ) {
                 | Error(resp) => sendToClient(resp)
                 | Ok(data) => {
                     wrkPrecalcData.contents = Some(data)
@@ -151,14 +149,13 @@ let beginWorkerInteractionUsingCtx = (
     ~preCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
     ~procName:string,
     ~initialRequest:'req, 
     ~onResponse:(~resp:'resp, ~sendToWorker:'req=>unit, ~endWorkerInteraction:unit=>unit)=>unit,
     ~enableTrace: bool=false,
     ()
 ) => {
-    let prepareWrkPrecalcDataReq = PrepareWrkPrecalcData({ settingsVer, preCtxVer, varsText, disjText, hyps, })
+    let prepareWrkPrecalcDataReq = PrepareWrkPrecalcData({ settingsVer, preCtxVer, varsText, disjText, })
     beginWorkerInteraction(
         ~procName = thisProcName,
         ~initialRequest = prepareWrkPrecalcDataReq, 

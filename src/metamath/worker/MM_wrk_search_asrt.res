@@ -55,7 +55,6 @@ let searchAssertions = (
     ~preCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
     ~label:string,
     ~typ:int, 
     ~pattern:array<int>,
@@ -69,7 +68,6 @@ let searchAssertions = (
             ~preCtx,
             ~varsText,
             ~disjText,
-            ~hyps,
             ~procName,
             ~initialRequest = FindAssertions({label:label->Js.String2.toLowerCase, typ, pattern}),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {

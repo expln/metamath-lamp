@@ -13,7 +13,7 @@ let procName = "MM_wrk_unify"
 
 type request = 
     | Unify({
-        rootProvables: array<rootStmt>, 
+        rootStmts: array<rootStmt>, 
         bottomUpProverParams:option<bottomUpProverParams>,
         debugLevel:int,
     })
@@ -42,8 +42,7 @@ let unify = (
     ~preCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
-    ~rootProvables: array<rootStmt>,
+    ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
     ~debugLevel:int,
     ~onProgress:string=>unit,
@@ -56,9 +55,8 @@ let unify = (
             ~preCtx,
             ~varsText,
             ~disjText,
-            ~hyps,
             ~procName,
-            ~initialRequest = Unify({rootProvables:rootProvables, bottomUpProverParams, debugLevel}),
+            ~initialRequest = Unify({rootStmts:rootStmts, bottomUpProverParams, debugLevel}),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(msg) => onProgress(msg)
@@ -76,12 +74,12 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({rootProvables, bottomUpProverParams, debugLevel}) => {
+        | Unify({rootStmts, bottomUpProverParams, debugLevel}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
                 ~ctx = getWrkCtxExn(),
-                ~rootProvables,
+                ~rootStmts,
                 ~bottomUpProverParams?,
                 ~debugLevel,
                 ~onProgress = msg => sendToClient(OnProgress(msg)),
