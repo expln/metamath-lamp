@@ -20,7 +20,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
 
     //when
     let proofTree = proveFloatings(
-        ~ctx,
+        ~wrkCtx=ctx,
         ~frms,
         ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),

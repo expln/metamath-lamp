@@ -17,7 +17,7 @@ type bottomUpProverParams = {
 }
 
 let proveFloatings: (
-    ~ctx: mmContext,
+    ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
@@ -26,9 +26,9 @@ let proveFloatings: (
 
 
 let unifyAll: (
-    ~ctx: mmContext,
+    ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~rootProvables: array<rootStmt>,
+    ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~debugLevel:int=?,

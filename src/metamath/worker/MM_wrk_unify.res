@@ -78,14 +78,14 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
-                ~ctx = getWrkCtxExn(),
+                ~wrkCtx = getWrkCtxExn(),
                 ~rootStmts,
                 ~bottomUpProverParams?,
                 ~debugLevel,
                 ~onProgress = msg => sendToClient(OnProgress(msg)),
                 ()
             )
-            sendToClient(Result(proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))))
+            sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))))
         }
     }
 }

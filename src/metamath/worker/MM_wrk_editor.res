@@ -508,7 +508,7 @@ let incUnifyAllIsRequiredCnt = st => {
 
 let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
     let res = Belt_HashMapString.make(~hintSize=16)
-    switch textToVarDefs(st.varsText) {
+    switch textToVarDefs(varsText) {
         | Error(_) => ()
         | Ok(varDefs) => {
             varDefs->Js_array2.forEach(varDef => {
@@ -759,7 +759,12 @@ let isLabelDefined = (label:string, wrkCtx:mmContext, definedUserLabels:Belt_Has
     definedUserLabels->Belt_HashSetString.has(label) || wrkCtx->isHyp(label)
 }
 
-let validateStmtJstf = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t):userStmt => {
+let validateStmtJstf = (
+    stmt:userStmt, 
+    wrkCtx:mmContext, 
+    definedUserLabels:Belt_HashSetString.t,
+    asrtsToSkip: array<string>
+):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
     } else {
@@ -772,7 +777,7 @@ let validateStmtJstf = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt_
                     }
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
-                            if (st.settings.asrtsToSkip->Js_array2.includes(label)) {
+                            if (asrtsToSkip->Js_array2.includes(label)) {
                                 {...stmt, stmtErr:Some(`The label '${label}' refers to a skipped assertion.`)}
                             } else {
                                 {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
@@ -851,13 +856,13 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
         | Some(wrkCtx) => {
             let stmtsLen = st.stmts->Js_array2.length
             let definedUserLabels = Belt_HashSetString.make(~hintSize=stmtsLen)
-            let definedUserExprs = Belt_HashMap.make(~hintSize=stmtsLen)
+            let definedUserExprs = Belt_HashMap.make(~hintSize=stmtsLen, ~id=module(ExprHash))
             let actions = [
                 validateStmtLabel(_, wrkCtx, definedUserLabels),
                 setStmtExpr(_, wrkCtx),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
                 setStmtJstf,
-                validateStmtJstf(_, wrkCtx, definedUserLabels),
+                validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip),
             ]
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
@@ -1107,7 +1112,7 @@ let insertStmt = (
     }
 }
 
-let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:Belt_MutableMapInt.t):stmtsDto => {
+let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:Belt_MutableMapInt.t<int>):stmtsDto => {
     {
         ...newStmts,
         stmts: newStmts.stmts->Js_array2.map(stmt => {
@@ -1194,7 +1199,7 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs):unit => {
         [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
     )
     let proofTree = proveFloatings(
-        ~ctx,
+        ~wrkCtx=ctx,
         ~frms,
         ~floatingsToProve=typesToProve,
         ~parenCnt,
@@ -1256,7 +1261,7 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
                         | Some(expr) => expr->Js_array2.filter(s => s >= 0)
                     }
                 )
-                varToSubVars->Belt_HashMapInt.getExn(var)
+                varToSubVars->Belt_HashMapInt.get(var)->Belt.Option.getExn
             }
             | Some(arr) => arr
         }
@@ -1404,6 +1409,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                     newDisjStrArr->Js.Array2.push(wrkCtx->ctxIntsToSymsExn(varInts)->Js_array2.joinWith(","))->ignore
                 })
                 let st = completeDisjEditMode(st, newDisjStrArr->Js.Array2.joinWith("\n"))
+                st
             }
         }
     }
@@ -1422,7 +1428,7 @@ let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserS
                             switch args->Belt_Array.get(i) {
                                 | None => raise(MmException({msg:`Too few arguments for '${label}' in srcToJstf.`}))
                                 | Some(nodeIdx) => {
-                                    switch exprToUserStmt->Belt_Map.get(proofTree.nodes[nodeIdx].expr) {
+                                    switch exprToUserStmt->Belt_HashMap.get(proofTree.nodes[nodeIdx].expr) {
                                         | None => argLabelsValid.contents = false //todo: return a meaningful error from here
                                         | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
@@ -1515,7 +1521,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                                             | Some(expr) => (expr, stmt)
                                         }
                                     })
-                                    ->Belt_HashMap.fromArray(~id=module(ExprCmp))
+                                    ->Belt_HashMap.fromArray(~id=module(ExprHash))
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}

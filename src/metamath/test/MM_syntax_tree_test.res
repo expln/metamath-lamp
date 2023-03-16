@@ -37,7 +37,7 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     ctx->moveConstsToBegin(parens)
     let expr = exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _)
     let proofTree = proveFloatings(
-        ~ctx,
+        ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
         ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),

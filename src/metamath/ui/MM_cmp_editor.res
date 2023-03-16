@@ -58,9 +58,8 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
 
         preCtxV,
         preCtx,
-        frms: prepareFrmSubsData(~ctx=preCtx, ()),
-        exprToPreCtxHyp: preCtx->ctxMakeExprToHyp,
-        parenCnt: parenCntMake(prepareParenInts(preCtx, settings.parens), ()),
+        frms: Belt_MapString.empty,
+        parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         varsText: stateLocStor->Belt.Option.map(obj => obj.varsText)->Belt.Option.getWithDefault(""),
@@ -91,8 +90,8 @@ let createInitialEditorState = (settingsV, settings, preCtxV, preCtx, stateLocSt
 
         unifyAllIsRequiredCnt: unifyAllIsRequiredCnt.contents,
     }
-    let st = recalcAllColors(st)
-    let st = updateColorsInAllStmts(st)
+    let st = st->setSettings(settingsV, settings)
+    let st = st->setPreCtx(preCtxV, preCtx)
     st
 }
 

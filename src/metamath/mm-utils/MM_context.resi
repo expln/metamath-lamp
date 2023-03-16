@@ -6,6 +6,8 @@ type mmContext
 
 type hypothesisType = F | E
 
+type tokenType = C | V | F | E | A | P
+
 type hypothesis = {
     typ: hypothesisType,
     label: string,
@@ -65,6 +67,7 @@ let getNestingLevel: mmContext => int
 let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int>
 let getTypeOfVar: (mmContext, int) => option<int>
 let getTypeOfVarExn: (mmContext, int) => int
+let getTokenType: (mmContext, string) => option<tokenType>
 
 let ctxSymToInt: (mmContext, string) => option<int>
 let ctxIntToSym: (mmContext, int) => option<string>

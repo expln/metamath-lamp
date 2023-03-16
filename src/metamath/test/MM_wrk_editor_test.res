@@ -13,20 +13,24 @@ let createEditorState = (mmFile) => {
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
+    let settingsV = 1
+    let settings = {
+        parens,
+        typeSettings: [ ],
+        asrtsToSkip: [],
+        asrtsToSkipRegex: "",
+    }
+    let preCtxV = 1
+    let preCtx = ctx
     let st = {
-        settingsV: 1,
-        settings: {
-            parens,
-            typeSettings: [ ],
-            asrtsToSkip: [],
-            asrtsToSkipRegex: "",
-        },
+        settingsV,
+        settings,
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
-        preCtxV: 1,
-        preCtx: ctx,
+        preCtxV,
+        preCtx,
         frms: prepareFrmSubsData(~ctx, ()),
-        parenCnt: parenCntMake(prepareParenInts(ctx, parens), ()),
+        parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
         varsText: "",
@@ -47,7 +51,9 @@ let createEditorState = (mmFile) => {
 
         unifyAllIsRequiredCnt: 0
     }
-    recalcAllColors(st)
+    let st = st->setSettings(settingsV, settings)
+    let st = st->setPreCtx(preCtxV, preCtx)
+    st
 }
 
 let getVarType = (ctx:mmContext, vName:string) => {

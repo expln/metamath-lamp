@@ -577,50 +577,46 @@ let makeExprToStr = (ctx, ctxMaxVar) => {
 }
 
 let createProofTree = (
-    ~ctx: mmContext,
+    ~proofCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~rootHyps: array<rootStmt>,
     ~parenCnt: parenCnt,
 ) => {
-    let ctxMaxVar = ctx->getNumOfVars - 1
-    let hyps = ctx->getAllHyps
+    let ctxMaxVar = proofCtx->getNumOfVars - 1
+    let hyps = proofCtx->getAllHyps
     let tree = ptMake(
         ~frms, 
         ~hyps, 
         ~ctxMaxVar, 
-        ~disj=ctx->getAllDisj, 
+        ~disj=proofCtx->getAllDisj, 
         ~parenCnt, 
-        ~exprToStr=makeExprToStr(ctx, ctxMaxVar),
+        ~exprToStr=makeExprToStr(proofCtx, ctxMaxVar),
     )
-    if (addEssentials) {
-        hyps->Belt_MapString.forEach((label,hyp) => {
-            if (hyp.typ == E) {
-                let node = tree->ptGetNode(hyp.expr)
-                node->pnAddParent(Hypothesis({label:label}), true)
-                tree->ptAddRootStmt({
-                    isHyp: true,
-                    label,
-                    expr: hyp.expr,
-                    jstf: None,
-                })->ignore
-            }
-        })
-    }
+    hyps->Belt_MapString.forEach((label,hyp) => {
+        if (hyp.typ == E) {
+            let node = tree->ptGetNode(hyp.expr)
+            node->pnAddParent(Hypothesis({label:label}), true)
+            tree->ptAddRootStmt({
+                isHyp: true,
+                label,
+                expr: hyp.expr,
+                jstf: None,
+            })->ignore
+        }
+    })
     tree
 }
 
 let proveFloatings = (
-    ~ctx: mmContext,
+    ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
     ()
 ) => {
     let tree = createProofTree(
-        ~ctx,
+        ~proofCtx=wrkCtx,
         ~frms,
         ~parenCnt,
-        ~addEssentials=false,
     )
 
     floatingsToProve->Js.Array2.forEach(expr => {
@@ -629,9 +625,8 @@ let proveFloatings = (
     tree
 }
 
-//todo: review this function
 let unifyAll = (
-    ~ctx: mmContext,
+    ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
@@ -648,13 +643,20 @@ let unifyAll = (
         ()
     )
 
+    let proofCtx = createContext(~parent=wrkCtx, ())
+    rootStmts->Js_array2.forEach(stmt => {
+        if (stmt.isHyp) {
+            proofCtx->applySingleStmt(Floating({label:stmt.label, expr:proofCtx->ctxIntsToSymsExn(stmt.expr)}))
+        }
+    })
+
     let tree = createProofTree(
-        ~ctx,
+        ~proofCtx,
         ~frms,
         ~parenCnt,
-        ~addEssentials=true,
     )
 
+    let rootProvables = rootStmts->Js_array2.filter(stmt => !stmt.isHyp)
     let numOfStmts = rootProvables->Js_array2.length
     let maxStmtIdx = numOfStmts - 1
     rootProvables->Js.Array2.forEachi((stmt,stmtIdx) => {

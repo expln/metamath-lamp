@@ -32,19 +32,23 @@ let createEditorState = (
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
     let frms = prepareFrmSubsData(~ctx, ())
+    let settingsV = 1
+    let settings = {
+        parens,
+        typeSettings: [ ],
+        asrtsToSkip: [],
+        asrtsToSkipRegex: "",
+    }
+    let preCtxV = 1
+    let preCtx = ctx
     let st = {
-        settingsV: 1,
-        settings: {
-            parens,
-            typeSettings: [ ],
-            asrtsToSkip: [],
-            asrtsToSkipRegex: "",
-        },
+        settingsV,
+        settings,
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
-        preCtxV: 1,
-        preCtx: ctx,
-        parenCnt: parenCntMake(MM_wrk_ctx_data.prepareParenInts(ctx, parens), ()),
+        preCtxV,
+        preCtx,
+        parenCnt: parenCntMake([], ()),
         frms,
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
@@ -66,7 +70,9 @@ let createEditorState = (
 
         unifyAllIsRequiredCnt: 0
     }
-    recalcAllColors(st)
+    let st = st->setSettings(settingsV, settings)
+    let st = st->setPreCtx(preCtxV, preCtx)
+    st
 }
 
 let addStmt = (

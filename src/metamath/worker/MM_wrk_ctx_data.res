@@ -61,7 +61,7 @@ let textToVarDefs = (text:string):result<array<array<string>>,string> => {
                         switch lineToVarDef(line) {
                             | Error(msg) => Error(msg)
                             | Ok(varDef) => {
-                                varDefs->Js_array2.push(varDef)
+                                varDefs->Js_array2.push(varDef)->ignore
                                 Ok(varDefs)
                             }
                         }
