@@ -120,9 +120,9 @@ let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
 
 //todo: review this function
 let srcToNewStmts = (
-    ~rootStmts:array<rootStmt>,
-    ~reservedLabels: array<string>,
     ~src:exprSrcDto,
+    ~stmtToProve: rootStmt,
+    ~reservedLabels: array<string>,
     ~tree:proofTreeDto, 
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
@@ -131,7 +131,6 @@ let srcToNewStmts = (
     switch src {
         | VarType | Hypothesis(_) | AssertionWithErr(_) => None
         | Assertion({args, label, missingDisj}) => {
-            let maxCtxVar = ctx->getNumOfVars - 1
             let res = {
                 newVars: [],
                 newVarTypes: [],
@@ -139,8 +138,25 @@ let srcToNewStmts = (
                 newDisjStr: [],
                 stmts: [],
             }
+
             let newVarNames = Belt_HashMapInt.make(~hintSize=8)
             let usedVarNames = Belt_HashSetString.make(~hintSize=8)
+            let addNewVarToResult = (~newVarInt:int, ~newVarType:int):unit => {
+                res.newVars->Js_array2.push(newVarInt)->ignore
+                res.newVarTypes->Js_array2.push(newVarType)->ignore
+                let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
+                    ~typeToPrefix, ~reservedNames=usedVarNames, ()
+                )[0]
+                newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
+                usedVarNames->Belt_HashSetString.add(newVarName)
+                exprToLabel([newVarType, newVarInt])->ignore
+            }
+
+
+            let maxCtxVar = ctx->getNumOfVars - 1
+            
+
+
             let newLabels = rootStmts
                 ->Js.Array2.map(stmt=>(stmt.expr,stmt.label))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
@@ -184,16 +200,7 @@ let srcToNewStmts = (
                 }
             }
 
-            let addNewVarToResult = (~newVarInt:int, ~newVarType:int):unit => {
-                res.newVars->Js_array2.push(newVarInt)->ignore
-                res.newVarTypes->Js_array2.push(newVarType)->ignore
-                let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
-                    ~typeToPrefix, ~usedNames=usedVarNames, ()
-                )[0]
-                newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
-                usedVarNames->Belt_HashSetString.add(newVarName)
-                exprToLabel([newVarType, newVarInt])->ignore
-            }
+            
 
             let addExprToResult = (~label, ~expr, ~src, ~isProved) => {
                 expr->Js_array2.forEach(ei => {
@@ -296,13 +303,12 @@ let srcToNewStmts = (
 
 let proofTreeDtoToNewStmtsDto = (
     ~treeDto:proofTreeDto, 
-    ~rootStmts:array<rootStmt>,
+    ~stmtToProve: rootStmt,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~reservedLabels: array<string>,
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
-    let stmtToProve = rootStmts[rootStmts->Js_array2.length-1]
     let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(stmtToProve.expr)) {
         | None => raise(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
         | Some(node) => node
@@ -310,7 +316,7 @@ let proofTreeDtoToNewStmtsDto = (
 
     proofNode.parents
         ->Js_array2.map(src => srcToNewStmts(
-            ~rootStmts,
+            ~stmtToProve,
             ~reservedLabels,
             ~src,
             ~tree = treeDto,
