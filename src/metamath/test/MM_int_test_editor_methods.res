@@ -266,15 +266,15 @@ let unifyAll = (st):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
-            let rootProvables = st->getRootProvablesForUnification
+            let rootStmts = st->getRootStmtsForUnification
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
-                ~rootProvables,
+                ~rootStmts,
                 ()
             )
-            let proofTreeDto = proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)
         }
     }
@@ -308,27 +308,26 @@ let unifyBottomUp = (
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
-            let rootUserStmts = st->getRootStmtsForUnification
-            let rootProvables = st->getRootProvablesForUnification
+            let rootStmts = st->getRootStmtsForUnification
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~ctx = wrkCtx,
-                ~rootProvables,
+                ~rootStmts,
                 ~bottomUpProverParams = {
                     asrtLabel,
                     maxSearchDepth,
                     lengthRestriction,
                     allowNewStmts,
                     allowNewVars,
-                    args0:filterRootStmts(rootUserStmts, args0),
-                    args1:filterRootStmts(rootUserStmts, args1),
+                    args0:filterRootStmts(rootStmts, args0),
+                    args1:filterRootStmts(rootStmts, args1),
                     maxNumberOfBranches: None,
                 },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )
-            let proofTreeDto = proofTree->proofTreeToDto(rootProvables->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
             let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
                 ~rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt),

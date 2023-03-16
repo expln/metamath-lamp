@@ -5,7 +5,6 @@ open MM_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
-open MM_asrt_apply
 open MM_statements_dto
 
 type stmtSym = {
@@ -110,7 +109,6 @@ let deleteStmt: (editorState, string) => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
-let getRootProvablesForUnification: editorState => array<rootStmt>
 let addNewStmt: editorState => (editorState,string)
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: editorState => editorState
@@ -132,7 +130,7 @@ let setSettings: (editorState, int, settings) => editorState
 let setPreCtx: (editorState, int, mmContext) => editorState
 let editorStateHasErrors: editorState => bool
 let refreshWrkCtx: editorState => editorState
-let prepareProvablesForUnification: editorState => editorState
+let prepareUserStmtsForUnification: editorState => editorState
 let prepareEditorForUnification: editorState => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
 let findPossibleSubs: (editorState, expr, expr) => array<wrkSubs>

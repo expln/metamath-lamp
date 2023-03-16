@@ -630,8 +630,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         ->Js_array2.filter(stmt => stmt.typ == E)
                         ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
                 }
-                let rootStmts = state->getRootStmtsForUnification
-                let rootProvables = state->getRootProvablesForUnification
                 switch singleProvableSelected {
                     | Some(singleProvableSelected) => {
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -643,7 +641,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                     preCtxVer=state.preCtxV
                                     preCtx=state.preCtx
                                     wrkCtx varsText disjText hyps rootProvables
-                                    rootStmts
+                                    rootStmts={state->getRootStmtsForUnification}
                                     reservedLabels={st.stmts->Js.Array2.map(stmt => stmt.label)}
                                     frms=state.frms parenCnt=state.parenCnt
                                     onResultSelected={newStmtsDto => {

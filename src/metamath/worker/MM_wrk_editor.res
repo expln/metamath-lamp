@@ -122,6 +122,7 @@ type editorState = {
     varsText: string,
     varsEditMode: bool,
     varsErr: option<string>,
+    wrkCtxColors: Belt_HashMapString.t<string>,
 
     disjText: string,
     disjEditMode: bool,
@@ -129,7 +130,6 @@ type editorState = {
     disj: Belt_MapInt.t<Belt_SetInt.t>,
 
     wrkCtx: option<mmContext>,
-    wrkCtxColors: Belt_HashMapString.t<string>,
 
     nextStmtId: int,
     stmts: array<userStmt>,

@@ -197,7 +197,7 @@ describe("refreshWrkCtx", _ => {
     })
 })
 
-describe("prepareProvablesForUnification", _ => {
+describe("prepareUserStmtsForUnification", _ => {
     it("detects an error in a provable expression", _ => {
         //given
         let st = createEditorState(demo0)
@@ -216,7 +216,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -245,7 +245,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -274,7 +274,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -303,7 +303,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -332,7 +332,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -361,7 +361,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -390,7 +390,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -419,7 +419,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -448,7 +448,7 @@ describe("prepareProvablesForUnification", _ => {
         let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareProvablesForUnification(st)
+        let st = prepareUserStmtsForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
