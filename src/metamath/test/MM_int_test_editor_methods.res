@@ -266,11 +266,11 @@ let unifyAll = (st):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
-            let rootStmts = st->getRootStmtsForUnification
+            let rootStmts = st->getRootStmtsForUnification->Js.Array2.map(userStmtToRootStmt)
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
-                ~ctx = wrkCtx,
+                ~wrkCtx,
                 ~rootStmts,
                 ()
             )
@@ -312,7 +312,7 @@ let unifyBottomUp = (
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
-                ~ctx = wrkCtx,
+                ~wrkCtx,
                 ~rootStmts,
                 ~bottomUpProverParams = {
                     asrtLabel,

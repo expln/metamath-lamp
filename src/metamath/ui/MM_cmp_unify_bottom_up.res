@@ -30,11 +30,10 @@ type resultRendered = {
 }
 
 type state = {
-    rootStmts: array<userStmt>,
     rootStmtsRendered: array<rootStmtRendered>,
     exprToProve:expr,
     title: reElem,
-    rootProvables: array<rootStmt>,
+    rootStmts: array<rootStmt>,
 
     args0: array<bool>,
     args1: array<bool>,
@@ -109,7 +108,6 @@ let getAvailableAsrtLabels = (
 
 let makeInitialState = (
     ~rootStmts: array<userStmt>,
-    ~rootProvables: array<rootStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~initialLabel: option<string>,
@@ -121,7 +119,6 @@ let makeInitialState = (
         | Some(expr) => expr
     }
     {
-        rootStmts,
         rootStmtsRendered: rootStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js.Array2.map(stmt => {
             {
                 id: stmt.id,
@@ -144,8 +141,8 @@ let makeInitialState = (
                 </span>
                 { MM_cmp_user_stmt.rndContText(rootStmts[maxRootStmtIdx].cont) }
             </span>,
-        rootProvables,
-        
+        rootStmts: rootStmts->Js.Array2.map(userStmtToRootStmt),
+
         args0: Belt_Array.make(rootStmtsLen-1, true),
         args1: Belt_Array.make(rootStmtsLen-1, false),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
@@ -463,8 +460,6 @@ let make = (
     ~wrkCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~hyps: array<wrkCtxHyp>,
-    ~rootProvables: array<rootStmt>,
     ~rootStmts: array<userStmt>,
     ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
@@ -473,7 +468,7 @@ let make = (
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootStmts, ~rootProvables, ~frms, ~parenCnt, ~initialLabel
+        ~rootStmts, ~frms, ~parenCnt, ~initialLabel
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -509,8 +504,7 @@ let make = (
     }
 
     let actOnResultsReady = (treeDto) => {
-        let rootExprToLabel = rootStmts
-            ->Js_array2.map(userStmtToRootStmt)
+        let rootExprToLabel = state.rootStmts
             ->Js_array2.map(stmt => (stmt.label,stmt.expr))
             ->Belt_HashMap.fromArray(~id=module(ExprHash))
         let results = proofTreeDtoToNewStmtsDto(
@@ -519,7 +513,7 @@ let make = (
             ~ctx = wrkCtx,
             ~typeToPrefix,
             ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label),
-            ~exprToProve=(rootStmts[rootStmts->Js.Array2.length-1]->userStmtToRootStmt).expr
+            ~exprToProve=rootStmts[rootStmts->Js.Array2.length-1].expr
         )
         setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
     }
@@ -622,7 +616,7 @@ let make = (
                                 tree
                                 rootExpr=state.exprToProve
                                 wrkCtx
-                                rootStmts={rootStmts->Js_array2.map(userStmtToRootStmt)}
+                                rootStmts=state.rootStmts
                             />
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                                 {React.string("Close")}

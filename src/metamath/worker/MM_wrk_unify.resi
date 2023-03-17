@@ -17,7 +17,7 @@ let unify: (
     ~preCtx: MM_context.mmContext,
     ~varsText: string,
     ~disjText: string,
-    ~rootProvables: array<rootStmt>,
+    ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
     ~debugLevel:int,
     ~onProgress: string => unit,
@@ -27,10 +27,11 @@ let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => uni
 
 let proofTreeDtoToNewStmtsDto: (
     ~treeDto:proofTreeDto, 
-    ~rootStmts:array<rootStmt>,
+    ~exprToProve: expr,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~reservedLabels: array<string>,
+    ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
 ) => array<stmtsDto>
 
 let reqToStr: request => string

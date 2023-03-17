@@ -126,7 +126,7 @@ let srcToNewStmts = (
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~rootExprToLabel: Belt_HashMapString.t<expr,string,ExprHash.identity>,
+    ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
 ):option<stmtsDto> => {
     switch src {
         | VarType | Hypothesis(_) | AssertionWithErr(_) => None
@@ -208,8 +208,8 @@ let srcToNewStmts = (
                 })
                 let exprStr = expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
                 let jstf = switch src {
-                    | Some(VarType) | Hypothesis(_) => None
-                    | AssertionWithErr(_) => {
+                    | None | Some(VarType | Hypothesis(_)) => None
+                    | Some(AssertionWithErr(_)) => {
                         hasAsrtWithErr.contents = true
                         None
                     }
@@ -247,7 +247,7 @@ let srcToNewStmts = (
                         } else {
                             childrenReturnedFor->Belt_HashSet.add(node.expr)
                             switch node.proof {
-                                | Some(VarType) | Some(Hypothesis(_)) => None
+                                | None | Some(VarType | Hypothesis(_)) => None
                                 | Some(AssertionWithErr(_)) => {
                                     hasAsrtWithErr.contents = true
                                     None
@@ -283,7 +283,7 @@ let srcToNewStmts = (
                                         ~isProved=node.proof->Belt_Option.isSome
                                     )
                                     switch missingDisj {
-                                        | None => None
+                                        | None => ()
                                         | Some(missingDisj) => {
                                             missingDisj->disjForEach((n,m) => {
                                                 res.newDisj->disjAddPair(n,m)
@@ -292,6 +292,15 @@ let srcToNewStmts = (
                                             })
                                         }
                                     }
+                                    None
+                                }
+                                | None => {
+                                    addExprToResult(
+                                        ~label = getLabelForExpr(node.expr), 
+                                        ~expr = node.expr, 
+                                        ~src = None, 
+                                        ~isProved=false
+                                    )
                                     None
                                 }
                             }
@@ -330,10 +339,10 @@ let proofTreeDtoToNewStmtsDto = (
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~reservedLabels: array<string>,
-    ~rootExprToLabel: Belt_HashMapString.t<expr,string,ExprHash.identity>,
+    ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
-    let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(stmtToProve.expr)) {
+    let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(exprToProve)) {
         | None => raise(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
         | Some(node) => node
     }
@@ -341,7 +350,7 @@ let proofTreeDtoToNewStmtsDto = (
     proofNode.parents
         ->Js_array2.map(src => srcToNewStmts(
             ~exprToProve,
-            ~reservedLabels,
+            ~rootExprToLabel,
             ~src,
             ~tree = treeDto,
             ~newVarTypes,
