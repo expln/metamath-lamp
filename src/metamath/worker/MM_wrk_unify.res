@@ -121,16 +121,17 @@ let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
 //todo: review this function
 let srcToNewStmts = (
     ~src:exprSrcDto,
-    ~stmtToProve: rootStmt,
-    ~reservedLabels: array<string>,
+    ~exprToProve: expr,
     ~tree:proofTreeDto, 
     ~newVarTypes:Belt_HashMapInt.t<int>,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
+    ~rootExprToLabel: Belt_HashMapString.t<expr,string,ExprHash.identity>,
 ):option<stmtsDto> => {
     switch src {
         | VarType | Hypothesis(_) | AssertionWithErr(_) => None
         | Assertion({args, label, missingDisj}) => {
+            let hasAsrtWithErr = ref(false)
             let res = {
                 newVars: [],
                 newVarTypes: [],
@@ -139,36 +140,42 @@ let srcToNewStmts = (
                 stmts: [],
             }
 
+            let exprToLabelArr = rootExprToLabel->Belt_HashMap.toArray
+            let exprToLabel = exprToLabelArr->Belt_HashMap.fromArray(~id=module(ExprHash))
+            let reservedLabels = exprToLabelArr->Js_array2.map(((_,label)) => label)->Belt_HashSetString.fromArray
+            let getLabelForExpr = (expr:expr):string => {
+                switch exprToLabel->Belt_HashMap.get(expr) {
+                    | Some(label) => label
+                    | None => {
+                        switch ctx->getHypByExpr(expr) {
+                            | Some(hyp) => hyp.label
+                            | None => {
+                                let newLabel = generateNewLabels(
+                                    ~ctx, ~prefix="", ~amount=1, ~reservedLabels, ~checkHypsOnly=true, ()
+                                )[0]
+                                exprToLabel->Belt_HashMap.set(expr, newLabel)
+                                reservedLabels->Belt_HashSetString.add(newLabel)
+                                newLabel
+                            }
+                        }
+                    }
+                }
+            }
+
             let newVarNames = Belt_HashMapInt.make(~hintSize=8)
-            let usedVarNames = Belt_HashSetString.make(~hintSize=8)
+            let reservedVarNames = Belt_HashSetString.make(~hintSize=8)
             let addNewVarToResult = (~newVarInt:int, ~newVarType:int):unit => {
                 res.newVars->Js_array2.push(newVarInt)->ignore
                 res.newVarTypes->Js_array2.push(newVarType)->ignore
                 let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
-                    ~typeToPrefix, ~reservedNames=usedVarNames, ()
+                    ~typeToPrefix, ~reservedNames=reservedVarNames, ()
                 )[0]
                 newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
-                usedVarNames->Belt_HashSetString.add(newVarName)
-                exprToLabel([newVarType, newVarInt])->ignore
+                reservedVarNames->Belt_HashSetString.add(newVarName)
+                getLabelForExpr([newVarType, newVarInt])->ignore
             }
-
 
             let maxCtxVar = ctx->getNumOfVars - 1
-            
-
-
-            let newLabels = rootStmts
-                ->Js.Array2.map(stmt=>(stmt.expr,stmt.label))
-                ->Belt_HashMap.fromArray(~id=module(ExprHash))
-            let usedLabels = reservedLabels->Belt_HashSetString.fromArray
-
-            let getFrame = label => {
-                switch ctx->getFrame(label) {
-                    | None => raise(MmException({msg:`Cannot get a frame by label '${label} in srcToNewStmts.'`}))
-                    | Some(frame) => frame
-                }
-            }
-
             let intToSym = i => {
                 if (i <= maxCtxVar) {
                     switch ctx->ctxIntToSym(i) {
@@ -183,24 +190,12 @@ let srcToNewStmts = (
                 }
             }
 
-            let exprToLabel = (expr:expr):string => {
-                switch ctx->getHypByExpr(expr) {
-                    | Some(hyp) => hyp.label
-                    | None => {
-                        switch newLabels->Belt_HashMap.get(expr) {
-                            | Some(label) => label
-                            | None => {
-                                let newLabel = generateNewLabels(~ctx, ~prefix="", ~amount=1, ~usedLabels, ())[0]
-                                newLabels->Belt_HashMap.set(expr, newLabel)
-                                usedLabels->Belt_HashSetString.add(newLabel)
-                                newLabel
-                            }
-                        }
-                    }
+            let getFrame = (label:string):frame => {
+                switch ctx->getFrame(label) {
+                    | None => raise(MmException({msg:`Cannot get a frame by label '${label} in srcToNewStmts.'`}))
+                    | Some(frame) => frame
                 }
             }
-
-            
 
             let addExprToResult = (~label, ~expr, ~src, ~isProved) => {
                 expr->Js_array2.forEach(ei => {
@@ -213,13 +208,17 @@ let srcToNewStmts = (
                 })
                 let exprStr = expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
                 let jstf = switch src {
-                    | Some(VarType) | Hypothesis(_) | AssertionWithErr(_) => None
+                    | Some(VarType) | Hypothesis(_) => None
+                    | AssertionWithErr(_) => {
+                        hasAsrtWithErr.contents = true
+                        None
+                    }
                     | Some(Assertion({args, label})) => {
                         let argLabels = []
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                             if (hyp.typ == E) {
                                 argLabels->Js_array2.push(
-                                    exprToLabel(tree.nodes[args[i]].expr)
+                                    getLabelForExpr(tree.nodes[args[i]].expr)
                                 )->ignore
                             }
                         })
@@ -296,17 +295,22 @@ let srcToNewStmts = (
                     res.newDisjStr->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
                 }
             })
-            Some(res)
+            if (hasAsrtWithErr.contents) {
+                None
+            } else {
+                Some(res)
+            }
         }
     }
 }
 
 let proofTreeDtoToNewStmtsDto = (
     ~treeDto:proofTreeDto, 
-    ~stmtToProve: rootStmt,
+    ~exprToProve: expr,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~reservedLabels: array<string>,
+    ~rootExprToLabel: Belt_HashMapString.t<expr,string,ExprHash.identity>,
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
     let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(stmtToProve.expr)) {
@@ -316,7 +320,7 @@ let proofTreeDtoToNewStmtsDto = (
 
     proofNode.parents
         ->Js_array2.map(src => srcToNewStmts(
-            ~stmtToProve,
+            ~exprToProve,
             ~reservedLabels,
             ~src,
             ~tree = treeDto,

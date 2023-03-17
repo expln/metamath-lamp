@@ -509,12 +509,17 @@ let make = (
     }
 
     let actOnResultsReady = (treeDto) => {
+        let rootExprToLabel = rootStmts
+            ->Js_array2.map(userStmtToRootStmt)
+            ->Js_array2.map(stmt => (stmt.label,stmt.expr))
+            ->Belt_HashMap.fromArray(~id=module(ExprHash))
         let results = proofTreeDtoToNewStmtsDto(
             ~treeDto, 
-            ~rootStmts = rootStmts->Js_array2.map(userStmtToRootStmt),
+            ~rootExprToLabel,
             ~ctx = wrkCtx,
             ~typeToPrefix,
-            ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label)
+            ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label),
+            ~exprToProve=(rootStmts[rootStmts->Js.Array2.length-1]->userStmtToRootStmt).expr
         )
         setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
     }
