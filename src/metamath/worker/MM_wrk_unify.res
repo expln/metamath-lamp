@@ -247,6 +247,11 @@ let srcToNewStmts = (
                         } else {
                             childrenReturnedFor->Belt_HashSet.add(node.expr)
                             switch node.proof {
+                                | Some(VarType) | Some(Hypothesis(_)) => None
+                                | Some(AssertionWithErr(_)) => {
+                                    hasAsrtWithErr.contents = true
+                                    None
+                                }
                                 | Some(Assertion({args,label})) => {
                                     let children = []
                                     getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
@@ -256,35 +261,50 @@ let srcToNewStmts = (
                                     })
                                     Some(children)
                                 }
-                                | _ => None
                             }
                         }
                     },
                     ~postProcess = (_,node) => {
-                        if (!(savedExprs->Belt_HashSet.has(node.expr)) && !(hyps->Belt_HashSet.has(node.expr))) {
+                        if (hasAsrtWithErr.contents) {
+                            Some(())
+                        } else if (!(savedExprs->Belt_HashSet.has(node.expr))) {
                             savedExprs->Belt_HashSet.add(node.expr)
-                            let label = switch exprToLabel->Belt_HashMap.get(node.expr) {
-                                | Some(label) => label
-                                | None => generateNewLabels(~ctx, ~prefix="", ~amount=1, ~usedLabels, ())[0]
+                            switch node.proof {
+                                | Some(VarType) | Some(Hypothesis(_)) => None
+                                | Some(AssertionWithErr(_)) => {
+                                    hasAsrtWithErr.contents = true
+                                    Some(())
+                                }
+                                | Some(Assertion({missingDisj})) => {
+                                    addExprToResult(
+                                        ~label = getLabelForExpr(node.expr), 
+                                        ~expr = node.expr, 
+                                        ~src = node.proof, 
+                                        ~isProved=node.proof->Belt_Option.isSome
+                                    )
+                                    switch missingDisj {
+                                        | None => None
+                                        | Some(missingDisj) => {
+                                            missingDisj->disjForEach((n,m) => {
+                                                res.newDisj->disjAddPair(n,m)
+                                                res.newDisjStr
+                                                    ->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
+                                            })
+                                        }
+                                    }
+                                    None
+                                }
                             }
-                            exprToLabel->Belt_HashMap.set(node.expr, label)
-                            usedLabels->Belt_HashSetString.add(label)
-                            addExprToResult(
-                                ~label, 
-                                ~expr = node.expr, 
-                                ~src = node.proof, 
-                                ~isProved=node.proof->Belt_Option.isSome
-                            )
+                        } else {
+                            None
                         }
-                        None
                     },
                     ()
                 )->ignore
             })
-            let stmtToProve = rootStmts[rootStmts->Js.Array2.length-1]
             addExprToResult(
-                ~label=stmtToProve.label,
-                ~expr = stmtToProve.expr,
+                ~label=getLabelForExpr(exprToProve),
+                ~expr = exprToProve,
                 ~src = Some(src),
                 ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
             )
