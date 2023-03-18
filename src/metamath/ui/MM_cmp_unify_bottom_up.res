@@ -539,7 +539,7 @@ let make = (
                     )
                 )
                 unify(
-                    ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~hyps, ~rootProvables,
+                    ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~rootStmts=state.rootStmts,
                     ~bottomUpProverParams=Some({
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,
@@ -611,19 +611,19 @@ let make = (
             | Some(tree) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
+                        let closeBtn =
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                                 {React.string("Close")}
                             </Button>
+                        <Col spacing=1. style=ReactDOM.Style.make(~margin="5px", ())>
+                            {closeBtn}
                             <MM_cmp_proof_tree
                                 tree
                                 rootExpr=state.exprToProve
                                 wrkCtx
                                 rootStmts=state.rootStmts
                             />
-                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
-                                {React.string("Close")}
-                            </Button>
+                            {closeBtn}
                         </Col>
                     })
                 })->ignore
