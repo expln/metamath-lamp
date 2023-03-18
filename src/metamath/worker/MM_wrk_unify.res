@@ -280,15 +280,13 @@ let srcToNewStmts = (
                                         ~label = getLabelForExpr(node.expr), 
                                         ~expr = node.expr, 
                                         ~src = node.proof, 
-                                        ~isProved=node.proof->Belt_Option.isSome
+                                        ~isProved=true
                                     )
                                     switch missingDisj {
                                         | None => ()
                                         | Some(missingDisj) => {
                                             missingDisj->disjForEach((n,m) => {
                                                 res.newDisj->disjAddPair(n,m)
-                                                res.newDisjStr
-                                                    ->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
                                             })
                                         }
                                     }
@@ -311,22 +309,29 @@ let srcToNewStmts = (
                     ()
                 )->ignore
             })
-            addExprToResult(
-                ~label=getLabelForExpr(exprToProve),
-                ~expr = exprToProve,
-                ~src = Some(src),
-                ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
-            )
-            let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
-            tree.disj->disjForEach((n,m) => {
-                if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {
-                    res.newDisj->disjAddPair(n,m)
-                    res.newDisjStr->Js.Array2.push(`$d ${intToSym(n)} ${intToSym(m)} $.`)->ignore
-                }
-            })
             if (hasAsrtWithErr.contents) {
                 None
             } else {
+                addExprToResult(
+                    ~label=getLabelForExpr(exprToProve),
+                    ~expr = exprToProve,
+                    ~src = Some(src),
+                    ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
+                )
+                let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
+                tree.disj->disjForEach((n,m) => {
+                    if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {
+                        res.newDisj->disjAddPair(n,m)
+                    }
+                })
+                missingDisj->disjForEach((n,m) => {
+                    res.newDisj->disjAddPair(n,m)
+                })
+                res.newDisj->disjForEachArr(disjArr => {
+                    res.newDisjStr->Js.Array2.push(
+                        `$d ${disjArr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")} $.`
+                    )->ignore
+                })
                 Some(res)
             }
         }

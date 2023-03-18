@@ -30,10 +30,11 @@ type resultRendered = {
 }
 
 type state = {
+    rootUserStmts: array<userStmt>,
+    rootStmts: array<rootStmt>,
     rootStmtsRendered: array<rootStmtRendered>,
     exprToProve:expr,
     title: reElem,
-    rootStmts: array<rootStmt>,
 
     args0: array<bool>,
     args1: array<bool>,
@@ -107,11 +108,12 @@ let getAvailableAsrtLabels = (
 }
 
 let makeInitialState = (
-    ~rootStmts: array<userStmt>,
+    ~rootUserStmts: array<userStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~initialLabel: option<string>,
 ) => {
+    let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
     let maxRootStmtIdx = rootStmtsLen-1
     let exprToProve = switch rootStmts[maxRootStmtIdx].expr {
@@ -119,7 +121,9 @@ let makeInitialState = (
         | Some(expr) => expr
     }
     {
-        rootStmtsRendered: rootStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js.Array2.map(stmt => {
+        rootUserStmts,
+        rootStmts,
+        rootStmtsRendered: rootUserStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js.Array2.map(stmt => {
             {
                 id: stmt.id,
                 expr: switch stmt.expr {
@@ -131,8 +135,7 @@ let makeInitialState = (
                 proofStatus:stmt.proofStatus,
                 exprReElem: <span> {MM_cmp_user_stmt.rndContText(stmt.cont)} </span>
             }
-        })
-        ,
+        }),
         exprToProve,
         title:
             <span>
@@ -141,7 +144,6 @@ let makeInitialState = (
                 </span>
                 { MM_cmp_user_stmt.rndContText(rootStmts[maxRootStmtIdx].cont) }
             </span>,
-        rootStmts: rootStmts->Js.Array2.map(userStmtToRootStmt),
 
         args0: Belt_Array.make(rootStmtsLen-1, true),
         args1: Belt_Array.make(rootStmtsLen-1, false),
@@ -228,12 +230,20 @@ let isStmtToShow = (
     ~stmt:stmtDto, 
     ~rootJstfs:Belt_HashMap.t<expr,option<jstf>,ExprHash.identity>
 ):bool => {
-    if (!stmt.isProved) {
-        true
-    } else {
-        stmt.jstf != switch rootJstfs->Belt_HashMap.get(stmt.expr) {
-            | None => None
-            | Some(jstf) => jstf
+    switch rootJstfs->Belt_HashMap.get(stmt.expr) {
+        | None => true
+        | Some(None) => stmt.jstf->Belt_Option.isSome
+        | Some(rootJstf) => {
+            switch stmt.jstf {
+                | None => raise(MmException({msg:`There is a root jstf but stmt.jstf is absent.`}))
+                | Some(foundJstf) => {
+                    if (!(rootJstf->jstfEq(foundJstf))) {
+                        raise(MmException({msg:`rootJstf != foundJstf`}))
+                    } else {
+                        false
+                    }
+                }
+            }
         }
     }
 }
@@ -246,13 +256,11 @@ let stmtsDtoToResultRendered = (
     let elem = 
         <Col>
             {
-                stmtsDto.newDisjStr
-                    ->Js.Array2.map(disjStr => {
-                        <span key=disjStr>
-                            {disjStr->React.string}
-                        </span>
-                    })
-                    ->React.array
+                stmtsDto.newDisjStr->Js.Array2.map(disjStr => {
+                    <span key=disjStr>
+                        {disjStr->React.string}
+                    </span>
+                })->React.array
             }
             <table>
                 <tbody>
@@ -291,19 +299,17 @@ let stmtsDtoToResultRendered = (
                 </tbody>
             </table>
         </Col>
+    let lastStmt = stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1]
     {
         idx,
         elem,
-        asrtLabel:
-            stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1].jstf
-                ->Belt_Option.map(jstf => jstf.label)
-                ->Belt_Option.getWithDefault(""),
+        asrtLabel: lastStmt.jstf->Belt_Option.map(jstf => jstf.label)->Belt_Option.getWithDefault(""),
         numOfNewVars: stmtsDto.newVars->Js.Array2.length,
         numOfUnprovedStmts: stmtsDto.stmts->Js.Array2.reduce(
             (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
             0
         ),
-        isProved: stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1].isProved,
+        isProved: lastStmt.isProved,
         numOfStmts: stmtsDto.stmts->Js.Array2.length,
     }
 }
@@ -329,12 +335,9 @@ let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> =>
 }
 
 let sortResultsRendered = (resultsRendered, sortBy) => {
-    switch resultsRendered {
-        | None => None
-        | Some(resultsRendered) => {
-            Some(resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(createComparator(sortBy)))
-        }
-    }
+    resultsRendered->Belt_Option.map(resultsRendered =>
+        resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(createComparator(sortBy))
+    )
 }
 
 let setResults = (st,tree,results) => {
@@ -352,7 +355,7 @@ let setResults = (st,tree,results) => {
             }
         }
         | Some(results) => {
-            let rootJstfs = st.rootProvables
+            let rootJstfs = st.rootStmts
                 ->Js_array2.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
@@ -457,9 +460,9 @@ let make = (
     ~preCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
-    ~wrkCtx: mmContext,
     ~varsText: string,
     ~disjText: string,
+    ~wrkCtx: mmContext,
     ~rootStmts: array<userStmt>,
     ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
@@ -468,7 +471,7 @@ let make = (
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootStmts, ~frms, ~parenCnt, ~initialLabel
+        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialLabel
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -505,15 +508,15 @@ let make = (
 
     let actOnResultsReady = (treeDto) => {
         let rootExprToLabel = state.rootStmts
-            ->Js_array2.map(stmt => (stmt.label,stmt.expr))
+            ->Js_array2.map(stmt => (stmt.expr,stmt.label))
             ->Belt_HashMap.fromArray(~id=module(ExprHash))
         let results = proofTreeDtoToNewStmtsDto(
             ~treeDto, 
             ~rootExprToLabel,
             ~ctx = wrkCtx,
             ~typeToPrefix,
-            ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label),
-            ~exprToProve=rootStmts[rootStmts->Js.Array2.length-1].expr
+            ~reservedLabels,
+            ~exprToProve=state.exprToProve,
         )
         setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
     }
