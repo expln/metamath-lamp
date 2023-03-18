@@ -72,17 +72,18 @@ let findPossibleSubsSimpleCase = "./src/metamath/test/resources/findPossibleSubs
 let findPossibleSubsDisjointsCase = "./src/metamath/test/resources/findPossibleSubs-test-data/disjoints-case.mm"
 let findPossibleSubsTypeCase = "./src/metamath/test/resources/findPossibleSubs-test-data/type-case.mm"
 
-describe("refreshWrkCtx", _ => {
+
+describe("prepareEditorForUnification", _ => {
     it("detects an error in variable declaration", _ => {
         //given
         let st = createEditorState(demo0)
         let st = completeVarsEditMode(st, "hyp_v1 term v1 \n hyp_v2 term- v2")
 
         //when
-        let st = refreshWrkCtx(st)
+        let st = prepareEditorForUnification(st)
 
         //then
-        assertEq(st.varsErr->Belt_Option.getWithDefault(""), "The first symbol in a floating expression must be a constant.")
+        assertEq(st.varsErr->Belt_Option.getWithDefault(""), "The first symbol in the floating 'hyp_v2' must be a constant.")
         assertEq(st.wrkCtx->Belt_Option.isNone, true)
     })
     
@@ -92,7 +93,7 @@ describe("refreshWrkCtx", _ => {
         let st = completeVarsEditMode(st, "hyp_v1 term v1 \n hyp_v2 wff v2")
 
         //when
-        let st = refreshWrkCtx(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         switch st.wrkCtx {
@@ -112,7 +113,7 @@ describe("refreshWrkCtx", _ => {
         let st = completeDisjEditMode(st, "t, r \n r, s-")
 
         //when
-        let st = refreshWrkCtx(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
@@ -126,7 +127,7 @@ describe("refreshWrkCtx", _ => {
         let st = completeDisjEditMode(st, "t, r \n r, s")
 
         //when
-        let st = refreshWrkCtx(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         switch st.wrkCtx {
@@ -156,48 +157,18 @@ describe("refreshWrkCtx", _ => {
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- 0 + 0.", ())})
 
         //when
-        let st = refreshWrkCtx(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
         assertEq(st.disjErr->Belt_Option.isNone, true)
+        assertEq(st.wrkCtx->Belt_Option.isSome, true)
         assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
         assertEq(st.stmts[0].stmtErr->Belt_Option.getWithDefault(""), "The symbol '0.' is not declared.")
         assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
         assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
-        assertEq(st.wrkCtx->Belt_Option.isNone, true)
     })
-    
-    it("creates wrkCtx when there are few correct hypotheses", _ => {
-        //given
-        let st = createEditorState(demo0)
-        let (st, _) = addNewStmt(st)
-        let (st, _) = addNewStmt(st)
-        let hyp1Id = st.stmts[0].id
-        let hyp2Id = st.stmts[1].id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- t + t", ())})
 
-        //when
-        let st = refreshWrkCtx(st)
-
-        //then
-        switch st.wrkCtx {
-            | Some(wrkCtx) => {
-                assertEqMsg(st.stmts[0].id, hyp1Id, "hyp1 is the first")
-                assertEq(st.stmts[0].stmtErr->Belt_Option.isNone, true)
-                assertEqMsg(st.stmts[1].id, hyp2Id, "hyp2 is the second")
-                assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
-
-                assertEqMsg(wrkCtx->isHyp("hyp1"), true, "hyp1 is a hypothesis")
-                assertEqMsg(wrkCtx->isHyp("hyp2"), true, "hyp2 is a hypothesis")
-            }
-            | _ => failMsg("A non-empty context was expected")
-        }
-    })
-})
-
-describe("prepareUserStmtsForUnification", _ => {
     it("detects an error in a provable expression", _ => {
         //given
         let st = createEditorState(demo0)
@@ -213,10 +184,9 @@ describe("prepareUserStmtsForUnification", _ => {
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 +- 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ())})
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -238,14 +208,13 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -267,14 +236,13 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : hyp1"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -296,14 +264,13 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : pr1"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -325,14 +292,13 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp-- : ax"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -354,20 +320,19 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"tt", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'tt'.")
+        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'tt' [3].")
     })
 
     it("detects a label duplication when a provable uses label of a predefined assertion", _ => {
@@ -383,14 +348,13 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"mp", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -412,20 +376,19 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'pr1'.")
+        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'pr1' [3].")
     })
 
     it("sets expr and jstf for each provable when there are no errors", _ => {
@@ -441,14 +404,13 @@ describe("prepareUserStmtsForUnification", _ => {
         let hyp2Id = st.stmts[3].id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
-        let st = refreshWrkCtx(st)
 
         //when
-        let st = prepareUserStmtsForUnification(st)
+        let st = prepareEditorForUnification(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")

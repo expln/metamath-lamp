@@ -881,9 +881,11 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                         )
 
                         definedUserLabels->Belt_HashSetString.add(stmt.label)
-                        switch stmt.expr {
-                            | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
-                            | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
+                        if (!userStmtHasErrors(stmt)) {
+                            switch stmt.expr {
+                                | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
+                                | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
+                            }
                         }
                         st->updateStmt(stmt.id, _ => stmt)
                     }
