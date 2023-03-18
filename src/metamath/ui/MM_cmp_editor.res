@@ -547,11 +547,6 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             preCtx=state.preCtx
                             varsText=state.varsText
                             disjText=state.disjText
-                            hyps={
-                                state.stmts
-                                    ->Js_array2.filter(stmt => stmt.typ == E)
-                                    ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
-                            }
                             wrkCtx
                             frms=state.frms
                             initialTyp={getLastUsedTyp(state.preCtx)}
@@ -625,11 +620,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             | Some(wrkCtx) => {
                 let varsText=state.varsText
                 let disjText=state.disjText
-                let hyps={
-                    state.stmts
-                        ->Js_array2.filter(stmt => stmt.typ == E)
-                        ->Js_array2.map(stmt => {id:stmt.id, label:stmt.label, text:stmt.cont->contToStr})
-                }
+                let rootUserStmts = state->getRootStmtsForUnification
                 switch singleProvableSelected {
                     | Some(singleProvableSelected) => {
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -640,15 +631,10 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                     settings=state.settings
                                     preCtxVer=state.preCtxV
                                     preCtx=state.preCtx
-                                    wrkCtx varsText disjText hyps rootProvables
-                                    rootStmts={state->getRootStmtsForUnification}
-                                    reservedLabels={st.stmts->Js.Array2.map(stmt => stmt.label)}
                                     frms=state.frms parenCnt=state.parenCnt
-                                    onResultSelected={newStmtsDto => {
-                                        closeModal(modalRef, modalId)
-                                        actBottomUpResultSelected(newStmtsDto)
-                                    }}
-                                    onCancel={() => closeModal(modalRef, modalId)}
+                                    varsText disjText wrkCtx
+                                    rootStmts=rootUserStmts
+                                    reservedLabels={state.stmts->Js.Array2.map(stmt => stmt.label)}
                                     typeToPrefix = {
                                         Belt_MapString.fromArray(
                                             state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
@@ -660,6 +646,11 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                             | _ => None
                                         }
                                     }
+                                    onResultSelected={newStmtsDto => {
+                                        closeModal(modalRef, modalId)
+                                        actBottomUpResultSelected(newStmtsDto)
+                                    }}
+                                    onCancel={() => closeModal(modalRef, modalId)}
                                 />
                             })
                         })->ignore
@@ -678,8 +669,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                 ~preCtx=state.preCtx,
                                 ~varsText,
                                 ~disjText,
-                                ~hyps,
-                                ~rootProvables,
+                                ~rootStmts={rootUserStmts->Js_array2.map(userStmtToRootStmt)},
                                 ~bottomUpProverParams=None,
                                 ~debugLevel=0,
                                 ~onProgress = msg => updateModal(

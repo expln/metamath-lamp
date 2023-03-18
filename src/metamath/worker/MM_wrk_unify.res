@@ -228,6 +228,17 @@ let srcToNewStmts = (
                 res.stmts->Js_array2.push( { label, expr, exprStr, jstf, isProved, } )->ignore
             }
 
+            let addMissingDisjToResult = missingDisj => {
+                switch missingDisj {
+                    | None => ()
+                    | Some(missingDisj) => {
+                        missingDisj->disjForEach((n,m) => {
+                            res.newDisj->disjAddPair(n,m)
+                        })
+                    }
+                }
+            }
+
             let frame = getFrame(label)
             let eArgs = []
             frame.hyps->Js.Array2.forEachi((hyp,i) => {
@@ -282,14 +293,7 @@ let srcToNewStmts = (
                                         ~src = node.proof, 
                                         ~isProved=true
                                     )
-                                    switch missingDisj {
-                                        | None => ()
-                                        | Some(missingDisj) => {
-                                            missingDisj->disjForEach((n,m) => {
-                                                res.newDisj->disjAddPair(n,m)
-                                            })
-                                        }
-                                    }
+                                    addMissingDisjToResult(missingDisj)
                                     None
                                 }
                                 | None => {
@@ -318,14 +322,12 @@ let srcToNewStmts = (
                     ~src = Some(src),
                     ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
                 )
+                addMissingDisjToResult(missingDisj)
                 let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
                 tree.disj->disjForEach((n,m) => {
                     if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {
                         res.newDisj->disjAddPair(n,m)
                     }
-                })
-                missingDisj->disjForEach((n,m) => {
-                    res.newDisj->disjAddPair(n,m)
                 })
                 res.newDisj->disjForEachArr(disjArr => {
                     res.newDisjStr->Js.Array2.push(

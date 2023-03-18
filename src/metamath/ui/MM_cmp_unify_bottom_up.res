@@ -116,10 +116,7 @@ let makeInitialState = (
     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
     let maxRootStmtIdx = rootStmtsLen-1
-    let exprToProve = switch rootStmts[maxRootStmtIdx].expr {
-        | None => raise(MmException({msg:`expr must be set on the statement to prove.`}))
-        | Some(expr) => expr
-    }
+    let exprToProve = rootStmts[maxRootStmtIdx].expr
     {
         rootUserStmts,
         rootStmts,
@@ -142,7 +139,7 @@ let makeInitialState = (
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up "->React.string}
                 </span>
-                { MM_cmp_user_stmt.rndContText(rootStmts[maxRootStmtIdx].cont) }
+                { MM_cmp_user_stmt.rndContText(rootUserStmts[maxRootStmtIdx].cont) }
             </span>,
 
         args0: Belt_Array.make(rootStmtsLen-1, true),
@@ -233,7 +230,7 @@ let isStmtToShow = (
     switch rootJstfs->Belt_HashMap.get(stmt.expr) {
         | None => true
         | Some(None) => stmt.jstf->Belt_Option.isSome
-        | Some(rootJstf) => {
+        | Some(Some(rootJstf)) => {
             switch stmt.jstf {
                 | None => raise(MmException({msg:`There is a root jstf but stmt.jstf is absent.`}))
                 | Some(foundJstf) => {

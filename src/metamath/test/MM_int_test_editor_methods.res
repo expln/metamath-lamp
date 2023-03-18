@@ -308,7 +308,8 @@ let unifyBottomUp = (
         | Some(wrkCtx) => {
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
-            let rootStmts = st->getRootStmtsForUnification
+            let rootUserStmts = st->getRootStmtsForUnification
+            let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
@@ -320,23 +321,27 @@ let unifyBottomUp = (
                     lengthRestriction,
                     allowNewStmts,
                     allowNewVars,
-                    args0:filterRootStmts(rootStmts, args0),
-                    args1:filterRootStmts(rootStmts, args1),
+                    args0:filterRootStmts(rootUserStmts, args0),
+                    args1:filterRootStmts(rootUserStmts, args1),
                     maxNumberOfBranches: None,
                 },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
+            let rootExprToLabel = rootStmts
+                ->Js_array2.map(stmt => (stmt.expr,stmt.label))
+                ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt),
+                ~exprToProve=rootStmts[rootStmts->Js_array2.length-1].expr,
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                     ),
-                ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label)
+                ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label),
+                ~rootExprToLabel,
             )
             let result = switch chooseLabel {
                 | None => result
