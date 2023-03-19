@@ -555,20 +555,21 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn(stmt2),
         )
 
+        assertEq(possibleSubs->Js.Array2.length, 1)
         assertEq(
-            possibleSubs,
-            [
+            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
-                        (t, ctx->ctxStrToIntsExn("t")),
-                        (x, ctx->ctxStrToIntsExn("z")),
-                        (y, ctx->ctxStrToIntsExn("z")),
-                        (z, ctx->ctxStrToIntsExn("z")),
+                        (t,[t]),
+                        (x,[z]),
+                        (y,[z]),
+                        (z,[z]),
                     ]),
                     err: None
-                },
-            ]
+                }
+            ),
         )
 
         let st = completeDisjEditMode(st, "x, y")
@@ -583,20 +584,21 @@ describe("findPossibleSubs", _ => {
         )
 
         //then
+        assertEq(possibleSubs->Js.Array2.length, 1)
         assertEq(
-            possibleSubs,
-            [
+            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
-                        (t, ctx->ctxStrToIntsExn("t")),
-                        (x, ctx->ctxStrToIntsExn("z")),
-                        (y, ctx->ctxStrToIntsExn("z")),
-                        (z, ctx->ctxStrToIntsExn("z")),
+                        (t,[t]),
+                        (x,[z]),
+                        (y,[z]),
+                        (z,[z]),
                     ]),
                     err: Some(CommonVar({var1:x, var2:y, commonVar:z}))
-                },
-            ]
+                }
+            ),
         )
     })
 
@@ -622,38 +624,44 @@ describe("findPossibleSubs", _ => {
         )
 
         //then
+        assertEq(possibleSubs->Js.Array2.length, 2)
         assertEq(
-            possibleSubs,
-            [
+            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
-                        (t, ctx->ctxStrToIntsExn("t")),
-                        (x, ctx->ctxStrToIntsExn("y")),
-                        (y, ctx->ctxStrToIntsExn("z + t")),
-                        (z, ctx->ctxStrToIntsExn("z")),
+                        (t,[t]),
+                        (x,[y]),
+                        (y,ctx->ctxStrToIntsExn("z + t")),
+                        (z,[z]),
                     ]),
                     err: Some(TypeMismatch({
                         var:y, 
                         subsExpr:ctx->ctxStrToIntsExn("z + t"), 
                         typeExpr:ctx->ctxStrToIntsExn("term z + t")
                     }))
-                },
+                }
+            ),
+        )
+        assertEq(
+            ctx->wrkSubsToStr(possibleSubs[1]),
+            ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
                     subs: Belt_MapInt.fromArray([
-                        (t, ctx->ctxStrToIntsExn("t")),
-                        (x, ctx->ctxStrToIntsExn("y + z")),
-                        (y, ctx->ctxStrToIntsExn("t")),
-                        (z, ctx->ctxStrToIntsExn("z")),
+                        (t,[t]),
+                        (x,ctx->ctxStrToIntsExn("y + z")),
+                        (y,[t]),
+                        (z,[z]),
                     ]),
                     err: Some(TypeMismatch({
                         var:x, 
                         subsExpr:ctx->ctxStrToIntsExn("y + z"), 
                         typeExpr:ctx->ctxStrToIntsExn("term y + z")
                     }))
-                },
-            ]
+                }
+            ),
         )
     })
 

@@ -119,7 +119,7 @@ describe("moveConstsToBegin", _ => {
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
     })
 
-    it("does not break var types", _ => {
+    it("doesn't break var types", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test.mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
@@ -146,7 +146,7 @@ describe("moveConstsToBegin", _ => {
         assertEq(ctx->getTypeOfVarExn(q)->ctxIntToSymExn(ctx, _), "wff")
     })
 
-    it("does not break expr-to-hyp", _ => {
+    it("doesn't break expr-to-hyp", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test.mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
