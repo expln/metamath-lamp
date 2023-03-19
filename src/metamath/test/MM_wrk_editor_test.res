@@ -67,6 +67,41 @@ let getVarType = (ctx:mmContext, vName:string) => {
     })->Belt_Option.getWithDefault("type-not-found")
 }
 
+let subsToSortedArr = subs => subs->Belt_MapInt.toArray->Js.Array2.sortInPlaceWith(((i1,_),(i2,_)) => i1-i2)
+let disjToSortedArr = disj => {
+    let res = []
+    disj->disjForEach((n,m) => res->Js_array2.push((n,m))->ignore)
+    {
+        open Expln_utils_common
+        res->Js_array2.sortInPlaceWith(
+        comparatorBy(((l,_)) => l)
+            ->comparatorAndThen(
+                comparatorBy(((_,r)) => r)
+            )
+        )
+    }
+}
+
+let wrkSubsToStr = (ctx:mmContext, wrkSubs:wrkSubs):string => {
+    "{newDisj:["
+        ++ disjToSortedArr(wrkSubs.newDisj)
+            ->Js.Array2.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)},${ctx->ctxIntToSymExn(r)})`)
+            ->Js.Array2.joinWith(",")
+        ++ "], subs:["
+        ++ subsToSortedArr(wrkSubs.subs)
+            ->Js.Array2.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)} -> [${r->Js_array2.map(ctx->ctxIntToSymExn)->Js.Array2.joinWith(",")}])`)
+            ->Js.Array2.joinWith(",")
+        ++ "], err: "
+        ++ switch wrkSubs.err {
+            | None => "None"
+            | Some(CommonVar({var1, var2, commonVar})) =>
+                `CommonVar({var1:${ctx->ctxIntToSymExn(var1)}, var2:${ctx->ctxIntToSymExn(var2)}, commonVar:${ctx->ctxIntToSymExn(commonVar)}})`
+            | Some(TypeMismatch({var, subsExpr, typeExpr})) =>
+                `TypeMismatch({var:${ctx->ctxIntToSymExn(var)}, subsExpr:[${ctx->ctxIntsToStrExn(subsExpr)}], typeExpr:[${ctx->ctxIntsToStrExn(typeExpr)}]})`
+        }
+        ++ "}"
+}
+
 let demo0 = "./src/metamath/test/resources/demo0.mm"
 let findPossibleSubsSimpleCase = "./src/metamath/test/resources/findPossibleSubs-test-data/simple-case.mm"
 let findPossibleSubsDisjointsCase = "./src/metamath/test/resources/findPossibleSubs-test-data/disjoints-case.mm"
@@ -335,7 +370,7 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'tt' [3].")
     })
 
-    it("detects a label duplication when a provable uses label of a predefined assertion", _ => {
+    it("detects a label duplication when a provable uses label of a previously defined hypothesis", _ => {
         //given
         let st = createEditorState(demo0)
         let (st, _) = addNewStmt(st)
@@ -349,7 +384,7 @@ describe("prepareEditorForUnification", _ => {
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"mp", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"hyp2", cont:strToCont("|- t term", ()),
             jstfText: "pr1 hyp1 : mp"
         })
 
@@ -360,7 +395,7 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'mp'.")
+        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'hyp2' [3].")
     })
 
     it("detects a label duplication when a provable uses label of a previously defined another provable", _ => {
@@ -480,23 +515,24 @@ describe("findPossibleSubs", _ => {
         )
 
         //then
+        assertEq(possibleSubs->Js.Array2.length, 1)
+        let expectedDisj = disjMake()
+        expectedDisj->disjAddPair(x,z)
         assertEq(
-            possibleSubs->Js.Array2.map(wrkSubs => wrkSubs.subs),
-            [
-                Belt_MapInt.fromArray([
-                    (t, ctx->ctxStrToIntsExn("t")),
-                    (x, ctx->ctxStrToIntsExn("x")),
-                    (y, ctx->ctxStrToIntsExn("z")),
-                    (z, ctx->ctxStrToIntsExn("z")),
-                ]),
-            ]
+            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(
+                {
+                    newDisj: expectedDisj,
+                    subs: Belt_MapInt.fromArray([
+                        (t,[t]),
+                        (x,[x]),
+                        (y,[z]),
+                        (z,[z]),
+                    ]),
+                    err: None
+                }
+            ),
         )
-
-        let newDisjStrArr = []
-        possibleSubs[0].newDisj->disjForEachArr(arr => {
-            newDisjStrArr->Js.Array2.push(ctx->ctxIntsToStrExn(arr))->ignore
-        })
-        assertEq( newDisjStrArr, ["x z"] )
     })
 
     it("doesn't return substitutions which don't satisfy disjoints", _ => {
