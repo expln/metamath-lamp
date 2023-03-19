@@ -118,4 +118,51 @@ describe("moveConstsToBegin", _ => {
         //then
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
     })
+
+    it("does not break var types", _ => {
+        //given
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test.mm")
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let ctx = loadContext(ast, ())
+        let t = ctx->ctxSymToIntExn("t")
+        let r = ctx->ctxSymToIntExn("r")
+        let s = ctx->ctxSymToIntExn("s")
+        let p = ctx->ctxSymToIntExn("P")
+        let q = ctx->ctxSymToIntExn("Q")
+        assertEq(ctx->getTypeOfVarExn(t)->ctxIntToSymExn(ctx, _), "term")
+        assertEq(ctx->getTypeOfVarExn(r)->ctxIntToSymExn(ctx, _), "term")
+        assertEq(ctx->getTypeOfVarExn(s)->ctxIntToSymExn(ctx, _), "term")
+        assertEq(ctx->getTypeOfVarExn(p)->ctxIntToSymExn(ctx, _), "wff")
+        assertEq(ctx->getTypeOfVarExn(q)->ctxIntToSymExn(ctx, _), "wff")
+
+        //when
+        ctx->moveConstsToBegin("( ) [ ] { }")
+
+        //then
+        assertEq(ctx->getTypeOfVarExn(t)->ctxIntToSymExn(ctx, _), "term")
+        assertEq(ctx->getTypeOfVarExn(r)->ctxIntToSymExn(ctx, _), "term")
+        assertEq(ctx->getTypeOfVarExn(s)->ctxIntToSymExn(ctx, _), "term")
+        assertEq(ctx->getTypeOfVarExn(p)->ctxIntToSymExn(ctx, _), "wff")
+        assertEq(ctx->getTypeOfVarExn(q)->ctxIntToSymExn(ctx, _), "wff")
+    })
+
+    it("does not break expr-to-hyp", _ => {
+        //given
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test.mm")
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let ctx = loadContext(ast, ~stopBefore="mp", ())
+        assertEq(
+            (ctx->ctxStrToIntsExn("|- ( P -> Q )")->getHypByExpr(ctx, _)->Belt_Option.getExn).label,
+            "maj"
+        )
+
+        //when
+        ctx->moveConstsToBegin("( ) [ ] { }")
+
+        //then
+        assertEq(
+            (ctx->ctxStrToIntsExn("|- ( P -> Q )")->getHypByExpr(ctx, _)->Belt_Option.getExn).label,
+            "maj"
+        )
+    })
 })

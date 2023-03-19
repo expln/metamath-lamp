@@ -1163,31 +1163,28 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
             })
             let stMut = ref(st)
             newStmts.stmts->Js_array2.forEach(stmtDto => {
-                switch checkedStmt {
-                    | None => {
-                        let (st, ctxLabel) = stMut.contents->insertStmt(
-                            ~expr=stmtDto.expr, 
-                            ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
-                            ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                            ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
-                        )
-                        stMut.contents = st
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
-                    }
-                    | Some(checkedStmt) if stmtsHaveSameExpr(checkedStmt, stmtDto) => {
-                        stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
-                            {
-                                ...stmtToUpdate,
-                                jstfText:
-                                    switch stmtDto.jstf {
-                                        | None => stmtToUpdate.jstfText
-                                        | Some(jstf) => jstf->replaceDtoLabelsWithCtxLabels->jstfToStr
-                                    }
-                            }
-                        })
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
-                    }
-                    
+                if (checkedStmt->Belt.Option.isSome && stmtsHaveSameExpr(checkedStmt->Belt.Option.getExn, stmtDto)) {
+                    let checkedStmt = checkedStmt->Belt.Option.getExn
+                    stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
+                        {
+                            ...stmtToUpdate,
+                            jstfText:
+                                switch stmtDto.jstf {
+                                    | None => stmtToUpdate.jstfText
+                                    | Some(jstf) => jstf->replaceDtoLabelsWithCtxLabels->jstfToStr
+                                }
+                        }
+                    })
+                    newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
+                } else {
+                    let (st, ctxLabel) = stMut.contents->insertStmt(
+                        ~expr=stmtDto.expr, 
+                        ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
+                        ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
+                        ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
+                    )
+                    stMut.contents = st
+                    newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
                 }
             })
             stMut.contents

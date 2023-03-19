@@ -934,12 +934,16 @@ let generateNewLabels = (
     res
 }
 
+let renumberConst = (constRenum:Belt_HashMapInt.t<int>, c:int):int => {
+    constRenum->Belt_HashMapInt.get(c)->Belt_Option.getWithDefault(c)
+}
+
 let renumberConstsInExpr = (constRenum:Belt_HashMapInt.t<int>, expr:expr):unit => {
     let maxI = expr->Js_array2.length-1
     for i in 0 to maxI {
         let sym = expr[i]
         if (sym < 0) {
-            expr[i] = constRenum->Belt_HashMapInt.get(sym)->Belt_Option.getWithDefault(sym)
+            expr[i] = constRenum->renumberConst(sym)
         }
     }
 }
@@ -985,6 +989,19 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
         frame.hyps->Js_array2.forEach(hyp => constRenum->renumberConstsInExpr(hyp.expr))
         constRenum->renumberConstsInExpr(frame.asrt)
         constRenum->renumberConstsInExpr(frame.varTypes)
+        None
+    })->ignore
+    ctx.contents->forEachCtxInDeclarationOrder(ctx => {
+        let maxI = ctx.vars->Js_array2.length-1
+        for i in 0 to maxI {
+            let var = ctx.varsBaseIdx + i
+            switch ctx.varTypes->Belt_HashMapInt.get(var) {
+                | None => ()
+                | Some(oldTyp) => ctx.varTypes->Belt_HashMapInt.set(var, constRenum->renumberConst(oldTyp))
+            }
+        }
+        ctx.exprToHyp->Belt_HashMap.clear
+        ctx.hyps->Js.Array2.forEach(hyp => ctx.exprToHyp->Belt_HashMap.set(hyp.expr, hyp))
         None
     })->ignore
 }
