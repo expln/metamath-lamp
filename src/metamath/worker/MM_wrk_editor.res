@@ -1574,32 +1574,38 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
     }
 }
 
-let proofToText = (ctx:mmContext,stmt:userStmt,proof:proof):string => {
+let proofToText = (
+    ~ctx:mmContext,
+    ~newVars:array<string>,
+    ~newDisj:disjMutable,
+    ~newHyps:array<hypothesis>,
+    ~stmt:userStmt,
+    ~proof:proof
+):string => {
     switch proof {
         | Compressed({labels, compressedProofBlock}) => {
             let blk = splitIntoChunks(compressedProofBlock, 50)->Js_array2.joinWith(" ")
             let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Js_array2.joinWith(" ")} ) ${blk} $.`
-            let localVars = ctx->getLocalVars
-            let localDisj = ctx->getLocalDisj
-            let localHyps = ctx->getLocalHyps
-            let blockIsRequired = localHyps->Js.Array2.length > 0 || !(localDisj->disjIsEmpty)
+            let blockIsRequired = newHyps->Js.Array2.length > 0 || !(newDisj->disjIsEmpty)
             let result = []
             if (blockIsRequired) {
                 result->Js.Array2.push("${")->ignore
             }
-            if (localVars->Js.Array2.length > 0) {
-                result->Js.Array2.push("$v " ++ localVars->Js.Array2.joinWith(" ") ++ " $.")->ignore
+            if (newVars->Js.Array2.length > 0) {
+                result->Js.Array2.push("$v " ++ newVars->Js.Array2.joinWith(" ") ++ " $.")->ignore
             }
-            localDisj->disjForEachArr(vars => {
+            newHyps->Js.Array2.forEach(hyp => {
+                if (hyp.typ == F) {
+                    result->Js.Array2.push(hyp.label ++ " $f " ++ ctx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
+                }
+            })
+            newDisj->disjForEachArr(vars => {
                 result->Js.Array2.push("$d " ++ ctx->ctxIntsToStrExn(vars) ++ " $.")->ignore
             })
-            localHyps->Js.Array2.forEach(hyp => {
-                let hypTypStr = if (hyp.typ == F) {
-                    " $f "
-                } else {
-                    " $e "
+            newHyps->Js.Array2.forEach(hyp => {
+                if (hyp.typ == E) {
+                    result->Js.Array2.push(hyp.label ++ " $e " ++ ctx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
                 }
-                result->Js.Array2.push(hyp.label ++ hypTypStr ++ ctx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
             })
             result->Js.Array2.push(asrt)->ignore
             if (blockIsRequired) {
@@ -1627,7 +1633,10 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                 st.stmts->Js_array2.filter(stmt => stmt.typ == E)->Js_array2.map(userStmtToRootStmt)
                             )
                             let proof = MM_proof_table.createProof(proofCtx, proofTable, proofTable->Js_array2.length-1)
-                            Some(proofToText(proofCtx,stmt,proof))
+                            let newVars = wrkCtx->getLocalVars
+                            let newDisj = wrkCtx->getLocalDisj
+                            let newHyps = wrkCtx->getLocalHyps->Js.Array2.concat(proofCtx->getLocalHyps)
+                            Some(proofToText( ~ctx=proofCtx, ~newVars, ~newDisj, ~newHyps, ~stmt, ~proof ))
                         }
                     }
                 }
