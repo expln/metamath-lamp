@@ -118,7 +118,6 @@ let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
     }
 }
 
-//todo: review this function
 let srcToNewStmts = (
     ~src:exprSrcDto,
     ~exprToProve: expr,
@@ -172,7 +171,6 @@ let srcToNewStmts = (
                 )[0]
                 newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
                 reservedVarNames->Belt_HashSetString.add(newVarName)
-                getLabelForExpr([newVarType, newVarInt])->ignore
             }
 
             let maxCtxVar = ctx->getNumOfVars - 1
@@ -288,7 +286,7 @@ let srcToNewStmts = (
                                 }
                                 | Some(Assertion({missingDisj})) => {
                                     addExprToResult(
-                                        ~label = getLabelForExpr(node.expr), 
+                                        ~label = getLabelForExpr(node.expr),
                                         ~expr = node.expr, 
                                         ~src = node.proof, 
                                         ~isProved=true
@@ -345,7 +343,6 @@ let proofTreeDtoToNewStmtsDto = (
     ~exprToProve: expr,
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~reservedLabels: array<string>,
     ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray

@@ -461,7 +461,6 @@ let make = (
     ~disjText: string,
     ~wrkCtx: mmContext,
     ~rootStmts: array<userStmt>,
-    ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialLabel: option<string>,
     ~onResultSelected:stmtsDto=>unit,
@@ -512,7 +511,6 @@ let make = (
             ~rootExprToLabel,
             ~ctx = wrkCtx,
             ~typeToPrefix,
-            ~reservedLabels,
             ~exprToProve=state.exprToProve,
         )
         setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))

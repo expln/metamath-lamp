@@ -329,7 +329,7 @@ let unifyBottomUp = (
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
-            let rootExprToLabel = rootStmts
+            let rootExprToLabel = st.stmts->Js.Array2.map(userStmtToRootStmt)
                 ->Js_array2.map(stmt => (stmt.expr,stmt.label))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
@@ -340,7 +340,6 @@ let unifyBottomUp = (
                     Belt_MapString.fromArray(
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                     ),
-                ~reservedLabels=st.stmts->Js.Array2.map(stmt => stmt.label),
                 ~rootExprToLabel,
             )
             let result = switch chooseLabel {
