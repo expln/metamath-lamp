@@ -16,6 +16,8 @@ type bottomUpProverParams = {
     maxNumberOfBranches: option<int>,
 }
 
+let createProofCtx: (mmContext, array<rootStmt>) => mmContext
+
 let proveFloatings: (
     ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,

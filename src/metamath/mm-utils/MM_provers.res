@@ -625,6 +625,16 @@ let proveFloatings = (
     tree
 }
 
+let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => {
+    let proofCtx = createContext(~parent=wrkCtx, ())
+    rootStmts->Js_array2.forEach(stmt => {
+        if (stmt.isHyp) {
+            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}))
+        }
+    })
+    proofCtx
+}
+
 let unifyAll = (
     ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
@@ -643,12 +653,7 @@ let unifyAll = (
         ()
     )
 
-    let proofCtx = createContext(~parent=wrkCtx, ())
-    rootStmts->Js_array2.forEach(stmt => {
-        if (stmt.isHyp) {
-            proofCtx->applySingleStmt(Floating({label:stmt.label, expr:proofCtx->ctxIntsToSymsExn(stmt.expr)}))
-        }
-    })
+    let proofCtx = createProofCtx(wrkCtx, rootStmts)
 
     let tree = createProofTree(
         ~proofCtx,

@@ -897,8 +897,8 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
 }
 
 let prepareEditorForUnification = st => {
+    let st = removeAllTempData(st)
     [
-        removeAllTempData,
         sortStmtsByType,
         refreshWrkCtx,
         prepareUserStmtsForUnification,
@@ -1127,69 +1127,65 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
 }
 
 let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
-    switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot add new statements without wrkCtx.`}))
-        | Some(wrkCtx) => {
-            let (st, newCtxVarInts) = createNewVars(st,newStmts.newVarTypes)
-            let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
-            newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
-                newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
-            })
-            let newStmts = replaceDtoVarsWithCtxVarsInExprs(newStmts, newStmtsVarToCtxVar)
+    let (st, newCtxVarInts) = createNewVars(st,newStmts.newVarTypes)
+    let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
+    newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
+        newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
+    })
+    let newStmts = replaceDtoVarsWithCtxVarsInExprs(newStmts, newStmtsVarToCtxVar)
 
-            let newCtxDisj = disjMake()
-            newStmts.newDisj->disjForEach((n,m) => {
-                newCtxDisj->disjAddPair(
-                    newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(n,n), 
-                    newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(m,m), 
-                )
-            })
-            let st = createNewDisj(st, newCtxDisj)
+    let newCtxDisj = disjMake()
+    newStmts.newDisj->disjForEach((n,m) => {
+        newCtxDisj->disjAddPair(
+            newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(n,n), 
+            newStmtsVarToCtxVar->Belt_MutableMapInt.getWithDefault(m,m), 
+        )
+    })
+    let st = createNewDisj(st, newCtxDisj)
 
-            let checkedStmt = st->getTopmostSelectedStmt
-            let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
+    let checkedStmt = st->getTopmostSelectedStmt
+    let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
 
-            let replaceDtoLabelsWithCtxLabels = jstf => {
-                {
-                    ...jstf,
-                    args: jstf.args->Js_array2.map(arg => 
-                        newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(arg,arg)
-                    )
-                }
-            }
-
-            let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmtDto => {
-                st.stmts->Js_array2.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
-            })
-            let stMut = ref(st)
-            newStmts.stmts->Js_array2.forEach(stmtDto => {
-                if (checkedStmt->Belt.Option.isSome && stmtsHaveSameExpr(checkedStmt->Belt.Option.getExn, stmtDto)) {
-                    let checkedStmt = checkedStmt->Belt.Option.getExn
-                    stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
-                        {
-                            ...stmtToUpdate,
-                            jstfText:
-                                switch stmtDto.jstf {
-                                    | None => stmtToUpdate.jstfText
-                                    | Some(jstf) => jstf->replaceDtoLabelsWithCtxLabels->jstfToStr
-                                }
-                        }
-                    })
-                    newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
-                } else {
-                    let (st, ctxLabel) = stMut.contents->insertStmt(
-                        ~expr=stmtDto.expr, 
-                        ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
-                        ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                        ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
-                    )
-                    stMut.contents = st
-                    newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
-                }
-            })
-            stMut.contents
+    let replaceDtoLabelsWithCtxLabels = jstf => {
+        {
+            ...jstf,
+            args: jstf.args->Js_array2.map(arg => 
+                newStmtsLabelToCtxLabel->Belt_MutableMapString.getWithDefault(arg,arg)
+            )
         }
     }
+
+    // let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmtDto => {
+    //     st.stmts->Js_array2.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
+    // })
+    let placeAtMinIdxByDefault = true
+    let stMut = ref(st)
+    newStmts.stmts->Js_array2.forEach(stmtDto => {
+        if (checkedStmt->Belt.Option.isSome && stmtsHaveSameExpr(checkedStmt->Belt.Option.getExn, stmtDto)) {
+            let checkedStmt = checkedStmt->Belt.Option.getExn
+            stMut.contents = updateStmt(stMut.contents, checkedStmt.id, stmtToUpdate => {
+                {
+                    ...stmtToUpdate,
+                    jstfText:
+                        switch stmtDto.jstf {
+                            | None => stmtToUpdate.jstfText
+                            | Some(jstf) => jstf->replaceDtoLabelsWithCtxLabels->jstfToStr
+                        }
+                }
+            })
+            newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)
+        } else {
+            let (st, ctxLabel) = stMut.contents->insertStmt(
+                ~expr=stmtDto.expr, 
+                ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
+                ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
+                ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
+            )
+            stMut.contents = st
+            newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
+        }
+    })
+    stMut.contents
 }
 
 let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs):unit => {
@@ -1619,15 +1615,19 @@ let generateCompressedProof = (st, stmtId):option<string> => {
     switch st.wrkCtx {
         | None => None
         | Some(wrkCtx) => {
-            switch st.stmts->Js.Array2.find(stmt => stmt.id == stmtId) {
+            switch st->editorGetStmtById(stmtId) {
                 | None => None
                 | Some(stmt) => {
                     switch stmt.proof {
                         | None => None
                         | Some((proofTreeDto,proofNode)) => {
                             let proofTable = createProofTable(proofTreeDto,proofNode)
-                            let proof = MM_proof_table.createProof(wrkCtx, proofTable, proofTable->Js_array2.length-1)
-                            Some(proofToText(wrkCtx,stmt,proof))
+                            let proofCtx = createProofCtx(
+                                wrkCtx,
+                                st.stmts->Js_array2.filter(stmt => stmt.typ == E)->Js_array2.map(userStmtToRootStmt)
+                            )
+                            let proof = MM_proof_table.createProof(proofCtx, proofTable, proofTable->Js_array2.length-1)
+                            Some(proofToText(proofCtx,stmt,proof))
                         }
                     }
                 }

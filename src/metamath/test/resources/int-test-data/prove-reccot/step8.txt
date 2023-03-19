@@ -1,6 +1,6 @@
 Variables:
-var1 class class1
-var2 class class2
+var2 class class1
+var3 class class2
 
 Disjoints:
 

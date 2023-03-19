@@ -1,5 +1,5 @@
 Variables:
-var1 class class1
+var2 class class1
 
 Disjoints:
 

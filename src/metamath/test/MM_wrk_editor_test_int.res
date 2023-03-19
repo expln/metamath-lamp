@@ -118,8 +118,8 @@ describe("MM_wrk_editor integration tests", _ => {
         let hyp1Id = st.stmts[0].id
         let hyp2Id = st.stmts[1].id
 
-        let st = st->updateStmt(hyp1Id, ~typ=E, () )
-        let st = st->updateStmt(hyp2Id, ~typ=E, () )
+        let st = st->updateStmt(hyp1Id, ~typ=E, ~label="hyp1", () )
+        let st = st->updateStmt(hyp2Id, ~typ=E, ~label="hyp2", () )
         let st = st->unifyAll
         assertEditorState(st, "step15")
         assertProof(st, trgtStmtId, "proof2-hyps")
