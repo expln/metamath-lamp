@@ -142,24 +142,31 @@ let srcToNewStmts = (
             let exprToLabelArr = rootExprToLabel->Belt_HashMap.toArray
             let exprToLabel = exprToLabelArr->Belt_HashMap.fromArray(~id=module(ExprHash))
             let reservedLabels = exprToLabelArr->Js_array2.map(((_,label)) => label)->Belt_HashSetString.fromArray
-            let getLabelForExpr = (expr:expr):string => {
+            let getOrCreateLabelForExpr = (expr:expr, prefix:string, createIfAbsent:bool):string => {
                 switch exprToLabel->Belt_HashMap.get(expr) {
                     | Some(label) => label
                     | None => {
                         switch ctx->getHypByExpr(expr) {
                             | Some(hyp) => hyp.label
                             | None => {
-                                let newLabel = generateNewLabels(
-                                    ~ctx, ~prefix="", ~amount=1, ~reservedLabels, ~checkHypsOnly=true, ()
-                                )[0]
-                                exprToLabel->Belt_HashMap.set(expr, newLabel)
-                                reservedLabels->Belt_HashSetString.add(newLabel)
-                                newLabel
+                                if (createIfAbsent) {
+                                    let newLabel = generateNewLabels(
+                                        ~ctx, ~prefix, ~amount=1, ~reservedLabels, ~checkHypsOnly=true, ()
+                                    )[0]
+                                    exprToLabel->Belt_HashMap.set(expr, newLabel)
+                                    reservedLabels->Belt_HashSetString.add(newLabel)
+                                    newLabel
+                                } else {
+                                    raise(MmException({msg:`Could not find a label for an expr.`}))
+                                }
                             }
                         }
                     }
                 }
             }
+            let createLabelForExpr = (expr:expr, prefix:string):string => 
+                getOrCreateLabelForExpr(expr, prefix, true)
+            let getLabelForExpr = (expr:expr):string => getOrCreateLabelForExpr(expr, "", false)
 
             let newVarNames = Belt_HashMapInt.make(~hintSize=8)
             let reservedVarNames = Belt_HashSetString.make(~hintSize=8)
@@ -171,6 +178,7 @@ let srcToNewStmts = (
                 )[0]
                 newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
                 reservedVarNames->Belt_HashSetString.add(newVarName)
+                createLabelForExpr([newVarType, newVarInt], "v")->ignore
             }
 
             let maxCtxVar = ctx->getNumOfVars - 1
@@ -286,7 +294,7 @@ let srcToNewStmts = (
                                 }
                                 | Some(Assertion({missingDisj})) => {
                                     addExprToResult(
-                                        ~label = getLabelForExpr(node.expr),
+                                        ~label = createLabelForExpr(node.expr, ""),
                                         ~expr = node.expr, 
                                         ~src = node.proof, 
                                         ~isProved=true
@@ -296,7 +304,7 @@ let srcToNewStmts = (
                                 }
                                 | None => {
                                     addExprToResult(
-                                        ~label = getLabelForExpr(node.expr), 
+                                        ~label = createLabelForExpr(node.expr, ""),
                                         ~expr = node.expr, 
                                         ~src = None, 
                                         ~isProved=false
