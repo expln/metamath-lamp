@@ -28,7 +28,7 @@ let duplicateStmt: (editorState, stmtId) => (editorState, stmtId)
 let updateStmt: (
     editorState,
     stmtId,
-    ~label: string=?,
+    ~label: string=>string=?,
     ~typ: userStmtType=?,
     ~content: string=?,
     ~contReplaceWhat: string=?,

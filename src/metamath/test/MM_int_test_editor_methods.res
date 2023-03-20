@@ -120,7 +120,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
 let updateStmt = (
     st, 
     stmtId,
-    ~label:option<string>=?,
+    ~label:option<string=>string>=?,
     ~typ:option<userStmtType>=?,
     ~content:option<string>=?,
     ~contReplaceWhat:option<string>=?,
@@ -130,7 +130,8 @@ let updateStmt = (
     let st = switch label {
         | None => st
         | Some(label) => {
-            switch st->renameStmt(stmtId, label) {
+            let oldLabel = (st->editorGetStmtById(stmtId)->Belt_Option.getExn).label
+            switch st->renameStmt(stmtId, label(oldLabel)) {
                 | Error(msg) => raise(MmException({msg:msg}))
                 | Ok(st) => st
             }
