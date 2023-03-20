@@ -1074,6 +1074,7 @@ let insertStmt = (
                                 ),
                                 contEditMode: false,
                                 jstfText: jstf->Belt_Option.mapWithDefault("", jstfToStr),
+                                expr:Some(expr),
                             }
                         })
                         (st, (st->editorGetStmtByIdExn(newStmtId)).label)
