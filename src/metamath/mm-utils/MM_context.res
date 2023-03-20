@@ -53,6 +53,8 @@ type hypothesis = {
     expr: expr
 }
 
+type exprToHyp = Belt_HashMapInt.t<Belt_HashMapInt.t<Belt_HashMapInt.t<array<hypothesis>>>>
+
 type frameDbg = {
     disj: array<string>,
     hyps: array<string>,
@@ -85,7 +87,7 @@ type rec mmContextContents = {
     disj: disjMutable,
     hyps: array<hypothesis>,
     labelToHyp: Belt_HashMapString.t<hypothesis>,
-    exprToHyp: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
+    exprToHyp: exprToHyp,
     varTypes: Belt_HashMapInt.t<int>,
     mutable lastComment: option<string>,
     frames: Belt_HashMapString.t<frame>,
@@ -231,9 +233,60 @@ let getHypothesis = (ctx:mmContext,label):option<hypothesis> => {
     })
 }
 
+let exprToHypAdd = (ctx:mmContextContents, hyp:hypothesis):unit => {
+    let expr = hyp.expr
+    let len = expr->Js_array2.length
+    let fstSym = if len > 0 {expr[0]} else {0}
+    let sndSym = if len > 1 {expr[1]} else {0}
+    switch ctx.exprToHyp->Belt_HashMapInt.get(len) {
+        | None => {
+            ctx.exprToHyp->Belt_HashMapInt.set( 
+                len, 
+                Belt_HashMapInt.fromArray([(fstSym, Belt_HashMapInt.fromArray([(sndSym, [hyp])]))])
+            )
+        }
+        | Some(fstSymToHyp) => {
+            switch fstSymToHyp->Belt_HashMapInt.get(fstSym) {
+                | None => fstSymToHyp->Belt_HashMapInt.set( fstSym, Belt_HashMapInt.fromArray([(sndSym, [hyp])]) )
+                | Some(sndSymToHyp) => {
+                    switch sndSymToHyp->Belt_HashMapInt.get(sndSym) {
+                        | None => sndSymToHyp->Belt_HashMapInt.set( sndSym, [hyp] )
+                        | Some(hypsArr) => {
+                            switch hypsArr->Js_array2.find(h => h.expr->exprEq(hyp.expr)) {
+                                | Some(_) => ()
+                                | None => hypsArr->Js_array2.push(hyp)->ignore
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let exprToHypGet = (ctx:mmContextContents, expr:expr):option<hypothesis> => {
+    let len = expr->Js_array2.length
+    switch ctx.exprToHyp->Belt_HashMapInt.get(len) {
+        | None => None
+        | Some(fstSymToHyp) => {
+            let fstSym = if len > 0 {expr[0]} else {0}
+            switch fstSymToHyp->Belt_HashMapInt.get(fstSym) {
+                | None => None
+                | Some(sndSymToHyp) => {
+                    let sndSym = if len > 1 {expr[1]} else {0}
+                    switch sndSymToHyp->Belt_HashMapInt.get(sndSym) {
+                        | None => None
+                        | Some(hypsArr) => hypsArr->Js_array2.find(h => h.expr->exprEq(expr))
+                    }
+                }
+            }
+        }
+    }
+}
+
 let getHypByExpr = (ctx:mmContext, expr:expr) => {
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.exprToHyp->Belt_HashMap.get(expr)
+        ctx->exprToHypGet(expr)
     })
 }
 
@@ -552,7 +605,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             disj: disjMake(),
             hyps: [],
             labelToHyp: Belt_HashMapString.make(~hintSize=4),
-            exprToHyp: Belt_HashMap.make(~hintSize=4, ~id=module(ExprHash)),
+            exprToHyp: Belt_HashMapInt.make(~hintSize=4),
             varTypes: Belt_HashMapInt.make(~hintSize=4),
             lastComment: None,
             frames: Belt_HashMapString.make(~hintSize=1),
@@ -663,7 +716,7 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
                 let ctx = ctx.contents
                 ctx.hyps->Js_array2.push(hyp)->ignore
                 ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
-                ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
+                ctx->exprToHypAdd(hyp)
                 ctx.varTypes->Belt_HashMapInt.set(varInt, typInt)
             }
         }
@@ -681,7 +734,7 @@ let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =
         let ctx = ctx.contents
         ctx.hyps->Js_array2.push(hyp)->ignore
         ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
-        ctx.exprToHyp->Belt_HashMap.set(expr, hyp)
+        ctx->exprToHypAdd(hyp)
    }
 }
 
@@ -1000,8 +1053,8 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
                 | Some(oldTyp) => ctx.varTypes->Belt_HashMapInt.set(var, constRenum->renumberConst(oldTyp))
             }
         }
-        ctx.exprToHyp->Belt_HashMap.clear
-        ctx.hyps->Js.Array2.forEach(hyp => ctx.exprToHyp->Belt_HashMap.set(hyp.expr, hyp))
+        ctx.exprToHyp->Belt_HashMapInt.clear
+        ctx.hyps->Js.Array2.forEach(ctx->exprToHypAdd)
         None
     })->ignore
 }
