@@ -1156,10 +1156,11 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
         }
     }
 
-    // let placeAtMinIdxByDefault = newStmts.stmts->Js_array2.some(stmtDto => {
-    //     st.stmts->Js_array2.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
-    // })
-    let placeAtMinIdxByDefault = true
+    let mergeWillBeNeeded = newStmts.stmts->Js_array2.some(stmtDto => {
+        st.stmts->Js_array2.some(userStmt => stmtsHaveSameExpr(userStmt, stmtDto))
+    })
+    let placeAtMaxIdxByDefault = checkedStmt->Belt.Option.isSome && !mergeWillBeNeeded
+
     let stMut = ref(st)
     newStmts.stmts->Js_array2.forEach(stmtDto => {
         if (checkedStmt->Belt.Option.isSome && stmtsHaveSameExpr(checkedStmt->Belt.Option.getExn, stmtDto)) {
@@ -1180,7 +1181,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                 ~expr=stmtDto.expr, 
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                ~placeAtMaxIdxByDefault = !placeAtMinIdxByDefault
+                ~placeAtMaxIdxByDefault
             )
             stMut.contents = st
             newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
