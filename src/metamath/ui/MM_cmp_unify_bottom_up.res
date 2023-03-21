@@ -42,6 +42,7 @@ type state = {
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
+    allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
     debug:bool,
@@ -148,6 +149,7 @@ let makeInitialState = (
         depthStr: "4",
         depth: 4,
         lengthRestrict: Less,
+        allowNewDisjForExistingVars: true,
         allowNewStmts: true,
         allowNewVars: true,
         debug: false,
@@ -183,6 +185,13 @@ let setLengthRestrict = (st,lengthRestrict) => {
     {
         ...st,
         lengthRestrict
+    }
+}
+
+let toggleAllowNewDisjForExistingVars = (st) => {
+    {
+        ...st,
+        allowNewDisjForExistingVars: !st.allowNewDisjForExistingVars
     }
 }
 
@@ -231,14 +240,8 @@ let isStmtToShow = (
         | Some(None) => stmt.jstf->Belt_Option.isSome
         | Some(Some(rootJstf)) => {
             switch stmt.jstf {
-                | None => raise(MmException({msg:`There is a root jstf but stmt.jstf is absent.`}))
-                | Some(foundJstf) => {
-                    if (!(rootJstf->jstfEq(foundJstf))) {
-                        raise(MmException({msg:`rootJstf != foundJstf`}))
-                    } else {
-                        false
-                    }
-                }
+                | None => true
+                | Some(foundJstf) => !(rootJstf->jstfEq(foundJstf))
             }
         }
     }
@@ -489,6 +492,10 @@ let make = (
         setState(setLengthRestrict(_,lengthRestrict))
     }
 
+    let actToggleAllowNewDisjForExistingVars = () => {
+        setState(toggleAllowNewDisjForExistingVars)
+    }
+
     let actToggleAllowNewStmts = () => {
         setState(toggleAllowNewStmts)
     }
@@ -542,6 +549,7 @@ let make = (
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,
                         lengthRestriction: st.lengthRestrict,
+                        allowNewDisjForExistingVars: st.allowNewDisjForExistingVars,
                         allowNewStmts: st.allowNewStmts,
                         allowNewVars: st.allowNewVars,
                         args0: 
@@ -703,6 +711,25 @@ let make = (
                         onChange=evt2str(actDepthUpdated)
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
+                </Row>
+                <Row>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked=state.allowNewDisjForExistingVars
+                                onChange={_ => actToggleAllowNewDisjForExistingVars()}
+                            />
+                        }
+                        label="Allow new disjoints"
+                        style=ReactDOM.Style.make(
+                            ~border="solid 1px lightgrey", 
+                            ~borderRadius="7px", 
+                            ~paddingRight="10px",
+                            ~marginTop="-2px",
+                            ~marginLeft="2px",
+                            ()
+                        )
+                    />
                     <FormControlLabel
                         control={
                             <Checkbox

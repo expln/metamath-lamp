@@ -84,9 +84,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
 let exprSrcIsProved = (exprSrc:exprSrc): bool => {
     switch exprSrc {
         | VarType | Hypothesis(_) => true
-        | Assertion({args, missingDisj}) => 
-            missingDisj->Belt_Option.isNone
-            && args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
+        | Assertion({args}) => args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
         | AssertionWithErr(_) => false
     }
 }

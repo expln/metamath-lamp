@@ -327,7 +327,7 @@ let applyAssertions = (
     ~result:option<expr>=?,
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=_=>true,
-    ~strictDisj:bool=true,
+    ~allowNewDisjForExistingVars:bool=false,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=0,
     ~onProgress:option<float=>unit>=?,
@@ -386,9 +386,7 @@ let applyAssertions = (
                                     let missingDisj = ref(None)
                                     switch checkDisj(
                                         ~isDisjInCtx = (n,m) => {
-                                            if (strictDisj) {
-                                                isDisjInCtx(n,m)
-                                            } else {
+                                            if (allowNewDisjForExistingVars) {
                                                 if (!isDisjInCtx(n,m)) {
                                                     let mDisj = switch missingDisj.contents {
                                                         | None => {
@@ -401,6 +399,8 @@ let applyAssertions = (
                                                     mDisj->disjAddPair(n,m)
                                                 }
                                                 true
+                                            } else {
+                                                isDisjInCtx(n,m)
                                             }
                                         },
                                         ~frmDisj=frm.frame.disj, 

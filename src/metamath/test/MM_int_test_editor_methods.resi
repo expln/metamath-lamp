@@ -72,6 +72,7 @@ let unifyBottomUp: (
     ~asrtLabel: string=?,
     ~maxSearchDepth: int=?,
     ~lengthRestriction: MM_provers.lengthRestrict=?,
+    ~allowNewDisjForExistingVars:bool=?,
     ~allowNewStmts:bool=?,
     ~allowNewVars: bool=?,
     ~chooseLabel: string=?,

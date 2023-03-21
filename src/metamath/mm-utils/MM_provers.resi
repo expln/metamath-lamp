@@ -9,6 +9,7 @@ type bottomUpProverParams = {
     asrtLabel: option<string>,
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
+    allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
     args0: array<expr>,

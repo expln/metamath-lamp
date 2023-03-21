@@ -14,6 +14,7 @@ type bottomUpProverParams = {
     asrtLabel: option<string>,
     maxSearchDepth: int,
     lengthRestriction: lengthRestrict,
+    allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
     args0: array<expr>,
@@ -170,7 +171,7 @@ let findAsrtParentsWithNewVars = (
     ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
-    ~strictDisj:bool,
+    ~allowNewDisjForExistingVars:bool,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
     ~onProgress:option<int=>unit>=?,
@@ -196,7 +197,7 @@ let findAsrtParentsWithNewVars = (
         ~allowNewVars,
         ~result = expr,
         ~frameFilter,
-        ~strictDisj,
+        ~allowNewDisjForExistingVars,
         ~debugLevel,
         ~onMatchFound = res => {
             applResults->Js_array2.push(res)->ignore
@@ -321,7 +322,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
             ~exactOrderOfArgs=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
-            ~strictDisj=true,
+            ~allowNewDisjForExistingVars=false,
             () 
         )
         parents->Expln_utils_common.arrForEach(parent => {
@@ -376,7 +377,7 @@ let proveWithJustification = (
                     ~allowEmptyArgs=false,
                     ~allowNewVars=false,
                     ~asrtLabel=jstf.label,
-                    ~strictDisj=true,
+                    ~allowNewDisjForExistingVars=false,
                     ()
                 )
                 parents->Expln_utils_common.arrForEach(parent => {
@@ -496,7 +497,7 @@ let proveStmtBottomUp = (
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
             ~allowEmptyArgs = params.allowNewStmts,
             ~allowNewVars = dist == 0 && params.allowNewVars,
-            ~strictDisj=true,
+            ~allowNewDisjForExistingVars=params.allowNewDisjForExistingVars,
             ~debugLevel,
             ~maxNumberOfResults=?params.maxNumberOfBranches,
             ~onProgress?,

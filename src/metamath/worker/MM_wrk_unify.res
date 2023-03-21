@@ -1,7 +1,6 @@
 open MM_context
 open MM_parser
 open Expln_utils_promise
-open MM_wrk_ctx_data
 open MM_wrk_ctx_proc
 open MM_proof_tree
 open MM_proof_tree_dto
@@ -22,9 +21,23 @@ type response =
     | OnProgress(string)
     | Result(proofTreeDto)
 
+let bottomUpProverParamsToStr = (params:option<bottomUpProverParams>):string => {
+    switch params {
+        | None => "None"
+        | Some(params) => {
+            `{` 
+                ++ `allowNewDisjForExistingVars=${if (params.allowNewDisjForExistingVars) {"true"} else {"false"}}` 
+                ++ `}`
+        }
+    }
+}
+
 let reqToStr = req => {
     switch req {
-        | Unify({debugLevel}) => `Unify(debugLevel=${debugLevel->Belt_Int.toString})`
+        | Unify({bottomUpProverParams,debugLevel}) => 
+            `Unify(debugLevel=${debugLevel->Belt_Int.toString}` 
+                ++ `, bottomUpProverParams=${bottomUpProverParamsToStr(bottomUpProverParams)}` 
+                ++ `)`
     }
 }
 

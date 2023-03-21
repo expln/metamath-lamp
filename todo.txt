@@ -1,3 +1,6 @@
+- export only required disj
+- export only required vars
+- write a test for allowNewDisjForExistingVars
 - check what exprSourceToDto() returns for Assertion (it might skip some useful results).
 - split Src to Src and SrcWithError
 - Fix a bug:
