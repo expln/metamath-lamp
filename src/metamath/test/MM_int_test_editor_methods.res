@@ -342,6 +342,7 @@ let unifyBottomUp = (
                         st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                     ),
                 ~rootExprToLabel,
+                ~reservedLabels=st.stmts->Js_array2.map(stmt => stmt.label)
             )
             let result = switch chooseLabel {
                 | None => result

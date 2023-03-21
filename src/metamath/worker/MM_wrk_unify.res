@@ -90,34 +90,6 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
     }
 }
 
-let doesntHaveBackRefs = (newStmtsDto:stmtsDto):bool => {
-    let res = newStmtsDto.stmts->Js.Array2.reduce(
-        (res, stmt) => {
-            switch res {
-                | Error(_) => res
-                | Ok(refs) => {
-                    switch stmt.jstf {
-                        | None => ()
-                        | Some(jstf) => {
-                            jstf.args->Js.Array2.forEach(ref => refs->Js_array2.push(ref)->ignore)
-                        }
-                    }
-                    if (refs->Js_array2.includes(stmt.label)) {
-                        Error(())
-                    } else {
-                        Ok(refs)
-                    }
-                }
-            }
-        },
-        Ok([])
-    )
-    switch res {
-        | Ok(_) => true
-        | Error(_) => false
-    }
-}
-
 let srcToNewStmts = (
     ~src:exprSrcDto,
     ~exprToProve: expr,
@@ -126,11 +98,15 @@ let srcToNewStmts = (
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
+    ~reservedLabels: array<string>,
 ):option<stmtsDto> => {
     switch src {
         | VarType | Hypothesis(_) | AssertionWithErr(_) => None
         | Assertion({args, label, missingDisj}) => {
             let hasAsrtWithErr = ref(false)
+            let hasBackRefErr = ref(false)
+            let hasError = () => hasAsrtWithErr.contents || hasBackRefErr.contents
+
             let res = {
                 newVars: [],
                 newVarTypes: [],
@@ -141,7 +117,7 @@ let srcToNewStmts = (
 
             let exprToLabelArr = rootExprToLabel->Belt_HashMap.toArray
             let exprToLabel = exprToLabelArr->Belt_HashMap.fromArray(~id=module(ExprHash))
-            let reservedLabels = exprToLabelArr->Js_array2.map(((_,label)) => label)->Belt_HashSetString.fromArray
+            let reservedLabels = reservedLabels->Belt_HashSetString.fromArray
             let getOrCreateLabelForExpr = (expr:expr, prefix:string, createIfAbsent:bool):string => {
                 switch exprToLabel->Belt_HashMap.get(expr) {
                     | Some(label) => label
@@ -256,7 +232,7 @@ let srcToNewStmts = (
             let savedExprs = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
             eArgs->Js.Array2.forEach(node => {
                 Expln_utils_data.traverseTree(
-                    (),
+                    Belt_HashSet.fromArray([exprToProve], ~id=module(ExprHash)),
                     node,
                     (_,node) => {
                         if (childrenReturnedFor->Belt_HashSet.has(node.expr)) {
@@ -281,8 +257,22 @@ let srcToNewStmts = (
                             }
                         }
                     },
-                    ~postProcess = (_,node) => {
-                        if (hasAsrtWithErr.contents) {
+                    ~preProcess = (path,node) => {
+                        if (hasError()) {
+                            Some(())
+                        } else {
+                            if (path->Belt_HashSet.has(node.expr)) {
+                                hasBackRefErr.contents = true
+                                Some(())
+                            } else {
+                                path->Belt_HashSet.add(node.expr)
+                                None
+                            }
+                        }
+                    },
+                    ~postProcess = (path,node) => {
+                        path->Belt_HashSet.remove(node.expr)
+                        if (hasError()) {
                             Some(())
                         } else if (!(savedExprs->Belt_HashSet.has(node.expr))) {
                             savedExprs->Belt_HashSet.add(node.expr)
@@ -319,7 +309,7 @@ let srcToNewStmts = (
                     ()
                 )->ignore
             })
-            if (hasAsrtWithErr.contents) {
+            if (hasError()) {
                 None
             } else {
                 addExprToResult(
@@ -352,6 +342,7 @@ let proofTreeDtoToNewStmtsDto = (
     ~ctx: mmContext,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
+    ~reservedLabels: array<string>,
 ):array<stmtsDto> => {
     let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
     let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(exprToProve)) {
@@ -363,6 +354,7 @@ let proofTreeDtoToNewStmtsDto = (
         ->Js_array2.map(src => srcToNewStmts(
             ~exprToProve,
             ~rootExprToLabel,
+            ~reservedLabels,
             ~src,
             ~tree = treeDto,
             ~newVarTypes,
@@ -371,5 +363,4 @@ let proofTreeDtoToNewStmtsDto = (
         ))
         ->Js.Array2.filter(Belt_Option.isSome)
         ->Js.Array2.map(Belt_Option.getExn)
-        // ->Js.Array2.filter(doesntHaveBackRefs)
 }

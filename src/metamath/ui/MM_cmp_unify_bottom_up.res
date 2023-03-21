@@ -2,7 +2,6 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_react_common
 open Expln_utils_promise
-open MM_wrk_ctx_data
 open MM_wrk_editor
 open MM_context
 open MM_substitution
@@ -271,6 +270,7 @@ let stmtsDtoToResultRendered = (
                                         { React.string(stmt.label) }
                                     </td>
                                     <td style=ReactDOM.Style.make(~textAlign="right", ())>
+                                        <nobr>
                                         {
                                             switch stmt.jstf {
                                                 | None => React.null
@@ -281,6 +281,7 @@ let stmtsDtoToResultRendered = (
                                                 }
                                             }
                                         }
+                                        </nobr>
                                     </td>
                                     <td style=ReactDOM.Style.make(~color= if (stmt.isProved) {"green"} else {"#565656"},
                                                 ~fontWeight="bold", ())>
@@ -461,6 +462,7 @@ let make = (
     ~disjText: string,
     ~wrkCtx: mmContext,
     ~rootStmts: array<userStmt>,
+    ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialLabel: option<string>,
     ~onResultSelected:stmtsDto=>unit,
@@ -512,6 +514,7 @@ let make = (
             ~ctx = wrkCtx,
             ~typeToPrefix,
             ~exprToProve=state.exprToProve,
+            ~reservedLabels,
         )
         setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
     }

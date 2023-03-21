@@ -634,6 +634,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                     frms=state.frms parenCnt=state.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
+                                    reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
                                     typeToPrefix = {
                                         Belt_MapString.fromArray(
                                             state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
