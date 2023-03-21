@@ -411,6 +411,21 @@ describe("MM_wrk_editor integration tests", _ => {
         assertEditorState(st, "step2")
         assertProof(st, trgtStmtId, "proof")
     })
+
+    it("bottom-up prover should be able to restore missing disjoints", _ => {
+        setTestDataDir("restore-missing-disjoints")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~asrtsToSkipFilePath, ())
+        let st = st->deleteStmts([st->getStmtId(~label="description", ())])
+        assertEditorState(st, "step1")
+
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+    })
+
+    // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {
+    // })
 })
 
 // describe("prepare set.mm without proofs", _ => {

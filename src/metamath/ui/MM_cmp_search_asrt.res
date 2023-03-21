@@ -10,6 +10,7 @@ open MM_parser
 open Expln_React_Modal
 open MM_statements_dto
 open MM_wrk_settings
+open Common
 
 type resultForRender = React.element
 

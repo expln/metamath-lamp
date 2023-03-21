@@ -6,6 +6,7 @@ open MM_syntax_tree
 open MM_substitution
 open MM_proof_tree_dto
 open MM_provers
+open Common
 
 type rec syntaxTreeNodeTest = {
     label:string,

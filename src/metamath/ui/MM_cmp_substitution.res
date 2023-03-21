@@ -2,9 +2,9 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
 open MM_context
-open MM_parser
 open Expln_utils_promise
 open Expln_React_Modal
+open Common
 
 type state = {
     expr1Str: string,

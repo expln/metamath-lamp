@@ -9,6 +9,7 @@ open MM_substitution
 open MM_wrk_ctx_data
 open MM_provers
 open MM_statements_dto
+open Common
 
 let newLabelPrefix = ""
 
@@ -595,7 +596,7 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         ...st, 
         preCtxV, 
         preCtx, 
-        frms: prepareFrmSubsData(~ctx=preCtx, ()),
+        frms: prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ()),
         parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
     let st = recalcPreCtxColors(st)

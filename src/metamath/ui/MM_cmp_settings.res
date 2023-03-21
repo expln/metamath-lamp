@@ -7,6 +7,7 @@ open Expln_utils_promise
 open MM_wrk_settings
 open MM_react_common
 open MM_cmp_type_settings
+open Common
 
 type settingsState = {
     nextId: int,

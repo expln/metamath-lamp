@@ -42,5 +42,4 @@ let traverseAst: ('c, mmAstNode,
     ~preProcess:('c, mmAstNode)=>option<'res>=?, ~process:('c, mmAstNode)=>option<'res>=?, ~postProcess:('c, mmAstNode)=>option<'res>=?, ()) => ('c, option<'res>)
 let stmtToStr: mmAstNode => string
 let stmtToStrRec: mmAstNode => array<string>
-let getSpaceSeparatedValuesAsArray: string => array<string>
 let astToStr: mmAstNode => string

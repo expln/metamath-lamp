@@ -4,6 +4,7 @@ open MM_wrk_editor
 open MM_statements_dto
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs.mm"
+let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"
 let failOnMismatch = true
 let debug = false
 
@@ -12,6 +13,8 @@ let curTestDataDir = ref("")
 let setTestDataDir = dirName => {
     curTestDataDir.contents = "./src/metamath/test/resources/int-test-data/" ++ dirName
 }
+
+let getTestDataDir = () => curTestDataDir.contents
 
 let proofStatusToStr = status => {
     switch status {

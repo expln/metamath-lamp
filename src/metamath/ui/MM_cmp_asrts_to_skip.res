@@ -1,6 +1,7 @@
 open Expln_React_common
 open Expln_React_Mui
 open MM_parser
+open Common
 
 type state = {
     text: string,
@@ -31,14 +32,6 @@ let unsetApplyRegex = (st:state) => { ...st, applyRegex:false }
 let setText = (st:state,text) => { ...st, text }
 
 let setRegex = (st:state,regex) => { ...st, regex }
-
-let newLineRegex = %re("/[\n\r]/")
-let multilineTextToNonEmptyLines = str => {
-    str
-        ->Js_string2.splitByRe(newLineRegex)
-        ->Js_array2.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(str => str->Js_string2.length > 0)
-}
 
 let toggleApplyRegex = (st:state) => {
     if (st.applyRegex) {

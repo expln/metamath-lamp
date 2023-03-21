@@ -10,6 +10,8 @@ let createEditorState: (
     ~mmFilePath: string,
     ~stopBefore: string=?,
     ~stopAfter: string=?,
+    ~editorState:string=?,
+    ~asrtsToSkipFilePath:string=?,
     ~debug: bool=?,
     unit,
 ) => editorState
@@ -84,3 +86,4 @@ let removeAllJstf: editorState => editorState
 let addDisj: ( editorState, string, ) => editorState
 let removeDisj: ( editorState, string ) => editorState
 let mergeStmt: ( editorState, stmtId ) => editorState
+let deleteStmts: (editorState, array<stmtId> ) => editorState

@@ -11,6 +11,8 @@ open MM_substitution
 open MM_parenCounter
 open MM_statements_dto
 open MM_wrk_editor_json
+open MM_int_test_utils
+open Common
 
 type rootStmtsToUse =
     | All
@@ -21,6 +23,8 @@ let createEditorState = (
     ~mmFilePath:string, 
     ~stopBefore:option<string>=?, 
     ~stopAfter:option<string>=?, 
+    ~editorState:option<string>=?,
+    ~asrtsToSkipFilePath:option<string>=?,
     ~debug:option<bool>=?, 
     ()
 ) => {
@@ -32,17 +36,31 @@ let createEditorState = (
     }
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
-    let frms = prepareFrmSubsData(~ctx, ())
     let settingsV = 1
     let settings = {
         parens,
         typeSettings: [ ],
-        asrtsToSkip: [],
+        asrtsToSkip:
+            switch asrtsToSkipFilePath {
+                | None => []
+                | Some(filePath) => multilineTextToNonEmptyLines(Expln_utils_files.readStringFromFile(filePath))
+            },
         asrtsToSkipRegex: "",
     }
     let preCtxV = 1
     let preCtx = ctx
-    createInitialEditorState(~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=None)
+    let st = createInitialEditorState(
+        ~settingsV, ~settings, ~preCtxV, ~preCtx, 
+        ~stateLocStor=
+            switch editorState {
+                | None => None
+                | Some(fileName) => 
+                    readEditorStateFromJsonStr(Expln_utils_files.readStringFromFile(
+                        getTestDataDir() ++ "/" ++ fileName ++ ".json"
+                    ))
+            }
+    )
+    st->prepareEditorForUnification
 }
 
 let addStmt = (
@@ -212,6 +230,16 @@ let getStmtId = (
     } else {
         found[0].id
     }
+}
+
+let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
+    let st = st->uncheckAllStmts
+    let st = ids->Js_array2.reduce(
+        (st, id) => st->toggleStmtChecked(id),
+        st
+    )
+    let st = st->deleteCheckedStmts
+    st->updateEditorStateWithPostupdateActions(st => st)
 }
 
 let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorState => {

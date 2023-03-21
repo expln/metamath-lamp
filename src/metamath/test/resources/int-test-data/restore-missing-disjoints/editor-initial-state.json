@@ -1,0 +1,132 @@
+{
+  "varsText": "",
+  "disjText": "y,k,A,u,r,v,F\nk,r,F\nA,k,r,F\nu,k,A,r,F\nF,r\nv,k,A,u,r,F\nx,y,k,A,u,r,v,F\nr,u,v,x,y,A\nr,u,v,x,y,F",
+  "stmts": [
+    {
+      "label": "description",
+      "typ": "e",
+      "cont": "This 'editor state' is contributed by Thierry Arnoux, https://groups.google.com/g/metamath/c/RSYpdX8vL7A/m/dBXNKf0tBQAJ",
+      "jstfText": ""
+    },
+    {
+      "label": "stmt8",
+      "typ": "e",
+      "cont": "|- A e. _V",
+      "jstfText": ""
+    },
+    {
+      "label": "stmt9-opabex2.11",
+      "typ": "p",
+      "cont": "|- ( A e. _V -> A e. _V )",
+      "jstfText": " : elex"
+    },
+    {
+      "label": "stmt9-opabex2.31",
+      "typ": "p",
+      "cont": "|- ( ( A e. _V /\\ ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) ) -> u e. A )",
+      "jstfText": " : simprll"
+    },
+    {
+      "label": "stmt9-opabex2.41",
+      "typ": "p",
+      "cont": "|- ( ( A e. _V /\\ ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) ) -> v e. A )",
+      "jstfText": " : simprlr"
+    },
+    {
+      "label": "stmt9",
+      "typ": "p",
+      "cont": "|- ( A e. _V -> { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } e. _V )",
+      "jstfText": "stmt9-opabex2.11 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.41: opabex2"
+    },
+    {
+      "label": "stmt10",
+      "typ": "p",
+      "cont": "|- { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } e. _V",
+      "jstfText": "stmt8 stmt9 : ax-mp"
+    },
+    {
+      "label": "stmt6",
+      "typ": "p",
+      "cont": "|- ( u = x -> ( F ` u ) = ( F ` x ) )",
+      "jstfText": " : fveq2"
+    },
+    {
+      "label": "stmt7",
+      "typ": "p",
+      "cont": "|- ( v = y -> ( F ` v ) = ( F ` y ) )",
+      "jstfText": " : fveq2"
+    },
+    {
+      "label": "stmt5",
+      "typ": "p",
+      "cont": "|- ( ( u = x /\\ v = y ) -> ( F ` v ) = ( F ` y ) )",
+      "jstfText": "stmt7 : adantl"
+    },
+    {
+      "label": "stmt4",
+      "typ": "p",
+      "cont": "|- ( ( u = x /\\ v = y ) -> ( F ` u ) = ( F ` x ) )",
+      "jstfText": "stmt6 : adantr"
+    },
+    {
+      "label": "stmt3-brab2a.11",
+      "typ": "p",
+      "cont": "|- ( ( u = x /\\ v = y ) -> ( ( F ` u ) = ( F ` v ) <-> ( F ` x ) = ( F ` y ) ) )",
+      "jstfText": "stmt4 stmt5 : eqeq12d"
+    },
+    {
+      "label": "stmt3-brab2a.21",
+      "typ": "p",
+      "cont": "|- { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } = { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) }",
+      "jstfText": " : ax-frege54c"
+    },
+    {
+      "label": "stmt3",
+      "typ": "p",
+      "cont": "|- ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( ( x e. A /\\ y e. A ) /\\ ( F ` x ) = ( F ` y ) ) )",
+      "jstfText": "stmt3-brab2a.11 stmt3-brab2a.21: brab2a"
+    },
+    {
+      "label": "stmt11",
+      "typ": "p",
+      "cont": "|- ( r = { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } -> ( r Er A <-> { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } Er A ) )",
+      "jstfText": " : ereq1"
+    },
+    {
+      "label": "stmt13",
+      "typ": "p",
+      "cont": "|- ( r = { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } -> ( ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "stmt14",
+      "typ": "p",
+      "cont": "|- ( r = { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } -> ( A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. y e. A ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )",
+      "jstfText": ": ralbidv"
+    },
+    {
+      "label": "stmt12",
+      "typ": "p",
+      "cont": "|- ( r = { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } -> ( A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )",
+      "jstfText": ": 2ralbidv"
+    },
+    {
+      "label": "stmt2-spcgv.11",
+      "typ": "p",
+      "cont": "|- ( r = { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } -> ( ( r Er A /\\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) <-> ( { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } Er A /\\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) ) )",
+      "jstfText": "stmt11 stmt12 : anbi12d"
+    },
+    {
+      "label": "stmt2",
+      "typ": "p",
+      "cont": "|- ( ( { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } Er A /\\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er A /\\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )",
+      "jstfText": "stmt10 stmt2-spcgv.11: spcev"
+    },
+    {
+      "label": "stmt1",
+      "typ": "p",
+      "cont": "|- ( F Fn A -> E. r ( r Er A /\\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )",
+      "jstfText": ""
+    }
+  ]
+}

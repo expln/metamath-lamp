@@ -2,12 +2,14 @@ open MM_wrk_editor
 open MM_statements_dto
 
 let setMmPath: string
+let asrtsToSkipFilePath: string
 let failOnMismatch: bool
 let debug: bool
 
 let newStmtsDtoToStr: stmtsDto => string
 
 let setTestDataDir: string => unit
+let getTestDataDir: () => string
 let assertEditorState: (editorState, string) => unit
 let assertStmtsDto: (stmtsDto, string) => unit
 let assertProof: (editorState, string, string) => unit
