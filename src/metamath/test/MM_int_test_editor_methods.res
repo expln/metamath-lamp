@@ -10,6 +10,7 @@ open MM_wrk_unify
 open MM_substitution
 open MM_parenCounter
 open MM_statements_dto
+open MM_wrk_editor_json
 
 type rootStmtsToUse =
     | All
@@ -41,38 +42,7 @@ let createEditorState = (
     }
     let preCtxV = 1
     let preCtx = ctx
-    let st = {
-        settingsV,
-        settings,
-        typeColors: Belt_HashMapString.make(~hintSize=0),
-
-        preCtxV,
-        preCtx,
-        parenCnt: parenCntMake([], ()),
-        frms,
-        preCtxColors: Belt_HashMapString.make(~hintSize=0),
-
-        varsText: "",
-        varsEditMode: false,
-        varsErr: None,
-        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
-
-        disjText: "",
-        disjEditMode: false,
-        disjErr: None,
-        disj: Belt_MapInt.fromArray([]),
-
-        wrkCtx: None,
-
-        nextStmtId: 0,
-        stmts: [],
-        checkedStmtIds: [],
-
-        unifyAllIsRequiredCnt: 0
-    }
-    let st = st->setSettings(settingsV, settings)
-    let st = st->setPreCtx(preCtxV, preCtx)
-    st
+    createInitialEditorState(~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=None)
 }
 
 let addStmt = (
