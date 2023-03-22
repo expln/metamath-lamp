@@ -2,25 +2,12 @@ Variables:
 
 
 Disjoints:
-y,A
-y,u
-y,r
-y,v
-y,F
-A,r
-u,A
-u,r
-v,A
-v,u
-v,r
-F,r
-x,A
-x,u
-x,r
-x,v
 x,F
-u,F
+y,F,r
+x,v,u,A,r
+y,v,u,A,r
 v,F
+u,F
 
 
 --- e -------------------------------------------------------------------------------

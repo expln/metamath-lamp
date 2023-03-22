@@ -1397,16 +1397,15 @@ let removeUnusedVars = (st:editorState):editorState => {
                     ->Js_array2.joinWith("\n")
                 let st = completeVarsEditMode(st, usedVarsStr)
                 let newDisj = disjMake()
-                wrkCtx->getAllDisj->disjForEach((n,m) => {
+                wrkCtx->getLocalDisj->disjForEach((n,m) => {
                     if (!(unusedVarInts->Js_array2.includes(n)) && !(unusedVarInts->Js_array2.includes(m))) {
                         newDisj->disjAddPair(n,m)
                     }
                 })
-                let newDisjStrArr = []
-                newDisj->disjForEachArr(varInts => {
-                    newDisjStrArr->Js.Array2.push(wrkCtx->ctxIntsToSymsExn(varInts)->Js_array2.joinWith(","))->ignore
-                })
-                let st = completeDisjEditMode(st, newDisjStrArr->Js.Array2.joinWith("\n"))
+                let newDisjStr = newDisj->disjToArr
+                    ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
+                    ->Js.Array2.joinWith("\n")
+                let st = completeDisjEditMode(st, newDisjStr)
                 st
             }
         }

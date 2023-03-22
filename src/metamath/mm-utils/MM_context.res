@@ -20,24 +20,26 @@ let exprEq: (expr,expr) => bool = (a,b) => {
     }
 }
 
+let exprCmp = (e1,e2) => {
+    let len1 = e1->Js_array2.length
+    let len2 = e2->Js_array2.length
+    switch Expln_utils_common.intCmp(len1, len2) {
+        | 0 => {
+            let res = ref(0)
+            let i = ref(0)
+            while (i.contents < len1 && res.contents == 0) {
+                res.contents = Expln_utils_common.intCmp(e1[i.contents], e2[i.contents])
+                i.contents = i.contents + 1
+            }
+            res.contents
+        }
+        | r => r
+    }
+}
+
 module ExprCmp = Belt.Id.MakeComparable({
     type t = expr
-    let cmp = (e1,e2) => {
-        let len1 = e1->Js_array2.length
-        let len2 = e2->Js_array2.length
-        switch Expln_utils_common.intCmp(len1, len2) {
-            | 0 => {
-                let res = ref(0)
-                let i = ref(0)
-                while (i.contents < len1 && res.contents == 0) {
-                    res.contents = Expln_utils_common.intCmp(e1[i.contents], e2[i.contents])
-                    i.contents = i.contents + 1
-                }
-                res.contents
-            }
-            | r => r
-        }
-    }
+    let cmp = exprCmp
 })
 
 module ExprHash = Belt.Id.MakeHashable({
@@ -210,7 +212,7 @@ let disjToArr = (disj:disjMutable):array<array<int>> => {
     res
 }
 
-let disjForEachArr = (disj, consumer) => {
+let disjToArr = (disj) => {
     let res = []
     disj->disjForEach((n,m) => res->Js_array2.push([n,m])->ignore)
 
@@ -266,9 +268,13 @@ let disjForEachArr = (disj, consumer) => {
         }
     }
 
-    res->Js.Array2.forEach(d => d->Js_array2.sortInPlace->ignore)
-    res->Js_array2.sortInPlaceWith((a,b) => a->Js_array2.length - b->Js_array2.length)->Js_array2.forEach(consumer)
+    res->Js.Array2.forEach(d => 
+        d->Js_array2.sortInPlaceWith((a,b) => if (a < b) {-1} else if (a == b) {0} else {1})->ignore
+    )
+    res->Js_array2.sortInPlaceWith(exprCmp)
 }
+
+let disjForEachArr = (disj, consumer) => disj->disjToArr->Js_array2.forEach(consumer)
 
 let disjIsEmpty = disjMutable => {
     disjMutable->Belt_HashMapInt.size == 0
