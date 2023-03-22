@@ -1403,10 +1403,14 @@ let removeUnusedVars = (st:editorState):editorState => {
                     newDisj->disjAddPair(n,m)
                 }
             })
-            let newDisjStr = newDisj->disjToArr
+            let newDisjText = newDisj->disjToArr
                 ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
                 ->Js.Array2.joinWith("\n")
-            let st = completeDisjEditMode(st, newDisjStr)
+            let st = if (st.disjText != newDisjText) {
+                completeDisjEditMode(st, newDisjText)
+            } else {
+                st
+            }
             st
         }
     }
