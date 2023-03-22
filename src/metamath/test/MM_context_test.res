@@ -166,3 +166,36 @@ describe("moveConstsToBegin", _ => {
         )
     })
 })
+
+
+describe("disjForEachArr", _ => {
+    it("merges disjoints correctly", _ => {
+        //given
+        let disj = disjMake() // 1,2; 3,4,5; 6,7,8,9;
+        disj->disjAddPair(1,2)
+        disj->disjAddPair(3,4)
+        disj->disjAddPair(3,5)
+        disj->disjAddPair(4,5)
+        disj->disjAddPair(6,7)
+        disj->disjAddPair(6,8)
+        disj->disjAddPair(6,9)
+        disj->disjAddPair(7,8)
+        disj->disjAddPair(7,9)
+        disj->disjAddPair(8,9)
+
+
+        //when
+        let actual = []
+        disj->disjForEachArr(arr => actual->Js_array2.push(arr)->ignore)
+
+        //then
+        assertEq(
+            actual,
+            [
+                [1,2],
+                [3,4,5],
+                [6,7,8,9]
+            ]
+        )
+    })
+})

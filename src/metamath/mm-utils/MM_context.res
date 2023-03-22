@@ -210,8 +210,64 @@ let disjToArr = (disj:disjMutable):array<array<int>> => {
     res
 }
 
-let disjForEachArr = (disjMutable, consumer) => {
-    disjMutable->disjForEach((n,m) => consumer([n,m]))
+let disjForEachArr = (disj, consumer) => {
+    let res = []
+    disj->disjForEach((n,m) => res->Js_array2.push([n,m])->ignore)
+
+    let canMerge = (d1:array<int>,d2:array<int>):bool => {
+        let canMerge = ref(true)
+        d1->Js_array2.forEach(v1 => {
+            if (canMerge.contents) {
+                d2->Js_array2.forEach(v2 => {
+                    if (canMerge.contents && v1 != v2) {
+                        canMerge.contents = disj->disjContains(v1,v2)
+                    }
+                })
+            }
+        })
+        canMerge.contents
+    }
+
+    let merge = (d1:array<int>,d2:array<int>):unit => {
+        res->Js_array2.removeCountInPlace(
+            ~pos=res->Js_array2.findIndex(d => d->exprEq(d2)),
+            ~count=1
+        )->ignore
+        d2->Js_array2.forEach(v2 => {
+            if (!(d1->Js_array2.includes(v2))) {
+                d1->Js_array2.push(v2)->ignore  
+            }
+        })
+    }
+
+    let findWhatToMerge = ():option<(array<int>,array<int>)> => {
+        let found = ref(None)
+        for i in 0 to res->Js_array2.length-2 {
+            if (found.contents->Belt_Option.isNone) {
+                for j in i+1 to res->Js_array2.length-1 {
+                    if (found.contents->Belt_Option.isNone) {
+                        let d1 = res[i]
+                        let d2 = res[j]
+                        if (canMerge(d1,d2)) {
+                            found.contents = Some((d1,d2))
+                        }
+                    }
+                }
+            }
+        }
+        found.contents
+    }
+
+    let mergeFound = ref(true)
+    while (mergeFound.contents) {
+        switch findWhatToMerge() {
+            | None => mergeFound.contents = false
+            | Some((d1,d2)) => merge(d1,d2)
+        }
+    }
+
+    res->Js.Array2.forEach(d => d->Js_array2.sortInPlace->ignore)
+    res->Js_array2.sortInPlaceWith((a,b) => a->Js_array2.length - b->Js_array2.length)->Js_array2.forEach(consumer)
 }
 
 let disjIsEmpty = disjMutable => {
