@@ -422,6 +422,98 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step2")
 
+        let st = st->updateStmt(st->getStmtId(~label="stmt3-brab2a.21", ()), ~jstf="", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step3")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="stmt14", ()),
+            ~asrtLabel="ralbidv",
+            ~maxSearchDepth=4,
+            ~chooseLabel="ralbidv",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step4")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="stmt12", ()),
+            ~asrtLabel="2ralbidv",
+            ~maxSearchDepth=4,
+            ~chooseLabel="2ralbidv",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step5")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="stmt1", ()),
+            ~args0=Some([st->getStmtId(~label="stmt8", ())]),
+            ~maxSearchDepth=4,
+            ~allowNewVars=false,
+            ~chooseLabel="mp1i",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step6-all-proved")
+
+        let st = st->removeDisj("y,k,A,u,r,v,F")
+        let st = st->removeDisj("k,r,F")
+        let st = st->removeDisj("A,k,r,F")
+        let st = st->removeDisj("u,k,A,r,F")
+        let st = st->removeDisj("F,r")
+        let st = st->removeDisj("v,k,A,u,r,F")
+        let st = st->removeDisj("x,y,k,A,u,r,v,F")
+        let st = st->removeDisj("r,u,v,x,y,A")
+        let st = st->removeDisj("r,u,v,x,y,F")
+        let st = st->unifyAll
+        assertEditorState(st, "step7")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="stmt2", ()),
+            ~args1=All,
+            ~asrtLabel="spcev",
+            ~maxSearchDepth=40,
+            ~lengthRestriction=No,
+            ~allowNewStmts=false,
+            ~chooseLabel="spcev",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step8")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="stmt3", ()),
+            ~args1=All,
+            ~asrtLabel="brab2a",
+            ~maxSearchDepth=40,
+            ~lengthRestriction=No,
+            ~allowNewStmts=false,
+            ~chooseLabel="brab2a",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step9")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="2", ()),
+            ~args1=All,
+            ~asrtLabel="tgjustf",
+            ~maxSearchDepth=40,
+            ~lengthRestriction=No,
+            ~allowNewStmts=false,
+            ~chooseLabel="tgjustf",
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step10-disj-restored")
+
     })
 
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {

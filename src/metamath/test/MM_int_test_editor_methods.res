@@ -7,8 +7,6 @@ open MM_wrk_editor
 open MM_wrk_settings
 open MM_wrk_search_asrt
 open MM_wrk_unify
-open MM_substitution
-open MM_parenCounter
 open MM_statements_dto
 open MM_wrk_editor_json
 open MM_int_test_utils
@@ -111,6 +109,7 @@ let updateStmt = (
     ~label:option<string=>string>=?,
     ~typ:option<userStmtType>=?,
     ~content:option<string>=?,
+    ~jstf:option<string>=?,
     ~contReplaceWhat:option<string>=?,
     ~contReplaceWith:option<string>=?,
     ()
@@ -129,6 +128,10 @@ let updateStmt = (
         let stmt = switch typ {
             | None => stmt
             | Some(typ) => {...stmt, typ}
+        }
+        let stmt = switch jstf {
+            | None => stmt
+            | Some(jstf) => {...stmt, jstfText:jstf}
         }
         let stmt = switch content {
             | Some(content) => {...stmt, cont:strToCont(content, ())}
@@ -192,6 +195,7 @@ let addStmtsBySearch = (
 }
 
 let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, ()):editorState => {
+    assertNoErrors(st)
     let st = switch before {
         | None => st
         | Some(beforeStmtId) => {
@@ -243,6 +247,7 @@ let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
 }
 
 let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorState => {
+    assertNoErrors(st)
     let st = switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot applySubstitution when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -262,6 +267,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
 }
 
 let unifyAll = (st):editorState => {
+    assertNoErrors(st)
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -303,6 +309,7 @@ let unifyBottomUp = (
     ~chooseResult:option<stmtsDto => bool>=?,
     ()
 ):(editorState, stmtsDto) => {
+    assertNoErrors(st)
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
         | Some(wrkCtx) => {
@@ -374,22 +381,15 @@ let removeAllJstf = (st:editorState):editorState => {
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let newLineRegex = %re("/[\n\r]/")
 let addDisj = (st:editorState, disj:string):editorState => {
-    let disjLines = st.disjText
-        ->Js_string2.splitByRe(newLineRegex)
-        ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(s => s->Js_string2.length > 0)
+    let disjLines = st.disjText->multilineTextToNonEmptyLines
     disjLines->Js_array2.push(disj)->ignore
     let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
 let removeDisj = (st:editorState, disj:string):editorState => {
-    let disjLines = st.disjText
-        ->Js_string2.splitByRe(newLineRegex)
-        ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(s => s->Js_string2.length > 0)
+    let disjLines = st.disjText->multilineTextToNonEmptyLines
     let st = st->completeDisjEditMode(
         disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
     )

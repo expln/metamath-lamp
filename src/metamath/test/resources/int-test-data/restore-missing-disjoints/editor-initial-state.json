@@ -84,7 +84,7 @@
       "label": "stmt3",
       "typ": "p",
       "cont": "|- ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( ( x e. A /\\ y e. A ) /\\ ( F ` x ) = ( F ` y ) ) )",
-      "jstfText": "stmt3-brab2a.11 stmt3-brab2a.21: brab2a"
+      "jstfText": "stmt3-brab2a.11 stmt3-brab2a.21 : brab2a"
     },
     {
       "label": "stmt11",
@@ -120,7 +120,7 @@
       "label": "stmt2",
       "typ": "p",
       "cont": "|- ( ( { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } Er A /\\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\\ v e. A ) /\\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er A /\\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )",
-      "jstfText": "stmt10 stmt2-spcgv.11: spcev"
+      "jstfText": "stmt10 stmt2-spcgv.11 : spcev"
     },
     {
       "label": "stmt1",

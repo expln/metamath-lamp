@@ -10,6 +10,7 @@ let newStmtsDtoToStr: stmtsDto => string
 
 let setTestDataDir: string => unit
 let getTestDataDir: () => string
+let assertNoErrors: editorState => unit
 let assertEditorState: (editorState, string) => unit
 let assertStmtsDto: (stmtsDto, string) => unit
 let assertProof: (editorState, string, string) => unit

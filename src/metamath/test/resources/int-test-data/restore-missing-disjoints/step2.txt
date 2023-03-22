@@ -87,7 +87,7 @@ jstfIsIncorrect
 
 --- p -------------------------------------------------------------------------------
 stmt3
-stmt3-brab2a.11 stmt3-brab2a.21: brab2a
+stmt3-brab2a.11 stmt3-brab2a.21 : brab2a
 |- ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( ( x e. A /\ y e. A ) /\ ( F ` x ) = ( F ` y ) ) )
 waiting
 
@@ -123,7 +123,7 @@ waiting
 
 --- p -------------------------------------------------------------------------------
 stmt2
-stmt10 stmt2-spcgv.11: spcev
+stmt10 stmt2-spcgv.11 : spcev
 |- ( ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 waiting
 

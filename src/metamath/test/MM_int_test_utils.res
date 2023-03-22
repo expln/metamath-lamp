@@ -104,6 +104,14 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     }
 }
 
+let assertNoErrors = (st) => {
+    if (st->editorStateHasErrors) {
+        let filePath = curTestDataDir.contents ++ "/" ++ "editor-state-error.txt"
+        Expln_utils_files.writeStringToFile( filePath, st->editorStateToStr )
+        raise(MmException({msg:`Editor state has errors: ${filePath}`}))
+    }
+}
+
 let assertEditorState = (st, expectedStrFileName:string) => {
     let actualStr = st->editorStateToStr
     assertStrEqFile(actualStr, expectedStrFileName)

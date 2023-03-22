@@ -33,6 +33,7 @@ let updateStmt: (
     ~label: string=>string=?,
     ~typ: userStmtType=?,
     ~content: string=?,
+    ~jstf:string=?,
     ~contReplaceWhat: string=?,
     ~contReplaceWith: string=?,
     unit,
