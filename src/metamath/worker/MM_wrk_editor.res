@@ -1385,8 +1385,8 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ->Expln_utils_common.arrFlatMap(stmt=>stmt.cont->contToArrStr)
                 ->Belt_SetString.fromArray
             let unusedVars = wrkCtx->getLocalVars->Js_array2.filter(var => !(usedSymbols->Belt_SetString.has(var)))
-            if (unusedVars->Js_array2.length == 0) {
-                st
+            let (st, unusedVarInts) = if (unusedVars->Js_array2.length == 0) {
+                (st, [])
             } else {
                 let unusedVarInts = wrkCtx->ctxSymsToIntsExn(unusedVars)
                 let usedVarsStr = wrkCtx->getLocalHyps
@@ -1395,19 +1395,19 @@ let removeUnusedVars = (st:editorState):editorState => {
                         `${hyp.label} ${wrkCtx->ctxIntToSymExn(hyp.expr[0])} ${wrkCtx->ctxIntToSymExn(hyp.expr[1])}`
                     )
                     ->Js_array2.joinWith("\n")
-                let st = completeVarsEditMode(st, usedVarsStr)
-                let newDisj = disjMake()
-                wrkCtx->getLocalDisj->disjForEach((n,m) => {
-                    if (!(unusedVarInts->Js_array2.includes(n)) && !(unusedVarInts->Js_array2.includes(m))) {
-                        newDisj->disjAddPair(n,m)
-                    }
-                })
-                let newDisjStr = newDisj->disjToArr
-                    ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
-                    ->Js.Array2.joinWith("\n")
-                let st = completeDisjEditMode(st, newDisjStr)
-                st
+                (completeVarsEditMode(st, usedVarsStr), unusedVarInts)
             }
+            let newDisj = disjMake()
+            wrkCtx->getLocalDisj->disjForEach((n,m) => {
+                if (!(unusedVarInts->Js_array2.includes(n)) && !(unusedVarInts->Js_array2.includes(m))) {
+                    newDisj->disjAddPair(n,m)
+                }
+            })
+            let newDisjStr = newDisj->disjToArr
+                ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
+                ->Js.Array2.joinWith("\n")
+            let st = completeDisjEditMode(st, newDisjStr)
+            st
         }
     }
 }

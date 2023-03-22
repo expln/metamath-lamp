@@ -460,15 +460,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step6-all-proved")
 
-        let st = st->removeDisj("y,k,A,u,r,v,F")
-        let st = st->removeDisj("k,r,F")
-        let st = st->removeDisj("A,k,r,F")
-        let st = st->removeDisj("u,k,A,r,F")
-        let st = st->removeDisj("F,r")
-        let st = st->removeDisj("v,k,A,u,r,F")
-        let st = st->removeDisj("x,y,k,A,u,r,v,F")
-        let st = st->removeDisj("r,u,v,x,y,A")
-        let st = st->removeDisj("r,u,v,x,y,F")
+        let st = st->removeDisj("x,y,v,u,A,k,F,r")
         let st = st->unifyAll
         assertEditorState(st, "step7")
 

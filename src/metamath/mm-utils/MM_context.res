@@ -202,16 +202,6 @@ let disjForEach = (disjMutable, consumer) => {
     })
 }
 
-let disjToArr = (disj:disjMutable):array<array<int>> => {
-    let res = []
-    disj->Belt_HashMapInt.forEach((n,ms) => {
-        ms->Belt_HashSetInt.forEach(m => {
-            res->Js_array2.push([n,m])->ignore
-        })
-    })
-    res
-}
-
 let disjToArr = (disj) => {
     let res = []
     disj->disjForEach((n,m) => res->Js_array2.push([n,m])->ignore)
@@ -268,8 +258,8 @@ let disjToArr = (disj) => {
         }
     }
 
-    res->Js.Array2.forEach(d => 
-        d->Js_array2.sortInPlaceWith((a,b) => if (a < b) {-1} else if (a == b) {0} else {1})->ignore
+    res->Js.Array2.forEach(d =>
+        d->Js_array2.sortInPlaceWith(Expln_utils_common.intCmp)->ignore
     )
     res->Js_array2.sortInPlaceWith(exprCmp)
 }
