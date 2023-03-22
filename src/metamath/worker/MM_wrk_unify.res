@@ -115,7 +115,7 @@ let srcToNewStmts = (
 ):option<stmtsDto> => {
     switch src {
         | VarType | Hypothesis(_) | AssertionWithErr(_) => None
-        | Assertion({args, label, missingDisj}) => {
+        | Assertion({args, label}) => {
             let hasAsrtWithErr = ref(false)
             let hasBackRefErr = ref(false)
             let hasError = () => hasAsrtWithErr.contents || hasBackRefErr.contents
@@ -223,17 +223,6 @@ let srcToNewStmts = (
                 res.stmts->Js_array2.push( { label, expr, exprStr, jstf, isProved, } )->ignore
             }
 
-            let addMissingDisjToResult = missingDisj => {
-                switch missingDisj {
-                    | None => ()
-                    | Some(missingDisj) => {
-                        missingDisj->disjForEach((n,m) => {
-                            res.newDisj->disjAddPair(n,m)
-                        })
-                    }
-                }
-            }
-
             let frame = getFrame(label)
             let eArgs = []
             frame.hyps->Js.Array2.forEachi((hyp,i) => {
@@ -295,14 +284,13 @@ let srcToNewStmts = (
                                     hasAsrtWithErr.contents = true
                                     Some(())
                                 }
-                                | Some(Assertion({missingDisj})) => {
+                                | Some(Assertion(_)) => {
                                     addExprToResult(
                                         ~label = createLabelForExpr(node.expr, ""),
                                         ~expr = node.expr, 
                                         ~src = node.proof, 
                                         ~isProved=true
                                     )
-                                    addMissingDisjToResult(missingDisj)
                                     None
                                 }
                                 | None => {
@@ -331,7 +319,6 @@ let srcToNewStmts = (
                     ~src = Some(src),
                     ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
                 )
-                addMissingDisjToResult(missingDisj)
                 let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
                 tree.disj->disjForEach((n,m) => {
                     if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {

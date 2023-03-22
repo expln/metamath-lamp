@@ -86,7 +86,7 @@ let findAsrtParentsWithoutNewVars = (
                         }
                         if (argsAreCorrect.contents) {
                             foundParents->Js_array2.push( 
-                                Assertion({ args, frame:frm.frame, missingDisj:None })
+                                Assertion({ args, frame:frm.frame })
                             )->ignore
                         }
                     }
@@ -282,29 +282,11 @@ let findAsrtParentsWithNewVars = (
         }
         switch err {
             | None => {
-                let missingDisj = applResult.missingDisj->Belt_Option.map(applMissingDisj => {
-                    let treeMissingDisj = disjMake()
-                    applMissingDisj->disjForEach((n,m) => {
-                        treeMissingDisj->disjAddPair(
-                            applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
-                            applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
-                        )
-                    })
-                    treeMissingDisj
-                })
-                foundParents->Js.Array2.push( Assertion({ 
-                    args, 
-                    frame,
-                    missingDisj,
-                }) )->ignore
+                foundParents->Js.Array2.push( Assertion({ args, frame, }) )->ignore
             }
             | Some(err) => {
                 if (debugLevel != 0) {
-                    foundParents->Js.Array2.push( AssertionWithErr({ 
-                        args, 
-                        frame,
-                        err
-                    }) )->ignore
+                    foundParents->Js.Array2.push( AssertionWithErr({ args, frame, err }) )->ignore
                 }
             }
         }

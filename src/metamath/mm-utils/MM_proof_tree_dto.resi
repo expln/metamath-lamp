@@ -6,7 +6,7 @@ open MM_unification_debug
 type exprSrcDto =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>})
+    | Assertion({args:array<int>, label:string})
     | AssertionWithErr({args:array<int>, label:string, err:unifErr})
 
 type proofNodeDbgDto = {

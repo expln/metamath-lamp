@@ -10,7 +10,6 @@ type applyAssertionResult = {
     newDisj:disjMutable,
     asrtLabel: string,
     subs: subs,
-    missingDisj:option<disjMutable>,
     err:option<unifErr>,
 }
 
@@ -275,13 +274,21 @@ let checkDisj = (
     ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>, 
     ~subs:subs, 
     ~maxCtxVar:int, 
+    ~allowNewDisjForExistingVars:bool,
     ~isDisjInCtx:(int,int)=>bool,
     ~debugLevel:int,
 ):result<disjMutable,unifErr> => {
     let resultDisj = disjMake()
     let verifRes = verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
         if (n <= maxCtxVar && m <= maxCtxVar) {
-            isDisjInCtx(n,m)
+            if (isDisjInCtx(n,m)) {
+                true
+            } else if (allowNewDisjForExistingVars) {
+                resultDisj->disjAddPair(n,m)
+                true
+            } else {
+                false
+            }
         } else {
             resultDisj->disjAddPair(n,m)
             true
@@ -383,29 +390,12 @@ let applyAssertions = (
                                 ~comb,
                                 ~hypIdx=0,
                                 ~onMatchFound = () => {
-                                    let missingDisj = ref(None)
                                     switch checkDisj(
-                                        ~isDisjInCtx = (n,m) => {
-                                            if (allowNewDisjForExistingVars) {
-                                                if (!isDisjInCtx(n,m)) {
-                                                    let mDisj = switch missingDisj.contents {
-                                                        | None => {
-                                                            let mDisj = disjMake()
-                                                            missingDisj.contents = Some(mDisj)
-                                                            mDisj
-                                                        }
-                                                        | Some(mDisj) => mDisj
-                                                    }
-                                                    mDisj->disjAddPair(n,m)
-                                                }
-                                                true
-                                            } else {
-                                                isDisjInCtx(n,m)
-                                            }
-                                        },
+                                        ~isDisjInCtx,
                                         ~frmDisj=frm.frame.disj, 
-                                        ~subs=frm.subs, 
+                                        ~subs=frm.subs,
                                         ~maxCtxVar=maxVar,
+                                        ~allowNewDisjForExistingVars,
                                         ~debugLevel,
                                     ) {
                                         | Ok(newDisj) => {
@@ -415,7 +405,6 @@ let applyAssertions = (
                                                 newDisj,
                                                 asrtLabel: frm.frame.label,
                                                 subs: subsClone(frm.subs),
-                                                missingDisj: missingDisj.contents,
                                                 err:None
                                             }
                                             if (!(sentValidResults->Belt_HashSet.has(res))) {
@@ -435,7 +424,6 @@ let applyAssertions = (
                                                     newDisj: disjMake(),
                                                     asrtLabel: frm.frame.label,
                                                     subs: subsClone(frm.subs),
-                                                    missingDisj: None,
                                                     err:Some(err)
                                                 }
                                                 onMatchFound(res)

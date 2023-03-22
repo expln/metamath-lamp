@@ -376,7 +376,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:Some(UnifErr),
                 },
                 {
@@ -391,7 +390,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:Some(UnifErr),
                 }
             ),
@@ -413,7 +411,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:None,
                 },
                 {
@@ -428,7 +425,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:Some(UnifErr),
                 }
             ),
@@ -448,7 +444,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:Some(UnifErr),
                 },
                 {
@@ -463,7 +458,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),
@@ -485,7 +479,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:None,
                 },
                 {
@@ -500,7 +493,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [],
                         isDefined: [],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),
@@ -522,7 +514,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:None,
                     err:None,
                 },
                 {
@@ -537,7 +528,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,90,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),
@@ -559,7 +549,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:Some(disjMake()),
                     err:None,
                 },
                 {
@@ -574,7 +563,6 @@ describe("applyAssertionResultEq", _ => {
                         exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
                         isDefined: [true,true],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),
@@ -599,7 +587,6 @@ describe("applyAssertionResultHash", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:Some(disjMake()),
                     err:None,
                 }
             ),
@@ -619,7 +606,6 @@ describe("applyAssertionResultHash", _ => {
                         exprs: [[2,3,4,50],[6,7,7,7,8,9,10,11]],
                         isDefined: [true,true],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),
@@ -641,7 +627,6 @@ describe("applyAssertionResultHash", _ => {
                         exprs: [[1,2,3,4,5],[6,7,8,9,10,11,12]],
                         isDefined: [true,true],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),
@@ -661,7 +646,6 @@ describe("applyAssertionResultHash", _ => {
                         exprs: [[2,3,4,50],[6,7,7,7,8,90,10,11]],
                         isDefined: [true,true],
                     },
-                    missingDisj:None,
                     err:None,
                 }
             ),

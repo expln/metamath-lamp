@@ -7,7 +7,7 @@ open MM_unification_debug
 type exprSrcDto =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<int>, label:string, missingDisj:option<disjMutable>})
+    | Assertion({args:array<int>, label:string})
     | AssertionWithErr({args:array<int>, label:string, err:unifErr})
 
 type proofNodeDbgDto = {
@@ -47,11 +47,10 @@ let exprSrcToDto = (
     switch src {
         | VarType => VarType
         | Hypothesis({label}) => Hypothesis({label:label})
-        | Assertion({args, frame, missingDisj}) => {
+        | Assertion({args, frame}) => {
             Assertion({
                 args: args->Js_array2.map(nodeToIdx), 
                 label: frame.label,
-                missingDisj,
             })
         }
         | AssertionWithErr({args, frame, err}) => {

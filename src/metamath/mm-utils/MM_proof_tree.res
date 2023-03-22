@@ -36,7 +36,7 @@ type rec proofNode = {
 and exprSrc =
     | VarType
     | Hypothesis({label:string})
-    | Assertion({args:array<proofNode>, frame:frame, missingDisj:option<disjMutable>})
+    | Assertion({args:array<proofNode>, frame:frame})
     | AssertionWithErr({args:array<proofNode>, frame:frame, err:unifErr})
 
 and proofTree = {
