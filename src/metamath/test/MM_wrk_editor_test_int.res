@@ -223,7 +223,7 @@ describe("MM_wrk_editor integration tests", _ => {
             () 
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
-            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less, ~chooseLabel="fvmpt", ())
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
@@ -277,7 +277,7 @@ describe("MM_wrk_editor integration tests", _ => {
             () 
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
-            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less, ~chooseLabel="fvmpt", ())
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
@@ -298,7 +298,7 @@ describe("MM_wrk_editor integration tests", _ => {
         assertEditorState(st, "step2")
 
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
-            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, 
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less,
             ~chooseResult=stmts=>stmts.newVars->Js_array2.length==0, 
             ()
         )
@@ -323,13 +323,13 @@ describe("MM_wrk_editor integration tests", _ => {
             () 
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
-            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, ~chooseLabel="fvmpt", ())
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less, ~chooseLabel="fvmpt", ())
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
-            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestriction=Less, 
+            ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less,
             ~chooseResult = dto => dto.newVars->Js_array2.length != 0,
             ()
         )
@@ -374,7 +374,7 @@ describe("MM_wrk_editor integration tests", _ => {
             () 
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId, 
-            ~maxSearchDepth=1, ~lengthRestriction=No, ~allowNewVars=true, ~chooseLabel="decsuc", ())
+            ~maxSearchDepth=1, ~lengthRestrict=No, ~allowNewVars=true, ~chooseLabel="decsuc", ())
         let st = st->addNewStmts(stmts, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
@@ -469,7 +469,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~args1=All,
             ~asrtLabel="spcev",
             ~maxSearchDepth=40,
-            ~lengthRestriction=No,
+            ~lengthRestrict=No,
             ~allowNewStmts=false,
             ~chooseLabel="spcev",
             ()
@@ -483,7 +483,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~args1=All,
             ~asrtLabel="brab2a",
             ~maxSearchDepth=40,
-            ~lengthRestriction=No,
+            ~lengthRestrict=No,
             ~allowNewStmts=false,
             ~chooseLabel="brab2a",
             ()
@@ -497,7 +497,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~args1=All,
             ~asrtLabel="tgjustf",
             ~maxSearchDepth=40,
-            ~lengthRestriction=No,
+            ~lengthRestrict=No,
             ~allowNewStmts=false,
             ~chooseLabel="tgjustf",
             ()

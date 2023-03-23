@@ -111,12 +111,25 @@ let makeInitialState = (
     ~rootUserStmts: array<userStmt>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
-    ~initialLabel: option<string>,
+    ~initialParams: option<bottomUpProverParams>,
+    ~initialDebug: option<bool>,
 ) => {
     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
     let maxRootStmtIdx = rootStmtsLen-1
     let exprToProve = rootStmts[maxRootStmtIdx].expr
+    let possibleArgs = rootStmts->Js_array2.filteri((stmt,i) => i < maxRootStmtIdx)->Js_array2.map(stmt => stmt.expr)
+
+    let params = switch initialParams {
+        | Some(params) => params
+        | None => {
+            bottomUpProverParamsMake(
+                ~args0 = possibleArgs,
+                ()
+            )
+        }
+    }
+
     {
         rootUserStmts,
         rootStmts,
@@ -142,18 +155,19 @@ let makeInitialState = (
                 { MM_cmp_user_stmt.rndContText(rootUserStmts[maxRootStmtIdx].cont) }
             </span>,
 
-        args0: Belt_Array.make(rootStmtsLen-1, true),
-        args1: Belt_Array.make(rootStmtsLen-1, false),
+        args0: possibleArgs->Js_array2.map(params.args0->Js_array2.includes),
+        args1: possibleArgs->Js_array2.map(params.args1->Js_array2.includes),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
-        label: initialLabel,
-        depthStr: "4",
-        depth: 4,
-        lengthRestrict: Less,
-        allowNewDisjForExistingVars: true,
-        allowNewStmts: true,
-        allowNewVars: true,
-        debug: false,
-        maxNumberOfBranchesStr: "",
+        label: params.asrtLabel,
+        depthStr: params.maxSearchDepth->Belt_Int.toString,
+        depth: params.maxSearchDepth,
+        lengthRestrict: params.lengthRestrict,
+        allowNewDisjForExistingVars: params.allowNewDisjForExistingVars,
+        allowNewStmts: params.allowNewStmts,
+        allowNewVars: params.allowNewVars,
+        debug: initialDebug->Belt_Option.getWithDefault(false),
+        maxNumberOfBranchesStr: 
+            params.maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault(""),
 
         tree: None,
         results: None,
@@ -467,12 +481,13 @@ let make = (
     ~rootStmts: array<userStmt>,
     ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~initialLabel: option<string>,
+    ~initialParams: option<bottomUpProverParams>=?,
+    ~initialDebug: option<bool>=?,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialLabel
+        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebug
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -548,7 +563,7 @@ let make = (
                     ~bottomUpProverParams=Some({
                         asrtLabel: st.label,
                         maxSearchDepth: st.depth,
-                        lengthRestriction: st.lengthRestrict,
+                        lengthRestrict: st.lengthRestrict,
                         allowNewDisjForExistingVars: st.allowNewDisjForExistingVars,
                         allowNewStmts: st.allowNewStmts,
                         allowNewVars: st.allowNewVars,

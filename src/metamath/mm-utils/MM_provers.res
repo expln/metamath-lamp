@@ -13,13 +13,38 @@ type lengthRestrict = No | LessEq | Less
 type bottomUpProverParams = {
     asrtLabel: option<string>,
     maxSearchDepth: int,
-    lengthRestriction: lengthRestrict,
+    lengthRestrict: lengthRestrict,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
     args0: array<expr>,
     args1: array<expr>,
     maxNumberOfBranches: option<int>,
+}
+
+let bottomUpProverParamsMake = (
+    ~asrtLabel: option<string>=?,
+    ~maxSearchDepth: int=4,
+    ~lengthRestrict: lengthRestrict=Less,
+    ~allowNewDisjForExistingVars: bool=true,
+    ~allowNewStmts: bool=true,
+    ~allowNewVars: bool=true,
+    ~args0: array<expr>=[],
+    ~args1: array<expr>=[],
+    ~maxNumberOfBranches: option<int>=?,
+    ()
+):bottomUpProverParams => {
+    {
+        asrtLabel,
+        maxSearchDepth,
+        lengthRestrict,
+        allowNewDisjForExistingVars,
+        allowNewStmts,
+        allowNewVars,
+        args0,
+        args1,
+        maxNumberOfBranches,
+    }
 }
 
 let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSrc> => {
@@ -500,7 +525,7 @@ let proveStmtBottomUp = (
                         while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                             let arg = args[argIdx.contents]
                             if (frame.hyps[argIdx.contents].typ == E) {
-                                argsAreCorrect.contents = switch params.lengthRestriction {
+                                argsAreCorrect.contents = switch params.lengthRestrict {
                                     | No => true
                                     | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
                                     | Less => arg->pnGetExpr->Js_array2.length < exprLen

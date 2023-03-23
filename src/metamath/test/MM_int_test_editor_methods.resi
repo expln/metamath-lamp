@@ -74,7 +74,7 @@ let unifyBottomUp: (
     ~args1:rootStmtsToUse=?,
     ~asrtLabel: string=?,
     ~maxSearchDepth: int=?,
-    ~lengthRestriction: MM_provers.lengthRestrict=?,
+    ~lengthRestrict: MM_provers.lengthRestrict=?,
     ~allowNewDisjForExistingVars:bool=?,
     ~allowNewStmts:bool=?,
     ~allowNewVars: bool=?,

@@ -8,7 +8,7 @@ type lengthRestrict = No | LessEq | Less
 type bottomUpProverParams = {
     asrtLabel: option<string>,
     maxSearchDepth: int,
-    lengthRestriction: lengthRestrict,
+    lengthRestrict: lengthRestrict,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
@@ -16,6 +16,19 @@ type bottomUpProverParams = {
     args1: array<expr>,
     maxNumberOfBranches: option<int>,
 }
+
+let bottomUpProverParamsMake: (
+    ~asrtLabel: string=?,
+    ~maxSearchDepth: int=?,
+    ~lengthRestrict: lengthRestrict=?,
+    ~allowNewDisjForExistingVars: bool=?,
+    ~allowNewStmts: bool=?,
+    ~allowNewVars: bool=?,
+    ~args0: array<expr>=?,
+    ~args1: array<expr>=?,
+    ~maxNumberOfBranches: int=?,
+    ()
+) => bottomUpProverParams
 
 let createProofCtx: (mmContext, array<rootStmt>) => mmContext
 

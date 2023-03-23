@@ -10,6 +10,8 @@ open MM_react_common
 open MM_parenCounter
 open MM_statements_dto
 open MM_wrk_editor_json
+open MM_proof_tree
+open MM_provers
 
 
 let unifyAllIsRequiredCnt = ref(0)
@@ -498,6 +500,12 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
+    let prepareArgs0 = (argLabels:array<string>, rootStmts:array<rootStmt>):array<expr> => {
+        rootStmts
+            ->Js_array2.filter(stmt => argLabels->Js_array2.includes(stmt.label))
+            ->Js_array2.map(stmt => stmt.expr)
+    }
+
     let actUnify = () => {
         switch state.wrkCtx {
             | None => ()
@@ -505,6 +513,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 let varsText=state.varsText
                 let disjText=state.disjText
                 let rootUserStmts = state->getRootStmtsForUnification
+                let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
                 switch singleProvableSelected {
                     | Some(singleProvableSelected) => {
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -524,10 +533,16 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                             state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                                         )
                                     }
-                                    initialLabel={
+                                    initialParams=?{
                                         switch singleProvableSelected.jstfText->parseJstf {
-                                            | Ok(Some({label})) => Some(label)
-                                            | _ => None
+                                            | Error(_) | Ok(None) => None
+                                            | Ok(Some({args:argLabels, label})) => {
+                                                Some(bottomUpProverParamsMake(
+                                                    ~asrtLabel=label,
+                                                    ~args0=prepareArgs0(argLabels, rootStmts),
+                                                    ()
+                                                ))
+                                            }
                                         }
                                     }
                                     onResultSelected={newStmtsDto => {
