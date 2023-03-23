@@ -764,7 +764,8 @@ let validateStmtJstf = (
     stmt:userStmt, 
     wrkCtx:mmContext, 
     definedUserLabels:Belt_HashSetString.t,
-    asrtsToSkip: array<string>
+    asrtsToSkip: array<string>,
+    frms: Belt_MapString.t<frmSubsData>,
 ):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
@@ -774,17 +775,39 @@ let validateStmtJstf = (
             | Some({args,label}) => {
                 switch args->Js_array2.find(ref => !isLabelDefined(ref,wrkCtx,definedUserLabels) ) {
                     | Some(jstfArgLabel) => {
-                        {...stmt, stmtErr:Some(`The reference '${jstfArgLabel}' is not defined.`)}
+                        {...stmt, stmtErr:Some(`The label '${jstfArgLabel}' is not defined.`)}
                     }
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
-                            if (asrtsToSkip->Js_array2.includes(label)) {
-                                {...stmt, stmtErr:Some(`The label '${label}' refers to a skipped assertion.`)}
-                            } else {
-                                {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
-                            }
+                            {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
+                        } else if (asrtsToSkip->Js_array2.includes(label)) {
+                            {...stmt, stmtErr:Some(`The assertion '${label}' is skipped by settings.`)}
                         } else {
-                            stmt
+                            switch frms->Belt_MapString.get(label) {
+                                | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
+                                | Some(frm) => {
+                                    let expectedNumberOfArgs = frm.numOfHypsE
+                                    let providedNumberOfArgs = args->Js_array2.length
+                                    if (providedNumberOfArgs != expectedNumberOfArgs) {
+                                        let eHypsText = if (expectedNumberOfArgs == 1) {
+                                            "essential hypothesis"
+                                        } else {
+                                            "essential hypotheses"
+                                        }
+                                        let isAreText = if (providedNumberOfArgs == 1) {
+                                            "is"
+                                        } else {
+                                            "are"
+                                        }
+                                        {...stmt, stmtErr:Some(
+                                            `'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
+                                                ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
+                                        )}
+                                    } else {
+                                        stmt
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -863,7 +886,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                 setStmtExpr(_, wrkCtx),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
                 setStmtJstf,
-                validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip),
+                validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip, st.frms),
             ]
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
