@@ -506,16 +506,49 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
             ->Js_array2.map(stmt => stmt.expr)
     }
 
-    let actUnify = () => {
+    let getArgs0AndAsrtLabel = (jstfText:string, rootStmts:array<rootStmt>):option<(array<expr>,string)> => {
+        switch jstfText->parseJstf {
+            | Error(_) | Ok(None) => None
+            | Ok(Some({args:argLabels, label})) => Some((prepareArgs0(argLabels, rootStmts), label))
+        }
+    }
+
+    let actUnify = (
+        ~stmtId:option<stmtId>=?,
+        ~params:option<bottomUpProverParams>=?,
+        ~initialDebug:option<bool>=?,
+        ()
+    ) => {
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
                 let varsText=state.varsText
                 let disjText=state.disjText
+                let state = switch stmtId {
+                    | None => state
+                    | Some(stmtId) => {
+                        let state = state->uncheckAllStmts
+                        let state = state->toggleStmtChecked(stmtId)
+                        state
+                    }
+                }
                 let rootUserStmts = state->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
+                let singleProvableSelected = switch state->getTheOnlySelectedStmt {
+                    | Some(stmt) if stmt.typ == P => Some(stmt)
+                    | _ => None
+                }
                 switch singleProvableSelected {
                     | Some(singleProvableSelected) => {
+                        let initialParams = switch params {
+                            | Some(_) => params
+                            | None => {
+                                switch getArgs0AndAsrtLabel(singleProvableSelected.jstfText, rootStmts) {
+                                    | None => None
+                                    | Some((args0,asrtLabel)) => Some(bottomUpProverParamsMake(~asrtLabel, ~args0, ()))
+                                }
+                            }
+                        }
                         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
@@ -533,18 +566,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                             state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
                                         )
                                     }
-                                    initialParams=?{
-                                        switch singleProvableSelected.jstfText->parseJstf {
-                                            | Error(_) | Ok(None) => None
-                                            | Ok(Some({args:argLabels, label})) => {
-                                                Some(bottomUpProverParamsMake(
-                                                    ~asrtLabel=label,
-                                                    ~args0=prepareArgs0(argLabels, rootStmts),
-                                                    ()
-                                                ))
-                                            }
-                                        }
-                                    }
+                                    initialParams=?initialParams
+                                    initialDebug=?initialDebug
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
                                         actBottomUpResultSelected(newStmtsDto)
@@ -615,6 +638,54 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         rndExportedProof(proofText, modalId)
                     })
                 })->ignore
+            }
+        }
+    }
+
+    let actDebugUnifyAll = (stmtId) => {
+        let st = state
+        let st = st->uncheckAllStmts
+        let st = st->toggleStmtChecked(stmtId)
+        let provableSelected = switch getTheOnlySelectedStmt(st) {
+            | Some(stmt) if stmt.typ == P => Some(stmt)
+            | _ => None
+        }
+        switch provableSelected {
+            | None => ()
+            | Some(provableSelected) => {
+                let rootUserStmts = st->getRootStmtsForUnification
+                let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
+                let params = switch getArgs0AndAsrtLabel(provableSelected.jstfText, rootStmts) {
+                    | Some((args0,asrtLabel)) => {
+                        Some(bottomUpProverParamsMake(
+                            ~args0, 
+                            ~args1=[],
+                            ~asrtLabel, 
+                            ~maxSearchDepth=1,
+                            ~lengthRestrict=Less,
+                            ~allowNewDisjForExistingVars=false,
+                            ~allowNewStmts=false,
+                            ~allowNewVars=false,
+                            ~maxNumberOfBranches=?None,
+                            ()
+                        ))
+                    }
+                    | None => {
+                        Some(bottomUpProverParamsMake(
+                            ~args0=rootStmts->Js_array2.map(stmt => stmt.expr), 
+                            ~args1=[],
+                            ~asrtLabel=?None, 
+                            ~maxSearchDepth=1,
+                            ~lengthRestrict=Less,
+                            ~allowNewDisjForExistingVars=false,
+                            ~allowNewStmts=false,
+                            ~allowNewVars=false,
+                            ~maxNumberOfBranches=?None,
+                            ()
+                        ))
+                    }
+                }
+                actUnify(~stmtId, ~params=?params, ~initialDebug=true, ())
             }
         }
     }
@@ -698,6 +769,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     onJstfEditCancel={newJstf => actCancelEditJstf(stmt.id,newJstf)}
 
                     onGenerateProof={()=>actExportProof(stmt.id)}
+                    onDebug={()=>actDebugUnifyAll(stmt.id)}
                 />
                 {rndError(stmt.stmtErr)}
             </td>

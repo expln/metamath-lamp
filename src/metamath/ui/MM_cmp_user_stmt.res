@@ -91,6 +91,7 @@ let rndProofStatus = (
     ~noJstfTooltip:option<string>=?,
     ~jstfIsIncorrectTooltip:option<string>=?,
     ~onReadyIconClicked:option<unit=>unit>=?,
+    ~onErrorIconClicked:option<unit=>unit>=?,
     ()
 ):React.element => {
     switch proofStatus {
@@ -100,7 +101,11 @@ let rndProofStatus = (
                 | Ready =>
                     <span 
                         title=?readyTooltip
-                        style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ~cursor="pointer", ())
+                        style=ReactDOM.Style.make(
+                            ~color="green", ~fontWeight="bold", 
+                            ~cursor=if (onReadyIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
+                            ()
+                        )
                         onClick={_=>onReadyIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >{React.string("\u2713")}</span>
                 | Waiting =>
@@ -120,7 +125,12 @@ let rndProofStatus = (
                 | JstfIsIncorrect =>
                     <span 
                         title=?jstfIsIncorrectTooltip
-                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
+                        style=ReactDOM.Style.make(
+                            ~color="red", ~fontWeight="bold", 
+                            ~cursor=if (onErrorIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
+                            ()
+                        )
+                        onClick={_=>onErrorIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >
                         {React.string("\u2717")}
                     </span>
@@ -137,6 +147,7 @@ let make = (
     ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
+    ~onDebug:unit=>unit,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -339,8 +350,9 @@ let make = (
                             ~readyTooltip="Proof is ready, left-click to generate compressed proof",
                             ~waitingTooltip="Justification for this statement is correct",
                             ~noJstfTooltip="Justification cannot be determined automatically",
-                            ~jstfIsIncorrectTooltip="Justification is incorrect",
+                            ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
                             ~onReadyIconClicked=onGenerateProof,
+                            ~onErrorIconClicked=onDebug,
                             ()
                         )
                     }

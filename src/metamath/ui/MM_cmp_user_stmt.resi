@@ -1,6 +1,3 @@
-open MM_syntax_tree
-open Expln_React_common
-open Expln_React_Mui
 open MM_wrk_editor
 
 let rndProofStatus: (
@@ -10,6 +7,7 @@ let rndProofStatus: (
     ~noJstfTooltip:string=?,
     ~jstfIsIncorrectTooltip:string=?,
     ~onReadyIconClicked:unit=>unit =?,
+    ~onErrorIconClicked:unit=>unit =?,
     ()
 ) => React.element
 
@@ -21,6 +19,7 @@ let make: (
     ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
+    ~onDebug:unit=>unit,
 ) => React.element
 
 let rndContText: stmtCont => React.element
