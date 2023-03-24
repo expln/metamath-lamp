@@ -10,4 +10,5 @@ let make: (
   ~nodeIdxToLabel: int => string,
   ~exprToStr: expr=>string,
   ~exprToReElem: expr => reElem,
+  ~frmExprToStr: (string,expr)=>string,
 ) => React.element

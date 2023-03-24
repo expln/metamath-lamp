@@ -1,6 +1,7 @@
 open MM_proof_tree_dto
 open MM_proof_tree
 open MM_context
+open MM_parser
 
 type state = {
     ctxMaxVar: int,
@@ -49,6 +50,13 @@ let make = (
         <span> {exprToStr(expr)->React.string} </span>
     }
 
+    let frmExprToStr = (asrtLabel,expr) => {
+        switch wrkCtx->getFrame(asrtLabel) {
+            | None => raise(MmException({msg:`Cannot find an assertion by label '${asrtLabel}'`}))
+            | Some(frame) => wrkCtx->frmIntsToStrExn(frame, expr)
+        }
+    }
+
     let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has(tree.nodes[idx].expr)
 
     switch tree.nodes->Js.Array2.findIndex(node => node.expr->exprEq(rootExpr)) {
@@ -61,6 +69,7 @@ let make = (
                 nodeIdxToLabel
                 exprToStr
                 exprToReElem
+                frmExprToStr
             />
         }
     }

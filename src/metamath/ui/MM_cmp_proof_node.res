@@ -55,6 +55,7 @@ module rec ProofNodeDtoCmp: {
         ~nodeIdxToLabel: int=>string,
         ~exprToStr: expr=>string,
         ~exprToReElem: expr=>reElem,
+        ~frmExprToStr: (string,expr)=>string,
     ) => reElem
 } = {
     @react.component
@@ -65,6 +66,7 @@ module rec ProofNodeDtoCmp: {
         ~nodeIdxToLabel: int=>string,
         ~exprToStr: expr=>string,
         ~exprToReElem: expr=>reElem,
+        ~frmExprToStr: (string,expr)=>string,
     ) => {
         let (state, setState) = React.useState(makeInitialState)
 
@@ -126,7 +128,7 @@ module rec ProofNodeDtoCmp: {
             </span>
         }
 
-        let rndErr = err => {
+        let rndErr = (err,asrtLabel) => {
             <pre style=ReactDOM.Style.make(~color="red", ~margin="0px", ())>
             {
                 switch err {
@@ -135,16 +137,16 @@ module rec ProofNodeDtoCmp: {
                         let arrow = Js_string2.fromCharCode(8594)
                         React.string(
                             `Unsatisfied disjoint, common variable ${exprToStr([commonVar])}:\n`
-                                ++ `${exprToStr([frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
-                                ++ `${exprToStr([frmVar2])} ${arrow} ${exprToStr(expr2)}`
+                                ++ `${frmExprToStr(asrtLabel, [frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
+                                ++ `${frmExprToStr(asrtLabel, [frmVar2])} ${arrow} ${exprToStr(expr2)}`
                         )
                     }
                     | Disj({frmVar1, expr1, var1, frmVar2, expr2, var2}) => {
                         let arrow = Js_string2.fromCharCode(8594)
                         React.string(
                             `Missing disjoint ${exprToStr([var1])},${exprToStr([var2])}:\n`
-                                ++ `${exprToStr([frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
-                                ++ `${exprToStr([frmVar2])} ${arrow} ${exprToStr(expr2)}`
+                                ++ `${frmExprToStr(asrtLabel, [frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
+                                ++ `${frmExprToStr(asrtLabel, [frmVar2])} ${arrow} ${exprToStr(expr2)}`
                         )
                     }
                     | UnprovedFloating({expr:expr}) => 
@@ -164,9 +166,9 @@ module rec ProofNodeDtoCmp: {
                     </tr>
                     {
                         switch parents[srcIdx] {
-                            | AssertionWithErr({err}) => {
+                            | AssertionWithErr({label,err}) => {
                                 <tr>
-                                    <td> {rndErr(err)} </td>
+                                    <td> {rndErr(err,label)} </td>
                                 </tr>
                             }
                             | _ => React.null
@@ -190,6 +192,7 @@ module rec ProofNodeDtoCmp: {
                                             nodeIdxToLabel
                                             exprToStr
                                             exprToReElem
+                                            frmExprToStr
                                         />
                                     </td>
                                 </tr>
@@ -342,6 +345,7 @@ let make = (
     ~nodeIdxToLabel: int=>string,
     ~exprToStr: expr=>string,
     ~exprToReElem: expr=>reElem,
+    ~frmExprToStr: (string,expr)=>string,
 ) => {
     <ProofNodeDtoCmp
         tree
@@ -350,5 +354,6 @@ let make = (
         nodeIdxToLabel
         exprToStr
         exprToReElem
+        frmExprToStr
     />
 }
