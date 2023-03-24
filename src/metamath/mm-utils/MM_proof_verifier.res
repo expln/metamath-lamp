@@ -1,9 +1,13 @@
 open MM_parser
 open MM_context
 
+type proofNodeDbg = {
+    exprStr: string,
+}
+
 type rec proofNode =
-    | Hypothesis({hypLabel:string, expr:expr})
-    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr})
+    | Hypothesis({hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
+    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, dbg:option<proofNodeDbg>})
 
 let getExprFromNode = (node:proofNode):expr => {
     switch node {
@@ -177,17 +181,24 @@ let intToCompressedProofStr: int => string = i => {
     }
 }
 
-let applyAsrt = (stack:array<proofNode>, frame):unit => {
+let applyAsrt = (stack:array<proofNode>, frame, ctx):unit => {
     let stackLength = stack->Js_array2.length
     if (stackLength < frame.numOfArgs) {
         raise(MmException({msg:`stackLength < numOfArgs`}))
     } else {
         let subs = extractSubstitution(stack, stackLength, frame)
         validateTopOfStackMatchesFrame(stack, stackLength, frame, subs)
+        let expr = applySubs(frame.asrt, subs)
         let newNode = Calculated({
             asrtLabel: frame.label,
             args: stack->Js_array2.sliceFrom(stackLength - frame.numOfArgs),
-            expr: applySubs(frame.asrt, subs)
+            expr,
+            dbg:
+                if (ctx->isDebug) {
+                    Some({ exprStr: ctx->ctxIntsToStrExn(expr) })
+                } else {
+                    None
+                }
         })
         for _ in 1 to frame.numOfArgs {
             stack->Js_array2.pop->ignore
@@ -199,10 +210,21 @@ let applyAsrt = (stack:array<proofNode>, frame):unit => {
 let applyUncompressedProof = (ctx, stack, proofLabels) => {
     proofLabels->Js_array2.forEach(step => {
         switch ctx->getHypothesis(step) {
-            | Some(hyp) => stack->Js_array2.push(Hypothesis({hypLabel:hyp.label, expr:hyp.expr}))->ignore
+            | Some(hyp) => {
+                stack->Js_array2.push(Hypothesis({
+                    hypLabel:hyp.label, 
+                    expr:hyp.expr,
+                    dbg:
+                        if (ctx->isDebug) {
+                            Some({ exprStr: ctx->ctxIntsToStrExn(hyp.expr) })
+                        } else {
+                            None
+                        }
+                }))->ignore
+            }
             | None => {
                 switch ctx->getFrame(step) {
-                    | Some(frame) => applyAsrt(stack, frame)
+                    | Some(frame) => applyAsrt(stack, frame, ctx)
                     | None => raise(MmException({msg:`The proof step '${step}' doesn't refer to a hypothesis or assertion (in uncompressed proof).`}))
                 }
             }
@@ -230,14 +252,34 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
                 raise(MmException({msg:`Unexpected condition when applying compressed proof: i < 1.`}))
             } else if (i <= hypLen) {
                 let hyp = hyps[i-1]
-                stack->Js_array2.push(Hypothesis({hypLabel:hyp.label, expr:hyp.expr}))->ignore
+                stack->Js_array2.push(Hypothesis({
+                    hypLabel:hyp.label, 
+                    expr:hyp.expr,
+                    dbg:
+                        if (ctx->isDebug) {
+                            Some({ exprStr: ctx->ctxIntsToStrExn(hyp.expr) })
+                        } else {
+                            None
+                        }
+                }))->ignore
             } else if (i <= hypLenPlusLabelsLen) {
                 let labelToApply = labels[i-hypLen-1]
                 switch ctx->getHypothesis(labelToApply) {
-                    | Some(hyp) => stack->Js_array2.push(Hypothesis({hypLabel:hyp.label, expr:hyp.expr}))->ignore
+                    | Some(hyp) => {
+                        stack->Js_array2.push(Hypothesis({
+                            hypLabel:hyp.label, 
+                            expr:hyp.expr,
+                            dbg:
+                                if (ctx->isDebug) {
+                                    Some({ exprStr: ctx->ctxIntsToStrExn(hyp.expr) })
+                                } else {
+                                    None
+                                }
+                        }))->ignore
+                    }
                     | None => {
                         switch ctx->getFrame(labelToApply) {
-                            | Some(frame) => applyAsrt(stack, frame)
+                            | Some(frame) => applyAsrt(stack, frame, ctx)
                             | None => raise(MmException({msg:`The proof step '${labelToApply}' doesn't refer to a hypothesis or assertion (in compressed proof).`}))
                         }
                     }

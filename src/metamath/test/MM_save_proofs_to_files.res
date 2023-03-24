@@ -89,7 +89,7 @@ describe("save proofs to files", _ => {
         traverseAst((), ast, ~process=(_,node) => {
             switch node {
                 | {stmt:Provable({label,expr,proof:Some(proof)})} if label == labelToPrint => {
-                    let ctx = loadContext(ast, ~stopBefore=label, ())
+                    let ctx = loadContext(ast, ~stopBefore=label, ~debug=true, ())
                     let proofNode = verifyProof(ctx, ctx->ctxSymsToIntsExn(expr), proof)
                     let proofTable = createProofTableFromProof(proofNode)
 
@@ -121,7 +121,7 @@ describe("save proofs to files", _ => {
                     }
                 }
                 | Provable({label,expr,proof:Some(proof1)}) => {
-                    if (label == "isrusgr" || label == "idiVD") {
+                    if (/* label == "isrusgr" || */ label == "idiVD") {
                         cnt.contents = cnt.contents + 1
                         Js.Console.log2(cnt.contents, label)
 
