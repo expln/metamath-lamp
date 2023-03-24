@@ -59,6 +59,7 @@ let make = (
                 nodeIdx
                 isRootStmt
                 nodeIdxToLabel
+                exprToStr
                 exprToReElem
             />
         }

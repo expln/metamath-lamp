@@ -53,6 +53,7 @@ module rec ProofNodeDtoCmp: {
         ~nodeIdx: int,
         ~isRootStmt: int=>bool,
         ~nodeIdxToLabel: int=>string,
+        ~exprToStr: expr=>string,
         ~exprToReElem: expr=>reElem,
     ) => reElem
 } = {
@@ -62,6 +63,7 @@ module rec ProofNodeDtoCmp: {
         ~nodeIdx: int,
         ~isRootStmt: int=>bool,
         ~nodeIdxToLabel: int=>string,
+        ~exprToStr: expr=>string,
         ~exprToReElem: expr=>reElem,
     ) => {
         let (state, setState) = React.useState(makeInitialState)
@@ -125,7 +127,31 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndErr = err => {
-            <pre style=ReactDOM.Style.make(~color="red", ~margin="0px", ())>{React.string("error")}</pre>
+            <pre style=ReactDOM.Style.make(~color="red", ~margin="0px", ())>
+            {
+                switch err {
+                    | UnifErr => React.string("Details of the error were not stored.")
+                    | DisjCommonVar({frmVar1, expr1, frmVar2, expr2, commonVar}) => {
+                        let arrow = Js_string2.fromCharCode(8594)
+                        React.string(
+                            `Unsatisfied disjoint, common variable ${exprToStr([commonVar])}:\n`
+                                ++ `${exprToStr([frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
+                                ++ `${exprToStr([frmVar2])} ${arrow} ${exprToStr(expr2)}`
+                        )
+                    }
+                    | Disj({frmVar1, expr1, var1, frmVar2, expr2, var2}) => {
+                        let arrow = Js_string2.fromCharCode(8594)
+                        React.string(
+                            `Missing disjoint ${exprToStr([var1])},${exprToStr([var2])}:\n`
+                                ++ `${exprToStr([frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
+                                ++ `${exprToStr([frmVar2])} ${arrow} ${exprToStr(expr2)}`
+                        )
+                    }
+                    | UnprovedFloating({expr:expr}) => 
+                        React.string( `Could not prove this floating statement:\n` ++ exprToStr(expr) )
+                }
+            }
+            </pre>
         }
 
         let rndExpandedArgs = (args, srcIdx) => {
@@ -162,6 +188,7 @@ module rec ProofNodeDtoCmp: {
                                             nodeIdx=arg
                                             isRootStmt
                                             nodeIdxToLabel
+                                            exprToStr
                                             exprToReElem
                                         />
                                     </td>
@@ -313,6 +340,7 @@ let make = (
     ~nodeIdx: int,
     ~isRootStmt: int=>bool,
     ~nodeIdxToLabel: int=>string,
+    ~exprToStr: expr=>string,
     ~exprToReElem: expr=>reElem,
 ) => {
     <ProofNodeDtoCmp
@@ -320,6 +348,7 @@ let make = (
         nodeIdx
         isRootStmt
         nodeIdxToLabel
+        exprToStr
         exprToReElem
     />
 }
