@@ -68,6 +68,19 @@ module rec ProofNodeDtoCmp: {
 
         let node = tree.nodes[nodeIdx]
 
+        let getParents = () => {
+            if (node.parents->Js.Array2.length == 0) {
+                switch node.proof {
+                    | None => []
+                    | Some(src) => [src]
+                }
+            } else {
+                node.parents
+            }
+        }
+
+        let parents = getParents()
+
         let actToggleExpanded = () => {
             setState(toggleExpanded)
         }
@@ -111,6 +124,10 @@ module rec ProofNodeDtoCmp: {
             </span>
         }
 
+        let rndErr = err => {
+            <pre style=ReactDOM.Style.make(~color="red", ~margin="0px", ())>{React.string("error")}</pre>
+        }
+
         let rndExpandedArgs = (args, srcIdx) => {
             <table>
                 <tbody>
@@ -119,6 +136,16 @@ module rec ProofNodeDtoCmp: {
                             {rndCollapsedArgs(args, srcIdx)}
                         </td>
                     </tr>
+                    {
+                        switch parents[srcIdx] {
+                            | AssertionWithErr({err}) => {
+                                <tr>
+                                    <td> {rndErr(err)} </td>
+                                </tr>
+                            }
+                            | _ => React.null
+                        }
+                    }
                     {
                         if (args->Js_array2.length == 0) {
                             <tr key={"-exp"}>
@@ -224,15 +251,6 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndSrcs = () => {
-            let parents = 
-                if (node.parents->Js.Array2.length == 0) {
-                    switch node.proof {
-                        | None => []
-                        | Some(src) => [src]
-                    }
-                } else {
-                    node.parents
-                }
             if (parents->Js.Array2.length == 0) {
                 React.string("Sources are not set.")
             } else {
