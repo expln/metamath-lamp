@@ -92,6 +92,7 @@ let rndProofStatus = (
     ~jstfIsIncorrectTooltip:option<string>=?,
     ~onReadyIconClicked:option<unit=>unit>=?,
     ~onErrorIconClicked:option<unit=>unit>=?,
+    ~onNoJstfIconClicked:option<unit=>unit>=?,
     ()
 ):React.element => {
     switch proofStatus {
@@ -118,7 +119,12 @@ let rndProofStatus = (
                 | NoJstf =>
                     <span 
                         title=?noJstfTooltip
-                        style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ())
+                        style=ReactDOM.Style.make(
+                            ~color="red", ~fontWeight="bold", 
+                            ~cursor=if (onNoJstfIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
+                            ()
+                        )
+                        onClick={_=>onNoJstfIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >
                         {React.string("?")}
                     </span>
@@ -349,10 +355,11 @@ let make = (
                             ~proofStatus=stmt.proofStatus, 
                             ~readyTooltip="Proof is ready, left-click to generate compressed proof",
                             ~waitingTooltip="Justification for this statement is correct",
-                            ~noJstfTooltip="Justification cannot be determined automatically",
+                            ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
                             ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
                             ~onReadyIconClicked=onGenerateProof,
                             ~onErrorIconClicked=onDebug,
+                            ~onNoJstfIconClicked=onDebug,
                             ()
                         )
                     }

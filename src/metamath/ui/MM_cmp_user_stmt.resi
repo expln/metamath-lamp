@@ -8,6 +8,7 @@ let rndProofStatus: (
     ~jstfIsIncorrectTooltip:string=?,
     ~onReadyIconClicked:unit=>unit =?,
     ~onErrorIconClicked:unit=>unit =?,
+    ~onNoJstfIconClicked:unit=>unit =?,
     ()
 ) => React.element
 
