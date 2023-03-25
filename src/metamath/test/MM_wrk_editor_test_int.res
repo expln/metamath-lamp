@@ -417,12 +417,17 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
             ~asrtsToSkipFilePath, ())
         let st = st->deleteStmts([st->getStmtId(~label="description", ())])
-        assertEditorState(st, "step1")
-
-        let st = st->unifyAll
-        assertEditorState(st, "step2")
+        assertEditorState(st, "step1.0")
 
         let st = st->updateStmt(st->getStmtId(~label="stmt3-brab2a.21", ()), ~jstf="", ())
+        assertEditorState(st, "step1.1")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt14", ()), ~jstf="", ())
+        assertEditorState(st, "step1.2")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt12", ()), ~jstf="", ())
+        assertEditorState(st, "step1.3")
+
         let st = st->unifyAll
         assertEditorState(st, "step3")
 

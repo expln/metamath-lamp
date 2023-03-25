@@ -76,6 +76,7 @@ stmt3-brab2a.21
  : ax-frege54c
 |- { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
 None
+Error: The assertion 'ax-frege54c' is skipped by settings.
 
 --- p -------------------------------------------------------------------------------
 stmt3
