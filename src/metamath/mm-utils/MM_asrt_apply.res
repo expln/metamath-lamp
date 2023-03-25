@@ -192,7 +192,6 @@ let iterateSubstitutionsWithWorkVars = (
         workVars.newVars->Js_array2.push(newVar)->ignore
         workVars.newVarTypes->Js_array2.push(newVarType)->ignore
     }
-    workVars.hypIdxToExprWithWorkVars[hypIdx] = Some(newExprWithWorkVars)
 
     let res = if (allowNewVars || workVars.newVars->Js_array2.length == 0) {
         continue()
@@ -203,7 +202,6 @@ let iterateSubstitutionsWithWorkVars = (
     predefinedSubs->Js_array2.forEachi((predefined,i) => frm.subs.isDefined[i]=predefined)
     workVars.newVars->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
     workVars.newVarTypes->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
-    workVars.hypIdxToExprWithWorkVars[hypIdx] = None
 
     res
 }
@@ -362,7 +360,6 @@ let applyAssertions = (
                         maxVar,
                         newVars: [],
                         newVarTypes: [],
-                        hypIdxToExprWithWorkVars: Belt_Array.make(numOfHyps+1, None)
                     }
                     iterateCombinations(
                         ~numOfStmts,

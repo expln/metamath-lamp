@@ -25,7 +25,6 @@ type workVars = {
     maxVar:int,
     newVars: array<int>,
     newVarTypes: array<int>,
-    hypIdxToExprWithWorkVars: array<option<expr>>,
 }
 
 type subs = {
