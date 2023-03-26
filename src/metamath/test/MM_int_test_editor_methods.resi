@@ -86,5 +86,6 @@ let unifyBottomUp: (
 let removeAllJstf: editorState => editorState
 let addDisj: ( editorState, string, ) => editorState
 let removeDisj: ( editorState, string ) => editorState
+let setDisj: ( editorState, string ) => editorState
 let mergeStmt: ( editorState, stmtId ) => editorState
 let deleteStmts: (editorState, array<stmtId> ) => editorState

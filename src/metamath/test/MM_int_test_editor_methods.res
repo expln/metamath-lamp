@@ -396,6 +396,11 @@ let removeDisj = (st:editorState, disj:string):editorState => {
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
+let setDisj = (st:editorState, disj:string):editorState => {
+    let st = st->completeDisjEditMode( disj )
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
 let mergeStmt = (st:editorState, stmtId):editorState => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)

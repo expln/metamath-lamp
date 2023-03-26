@@ -513,6 +513,40 @@ describe("MM_wrk_editor integration tests", _ => {
 
     })
 
+    it("unify-all identifies some types of unification errors", _ => {
+        setTestDataDir("identify-errors")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~asrtsToSkipFilePath, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt11", ()), ~jstf=": cvv", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt11", ()), ~jstf=": ereq1", ())
+        let st = st->updateStmt(st->getStmtId(~label="stmt3-brab2a.11", ()), ~jstf="stmt4 stmt5 : brab2a", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step3")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt3-brab2a.11", ()), ~jstf="stmt4 stmt5 : eqeq12d", ())
+        let st = st->updateStmt(st->getStmtId(~label="stmt9", ()), 
+            ~jstf="stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.11 stmt9-opabex2.41: opabex2", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step4")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt9", ()), 
+            ~jstf="stmt9-opabex2.11 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.41: opabex2", ())
+        let st = st->setDisj("x,y,v,u,A\nx,y,v,u,F,r")
+        let st = st->unifyAll
+        assertEditorState(st, "step5")
+
+        let st = st->setDisj("x,y,v,u,A,r\nx,y,v,u,F,r")
+        let st = st->unifyAll
+        assertEditorState(st, "step6")
+
+    })
+
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {
     // })
 })
