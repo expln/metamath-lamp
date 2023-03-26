@@ -58,6 +58,7 @@ let getAllFrames: mmContext => Belt_MapString.t<frame>
 let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>
+let getFrameExn: (mmContext,string) => frame
 let getLocalVars: mmContext => array<string>
 let getLocalHyps: mmContext => array<hypothesis>
 let getNumOfVars: mmContext => int

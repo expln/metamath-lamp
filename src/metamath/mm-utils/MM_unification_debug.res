@@ -42,7 +42,8 @@ let unifErrToStr = (
                 ++ `${frmExprToStr(asrtExpr)}\n${arrow}\n${exprToStr(expr)}`
         }
         | NoUnifForArg({args,errArgIdx}) => {
-            `Could not unify essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}:\n`
+            let colon = if (args->Js.Array2.length == 0) {""} else {":"}
+            `Could not unify essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}${colon}\n`
                 ++ argsToString(args, exprToStr)
         }
         | NewVarsAreDisabled({args,errArgIdx}) => {
@@ -51,8 +52,9 @@ let unifErrToStr = (
             } else {
                 `essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}`
             }
+            let colon = if (args->Js.Array2.length == 0) {""} else {":"}
             `New variables are not allowed, but one had to be created`
-                ++ ` when unifying ${what}:\n`
+                ++ ` when unifying ${what}${colon}\n`
                 ++ argsToString(args, exprToStr)
         }
     }

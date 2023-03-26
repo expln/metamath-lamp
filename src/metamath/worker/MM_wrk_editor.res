@@ -10,6 +10,7 @@ open MM_wrk_ctx_data
 open MM_provers
 open MM_statements_dto
 open Common
+open MM_unification_debug
 
 let newLabelPrefix = ""
 
@@ -107,6 +108,7 @@ type userStmt = {
     jstf: option<jstf>,
     proof: option<(proofTreeDto, proofNodeDto)>,
     proofStatus: option<proofStatus>,
+    unifErr: option<string>,
 }
 
 type editorState = {
@@ -157,7 +159,7 @@ let createEmptyUserStmt = (id, typ, label):userStmt => {
         cont:Text([]), contEditMode:true,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
-        expr:None, jstf:None, proof:None, proofStatus:None,
+        expr:None, jstf:None, proof:None, proofStatus:None, unifErr:None,
     }
 }
 
@@ -665,7 +667,8 @@ let removeAllTempData = st => {
                 expr: None, 
                 jstf: None, 
                 proof: None, 
-                proofStatus: None
+                proofStatus: None,
+                unifErr: None,
             }
         })
     }
@@ -1520,7 +1523,30 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                 | Some(jstf) => {
                     switch proofNode.parents->Js.Array2.find(srcEqJstf(_, jstf)) {
                         | Some(_) => {...stmt, proofStatus:Some(Waiting)}
-                        | None => {...stmt, proofStatus:Some(JstfIsIncorrect)}
+                        | None => {
+                            let errors = proofNode.parents->Js.Array2.map(src => {
+                                switch src {
+                                    | VarType | Hypothesis(_) | Assertion(_) => None
+                                    | AssertionWithErr({label, err}) => Some((label,err))
+                                }
+                            })->Js.Array2.filter(Belt_Option.isSome)->Js.Array2.map(Belt_Option.getExn)
+                            let unifErr = switch errors {
+                                | [(asrtLabel,err)] => {
+                                    Some(unifErrToStr(
+                                        err,
+                                        ~exprToStr = wrkCtx->ctxIntsToStrExn,
+                                        ~frmExprToStr = 
+                                            expr => wrkCtx->frmIntsToStrExn(wrkCtx->getFrameExn(asrtLabel),expr)
+                                    ))
+                                }
+                                | _ => None
+                            }
+                            {
+                                ...stmt, 
+                                proofStatus:Some(JstfIsIncorrect),
+                                unifErr
+                            }
+                        }
                     }
                 }
             }

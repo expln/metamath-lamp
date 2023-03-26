@@ -382,26 +382,36 @@ let proveWithJustification = (
     ~expr:expr, 
     ~jstf: jstf,
 ):proofNode => {
+    let findAsrtParentsWithNewVars = (args,debugLevel) => {
+        findAsrtParentsWithNewVars(
+            ~tree,
+            ~expr,
+            ~args,
+            ~exactOrderOfArgs=true,
+            ~allowEmptyArgs=false,
+            ~allowNewVars=false,
+            ~asrtLabel=jstf.label,
+            ~allowNewDisjForExistingVars=false,
+            ~debugLevel,
+            ()
+        )
+    }
+
     let node = tree->ptGetNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
         switch getStatementsFromJustification( ~tree, ~jstf, ) {
             | None => ()
             | Some(args) => {
-                let parents = findAsrtParentsWithNewVars(
-                    ~tree,
-                    ~expr,
-                    ~args,
-                    ~exactOrderOfArgs=true,
-                    ~allowEmptyArgs=false,
-                    ~allowNewVars=false,
-                    ~asrtLabel=jstf.label,
-                    ~allowNewDisjForExistingVars=false,
-                    ()
-                )
-                parents->Expln_utils_common.arrForEach(parent => {
+                findAsrtParentsWithNewVars(args,0)->Expln_utils_common.arrForEach(parent => {
                     node->pnAddParent(parent, true)
                     node->pnGetProof
                 })->ignore
+                if (node->pnGetProof->Belt.Option.isNone) {
+                    findAsrtParentsWithNewVars(args,2)->Expln_utils_common.arrForEach(parent => {
+                        node->pnAddParent(parent, true)
+                        node->pnGetProof
+                    })->ignore
+                }
             }
         }
     }

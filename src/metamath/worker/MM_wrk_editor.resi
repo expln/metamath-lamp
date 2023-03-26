@@ -54,6 +54,7 @@ type userStmt = {
     jstf: option<jstf>,
     proof: option<(proofTreeDto, proofNodeDto)>,
     proofStatus: option<proofStatus>,
+    unifErr: option<string>,
 }
 
 type editorState = {

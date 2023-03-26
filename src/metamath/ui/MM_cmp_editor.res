@@ -695,10 +695,10 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
-    let rndError = msgOpt => {
+    let rndError = (msgOpt,color) => {
         switch msgOpt {
             | None => React.null
-            | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
+            | Some(msg) => <pre style=ReactDOM.Style.make(~color, ())>{React.string(msg)}</pre>
         }
     }
 
@@ -776,7 +776,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     onGenerateProof={()=>actExportProof(stmt.id)}
                     onDebug={()=>actDebugUnifyAll(stmt.id)}
                 />
-                {rndError(stmt.stmtErr)}
+                {rndError(stmt.stmtErr,"red")}
+                {rndError(stmt.unifErr,"darkgrey")}
             </td>
         </tr>
     }
@@ -792,7 +793,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     onEditDone={newText => actCompleteEdit(completeVarsEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditVars(newText)}
                 />
-                {rndError(state.varsErr)}
+                {rndError(state.varsErr,"red")}
             </Col>
         </Row>
     }
@@ -808,7 +809,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     onEditDone={newText => actCompleteEdit(completeDisjEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDisj(newText)}
                 />
-                {rndError(state.disjErr)}
+                {rndError(state.disjErr,"red")}
             </Col>
         </Row>
     }

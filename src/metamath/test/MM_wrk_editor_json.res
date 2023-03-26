@@ -45,6 +45,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         jstf: None,
         proof: None,
         proofStatus: None,
+        unifErr: None,
     }
 }
 

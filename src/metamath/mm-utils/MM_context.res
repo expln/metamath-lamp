@@ -349,6 +349,13 @@ let getFrame = (ctx:mmContext,label):option<frame> => {
     })
 }
 
+let getFrameExn = (ctx:mmContext,label):frame => {
+    switch ctx->getFrame(label) {
+        | None => raise(MmException({msg: `Could not find a frame by the label '${label}'`}))
+        | Some(frame) => frame
+    }
+}
+
 let getLocalVars: mmContext => array<string> = ctx => {
     ctx.contents.vars->Js_array2.copy
 }
