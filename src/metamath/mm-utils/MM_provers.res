@@ -254,10 +254,10 @@ let findAsrtParentsWithNewVars = (
             | Some(frm) => frm.frame
         }
         switch applResult.err {
-            | Some(NoUnifForAsrt(_)) => {
+            | Some(NoUnifForAsrt(_)) | Some(NoUnifForArg(_)) | Some(NewVarsAreDisabled(_)) => {
                 if (debugLevel != 0) {
                     foundParents->Js.Array2.push( 
-                        AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn }) 
+                        AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
                     )->ignore
                 }
             }

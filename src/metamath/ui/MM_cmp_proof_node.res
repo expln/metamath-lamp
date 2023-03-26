@@ -128,6 +128,12 @@ module rec ProofNodeDtoCmp: {
             </span>
         }
 
+        let argsToString = (args:array<expr>):string => {
+            args->Js_array2.mapi((arg,i) => {
+                `${i->Belt.Int.toString}: ${if (arg->Js_array2.length == 0) { "?" } else { exprToStr(arg) } }`
+            })->Js.Array2.joinWith("\n")
+        }
+
         let rndErr = (err,asrtLabel) => {
             <pre style=ReactDOM.Style.make(~color="red", ~margin="0px", ())>
             {
@@ -158,6 +164,24 @@ module rec ProofNodeDtoCmp: {
                                 ++ `${frmExprToStr(asrtLabel, asrtExpr)}\n${arrow}\n${exprToStr(expr)}`
                         )
                     }
+                    | NoUnifForArg({args,errArgIdx}) => {
+                        React.string(
+                            `Could not unify essential hypothesis number ${errArgIdx->Belt.Int.toString}:\n`
+                                ++ argsToString(args)
+                        )
+                    }
+                    | NewVarsAreDisabled({args,errArgIdx}) => {
+                        let what = if (args->Js.Array2.length == errArgIdx) {
+                            "assertion"
+                        } else {
+                            `essential hypothesis number ${errArgIdx->Belt.Int.toString}`
+                        }
+                        React.string(
+                            `New variables are not allowed, but one had to be created`
+                                ++ ` when unifying ${what}:\n`
+                                ++ argsToString(args)
+                        )
+                    }
                 }
             }
             </pre>
@@ -172,7 +196,7 @@ module rec ProofNodeDtoCmp: {
                         | UnifErr | DisjCommonVar(_) | Disj(_) | UnprovedFloating(_) => {
                             args->Js_array2.length == 0
                         }
-                        | NoUnifForAsrt(_) => false
+                        | NoUnifForAsrt(_) | NoUnifForArg(_) | NewVarsAreDisabled(_) => false
                     }
                 }
             }

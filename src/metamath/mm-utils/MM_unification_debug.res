@@ -6,3 +6,5 @@ type unifErr =
     | Disj({frmVar1:int, expr1:expr, var1:int, frmVar2:int, expr2:expr, var2:int})
     | UnprovedFloating({expr:expr})
     | NoUnifForAsrt({asrtExpr:expr, expr:expr})
+    | NoUnifForArg({args:array<expr>, errArgIdx:int})
+    | NewVarsAreDisabled({args:array<expr>, errArgIdx:int})
