@@ -516,7 +516,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
-        ~initialDebug:option<bool>=?,
+        ~initialDebugLevel:option<int>=?,
         ()
     ) => {
         switch state.wrkCtx {
@@ -567,7 +567,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                         )
                                     }
                                     initialParams=?initialParams
-                                    initialDebug=?initialDebug
+                                    initialDebugLevel=?initialDebugLevel
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
                                         actBottomUpResultSelected(newStmtsDto)
@@ -657,7 +657,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
                 let params = switch getArgs0AndAsrtLabel(provableSelected.jstfText, rootStmts) {
                     | Some((args0,asrtLabel)) => {
-                        Some(bottomUpProverParamsMake(
+                        bottomUpProverParamsMake(
                             ~args0, 
                             ~args1=[],
                             ~asrtLabel, 
@@ -668,10 +668,10 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             ~allowNewVars=false,
                             ~maxNumberOfBranches=?None,
                             ()
-                        ))
+                        )
                     }
                     | None => {
-                        Some(bottomUpProverParamsMake(
+                        bottomUpProverParamsMake(
                             ~args0=rootStmts->Js_array2.map(stmt => stmt.expr), 
                             ~args1=[],
                             ~asrtLabel=?None, 
@@ -682,10 +682,15 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                             ~allowNewVars=false,
                             ~maxNumberOfBranches=?None,
                             ()
-                        ))
+                        )
                     }
                 }
-                actUnify(~stmtId, ~params=?params, ~initialDebug=true, ())
+                actUnify(
+                    ~stmtId, 
+                    ~params, 
+                    ~initialDebugLevel = if (params.asrtLabel->Belt_Option.isSome) {2} else {1}, 
+                    ()
+                )
             }
         }
     }

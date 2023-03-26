@@ -45,7 +45,7 @@ type state = {
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
-    debug:bool,
+    debugLevel:int,
     maxNumberOfBranchesStr:string,
 
     tree: option<proofTreeDto>,
@@ -112,7 +112,7 @@ let makeInitialState = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~initialParams: option<bottomUpProverParams>,
-    ~initialDebug: option<bool>,
+    ~initialDebugLevel: option<int>,
 ) => {
     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
@@ -165,7 +165,8 @@ let makeInitialState = (
         allowNewDisjForExistingVars: params.allowNewDisjForExistingVars,
         allowNewStmts: params.allowNewStmts,
         allowNewVars: params.allowNewVars,
-        debug: initialDebug->Belt_Option.getWithDefault(false),
+        debugLevel: initialDebugLevel
+            ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
             params.maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault(""),
 
@@ -223,10 +224,10 @@ let toggleAllowNewVars = (st) => {
     }
 }
 
-let toggleDebug = (st) => {
+let setDebugLevel = (st,debugLevel) => {
     {
         ...st,
-        debug: !st.debug
+        debugLevel: if (0 <= debugLevel && debugLevel <= 2) {debugLevel} else {0}
     }
 }
 
@@ -482,12 +483,12 @@ let make = (
     ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialParams: option<bottomUpProverParams>=?,
-    ~initialDebug: option<bool>=?,
+    ~initialDebugLevel: option<int>=?,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebug
+        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -538,7 +539,7 @@ let make = (
             ~exprToProve=state.exprToProve,
             ~reservedLabels,
         )
-        setState(st => setResults(st, if (st.debug) {Some(treeDto)} else {None}, Some(results)))
+        setState(st => setResults(st, if (st.debugLevel > 0) {Some(treeDto)} else {None}, Some(results)))
     }
 
     let actProve = () => {
@@ -576,22 +577,13 @@ let make = (
                                 ->Js_array2.filteri((_,i) => st.args1[i])
                                 ->Js_array2.map(stmt => stmt.expr),
                         maxNumberOfBranches: 
-                            if (!state.debug || state.maxNumberOfBranchesStr == "") {
+                            if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
                                 None
                             } else {
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
-                    ~debugLevel = 
-                        if (st.debug) {
-                            if (st.label->Belt.Option.isSome) {
-                                2
-                            } else {
-                                1
-                            }
-                        } else {
-                            0
-                        },
+                    ~debugLevel = st.debugLevel,
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
                             ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
@@ -661,8 +653,8 @@ let make = (
         }
     }
 
-    let actToggleDebug = () => {
-        setState(toggleDebug)
+    let actChangeDebugLevel = debugLevel => {
+        setState(setDebugLevel(_,debugLevel))
     }
 
     let actMaxNumberOfBranchesStrUpdated = maxNumberOfBranchesStr => {
@@ -709,6 +701,21 @@ let make = (
                 }
             }
         }
+    }
+
+    let rndDebugParam = () => {
+        <Row alignItems=#center>
+            {React.string("Logging level")}
+            <RadioGroup
+                row=true
+                value={state.debugLevel->Belt_Int.toString}
+                onChange=evt2str(str => actChangeDebugLevel(str->Belt_Int.fromString->Belt_Option.getExn))
+            >
+                <FormControlLabel value="0" control={ <Radio/> } label="0" />
+                <FormControlLabel value="1" control={ <Radio/> } label="1" />
+                <FormControlLabel value="2" control={ <Radio/> } label="2" />
+            </RadioGroup>
+        </Row>
     }
 
     let rndParams = () => {
@@ -790,19 +797,11 @@ let make = (
                     />
                 </Row>
                 <Row>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked=state.debug
-                                onChange={_ => actToggleDebug()}
-                            />
-                        }
-                        label="Debug"
-                    />
+                    {rndDebugParam()}
                     <TextField 
                         label="Max num of branches"
                         size=#small
-                        disabled={!state.debug}
+                        disabled={state.debugLevel == 0}
                         style=ReactDOM.Style.make(~width="200px", ())
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
