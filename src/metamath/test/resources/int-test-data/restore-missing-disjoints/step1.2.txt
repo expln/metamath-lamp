@@ -106,7 +106,7 @@ stmt12
 : 2ralbidv
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
 None
-Error: '2ralbidv' assertion expects 1 essential hypothesis but 0 are provided.
+Stmt Error: '2ralbidv' assertion expects 1 essential hypothesis but 0 are provided.
 
 --- p -------------------------------------------------------------------------------
 stmt2-spcgv.11

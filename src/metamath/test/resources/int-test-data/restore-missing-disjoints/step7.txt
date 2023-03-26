@@ -16,6 +16,9 @@ None
 : tgjustf
 |- ( A e. _V -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint y,A:
+y → y
+A → A
 
 --- p -------------------------------------------------------------------------------
 1
@@ -46,6 +49,9 @@ stmt9
 stmt9-opabex2.11 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.41: opabex2
 |- ( A e. _V -> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } e. _V )
 jstfIsIncorrect
+Unif Error: Missing disjoint v,A:
+y → v
+A → A
 
 --- p -------------------------------------------------------------------------------
 stmt10
@@ -94,6 +100,9 @@ stmt3
 stmt3-brab2a.11 stmt3-brab2a.21 : brab2a
 |- ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( ( x e. A /\ y e. A ) /\ ( F ` x ) = ( F ` y ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint v,x:
+y → v
+A → x
 
 --- p -------------------------------------------------------------------------------
 stmt11
@@ -112,12 +121,18 @@ stmt14
 stmt13 : ralbidv
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint r,y:
+ph → r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
+x → y
 
 --- p -------------------------------------------------------------------------------
 stmt12
 stmt13 : 2ralbidv
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint r,y:
+ph → r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
+y → y
 
 --- p -------------------------------------------------------------------------------
 stmt2-spcgv.11
@@ -130,6 +145,9 @@ stmt2
 stmt10 stmt2-spcgv.11 : spcev
 |- ( ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint u,r:
+ps → ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) )
+x → r
 
 --- p -------------------------------------------------------------------------------
 stmt1

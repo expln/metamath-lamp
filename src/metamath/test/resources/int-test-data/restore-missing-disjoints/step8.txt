@@ -19,6 +19,9 @@ None
 : tgjustf
 |- ( A e. _V -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint x,y:
+x → x
+y → y
 
 --- p -------------------------------------------------------------------------------
 1
@@ -97,6 +100,9 @@ stmt3
 stmt3-brab2a.11 stmt3-brab2a.21 : brab2a
 |- ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( ( x e. A /\ y e. A ) /\ ( F ` x ) = ( F ` y ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint F,v:
+ps → ( F ` x ) = ( F ` y )
+y → v
 
 --- p -------------------------------------------------------------------------------
 stmt11

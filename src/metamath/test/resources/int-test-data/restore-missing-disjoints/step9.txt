@@ -19,6 +19,9 @@ None
 : tgjustf
 |- ( A e. _V -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
+Unif Error: Missing disjoint x,y:
+x → x
+y → y
 
 --- p -------------------------------------------------------------------------------
 1

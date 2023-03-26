@@ -46,7 +46,7 @@ None
 
 |- sgn = ( setvar2 e. RR* |-> if ( setvar2 = 0 , 0 , if ( setvar2 < 0 , -u 1 , 1 ) ) )
 None
-Error: This statement is the same as the previous one - '8'
+Stmt Error: This statement is the same as the previous one - '8'
 
 --- p -------------------------------------------------------------------------------
 1

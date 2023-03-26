@@ -50,7 +50,11 @@ let editorStateToStr = st => {
         )->ignore
         switch stmt.stmtErr {
             | None => ()
-            | Some(msg) => lines->Js_array2.push("Error: " ++ msg)->ignore
+            | Some(msg) => lines->Js_array2.push("Stmt Error: " ++ msg)->ignore
+        }
+        switch stmt.unifErr {
+            | None => ()
+            | Some(msg) => lines->Js_array2.push("Unif Error: " ++ msg)->ignore
         }
     })
     lines->Js.Array2.joinWith("\n")
