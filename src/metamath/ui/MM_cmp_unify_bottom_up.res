@@ -582,7 +582,16 @@ let make = (
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
-                    ~debugLevel = if (st.debug) {1} else {0},
+                    ~debugLevel = 
+                        if (st.debug) {
+                            if (st.label->Belt.Option.isSome) {
+                                2
+                            } else {
+                                1
+                            }
+                        } else {
+                            0
+                        },
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
                             ~text=msg, ~onTerminate=makeActTerminate(modalId), ()

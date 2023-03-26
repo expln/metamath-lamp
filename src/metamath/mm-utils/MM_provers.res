@@ -246,18 +246,6 @@ let findAsrtParentsWithNewVars = (
     )
     let foundParents = []
     applResults->Js_array2.forEach(applResult => {
-        let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
-        applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
-            let newVarType = applResult.newVarTypes[i]
-            let treeNewVar = tree->ptAddNewVar(newVarType)
-            applNewVarToTreeNewVar->Belt_MutableMapInt.set(applResNewVar,treeNewVar)
-        })
-        applResult.newDisj->disjForEach((n,m) => {
-            tree->ptAddDisjPair(
-                applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
-                applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
-            )
-        })
         let frame = switch tree->ptGetFrms->Belt_MapString.get(applResult.asrtLabel) {
             | None => 
                 raise(MmException({
@@ -265,53 +253,76 @@ let findAsrtParentsWithNewVars = (
                 }))
             | Some(frm) => frm.frame
         }
-        let numOfArgs = frame.hyps->Js_array2.length
-        let args = Expln_utils_common.createArray(numOfArgs)
-        let unprovedFloating = ref(None)
-        let argIdx = ref(0)
-        let maxArgIdx = numOfArgs - 1
-
-        while (argIdx.contents <= maxArgIdx && (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0)) {
-            let argExpr = applySubs(
-                ~frmExpr = frame.hyps[argIdx.contents].expr, 
-                ~subs=applResult.subs,
-                ~createWorkVar = _ => raise(MmException({
-                    msg:`New work variables are not expected here [findAsrtParentsWithNewVars].`
-                }))
-            )
-            let maxI = argExpr->Js_array2.length-1
-            for i in 0 to maxI {
-                let sym = argExpr[i]
-                if (sym > maxVarBeforeSearch) {
-                    argExpr[i] = switch applNewVarToTreeNewVar->Belt_MutableMapInt.get(sym) {
-                        | None => raise(MmException({msg:`Could not replace an applVar with a treeVar.`}))
-                        | Some(treeVar) => treeVar
-                    }
-                }
-            }
-            let argNode = tree->ptGetNode(argExpr)
-            args[argIdx.contents] = argNode
-            if (frame.hyps[argIdx.contents].typ == F
-                    && applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
-            ) {
-                proveFloating(~tree, ~node=argNode)
-                if (argNode->pnGetProof->Belt.Option.isNone) {
-                    unprovedFloating.contents = Some(argNode->pnGetExpr)
-                }
-            }
-            argIdx.contents = argIdx.contents + 1
-        }
-        let err = switch applResult.err {
-            | Some(_) => applResult.err
-            | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))
-        }
-        switch err {
-            | None => {
-                foundParents->Js.Array2.push( Assertion({ args, frame, }) )->ignore
-            }
-            | Some(err) => {
+        switch applResult.err {
+            | Some(NoUnifForAsrt(_)) => {
                 if (debugLevel != 0) {
-                    foundParents->Js.Array2.push( AssertionWithErr({ args, frame, err }) )->ignore
+                    foundParents->Js.Array2.push( 
+                        AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn }) 
+                    )->ignore
+                }
+            }
+            | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
+                let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
+                applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
+                    let newVarType = applResult.newVarTypes[i]
+                    let treeNewVar = tree->ptAddNewVar(newVarType)
+                    applNewVarToTreeNewVar->Belt_MutableMapInt.set(applResNewVar,treeNewVar)
+                })
+                applResult.newDisj->disjForEach((n,m) => {
+                    tree->ptAddDisjPair(
+                        applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
+                        applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
+                    )
+                })
+                let numOfArgs = frame.hyps->Js_array2.length
+                let args = Expln_utils_common.createArray(numOfArgs)
+                let unprovedFloating = ref(None)
+                let argIdx = ref(0)
+                let maxArgIdx = numOfArgs - 1
+
+                while (argIdx.contents <= maxArgIdx && (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0)) {
+                    let argExpr = applySubs(
+                        ~frmExpr = frame.hyps[argIdx.contents].expr, 
+                        ~subs=applResult.subs,
+                        ~createWorkVar = _ => raise(MmException({
+                            msg:`New work variables are not expected here [findAsrtParentsWithNewVars].`
+                        }))
+                    )
+                    let maxI = argExpr->Js_array2.length-1
+                    for i in 0 to maxI {
+                        let sym = argExpr[i]
+                        if (sym > maxVarBeforeSearch) {
+                            argExpr[i] = switch applNewVarToTreeNewVar->Belt_MutableMapInt.get(sym) {
+                                | None => raise(MmException({msg:`Could not replace an applVar with a treeVar.`}))
+                                | Some(treeVar) => treeVar
+                            }
+                        }
+                    }
+                    let argNode = tree->ptGetNode(argExpr)
+                    args[argIdx.contents] = argNode
+                    if (frame.hyps[argIdx.contents].typ == F
+                            && applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
+                    ) {
+                        proveFloating(~tree, ~node=argNode)
+                        if (argNode->pnGetProof->Belt.Option.isNone) {
+                            unprovedFloating.contents = Some(argNode->pnGetExpr)
+                        }
+                    }
+                    argIdx.contents = argIdx.contents + 1
+                }
+                let err = switch applResult.err {
+                    | Some(_) => applResult.err
+                    | None => unprovedFloating.contents->Belt_Option.map(expr => UnprovedFloating({expr:expr}))
+                }
+                switch err {
+                    | None => {
+                        foundParents->Js.Array2.push( Assertion({ args, frame, }) )->ignore
+                    }
+                    | Some(err) => {
+                        if (debugLevel != 0) {
+                            foundParents->Js.Array2.push( AssertionWithErr({ args, frame, err }) )->ignore
+                        }
+                    }
                 }
             }
         }

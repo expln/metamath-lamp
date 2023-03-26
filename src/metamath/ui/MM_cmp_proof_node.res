@@ -151,12 +151,35 @@ module rec ProofNodeDtoCmp: {
                     }
                     | UnprovedFloating({expr:expr}) => 
                         React.string( `Could not prove this floating statement:\n` ++ exprToStr(expr) )
+                    | NoUnifForAsrt({asrtExpr, expr}) => {
+                        let arrow = Js_string2.fromCharCode(8594)
+                        React.string(
+                            `Could not find a unification for assertion:\n`
+                                ++ `${frmExprToStr(asrtLabel, asrtExpr)}\n${arrow}\n${exprToStr(expr)}`
+                        )
+                    }
                 }
             }
             </pre>
         }
 
+        let isAsrtWithoutHyps = (src) => {
+            switch src {
+                | VarType | Hypothesis(_) => false
+                | Assertion({args}) => args->Js_array2.length == 0
+                | AssertionWithErr({args, err}) => {
+                    switch err {
+                        | UnifErr | DisjCommonVar(_) | Disj(_) | UnprovedFloating(_) => {
+                            args->Js_array2.length == 0
+                        }
+                        | NoUnifForAsrt(_) => false
+                    }
+                }
+            }
+        }
+
         let rndExpandedArgs = (args, srcIdx) => {
+            let src = parents[srcIdx]
             <table>
                 <tbody>
                     <tr key="c-args">
@@ -165,7 +188,7 @@ module rec ProofNodeDtoCmp: {
                         </td>
                     </tr>
                     {
-                        switch parents[srcIdx] {
+                        switch src {
                             | AssertionWithErr({label,err}) => {
                                 <tr>
                                     <td> {rndErr(err,label)} </td>
@@ -175,7 +198,7 @@ module rec ProofNodeDtoCmp: {
                         }
                     }
                     {
-                        if (args->Js_array2.length == 0) {
+                        if (isAsrtWithoutHyps(src)) {
                             <tr key={"-exp"}>
                                 <td>
                                     {React.string("This assertion doesn't have hypotheses.")}
