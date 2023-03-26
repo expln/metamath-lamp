@@ -79,7 +79,9 @@ let iterateCombinations = (
     ~numOfStmts:int,
     ~numOfHyps:int,
     ~stmtCanMatchHyp:(int,int)=>bool,
+    ~debugLevel:int,
     ~combinationConsumer:array<int>=>contunieInstruction,
+    ~errConsumer:unifErr=>contunieInstruction,
 ):contunieInstruction => {
     let candidatesPerHyp = Belt_Array.makeBy(numOfHyps, _=>[])
     let maxH = numOfHyps-1
@@ -91,30 +93,36 @@ let iterateCombinations = (
             }
         }
     }
-    let thereIsHypWithoutAnyCandidate = candidatesPerHyp->Js_array2.some(candidates => candidates->Js_array2.length == 0)
-    if (thereIsHypWithoutAnyCandidate) {
-        Continue
-    } else {
-        let comb = Belt_Array.make(numOfHyps, 0)
-        let continue = iterateCombinationsRec(
-            ~candidatesPerHyp,
-            ~comb,
-            ~hypIdx = 0,
-            ~skipCombinationsWithEmptyArgs=true,
-            ~skipCombinationsWithoutEmptyArgs=false,
-            ~combinationConsumer
-        )
-        if (continue == Continue) {
-            iterateCombinationsRec(
+    switch candidatesPerHyp->Js_array2.findIndex(candidates => candidates->Js_array2.length == 0) {
+        | -1 => {
+            let comb = Belt_Array.make(numOfHyps, 0)
+            let continue = iterateCombinationsRec(
                 ~candidatesPerHyp,
                 ~comb,
                 ~hypIdx = 0,
-                ~skipCombinationsWithEmptyArgs=false,
-                ~skipCombinationsWithoutEmptyArgs=true,
+                ~skipCombinationsWithEmptyArgs=true,
+                ~skipCombinationsWithoutEmptyArgs=false,
                 ~combinationConsumer
             )
-        } else {
-            continue
+            if (continue == Continue) {
+                iterateCombinationsRec(
+                    ~candidatesPerHyp,
+                    ~comb,
+                    ~hypIdx = 0,
+                    ~skipCombinationsWithEmptyArgs=false,
+                    ~skipCombinationsWithoutEmptyArgs=true,
+                    ~combinationConsumer
+                )
+            } else {
+                continue
+            }
+        }
+        | idx => {
+            if (debugLevel >= 2) {
+                errConsumer(NoUnifForArg({args:[], errArgIdx:idx}))
+            } else {
+                Continue
+            }
         }
     }
 }
@@ -215,7 +223,8 @@ let rec iterateSubstitutionsForHyps = (
     ~comb:array<int>,
     ~hypIdx:int,
     ~debugLevel:int,
-    ~onMatchFound: result<unit,unifErr> => contunieInstruction
+    ~onMatchFound: () => contunieInstruction,
+    ~onErrFound: unifErr => contunieInstruction
 ):contunieInstruction => {
     let combToArgs = () => {
         comb->Js_array2.map(idx => {
@@ -236,11 +245,11 @@ let rec iterateSubstitutionsForHyps = (
             ~hypIdx,
             ~continue = () => {
                 subsFound.contents = true
-                onMatchFound(Ok(()))
+                onMatchFound()
             }
         )
-        if (debugLevel > 1 && !subsFound.contents) {
-            onMatchFound(Error(NewVarsAreDisabled({args:combToArgs(), errArgIdx:hypIdx})))
+        if (debugLevel >= 2 && !subsFound.contents) {
+            onErrFound(NewVarsAreDisabled({args:combToArgs(), errArgIdx:hypIdx}))
         } else {
             contunieInstruction
         }
@@ -265,12 +274,13 @@ let rec iterateSubstitutionsForHyps = (
                     ~comb,
                     ~hypIdx = hypIdx+1,
                     ~debugLevel,
-                    ~onMatchFound
+                    ~onMatchFound,
+                    ~onErrFound,
                 )
             }
         )
-        if (debugLevel > 1 && !subsFound.contents) {
-            onMatchFound(Error(NoUnifForArg({args:combToArgs(), errArgIdx:hypIdx})))
+        if (debugLevel >= 2 && !subsFound.contents) {
+            onErrFound(NoUnifForArg({args:combToArgs(), errArgIdx:hypIdx}))
         } else {
             contunieInstruction
         }
@@ -292,12 +302,13 @@ let rec iterateSubstitutionsForHyps = (
                     ~comb,
                     ~hypIdx = hypIdx+1,
                     ~debugLevel,
-                    ~onMatchFound
+                    ~onMatchFound,
+                    ~onErrFound,
                 )
             }
         )
-        if (debugLevel > 1 && !subsFound.contents) {
-            onMatchFound(Error(NewVarsAreDisabled({args:combToArgs(), errArgIdx:hypIdx})))
+        if (debugLevel >= 2 && !subsFound.contents) {
+            onErrFound(NewVarsAreDisabled({args:combToArgs(), errArgIdx:hypIdx}))
         } else {
             contunieInstruction
         }
@@ -401,7 +412,7 @@ let applyAssertions = (
     frms->Belt_MapString.forEach((_,frm) => {
         if ( continueInstr.contents == Continue && frameFilter(frm.frame) ) {
             if (result->Belt.Option.map(result => result[0] != frm.frame.asrt[0])->Belt_Option.getWithDefault(false)) {
-                if (debugLevel > 1) {
+                if (debugLevel >= 2) {
                     continueInstr.contents = sendNoUnifForAsrt(frm)
                 }
             } else {
@@ -434,6 +445,19 @@ let applyAssertions = (
                                     )
                                 }
                             },
+                            ~debugLevel,
+                            ~errConsumer = err => {
+                                onMatchFound(
+                                    {
+                                        newVars: [],
+                                        newVarTypes: [],
+                                        newDisj: disjMake(),
+                                        asrtLabel: frm.frame.label,
+                                        subs: subsClone(frm.subs),
+                                        err: Some(err)
+                                    }
+                                )
+                            },
                             ~combinationConsumer = comb => {
                                 iterateSubstitutionsForHyps(
                                     ~workVars,
@@ -444,60 +468,56 @@ let applyAssertions = (
                                     ~comb,
                                     ~hypIdx=0,
                                     ~debugLevel,
-                                    ~onMatchFound = res => {
-                                        switch res {
+                                    ~onErrFound = err => {
+                                        onMatchFound(
+                                            {
+                                                newVars: [],
+                                                newVarTypes: [],
+                                                newDisj: disjMake(),
+                                                asrtLabel: frm.frame.label,
+                                                subs: subsClone(frm.subs),
+                                                err: Some(err)
+                                            }
+                                        )
+                                    },
+                                    ~onMatchFound = () => {
+                                        switch checkDisj(
+                                            ~isDisjInCtx,
+                                            ~frmDisj=frm.frame.disj, 
+                                            ~subs=frm.subs,
+                                            ~maxCtxVar=maxVar,
+                                            ~allowNewDisjForExistingVars,
+                                            ~debugLevel,
+                                        ) {
+                                            | Ok(newDisj) => {
+                                                let res = {
+                                                    newVars: workVars.newVars->Js.Array2.copy,
+                                                    newVarTypes: workVars.newVarTypes->Js.Array2.copy,
+                                                    newDisj,
+                                                    asrtLabel: frm.frame.label,
+                                                    subs: subsClone(frm.subs),
+                                                    err:None
+                                                }
+                                                if (!(sentValidResults->Belt_HashSet.has(res))) {
+                                                    sentValidResults->Belt_HashSet.add(res)
+                                                    onMatchFound(res)
+                                                } else {
+                                                    Continue
+                                                }
+                                            }
                                             | Error(err) => {
-                                                onMatchFound(
-                                                    {
-                                                        newVars: [],
-                                                        newVarTypes: [],
+                                                if (debugLevel == 0) {
+                                                    Continue
+                                                } else {
+                                                    let res = {
+                                                        newVars: workVars.newVars->Js.Array2.copy,
+                                                        newVarTypes: workVars.newVarTypes->Js.Array2.copy,
                                                         newDisj: disjMake(),
                                                         asrtLabel: frm.frame.label,
                                                         subs: subsClone(frm.subs),
-                                                        err: Some(err)
+                                                        err:Some(err)
                                                     }
-                                                )
-                                            }
-                                            | Ok(_) => {
-                                                switch checkDisj(
-                                                    ~isDisjInCtx,
-                                                    ~frmDisj=frm.frame.disj, 
-                                                    ~subs=frm.subs,
-                                                    ~maxCtxVar=maxVar,
-                                                    ~allowNewDisjForExistingVars,
-                                                    ~debugLevel,
-                                                ) {
-                                                    | Ok(newDisj) => {
-                                                        let res = {
-                                                            newVars: workVars.newVars->Js.Array2.copy,
-                                                            newVarTypes: workVars.newVarTypes->Js.Array2.copy,
-                                                            newDisj,
-                                                            asrtLabel: frm.frame.label,
-                                                            subs: subsClone(frm.subs),
-                                                            err:None
-                                                        }
-                                                        if (!(sentValidResults->Belt_HashSet.has(res))) {
-                                                            sentValidResults->Belt_HashSet.add(res)
-                                                            onMatchFound(res)
-                                                        } else {
-                                                            Continue
-                                                        }
-                                                    }
-                                                    | Error(err) => {
-                                                        if (debugLevel == 0) {
-                                                            Continue
-                                                        } else {
-                                                            let res = {
-                                                                newVars: workVars.newVars->Js.Array2.copy,
-                                                                newVarTypes: workVars.newVarTypes->Js.Array2.copy,
-                                                                newDisj: disjMake(),
-                                                                asrtLabel: frm.frame.label,
-                                                                subs: subsClone(frm.subs),
-                                                                err:Some(err)
-                                                            }
-                                                            onMatchFound(res)
-                                                        }
-                                                    }
+                                                    onMatchFound(res)
                                                 }
                                             }
                                         }
@@ -507,7 +527,7 @@ let applyAssertions = (
                         )
                     }
                 )
-                if (debugLevel > 1 && !subsForResFound.contents) {
+                if (debugLevel >= 2 && !subsForResFound.contents) {
                     continueInstr.contents = sendNoUnifForAsrt(frm)
                 }
             }

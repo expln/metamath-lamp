@@ -48,5 +48,7 @@ let iterateCombinations: (
     ~numOfStmts:int,
     ~numOfHyps:int,
     ~stmtCanMatchHyp:(int,int)=>bool,
+    ~debugLevel:int,
     ~combinationConsumer:array<int>=>contunieInstruction,
+    ~errConsumer:unifErr=>contunieInstruction,
 ) => contunieInstruction
