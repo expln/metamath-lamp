@@ -375,24 +375,20 @@ let applyAssertions = (
     ()
 ):unit => {
     let sendNoUnifForAsrt = (frm):contunieInstruction => {
-        if (debugLevel > 1) {
-            switch result {
-                | None => Continue
-                | Some(expr) => {
-                    onMatchFound(
-                        {
-                            newVars: [],
-                            newVarTypes: [],
-                            newDisj: disjMake(),
-                            asrtLabel: frm.frame.label,
-                            subs: subsClone(frm.subs),
-                            err:Some(NoUnifForAsrt({asrtExpr:frm.frame.asrt, expr}))
-                        }
-                    )
-                }
+        switch result {
+            | None => Continue
+            | Some(expr) => {
+                onMatchFound(
+                    {
+                        newVars: [],
+                        newVarTypes: [],
+                        newDisj: disjMake(),
+                        asrtLabel: frm.frame.label,
+                        subs: subsClone(frm.subs),
+                        err:Some(NoUnifForAsrt({asrtExpr:frm.frame.asrt, expr}))
+                    }
+                )
             }
-        } else {
-            Continue
         }
     }
 
@@ -405,7 +401,9 @@ let applyAssertions = (
     frms->Belt_MapString.forEach((_,frm) => {
         if ( continueInstr.contents == Continue && frameFilter(frm.frame) ) {
             if (result->Belt.Option.map(result => result[0] != frm.frame.asrt[0])->Belt_Option.getWithDefault(false)) {
-                continueInstr.contents = sendNoUnifForAsrt(frm)
+                if (debugLevel > 1) {
+                    continueInstr.contents = sendNoUnifForAsrt(frm)
+                }
             } else {
                 let subsForResFound = ref(false)
                 continueInstr.contents = iterateSubstitutionsForResult(
@@ -509,7 +507,7 @@ let applyAssertions = (
                         )
                     }
                 )
-                if (!subsForResFound.contents) {
+                if (debugLevel > 1 && !subsForResFound.contents) {
                     continueInstr.contents = sendNoUnifForAsrt(frm)
                 }
             }
