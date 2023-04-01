@@ -221,7 +221,7 @@ let createProofTableFromProof = (proofNode:proofNode):proofTable => {
 
     let saveExprToTbl = (expr:expr,proof:exprSource):unit => {
         let idx = tbl->Js_array2.push({expr, proof})-1
-        exprToIdx->Belt_MutableMap.set(expr,idx)
+        exprToIdx->Belt_HashMap.set(expr,idx)
     }
 
     Expln_utils_data.traverseTree(
