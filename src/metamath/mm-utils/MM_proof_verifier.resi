@@ -9,8 +9,9 @@ type rec proofNode =
     | Hypothesis({id:int, hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
     | Calculated({id:int, args:array<proofNode>, asrtLabel:string, expr:expr, dbg:option<proofNodeDbg>})
 
-let verifyProof: (mmContext, expr, proof) => proofNode
+let proofNodeGetId: proofNode => int
 let proofNodeGetExpr: proofNode => expr
+let verifyProof: (mmContext, expr, proof) => proofNode
 
 let compressedProofBlockToArray: string => array<string>
 let compressedProofStrToInt: string => int

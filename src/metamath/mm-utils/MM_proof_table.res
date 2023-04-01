@@ -174,81 +174,42 @@ let createProof = (ctx:mmContext, tbl:proofTable, targetIdx:int):proof => {
 }
 
 let createProofTableFromProof = (proofNode:proofNode):proofTable => {
-    let childrenReturnedFor = Belt_HashSet.make(~id = module(ExprHash), ~hintSize=16)
-    let exprToNode = createExprToNode(proofNode)
-    let exprToIdx = Belt_HashMap.make(~id = module(ExprHash), ~hintSize=16)
+    let nodeIdToIdx = Belt_HashMapInt.make(~hintSize=proofNode->proofNodeGetId)
     let tbl = []
 
-    let exprToStr = expr => "expr[" ++ expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ") ++ "]"
-
-    let getNodeByExpr = (expr:expr):proofNode => {
-        Js.Console.log2("getNodeByExpr", exprToStr(expr))
-        switch exprToNode->Belt_HashMap.get(expr) {
-            | None => raise(MmException({ msg:`Could not determine node by expr in createProofTableFromProof().` }))
-            | Some(node) => node
-        }
-    }
-
-    let exprIsSavedToTbl = expr => {
-        Js.Console.log2("exprIsSavedToTbl", exprToStr(expr))
-        exprToIdx->Belt_HashMap.has(expr)
-    }
-
-    let saveExprToTbl = (expr:expr,proof:exprSource):unit => {
-        Js.Console.log2("saveExprToTbl", exprToStr(expr))
+    let saveExprToTbl = (nodeId:int,expr:expr,proof:exprSource):unit => {
         let idx = tbl->Js_array2.push({expr, proof})-1
-        exprToIdx->Belt_HashMap.set(expr,idx)
+        nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
     }
 
-    let getIdxByExpr = (expr:expr):int => {
-        Js.Console.log2("getIdxByExpr", exprToStr(expr))
-        switch exprToIdx->Belt_HashMap.get(expr) {
-            | None => {
-                raise(MmException({ msg:`Could not determine idx by expr in createProofTableFromProof().` }))
-            }
+    let getIdxByNodeId = (nodeId:int):int => {
+        switch nodeIdToIdx->Belt_HashMapInt.get(nodeId) {
+            | None => raise(MmException({ msg:`Could not determine idx by nodeId in createProofTableFromProof().` }))
             | Some(idx) => idx
         }
     }
 
     Expln_utils_data.traverseTree(
-        ref(0),
-        proofNode->getExprFromNode,
-        (depth,expr) => {
-            Js.Console.log3(rightPad(~content="", ~char=" ", ~totalLen=depth.contents*4), "getChildren", exprToStr(expr))
-            if (childrenReturnedFor->Belt_HashSet.has(expr)) {
-                None
-            } else {
-                childrenReturnedFor->Belt_HashSet.add(expr)
-                switch getNodeByExpr(expr) {
-                    | Hypothesis(_) => None
-                    | Calculated({args}) => Some( args->Js_array2.map(getExprFromNode) )
-                }
+        (),
+        proofNode,
+        (_,node) => {
+            switch node {
+                | Hypothesis(_) => None
+                | Calculated({args}) => Some(args)
             }
         },
-        ~preProcess = (depth, expr) => {
-            Js.Console.log3(rightPad(~content="", ~char=" ", ~totalLen=depth.contents*4), "preProcess", exprToStr(expr))
-            depth.contents = depth.contents + 1
-            None
-        },
-        ~postProcess = (depth, expr) => {
-            depth.contents = depth.contents - 1
-            Js.Console.log3(rightPad(~content="", ~char=" ", ~totalLen=depth.contents*4), "postProcess", exprToStr(expr))
-            if (!exprIsSavedToTbl(expr)) {
-                switch getNodeByExpr(expr) {
-                    | Hypothesis({hypLabel}) => saveExprToTbl(expr, Hypothesis({label:hypLabel}))
-                    | Calculated({args,asrtLabel}) => {
-                        switch args->Js.Array2.find(argNode => argNode->getExprFromNode->exprEq(expr)) {
-                            | None => ()
-                            | Some(_) => raise(MmException({ msg:`Found!!!` }))
-                        }
-                        saveExprToTbl(
-                            expr, 
-                            Assertion({
-                                label:asrtLabel,
-                                args: args->Js_array2.map(argNode => argNode->getExprFromNode->getIdxByExpr)
-                            })
-                        )
-                    }
+        ~postProcess = (_, node) => {
+            switch node {
+                | Hypothesis({id,hypLabel,expr}) => saveExprToTbl(id, expr, Hypothesis({label:hypLabel}))
+                | Calculated({id,args,asrtLabel,expr}) => {
+                    saveExprToTbl(
+                        id,
+                        expr, 
+                        Assertion({
+                            label:asrtLabel,
+                            args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeId)
+                        })
+                    )
                 }
             }
             None

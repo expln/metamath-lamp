@@ -20,7 +20,7 @@ let proofNodeGetExpr = (node:proofNode):expr => {
     }
 }
 
-let ndGetId = (node:proofNode):int => {
+let proofNodeGetId = (node:proofNode):int => {
     switch node {
         | Hypothesis({id}) | Calculated({id}) => id
     }

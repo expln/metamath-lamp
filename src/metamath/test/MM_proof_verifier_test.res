@@ -53,7 +53,7 @@ describe("verifyProof", _ => {
         } catch {
             | MmException({msg}) => errorMsg.contents = msg
         }
-        assertEq(errorMsg.contents, "!compareExprAfterSubstitution(ess, subs, stack->getExprFromStack(baseIdx+i))")
+        assertEq(errorMsg.contents, "!compareExprAfterSubstitution(ess, subs, stack->stGetExpr(baseIdx+i))")
     })
 
     it("successfully verifies a valid compressed proof", _ => {
