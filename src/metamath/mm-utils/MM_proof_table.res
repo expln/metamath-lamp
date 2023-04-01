@@ -62,7 +62,7 @@ let proofTableToStr = (ctx,tbl,title):string => {
 
 let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
 
-let traverseRecordsInRpnOrder = (tbl,targetIdx,~onUse,~onReuse) => {
+let traverseRecordsInRpnOrder = (tbl:proofTable,targetIdx:int,~onUse:proofRecord=>unit,~onReuse:(proofRecord,bool)=>unit) => {
     let savedExprs = Belt_MutableSet.make(~id=module(ExprCmp))
     let reusedExprsSet = Belt_MutableSet.make(~id=module(ExprCmp))
     Expln_utils_data.traverseTree(
@@ -177,16 +177,21 @@ let createProofTableFromProof = (proofNode:proofNode):proofTable => {
     let nodeIdToIdx = Belt_HashMapInt.make(~hintSize=proofNode->proofNodeGetId)
     let tbl = []
 
-    let saveExprToTbl = (nodeId:int,expr:expr,proof:exprSource):unit => {
-        let idx = tbl->Js_array2.push({expr, proof})-1
-        nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
-    }
+    let getIdxByNodeId = (nodeId:int):option<int> => nodeIdToIdx->Belt_HashMapInt.get(nodeId)
 
-    let getIdxByNodeId = (nodeId:int):int => {
-        switch nodeIdToIdx->Belt_HashMapInt.get(nodeId) {
+    let getIdxByNodeIdExn = (nodeId:int):int => {
+        switch getIdxByNodeId(nodeId) {
             | None => raise(MmException({ msg:`Could not determine idx by nodeId in createProofTableFromProof().` }))
             | Some(idx) => idx
         }
+    }
+
+    let saveExprToTbl = (nodeId:int,expr:expr,proof:exprSource):unit => {
+        if (getIdxByNodeId(nodeId)->Belt_Option.isSome) {
+            raise(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
+        }
+        let idx = tbl->Js_array2.push({expr, proof})-1
+        nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
     }
 
     Expln_utils_data.traverseTree(
@@ -201,18 +206,18 @@ let createProofTableFromProof = (proofNode:proofNode):proofTable => {
         ~postProcess = (_, node) => {
             switch node {
                 | Hypothesis({id,hypLabel,expr}) => {
-                    if (nodeIdToIdx->Belt_HashMapInt.get(id)->Belt.Option.isNone) {
+                    if (getIdxByNodeId(id)->Belt_Option.isNone) {
                         saveExprToTbl(id, expr, Hypothesis({label:hypLabel}))
                     }
                 }
                 | Calculated({id,args,asrtLabel,expr}) => {
-                    if (nodeIdToIdx->Belt_HashMapInt.get(id)->Belt.Option.isNone) {
+                    if (getIdxByNodeId(id)->Belt_Option.isNone) {
                         saveExprToTbl(
                             id,
                             expr, 
                             Assertion({
                                 label:asrtLabel,
-                                args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeId)
+                                args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeIdExn)
                             })
                         )
                     }
