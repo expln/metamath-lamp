@@ -7,7 +7,7 @@ type proofNodeDbg = {
 
 type rec proofNode =
     | Hypothesis({hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
-    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, dbg:option<proofNodeDbg>})
+    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, height:int, dbg:option<proofNodeDbg>})
 
 let verifyProof: (mmContext, expr, proof) => proofNode
 let getExprFromNode: proofNode => expr

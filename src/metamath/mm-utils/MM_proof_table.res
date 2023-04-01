@@ -46,12 +46,11 @@ let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
     let maxNumOfDigits = tbl->Js_array2.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
     let col1Width = maxNumOfDigits + 1
     let col2Width = maxLength(srcs) + 1
-    let col3Width = maxLength(exprs) + 1
 
     tbl->Js_array2.mapi((_,i) => {
         rightPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=col1Width)
             ++ "| " ++ rightPad(~content=srcs[i], ~char=" ", ~totalLen=col2Width)
-            ++ "| " ++ rightPad(~content=exprs[i], ~char=" ", ~totalLen=col3Width)
+            ++ "| " ++ exprs[i]
     })
 }
 
@@ -174,21 +173,82 @@ let createProof = (ctx:mmContext, tbl:proofTable, targetIdx:int):proof => {
 
 }
 
-let createProofTableFromProof: proofNode => proofTable  = proofNode => {
-    let processedExprs = Belt_MutableSet.make(~id = module(ExprCmp))
-    let exprToIdx = Belt_MutableMap.make(~id = module(ExprCmp))
-    let tbl = []
+let createExprToNode = (root:proofNode):Belt_HashMap.t<expr,proofNode,ExprHash.identity> => {
+    let exprToNode = Belt_HashMap.make(~id = module(ExprHash), ~hintSize=16)
     Expln_utils_data.traverseTree(
         (),
-        proofNode,
+        root,
+        (_,n) => {
+            switch n {
+                | Hypothesis(_) => None
+                | Calculated({args}) => Some(args)
+            }
+        },
+        ~process = (_, n) => {
+            switch n {
+                | Hypothesis({expr}) => {
+                    switch exprToNode->Belt_HashMap.get(expr) {
+                        | None | Some(Calculated(_)) => exprToNode->Belt_HashMap.set(expr, n)
+                        | Some(Hypothesis(_)) => ()
+                    }
+                }
+                | Calculated({expr,height}) => {
+                    switch exprToNode->Belt_HashMap.get(expr) {
+                        | None => exprToNode->Belt_HashMap.set(expr, n)
+                        | Some(Hypothesis(_)) => ()
+                        | Some(Calculated({height:prevHeight})) => {
+                            if (height < prevHeight) {
+                                exprToNode->Belt_HashMap.set(expr, n)
+                            }
+                        }
+                    }
+                }
+            }
+            None
+        },
+        ()
+    )->ignore
+    exprToNode
+}
+
+let createProofTableFromProof = (proofNode:proofNode):proofTable => {
+    let childrenReturnedFor = Belt_HashSet.make(~id = module(ExprHash), ~hintSize=16)
+    let exprToNode = createExprToNode(proofNode)
+    let exprToIdx = Belt_HashMap.make(~id = module(ExprHash), ~hintSize=16)
+    let tbl = []
+
+    let exprIsSavedToTbl = expr => exprToIdx->Belt_HashMap.has(expr)
+
+    let saveExprToTbl = (expr:expr,proof:exprSource):unit => {
+        let idx = tbl->Js_array2.push({expr, proof})-1
+        exprToIdx->Belt_MutableMap.set(expr,idx)
+    }
+
+    Expln_utils_data.traverseTree(
+        (),
+        switch exprToNode->Belt_HashMap.get(proofNode->getExprFromNode) {
+            | None => raise(MmException({msg:`Could not determine root node by expr`}))
+            | Some(node) => node
+        },
         (_,n) => {
             switch n {
                 | Hypothesis(_) => None
                 | Calculated({args,expr}) => {
-                    if (processedExprs->Belt_MutableSet.has(expr)) {
+                    if (childrenReturnedFor->Belt_HashSet.has(expr)) {
                         None
                     } else {
-                        Some(args)
+                        childrenReturnedFor->Belt_HashSet.add(expr)
+                        Some(
+                            args->Js_array2.map(argNode => {
+                                switch exprToNode->Belt_HashMap.get(argNode->getExprFromNode) {
+                                    | None => 
+                                        raise(MmException({ 
+                                            msg:`Could not determine node by expr in createProofTableFromProof().` 
+                                        }))
+                                    | Some(node) => node
+                                }
+                            })
+                        )
                     }
                 }
             }
@@ -196,33 +256,29 @@ let createProofTableFromProof: proofNode => proofTable  = proofNode => {
         ~process = (_, n) => {
             switch n {
                 | Hypothesis({hypLabel,expr}) => {
-                    if (exprToIdx->Belt_MutableMap.get(expr)->Belt_Option.isNone) {
-                        let idx = tbl->Js_array2.push({proof:Hypothesis({label:hypLabel}), expr})-1
-                        exprToIdx->Belt_MutableMap.set(expr,idx)
+                    if (!exprIsSavedToTbl(expr)) {
+                        saveExprToTbl(expr, Hypothesis({label:hypLabel}))
                     }
                 }
-                | _ => ()
-            }
-            None
-        },
-        ~postProcess = (_, n) => {
-            switch n {
                 | Calculated({args,asrtLabel,expr}) => {
-                    if (exprToIdx->Belt_MutableMap.get(expr)->Belt_Option.isNone) {
-                        let idx = tbl->Js_array2.push({
-                            proof:Assertion({
+                    if (!exprIsSavedToTbl(expr)) {
+                        saveExprToTbl(
+                            expr, 
+                            Assertion({
                                 label:asrtLabel,
                                 args: args->Js_array2.map(n => {
-                                    let nExpr = getExprFromNode(n)
-                                    exprToIdx->Belt_MutableMap.get(nExpr)->Belt_Option.getWithDefault(-1)
+                                    switch exprToIdx->Belt_HashMap.get(getExprFromNode(n)) {
+                                        | None =>
+                                            raise(MmException({ 
+                                                msg:`Could not determine idx by expr in createProofTableFromProof().` 
+                                            }))
+                                        | Some(idx) => idx
+                                    }
                                 })
-                            }),
-                            expr
-                        })-1
-                        exprToIdx->Belt_MutableMap.set(expr,idx)
+                            })
+                        )
                     }
                 }
-                | _ => ()
             }
             None
         },

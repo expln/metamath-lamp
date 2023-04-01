@@ -7,7 +7,14 @@ type proofNodeDbg = {
 
 type rec proofNode =
     | Hypothesis({hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
-    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, dbg:option<proofNodeDbg>})
+    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, height:int, dbg:option<proofNodeDbg>})
+
+let proofNodeGetHeight = (node:proofNode):int => {
+    switch node {
+        | Hypothesis(_) => 0
+        | Calculated({height}) => height
+    }
+}
 
 let getExprFromNode = (node:proofNode):expr => {
     switch node {
@@ -188,11 +195,13 @@ let applyAsrt = (stack:array<proofNode>, frame, ctx):unit => {
     } else {
         let subs = extractSubstitution(stack, stackLength, frame)
         validateTopOfStackMatchesFrame(stack, stackLength, frame, subs)
+        let args = stack->Js_array2.sliceFrom(stackLength - frame.numOfArgs)
         let expr = applySubs(frame.asrt, subs)
         let newNode = Calculated({
             asrtLabel: frame.label,
-            args: stack->Js_array2.sliceFrom(stackLength - frame.numOfArgs),
+            args,
             expr,
+            height: args->Js.Array2.map(proofNodeGetHeight)->Js.Array2.reduce(Js_math.max_int, 0),
             dbg:
                 if (ctx->isDebug) {
                     Some({ exprStr: ctx->ctxIntsToStrExn(expr) })
