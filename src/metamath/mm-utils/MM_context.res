@@ -920,6 +920,7 @@ let loadContext = (
     ~initialContext=?,
     ~stopBefore="",
     ~stopAfter="",
+    ~onPreProcess: option<(mmContext,MM_parser.stmt)=>unit>=?,
     ~expectedNumOfAssertions=-1, 
     ~onProgress= _=>(), 
     ~debug:bool=false, 
@@ -943,6 +944,10 @@ let loadContext = (
         },
         ast,
         ~preProcess = (ctx,node) => {
+            switch onPreProcess {
+                | None => ()
+                | Some(onPreProcess) => onPreProcess(ctx, node.stmt)
+            }
             switch node {
                 | {stmt:Block({level})} => {
                     if (level > 0) {

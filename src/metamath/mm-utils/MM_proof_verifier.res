@@ -1,9 +1,13 @@
 open MM_parser
 open MM_context
 
+type proofNodeDbg = {
+    exprStr: string,
+}
+
 type rec proofNode =
-    | Hypothesis({hypLabel:string, expr:expr})
-    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr})
+    | Hypothesis({hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
+    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, dbg:option<proofNodeDbg>})
 
 let getExprFromNode = (node:proofNode):expr => {
     switch node {
@@ -118,7 +122,7 @@ let validateTopOfStackMatchesFrame = (stack:array<proofNode>, stackLength, frame
     })
 }
 
-let charCode = (str,pos) => str->Js.String2.codePointAt(pos)->Belt_Option.getExn
+let charCode = (str:string,pos:int):int => str->Js.String2.codePointAt(pos)->Belt_Option.getExn
 let charToInt = ch => charCode(ch, 0)
 let zCode = charToInt("Z")
 let aCode = charToInt("A")
@@ -127,7 +131,7 @@ let tCode = charToInt("T")
 let uCode = charToInt("U")
 let uCodePrev = uCode-1
 
-let compressedProofBlockToArray = str => {
+let compressedProofBlockToArray = (str:string):array<string> => {
     let len = str->Js_string2.length
     let res = []
     let b = ref(0)
@@ -149,10 +153,10 @@ let compressedProofBlockToArray = str => {
     res
 }
 
-let compressedProofCharCodeToInt = code => 
+let compressedProofCharCodeToInt = (code:int):int => 
     if (code <= tCode) { code - aCodePrev } else { code - uCodePrev }
 
-let compressedProofStrToInt = str => {
+let compressedProofStrToInt = (str:string):int => {
     let res = ref(0)
     let base = ref(1)
     let len = str->Js_string2.length
@@ -177,17 +181,24 @@ let intToCompressedProofStr: int => string = i => {
     }
 }
 
-let applyAsrt = (stack:array<proofNode>, frame):unit => {
+let applyAsrt = (stack:array<proofNode>, frame, ctx):unit => {
     let stackLength = stack->Js_array2.length
     if (stackLength < frame.numOfArgs) {
         raise(MmException({msg:`stackLength < numOfArgs`}))
     } else {
         let subs = extractSubstitution(stack, stackLength, frame)
         validateTopOfStackMatchesFrame(stack, stackLength, frame, subs)
+        let expr = applySubs(frame.asrt, subs)
         let newNode = Calculated({
             asrtLabel: frame.label,
             args: stack->Js_array2.sliceFrom(stackLength - frame.numOfArgs),
-            expr: applySubs(frame.asrt, subs)
+            expr,
+            dbg:
+                if (ctx->isDebug) {
+                    Some({ exprStr: ctx->ctxIntsToStrExn(expr) })
+                } else {
+                    None
+                }
         })
         for _ in 1 to frame.numOfArgs {
             stack->Js_array2.pop->ignore
@@ -199,10 +210,21 @@ let applyAsrt = (stack:array<proofNode>, frame):unit => {
 let applyUncompressedProof = (ctx, stack, proofLabels) => {
     proofLabels->Js_array2.forEach(step => {
         switch ctx->getHypothesis(step) {
-            | Some(hyp) => stack->Js_array2.push(Hypothesis({hypLabel:hyp.label, expr:hyp.expr}))->ignore
+            | Some(hyp) => {
+                stack->Js_array2.push(Hypothesis({
+                    hypLabel:hyp.label, 
+                    expr:hyp.expr,
+                    dbg:
+                        if (ctx->isDebug) {
+                            Some({ exprStr: ctx->ctxIntsToStrExn(hyp.expr) })
+                        } else {
+                            None
+                        }
+                }))->ignore
+            }
             | None => {
                 switch ctx->getFrame(step) {
-                    | Some(frame) => applyAsrt(stack, frame)
+                    | Some(frame) => applyAsrt(stack, frame, ctx)
                     | None => raise(MmException({msg:`The proof step '${step}' doesn't refer to a hypothesis or assertion (in uncompressed proof).`}))
                 }
             }
@@ -211,6 +233,19 @@ let applyUncompressedProof = (ctx, stack, proofLabels) => {
 }
 
 let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit => {
+    let pushHypToStack = (hyp:hypothesis) => {
+        stack->Js_array2.push(Hypothesis({
+            hypLabel:hyp.label, 
+            expr:hyp.expr,
+            dbg:
+                if (ctx->isDebug) {
+                    Some({ exprStr: ctx->ctxIntsToStrExn(hyp.expr) })
+                } else {
+                    None
+                }
+        }))->ignore
+    }
+
     let steps = compressedProofBlockToArray(compressedProofBlock)
     let hyps = getMandHyps(ctx, expr)
     let hypLen = hyps->Js_array2.length
@@ -229,15 +264,14 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
             if (i < 1) {
                 raise(MmException({msg:`Unexpected condition when applying compressed proof: i < 1.`}))
             } else if (i <= hypLen) {
-                let hyp = hyps[i-1]
-                stack->Js_array2.push(Hypothesis({hypLabel:hyp.label, expr:hyp.expr}))->ignore
+                pushHypToStack(hyps[i-1])
             } else if (i <= hypLenPlusLabelsLen) {
                 let labelToApply = labels[i-hypLen-1]
                 switch ctx->getHypothesis(labelToApply) {
-                    | Some(hyp) => stack->Js_array2.push(Hypothesis({hypLabel:hyp.label, expr:hyp.expr}))->ignore
+                    | Some(hyp) => pushHypToStack(hyp)
                     | None => {
                         switch ctx->getFrame(labelToApply) {
-                            | Some(frame) => applyAsrt(stack, frame)
+                            | Some(frame) => applyAsrt(stack, frame, ctx)
                             | None => raise(MmException({msg:`The proof step '${labelToApply}' doesn't refer to a hypothesis or assertion (in compressed proof).`}))
                         }
                     }
@@ -252,7 +286,7 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
     })
 }
 
-let verifyProof: (mmContext, expr, proof) => proofNode = (ctx, expr, proof) => {
+let verifyProof = (ctx:mmContext, expr:expr, proof:proof):proofNode => {
     let stack = []
     switch proof {
         | Compressed({labels, compressedProofBlock}) => applyCompressedProof(ctx, expr, stack, labels, compressedProofBlock)

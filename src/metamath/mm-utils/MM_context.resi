@@ -41,8 +41,17 @@ let applySingleStmt: (mmContext, stmt) => unit
 let openChildContext: mmContext => unit
 let closeChildContext: mmContext => unit
 let resetToParentContext: mmContext => unit
-let loadContext: (mmAstNode, ~initialContext:mmContext=?, ~stopBefore:string=?, ~stopAfter:string=?, 
-                    ~expectedNumOfAssertions:int=?, ~onProgress:float=>unit=?, ~debug:bool=?, ()) => mmContext
+let loadContext: (
+    mmAstNode, 
+    ~initialContext:mmContext=?, 
+    ~stopBefore:string=?, 
+    ~stopAfter:string=?, 
+    ~onPreProcess: (mmContext,MM_parser.stmt)=>unit =?,
+    ~expectedNumOfAssertions:int=?, 
+    ~onProgress:float=>unit=?, 
+    ~debug:bool=?, 
+    ()
+) => mmContext
 
 let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool
