@@ -200,16 +200,22 @@ let createProofTableFromProof = (proofNode:proofNode):proofTable => {
         },
         ~postProcess = (_, node) => {
             switch node {
-                | Hypothesis({id,hypLabel,expr}) => saveExprToTbl(id, expr, Hypothesis({label:hypLabel}))
+                | Hypothesis({id,hypLabel,expr}) => {
+                    if (nodeIdToIdx->Belt_HashMapInt.get(id)->Belt.Option.isNone) {
+                        saveExprToTbl(id, expr, Hypothesis({label:hypLabel}))
+                    }
+                }
                 | Calculated({id,args,asrtLabel,expr}) => {
-                    saveExprToTbl(
-                        id,
-                        expr, 
-                        Assertion({
-                            label:asrtLabel,
-                            args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeId)
-                        })
-                    )
+                    if (nodeIdToIdx->Belt_HashMapInt.get(id)->Belt.Option.isNone) {
+                        saveExprToTbl(
+                            id,
+                            expr, 
+                            Assertion({
+                                label:asrtLabel,
+                                args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeId)
+                            })
+                        )
+                    }
                 }
             }
             None
