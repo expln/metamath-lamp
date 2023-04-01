@@ -13,22 +13,55 @@ type proofRecord = {
 
 type proofTable = array<proofRecord>
 
-let printProofRec = (ctx,r) => {
-    let exprStr = ctx->ctxIntsToStrExn(r.expr)
-    let proofStr = switch r.proof {
-        | Hypothesis({label}) => "hyp: " ++ label
-        | Assertion({args, label}) => args->Js_array2.map(i=>i+1)->Js_array2.joinWith(", ") ++ " " ++ label
+let rightPad = (~content:string, ~char:string, ~totalLen:int):string => {
+    let contentLen = content->Js_string2.length
+    if (totalLen <= contentLen) {
+        content
+    } else {
+        content ++ Js_string2.repeat(char, totalLen - contentLen)
     }
-    `${proofStr} | ${exprStr}`
 }
 
-let proofTablePrint = (ctx,tbl,title) => {
-    Js.Console.log(`--- TBL ${title} ---------------------------------------------------------------------------`)
-    tbl->Js_array2.map(printProofRec(ctx, _))->Js_array2.forEachi((str,i) => {
-        Js.Console.log(`${Belt_Int.toString((i+1))}: ${str}`)
-    })
-    Js.Console.log("-----------------------------------------------------------------------------------")
+let exprSourceToStr = src => {
+    switch src {
+        | Hypothesis({label}) => label
+        | Assertion({args, label}) => {
+            if (args->Js.Array2.length == 0) {
+                ": " ++ label
+            } else {
+                args->Js_array2.map(i=>i+1)->Js_array2.joinWith(",") ++ " : " ++ label
+            }
+        }
+    }
 }
+
+let maxLength = (arr:array<string>):int => {
+    arr->Js.Array2.map(Js_string2.length)->Js.Array2.reduce(Js_math.max_int, 0)
+}
+
+let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
+    let srcs = tbl->Js_array2.map(r => r.proof->exprSourceToStr)
+    let exprs = tbl->Js_array2.map(r => ctx->ctxIntsToStrExn(r.expr))
+
+    let maxNumOfDigits = tbl->Js_array2.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
+    let col1Width = maxNumOfDigits + 1
+    let col2Width = maxLength(srcs) + 1
+    let col3Width = maxLength(exprs) + 1
+
+    tbl->Js_array2.mapi((_,i) => {
+        rightPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=col1Width)
+            ++ "| " ++ rightPad(~content=srcs[i], ~char=" ", ~totalLen=col2Width)
+            ++ "| " ++ rightPad(~content=exprs[i], ~char=" ", ~totalLen=col3Width)
+    })
+}
+
+let proofTableToStr = (ctx,tbl,title):string => {
+    `--- TBL ${title} ---------------------------------------------------------------------------\n`
+        ++ proofTableToArrStr(ctx,tbl)->Js_array2.joinWith("\n")
+        ++ `\n--------------------------------------------------------------------------------------------`
+}
+
+let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
 
 let traverseRecordsInRpnOrder = (tbl,targetIdx,~onUse,~onReuse) => {
     let savedExprs = Belt_MutableSet.make(~id=module(ExprCmp))

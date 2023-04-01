@@ -16,4 +16,6 @@ type proofTable = array<proofRecord>
 let createProof: (mmContext, proofTable, int) => proof
 let createProofTableFromProof: proofNode => proofTable
 
+let proofTableToArrStr: (mmContext, proofTable) => array<string>
+let proofTableToStr: (mmContext, proofTable, string) => string
 let proofTablePrint: (mmContext, proofTable, string) => unit
