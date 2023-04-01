@@ -6,22 +6,27 @@ type proofNodeDbg = {
 }
 
 type rec proofNode =
-    | Hypothesis({hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
-    | Calculated({args:array<proofNode>, asrtLabel:string, expr:expr, height:int, dbg:option<proofNodeDbg>})
+    | Hypothesis({id:int, hypLabel:string, expr:expr, dbg:option<proofNodeDbg>})
+    | Calculated({id:int, args:array<proofNode>, asrtLabel:string, expr:expr, dbg:option<proofNodeDbg>})
 
-let proofNodeGetHeight = (node:proofNode):int => {
-    switch node {
-        | Hypothesis(_) => 0
-        | Calculated({height}) => height
-    }
+type proofStack = {
+    mutable nextId: int,
+    nodes: array<proofNode>,
 }
 
-let getExprFromNode = (node:proofNode):expr => {
+let proofNodeGetExpr = (node:proofNode):expr => {
     switch node {
         | Hypothesis({expr}) | Calculated({expr}) => expr
     }
 }
-let getExprFromStack = (stack:array<proofNode>, i:int):expr => getExprFromNode(stack[i])
+
+let ndGetId = (node:proofNode):int => {
+    switch node {
+        | Hypothesis({id}) | Calculated({id}) => id
+    }
+}
+
+let stGetExpr = (stack:proofStack, i:int):expr => stack.nodes[i]->proofNodeGetExpr
 
 let compareSubArrays = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx:int, ~len:int): bool => {
     let s = ref(srcFromIdx)
@@ -90,10 +95,10 @@ let applySubs = (expr, subs): expr => {
     res
 }
 
-let extractSubstitution = (stack:array<proofNode>, stackLength, frame):array<expr> => {
+let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
     let subs = Expln_utils_common.createArray(frame.numOfVars)
     let subsLock = Belt_Array.make(frame.numOfVars, false)
-    let baseIdx = stackLength - frame.numOfArgs
+    let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
     frame.hyps->Js_array2.forEachi((hyp,i) => {
         if (hyp.typ == F) {
             let t = hyp.expr[0]
@@ -101,7 +106,7 @@ let extractSubstitution = (stack:array<proofNode>, stackLength, frame):array<exp
             if (subsLock[v]) {
                 raise(MmException({msg:`subsLock[v]`}))
             } else {
-                let subsExpr = stack->getExprFromStack(baseIdx+i)
+                let subsExpr = stack->stGetExpr(baseIdx+i)
                 if (subsExpr->Js_array2.length < 2) {
                     raise(MmException({msg:`subsExpr->Js_array2.length < 2`}))
                 } else if (subsExpr[0] != t) {
@@ -120,11 +125,11 @@ let extractSubstitution = (stack:array<proofNode>, stackLength, frame):array<exp
     }
 }
 
-let validateTopOfStackMatchesFrame = (stack:array<proofNode>, stackLength, frame, subs:array<expr>):unit => {
-    let baseIdx = stackLength - frame.numOfArgs
+let validateTopOfStackMatchesFrame = (stack:proofStack, frame, subs:array<expr>):unit => {
+    let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
     frame.hyps->Js_array2.forEachi((hyp,i) => {
-        if (hyp.typ == E && !compareExprAfterSubstitution(hyp.expr, subs, stack->getExprFromStack(baseIdx+i))) {
-            raise(MmException({msg:`!compareExprAfterSubstitution(ess, subs, stack->getExprFromStack(baseIdx+i))`}))
+        if (hyp.typ == E && !compareExprAfterSubstitution(hyp.expr, subs, stack->stGetExpr(baseIdx+i))) {
+            raise(MmException({msg:`!compareExprAfterSubstitution(ess, subs, stack->stGetExpr(baseIdx+i))`}))
         }
     })
 }
@@ -188,20 +193,19 @@ let intToCompressedProofStr: int => string = i => {
     }
 }
 
-let applyAsrt = (stack:array<proofNode>, frame, ctx):unit => {
-    let stackLength = stack->Js_array2.length
+let applyAsrt = (stack:proofStack, frame, ctx):unit => {
+    let stackLength = stack.nodes->Js_array2.length
     if (stackLength < frame.numOfArgs) {
         raise(MmException({msg:`stackLength < numOfArgs`}))
     } else {
-        let subs = extractSubstitution(stack, stackLength, frame)
-        validateTopOfStackMatchesFrame(stack, stackLength, frame, subs)
-        let args = stack->Js_array2.sliceFrom(stackLength - frame.numOfArgs)
+        let subs = stExtractSubstitution(stack, frame)
+        validateTopOfStackMatchesFrame(stack, frame, subs)
         let expr = applySubs(frame.asrt, subs)
         let newNode = Calculated({
+            id: stack.nextId,
             asrtLabel: frame.label,
-            args,
+            args: stack.nodes->Js_array2.sliceFrom(stackLength - frame.numOfArgs),
             expr,
-            height: args->Js.Array2.map(proofNodeGetHeight)->Js.Array2.reduce(Js_math.max_int, 0),
             dbg:
                 if (ctx->isDebug) {
                     Some({ exprStr: ctx->ctxIntsToStrExn(expr) })
@@ -209,10 +213,11 @@ let applyAsrt = (stack:array<proofNode>, frame, ctx):unit => {
                     None
                 }
         })
+        stack.nextId = stack.nextId + 1
         for _ in 1 to frame.numOfArgs {
-            stack->Js_array2.pop->ignore
+            stack.nodes->Js_array2.pop->ignore
         }
-        stack->Js_array2.push(newNode)->ignore
+        stack.nodes->Js_array2.push(newNode)->ignore
     }
 }
 
@@ -220,7 +225,8 @@ let applyUncompressedProof = (ctx, stack, proofLabels) => {
     proofLabels->Js_array2.forEach(step => {
         switch ctx->getHypothesis(step) {
             | Some(hyp) => {
-                stack->Js_array2.push(Hypothesis({
+                stack.nodes->Js_array2.push(Hypothesis({
+                    id: stack.nextId,
                     hypLabel:hyp.label, 
                     expr:hyp.expr,
                     dbg:
@@ -230,6 +236,7 @@ let applyUncompressedProof = (ctx, stack, proofLabels) => {
                             None
                         }
                 }))->ignore
+                stack.nextId = stack.nextId + 1
             }
             | None => {
                 switch ctx->getFrame(step) {
@@ -243,7 +250,8 @@ let applyUncompressedProof = (ctx, stack, proofLabels) => {
 
 let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit => {
     let pushHypToStack = (hyp:hypothesis) => {
-        stack->Js_array2.push(Hypothesis({
+        stack.nodes->Js_array2.push(Hypothesis({
+            id: stack.nextId,
             hypLabel:hyp.label, 
             expr:hyp.expr,
             dbg:
@@ -253,6 +261,7 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
                     None
                 }
         }))->ignore
+        stack.nextId = stack.nextId + 1
     }
 
     let steps = compressedProofBlockToArray(compressedProofBlock)
@@ -262,11 +271,11 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
     let savedNodes = []
     steps->Belt_Array.forEach(step => {
         if (step == "Z") {
-            let stackLen = stack->Js_array2.length
+            let stackLen = stack.nodes->Js_array2.length
             if (stackLen == 0) {
                 raise(MmException({msg:`Cannot execute 'Z' command because the stack is empty.`}))
             } else {
-                savedNodes->Js_array2.push(stack[stackLen-1])->ignore
+                savedNodes->Js_array2.push(stack.nodes[stackLen-1])->ignore
             }
         } else {
             let i = compressedProofStrToInt(step)
@@ -288,7 +297,7 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
             } else {
                 switch savedNodes->Belt_Array.get(i-hypLenPlusLabelsLen-1) {
                     | None => raise(MmException({msg:`Compressed proof refers to a saved step by the index which is out of bounds.`}))
-                    | Some(node) => stack->Js_array2.push(node)->ignore
+                    | Some(node) => stack.nodes->Js_array2.push(node)->ignore
                 }
             }
         }
@@ -296,21 +305,24 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
 }
 
 let verifyProof = (ctx:mmContext, expr:expr, proof:proof):proofNode => {
-    let stack = []
+    let stack = {
+        nextId:0,
+        nodes: [],
+    }
     switch proof {
         | Compressed({labels, compressedProofBlock}) => applyCompressedProof(ctx, expr, stack, labels, compressedProofBlock)
         | Uncompressed({labels}) => applyUncompressedProof(ctx, stack, labels)
     }
-    if (stack->Js_array2.length != 1) {
-        raise(MmException({msg:`stack->Js_array2.length is ${stack->Js_array2.length->Belt_Int.toString} but must be 1.`}))
-    } else if (stack->getExprFromStack(0) != expr) {
+    if (stack.nodes->Js_array2.length != 1) {
+        raise(MmException({msg:`stack->Js_array2.length is ${stack.nodes->Js_array2.length->Belt_Int.toString} but must be 1.`}))
+    } else if (!(stack->stGetExpr(0)->exprEq(expr))) {
         raise(MmException({msg:
             `stack[0] != expr` 
-                ++ `\nstack[0] is '${stack->getExprFromStack(0)->ctxIntsToStrExn(ctx,_)}'`
+                ++ `\nstack[0] is '${stack->stGetExpr(0)->ctxIntsToStrExn(ctx,_)}'`
                 ++ `\nexpr is     '${expr->ctxIntsToStrExn(ctx,_)}'`
         }))
     } else {
-        stack[0]
+        stack.nodes[0]
     }
 }
 

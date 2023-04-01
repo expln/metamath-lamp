@@ -25,7 +25,7 @@ describe("verifyProof", _ => {
 
         //then
         assertEq(
-            proof->getExprFromNode->ctxIntsToStrExn(ctx, _),
+            proof->proofNodeGetExpr->ctxIntsToStrExn(ctx, _),
             "|- t = t"
         )
     })
@@ -77,7 +77,7 @@ describe("verifyProof", _ => {
 
         //then
         assertEq(
-            proof->getExprFromNode->ctxIntsToStrExn(ctx, _),
+            proof->proofNodeGetExpr->ctxIntsToStrExn(ctx, _),
             "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )"
         )
     })
