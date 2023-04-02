@@ -1,0 +1,7 @@
+${
+$v width $.
+.var1 $f class width $.
+$d v u width $.
+stmt8 $e |- width e. _V $.
+3 $p |- { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } e. _V $= ( cvv wcel cv wa cfv wceq copab elex simprll simprlr opabex2 ax-mp ) DFZGZBHZDGZAHZDGZITCJUBCJKZIZBALRGESUEBADDRRDRMZUF SUAUCUDNSUAUCUDOPQ $.
+$}

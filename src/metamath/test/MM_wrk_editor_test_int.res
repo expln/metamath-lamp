@@ -571,6 +571,7 @@ describe("MM_wrk_editor integration tests", _ => {
         assertEditorState(st, "step1")
         assertProof(st, st->getStmtId(~label="stmt5", ()), "proof-no-redundant-vars")
         assertProof(st, st->getStmtId(~label="3", ()), "proof-no-redundant-disj")
+        assertProof(st, st->getStmtId(~label="stmt11", ()), "proof-no-redundant-hyps")
     })
 
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {

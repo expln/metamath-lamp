@@ -1694,14 +1694,17 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                         | None => None
                         | Some((proofTreeDto,proofNode)) => {
                             let preCtx = st.preCtx
-                            let proofCtx = createProofCtx(
-                                wrkCtx,
-                                st.stmts->Js_array2.filter(stmt => stmt.typ == E)->Js_array2.map(userStmtToRootStmt)
-                            )
                             let expr = userStmtToRootStmt(stmt).expr
                             let proofTable = createProofTable(proofTreeDto,proofNode)
                             let exprsUsedInProof = proofTable->Js.Array2.map(r => r.expr)
                                 ->Belt_HashSet.fromArray(~id=module(ExprHash))
+                            let rootStmts = st.stmts->Js_array2.map(userStmtToRootStmt)
+                            let proofCtx = createProofCtx(
+                                wrkCtx,
+                                rootStmts->Js_array2.filter(stmt => {
+                                    stmt.isHyp && exprsUsedInProof->Belt_HashSet.has(stmt.expr)
+                                })
+                            )
 
                             let mandNewEssentials = proofCtx->getLocalHyps
                                 ->Js.Array2.filter(hyp => exprsUsedInProof->Belt_HashSet.has(hyp.expr))
@@ -1734,17 +1737,23 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                     newHyps->Js.Array2.push(hyp)->ignore
                                 }
                             })
-                            let allVarsInProof = Belt_HashSetInt.make(~hintSize=64)
-                            exprsUsedInProof->Belt_HashSet.forEach(expr => {
-                                collectVars(~from=expr, ~to_=allVarsInProof)
-                            })
                             let newDisj = disjMake()
-                            wrkCtx->getAllDisj->disjForEach((n,m) => {
-                                if (allVarsInProof->Belt_HashSetInt.has(n) && allVarsInProof->Belt_HashSetInt.has(m) 
-                                    && !(preCtx->isDisj(n,m))) {
-                                    newDisj->disjAddPair(n,m)
+                            MM_proof_verifier.verifyProof(
+                                ~ctx=proofCtx,
+                                ~expr,
+                                ~proof,
+                                ~isDisjInCtx = (n,m) => {
+                                    if (!(wrkCtx->isDisj(n,m))) {
+                                        raise(MmException({msg:`!(wrkCtx->isDisj(n,m))`}))
+                                    } else {
+                                        if (!(preCtx->isDisj(n,m))) {
+                                            newDisj->disjAddPair(n,m)
+                                        }
+                                        true
+                                    }
                                 }
-                            })
+                            )->ignore
+
                             
                             Some(proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ))
                         }
