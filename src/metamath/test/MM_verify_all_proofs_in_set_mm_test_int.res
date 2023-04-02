@@ -123,10 +123,9 @@ describe("verify all proofs in set.mm", _ => {
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
 
         let cnt = ref(0)
-        let maxCnt = loadContext(ast, ())->getAllFrames->Belt_MapString.size->Belt_Int.toFloat
-        let progressTracker = progressTrackerMake(
+        let progressTracker = progressTrackerIntMake(
             ~step=0.05, 
-            ~pct=0.0, 
+            ~maxCnt = loadContext(ast, ())->getAllFrames->Belt_MapString.size,
             ~onProgress = pct => {
                 Js.Console.log((pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
             }, 
@@ -157,11 +156,7 @@ describe("verify all proofs in set.mm", _ => {
                         failMsg(`Proof comparison failed for ${label}`)
                     }
 
-                    if (mod(cnt.contents, 100) == 0) {
-                        progressTracker->progressTrackerSetCurrPct(
-                            cnt.contents->Belt_Int.toFloat /. maxCnt
-                        )
-                    }
+                    progressTracker->progressTrackerIntIncCnt
                 }
                 | _ => ()
             }

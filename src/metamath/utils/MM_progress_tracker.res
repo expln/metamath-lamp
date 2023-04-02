@@ -6,7 +6,14 @@ type progressState = {
     numOfSteps: int,
     mutable lastSentNumOfSteps: int,
     onProgress: option<float=>unit>,
-    dontDecrease: bool
+    dontDecrease: bool,
+}
+
+type progressStateInt = {
+    progressState: progressState,
+    mutable cnt: int,
+    maxCnt: float,
+    stepInt:int,
 }
 
 let pctToNumOfSteps = (~pct:float, ~step:int):int => {
@@ -45,5 +52,37 @@ let progressTrackerSetCurrPct = (state:progressState, curPct:float):unit => {
                 state.lastSentNumOfSteps = curNumOfSteps
             }
         }
+    }
+}
+
+let progressTrackerIntMake = (
+    ~step:float, 
+    ~cnt=0, 
+    ~maxCnt:int,
+    ~onProgress: option<float=>unit>=?, 
+    ~dontDecrease:bool=false, 
+    ()
+):progressStateInt => {
+    {
+        progressState: progressTrackerMake(
+            ~step, 
+            ~pct = cnt->Belt_Int.toFloat /. maxCnt->Belt_Int.toFloat, 
+            ~onProgress?, 
+            ~dontDecrease, 
+            ()
+        ),
+        cnt: cnt,
+        maxCnt: maxCnt->Belt_Int.toFloat,
+        stepInt: (maxCnt->Belt_Int.toFloat *. step /. 2.)->Belt_Float.toInt->Js_math.max_int(1)
+    }
+    
+}
+
+let progressTrackerIntIncCnt = (state:progressStateInt):unit => {
+    state.cnt = state.cnt + 1
+    if (mod(state.cnt, state.stepInt) == 0) {
+        state.progressState->progressTrackerSetCurrPct(
+            state.cnt->Belt_Int.toFloat /. state.maxCnt
+        )
     }
 }
