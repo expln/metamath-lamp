@@ -547,6 +547,32 @@ describe("MM_wrk_editor integration tests", _ => {
 
     })
 
+    it("updateEditorStateWithPostupdateActions removes redundant variables from disjoints", _ => {
+        setTestDataDir("no-redundant-vars-in-disj")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~asrtsToSkipFilePath, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let st = st->setVars(".var1 class width")
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+        let st = st->applySubstitution(~replaceWhat="A", ~replaceWith="width")
+        let st = st->unifyAll
+        assertEditorState(st, "step3")
+    })
+
+    it("actExportProof does not export redundant elements", _ => {
+        setTestDataDir("no-redundant-elems-in-export")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~asrtsToSkipFilePath, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+        assertProof(st, st->getStmtId(~label="stmt5", ()), "proof-no-redundant-vars")
+        assertProof(st, st->getStmtId(~label="3", ()), "proof-no-redundant-disj")
+    })
+
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {
     // })
 })

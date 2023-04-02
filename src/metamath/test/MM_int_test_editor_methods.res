@@ -401,6 +401,11 @@ let setDisj = (st:editorState, disj:string):editorState => {
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
+let setVars = (st:editorState, vars:string):editorState => {
+    let st = st->completeVarsEditMode( vars )
+    st->updateEditorStateWithPostupdateActions(st => st)
+}
+
 let mergeStmt = (st:editorState, stmtId):editorState => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)

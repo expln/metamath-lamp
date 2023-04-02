@@ -1,0 +1,4 @@
+${
+$d x y v u F $.
+stmt5 $p |- ( ( u = x /\ v = y ) -> ( F ` v ) = ( F ` y ) ) $= ( cv wceq cfv fveq2 adantl ) CFZBFZGKEHLEHGDFAFGKLEIJ $.
+$}
