@@ -1,9 +1,9 @@
-type progressStateMutable
-let progressTrackerMutableMake: (
+type progressState
+let progressTrackerMake: (
     ~step: float, 
     ~pct: float=?, 
     ~onProgress: float=>unit=?, 
     ~dontDecrease:bool=?, 
     ()
-) => progressStateMutable
-let progressTrackerMutableSetCurrPct: (progressStateMutable, float) => unit
+) => progressState
+let progressTrackerSetCurrPct: (progressState, float) => unit

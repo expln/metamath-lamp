@@ -435,7 +435,7 @@ let proveBottomUp = (
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
-    let progressState = ref(progressTrackerMutableMake( ~step=0.01, ~onProgress = _ => (), () ))
+    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
 
     tree->ptClearDists
     let rootNode = tree->ptGetNode(expr)
@@ -460,7 +460,7 @@ let proveBottomUp = (
                         onProgressP.contents = None
                         lastDist.contents = curDist
                         let curDistStr = curDist->Belt.Int.toString
-                        progressState.contents = progressTrackerMutableMake(
+                        progressState.contents = progressTrackerMake(
                             ~step=0.01,
                             ~onProgress= pct => {
                                 let pctStr = (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
@@ -471,7 +471,7 @@ let proveBottomUp = (
                         maxCnt.contents = nodesToCreateParentsFor->Belt_MutableQueue.size + 1
                         cnt.contents = 0
                     }
-                    progressState.contents->progressTrackerMutableSetCurrPct(
+                    progressState.contents->progressTrackerSetCurrPct(
                         cnt.contents->Belt_Int.toFloat /. maxCnt.contents->Belt_Int.toFloat
                     )
                     cnt.contents = cnt.contents + 1
@@ -674,7 +674,7 @@ let unifyAll = (
     ~onProgress:option<string=>unit>=?,
     ()
 ):proofTree => {
-    let progressState = progressTrackerMutableMake(
+    let progressState = progressTrackerMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
             pct => onProgress(`Unifying all: ${(pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`)
@@ -709,7 +709,7 @@ let unifyAll = (
         )
         tree->ptAddRootStmt(stmt)
 
-        progressState->progressTrackerMutableSetCurrPct( 
+        progressState->progressTrackerSetCurrPct( 
             (stmtIdx+1)->Belt_Int.toFloat /. numOfStmts->Belt_Int.toFloat
         )
     })

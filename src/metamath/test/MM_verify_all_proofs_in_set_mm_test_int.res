@@ -124,7 +124,7 @@ describe("verify all proofs in set.mm", _ => {
 
         let cnt = ref(0)
         let maxCnt = loadContext(ast, ())->getAllFrames->Belt_MapString.size->Belt_Int.toFloat
-        let progressTracker = progressTrackerMutableMake(
+        let progressTracker = progressTrackerMake(
             ~step=0.05, 
             ~pct=0.0, 
             ~onProgress = pct => {
@@ -158,7 +158,7 @@ describe("verify all proofs in set.mm", _ => {
                     }
 
                     if (mod(cnt.contents, 100) == 0) {
-                        progressTracker->progressTrackerMutableSetCurrPct(
+                        progressTracker->progressTrackerSetCurrPct(
                             cnt.contents->Belt_Int.toFloat /. maxCnt
                         )
                     }

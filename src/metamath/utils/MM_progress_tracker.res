@@ -1,7 +1,7 @@
 let scaleFactor = 100_000
 let scaleFactorF = scaleFactor->Belt_Int.toFloat
 
-type progressStateMutable = {
+type progressState = {
     mutable step: int,
     numOfSteps: int,
     mutable lastSentNumOfSteps: int,
@@ -17,13 +17,13 @@ let numOfStepsToPct = (~numOfSteps:int, ~step:int):float => {
     (numOfSteps * step)->Belt_Int.toFloat /. scaleFactorF
 }
 
-let progressTrackerMutableMake = (
+let progressTrackerMake = (
     ~step:float, 
     ~pct=0., 
     ~onProgress: option<float=>unit>=?, 
     ~dontDecrease:bool=false, 
     ()
-):progressStateMutable => {
+):progressState => {
     let step = (step *. scaleFactorF)->Belt_Float.toInt
     let numOfSteps = pctToNumOfSteps(~pct, ~step)
     {
@@ -35,7 +35,7 @@ let progressTrackerMutableMake = (
     }
 }
 
-let progressTrackerMutableSetCurrPct = (state:progressStateMutable, curPct:float):unit => {
+let progressTrackerSetCurrPct = (state:progressState, curPct:float):unit => {
     switch state.onProgress {
         | None => ()
         | Some(onProgress) => {

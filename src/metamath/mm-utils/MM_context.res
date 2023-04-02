@@ -597,7 +597,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
 
     let maxC = allConsts->Js.Array2.length - 2
     let maxCF = maxC->Belt_Int.toFloat
-    let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let foundParens = []
     for c in 0 to maxC {
         let openParen = allConsts[c]
@@ -609,7 +609,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
             foundParens->Js_array2.push(openParen)->ignore
             foundParens->Js_array2.push(closeParen)->ignore
         }
-        progressState->progressTrackerMutableSetCurrPct(
+        progressState->progressTrackerSetCurrPct(
             c->Belt_Int.toFloat /. maxCF
         )
     }
@@ -928,12 +928,12 @@ let loadContext = (
 ) => {
     let expectedNumOfAssertionsF = expectedNumOfAssertions->Belt_Int.toFloat
     let assertionsProcessed = ref(0.)
-    let progressTracker = progressTrackerMutableMake(~step=0.1, ~onProgress, ())
+    let progressTracker = progressTrackerMake(~step=0.1, ~onProgress, ())
 
     let onAsrtProcess = () => {
         if (expectedNumOfAssertions > 0) {
             assertionsProcessed.contents = assertionsProcessed.contents +. 1.
-            progressTracker->progressTrackerMutableSetCurrPct(assertionsProcessed.contents /. expectedNumOfAssertionsF)
+            progressTracker->progressTrackerSetCurrPct(assertionsProcessed.contents /. expectedNumOfAssertionsF)
         }
     }
 

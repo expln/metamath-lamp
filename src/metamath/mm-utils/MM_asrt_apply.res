@@ -405,7 +405,7 @@ let applyAssertions = (
 
     let numOfStmts = statements->Js_array2.length
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
-    let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
@@ -533,7 +533,7 @@ let applyAssertions = (
             }
         }
         framesProcessed.contents = framesProcessed.contents +. 1.
-        progressState->progressTrackerMutableSetCurrPct(
+        progressState->progressTrackerSetCurrPct(
             framesProcessed.contents /. numOfFrames
         )
     })

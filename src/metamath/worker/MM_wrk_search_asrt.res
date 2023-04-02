@@ -95,7 +95,7 @@ let doSearchAssertions = (
     ~onProgress:option<float=>unit>=?,
     ()
 ):array<stmtsDto> => {
-    let progressState = progressTrackerMutableMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
 
@@ -153,7 +153,7 @@ let doSearchAssertions = (
         }
 
         framesProcessed.contents = framesProcessed.contents +. 1.
-        progressState->progressTrackerMutableSetCurrPct(
+        progressState->progressTrackerSetCurrPct(
             framesProcessed.contents /. numOfFrames
         )
     })
