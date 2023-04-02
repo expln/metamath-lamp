@@ -133,9 +133,26 @@ let proofTreeToDto = (
 }
 
 let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {
-    let processedExprs = Belt_MutableSet.make(~id = module(ExprCmp))
-    let exprToIdx = Belt_MutableMap.make(~id = module(ExprCmp))
+    let exprToIdx = Belt_HashMap.make(~id = module(ExprHash), ~hintSize=64)
     let tbl = []
+
+    let getIdxByExpr = (expr:expr):option<int> => exprToIdx->Belt_HashMap.get(expr)
+
+    let getIdxByExprExn = (expr:expr):int => {
+        switch getIdxByExpr(expr) {
+            | None => raise(MmException({ msg:`Could not determine idx by expr in createProofTable().` }))
+            | Some(idx) => idx
+        }
+    }
+
+    let saveExprToTbl = (expr:expr,proof:exprSource):unit => {
+        if (getIdxByExpr(expr)->Belt_Option.isSome) {
+            raise(MmException({ msg:`getIdxByExpr(expr)->Belt_Option.isSome in createProofTable().` }))
+        }
+        let idx = tbl->Js_array2.push({expr, proof})-1
+        exprToIdx->Belt_HashMap.set(expr,idx)
+    }
+
     Expln_utils_data.traverseTree(
         (),
         root,
@@ -143,47 +160,32 @@ let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {
             switch n.proof {
                 | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [1].`}))
                 | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [1].`}))
+                | Some(AssertionWithErr(_)) =>
+                    raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [1].`}))
                 | Some(Hypothesis(_)) => None
-                | Some(Assertion({args})) => {
-                    if (processedExprs->Belt_MutableSet.has(n.expr)) {
-                        None
-                    } else {
-                        Some(args->Js.Array2.map(idx => tree.nodes[idx]))
-                    }
-                }
+                | Some(Assertion({args})) => Some(args->Js.Array2.map(idx => tree.nodes[idx]))
             }
-        },
-        ~process = (_, n) => {
-            switch n.proof {
-                | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [2].`}))
-                | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [2].`}))
-                | Some(Hypothesis({label})) => {
-                    if (exprToIdx->Belt_MutableMap.get(n.expr)->Belt_Option.isNone) {
-                        let idx = tbl->Js_array2.push({proof:Hypothesis({label:label}), expr:n.expr})-1
-                        exprToIdx->Belt_MutableMap.set(n.expr,idx)
-                    }
-                }
-                | Some(Assertion(_)) => ()
-            }
-            None
         },
         ~postProcess = (_, n) => {
             switch n.proof {
-                | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [3].`}))
-                | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [3].`}))
-                | Some(Hypothesis(_)) => ()
+                | None => raise(MmException({msg:`Cannot create proofTable from an unproved proofNodeDto [2].`}))
+                | Some(VarType) => raise(MmException({msg:`VarType is not supported in createProofTable [2].`}))
+                | Some(AssertionWithErr(_)) =>
+                    raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [2].`}))
+                | Some(Hypothesis({label})) => {
+                    if (getIdxByExpr(n.expr)->Belt_Option.isNone) {
+                        saveExprToTbl(n.expr, Hypothesis({label:label}))
+                    }
+                }
                 | Some(Assertion({args, label})) => {
-                    if (exprToIdx->Belt_MutableMap.get(n.expr)->Belt_Option.isNone) {
-                        let idx = tbl->Js_array2.push({
-                            proof:Assertion({
+                    if (getIdxByExpr(n.expr)->Belt_Option.isNone) {
+                        saveExprToTbl(
+                            n.expr, 
+                            Assertion({
                                 label,
-                                args: args->Js_array2.map(nodeIdx => {
-                                    exprToIdx->Belt_MutableMap.get(tree.nodes[nodeIdx].expr)->Belt_Option.getWithDefault(-1)
-                                })
-                            }),
-                            expr:n.expr
-                        })-1
-                        exprToIdx->Belt_MutableMap.set(n.expr,idx)
+                                args: args->Js_array2.map(nodeIdx => getIdxByExprExn(tree.nodes[nodeIdx].expr))
+                            })
+                        )
                     }
                 }
             }
