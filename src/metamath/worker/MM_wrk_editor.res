@@ -1630,10 +1630,9 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
 }
 
 let proofToText = (
-    ~ctx:mmContext,
-    ~newVars:array<string>,
-    ~newDisj:disjMutable,
+    ~wrkCtx:mmContext,
     ~newHyps:array<hypothesis>,
+    ~newDisj:disjMutable,
     ~stmt:userStmt,
     ~proof:proof
 ):string => {
@@ -1646,20 +1645,22 @@ let proofToText = (
             if (blockIsRequired) {
                 result->Js.Array2.push("${")->ignore
             }
-            if (newVars->Js.Array2.length > 0) {
-                result->Js.Array2.push("$v " ++ newVars->Js.Array2.joinWith(" ") ++ " $.")->ignore
+            let varsArrStr = newHyps->Js_array2.filter(hyp => hyp.typ == F)
+                ->Js.Array2.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr[1]))
+            if (varsArrStr->Js.Array2.length > 0) {
+                result->Js.Array2.push("$v " ++ varsArrStr->Js.Array2.joinWith(" ") ++ " $.")->ignore
             }
             newHyps->Js.Array2.forEach(hyp => {
                 if (hyp.typ == F) {
-                    result->Js.Array2.push(hyp.label ++ " $f " ++ ctx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
+                    result->Js.Array2.push(hyp.label ++ " $f " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
                 }
             })
             newDisj->disjForEachArr(vars => {
-                result->Js.Array2.push("$d " ++ ctx->ctxIntsToStrExn(vars) ++ " $.")->ignore
+                result->Js.Array2.push("$d " ++ wrkCtx->ctxIntsToStrExn(vars) ++ " $.")->ignore
             })
             newHyps->Js.Array2.forEach(hyp => {
                 if (hyp.typ == E) {
-                    result->Js.Array2.push(hyp.label ++ " $e " ++ ctx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
+                    result->Js.Array2.push(hyp.label ++ " $e " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
                 }
             })
             result->Js.Array2.push(asrt)->ignore
@@ -1682,19 +1683,63 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                     switch stmt.proof {
                         | None => None
                         | Some((proofTreeDto,proofNode)) => {
+                            let preCtx = st.preCtx
                             let proofTable = createProofTable(proofTreeDto,proofNode)
+                            let exprsUsedInProof = proofTable->Js.Array2.map(r => r.expr)
+                                ->Belt_HashSet.fromArray(~id=module(ExprHash))
                             let proofCtx = createProofCtx(
                                 wrkCtx,
                                 st.stmts->Js_array2.filter(stmt => stmt.typ == E)->Js_array2.map(userStmtToRootStmt)
                             )
                             let expr = userStmtToRootStmt(stmt).expr
+
+                            let mandNewEssentials = proofCtx->getLocalHyps
+                                ->Js.Array2.filter(hyp => exprsUsedInProof->Belt_HashSet.has(hyp.expr))
+                            let mandVars = Belt_HashSetInt.make(~hintSize=64)
+                            wrkCtx->forEachHypothesisInDeclarationOrder(hyp => {
+                                if (hyp.typ == E) {
+                                    hyp.expr->Js_array2.forEach(i => if i >= 0 { mandVars->Belt_HashSetInt.add(i) })
+                                }
+                                None
+                            })->ignore
+                            mandNewEssentials->Js.Array2.forEach(hyp => {
+                                hyp.expr->Js_array2.forEach(i => if i >= 0 { mandVars->Belt_HashSetInt.add(i) })
+                            })
+                            expr->Js_array2.forEach(i => if i >= 0 { mandVars->Belt_HashSetInt.add(i) })
+                            let mandHyps = []
+                            wrkCtx->forEachHypothesisInDeclarationOrder(hyp => {
+                                if (hyp.typ == E || mandVars->Belt_HashSetInt.has(hyp.expr[1])) {
+                                    mandHyps->Js.Array2.push(hyp)->ignore
+                                }
+                                None
+                            })->ignore
+                            mandNewEssentials->Js.Array2.forEach(hyp => {
+                                mandHyps->Js.Array2.push(hyp)->ignore
+                            })
+                            let mandDisj = disjMake()
+                            wrkCtx->getAllDisj->disjForEach((n,m) => {
+                                if (mandVars->Belt_HashSetInt.has(n) && mandVars->Belt_HashSetInt.has(m)) {
+                                    mandDisj->disjAddPair(n,m)
+                                }
+                            })
+
+                            let newHyps = []
+                            mandHyps->Js.Array2.forEach(hyp => {
+                                if (preCtx->getHypByExpr(hyp.expr)->Belt.Option.isNone) {
+                                    newHyps->Js.Array2.push(hyp)->ignore
+                                }
+                            })
+                            let newDisj = disjMake()
+                            mandDisj->disjForEach((n,m) => {
+                                if (!(preCtx->isDisj(n,m))) {
+                                    newDisj->disjAddPair(n,m)
+                                }
+                            })
+
                             let proof = MM_proof_table.createProof(
-                                proofCtx->getMandHyps(expr), proofTable, proofTable->Js_array2.length-1
+                                mandHyps, proofTable, proofTable->Js_array2.length-1
                             )
-                            let newVars = wrkCtx->getLocalVars
-                            let newDisj = wrkCtx->getLocalDisj
-                            let newHyps = wrkCtx->getLocalHyps->Js.Array2.concat(proofCtx->getLocalHyps)
-                            Some(proofToText( ~ctx=proofCtx, ~newVars, ~newDisj, ~newHyps, ~stmt, ~proof ))
+                            Some(proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ))
                         }
                     }
                 }
