@@ -116,11 +116,11 @@ describe("createProof", _ => {
                 | Provable({label,expr:exprStr,proof:Some(expectedProof)}) => {
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
-                    let proofNode = verifyProof(ctx, expr, expectedProof)
+                    let proofNode = verifyProof(~ctx, ~expr, ~proof=expectedProof, ~isDisjInCtx=ctx->isDisj)
                     let proofTable = createProofTableFromProof(proofNode)
 
                     let actualProof = createProof(ctx->getMandHyps(expr), proofTable, proofTable->Js_array2.length-1)
-                    verifyProof(ctx, expr, actualProof)->ignore
+                    verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=ctx->isDisj)->ignore
 
                     //then
                     if (

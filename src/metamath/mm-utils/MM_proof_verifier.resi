@@ -11,7 +11,12 @@ type rec proofNode =
 
 let proofNodeGetId: proofNode => int
 let proofNodeGetExpr: proofNode => expr
-let verifyProof: (mmContext, expr, proof) => proofNode
+let verifyProof: (
+    ~ctx:mmContext, 
+    ~expr:expr, 
+    ~proof:proof,
+    ~isDisjInCtx: (int,int) => bool,
+) => proofNode
 
 let compressedProofBlockToArray: string => array<string>
 let compressedProofStrToInt: string => int

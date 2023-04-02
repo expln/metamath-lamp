@@ -21,7 +21,7 @@ describe("verifyProof", _ => {
         }
 
         //when
-        let proof = verifyProof(ctx, ctxSymsToIntsExn(ctx, exprStr), proof)
+        let proof = verifyProof(~ctx, ~expr=ctxSymsToIntsExn(ctx, exprStr), ~proof, ~isDisjInCtx=ctx->isDisj)
 
         //then
         assertEq(
@@ -49,7 +49,7 @@ describe("verifyProof", _ => {
         //when
         let errorMsg = ref("")
         try {
-            let _ = verifyProof(ctx, ctxSymsToIntsExn(ctx, exprStr), proof)
+            let _ = verifyProof(~ctx, ~expr=ctxSymsToIntsExn(ctx, exprStr), ~proof, ~isDisjInCtx=ctx->isDisj)
         } catch {
             | MmException({msg}) => errorMsg.contents = msg
         }
@@ -73,7 +73,7 @@ describe("verifyProof", _ => {
         }
 
         //when
-        let proof = verifyProof(ctx, ctxSymsToIntsExn(ctx, exprStr), proof)
+        let proof = verifyProof(~ctx, ~expr=ctxSymsToIntsExn(ctx, exprStr), ~proof, ~isDisjInCtx=ctx->isDisj)
 
         //then
         assertEq(

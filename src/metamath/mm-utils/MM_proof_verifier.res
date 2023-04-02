@@ -1,5 +1,6 @@
 open MM_parser
 open MM_context
+open MM_unification_debug
 
 type proofNodeDbg = {
     exprStr: string,
@@ -193,12 +194,83 @@ let intToCompressedProofStr: int => string = i => {
     }
 }
 
-let applyAsrt = (stack:proofStack, frame, ctx):unit => {
+let verifyDisjoints = ( 
+    ~subs:array<expr>,
+    ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~isDisjInCtx: (int,int) => bool,
+):option<unifErr> => {
+    let res = ref(None)
+    frmDisj->Belt_MapInt.forEach((n,ms) => {
+        if (res.contents->Belt.Option.isNone) {
+            ms->Belt_SetInt.forEach(m => {
+                if (res.contents->Belt.Option.isNone) {
+                    let nExpr = subs[n]
+                    let nExprBegin = 1
+                    let nExprEnd = nExpr->Js_array2.length-1
+                    let mExpr = subs[m]
+                    let mExprBegin = 1
+                    let mExprEnd = mExpr->Js_array2.length-1
+                    for nExprI in nExprBegin to nExprEnd {
+                        if (res.contents->Belt.Option.isNone) {
+                            let nExprSym = nExpr[nExprI]
+                            if (nExprSym >= 0) {
+                                for mExprI in mExprBegin to mExprEnd {
+                                    if (res.contents->Belt.Option.isNone) {
+                                        let mExprSym = mExpr[mExprI]
+                                        if (mExprSym >= 0) {
+                                            if (nExprSym == mExprSym) {
+                                                res.contents = Some(DisjCommonVar({
+                                                    frmVar1:n, 
+                                                    expr1:nExpr->Js_array2.slice(~start=nExprBegin, ~end_=nExprEnd+1),
+                                                    frmVar2:m, 
+                                                    expr2:mExpr->Js_array2.slice(~start=mExprBegin, ~end_=mExprEnd+1),
+                                                    commonVar:nExprSym,
+                                                }))
+                                            } else if (!isDisjInCtx(nExprSym, mExprSym)) {
+                                                res.contents = Some(Disj({
+                                                    frmVar1:n, 
+                                                    expr1:nExpr->Js_array2.slice(~start=nExprBegin, ~end_=nExprEnd+1),
+                                                    var1:nExprSym,
+                                                    frmVar2:m, 
+                                                    expr2:mExpr->Js_array2.slice(~start=mExprBegin, ~end_=mExprEnd+1),
+                                                    var2:mExprSym,
+                                                }))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        }
+    })
+    res.contents
+}
+
+let applyAsrt = (
+    ~stack:proofStack, 
+    ~frame:frame, 
+    ~ctx:mmContext,
+    ~isDisjInCtx: (int,int) => bool,
+):unit => {
     let stackLength = stack.nodes->Js_array2.length
     if (stackLength < frame.numOfArgs) {
         raise(MmException({msg:`stackLength < numOfArgs`}))
     } else {
         let subs = stExtractSubstitution(stack, frame)
+        switch verifyDisjoints( ~subs, ~frmDisj=frame.disj, ~isDisjInCtx) {
+            | Some(err) => {
+                let errMsg = unifErrToStr(
+                    err,
+                    ~exprToStr = ctx->ctxIntsToStrExn,
+                    ~frmExprToStr = expr => ctx->frmIntsToStrExn(frame, expr),
+                )
+                raise(MmException({msg:`Disjoint verification failed: ${errMsg}`}))
+            }
+            | None => ()
+        }
         validateTopOfStackMatchesFrame(stack, frame, subs)
         let expr = applySubs(frame.asrt, subs)
         let newNode = Calculated({
@@ -221,7 +293,12 @@ let applyAsrt = (stack:proofStack, frame, ctx):unit => {
     }
 }
 
-let applyUncompressedProof = (ctx, stack, proofLabels) => {
+let applyUncompressedProof = (
+    ~ctx:mmContext,
+    ~stack:proofStack, 
+    ~proofLabels:array<string>,
+    ~isDisjInCtx: (int,int) => bool,
+) => {
     proofLabels->Js_array2.forEach(step => {
         switch ctx->getHypothesis(step) {
             | Some(hyp) => {
@@ -240,7 +317,7 @@ let applyUncompressedProof = (ctx, stack, proofLabels) => {
             }
             | None => {
                 switch ctx->getFrame(step) {
-                    | Some(frame) => applyAsrt(stack, frame, ctx)
+                    | Some(frame) => applyAsrt( ~stack, ~frame, ~ctx, ~isDisjInCtx )
                     | None => raise(MmException({msg:`The proof step '${step}' doesn't refer to a hypothesis or assertion (in uncompressed proof).`}))
                 }
             }
@@ -248,7 +325,14 @@ let applyUncompressedProof = (ctx, stack, proofLabels) => {
     })
 }
 
-let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit => {
+let applyCompressedProof = (
+    ~expr:expr, 
+    ~compressedProofBlock:string,
+    ~ctx:mmContext,
+    ~stack:proofStack, 
+    ~isDisjInCtx: (int,int) => bool,
+    ~labels:array<string>,
+):unit => {
     let pushHypToStack = (hyp:hypothesis) => {
         stack.nodes->Js_array2.push(Hypothesis({
             id: stack.nextId,
@@ -289,7 +373,7 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
                     | Some(hyp) => pushHypToStack(hyp)
                     | None => {
                         switch ctx->getFrame(labelToApply) {
-                            | Some(frame) => applyAsrt(stack, frame, ctx)
+                            | Some(frame) => applyAsrt( ~stack, ~frame, ~ctx, ~isDisjInCtx )
                             | None => raise(MmException({msg:`The proof step '${labelToApply}' doesn't refer to a hypothesis or assertion (in compressed proof).`}))
                         }
                     }
@@ -304,14 +388,20 @@ let applyCompressedProof = (ctx, expr, stack, labels, compressedProofBlock):unit
     })
 }
 
-let verifyProof = (ctx:mmContext, expr:expr, proof:proof):proofNode => {
+let verifyProof = (
+    ~ctx:mmContext, 
+    ~expr:expr, 
+    ~proof:proof,
+    ~isDisjInCtx: (int,int) => bool,
+):proofNode => {
     let stack = {
         nextId:0,
         nodes: [],
     }
     switch proof {
-        | Compressed({labels, compressedProofBlock}) => applyCompressedProof(ctx, expr, stack, labels, compressedProofBlock)
-        | Uncompressed({labels}) => applyUncompressedProof(ctx, stack, labels)
+        | Compressed({labels, compressedProofBlock}) => 
+            applyCompressedProof(~ctx, ~expr, ~stack, ~labels, ~compressedProofBlock, ~isDisjInCtx)
+        | Uncompressed({labels}) => applyUncompressedProof(~ctx, ~stack, ~proofLabels=labels, ~isDisjInCtx)
     }
     if (stack.nodes->Js_array2.length != 1) {
         raise(MmException({msg:`stack->Js_array2.length is ${stack.nodes->Js_array2.length->Belt_Int.toString} but must be 1.`}))

@@ -24,8 +24,8 @@ describe("verifyProof", _ => {
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
                     //then
-                    verifyProof(ctx, expr, proof)->ignore
-                    
+                    verifyProof(~ctx, ~expr, ~proof, ~isDisjInCtx=ctx->isDisj)->ignore
+
                     progressTracker->testProgressTrackerIncCnt
                 }
                 | _ => ()
