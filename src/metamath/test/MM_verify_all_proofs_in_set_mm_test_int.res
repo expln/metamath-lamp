@@ -3,6 +3,7 @@ open MM_parser
 open MM_proof_table
 open MM_context
 open MM_proof_verifier
+open MM_progress_tracker
 
 let mmFilePath = "./src/metamath/test/resources/set.mm"
 
@@ -122,18 +123,28 @@ describe("verify all proofs in set.mm", _ => {
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
 
         let cnt = ref(0)
+        let maxCnt = loadContext(ast, ())->getAllFrames->Belt_MapString.size->Belt_Int.toFloat
+        let progressTracker = progressTrackerMutableMake(
+            ~step=0.05, 
+            ~pct=0.0, 
+            ~onProgress = pct => {
+                Js.Console.log((pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
+            }, 
+            ()
+        )
 
         loadContext(ast, ~onPreProcess = (ctx,node) => {
             switch node {
                 | Provable({label,expr:exprStr,proof:Some(expectedProof)}) => {
                     cnt.contents = cnt.contents + 1
-                    Js.Console.log2(cnt.contents, label)
+                    // Js.Console.log2(cnt.contents, label)
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
                     let proofNode = verifyProof(ctx, expr, expectedProof)
                     let proofTable = createProofTableFromProof(proofNode)
 
                     let actualProof = createProof(ctx, proofTable, proofTable->Js_array2.length-1)
+                    verifyProof(ctx, expr, actualProof)->ignore
                     if (
                         !proofEq(
                             ~expectedProof, 
@@ -144,6 +155,12 @@ describe("verify all proofs in set.mm", _ => {
                         Js.Console.log2("expected", expectedProof)
                         Js.Console.log2("actual", actualProof)
                         failMsg(`Proof comparison failed for ${label}`)
+                    }
+
+                    if (mod(cnt.contents, 100) == 0) {
+                        progressTracker->progressTrackerMutableSetCurrPct(
+                            cnt.contents->Belt_Int.toFloat /. maxCnt
+                        )
                     }
                 }
                 | _ => ()
