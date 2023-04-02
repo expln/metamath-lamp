@@ -1,5 +1,6 @@
 open MM_wrk_editor
 open MM_statements_dto
+open MM_progress_tracker
 
 let setMmPath: string
 let asrtsToSkipFilePath: string
@@ -25,3 +26,17 @@ let generateReducedMmFile: (
     ~skipProofs:bool=?,
     ()
 ) => unit
+
+let countFrames: (
+  MM_parser.mmAstNode,
+  ~stopBefore: string=?,
+  ~stopAfter: string=?,
+  unit,
+) => int
+
+let testProgressTrackerMake: (
+  ~step: float,
+  ~maxCnt: int,
+) => progressStateInt
+
+let testProgressTrackerIncCnt: progressStateInt => unit

@@ -2,6 +2,7 @@ open Expln_test
 open MM_parser
 open MM_wrk_editor
 open MM_statements_dto
+open MM_progress_tracker
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs.mm"
 let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"
@@ -162,4 +163,54 @@ let generateReducedMmFile = (
     let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs, ())
     let reducedContent = astToStr(ast)
     Expln_utils_files.writeStringToFile( pathToSaveTo, reducedContent )
+}
+
+let countFrames = (
+    ast, 
+    ~stopBefore="",
+    ~stopAfter="",
+    ()
+) => {
+
+    let (cnt, _) = traverseAst(
+        ref(0),
+        ast,
+        ~process = (cnt,node) => {
+            switch node {
+                | {stmt: Axiom({label}) | Provable({label})} => {
+                    if (stopBefore == label) {
+                        Some(())
+                    } else {
+                        cnt.contents = cnt.contents + 1
+                        if (stopAfter == label) {
+                            Some(())
+                        } else {
+                            None
+                        }
+                    }
+                }
+                | _ => None
+            }
+        },
+        ()
+    )
+    cnt.contents
+}
+
+let testProgressTrackerMake = (
+    ~step:float, 
+    ~maxCnt:int,
+):progressStateInt => {
+    progressTrackerIntMake(
+        ~step, 
+        ~maxCnt,
+        ~onProgress = pct => {
+            Js.Console.log2(Js.Date.make()->Js.Date.toISOString, (pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
+        }, 
+        ()
+    )
+}
+
+let testProgressTrackerIncCnt = (state:progressStateInt):unit => {
+    state->progressTrackerIntIncCnt
 }

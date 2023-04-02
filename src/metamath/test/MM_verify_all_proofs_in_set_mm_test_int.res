@@ -3,7 +3,7 @@ open MM_parser
 open MM_proof_table
 open MM_context
 open MM_proof_verifier
-open MM_progress_tracker
+open MM_int_test_utils
 
 let mmFilePath = "./src/metamath/test/resources/set.mm"
 
@@ -123,13 +123,9 @@ describe("verify all proofs in set.mm", _ => {
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
 
         let cnt = ref(0)
-        let progressTracker = progressTrackerIntMake(
+        let progressTracker = testProgressTrackerMake(
             ~step=0.05, 
-            ~maxCnt = loadContext(ast, ())->getAllFrames->Belt_MapString.size,
-            ~onProgress = pct => {
-                Js.Console.log((pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
-            }, 
-            ()
+            ~maxCnt = countFrames(ast, ()),
         )
 
         loadContext(ast, ~onPreProcess = (ctx,node) => {
@@ -156,7 +152,7 @@ describe("verify all proofs in set.mm", _ => {
                         failMsg(`Proof comparison failed for ${label}`)
                     }
 
-                    progressTracker->progressTrackerIntIncCnt
+                    progressTracker->testProgressTrackerIncCnt
                 }
                 | _ => ()
             }
