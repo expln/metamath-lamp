@@ -580,20 +580,8 @@ let updateColorsInAllStmts = st => {
     }
 }
 
-let setSettings = (st, settingsV, settings) => {
-    let st = { 
-        ...st, 
-        settingsV, 
-        settings,
-    }
-    let st = recalcTypeColors(st)
-    let st = recalcPreCtxColors(st)
-    let st = recalcWrkCtxColors(st)
-    let st = updateColorsInAllStmts(st)
-    st
-}
-
 let setPreCtx = (st, preCtxV, preCtx) => {
+    preCtx->moveConstsToBegin(st.settings.parens)
     let st = { 
         ...st, 
         preCtxV, 
@@ -601,6 +589,20 @@ let setPreCtx = (st, preCtxV, preCtx) => {
         frms: prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ()),
         parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
     }
+    let st = recalcPreCtxColors(st)
+    let st = recalcWrkCtxColors(st)
+    let st = updateColorsInAllStmts(st)
+    st
+}
+
+let setSettings = (st, settingsV, settings) => {
+    let st = { 
+        ...st, 
+        settingsV, 
+        settings,
+    }
+    let st = setPreCtx(st, st.preCtxV, st.preCtx)
+    let st = recalcTypeColors(st)
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)
     let st = updateColorsInAllStmts(st)
