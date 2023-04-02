@@ -96,12 +96,8 @@ let addDisjFromString = (wrkCtx, disjStr) => {
 }
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {
-    let disjLines = disjText
-        ->Js_string2.splitByRe(newLineRegex)
-        ->Js_array2.map(so => so->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(s => s->Js_string2.length > 0)
     try {
-        disjLines->Js_array2.forEach(addDisjFromString(wrkCtx))
+        disjText->multilineTextToNonEmptyLines->Js_array2.forEach(addDisjFromString(wrkCtx))
         None
     } catch {
         | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), disjErr:Some(msg)})

@@ -118,7 +118,7 @@ describe("prepareEditorForUnification", _ => {
         let st = prepareEditorForUnification(st)
 
         //then
-        assertEq(st.varsErr->Belt_Option.getWithDefault(""), "The first symbol in the floating 'hyp_v2' must be a constant.")
+        assertEq(st.varsErr->Belt_Option.getWithDefault(""), "The first symbol in the floating 'term-' must be a constant.")
         assertEq(st.wrkCtx->Belt_Option.isNone, true)
     })
     

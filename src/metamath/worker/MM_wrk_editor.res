@@ -1409,28 +1409,29 @@ let removeUnusedVars = (st:editorState):editorState => {
         | Some(wrkCtx) => {
             let usedSymbols = st.stmts
                 ->Expln_utils_common.arrFlatMap(stmt=>stmt.cont->contToArrStr)
-                ->Belt_SetString.fromArray
-            let unusedVars = wrkCtx->getLocalVars->Js_array2.filter(var => !(usedSymbols->Belt_SetString.has(var)))
-            let (st, unusedVarInts) = if (unusedVars->Js_array2.length == 0) {
-                (st, Belt_HashSetInt.make(~hintSize=0))
+                ->Belt_HashSetString.fromArray
+            wrkCtx->getLocalHyps->Js_array2.forEach(hyp => {
+                if (hyp.typ == F && hyp.label->Js_string2.startsWith(".")) {
+                    usedSymbols->Belt_HashSetString.add(wrkCtx->ctxIntToSymExn(hyp.expr[1]))
+                }
+            })
+            let unusedVars = wrkCtx->getLocalVars->Js_array2.filter(var => !(usedSymbols->Belt_HashSetString.has(var)))
+            let st = if (unusedVars->Js_array2.length == 0) {
+                st
             } else {
                 let unusedVarInts = wrkCtx->ctxSymsToIntsExn(unusedVars)->Belt_HashSetInt.fromArray
-                wrkCtx->getLocalHyps->Js_array2.forEach(hyp => {
-                    if (hyp.typ == F && hyp.label->Js_string2.startsWith(".")) {
-                        unusedVarInts->Belt_HashSetInt.remove(hyp.expr[1])
-                    }
-                })
-                let usedVarsStr = wrkCtx->getLocalHyps
+                let usedLocalVarsStr = wrkCtx->getLocalHyps
                     ->Js_array2.filter(hyp => hyp.typ == F && !(unusedVarInts->Belt_HashSetInt.has(hyp.expr[1])))
                     ->Js_array2.map(hyp => 
                         `${hyp.label} ${wrkCtx->ctxIntToSymExn(hyp.expr[0])} ${wrkCtx->ctxIntToSymExn(hyp.expr[1])}`
                     )
                     ->Js_array2.joinWith("\n")
-                (completeVarsEditMode(st, usedVarsStr), unusedVarInts)
+                completeVarsEditMode(st, usedLocalVarsStr)
             }
             let newDisj = disjMake()
             wrkCtx->getLocalDisj->disjForEach((n,m) => {
-                if (!(unusedVarInts->Belt_HashSetInt.has(n)) && !(unusedVarInts->Belt_HashSetInt.has(m))) {
+                if (usedSymbols->Belt_HashSetString.has(wrkCtx->ctxIntToSymExn(n)) 
+                    && usedSymbols->Belt_HashSetString.has(wrkCtx->ctxIntToSymExn(m))) {
                     newDisj->disjAddPair(n,m)
                 }
             })

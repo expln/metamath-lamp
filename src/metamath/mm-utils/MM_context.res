@@ -762,9 +762,9 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
         let typName = exprStr[0]
         let varName = exprStr[1]
         if (!(ctx->isConst(typName))) {
-            raise(MmException({msg:`The first symbol in the floating '${label}' must be a constant.`}))
+            raise(MmException({msg:`The first symbol in the floating '${typName}' must be a constant.`}))
         } else if (!(ctx->isVar(varName))) {
-            raise(MmException({msg:`The second symbol in the floating '${label}' must be a variable.`}))
+            raise(MmException({msg:`The second symbol in the floating '${varName}' must be a variable.`}))
         } else {
             let varInt = ctx->ctxSymToIntExn(varName)
             if (ctx->getTypeOfVar(varInt)->Belt_Option.isSome) {
