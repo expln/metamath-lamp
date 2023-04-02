@@ -98,31 +98,13 @@ let proofEq = (~expectedProof:proof, ~actualProof:proof, ~getMandHypsNum:()=>int
     }
 }
 
-describe("verify all proofs in set.mm", _ => {
-    it("verifyProof verifies all proofs in set.mm", _ => {
-        let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-
-        let cnt = ref(0)
-
-        loadContext(ast, ~onPreProcess = (ctx,node) => {
-            switch node {
-                | Provable({label,expr:exprStr,proof:Some(proof)}) => {
-                    cnt.contents = cnt.contents + 1
-                    // Js.Console.log2(cnt.contents, label)
-                    let expr = ctx->ctxSymsToIntsExn(exprStr)
-                    verifyProof(ctx, expr, proof)->ignore
-                }
-                | _ => ()
-            }
-        }, ())->ignore
-    })
+describe("createProof", _ => {
 
     it("conversion compressedProof->tableProof->compressedProof creates equivalent compressedProof", _ => {
+        //given
         let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
 
-        let cnt = ref(0)
         let progressTracker = testProgressTrackerMake(
             ~step=0.05, 
             ~maxCnt = countFrames(ast, ()),
@@ -130,9 +112,8 @@ describe("verify all proofs in set.mm", _ => {
 
         loadContext(ast, ~onPreProcess = (ctx,node) => {
             switch node {
+                //when
                 | Provable({label,expr:exprStr,proof:Some(expectedProof)}) => {
-                    cnt.contents = cnt.contents + 1
-                    // Js.Console.log2(cnt.contents, label)
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
                     let proofNode = verifyProof(ctx, expr, expectedProof)
@@ -140,6 +121,8 @@ describe("verify all proofs in set.mm", _ => {
 
                     let actualProof = createProof(ctx, proofTable, proofTable->Js_array2.length-1)
                     verifyProof(ctx, expr, actualProof)->ignore
+
+                    //then
                     if (
                         !proofEq(
                             ~expectedProof, 
