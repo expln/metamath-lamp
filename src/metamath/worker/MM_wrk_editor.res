@@ -1412,11 +1412,16 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ->Belt_SetString.fromArray
             let unusedVars = wrkCtx->getLocalVars->Js_array2.filter(var => !(usedSymbols->Belt_SetString.has(var)))
             let (st, unusedVarInts) = if (unusedVars->Js_array2.length == 0) {
-                (st, [])
+                (st, Belt_HashSetInt.make(~hintSize=0))
             } else {
-                let unusedVarInts = wrkCtx->ctxSymsToIntsExn(unusedVars)
+                let unusedVarInts = wrkCtx->ctxSymsToIntsExn(unusedVars)->Belt_HashSetInt.fromArray
+                wrkCtx->getLocalHyps->Js_array2.forEach(hyp => {
+                    if (hyp.typ == F && hyp.label->Js_string2.startsWith(".")) {
+                        unusedVarInts->Belt_HashSetInt.remove(hyp.expr[1])
+                    }
+                })
                 let usedVarsStr = wrkCtx->getLocalHyps
-                    ->Js_array2.filter(hyp => hyp.typ == F && !(unusedVarInts->Js_array2.includes(hyp.expr[1])))
+                    ->Js_array2.filter(hyp => hyp.typ == F && !(unusedVarInts->Belt_HashSetInt.has(hyp.expr[1])))
                     ->Js_array2.map(hyp => 
                         `${hyp.label} ${wrkCtx->ctxIntToSymExn(hyp.expr[0])} ${wrkCtx->ctxIntToSymExn(hyp.expr[1])}`
                     )
@@ -1425,7 +1430,7 @@ let removeUnusedVars = (st:editorState):editorState => {
             }
             let newDisj = disjMake()
             wrkCtx->getLocalDisj->disjForEach((n,m) => {
-                if (!(unusedVarInts->Js_array2.includes(n)) && !(unusedVarInts->Js_array2.includes(m))) {
+                if (!(unusedVarInts->Belt_HashSetInt.has(n)) && !(unusedVarInts->Belt_HashSetInt.has(m))) {
                     newDisj->disjAddPair(n,m)
                 }
             })
