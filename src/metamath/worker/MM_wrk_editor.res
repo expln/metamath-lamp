@@ -1706,27 +1706,7 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                 })
                             )
 
-                            let mandNewEssentials = proofCtx->getLocalHyps
-                                ->Js.Array2.filter(hyp => exprsUsedInProof->Belt_HashSet.has(hyp.expr))
-                            let mandVars = Belt_HashSetInt.make(~hintSize=64)
-                            wrkCtx->forEachHypothesisInDeclarationOrder(hyp => {
-                                if (hyp.typ == E) {
-                                    collectVars(~from=hyp.expr, ~to_=mandVars)
-                                }
-                                None
-                            })->ignore
-                            mandNewEssentials->Js.Array2.forEach(hyp => collectVars(~from=hyp.expr, ~to_=mandVars))
-                            collectVars(~from=expr, ~to_=mandVars)
-                            let mandHyps = []
-                            wrkCtx->forEachHypothesisInDeclarationOrder(hyp => {
-                                if (hyp.typ == E || mandVars->Belt_HashSetInt.has(hyp.expr[1])) {
-                                    mandHyps->Js.Array2.push(hyp)->ignore
-                                }
-                                None
-                            })->ignore
-                            mandNewEssentials->Js.Array2.forEach(hyp => {
-                                mandHyps->Js.Array2.push(hyp)->ignore
-                            })
+                            let mandHyps = proofCtx->getMandHyps(expr)
                             let proof = MM_proof_table.createProof(
                                 mandHyps, proofTable, proofTable->Js_array2.length-1
                             )
@@ -1753,7 +1733,6 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                     }
                                 }
                             )->ignore
-
                             
                             Some(proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ))
                         }
