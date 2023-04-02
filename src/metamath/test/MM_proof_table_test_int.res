@@ -119,7 +119,7 @@ describe("createProof", _ => {
                     let proofNode = verifyProof(ctx, expr, expectedProof)
                     let proofTable = createProofTableFromProof(proofNode)
 
-                    let actualProof = createProof(ctx, proofTable, proofTable->Js_array2.length-1)
+                    let actualProof = createProof(ctx->getMandHyps(expr), proofTable, proofTable->Js_array2.length-1)
                     verifyProof(ctx, expr, actualProof)->ignore
 
                     //then

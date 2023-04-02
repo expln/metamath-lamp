@@ -1687,7 +1687,10 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                 wrkCtx,
                                 st.stmts->Js_array2.filter(stmt => stmt.typ == E)->Js_array2.map(userStmtToRootStmt)
                             )
-                            let proof = MM_proof_table.createProof(proofCtx, proofTable, proofTable->Js_array2.length-1)
+                            let expr = userStmtToRootStmt(stmt).expr
+                            let proof = MM_proof_table.createProof(
+                                proofCtx->getMandHyps(expr), proofTable, proofTable->Js_array2.length-1
+                            )
                             let newVars = wrkCtx->getLocalVars
                             let newDisj = wrkCtx->getLocalDisj
                             let newHyps = wrkCtx->getLocalHyps->Js.Array2.concat(proofCtx->getLocalHyps)

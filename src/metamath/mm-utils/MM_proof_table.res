@@ -107,12 +107,11 @@ let collectReusedIdxs = (tbl,rootIdx):Belt_HashSetInt.t => {
     reused
 }
 
-let createProof = (ctx:mmContext, tbl:proofTable, rootIdx:int):proof => {
+let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proof => {
     let tblLen = tbl->Js_array2.length
     if (tblLen <= rootIdx) {
         raise(MmException({msg:`tblLen <= rootIdx`}))
     }
-    let mandHyps = getMandHyps(ctx, tbl[rootIdx].expr)
     let mandHypLen = mandHyps->Js.Array2.length
     let mandHypLabelToInt = Belt_HashMapString.fromArray(
         mandHyps->Js_array2.mapi(({label}, i) => (label, i+1))
