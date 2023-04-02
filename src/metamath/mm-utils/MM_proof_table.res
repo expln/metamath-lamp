@@ -62,37 +62,32 @@ let proofTableToStr = (ctx,tbl,title):string => {
 
 let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
 
-let traverseRecordsInRpnOrder = (tbl:proofTable,targetIdx:int,~onUse:proofRecord=>unit,~onReuse:(proofRecord,bool)=>unit) => {
-    let savedExprs = Belt_MutableSet.make(~id=module(ExprCmp))
-    let reusedExprsSet = Belt_MutableSet.make(~id=module(ExprCmp))
+let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReuse:int=>unit) => {
+    let saved = Belt_HashSetInt.make(~hintSize=64)
     Expln_utils_data.traverseTree(
         (),
-        tbl[targetIdx],
-        (_, r) => {
-            switch r.proof {
+        rootIdx,
+        (_, idx) => {
+            switch tbl[idx].proof {
                 | Hypothesis(_) => None
-                | Assertion({args}) => if (savedExprs->Belt_MutableSet.has(r.expr)) { None } else { Some(args->Js_array2.map(a=>tbl[a])) }
-            }
-        },
-        ~process = (_, r) => {
-            switch r.proof {
-                | Hypothesis(_) => onUse(r)
-                | _ => ()
-            }
-            None
-        },
-        ~postProcess = (_, r) => {
-            switch r.proof {
-                | Assertion(_) => {
-                    if (!(savedExprs->Belt_MutableSet.has(r.expr))) {
-                        savedExprs->Belt_MutableSet.add(r.expr)
-                        onUse(r)
+                | Assertion({args}) => {
+                    if (saved->Belt_HashSetInt.has(idx)) {
+                        None
                     } else {
-                        let firstReusage = !(reusedExprsSet->Belt_MutableSet.has(r.expr))
-                        if (firstReusage) {
-                            reusedExprsSet->Belt_MutableSet.add(r.expr)
-                        }
-                        onReuse(r,firstReusage)
+                        Some(args)
+                    }
+                }
+            }
+        },
+        ~postProcess = (_, idx) => {
+            switch tbl[idx].proof {
+                | Hypothesis(_) => onUse(idx)
+                | Assertion(_) => {
+                    if (!(saved->Belt_HashSetInt.has(idx))) {
+                        saved->Belt_HashSetInt.add(idx)
+                        onUse(idx)
+                    } else {
+                        onReuse(idx)
                     }
                 }
                 | _ => ()
@@ -103,58 +98,59 @@ let traverseRecordsInRpnOrder = (tbl:proofTable,targetIdx:int,~onUse:proofRecord
     )->ignore
 }
 
-let collectReusedExprs = (tbl,targetIdx):Belt_Set.t<expr, ExprCmp.identity> => {
-    let reusedExprs = []
-    traverseRecordsInRpnOrder(tbl,targetIdx,
+let collectReusedIdxs = (tbl,rootIdx):Belt_HashSetInt.t => {
+    let reused = Belt_HashSetInt.make(~hintSize=64)
+    traverseIdxsInRpnOrder(tbl,rootIdx,
         ~onUse = _ => (),
-        ~onReuse = (r,firstReusage) => {
-            if (firstReusage) {
-                reusedExprs->Js_array2.push(r.expr)->ignore
-            }
-        }
+        ~onReuse = idx => reused->Belt_HashSetInt.add(idx)
     )
-    Belt_Set.fromArray(reusedExprs, ~id=module(ExprCmp))
+    reused
 }
 
-let createProof = (ctx:mmContext, tbl:proofTable, targetIdx:int):proof => {
+let createProof = (ctx:mmContext, tbl:proofTable, rootIdx:int):proof => {
     let tblLen = tbl->Js_array2.length
-    if (tblLen <= targetIdx) {
-        raise(MmException({msg:`tblLen <= targetIdx`}))
+    if (tblLen <= rootIdx) {
+        raise(MmException({msg:`tblLen <= rootIdx`}))
     }
-    let mandHyps = getMandHyps(ctx, tbl[targetIdx].expr)
-    let mandHypLabelToInt = Belt_MapString.fromArray(
+    let mandHyps = getMandHyps(ctx, tbl[rootIdx].expr)
+    let mandHypLen = mandHyps->Js.Array2.length
+    let mandHypLabelToInt = Belt_HashMapString.fromArray(
         mandHyps->Js_array2.mapi(({label}, i) => (label, i+1))
     )
-    let mandHypLen = mandHypLabelToInt->Belt_MapString.size
     let labels = []
-    let labelToInt = label => {
-        mandHypLen + switch labels->Js_array2.indexOf(label) {
-            | -1 => labels->Js_array2.push(label)
-            | i => i+1
-        }
-    }
-    let reusedExprs = collectReusedExprs(tbl,targetIdx)
-    let reusedExprToInt = Belt_MutableMap.make(~id=module(ExprCmp))
-    let proofSteps = []
-    traverseRecordsInRpnOrder(tbl,targetIdx,
-        ~onUse = r => {
-            let idx = switch r.proof {
-                | Hypothesis({label}) => {
-                    switch mandHypLabelToInt->Belt_MapString.get(label) {
-                        | Some(i) => i
-                        | None => labelToInt(label)
+    let labelToIntMap = Belt_HashMapString.make(~hintSize=64)
+    let labelToInt = (label:string):int => {
+        switch mandHypLabelToInt->Belt_HashMapString.get(label) {
+            | Some(i) => i
+            | None => {
+                switch labelToIntMap->Belt_HashMapString.get(label) {
+                    | Some(i) => i
+                    | None => {
+                        labels->Js.Array2.push(label)->ignore
+                        let res = mandHypLen + labels->Js.Array2.length
+                        labelToIntMap->Belt_HashMapString.set(label, res)
+                        res
                     }
                 }
-                | Assertion({label}) => labelToInt(label)
             }
-            proofSteps->Js_array2.push(idx)->ignore
-            if (reusedExprs->Belt_Set.has(r.expr)) {
+        }
+    }
+    let reusedIdxs = collectReusedIdxs(tbl,rootIdx)
+    let reusedIdxToInt = Belt_HashMapInt.make(~hintSize=64)
+    let proofSteps = []
+    traverseIdxsInRpnOrder(tbl,rootIdx,
+        ~onUse = idx => {
+            let stepNum = switch tbl[idx].proof {
+                | Hypothesis({label}) | Assertion({label}) => labelToInt(label)
+            }
+            proofSteps->Js_array2.push(stepNum)->ignore
+            if (reusedIdxs->Belt_HashSetInt.has(idx)) {
                 proofSteps->Js_array2.push(0)->ignore
-                reusedExprToInt->Belt_MutableMap.set(r.expr, reusedExprToInt->Belt_MutableMap.size + 1)
+                reusedIdxToInt->Belt_HashMapInt.set(idx, reusedIdxToInt->Belt_HashMapInt.size + 1)
             }
         },
-        ~onReuse = (r,_) => {
-            proofSteps->Js_array2.push(-(reusedExprToInt->Belt_MutableMap.getExn(r.expr)))->ignore
+        ~onReuse = idx => {
+            proofSteps->Js_array2.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))->ignore
         }
     )
     let labelsLastIdx = mandHypLen + labels->Js.Array2.length
@@ -170,7 +166,6 @@ let createProof = (ctx:mmContext, tbl:proofTable, targetIdx:int):proof => {
             }
         })->Js_array2.joinWith("")
     })
-
 }
 
 let createProofTableFromProof = (proofNode:proofNode):proofTable => {
