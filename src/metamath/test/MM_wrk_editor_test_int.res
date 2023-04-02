@@ -196,8 +196,8 @@ describe("MM_wrk_editor integration tests", _ => {
         setTestDataDir("bottom-up-ifbieq2d")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
-        let st = st->addDisj("x,A")
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( x = A -> if ( x = 0 , 0 , if ( x < 0 , -u 1 , 1 ) ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
+        let st = st->addDisj("x,A")
 
         let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
         let resultsWhenDepth3 = stmts1->newStmtsDtoToStr
@@ -465,7 +465,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step6-all-proved")
 
-        let st = st->removeDisj("x,y,v,u,A,k,F,r")
+        let st = st->setDisj("")
         let st = st->unifyAll
         assertEditorState(st, "step7")
 
