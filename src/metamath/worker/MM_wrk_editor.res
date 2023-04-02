@@ -1673,6 +1673,10 @@ let proofToText = (
     }
 }
 
+let collectVars = (~from:expr, ~to_:Belt_HashSetInt.t):unit => {
+    from->Js_array2.forEach(i => if i >= 0 { to_->Belt_HashSetInt.add(i) })
+}
+
 let generateCompressedProof = (st, stmtId):option<string> => {
     switch st.wrkCtx {
         | None => None
@@ -1684,28 +1688,26 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                         | None => None
                         | Some((proofTreeDto,proofNode)) => {
                             let preCtx = st.preCtx
-                            let proofTable = createProofTable(proofTreeDto,proofNode)
-                            let exprsUsedInProof = proofTable->Js.Array2.map(r => r.expr)
-                                ->Belt_HashSet.fromArray(~id=module(ExprHash))
                             let proofCtx = createProofCtx(
                                 wrkCtx,
                                 st.stmts->Js_array2.filter(stmt => stmt.typ == E)->Js_array2.map(userStmtToRootStmt)
                             )
                             let expr = userStmtToRootStmt(stmt).expr
+                            let proofTable = createProofTable(proofTreeDto,proofNode)
+                            let exprsUsedInProof = proofTable->Js.Array2.map(r => r.expr)
+                                ->Belt_HashSet.fromArray(~id=module(ExprHash))
 
                             let mandNewEssentials = proofCtx->getLocalHyps
                                 ->Js.Array2.filter(hyp => exprsUsedInProof->Belt_HashSet.has(hyp.expr))
                             let mandVars = Belt_HashSetInt.make(~hintSize=64)
                             wrkCtx->forEachHypothesisInDeclarationOrder(hyp => {
                                 if (hyp.typ == E) {
-                                    hyp.expr->Js_array2.forEach(i => if i >= 0 { mandVars->Belt_HashSetInt.add(i) })
+                                    collectVars(~from=hyp.expr, ~to_=mandVars)
                                 }
                                 None
                             })->ignore
-                            mandNewEssentials->Js.Array2.forEach(hyp => {
-                                hyp.expr->Js_array2.forEach(i => if i >= 0 { mandVars->Belt_HashSetInt.add(i) })
-                            })
-                            expr->Js_array2.forEach(i => if i >= 0 { mandVars->Belt_HashSetInt.add(i) })
+                            mandNewEssentials->Js.Array2.forEach(hyp => collectVars(~from=hyp.expr, ~to_=mandVars))
+                            collectVars(~from=expr, ~to_=mandVars)
                             let mandHyps = []
                             wrkCtx->forEachHypothesisInDeclarationOrder(hyp => {
                                 if (hyp.typ == E || mandVars->Belt_HashSetInt.has(hyp.expr[1])) {
@@ -1716,12 +1718,9 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                             mandNewEssentials->Js.Array2.forEach(hyp => {
                                 mandHyps->Js.Array2.push(hyp)->ignore
                             })
-                            let mandDisj = disjMake()
-                            wrkCtx->getAllDisj->disjForEach((n,m) => {
-                                if (mandVars->Belt_HashSetInt.has(n) && mandVars->Belt_HashSetInt.has(m)) {
-                                    mandDisj->disjAddPair(n,m)
-                                }
-                            })
+                            let proof = MM_proof_table.createProof(
+                                mandHyps, proofTable, proofTable->Js_array2.length-1
+                            )
 
                             let newHyps = []
                             mandHyps->Js.Array2.forEach(hyp => {
@@ -1729,16 +1728,18 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                     newHyps->Js.Array2.push(hyp)->ignore
                                 }
                             })
+                            let allVarsInProof = Belt_HashSetInt.make(~hintSize=64)
+                            exprsUsedInProof->Belt_HashSet.forEach(expr => {
+                                collectVars(~from=expr, ~to_=allVarsInProof)
+                            })
                             let newDisj = disjMake()
-                            mandDisj->disjForEach((n,m) => {
-                                if (!(preCtx->isDisj(n,m))) {
+                            wrkCtx->getAllDisj->disjForEach((n,m) => {
+                                if (allVarsInProof->Belt_HashSetInt.has(n) && allVarsInProof->Belt_HashSetInt.has(m) 
+                                    && !(preCtx->isDisj(n,m))) {
                                     newDisj->disjAddPair(n,m)
                                 }
                             })
-
-                            let proof = MM_proof_table.createProof(
-                                mandHyps, proofTable, proofTable->Js_array2.length-1
-                            )
+                            
                             Some(proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ))
                         }
                     }
