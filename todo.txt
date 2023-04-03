@@ -14,23 +14,11 @@
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 - write tests for collecting debug info
 
-- restrict names of labels due to the error:
-    ?Error on line 732616 of file "set-check-new-proofs.mm" at statement 203351,
-    label "1", type "$e":
-            1 $e |- ch $.
-            ^
-    This label has the same name as the math token declared on line 108187 of file
+- Automatically create correct labels for hypotheses.
 - implement table view in the editor.
-- don't remove vars prefixed with an exclamation mark.
 - tooltip: To start a new line in a multiline text editor press Shift+Enter
 - load *.mm files from metamath.org
 - add onEnter and onEscape wherever possible.
-- fix a bug:
-    1. load set.mm, read all
-    2. load my-editor-state.json
-    3. unify all. stmt2-spcgv.11 and stmt2 are "waiting"
-    4. remove jstf of stmt2-spcgv.11 and stmt2
-    5. unify all. stmt2-spcgv.11 and stmt2 are "cannot find jstf"
 - Make new stmt prefix configurable.
 - before merging of statements check if some statements should be moved up because they are referenced by above statements and don't merge in that case.
 - autofocus label selector after scope is set to StopBefore or StopAfter
@@ -41,12 +29,10 @@
     1) load an MM file, apply changes;
     2) load same file in the same file selector - nothing happens.
 - prefix for new statements
-- add logs to applyAssertions (using array)
 - write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)
 - add possibility to comment statements
 - make error messages more informative: add the statement caused the error (for example in "variables" or in justifications).
 - write tests for editorState -> proofTree -> editorState.
-- renaming of a statement should automatically rename all references (after user confirms this action).
 - correct methods related to movement of statements, they became incorrect after automatic reordering.
 - use Async/Await.
 - precalculate number of combinations (store in an array)
