@@ -808,7 +808,7 @@ let make = (
                     />
                 </Row>
                 <Row>
-                    <Button onClick={_=>actProve()} variant=#outlined >
+                    <Button onClick={_=>actProve()} variant=#contained color="grey" >
                         {React.string("Prove")}
                     </Button>
                     <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>

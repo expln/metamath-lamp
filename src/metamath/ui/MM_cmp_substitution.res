@@ -200,7 +200,7 @@ let make = (
                 ~onChange=actExpr2Change, ~tabIndex=2)}
             {rndError(state.expr2Err)}
             <Row>
-                <Button onClick={_=>actDetermineSubs()} variant=#outlined>
+                <Button onClick={_=>actDetermineSubs()} variant=#contained color="grey" >
                     {React.string("Find substitution")}
                 </Button>
                 <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>

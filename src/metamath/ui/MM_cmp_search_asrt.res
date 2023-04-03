@@ -295,7 +295,7 @@ let make = (
                 {rndLabel()}
                 {rndTyp()}
                 {rndPattern()}
-                <Button onClick={_=>actSearch()} variant=#outlined>
+                <Button onClick={_=>actSearch()} variant=#contained color="grey" >
                     {React.string("Search")}
                 </Button>
                 <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>

@@ -43,6 +43,16 @@ let setSettings = (st,settings) => {
 @get external getClientHeight: Dom.element => int = "clientHeight"
 @new external makeMutationObserver: (array<{..}> => unit) => {..} = "ResizeObserver"
 
+let mainTheme = ThemeProvider.createTheme(
+    {
+        "palette": {
+            "grey": {
+                "main": "#e0e0e0",
+            }
+        }
+    }
+)
+
 @react.component
 let make = () => {
     let modalRef = useModalRef()
@@ -105,19 +115,21 @@ let make = () => {
         </div>
     }
 
-    <Expln_React_ContentWithStickyHeader
-        top=0
-        header={
-            <Col>
-                <MM_cmp_context_selector onChange=actCtxUpdated(_, None) modalRef />
-                {renderTabs()}
-            </Col>
-        }
-        content={contentTop => {
-            <Col>
-                {React.array(tabs->Js_array2.map(rndTabContent(contentTop, _)))}
-                <Expln_React_Modal modalRef />
-            </Col>
-        }}
-    />
+    <ThemeProvider theme=mainTheme>
+        <Expln_React_ContentWithStickyHeader
+            top=0
+            header={
+                <Col>
+                    <MM_cmp_context_selector onChange=actCtxUpdated(_, None) modalRef />
+                    {renderTabs()}
+                </Col>
+            }
+            content={contentTop => {
+                <Col>
+                    {React.array(tabs->Js_array2.map(rndTabContent(contentTop, _)))}
+                    <Expln_React_Modal modalRef />
+                </Col>
+            }}
+        />
+    </ThemeProvider>
 }
