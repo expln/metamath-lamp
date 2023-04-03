@@ -1,14 +1,6 @@
 - export only required disj
 - export only required vars
 - write a test for allowNewDisjForExistingVars
-- check what exprSourceToDto() returns for Assertion (it might skip some useful results).
-- split Src to Src and SrcWithError
-- Fix a bug:
-    1. load my-editor-state.json, prove everything.
-    2. Set disjoints to:
-        x,y,k,A,u,r
-        r,u,v,x,y,F
-    3. Begin bottom-up proving for stmt9 with "allow new stmts"=false. It is shown as proved, but it also has an error.
 - add an int test when a hyp is used in a bottom-up proof being applied.
 - proof tree improvements:
     - pass error icon from src to all unproved children
@@ -19,11 +11,7 @@
     * could not prove type of floating
     * missing disjoint
     * failing disjoint
-- fix the bug discovered in save-proofs-to-files
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
-- fix a bug:
-    1. start proving sgnval.
-    2. after the first bottom-up proof, repeat the same bottom-up proof: results will contain 2 duplicated items.
 - write tests for collecting debug info
 
 - restrict names of labels due to the error:

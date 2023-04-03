@@ -37,7 +37,11 @@ let unselectAllFlags = flags => flags->Js_array2.map(_ => false)
 let invertFlags = flags => flags->Js_array2.map(v => !v)
 
 let selectProvedStmts = (rootStmtsRendered,flags:array<bool>):array<bool> => {
-    flags->Js_array2.mapi((_,i) => getProofStatus(rootStmtsRendered[i])->Belt_Option.isSome)
+    flags->Js_array2.mapi((_,i) => {
+        getProofStatus(rootStmtsRendered[i])
+            ->Belt_Option.map(status => status == Ready)
+            ->Belt.Option.getWithDefault(false)
+    })
 }
 
 let updateFlags = (st:state, update:array<bool>=>array<bool>):state => { ...st, flags: update(st.flags)}
