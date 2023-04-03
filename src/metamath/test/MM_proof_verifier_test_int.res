@@ -1,6 +1,5 @@
 open Expln_test
 open MM_parser
-open MM_proof_table
 open MM_context
 open MM_proof_verifier
 open MM_int_test_utils
@@ -20,7 +19,7 @@ describe("verifyProof", _ => {
         loadContext(ast, ~onPreProcess = (ctx,node) => {
             switch node {
                 //when
-                | Provable({label,expr:exprStr,proof:Some(proof)}) => {
+                | Provable({expr:exprStr,proof:Some(proof)}) => {
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
                     //then

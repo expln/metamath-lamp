@@ -7,7 +7,6 @@ open MM_wrk_settings
 open MM_wrk_unify
 open Expln_utils_promise
 open MM_react_common
-open MM_parenCounter
 open MM_statements_dto
 open MM_wrk_editor_json
 open MM_proof_tree
@@ -614,7 +613,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         if (unifyAllIsRequiredCnt.contents < state.unifyAllIsRequiredCnt) {
             unifyAllIsRequiredCnt.contents = state.unifyAllIsRequiredCnt
             if (!editorStateHasErrors(state)) {
-                actUnify()
+                actUnify(())
             }
         }
         None
@@ -735,7 +734,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                     ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
                     ~title="Apply a substitution to all statements", () ) }
                 { 
-                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick=actUnify,
+                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
                                     && (!atLeastOneStmtIsSelected || singleProvableSelected->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 

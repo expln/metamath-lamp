@@ -328,7 +328,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
-        let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
+        let (_, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less,
             ~chooseResult = dto => dto.newVars->Js_array2.length != 0,
             ()

@@ -5,7 +5,6 @@ open MM_wrk_editor
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
-open MM_wrk_ctx_data
 
 let createEditorState = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)

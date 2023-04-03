@@ -90,7 +90,6 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
                         onReuse(idx)
                     }
                 }
-                | _ => ()
             }
             None
         },

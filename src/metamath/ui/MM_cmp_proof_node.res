@@ -222,7 +222,7 @@ module rec ProofNodeDtoCmp: {
                         React.null
                     }
                 }
-                | AssertionWithErr({err}) => {
+                | AssertionWithErr(_) => {
                     <span
                         title="Click to see error details"
                         style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())

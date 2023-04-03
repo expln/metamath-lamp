@@ -1,16 +1,7 @@
 open MM_context
-open Expln_React_common
-open Expln_React_Mui
-open Expln_React_Modal
 open MM_wrk_editor
 open MM_wrk_settings
-open MM_wrk_ctx_data
-open MM_wrk_unify
-open MM_substitution
-open Expln_utils_promise
-open MM_react_common
 open MM_parenCounter
-open MM_statements_dto
 
 type userStmtLocStor = {
     label: string,

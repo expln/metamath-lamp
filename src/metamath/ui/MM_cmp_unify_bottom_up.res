@@ -118,7 +118,7 @@ let makeInitialState = (
     let rootStmtsLen = rootStmts->Js_array2.length
     let maxRootStmtIdx = rootStmtsLen-1
     let exprToProve = rootStmts[maxRootStmtIdx].expr
-    let possibleArgs = rootStmts->Js_array2.filteri((stmt,i) => i < maxRootStmtIdx)->Js_array2.map(stmt => stmt.expr)
+    let possibleArgs = rootStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js_array2.map(stmt => stmt.expr)
 
     let params = switch initialParams {
         | Some(params) => params

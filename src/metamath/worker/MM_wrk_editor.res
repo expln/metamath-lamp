@@ -1681,10 +1681,6 @@ let proofToText = (
     }
 }
 
-let collectVars = (~from:expr, ~to_:Belt_HashSetInt.t):unit => {
-    from->Js_array2.forEach(i => if i >= 0 { to_->Belt_HashSetInt.add(i) })
-}
-
 let generateCompressedProof = (st, stmtId):option<string> => {
     switch st.wrkCtx {
         | None => None
