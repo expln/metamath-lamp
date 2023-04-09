@@ -1,3 +1,4 @@
+- check exporting local variables when they are used implicitly in the proof.
 - fix mistakes in tooltips.
 - improve performance of MM_cmp_proof_node
 - provide more info on substitution found when "Could not unify essential hypothesis #1"
