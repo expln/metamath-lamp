@@ -1,3 +1,5 @@
+- move word "justification" outside the paper.
+- in the "search" dialog, in the pattern text field, replace variables with their types.
 - check exporting local variables when they are used implicitly in the proof.
 - fix mistakes in tooltips.
 - improve performance of MM_cmp_proof_node
