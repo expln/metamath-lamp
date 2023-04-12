@@ -1715,6 +1715,25 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                     newHyps->Js.Array2.push(hyp)->ignore
                                 }
                             })
+                            let varsUsedInProof = Belt_HashSetInt.make(~hintSize=16)
+                            exprsUsedInProof->Belt_HashSet.forEach(expr => {
+                                expr->Js_array2.forEach(s => {
+                                    if (s >= 0) {
+                                        varsUsedInProof->Belt_HashSetInt.add(s)
+                                    }
+                                })
+                            })
+                            let mandVars = mandHyps->Js.Array2.map(hyp => hyp.expr[1])->Belt_HashSetInt.fromArray
+                            wrkCtx->getLocalHyps->Js.Array2.forEach(hyp => {
+                                if (hyp.typ == F) {
+                                    let var = hyp.expr[1]
+                                    if (varsUsedInProof->Belt_HashSetInt.has(var) 
+                                        && !(mandVars->Belt_HashSetInt.has(var))) {
+                                        newHyps->Js.Array2.push(hyp)->ignore
+                                    }
+                                }
+                            })
+
                             let newDisj = disjMake()
                             MM_proof_verifier.verifyProof(
                                 ~ctx=proofCtx,
