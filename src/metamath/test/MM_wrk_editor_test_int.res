@@ -574,6 +574,14 @@ describe("MM_wrk_editor integration tests", _ => {
         assertProof(st, st->getStmtId(~label="stmt11", ()), "proof-no-redundant-hyps")
     })
 
+    it("actExportProof exports implicit local vars", _ => {
+        setTestDataDir("implicit-loc-vars-in-export")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~asrtsToSkipFilePath, ~stopBefore="cvjust", ())
+        let st = st->unifyAll
+        assertProof(st, st->getStmtId(~label="cvjust", ()), "cvjust")
+    })
+
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {
     // })
 })

@@ -1,0 +1,36 @@
+{
+  "varsText": ".any setvar any",
+  "disjText": "x,y,any",
+  "stmts": [
+    {
+      "label": "1",
+      "typ": "p",
+      "cont": "|- ( x = { y | y e. x } <-> A. any ( any e. x <-> any e. { y | y e. x } ) )",
+      "jstfText": ": dfcleq"
+    },
+    {
+      "label": "2",
+      "typ": "p",
+      "cont": "|- ( any e. { y | y e. x } <-> [ any / y ] y e. x )",
+      "jstfText": ": df-clab"
+    },
+    {
+      "label": "3",
+      "typ": "p",
+      "cont": "|- ( [ any / y ] y e. x <-> any e. x )",
+      "jstfText": ": elsb3"
+    },
+    {
+      "label": "4",
+      "typ": "p",
+      "cont": "|- ( any e. x <-> any e. { y | y e. x } )",
+      "jstfText": "2 3 : bitr2i"
+    },
+    {
+      "label": "cvjust",
+      "typ": "p",
+      "cont": "|- x = { y | y e. x }",
+      "jstfText": "1 4 : mpgbir"
+    }
+  ]
+}
