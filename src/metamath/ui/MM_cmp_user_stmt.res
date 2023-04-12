@@ -225,10 +225,10 @@ let make = (
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
                     onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
-                    title="Ctrl+Enter to save, Esc to cancel"
+                    title="Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                    ~onClick=actLabelEditDone, ~title="Save, Ctrl+Enter", ())}
+                    ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
                 {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                     ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
@@ -253,10 +253,10 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd(~onEnter=actContEditDone, ~onEsc=actContEditCancel, ())
-                    title="Ctrl+Enter to save, Esc to cancel"
+                    title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                    ~onClick=actContEditDone, ~title="Save, Ctrl+Enter", ())}
+                    ~onClick=actContEditDone, ~title="Save, Enter", ())}
                 {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
                     ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
@@ -309,10 +309,10 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd(~onEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
-                    title="Ctrl+Enter to save, Esc to cancel"
+                    title="Enter to save, Esc to cancel"
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
-                    ~title="Save, Ctrl+Enter", ())}
+                    ~title="Save, Enter", ())}
                 {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
                     ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>

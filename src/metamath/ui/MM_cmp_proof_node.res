@@ -224,7 +224,6 @@ module rec ProofNodeDtoCmp: {
                 }
                 | AssertionWithErr(_) => {
                     <span
-                        title="Click to see error details"
                         style=ReactDOM.Style.make(~color="red", ~fontWeight="bold", ~cursor="pointer", ())
                     >
                         {React.string("\u2717")}

@@ -78,9 +78,9 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd(~onEnter=actEditDone, ~onEsc=actEditCancel, ())
-                    title="Ctrl+Enter to save, Esc to cancel"
+                    title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Ctrl+Enter", ())}
+                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter", ())}
                 {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                     ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
