@@ -1,15 +1,54 @@
 open Expln_React_common
 open Expln_React_Mui
 
-type readInstr = [ #all | #stopBefore | #stopAfter]
+type mmFileSourceType = Local | Web
+
+type mmFileSource =
+    | Local({fileName:string})
+    | Web({url:string, alias:string})
+
+type readInstr = All | StopBefore | StopAfter
+
+let readInstrToStr = ri => {
+    switch ri {
+        | ReadAll => "ReadAll"
+        | StopBefore => "StopBefore"
+        | StopAfter => "StopAfter"
+    }
+}
+
+let readInstrFromStr = str => {
+    switch str {
+        | "ReadAll" => ReadAll
+        | "StopBefore" => StopBefore
+        | "StopAfter" => StopAfter
+        | _ => raise(MmException({msg:`Cannot convert string '${str}' to a readInstr.`}))
+    }
+}
+
+let mmFileSourceTypeToStr = src => {
+    switch src {
+        | Local => "Local"
+        | Web => "Web"
+    }
+}
+
+let mmFileSourceTypeFromStr = str => {
+    switch str {
+        | "Local" => Local
+        | "Web" => Web
+        | _ => raise(MmException({msg:`Cannot convert string '${str}' to an mmFileSourceType.`}))
+    }
+}
 
 @react.component
 let make = (
-    ~onFileChange:option<(string,string)>=>unit, 
+    ~srcType:mmFileSourceType,
     ~fileName: option<string>,
+    ~onFileChange:option<(string,string)>=>unit, 
     ~parseError:option<string>, 
     ~readInstr:readInstr,
-    ~onReadInstrChange: string => unit,
+    ~onReadInstrChange: readInstr => unit,
     ~label:option<string>,
     ~onLabelChange: option<string>=>unit,
     ~allLabels:array<string>,
@@ -30,15 +69,15 @@ let make = (
     let rndReadInstrTypeSelector = () => {
         <FormControl size=#small>
             <InputLabel id="scope-type-select-label">"Scope"</InputLabel>
-            <Select 
+            <Select
                 labelId="scope-type-select-label"
-                value={readInstr :> string}
+                value={readInstr->readInstrToStr}
                 label="Scope"
-                onChange=evt2str(onReadInstrChange)
+                onChange=evt2str(str => str->readInstrFromStr->onReadInstrChange)
             >
-                <MenuItem value="all">{React.string("Read all")}</MenuItem>
-                <MenuItem value="stopBefore">{React.string("Stop before")}</MenuItem>
-                <MenuItem value="stopAfter">{React.string("Stop after")}</MenuItem>
+                <MenuItem value="ReadAll">{React.string("Read all")}</MenuItem>
+                <MenuItem value="StopBefore">{React.string("Stop before")}</MenuItem>
+                <MenuItem value="StopAfter">{React.string("Stop after")}</MenuItem>
             </Select>
         </FormControl>
     }
@@ -72,8 +111,8 @@ let make = (
                             {rndReadInstrTypeSelector()}
                             {
                                 switch readInstr {
-                                    | #stopBefore | #stopAfter => rndLabelSelector()
-                                    | _ => React.null
+                                    | StopBefore | StopAfter => rndLabelSelector()
+                                    | ReadAll => React.null
                                 }
                             }
                         </Row>

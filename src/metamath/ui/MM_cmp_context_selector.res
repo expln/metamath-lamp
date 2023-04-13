@@ -6,15 +6,6 @@ open MM_cmp_context_selector_single
 open MM_context
 open Expln_React_Modal
 
-let readInstrFromStr = str => {
-    switch str {
-        | "all" => #all
-        | "stopBefore" => #stopBefore
-        | "stopAfter" => #stopAfter
-        | _ => raise(MmException({msg:`Cannot convert string '${str}' to a readInstr.`}))
-    }
-}
-
 type mmSingleScope = {
     id:string,
     fileName: option<string>,
