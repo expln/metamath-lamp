@@ -218,6 +218,27 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         }
     }
 
+    let rndWebFileLoader = () => {
+        <IconButton key="add-button" onClick={_ => {
+            FileLoader.loadFile(
+                ~url="https://us.metamath.org/metamath/set.mm",
+                ~onProgress = (loaded,total) => {
+                    let pct = loaded->Belt_Int.toFloat /. total->Belt_Int.toFloat
+                    Js.Console.log2("Loaded: ", (pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
+                },
+                ~onError = () => {
+                    Js.Console.log("An error occurred.")
+                },
+                ~onReady = text => {
+                    Js.Console.log2("Done: ", text->Js_string2.substrAtMost(~from=0, ~length=20) ++ "...")
+                },
+                ()
+            )
+        }} >
+            <MM_Icons.Hub/>
+        </IconButton>
+    }
+
     let scopeIsEmpty = state.singleScopes->Js.Array2.length == 1 && state.singleScopes[0].fileName->Belt_Option.isNone
 
     let applyChanges = () => {
@@ -325,6 +346,7 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
                 {rndSingleScopeSelectors()}
                 {rndAddButton()}
                 {rndSaveButtons()}
+                {rndWebFileLoader()}
             </Col>
         </AccordionDetails>
     </Accordion>
