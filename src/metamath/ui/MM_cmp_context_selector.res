@@ -8,7 +8,7 @@ open Expln_React_Modal
 
 type mmSingleScope = {
     id:string,
-    fileName: option<string>,
+    fileSrc: option<mmFileSource>,
     fileText: option<string>,
     ast: option<result<mmAstNode,string>>,
     allLabels: array<string>,
@@ -19,11 +19,11 @@ type mmSingleScope = {
 let createEmptySingleScope = id => {
     {
         id,
-        fileName:None,
+        fileSrc:None,
         fileText:None,
         ast:None,
         allLabels:[],
-        readInstr:#all,
+        readInstr:ReadAll,
         label:None
     }
 }
@@ -35,7 +35,7 @@ type rec mmScope = {
     loadedContextSummary: string,
 }
 
-let setFileName = (ss, fileName) => {...ss, fileName}
+let setFileSrc = (ss, fileSrc) => {...ss, fileSrc}
 let setFileText = (ss, fileText) => {...ss, fileText}
 let setAst = (ss, ast) => {...ss, ast}
 let setAllLabels = (ss, allLabels) => {...ss, allLabels}
