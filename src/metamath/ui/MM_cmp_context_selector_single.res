@@ -1,13 +1,22 @@
 open Expln_React_common
 open Expln_React_Mui
+open MM_parser
+open Expln_React_Modal
+open Expln_utils_promise
+open MM_react_common
 
 type mmFileSourceType = Local | Web
 
+type webSource = {
+    alias:string,
+    url:string,
+}
+
 type mmFileSource =
     | Local({fileName:string})
-    | Web({url:string, alias:string})
+    | Web(webSource)
 
-type readInstr = All | StopBefore | StopAfter
+type readInstr = ReadAll | StopBefore | StopAfter
 
 let readInstrToStr = ri => {
     switch ri {
@@ -26,14 +35,14 @@ let readInstrFromStr = str => {
     }
 }
 
-let mmFileSourceTypeToStr = src => {
+let mmFileSourceTypeToStr = (src:mmFileSourceType):string => {
     switch src {
         | Local => "Local"
         | Web => "Web"
     }
 }
 
-let mmFileSourceTypeFromStr = str => {
+let mmFileSourceTypeFromStr = (str:string):mmFileSourceType => {
     switch str {
         | "Local" => Local
         | "Web" => Web
@@ -43,9 +52,12 @@ let mmFileSourceTypeFromStr = str => {
 
 @react.component
 let make = (
+    ~modalRef:modalRef,
+    ~availableWebSrcs:array<webSource>,
     ~srcType:mmFileSourceType,
-    ~fileName: option<string>,
-    ~onFileChange:option<(string,string)>=>unit, 
+    ~onSrcTypeChange:mmFileSourceType=>unit,
+    ~fileSrc: option<mmFileSource>,
+    ~onFileChange:(mmFileSource,string)=>unit, 
     ~parseError:option<string>, 
     ~readInstr:readInstr,
     ~onReadInstrChange: readInstr => unit,
@@ -56,6 +68,48 @@ let make = (
     ~onDelete:unit=>unit, 
 ) => {
 
+    let actAliasSelected = alias => {
+        switch availableWebSrcs->Js_array2.find(src => src.alias == alias) {
+            | None => raise(MmException({msg:`Cannot determine a URL for '${alias}' alias.`}))
+            | Some(webSrc) => {
+                let progressText = `Loading MM file from '${alias}'`
+                openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+                    FileLoader.loadFile(
+                        ~url=webSrc.url,
+                        ~onProgress = (loaded,total) => {
+                            let pct = loaded->Belt_Int.toFloat /. total->Belt_Int.toFloat
+                            updateModal( 
+                                modalRef, modalId, () => rndProgress( ~text=progressText, ~pct, () )
+                            )
+                        },
+                        ~onError = () => {
+                            closeModal(modalRef, modalId)
+                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                updateModal(modalRef, modalId, () => {
+                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                        <Col spacing=1.>
+                                            {
+                                                React.string(`An error occurred while reading from '${alias}'.`)
+                                            }
+                                            <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                                {React.string("Ok")} 
+                                            </Button>
+                                        </Col>
+                                    </Paper>
+                                })
+                            })->ignore
+                        },
+                        ~onReady = text => {
+                            onFileChange(Web(webSrc), text)
+                            closeModal(modalRef, modalId)
+                        },
+                        ()
+                    )
+                })->ignore
+            }
+        }
+    }
+
     let rndDeleteButton = () => {
         if (renderDeleteButton) {
             <IconButton onClick={_ => onDelete()} >
@@ -64,6 +118,21 @@ let make = (
         } else {
             React.null
         }
+    }
+
+    let rndSourceTypeSelector = () => {
+        <FormControl size=#small>
+            <InputLabel id="src-type-select-label">"Source type"</InputLabel>
+            <Select
+                labelId="src-type-select-label"
+                value={srcType->mmFileSourceTypeToStr}
+                label="Source type"
+                onChange=evt2str(str => str->mmFileSourceTypeFromStr->onSrcTypeChange)
+            >
+                <MenuItem value="Local">{React.string("Local")}</MenuItem>
+                <MenuItem value="Web">{React.string("web")}</MenuItem>
+            </Select>
+        </FormControl>
     }
 
     let rndReadInstrTypeSelector = () => {
@@ -86,13 +155,65 @@ let make = (
         <AutocompleteVirtualized value=label options=allLabels size=#small onChange=onLabelChange />
     }
 
-    let rndFileSelector = () => {
-        if (fileName->Belt.Option.isNone || parseError->Belt_Option.isNone) {
-            <Expln_React_TextFileReader onChange=onFileChange />
+    let rndAliasSelector = (alias: option<string>) => {
+        if (alias->Belt.Option.isNone && parseError->Belt_Option.isNone) {
+            <FormControl size=#small>
+                <InputLabel id="alias-select-label">"Web resource"</InputLabel>
+                <Select
+                    labelId="alias-select-label"
+                    value={alias->Belt_Option.getWithDefault("")}
+                    label="Web resource"
+                    onChange=evt2str(actAliasSelected)
+                >
+                    {
+                        availableWebSrcs->Js_array2.map(webSrc => {
+                            <MenuItem value={webSrc.alias}>{React.string(webSrc.alias)}</MenuItem>
+                        })->React.array
+                    }
+                </Select>
+            </FormControl>
+        } else {
+            <span>
+                {React.string(alias->Belt_Option.getWithDefault("<web-src-alias>"))}
+            </span>
+        }
+    }
+
+    let rndFileSelector = (fileName: option<string>) => {
+        if (fileName->Belt.Option.isNone && parseError->Belt_Option.isNone) {
+            <Expln_React_TextFileReader 
+                onChange={(selected:option<(string,string)>) => {
+                    switch selected {
+                        | None => ()
+                        | Some((fileName, fileText)) => onFileChange(Local({fileName:fileName}),fileText)
+                    }
+                }} 
+            />
         } else {
             <span>
                 {React.string(fileName->Belt_Option.getWithDefault("<fileName>"))}
             </span>
+        }
+    }
+
+    let getFileNameFromFileSrc = (fileSrc: option<mmFileSource>):option<string> => {
+        switch fileSrc {
+            | Some(Local({fileName})) => Some(fileName)
+            | _ => None
+        }
+    }
+
+    let getAliasFromFileSrc = (fileSrc: option<mmFileSource>):option<string> => {
+        switch fileSrc {
+            | Some(Web({alias})) => Some(alias)
+            | _ => None
+        }
+    }
+
+    let rndSourceSelector = () => {
+        switch srcType {
+            | Local => rndFileSelector(getFileNameFromFileSrc(fileSrc))
+            | Web => rndAliasSelector(getAliasFromFileSrc(fileSrc))
         }
     }
 
@@ -104,7 +225,7 @@ let make = (
                 </pre>
             }
             | None => {
-                switch fileName {
+                switch fileSrc {
                     | None => React.null
                     | Some(_) => {
                         <Row>
@@ -124,7 +245,8 @@ let make = (
 
     <Row alignItems=#center spacing=1. >
         {rndDeleteButton()}
-        {rndFileSelector()}
+        {rndSourceTypeSelector()}
+        {rndSourceSelector()}
         {rndReadInstr()}
     </Row>
 }
