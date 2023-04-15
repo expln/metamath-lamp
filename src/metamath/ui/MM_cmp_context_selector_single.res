@@ -68,18 +68,31 @@ let make = (
     ~onDelete:unit=>unit, 
 ) => {
 
+    let makeActTerminate = (modalId:modalId, isTerminated:ref<bool>):(unit=>unit) => {
+        () => {
+            isTerminated.contents = true
+            closeModal(modalRef, modalId)
+        }
+    }
+
     let actAliasSelected = alias => {
         switch availableWebSrcs->Js_array2.find(src => src.alias == alias) {
             | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
             | Some(webSrc) => {
                 let progressText = `Downloading MM file from "${alias}"`
+                let isTerminated = ref(false)
                 openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+                    updateModal( 
+                        modalRef, modalId, 
+                        () => rndProgress( ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId, isTerminated), () )
+                    )
                     FileLoader.loadFile(
                         ~url=webSrc.url,
                         ~onProgress = (loaded,total) => {
                             let pct = loaded->Belt_Int.toFloat /. total->Belt_Int.toFloat
                             updateModal( 
-                                modalRef, modalId, () => rndProgress( ~text=progressText, ~pct, () )
+                                modalRef, modalId,
+                                () => rndProgress( ~text=progressText, ~pct, ~onTerminate=makeActTerminate(modalId, isTerminated), () )
                             )
                         },
                         ~onError = () => {
@@ -100,8 +113,10 @@ let make = (
                             })->ignore
                         },
                         ~onReady = text => {
-                            onFileChange(Web(webSrc), text)
-                            closeModal(modalRef, modalId)
+                            if (!isTerminated.contents) {
+                                onFileChange(Web(webSrc), text)
+                                closeModal(modalRef, modalId)
+                            }
                         },
                         ()
                     )
@@ -165,12 +180,12 @@ let make = (
     let rndAliasSelector = (alias: option<string>) => {
         if (alias->Belt.Option.isNone) {
             <FormControl size=#small>
-                <InputLabel id="alias-select-label">"Web resource"</InputLabel>
+                <InputLabel id="alias-select-label">"Alias"</InputLabel>
                 <Select
                     sx={"width": 200}
                     labelId="alias-select-label"
                     value={alias->Belt_Option.getWithDefault("")}
-                    label="Web resource"
+                    label="Alias"
                     onChange=evt2str(actAliasSelected)
                 >
                     {
