@@ -5,6 +5,7 @@ open MM_react_common
 open MM_cmp_context_selector_single
 open MM_context
 open Expln_React_Modal
+open MM_wrk_settings
 
 type mmSingleScope = {
     id:string,
@@ -102,6 +103,7 @@ let getSummary = st => {
 @react.component
 let make = (
     ~modalRef:modalRef,
+    ~webSrcSettings:array<webSrcSettings>,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
 ) => {
     let (state, setState) = React.useState(_ => {
@@ -189,9 +191,16 @@ let make = (
             <MM_cmp_context_selector_single 
                 key=singleScope.id
                 modalRef
-                availableWebSrcs={[
-                    {alias:"us.metamath.org:set.mm", url:"https://us.metamath.org/metamath/set.mm"}
-                ]}
+                availableWebSrcs={
+                    webSrcSettings
+                        ->Js_array2.filter(s => s.alias->Js_string2.trim->Js_string2.length > 0)
+                        ->Js_array2.map(s => {
+                            {
+                                alias:s.alias,
+                                url:s.url,
+                            }
+                        })
+                }
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))}
                 fileSrc=singleScope.fileSrc

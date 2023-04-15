@@ -96,7 +96,7 @@ let make = () => {
                         <MM_cmp_settings 
                             modalRef
                             ctx=state.ctx 
-                            initialSettings=state.settings 
+                            initialSettings=state.settings
                             onChange=actSettingsUpdated 
                         />
                     | Editor => 
@@ -122,6 +122,7 @@ let make = () => {
                 <Col>
                     <MM_cmp_context_selector 
                         modalRef 
+                        webSrcSettings={state.settings.webSrcSettings}
                         onChange={(_,ctx)=>actCtxUpdated(ctx, None)} 
                     />
                     {renderTabs()}
