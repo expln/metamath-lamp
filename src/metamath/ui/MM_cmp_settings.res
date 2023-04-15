@@ -7,18 +7,22 @@ open Expln_utils_promise
 open MM_wrk_settings
 open MM_react_common
 open MM_cmp_type_settings
+open MM_cmp_web_src_settings
 open Common
 
 type settingsState = {
-    nextId: int,
-
     parens: string,
     parensErr: option<string>,
 
-    typeSettings: array<typeSettingsState>,
-
     asrtsToSkip: array<string>,
     asrtsToSkipRegex: string,
+
+    typeNextId: int,
+    typeSettings: array<typeSettingsState>,
+
+    webSrcNextId: int,
+    webSrcSettings: array<webSrcSettingsState>,
+
 }
 
 let allColors = [
@@ -31,9 +35,11 @@ let asrtsToSkipRegexDefault = "New usage of \"([^\"]+)\" is discouraged"
 
 let createDefaultSettings = () => {
     {
-        nextId: 4,
         parens: "( ) [ ] { }",
         parensErr: None,
+        asrtsToSkip: [],
+        asrtsToSkipRegex: asrtsToSkipRegexDefault,
+        typeNextId: 4,
         typeSettings: [
             {
                 id: "0",
@@ -64,67 +70,37 @@ let createDefaultSettings = () => {
                 err: None,
             },
         ],
-        asrtsToSkip: [],
-        asrtsToSkipRegex: asrtsToSkipRegexDefault,
+        webSrcNextId: 1,
+        webSrcSettings: [
+            {
+                id: "0",
+                alias: "us.metamath.org:set.mm",
+                url: "https://us.metamath.org/metamath/set.mm",
+                trusted: false,
+                err: None
+            }
+        ]
     }
 }
 
-let strContainsWhitespaceRegex = %re("/\s+/")
-let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
-    let newTyp = ts.typ->Js_string2.trim
-    let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
-    let typIsEmpty = newTyp->Js_string2.length == 0
-    let newColor = if (!(allColors->Js_array2.includes(ts.color))) {
-        allColors[0]
-    } else {
-        ts.color
-    }
-    let newPrefix = ts.prefix->Js_string2.trim
-    let prefixHasWhitespace = newPrefix->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
-    let prefixIsEmpty = newPrefix->Js_string2.length == 0
-    let err = if (typHasWhitespace) {
-        Some("Type should not contain whitespaces.")
-    } else if (typIsEmpty) {
-        Some("Type should not be empty.")
-    } else if (prefixHasWhitespace) {
-        Some("Work variable prefix should not contain whitespaces.")
-    } else if (prefixIsEmpty) {
-        Some("Work variable prefix should not be empty.")
+let validateAndCorrectWebSrcSetting = (src:webSrcSettingsState):webSrcSettingsState => {
+    let newAlias = src.alias->Js.String2.trim
+    let newUrl = src.url->Js.String2.trim
+    let err = if (newUrl->Js_string2.length == 0) {
+        Some("URL should not be empty.")
     } else {
         None
     }
 
     {
-        ...ts,
-        typ: newTyp,
-        color: newColor,
-        prefix: newPrefix,
+        ...src,
+        alias: newAlias,
+        url: newUrl,
         err
     }
 }
 
-let validateAndCorrectState = (st:settingsState):settingsState => {
-    let validatedTypeSettings = st.typeSettings->Js_array2.map(validateAndCorrectTypeSetting)
-    let distinctIds = Belt_SetInt.fromArray(
-        validatedTypeSettings->Js_array2.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getWithDefault(0))
-    )
-    let validatedTypeSettings = if (distinctIds->Belt_SetInt.size != validatedTypeSettings->Js_array2.length) {
-        let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
-        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
-    } else {
-        validatedTypeSettings
-    }
-    let maxTypSettId = validatedTypeSettings->Js_array2.reduce(
-        (maxId,ts) => {
-            let id = switch ts.id->Belt_Int.fromString {
-                | None => raise(MmException({msg:`Cannot convert string to int for typeSettingsState.id`}))
-                | Some(id) => id
-            }
-            if (id <= maxId) { maxId } else { id }
-        },
-        0
-    )
-    let newNextId = if (maxTypSettId < st.nextId) {st.nextId} else {maxTypSettId + 1}
+let validateAndCorrectParens = (st:settingsState):settingsState => {
     let newParens = st.parens->Js_string2.trim
     let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Js.Array2.length, 2) == 0) {
         None
@@ -134,31 +110,151 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
 
     {
         ...st,
-        nextId: newNextId,
         parens: newParens,
         parensErr,
+    }
+}
+
+let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
+    let strContainsWhitespaceRegex = %re("/\s+/")
+    let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
+        let newId = ts.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
+        let newTyp = ts.typ->Js_string2.trim
+        let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
+        let typIsEmpty = newTyp->Js_string2.length == 0
+        let newColor = if (!(allColors->Js_array2.includes(ts.color))) {
+            allColors[0]
+        } else {
+            ts.color
+        }
+        let newPrefix = ts.prefix->Js_string2.trim
+        let prefixHasWhitespace = newPrefix->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
+        let prefixIsEmpty = newPrefix->Js_string2.length == 0
+        let err = if (typHasWhitespace) {
+            Some("Type should not contain whitespaces.")
+        } else if (typIsEmpty) {
+            Some("Type should not be empty.")
+        } else if (prefixHasWhitespace) {
+            Some("Work variable prefix should not contain whitespaces.")
+        } else if (prefixIsEmpty) {
+            Some("Work variable prefix should not be empty.")
+        } else {
+            None
+        }
+
+        {
+            id: newId,
+            typ: newTyp,
+            color: newColor,
+            prefix: newPrefix,
+            err
+        }
+    }
+
+    let validatedTypeSettings = st.typeSettings->Js_array2.map(validateAndCorrectTypeSetting)
+    let distinctTypeIds = Belt_SetInt.fromArray(
+        validatedTypeSettings->Js_array2.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getExn)
+    )
+    let validatedTypeSettings = if (distinctTypeIds->Belt_SetInt.size == validatedTypeSettings->Js_array2.length) {
+        validatedTypeSettings
+    } else {
+        let maxId = distinctTypeIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
+        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
+    }
+    let maxTypSettId = validatedTypeSettings->Js_array2.reduce(
+        (maxId,ts) => {
+            let id = ts.id->Belt_Int.fromString->Belt.Option.getExn
+            if (id <= maxId) { maxId } else { id }
+        },
+        0
+    )
+    let newNextId = if (maxTypSettId < st.typeNextId) {st.typeNextId} else {maxTypSettId + 1}
+
+    {
+        ...st,
+        typeNextId: newNextId,
         typeSettings: validatedTypeSettings,
     }
+}
+
+let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
+    let validateAndCorrectWebSrcSetting = (src:webSrcSettingsState):webSrcSettingsState => {
+        let newId = src.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
+        let newAlias = src.alias->Js.String2.trim
+        let newUrl = src.url->Js.String2.trim
+        let err = if (newUrl->Js_string2.length == 0) {
+            Some("URL should not be empty.")
+        } else {
+            None
+        }
+
+        {
+            id: newId,
+            alias: newAlias,
+            url: newUrl,
+            trusted: src.trusted,
+            err
+        }
+    }
+
+    let validatedWebSrcSettings = st.webSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
+    let distinctIds = Belt_SetInt.fromArray(
+        validatedWebSrcSettings->Js_array2.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
+    )
+    let validatedWebSrcSettings = if (distinctIds->Belt_SetInt.size == validatedWebSrcSettings->Js_array2.length) {
+        validatedWebSrcSettings
+    } else {
+        let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
+        validatedWebSrcSettings->Js_array2.mapi((src,i) => {...src, id:(maxId+i+1)->Belt_Int.toString})
+    }
+    let maxId = validatedWebSrcSettings->Js_array2.reduce(
+        (maxId,src) => {
+            let id = src.id->Belt_Int.fromString->Belt.Option.getExn
+            if (id <= maxId) { maxId } else { id }
+        },
+        0
+    )
+    let newNextId = if (maxId < st.webSrcNextId) {st.webSrcNextId} else {maxId + 1}
+
+    {
+        ...st,
+        webSrcNextId: newNextId,
+        webSrcSettings: validatedWebSrcSettings,
+    }
+}
+
+let validateAndCorrectState = (st:settingsState):settingsState => {
+    let st = validateAndCorrectParens(st)
+    let st = validateAndCorrectTypeSettings(st)
+    let st = validateAndCorrectWebSrcSettings(st)
+    st
 }
 
 let stateToSettings = (st:settingsState):settings => {
     {
         parens: st.parens,
+        asrtsToSkip: st.asrtsToSkip,
+        asrtsToSkipRegex: st.asrtsToSkipRegex,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
             prefix: typSett.prefix,
         }),
-        asrtsToSkip: st.asrtsToSkip,
-        asrtsToSkipRegex: st.asrtsToSkipRegex,
+        webSrcSettings: st.webSrcSettings->Js_array2.map(s => {
+            alias: s.alias,
+            url: s.url,
+            trusted: s.trusted,
+        }),
     }
 }
 
 let settingsToState = (ls:settings):settingsState => {
     let res = {
-        nextId: 0,
         parens: ls.parens,
         parensErr: None,
+        asrtsToSkip: ls.asrtsToSkip,
+        asrtsToSkipRegex: ls.asrtsToSkipRegex,
+        typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
             typ: lts.typ,
@@ -166,8 +262,14 @@ let settingsToState = (ls:settings):settingsState => {
             prefix: lts.prefix,
             err: None,
         }),
-        asrtsToSkip: ls.asrtsToSkip,
-        asrtsToSkipRegex: ls.asrtsToSkipRegex,
+        webSrcNextId: 0,
+        webSrcSettings: ls.webSrcSettings->Js_array2.map(s => {
+            id: "0",
+            alias: s.alias,
+            url: s.url,
+            trusted: s.trusted,
+            err: None,
+        }),
     }
     validateAndCorrectState(res)
 }
@@ -188,9 +290,11 @@ let readStateFromLocStor = ():settingsState => {
             open Expln_utils_jsonParse
             let parseResult:result<settingsState,string> = parseJson(settingsLocStorStr, asObj(_, d=>{
                 {
-                    nextId: 0,
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
+                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>[], ()),
+                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>asrtsToSkipRegexDefault, ()),
+                    typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
                         typ: d->str("typ", ()),
@@ -198,8 +302,14 @@ let readStateFromLocStor = ():settingsState => {
                         prefix: d->str("prefix", ()),
                         err: None,
                     }, ()), ~default=()=>defaultSettings.typeSettings, ()),
-                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>[], ()),
-                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>asrtsToSkipRegexDefault, ()),
+                    webSrcNextId: 0,
+                    webSrcSettings: d->arr("webSrcSettings", asObj(_, d=>{
+                        id: "0",
+                        alias: d->str("alias", ()),
+                        url: d->str("url", ()),
+                        trusted: d->bool("trusted", ()),
+                        err: None,
+                    }, ()), ~default=()=>defaultSettings.webSrcSettings, ()),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -217,6 +327,7 @@ let settingsReadFromLocStor = () => readStateFromLocStor()->stateToSettings
 let isValid = st => {
     st.parensErr->Belt_Option.isNone
         && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
+        && st.webSrcSettings->Js_array2.every(s => s.err->Belt_Option.isNone)
 }
 
 let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {
@@ -225,12 +336,20 @@ let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {
         && ts1.prefix == ts2.prefix
 }
 
+let eqWebSrcSetting = (ts1:webSrcSettingsState, ts2:webSrcSettingsState):bool => {
+    ts1.alias == ts2.alias
+        && ts1.url == ts2.url
+        && ts1.trusted == ts2.trusted
+}
+
 let eqState = (st1, st2) => {
     st1.parens == st2.parens
         && st1.asrtsToSkip == st2.asrtsToSkip
         && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
+        && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
+        && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings[i]))
 }
 
 let updateParens = (st,parens) => {
@@ -240,6 +359,9 @@ let updateParens = (st,parens) => {
         parensErr: None,
     }
 }
+
+let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
+let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -261,10 +383,10 @@ let updatePrefix = (st,id,prefix) => {
 }
 
 let addTypeSetting = st => {
-    let newId = st.nextId->Belt_Int.toString
+    let newId = st.typeNextId->Belt_Int.toString
     {
         ...st,
-        nextId: st.nextId + 1,
+        typeNextId: st.typeNextId + 1,
         typeSettings: st.typeSettings->Js_array2.concat([{
             id: newId,
             typ: "",
@@ -282,8 +404,46 @@ let deleteTypeSetting = (st, id) => {
     }
 }
 
-let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
-let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
+let updateWebSrcSetting = (st,id,update:webSrcSettingsState=>webSrcSettingsState) => {
+    {
+        ...st,
+        webSrcSettings: st.webSrcSettings->Js_array2.map(s => if (s.id == id) { update(s) } else { s })
+    }
+}
+
+let updateAlias = (st,id,alias) => {
+    updateWebSrcSetting(st, id, s => {...s, alias, err:None})
+}
+
+let updateUrl = (st,id,url) => {
+    updateWebSrcSetting(st, id, s => {...s, url, err:None})
+}
+
+let updateTrusted = (st,id,trusted) => {
+    updateWebSrcSetting(st, id, s => {...s, trusted, err:None})
+}
+
+let addWebSrcSetting = st => {
+    let newId = st.webSrcNextId->Belt_Int.toString
+    {
+        ...st,
+        webSrcNextId: st.webSrcNextId + 1,
+        webSrcSettings: st.webSrcSettings->Js_array2.concat([{
+            id: newId,
+            alias: "",
+            url: "",
+            trusted: false,
+            err: None,
+        }]),
+    }
+}
+
+let deleteWebSrcSetting = (st, id) => {
+    {
+        ...st,
+        webSrcSettings: st.webSrcSettings->Js_array2.filter(s => s.id != id)
+    }
+}
 
 @react.component
 let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onChange: settings => unit) => {
@@ -308,6 +468,14 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
         setState(updateParens(_, parens))
     }
 
+    let actAsrtsToSkipChange = (res:MM_cmp_asrts_to_skip.asrtsToSkipResult) => {
+        setState(st => {
+            let st = st->setAsrtsToSkip(res.asrtsToSkip)
+            let st = st->setAsrtsToSkipRegex(res.regex)
+            st
+        })
+    }
+
     let actTypeSettingAdd = () => {
         setState(addTypeSetting)
     }
@@ -328,12 +496,24 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
         setState(updatePrefix(_, id, prefix))
     }
 
-    let actAsrtsToSkipChange = (res:MM_cmp_asrts_to_skip.asrtsToSkipResult) => {
-        setState(st => {
-            let st = st->setAsrtsToSkip(res.asrtsToSkip)
-            let st = st->setAsrtsToSkipRegex(res.regex)
-            st
-        })
+    let actWebSrcSettingAdd = () => {
+        setState(addWebSrcSetting)
+    }
+
+    let actWebSrcSettingDelete = id => {
+        setState(deleteWebSrcSetting(_, id))
+    }
+
+    let actAliasChange = (id,alias) => {
+        setState(updateAlias(_, id, alias))
+    }
+
+    let actUrlChange = (id,url) => {
+        setState(updateUrl(_, id, url))
+    }
+
+    let actTrustedChange = (id,trusted) => {
+        setState(updateTrusted(_, id, trusted))
     }
 
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
@@ -429,6 +609,15 @@ let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onCh
             onColorChange=actColorChange
             onPrefixChange=actPrefixChange
             onDelete=actTypeSettingDelete
+        />
+        <Divider/>
+        <MM_cmp_web_src_settings
+            webSrcSettings=state.webSrcSettings
+            onAdd=actWebSrcSettingAdd
+            onAliasChange=actAliasChange
+            onUrlChange=actUrlChange
+            onTrustedChange=actTrustedChange
+            onDelete=actWebSrcSettingDelete
         />
         <Divider/>
         {

@@ -4,9 +4,16 @@ type typeSettings = {
     prefix: string,
 }
 
+type webSrcSettings = {
+    alias: string,
+    url: string,
+    trusted: bool,
+}
+
 type settings = {
     parens: string,
-    typeSettings: array<typeSettings>,
     asrtsToSkip: array<string>,
     asrtsToSkipRegex: string,
+    typeSettings: array<typeSettings>,
+    webSrcSettings: array<webSrcSettings>,
 }

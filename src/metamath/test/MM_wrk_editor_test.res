@@ -15,9 +15,10 @@ let createEditorState = (mmFile) => {
     let settingsV = 1
     let settings = {
         parens,
-        typeSettings: [ ],
         asrtsToSkip: [],
         asrtsToSkipRegex: "",
+        typeSettings: [ ],
+        webSrcSettings: [ ],
     }
     let preCtxV = 1
     let preCtx = ctx

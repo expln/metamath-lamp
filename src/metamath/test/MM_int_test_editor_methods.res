@@ -37,13 +37,14 @@ let createEditorState = (
     let settingsV = 1
     let settings = {
         parens,
-        typeSettings: [ ],
         asrtsToSkip:
             switch asrtsToSkipFilePath {
                 | None => []
                 | Some(filePath) => multilineTextToNonEmptyLines(Expln_utils_files.readStringFromFile(filePath))
             },
         asrtsToSkipRegex: "",
+        typeSettings: [ ],
+        webSrcSettings: [ ],
     }
     let preCtxV = 1
     let preCtx = ctx
