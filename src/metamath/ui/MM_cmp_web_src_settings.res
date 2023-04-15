@@ -21,7 +21,7 @@ let make = (
     let rndWebSrcSetting = (src:webSrcSettingsState) => {
         <Col key=src.id>
             <Row>
-                <TextField label="Alias" size=#small style=ReactDOM.Style.make(~width="200px", ()) 
+                <TextField label="Alias" size=#small style=ReactDOM.Style.make(~width="250px", ()) 
                     value=src.alias onChange=evt2str(onAliasChange(src.id,_)) />
                 <TextField label="URL" size=#small style=ReactDOM.Style.make(~width="400px", ()) 
                     value=src.url onChange=evt2str(onUrlChange(src.id,_)) />
@@ -29,7 +29,7 @@ let make = (
                     control={
                         <Checkbox
                             checked=src.trusted
-                            onChange=evt2str(onTrustedChange(src.id,_))
+                            onChange=evt2bool(onTrustedChange(src.id,_))
                         />
                     }
                     label="Do not ask before downloading"
