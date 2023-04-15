@@ -59,7 +59,7 @@ let make = () => {
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
-    let actCtxUpdated = (newCtx, settingsOpt) => {
+    let actCtxUpdated = (newCtx:mmContext, settingsOpt) => {
         let settings = switch settingsOpt {
             | Some(settings) => settings
             | None => state.settings
@@ -120,7 +120,10 @@ let make = () => {
             top=0
             header={
                 <Col>
-                    <MM_cmp_context_selector onChange=actCtxUpdated(_, None) modalRef />
+                    <MM_cmp_context_selector 
+                        modalRef 
+                        onChange={(_,ctx)=>actCtxUpdated(ctx, None)} 
+                    />
                     {renderTabs()}
                 </Col>
             }

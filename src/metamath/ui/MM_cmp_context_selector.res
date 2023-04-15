@@ -8,6 +8,7 @@ open Expln_React_Modal
 
 type mmSingleScope = {
     id:string,
+    srcType:mmFileSourceType,
     fileSrc: option<mmFileSource>,
     fileText: option<string>,
     ast: option<result<mmAstNode,string>>,
@@ -16,16 +17,10 @@ type mmSingleScope = {
     label: option<string>,
 }
 
-let createEmptySingleScope = id => {
-    {
-        id,
-        fileSrc:None,
-        fileText:None,
-        ast:None,
-        allLabels:[],
-        readInstr:ReadAll,
-        label:None
-    }
+type mmCtxSrcDto = {
+    fileSrc: mmFileSource,
+    readInstr: readInstr,
+    label: string,
 }
 
 type rec mmScope = {
@@ -35,13 +30,27 @@ type rec mmScope = {
     loadedContextSummary: string,
 }
 
-let setFileSrc = (ss, fileSrc) => {...ss, fileSrc}
-let setFileText = (ss, fileText) => {...ss, fileText}
-let setAst = (ss, ast) => {...ss, ast}
-let setAllLabels = (ss, allLabels) => {...ss, allLabels}
-let setReadInstr = (ss, readInstr) => {...ss, readInstr}
-let setLabel = (ss, label) => {...ss, label}
-let reset = ss => createEmptySingleScope(ss.id)
+let createEmptySingleScope = id => {
+    {
+        id,
+        srcType:Web,
+        fileSrc:None,
+        fileText:None,
+        ast:None,
+        allLabels:[],
+        readInstr:ReadAll,
+        label:None
+    }
+}
+
+let setSrcType = (ss:mmSingleScope, srcType) => {...ss, srcType}
+let setFileSrc = (ss:mmSingleScope, fileSrc:option<mmFileSource>) => {...ss, fileSrc}
+let setFileText = (ss:mmSingleScope, fileText) => {...ss, fileText}
+let setAst = (ss:mmSingleScope, ast) => {...ss, ast}
+let setAllLabels = (ss:mmSingleScope, allLabels) => {...ss, allLabels}
+let setReadInstr = (ss:mmSingleScope, readInstr) => {...ss, readInstr}
+let setLabel = (ss:mmSingleScope, label) => {...ss, label}
+let reset = (ss:mmSingleScope) => createEmptySingleScope(ss.id)
 
 let addSingleScope = st => {
     {
@@ -65,25 +74,36 @@ let deleteSingleScope = (st,id) => {
 let setExpanded = (st,expanded) => {...st, expanded}
 let setLoadedContextSummary = (st,loadedContextSummary) => {...st, loadedContextSummary}
 
+let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
+    switch src {
+        | None => None
+        | Some(Local({fileName})) => Some(fileName)
+        | Some(Web({alias})) => Some(alias)
+    }
+}
+
 let getSummary = st => {
-    if (st.singleScopes->Js.Array2.length == 1 && st.singleScopes[0].fileName->Belt_Option.isNone) {
+    if (st.singleScopes->Js.Array2.length == 1 && st.singleScopes[0].fileSrc->Belt_Option.isNone) {
         "Empty MM context is loaded."
     } else {
         let filesInfo = st.singleScopes->Js_array2.map(ss => {
-            let fileName = ss.fileName->Belt_Option.getWithDefault("")
+            let name = getNameFromFileSrc(ss.fileSrc)->Belt_Option.getWithDefault("")
             let readInstr = switch ss.readInstr {
-                | #all => ""
-                | #stopBefore => `, stopped before '${ss.label->Belt_Option.getWithDefault("")}'`
-                | #stopAfter => `, stopped after '${ss.label->Belt_Option.getWithDefault("")}'`
+                | ReadAll => ""
+                | StopBefore => `, stopped before '${ss.label->Belt_Option.getWithDefault("")}'`
+                | StopAfter => `, stopped after '${ss.label->Belt_Option.getWithDefault("")}'`
             }
-            fileName ++ readInstr
+            name ++ readInstr
         })
         "Loaded: " ++ filesInfo->Js_array2.joinWith("; ")
     }
 }
 
 @react.component
-let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
+let make = (
+    ~modalRef:modalRef,
+    ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
+) => {
     let (state, setState) = React.useState(_ => {
         {
             nextId: 1, 
@@ -99,13 +119,13 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         None
     })
 
-    let actNewCtxIsReady = ctx => {
+    let actNewCtxIsReady = (srcs:array<mmCtxSrcDto>, ctx:mmContext) => {
         setState(st => {
             let st = st->setLoadedContextSummary(getSummary(st))
             setPrevState(_ => st)
             st
         })
-        onChange(ctx)
+        onChange(srcs,ctx)
     }
 
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
@@ -123,40 +143,36 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         rndProgress(~text=`Loading MM context`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
     }
 
-    let parseMmFileText = (id, nameAndTextOpt) => {
-        switch nameAndTextOpt {
-            | None => setState(updateSingleScope(_,id,reset))
-            | Some((name,text)) => {
-                openModal(modalRef, _ => rndParseMmFileProgress(name, 0., None))->promiseMap(modalId => {
-                    updateModal(
-                        modalRef, modalId, () => rndParseMmFileProgress(name, 0., Some(modalId))
-                    )
-                    MM_wrk_ParseMmFile.beginParsingMmFile(
-                        ~mmFileText = text,
-                        ~onProgress = pct => updateModal(
-                            modalRef, modalId, () => rndParseMmFileProgress(name, pct, Some(modalId))
-                        ),
-                        ~onDone = parseResult => {
-                            setState(updateSingleScope(_,id,setFileName(_,Some(name))))
-                            setState(updateSingleScope(_,id,setFileText(_,Some(text))))
-                            setState(updateSingleScope(_,id,setReadInstr(_,#all)))
-                            setState(updateSingleScope(_,id,setLabel(_,None)))
-                            switch parseResult {
-                                | Error(msg) => {
-                                    setState(updateSingleScope(_,id,setAst(_, Some(Error(msg)))))
-                                    setState(updateSingleScope(_,id,setAllLabels(_, [])))
-                                }
-                                | Ok((ast,allLabels)) => {
-                                    setState(updateSingleScope(_,id,setAst(_,Some(Ok(ast)))))
-                                    setState(updateSingleScope(_,id,setAllLabels(_, allLabels)))
-                                }
-                            }
-                            closeModal(modalRef, modalId)
+    let parseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
+        let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
+        openModal(modalRef, _ => rndParseMmFileProgress(name, 0., None))->promiseMap(modalId => {
+            updateModal(
+                modalRef, modalId, () => rndParseMmFileProgress(name, 0., Some(modalId))
+            )
+            MM_wrk_ParseMmFile.beginParsingMmFile(
+                ~mmFileText = text,
+                ~onProgress = pct => updateModal(
+                    modalRef, modalId, () => rndParseMmFileProgress(name, pct, Some(modalId))
+                ),
+                ~onDone = parseResult => {
+                    setState(updateSingleScope(_,id,setFileSrc(_,Some(src))))
+                    setState(updateSingleScope(_,id,setFileText(_,Some(text))))
+                    setState(updateSingleScope(_,id,setReadInstr(_,ReadAll)))
+                    setState(updateSingleScope(_,id,setLabel(_,None)))
+                    switch parseResult {
+                        | Error(msg) => {
+                            setState(updateSingleScope(_,id,setAst(_, Some(Error(msg)))))
+                            setState(updateSingleScope(_,id,setAllLabels(_, [])))
                         }
-                    )
-                })->ignore
-            }
-        }
+                        | Ok((ast,allLabels)) => {
+                            setState(updateSingleScope(_,id,setAst(_,Some(Ok(ast)))))
+                            setState(updateSingleScope(_,id,setAllLabels(_, allLabels)))
+                        }
+                    }
+                    closeModal(modalRef, modalId)
+                }
+            )
+        })->ignore
     }
 
     let toggleAccordion = () => {
@@ -168,29 +184,33 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
     }
 
     let rndSingleScopeSelectors = () => {
-        let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || state.singleScopes[0].fileName->Belt_Option.isSome
-        React.array(
-            state.singleScopes->Js_array2.map(singleScope => {
-                <MM_cmp_context_selector_single 
-                    key=singleScope.id
-                    fileName=singleScope.fileName
-                    onFileChange=parseMmFileText(singleScope.id, _)
-                    parseError={
-                        switch singleScope.ast {
-                            | Some(Error(msg)) => Some(msg)
-                            | _ => None
-                        }
+        let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || state.singleScopes[0].fileSrc->Belt_Option.isSome
+        state.singleScopes->Js_array2.map(singleScope => {
+            <MM_cmp_context_selector_single 
+                key=singleScope.id
+                modalRef
+                availableWebSrcs={[
+                    {alias:"us.metamath.org:set.mm", url:"https://us.metamath.org/metamath/set.mm"}
+                ]}
+                srcType=singleScope.srcType
+                onSrcTypeChange={srcType => setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))}
+                fileSrc=singleScope.fileSrc
+                onFileChange={(src,text)=>parseMmFileText(singleScope.id, src, text)}
+                parseError={
+                    switch singleScope.ast {
+                        | Some(Error(msg)) => Some(msg)
+                        | _ => None
                     }
-                    readInstr=singleScope.readInstr
-                    onReadInstrChange={readInstrStr => setState(updateSingleScope(_,singleScope.id,setReadInstr(_,readInstrFromStr(readInstrStr))))}
-                    label=singleScope.label
-                    onLabelChange={labelOpt => setState(updateSingleScope(_,singleScope.id,setLabel(_,labelOpt)))}
-                    allLabels=singleScope.allLabels
-                    renderDeleteButton
-                    onDelete={_=>setState(deleteSingleScope(_,singleScope.id))}
-                />
-            })
-        )
+                }
+                readInstr=singleScope.readInstr
+                onReadInstrChange={readInstr => setState(updateSingleScope(_,singleScope.id,setReadInstr(_,readInstr)))}
+                label=singleScope.label
+                onLabelChange={labelOpt => setState(updateSingleScope(_,singleScope.id,setLabel(_,labelOpt)))}
+                allLabels=singleScope.allLabels
+                renderDeleteButton
+                onDelete={_=>setState(deleteSingleScope(_,singleScope.id))}
+            />
+        })->React.array
     }
 
     let rndAddButton = () => {
@@ -209,32 +229,11 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
         }
     }
 
-    let rndWebFileLoader = () => {
-        <IconButton key="add-button" onClick={_ => {
-            FileLoader.loadFile(
-                ~url="https://us.metamath.org/metamath/set.mm",
-                ~onProgress = (loaded,total) => {
-                    let pct = loaded->Belt_Int.toFloat /. total->Belt_Int.toFloat
-                    Js.Console.log2("Loaded: ", (pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
-                },
-                ~onError = () => {
-                    Js.Console.log("An error occurred.")
-                },
-                ~onReady = text => {
-                    Js.Console.log2("Done: ", text->Js_string2.substrAtMost(~from=0, ~length=20) ++ "...")
-                },
-                ()
-            )
-        }} >
-            <MM_Icons.Hub/>
-        </IconButton>
-    }
-
-    let scopeIsEmpty = state.singleScopes->Js.Array2.length == 1 && state.singleScopes[0].fileName->Belt_Option.isNone
+    let scopeIsEmpty = state.singleScopes->Js.Array2.length == 1 && state.singleScopes[0].fileSrc->Belt_Option.isNone
 
     let applyChanges = () => {
         if (scopeIsEmpty) {
-            actNewCtxIsReady(createContext(()))
+            actNewCtxIsReady([],createContext(()))
         } else {
             openModal(modalRef, () => rndLoadMmContextProgress(0., None))->promiseMap(modalId => {
                 updateModal(
@@ -242,8 +241,8 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
                 )
                 MM_wrk_LoadCtx.beginLoadingMmContext(
                     ~scopes = state.singleScopes->Js.Array2.map(ss => {
-                        let stopBefore = if (ss.readInstr == #stopBefore) {ss.label} else {None}
-                        let stopAfter = if (ss.readInstr == #stopAfter) {ss.label} else {None}
+                        let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
+                        let stopAfter = if (ss.readInstr == StopAfter) {ss.label} else {None}
                         let label = stopBefore->Belt_Option.getWithDefault(
                             stopAfter->Belt_Option.getWithDefault(
                                 ss.allLabels->Belt_Array.get(ss.allLabels->Js_array2.length-1)->Belt_Option.getWithDefault("")
@@ -279,15 +278,23 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
                                                 > 
                                                     {React.string("Ok")} 
                                                 </Button>
-                                                <Row>
-                                                </Row>
                                             </Col>
                                         </Paper>
                                     })
                                 })->ignore
                             }
                             | Ok(ctx) => {
-                                actNewCtxIsReady(ctx)
+                                let mmCtxSrcDtos = state.singleScopes->Js.Array2.map(ss => {
+                                    {
+                                        fileSrc: switch ss.fileSrc {
+                                            | None => raise(MmException({msg:`ss.fileSrc is None`}))
+                                            | Some(src) => src
+                                        },
+                                        readInstr: ss.readInstr,
+                                        label: ss.label->Belt_Option.getWithDefault(""),
+                                    }
+                                })
+                                actNewCtxIsReady(mmCtxSrcDtos, ctx)
                                 closeAccordion()
                             }
                         }
@@ -307,8 +314,8 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
                 switch ss.ast {
                     | Some(Ok(_)) => {
                         switch ss.readInstr {
-                            | #all => true
-                            | #stopBefore | #stopAfter => {
+                            | ReadAll => true
+                            | StopBefore | StopAfter => {
                                 switch ss.label {
                                     | Some(_) => true
                                     | None => false
@@ -337,7 +344,6 @@ let make = (~onChange:mmContext=>unit, ~modalRef:modalRef) => {
                 {rndSingleScopeSelectors()}
                 {rndAddButton()}
                 {rndSaveButtons()}
-                {rndWebFileLoader()}
             </Col>
         </AccordionDetails>
     </Accordion>

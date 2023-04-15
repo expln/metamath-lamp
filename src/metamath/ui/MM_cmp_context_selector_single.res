@@ -130,7 +130,7 @@ let make = (
                 onChange=evt2str(str => str->mmFileSourceTypeFromStr->onSrcTypeChange)
             >
                 <MenuItem value="Local">{React.string("Local")}</MenuItem>
-                <MenuItem value="Web">{React.string("web")}</MenuItem>
+                <MenuItem value="Web">{React.string("Web")}</MenuItem>
             </Select>
         </FormControl>
     }
@@ -166,8 +166,8 @@ let make = (
                     onChange=evt2str(actAliasSelected)
                 >
                     {
-                        availableWebSrcs->Js_array2.map(webSrc => {
-                            <MenuItem value={webSrc.alias}>{React.string(webSrc.alias)}</MenuItem>
+                        availableWebSrcs->Js_array2.mapi((webSrc,i) => {
+                            <MenuItem value={webSrc.alias} key={i->Belt.Int.toString}>{React.string(webSrc.alias)}</MenuItem>
                         })->React.array
                     }
                 </Select>
