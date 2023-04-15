@@ -33,6 +33,19 @@ let allColors = [
 
 let asrtsToSkipRegexDefault = "New usage of \"([^\"]+)\" is discouraged"
 
+let createDefaultWebSrcSettingState = (alias:string,url:string):webSrcSettingsState => {
+    {
+        id: "0",
+        alias,
+        url,
+        trusted: false,
+        err: None
+    }
+}
+
+let aliasUsMmOrgSetMm = "set.mm:latest"
+let urlUsMmOrgSetMm = "https://us.metamath.org/metamath/set.mm"
+
 let createDefaultSettings = () => {
     {
         parens: "( ) [ ] { }",
@@ -72,31 +85,8 @@ let createDefaultSettings = () => {
         ],
         webSrcNextId: 1,
         webSrcSettings: [
-            {
-                id: "0",
-                alias: "us.metamath.org:set.mm",
-                url: "https://us.metamath.org/metamath/set.mm",
-                trusted: false,
-                err: None
-            }
+            createDefaultWebSrcSettingState(aliasUsMmOrgSetMm,urlUsMmOrgSetMm)
         ]
-    }
-}
-
-let validateAndCorrectWebSrcSetting = (src:webSrcSettingsState):webSrcSettingsState => {
-    let newAlias = src.alias->Js.String2.trim
-    let newUrl = src.url->Js.String2.trim
-    let err = if (newUrl->Js_string2.length == 0) {
-        Some("URL should not be empty.")
-    } else {
-        None
-    }
-
-    {
-        ...src,
-        alias: newAlias,
-        url: newUrl,
-        err
     }
 }
 
@@ -197,7 +187,27 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
         }
     }
 
-    let validatedWebSrcSettings = st.webSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
+    let validatedWebSrcSettings = switch st.webSrcSettings->Js.Array2.find(s => s.alias == aliasUsMmOrgSetMm) {
+        | None => {
+            st.webSrcSettings->Js.Array2.concat(
+                [createDefaultWebSrcSettingState(aliasUsMmOrgSetMm,urlUsMmOrgSetMm)]
+            )
+        }
+        | Some(sett) => {
+            if (sett.url == urlUsMmOrgSetMm) {
+                st.webSrcSettings
+            } else {
+                st.webSrcSettings->Js.Array2.map(s => {
+                    if (s.alias == aliasUsMmOrgSetMm) {
+                        {...s, url:urlUsMmOrgSetMm}
+                    } else {
+                        s
+                    }
+                })
+            }
+        }
+    }
+    let validatedWebSrcSettings = validatedWebSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
     let distinctIds = Belt_SetInt.fromArray(
         validatedWebSrcSettings->Js_array2.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
     )
