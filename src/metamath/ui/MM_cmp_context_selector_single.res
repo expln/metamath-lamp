@@ -124,6 +124,7 @@ let make = (
         <FormControl size=#small>
             <InputLabel id="src-type-select-label">"Source type"</InputLabel>
             <Select
+                sx={"width": 130}
                 labelId="src-type-select-label"
                 value={srcType->mmFileSourceTypeToStr}
                 label="Source type"
@@ -160,6 +161,7 @@ let make = (
             <FormControl size=#small>
                 <InputLabel id="alias-select-label">"Web resource"</InputLabel>
                 <Select
+                    sx={"width": 200}
                     labelId="alias-select-label"
                     value={alias->Belt_Option.getWithDefault("")}
                     label="Web resource"

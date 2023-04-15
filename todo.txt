@@ -1,3 +1,4 @@
+- add "restore defaults" buttons to Settings.
 - check if adding a cache to proveStmtBottomUp() (for getParents) improves performance.
 - move word "justification" outside the paper.
 - in the "search" dialog, in the pattern text field, replace variables with their types.
