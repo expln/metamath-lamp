@@ -70,9 +70,9 @@ let make = (
 
     let actAliasSelected = alias => {
         switch availableWebSrcs->Js_array2.find(src => src.alias == alias) {
-            | None => raise(MmException({msg:`Cannot determine a URL for '${alias}' alias.`}))
+            | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
             | Some(webSrc) => {
-                let progressText = `Loading MM file from '${alias}'`
+                let progressText = `Downloading MM file from "${alias}"`
                 openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
                     FileLoader.loadFile(
                         ~url=webSrc.url,
@@ -89,7 +89,7 @@ let make = (
                                     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                                         <Col spacing=1.>
                                             {
-                                                React.string(`An error occurred while reading from '${alias}'.`)
+                                                React.string(`An error occurred while downloading from "${alias}".`)
                                             }
                                             <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
                                                 {React.string("Ok")} 
@@ -121,19 +121,25 @@ let make = (
     }
 
     let rndSourceTypeSelector = () => {
-        <FormControl size=#small>
-            <InputLabel id="src-type-select-label">"Source type"</InputLabel>
-            <Select
-                sx={"width": 130}
-                labelId="src-type-select-label"
-                value={srcType->mmFileSourceTypeToStr}
-                label="Source type"
-                onChange=evt2str(str => str->mmFileSourceTypeFromStr->onSrcTypeChange)
-            >
-                <MenuItem value="Local">{React.string("Local")}</MenuItem>
-                <MenuItem value="Web">{React.string("Web")}</MenuItem>
-            </Select>
-        </FormControl>
+        if (fileSrc->Belt.Option.isNone) {
+            <FormControl size=#small>
+                <InputLabel id="src-type-select-label">"Source type"</InputLabel>
+                <Select
+                    sx={"width": 130}
+                    labelId="src-type-select-label"
+                    value={srcType->mmFileSourceTypeToStr}
+                    label="Source type"
+                    onChange=evt2str(str => str->mmFileSourceTypeFromStr->onSrcTypeChange)
+                >
+                    <MenuItem value="Local">{React.string("Local")}</MenuItem>
+                    <MenuItem value="Web">{React.string("Web")}</MenuItem>
+                </Select>
+            </FormControl>
+        } else {
+            <span>
+                {React.string(srcType->mmFileSourceTypeToStr)}
+            </span>
+        }
     }
 
     let rndReadInstrTypeSelector = () => {
@@ -157,7 +163,7 @@ let make = (
     }
 
     let rndAliasSelector = (alias: option<string>) => {
-        if (alias->Belt.Option.isNone && parseError->Belt_Option.isNone) {
+        if (alias->Belt.Option.isNone) {
             <FormControl size=#small>
                 <InputLabel id="alias-select-label">"Web resource"</InputLabel>
                 <Select
@@ -182,7 +188,7 @@ let make = (
     }
 
     let rndFileSelector = (fileName: option<string>) => {
-        if (fileName->Belt.Option.isNone && parseError->Belt_Option.isNone) {
+        if (fileName->Belt.Option.isNone) {
             <Expln_React_TextFileReader 
                 onChange={(selected:option<(string,string)>) => {
                     switch selected {

@@ -1,3 +1,4 @@
+- add "terminate" button to file web loader.
 - add "restore defaults" buttons to Settings.
 - check if adding a cache to proveStmtBottomUp() (for getParents) improves performance.
 - move word "justification" outside the paper.
