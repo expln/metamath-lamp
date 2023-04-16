@@ -1,3 +1,4 @@
+- implement a builder of statements.
 - add "About" page.
 - add "terminate" button to the file web loader.
 - add "restore defaults" buttons to Settings.

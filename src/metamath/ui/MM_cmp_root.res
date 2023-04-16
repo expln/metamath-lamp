@@ -70,6 +70,7 @@ let make = () => {
 
     let actSettingsUpdated = newSettings => {
         setState(setSettings(_,newSettings))
+        settingsSaveToLocStor(newSettings)
         actCtxUpdated(state.ctx, Some(newSettings))
     }
 
@@ -96,7 +97,8 @@ let make = () => {
                         <MM_cmp_settings 
                             modalRef
                             ctx=state.ctx 
-                            initialSettings=state.settings
+                            settingsVer=state.settingsV
+                            settings=state.settings
                             onChange=actSettingsUpdated
                         />
                     | Editor => 

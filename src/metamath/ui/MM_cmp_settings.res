@@ -286,10 +286,11 @@ let settingsToState = (ls:settings):settingsState => {
 
 let settingsLocStorKey = "settings"
 
-let saveStateToLocStor = (st:settingsState):unit => {
-    Dom_storage2.localStorage->Dom_storage2.setItem(settingsLocStorKey, Expln_utils_common.stringify(
-        stateToSettings(st)
-    ))
+let settingsSaveToLocStor = (settings:settings):unit => {
+    Dom_storage2.localStorage->Dom_storage2.setItem(
+        settingsLocStorKey, 
+        Expln_utils_common.stringify(settings)
+    )
 }
 
 let readStateFromLocStor = ():settingsState => {
@@ -456,15 +457,27 @@ let deleteWebSrcSetting = (st, id) => {
 }
 
 @react.component
-let make = (~modalRef:modalRef, ~ctx:mmContext, ~initialSettings:settings, ~onChange: settings => unit) => {
-    let (state, setState) = React.useState(_ => initialSettings->settingsToState)
+let make = (
+    ~modalRef:modalRef, 
+    ~ctx:mmContext, 
+    ~settingsVer:int, 
+    ~settings:settings, 
+    ~onChange: settings => unit
+) => {
+    let (state, setState) = React.useState(_ => settings->settingsToState)
     let (prevState, setPrevState) = React.useState(_ => state)
+
+    React.useEffect1(() => {
+        let newState = settings->settingsToState
+        setState(_ => newState)
+        setPrevState(_ => newState)
+        None
+    }, [settingsVer])
 
     let applyChanges = () => {
         let st = validateAndCorrectState(state)
         setState(_ => st)
         if (st->isValid) {
-            saveStateToLocStor(st)
             setPrevState(_ => st)
             onChange(st->stateToSettings)
         }
