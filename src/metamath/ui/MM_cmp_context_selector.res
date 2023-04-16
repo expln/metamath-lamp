@@ -104,6 +104,7 @@ let getSummary = st => {
 let make = (
     ~modalRef:modalRef,
     ~webSrcSettings:array<webSrcSettings>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
 ) => {
     let (state, setState) = React.useState(_ => {
@@ -201,6 +202,12 @@ let make = (
                             }
                         })
                 }
+                trustedUrls={
+                    webSrcSettings
+                        ->Js_array2.filter(s => s.trusted)
+                        ->Js_array2.map(s => s.url)
+                }
+                onUrlBecomesTrusted
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))}
                 fileSrc=singleScope.fileSrc

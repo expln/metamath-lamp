@@ -32,7 +32,7 @@ let make = (
                             onChange=evt2bool(onTrustedChange(src.id,_))
                         />
                     }
-                    label="Do not ask before downloading"
+                    label="Download without warning"
                     style=ReactDOM.Style.make(
                         ~border="solid 1px lightgrey", 
                         ~borderRadius="7px", 

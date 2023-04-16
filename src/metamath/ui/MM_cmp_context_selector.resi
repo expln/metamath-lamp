@@ -13,5 +13,6 @@ type mmCtxSrcDto = {
 let make: (
     ~modalRef: modalRef,
     ~webSrcSettings:array<webSrcSettings>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
 ) => React.element

@@ -17,3 +17,19 @@ type settings = {
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
 }
+
+let markUrlAsTrusted = (settings:settings, url:string):settings => {
+    {
+        ...settings,
+        webSrcSettings: settings.webSrcSettings->Js.Array2.map(ws => {
+            if (ws.url == url) {
+                {
+                    ...ws,
+                    trusted:true
+                }
+            } else {
+                ws
+            }
+        })
+    }
+}

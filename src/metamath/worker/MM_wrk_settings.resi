@@ -17,3 +17,5 @@ type settings = {
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
 }
+
+let markUrlAsTrusted: (settings, string) => settings

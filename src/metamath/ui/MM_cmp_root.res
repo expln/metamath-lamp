@@ -97,7 +97,7 @@ let make = () => {
                             modalRef
                             ctx=state.ctx 
                             initialSettings=state.settings
-                            onChange=actSettingsUpdated 
+                            onChange=actSettingsUpdated
                         />
                     | Editor => 
                         <MM_cmp_editor
@@ -123,7 +123,10 @@ let make = () => {
                     <MM_cmp_context_selector 
                         modalRef 
                         webSrcSettings={state.settings.webSrcSettings}
-                        onChange={(_,ctx)=>actCtxUpdated(ctx, None)} 
+                        onUrlBecomesTrusted={url=>{
+                            state.settings->markUrlAsTrusted(url)->actSettingsUpdated
+                        }}
+                        onChange={(_,ctx)=>actCtxUpdated(ctx, None)}
                     />
                     {renderTabs()}
                 </Col>

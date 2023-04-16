@@ -2,8 +2,6 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_parser
 open Expln_React_Modal
-open Expln_utils_promise
-open MM_react_common
 
 type mmFileSourceType = Local | Web
 
@@ -54,6 +52,8 @@ let mmFileSourceTypeFromStr = (str:string):mmFileSourceType => {
 let make = (
     ~modalRef:modalRef,
     ~availableWebSrcs:array<webSource>,
+    ~trustedUrls:array<string>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~srcType:mmFileSourceType,
     ~onSrcTypeChange:mmFileSourceType=>unit,
     ~fileSrc: option<mmFileSource>,
@@ -68,59 +68,19 @@ let make = (
     ~onDelete:unit=>unit, 
 ) => {
 
-    let makeActTerminate = (modalId:modalId, isTerminated:ref<bool>):(unit=>unit) => {
-        () => {
-            isTerminated.contents = true
-            closeModal(modalRef, modalId)
-        }
-    }
-
     let actAliasSelected = alias => {
         switch availableWebSrcs->Js_array2.find(src => src.alias == alias) {
             | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
             | Some(webSrc) => {
-                let progressText = `Downloading MM file from "${alias}"`
-                let isTerminated = ref(false)
-                openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
-                    updateModal( 
-                        modalRef, modalId, 
-                        () => rndProgress( ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId, isTerminated), () )
-                    )
-                    FileLoader.loadFile(
-                        ~url=webSrc.url,
-                        ~onProgress = (loaded,total) => {
-                            let pct = loaded->Belt_Int.toFloat /. total->Belt_Int.toFloat
-                            updateModal( 
-                                modalRef, modalId,
-                                () => rndProgress( ~text=progressText, ~pct, ~onTerminate=makeActTerminate(modalId, isTerminated), () )
-                            )
-                        },
-                        ~onError = () => {
-                            closeModal(modalRef, modalId)
-                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                updateModal(modalRef, modalId, () => {
-                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                        <Col spacing=1.>
-                                            {
-                                                React.string(`An error occurred while downloading from "${alias}".`)
-                                            }
-                                            <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
-                                                {React.string("Ok")} 
-                                            </Button>
-                                        </Col>
-                                    </Paper>
-                                })
-                            })->ignore
-                        },
-                        ~onReady = text => {
-                            if (!isTerminated.contents) {
-                                onFileChange(Web(webSrc), text)
-                                closeModal(modalRef, modalId)
-                            }
-                        },
-                        ()
-                    )
-                })->ignore
+                FileLoader.loadFileWithProgress(
+                    ~modalRef,
+                    ~showWarning=!(trustedUrls->Js_array2.includes(webSrc.url)),
+                    ~progressText=`Downloading MM file from "${alias}"`,
+                    ~errorMsg=`An error occurred while downloading from "${alias}".`,
+                    ~url=webSrc.url,
+                    ~onUrlBecomesTrusted,
+                    ~onReady = text => onFileChange(Web(webSrc), text)
+                )
             }
         }
     }
