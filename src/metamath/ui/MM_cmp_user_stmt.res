@@ -145,6 +145,8 @@ let rndProofStatus = (
     }
 }
 
+@val external window: {..} = "window"
+
 @react.component
 let make = (
     ~stmt:userStmt, 
@@ -156,6 +158,7 @@ let make = (
     ~onDebug:unit=>unit,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
+    let labelRef = React.useRef(Js.Nullable.null)
 
     React.useEffect1(() => {
         if (stmt.labelEditMode) {
@@ -234,6 +237,7 @@ let make = (
             </Row>
         } else {
             <span 
+                ref=ReactDOM.Ref.domRef(labelRef)
                 onClick=leftClickHnd(_, onLabelEditRequested, _ => ()) 
                 title="<left-click> to change"
             >
@@ -244,10 +248,19 @@ let make = (
 
     let rndCont = () => {
         if (stmt.contEditMode) {
+            let windowWidth = window["innerWidth"]
+            let labelWidth = switch labelRef.current->Js.Nullable.toOption {
+                | None => 0
+                | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"]
+            }
             <Row>
                 <TextField
                     size=#small
-                    style=ReactDOM.Style.make(~width="800px", ())
+                    style=ReactDOM.Style.make(
+                        ~width= (windowWidth - 200 - labelWidth)->Belt_Int.toString ++ "px", 
+                        ~fontFamily="monospace", 
+                        ()
+                    )
                     autoFocus=true
                     multiline=true
                     value=state.newText
@@ -263,7 +276,13 @@ let make = (
         } else {
             <Paper 
                 onClick=leftClickHnd(_, onContEditRequested, _ => ()) 
-                style=ReactDOM.Style.make(~padding="1px 10px", ~backgroundColor="rgb(255,255,235)", ()) 
+                style=ReactDOM.Style.make(
+                    ~padding="1px 10px", 
+                    ~backgroundColor="rgb(255,255,235)", 
+                    ~fontFamily="monospace",
+                    ~fontSize="1.3em",
+                    ()
+                ) 
                 title="<left-click> to change"
             >
                 {rndContText(stmt.cont)}
