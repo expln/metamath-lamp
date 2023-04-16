@@ -257,10 +257,12 @@ let make = (
                 <TextField
                     size=#small
                     style=ReactDOM.Style.make(
-                        ~width= (windowWidth - 200 - labelWidth)->Belt_Int.toString ++ "px", 
-                        ~fontFamily="monospace", 
+                        ~width = (windowWidth - 200 - labelWidth)->Belt_Int.toString ++ "px", 
                         ()
                     )
+                    inputProps={
+                        "style": {"fontFamily": "monospace"}
+                    }
                     autoFocus=true
                     multiline=true
                     value=state.newText
