@@ -26,8 +26,15 @@ let readEditorStateFromLocStor = (key:string):option<editorStateLocStor> => {
     }
 }
 
-let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
-    <span ?title>
+let rndIconButton = (
+    ~icon:reElem, 
+    ~onClick:unit=>unit, 
+    ~active:bool, 
+    ~ref:option<ReactDOM.domRef>=?,
+    ~title:option<string>=?, 
+    ()
+) => {
+    <span ?ref ?title>
         <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
     </span>
 }
@@ -56,6 +63,9 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=readEditorStateFromLocStor(stateLocStorKey)
     ))
+
+    let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
+    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
@@ -107,6 +117,14 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         actPreCtxUpdated(preCtxV, preCtx)
         None
     }, [preCtxV])
+
+    let actOpenMainMenu = () => {
+        setMainMenuIsOpened(_ => true)
+    }
+
+    let actCloseMainMenu = () => {
+        setMainMenuIsOpened(_ => false)
+    }
 
     let actAddNewStmt = () => setState(st => {
         let (st, _) = addNewStmt(st)
@@ -701,9 +719,46 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
+    let rndMainMenu = () => {
+        switch mainMenuButtonRef.current->Js.Nullable.toOption {
+            | None => React.null
+            | Some(mainMenuButtonRef) => {
+                <Menu
+                    opn=mainMenuIsOpened
+                    anchorEl=mainMenuButtonRef
+                    onClose=actCloseMainMenu
+                >
+                    <MenuItem 
+                        onClick={() => {
+                            Js.Console.log("Item1 clicked")
+                            actCloseMainMenu()
+                        }}
+                    >
+                        {"Item1"->React.string}
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            Js.Console.log("Item2 clicked")
+                            actCloseMainMenu()
+                        }}
+                    >
+                        {"Item2"->React.string}
+                    </MenuItem>
+                </Menu>
+            }
+        }
+    }
+
     let rndButtons = () => {
         <Paper>
-            <Row>
+            <Row
+                childXsOffset = {idx => {
+                    switch idx {
+                        | 10 => Some(Js.Json.string("auto"))
+                        | _ => None
+                    }
+                }}
+            >
                 <Checkbox
                     disabled=editIsActive
                     indeterminate={mainCheckboxState->Belt_Option.isNone}
@@ -739,6 +794,11 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                                     && (!atLeastOneStmtIsSelected || singleProvableSelected->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 
                         ~title="Unify all statements or unify selected provable bottom-up", () )
+                }
+                { 
+                    rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
+                        ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
+                        ~title="Additional actions", () )
                 }
             </Row>
         </Paper>
@@ -826,6 +886,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         header={rndButtons()}
         content={_ => {
             <Col>
+                {rndMainMenu()}
                 {rndVars()}
                 {rndDisj()}
                 {rndStmts()}

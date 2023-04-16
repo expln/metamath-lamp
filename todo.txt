@@ -1,3 +1,4 @@
+- hide "plus" button on nodes without children in the proof tree.
 - implement a builder of statements.
 - add "About" page.
 - add "terminate" button to the file web loader.

@@ -66,10 +66,10 @@ let rndContText = (stmtCont) => {
                 <React.Fragment key={stmtSym.id}>
                     {
                         switch stmtSym.color {
-                            | None => (stmtSym.sym ++ "\u00A0")->React.string
+                            | None => (stmtSym.sym ++ " ")->React.string
                             | Some(color) => {
                                 <span style=ReactDOM.Style.make(~color=color, ~fontWeight="500", ())>
-                                    {(stmtSym.sym ++ "\u00A0")->React.string}
+                                    {(stmtSym.sym ++ " ")->React.string}
                                 </span>
                             }
                         }
