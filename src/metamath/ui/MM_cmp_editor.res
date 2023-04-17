@@ -11,16 +11,17 @@ open MM_statements_dto
 open MM_wrk_editor_json
 open MM_proof_tree
 open MM_provers
+open Local_storage_utils
 
 
 let unifyAllIsRequiredCnt = ref(0)
 
 let editorSaveStateToLocStor = (state:editorState, key:string):unit => {
-    Dom_storage2.localStorage->Dom_storage2.setItem(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+    locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
 }
 
 let readEditorStateFromLocStor = (key:string):option<editorStateLocStor> => {
-    switch Dom_storage2.localStorage->Dom_storage2.getItem(key) {
+    switch locStorReadString(key) {
         | None => None
         | Some(stateLocStorStr) => readEditorStateFromJsonStr(stateLocStorStr)
     }
@@ -40,6 +41,7 @@ let rndIconButton = (
 }
 
 let stateLocStorKey = "editor-state"
+let appendTimestampLocStorKey = "export-to-json-append-timestamp"
 
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
@@ -62,6 +64,15 @@ let getLastUsedTyp = (ctx) => {
 
 @react.component
 let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int, ~preCtx:mmContext, ~top:int) => {
+    let (jsonExportAppendTimestamp, setJsonExportAppendTimestampPriv) = React.useState(_ => {
+        locStorReadBool(appendTimestampLocStorKey)->Belt_Option.getWithDefault(false)
+    })
+
+    let setJsonExportAppendTimestamp = (appendTimestamp:bool):unit => {
+        locStorWriteBool(appendTimestampLocStorKey, appendTimestamp)
+        setJsonExportAppendTimestampPriv(_ => appendTimestamp)
+    }
+
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=readEditorStateFromLocStor(stateLocStorKey)
     ))
@@ -665,23 +676,45 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         navigator["clipboard"]["writeText"](. text)
     }
 
-    let rndExportedJson = (modalId,json:string) => {
-        <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
-            <Col>
-                <Row>
-                    <Button onClick={_=>copyToClipboard(json)} variant=#outlined > {React.string("Copy")} </Button>
-                    <Button onClick={_=>closeModal(modalRef, modalId)} > {React.string("Close")} </Button>
-                </Row>
-                <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(json)}</pre>
-            </Col>
-        </Paper>
+    let rec rndExportedJson = (modalId,json:string,appendTimestamp:bool):unit => {
+        updateModal(modalRef, modalId, () => {
+            let timestampStr = if (appendTimestamp) {
+                Common.currTimeStr() ++ " "
+            } else {
+                ""
+            }
+            let textToShow = timestampStr ++ json
+            <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+                <Col>
+                    <Row>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked=appendTimestamp
+                                    onChange={evt2bool(appendTimestamp => {
+                                        setJsonExportAppendTimestamp(appendTimestamp)
+                                        rndExportedJson(modalId,json,appendTimestamp)
+                                    })}
+                                />
+                            }
+                            label="append timestamp"
+                        />
+                        <Button onClick={_=>copyToClipboard(textToShow)} variant=#outlined > {React.string("Copy")} </Button>
+                        <Button onClick={_=>closeModal(modalRef, modalId)} > {React.string("Close")} </Button>
+                    </Row>
+                    <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(textToShow)}</pre>
+                </Col>
+            </Paper>
+        })
     }
 
     let actExportToJson = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
-            updateModal(modalRef, modalId, () => {
-                rndExportedJson(modalId, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
-            })
+            rndExportedJson(
+                modalId,
+                Expln_utils_common.stringify(state->editorStateToEditorStateLocStor),
+                jsonExportAppendTimestamp
+            )
         })->ignore
     }
 
