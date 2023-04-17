@@ -539,6 +539,52 @@ let make = (
         setState(updateTrusted(_, id, trusted))
     }
 
+    let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
+        let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
+            state
+        } else {
+            let newId = state.typeNextId->Belt_Int.toString
+            let state = state->addTypeSetting
+            {
+                ...state,
+                typeSettings: state.typeSettings->Js.Array2.map(ts => {
+                    if (ts.id == newId) {
+                        {
+                            ...ts,
+                            typ,
+                        }
+                    } else {
+                        ts
+                    }
+                })
+            }
+        }
+        {
+            ...state,
+            typeSettings: state.typeSettings->Js.Array2.map(ts => {
+                if (ts.typ == typ) {
+                    {
+                        ...ts,
+                        color,
+                        prefix
+                    }
+                } else {
+                    ts
+                }
+            })
+        }
+    }
+
+    let actRestoreDefaultTypeSettings = () => {
+        setState(state => {
+            let defaultSettings = createDefaultSettings()
+            defaultSettings.typeSettings->Js.Array2.reduce(
+                (state, default) => restoreDefaultsForType(state, default.typ, default.color, default.prefix),
+                state
+            )
+        })
+    }
+
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
         modalId->Belt.Option.map(modalId => () => {
             MM_wrk_client.terminateWorker()
@@ -632,6 +678,7 @@ let make = (
             onColorChange=actColorChange
             onPrefixChange=actPrefixChange
             onDelete=actTypeSettingDelete
+            onRestoreDefaults=actRestoreDefaultTypeSettings
         />
         <Divider/>
         <MM_cmp_web_src_settings

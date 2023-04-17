@@ -18,6 +18,7 @@ let make = (
     ~onColorChange: (string,string) => unit, 
     ~onPrefixChange: (string,string) => unit,
     ~onDelete: string => unit,
+    ~onRestoreDefaults: unit=>unit,
 ) => {
     let rndColorSelect = (~selectedColor, ~onNewColorSelected) => {
         <FormControl size=#small >
@@ -62,8 +63,16 @@ let make = (
 
     <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
         { typeSettings->Js_array2.map(rndTypeSetting)->React.array }
-        <IconButton key="add-button" onClick={_ => onAdd()}>
-            <MM_Icons.Add/>
-        </IconButton>
+        <Row alignItems={#baseline} >
+            <IconButton key="add-button" onClick={_ => onAdd()}>
+                <MM_Icons.Add/>
+            </IconButton>
+            <span
+                onClick={_=> onRestoreDefaults() }
+                style=ReactDOM.Style.make(~cursor="pointer", ~color="grey", ~fontSize="0.7em", ())
+            >
+                {React.string("Restore default type settings")}
+            </span>
+        </Row>
     </Col>
 }
