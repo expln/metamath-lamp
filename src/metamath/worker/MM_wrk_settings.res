@@ -19,17 +19,30 @@ type settings = {
 }
 
 let markUrlAsTrusted = (settings:settings, url:string):settings => {
-    {
-        ...settings,
-        webSrcSettings: settings.webSrcSettings->Js.Array2.map(ws => {
-            if (ws.url == url) {
-                {
-                    ...ws,
-                    trusted:true
+    if (settings.webSrcSettings->Js.Array2.find(ws => ws.url == url)->Belt.Option.isSome) {
+        {
+            ...settings,
+            webSrcSettings: settings.webSrcSettings->Js.Array2.map(ws => {
+                if (ws.url == url) {
+                    {
+                        ...ws,
+                        trusted:true
+                    }
+                } else {
+                    ws
                 }
-            } else {
-                ws
-            }
-        })
+            })
+        }
+    } else {
+        {
+            ...settings,
+            webSrcSettings: settings.webSrcSettings->Js.Array2.concat([
+                {
+                    alias:"",
+                    url,
+                    trusted:true,
+                }
+            ])
+        }
     }
 }
