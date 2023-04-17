@@ -58,6 +58,8 @@ let getLastUsedTyp = (ctx) => {
     }
 }
 
+@val external navigator: {..} = "navigator"
+
 @react.component
 let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int, ~preCtx:mmContext, ~top:int) => {
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
@@ -659,6 +661,30 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         }
     }
 
+    let copyToClipboard = (text:string) => {
+        navigator["clipboard"]["writeText"](. text)
+    }
+
+    let rndExportedJson = (modalId,json:string) => {
+        <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
+            <Col>
+                <Row>
+                    <Button onClick={_=>copyToClipboard(json)} variant=#outlined > {React.string("Copy")} </Button>
+                    <Button onClick={_=>closeModal(modalRef, modalId)} > {React.string("Close")} </Button>
+                </Row>
+                <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(json)}</pre>
+            </Col>
+        </Paper>
+    }
+
+    let actExportToJson = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                rndExportedJson(modalId, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+            })
+        })->ignore
+    }
+
     let actDebugUnifyAll = (stmtId) => {
         let st = state
         let st = st->uncheckAllStmts
@@ -720,32 +746,36 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
     }
 
     let rndMainMenu = () => {
-        switch mainMenuButtonRef.current->Js.Nullable.toOption {
-            | None => React.null
-            | Some(mainMenuButtonRef) => {
-                <Menu
-                    opn=mainMenuIsOpened
-                    anchorEl=mainMenuButtonRef
-                    onClose=actCloseMainMenu
-                >
-                    <MenuItem 
-                        onClick={() => {
-                            Js.Console.log("Item1 clicked")
-                            actCloseMainMenu()
-                        }}
+        if (mainMenuIsOpened) {
+            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+                | None => React.null
+                | Some(mainMenuButtonRef) => {
+                    <Menu
+                        opn=true
+                        anchorEl=mainMenuButtonRef
+                        onClose=actCloseMainMenu
                     >
-                        {"Item1"->React.string}
-                    </MenuItem>
-                    <MenuItem
-                        onClick={() => {
-                            Js.Console.log("Item2 clicked")
-                            actCloseMainMenu()
-                        }}
-                    >
-                        {"Item2"->React.string}
-                    </MenuItem>
-                </Menu>
+                        <MenuItem 
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actExportToJson()
+                            }}
+                        >
+                            {"Export to JSON ..."->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                Js.Console.log("Item2 clicked")
+                                actCloseMainMenu()
+                            }}
+                        >
+                            {"Import from JSON ..."->React.string}
+                        </MenuItem>
+                    </Menu>
+                }
             }
+        } else {
+            React.null
         }
     }
 
