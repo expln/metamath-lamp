@@ -187,27 +187,7 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
         }
     }
 
-    let validatedWebSrcSettings = switch st.webSrcSettings->Js.Array2.find(s => s.alias == aliasUsMmOrgSetMm) {
-        | None => {
-            st.webSrcSettings->Js.Array2.concat(
-                [createDefaultWebSrcSettingState(aliasUsMmOrgSetMm,urlUsMmOrgSetMm)]
-            )
-        }
-        | Some(sett) => {
-            if (sett.url == urlUsMmOrgSetMm) {
-                st.webSrcSettings
-            } else {
-                st.webSrcSettings->Js.Array2.map(s => {
-                    if (s.alias == aliasUsMmOrgSetMm) {
-                        {...s, url:urlUsMmOrgSetMm}
-                    } else {
-                        s
-                    }
-                })
-            }
-        }
-    }
-    let validatedWebSrcSettings = validatedWebSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
+    let validatedWebSrcSettings = st.webSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
     let distinctIds = Belt_SetInt.fromArray(
         validatedWebSrcSettings->Js_array2.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
     )
@@ -584,6 +564,52 @@ let make = (
             )
         })
     }
+    
+    let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string, trusted: bool):settingsState => {
+        let state = if (state.webSrcSettings->Js.Array2.find(ws => ws.alias == alias)->Belt.Option.isSome) {
+            state
+        } else {
+            let newId = state.webSrcNextId->Belt_Int.toString
+            let state = state->addWebSrcSetting
+            {
+                ...state,
+                webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+                    if (ws.id == newId) {
+                        {
+                            ...ws,
+                            alias,
+                        }
+                    } else {
+                        ws
+                    }
+                })
+            }
+        }
+        {
+            ...state,
+            webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+                if (ws.alias == alias) {
+                    {
+                        ...ws,
+                        url,
+                        trusted,
+                    }
+                } else {
+                    ws
+                }
+            })
+        }
+    }
+
+    let actRestoreDefaultWebSrcSettings = () => {
+        setState(state => {
+            let defaultSettings = createDefaultSettings()
+            defaultSettings.webSrcSettings->Js.Array2.reduce(
+                (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url, default.trusted),
+                state
+            )
+        })
+    }
 
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
         modalId->Belt.Option.map(modalId => () => {
@@ -688,6 +714,7 @@ let make = (
             onUrlChange=actUrlChange
             onTrustedChange=actTrustedChange
             onDelete=actWebSrcSettingDelete
+            onRestoreDefaults=actRestoreDefaultWebSrcSettings
         />
         <Divider/>
         {

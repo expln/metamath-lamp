@@ -17,6 +17,7 @@ let make = (
     ~onUrlChange: (string,string) => unit, 
     ~onTrustedChange: (string,bool) => unit,
     ~onDelete: string => unit,
+    ~onRestoreDefaults: unit=>unit,
 ) => {
     let rndWebSrcSetting = (src:webSrcSettingsState) => {
         <Col key=src.id>
@@ -57,8 +58,16 @@ let make = (
 
     <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
         { webSrcSettings->Js_array2.map(rndWebSrcSetting)->React.array }
-        <IconButton key="add-button" onClick={_ => onAdd()}>
-            <MM_Icons.Add/>
-        </IconButton>
+        <Row alignItems={#baseline} >
+            <IconButton key="add-button" onClick={_ => onAdd()}>
+                <MM_Icons.Add/>
+            </IconButton>
+            <span
+                onClick={_=> onRestoreDefaults() }
+                style=ReactDOM.Style.make(~cursor="pointer", ~color="grey", ~fontSize="0.7em", ())
+            >
+                {React.string("Restore default URLs")}
+            </span>
+        </Row>
     </Col>
 }
