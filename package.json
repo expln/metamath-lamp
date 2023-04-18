@@ -40,6 +40,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject11111"
   },
+  "keywords": [
+    "rescript"
+  ],
   "eslintConfig": {
     "extends": [
       "react-app",

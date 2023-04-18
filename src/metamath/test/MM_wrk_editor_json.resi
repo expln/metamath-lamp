@@ -27,4 +27,4 @@ let createInitialEditorState: (
 
 let editorStateToEditorStateLocStor: editorState => editorStateLocStor
 
-let readEditorStateFromJsonStr: string => option<editorStateLocStor>
+let readEditorStateFromJsonStr: string => result<editorStateLocStor,string>

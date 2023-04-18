@@ -13,9 +13,9 @@ open MM_int_test_utils
 open Common
 
 type rootStmtsToUse =
-    | All
-    | None
-    | Some(array<stmtId>)
+    | AllStmts
+    | NoneStmts
+    | SomeStmts(array<stmtId>)
 
 let createEditorState = (
     ~mmFilePath:string, 
@@ -53,10 +53,14 @@ let createEditorState = (
         ~stateLocStor=
             switch editorState {
                 | None => None
-                | Some(fileName) => 
-                    readEditorStateFromJsonStr(Expln_utils_files.readStringFromFile(
-                        getTestDataDir() ++ "/" ++ fileName ++ ".json"
-                    ))
+                | Some(fileName) => {
+                    open Belt_Option
+                    readEditorStateFromJsonStr(
+                        Expln_utils_files.readStringFromFile(
+                            getTestDataDir() ++ "/" ++ fileName ++ ".json"
+                        )
+                    )->Belt.Result.mapWithDefault(None, state => Some(state))
+                }
             }
     )
     st->prepareEditorForUnification
@@ -288,9 +292,9 @@ let unifyAll = (st):editorState => {
 
 let filterRootStmts = (stmts:array<userStmt>, rootStmtsToUse:rootStmtsToUse):array<expr> => {
     let stmtsFiltered = switch rootStmtsToUse {
-        | All => stmts
-        | None => []
-        | Some(ids) => stmts->Js_array2.filter(stmt => ids->Js_array2.includes(stmt.id))
+        | AllStmts => stmts
+        | NoneStmts => []
+        | SomeStmts(ids) => stmts->Js_array2.filter(stmt => ids->Js_array2.includes(stmt.id))
     }
     stmtsFiltered->Js_array2.map(stmt => userStmtToRootStmt(stmt).expr)
 }
@@ -298,8 +302,8 @@ let filterRootStmts = (stmts:array<userStmt>, rootStmtsToUse:rootStmtsToUse):arr
 let unifyBottomUp = (
     st,
     ~stmtId:stmtId,
-    ~args0:rootStmtsToUse=All,
-    ~args1:rootStmtsToUse=None,
+    ~args0:rootStmtsToUse=AllStmts,
+    ~args1:rootStmtsToUse=NoneStmts,
     ~asrtLabel:option<string>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestrict:lengthRestrict=Less,

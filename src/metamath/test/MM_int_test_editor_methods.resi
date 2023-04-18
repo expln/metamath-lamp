@@ -2,9 +2,9 @@ open MM_wrk_editor
 open MM_statements_dto
 
 type rootStmtsToUse =
-    | All
-    | None
-    | Some(array<stmtId>)
+    | AllStmts
+    | NoneStmts
+    | SomeStmts(array<stmtId>)
 
 let createEditorState: (
     ~mmFilePath: string,

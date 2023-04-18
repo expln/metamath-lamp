@@ -255,7 +255,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=st->Ed.getStmtId(~contains="|- ( x = A -> if", ()), 
-            ~args0=None,
+            ~args0=NoneStmts,
             ~allowNewVars=false, 
             ~chooseLabel="ifbieq2d",
             ()
@@ -353,7 +353,7 @@ describe("MM_wrk_editor integration tests", _ => {
             ~stmtId=trgtStmtId, 
             ~maxSearchDepth=6,
             ~allowNewVars=false, 
-            ~args1=All,
+            ~args1=AllStmts,
             ~chooseLabel="ax-mp",
             ()
         )
@@ -455,7 +455,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=st->getStmtId(~label="stmt1", ()),
-            ~args0=Some([st->getStmtId(~label="stmt8", ())]),
+            ~args0=SomeStmts([st->getStmtId(~label="stmt8", ())]),
             ~maxSearchDepth=4,
             ~allowNewVars=false,
             ~chooseLabel="mp1i",
@@ -471,7 +471,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=st->getStmtId(~label="stmt2", ()),
-            ~args1=All,
+            ~args1=AllStmts,
             ~asrtLabel="spcev",
             ~maxSearchDepth=40,
             ~lengthRestrict=No,
@@ -485,7 +485,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=st->getStmtId(~label="stmt3", ()),
-            ~args1=All,
+            ~args1=AllStmts,
             ~asrtLabel="brab2a",
             ~maxSearchDepth=40,
             ~lengthRestrict=No,
@@ -499,7 +499,7 @@ describe("MM_wrk_editor integration tests", _ => {
 
         let (st, stmts) = st->unifyBottomUp(
             ~stmtId=st->getStmtId(~label="2", ()),
-            ~args1=All,
+            ~args1=AllStmts,
             ~asrtLabel="tgjustf",
             ~maxSearchDepth=40,
             ~lengthRestrict=No,

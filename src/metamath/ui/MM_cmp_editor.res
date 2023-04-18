@@ -23,7 +23,8 @@ let editorSaveStateToLocStor = (state:editorState, key:string):unit => {
 let readEditorStateFromLocStor = (key:string):option<editorStateLocStor> => {
     switch locStorReadString(key) {
         | None => None
-        | Some(stateLocStorStr) => readEditorStateFromJsonStr(stateLocStorStr)
+        | Some(stateLocStorStr) => 
+            readEditorStateFromJsonStr(stateLocStorStr)->Belt.Result.mapWithDefault(None, state => Some(state))
     }
 }
 
@@ -718,6 +719,47 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         })->ignore
     }
 
+    let actImportFromJson = (jsonStr):bool => {
+        switch readEditorStateFromJsonStr(jsonStr) {
+            | Error(errorMsg) => {
+                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    updateModal(modalRef, modalId, () => {
+                        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                            <Col spacing=1.>
+                                { React.string(errorMsg) }
+                                <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                    {React.string("Ok")} 
+                                </Button>
+                            </Col>
+                        </Paper>
+                    })
+                })->ignore
+                false
+            }
+            | Ok(stateLocStor) => {
+                setState(_ => createInitialEditorState(
+                    ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=Some(stateLocStor)
+                ))
+                true
+            }
+        }
+    }
+
+    let actOpenImportFromJsonDialog = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_import_from_json
+                    onImport={text=>{
+                        if (actImportFromJson(text)) {
+                            closeModal(modalRef, modalId)
+                        }
+                    }}
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
     let actDebugUnifyAll = (stmtId) => {
         let st = state
         let st = st->uncheckAllStmts
@@ -798,8 +840,8 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
-                                Js.Console.log("Item2 clicked")
                                 actCloseMainMenu()
+                                actOpenImportFromJsonDialog()
                             }}
                         >
                             {"Import from JSON ..."->React.string}

@@ -106,9 +106,9 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
     }
 }
 
-let readEditorStateFromJsonStr = (jsonStr:string):option<editorStateLocStor> => {
+let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,string> => {
     open Expln_utils_jsonParse
-    let parseResult = parseJson(jsonStr, asObj(_, d=>{
+    parseJson(jsonStr, asObj(_, d=>{
         {
             varsText: d->str("varsText", ~default=()=>"", ()),
             disjText: d->str("disjText", ~default=()=>"", ()),
@@ -122,8 +122,4 @@ let readEditorStateFromJsonStr = (jsonStr:string):option<editorStateLocStor> => 
             }, ()), ())
         }
     }, ()), ())
-    switch parseResult {
-        | Error(_) => None
-        | Ok(res) => Some(res)
-    }
 }
