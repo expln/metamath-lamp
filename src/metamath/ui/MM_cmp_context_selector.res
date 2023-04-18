@@ -6,6 +6,7 @@ open MM_cmp_context_selector_single
 open MM_context
 open Expln_React_Modal
 open MM_wrk_settings
+open MM_wrk_editor
 
 type mmSingleScope = {
     id:string,
@@ -16,12 +17,6 @@ type mmSingleScope = {
     allLabels: array<string>,
     readInstr: readInstr,
     label: option<string>,
-}
-
-type mmCtxSrcDto = {
-    fileSrc: mmFileSource,
-    readInstr: readInstr,
-    label: string,
 }
 
 type rec mmScope = {

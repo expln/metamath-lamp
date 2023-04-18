@@ -1,9 +1,5 @@
 open Expln_React_Modal
-
-type mmFileSourceType = Local | Web
-type webSource = {alias: string, url: string}
-type mmFileSource = Local({fileName: string}) | Web(webSource)
-type readInstr = ReadAll | StopBefore | StopAfter
+open MM_wrk_editor
 
 @react.component
 let make: (

@@ -7,6 +7,25 @@ open MM_parenCounter
 open MM_substitution
 open MM_statements_dto
 
+type mmFileSourceType = Local | Web
+
+type readInstr = ReadAll | StopBefore | StopAfter
+
+type webSource = {
+    alias:string,
+    url:string,
+}
+
+type mmFileSource =
+    | Local({fileName:string})
+    | Web(webSource)
+
+type mmCtxSrcDto = {
+    fileSrc: mmFileSource,
+    readInstr: readInstr,
+    label: string,
+}
+
 type stmtSym = {
     id: string,
     sym: string,
@@ -30,6 +49,11 @@ let strToCont: (
 type userStmtType = E | P
 let userStmtTypeFromStr: string => userStmtType
 let userStmtTypeToStr: userStmtType => string
+
+let readInstrToStr: readInstr => string
+let readInstrFromStr: string => readInstr
+let mmFileSourceTypeToStr: mmFileSourceType => string
+let mmFileSourceTypeFromStr: string => mmFileSourceType
 
 type stmtId = string
 

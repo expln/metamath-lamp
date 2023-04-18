@@ -2,51 +2,7 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_parser
 open Expln_React_Modal
-
-type mmFileSourceType = Local | Web
-
-type webSource = {
-    alias:string,
-    url:string,
-}
-
-type mmFileSource =
-    | Local({fileName:string})
-    | Web(webSource)
-
-type readInstr = ReadAll | StopBefore | StopAfter
-
-let readInstrToStr = ri => {
-    switch ri {
-        | ReadAll => "ReadAll"
-        | StopBefore => "StopBefore"
-        | StopAfter => "StopAfter"
-    }
-}
-
-let readInstrFromStr = str => {
-    switch str {
-        | "ReadAll" => ReadAll
-        | "StopBefore" => StopBefore
-        | "StopAfter" => StopAfter
-        | _ => raise(MmException({msg:`Cannot convert string '${str}' to a readInstr.`}))
-    }
-}
-
-let mmFileSourceTypeToStr = (src:mmFileSourceType):string => {
-    switch src {
-        | Local => "Local"
-        | Web => "Web"
-    }
-}
-
-let mmFileSourceTypeFromStr = (str:string):mmFileSourceType => {
-    switch str {
-        | "Local" => Local
-        | "Web" => Web
-        | _ => raise(MmException({msg:`Cannot convert string '${str}' to an mmFileSourceType.`}))
-    }
-}
+open MM_wrk_editor
 
 @react.component
 let make = (

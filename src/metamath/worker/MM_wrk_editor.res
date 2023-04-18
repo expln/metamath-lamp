@@ -14,6 +14,25 @@ open MM_unification_debug
 
 let newLabelPrefix = ""
 
+type mmFileSourceType = Local | Web
+
+type readInstr = ReadAll | StopBefore | StopAfter
+
+type webSource = {
+    alias:string,
+    url:string,
+}
+
+type mmFileSource =
+    | Local({fileName:string})
+    | Web(webSource)
+
+type mmCtxSrcDto = {
+    fileSrc: mmFileSource,
+    readInstr: readInstr,
+    label: string,
+}
+
 type stmtSym = {
     id: string,
     sym: string,
@@ -85,6 +104,38 @@ let userStmtTypeToStr = typ => {
     }
 }
 
+let readInstrToStr = ri => {
+    switch ri {
+        | ReadAll => "ReadAll"
+        | StopBefore => "StopBefore"
+        | StopAfter => "StopAfter"
+    }
+}
+
+let readInstrFromStr = str => {
+    switch str {
+        | "ReadAll" => ReadAll
+        | "StopBefore" => StopBefore
+        | "StopAfter" => StopAfter
+        | _ => raise(MmException({msg:`Cannot convert string '${str}' to a readInstr.`}))
+    }
+}
+
+let mmFileSourceTypeToStr = (src:mmFileSourceType):string => {
+    switch src {
+        | Local => "Local"
+        | Web => "Web"
+    }
+}
+
+let mmFileSourceTypeFromStr = (str:string):mmFileSourceType => {
+    switch str {
+        | "Local" => Local
+        | "Web" => Web
+        | _ => raise(MmException({msg:`Cannot convert string '${str}' to an mmFileSourceType.`}))
+    }
+}
+
 type stmtId = string
 
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
@@ -112,6 +163,8 @@ type userStmt = {
 }
 
 type editorState = {
+    // srcs: array<mmCtxSrcDto>,
+
     settingsV:int,
     settings:settings,
     typeColors: Belt_HashMapString.t<string>,
