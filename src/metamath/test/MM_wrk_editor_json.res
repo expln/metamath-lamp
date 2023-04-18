@@ -11,6 +11,7 @@ type userStmtLocStor = {
 }   
 
 type editorStateLocStor = {
+    srcs: array<mmCtxSrcDto>,
     varsText: string,
     disjText: string,
     stmts: array<userStmtLocStor>,
@@ -52,6 +53,7 @@ let createInitialEditorState = (
         settings,
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
+        srcs: stateLocStor->Belt_Option.mapWithDefault([], st => st.srcs),
         preCtxV,
         preCtx,
         frms: Belt_MapString.empty,
@@ -87,12 +89,13 @@ let createInitialEditorState = (
         unifyAllIsRequiredCnt: 0,
     }
     let st = st->setSettings(settingsV, settings)
-    let st = st->setPreCtx(preCtxV, preCtx)
+    let st = st->setPreCtx(st.srcs, preCtxV, preCtx)
     st
 }
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
+        srcs: state.srcs,
         varsText: state.varsText,
         disjText: state.disjText,
         stmts: state.stmts->Js_array2.map(stmt => {
@@ -110,6 +113,15 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
     open Expln_utils_jsonParse
     parseJson(jsonStr, asObj(_, d=>{
         {
+            srcs: d->arr("srcs", asObj(_, d=>{
+                {
+                    typ: d->str("typ", ()),
+                    fileName: d->str("fileName", ()),
+                    url: d->str("url", ()),
+                    readInstr: d->str("readInstr", ()),
+                    label: d->str("label", ()),
+                }
+            }, ()), ()),
             varsText: d->str("varsText", ~default=()=>"", ()),
             disjText: d->str("disjText", ~default=()=>"", ()),
             stmts: d->arr("stmts", asObj(_, d=>{

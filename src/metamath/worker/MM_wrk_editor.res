@@ -28,8 +28,10 @@ type mmFileSource =
     | Web(webSource)
 
 type mmCtxSrcDto = {
-    fileSrc: mmFileSource,
-    readInstr: readInstr,
+    typ: string,
+    fileName: string,
+    url: string,
+    readInstr: string,
     label: string,
 }
 
@@ -163,12 +165,11 @@ type userStmt = {
 }
 
 type editorState = {
-    // srcs: array<mmCtxSrcDto>,
-
     settingsV:int,
     settings:settings,
     typeColors: Belt_HashMapString.t<string>,
 
+    srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
@@ -633,10 +634,11 @@ let updateColorsInAllStmts = st => {
     }
 }
 
-let setPreCtx = (st, preCtxV, preCtx) => {
+let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) => {
     preCtx->moveConstsToBegin(st.settings.parens)
     let st = { 
         ...st, 
+        srcs,
         preCtxV, 
         preCtx, 
         frms: prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ()),
@@ -654,7 +656,7 @@ let setSettings = (st, settingsV, settings) => {
         settingsV, 
         settings,
     }
-    let st = setPreCtx(st, st.preCtxV, st.preCtx)
+    let st = setPreCtx(st, st.srcs, st.preCtxV, st.preCtx)
     let st = recalcTypeColors(st)
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)

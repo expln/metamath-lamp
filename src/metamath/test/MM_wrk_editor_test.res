@@ -27,6 +27,7 @@ let createEditorState = (mmFile) => {
         settings,
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
+        srcs: [],
         preCtxV,
         preCtx,
         frms: prepareFrmSubsData(~ctx, ()),
@@ -52,7 +53,7 @@ let createEditorState = (mmFile) => {
         unifyAllIsRequiredCnt: 0
     }
     let st = st->setSettings(settingsV, settings)
-    let st = st->setPreCtx(preCtxV, preCtx)
+    let st = st->setPreCtx(st.srcs, preCtxV, preCtx)
     st
 }
 

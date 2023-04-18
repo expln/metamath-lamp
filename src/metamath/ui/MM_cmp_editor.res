@@ -64,7 +64,7 @@ let getLastUsedTyp = (ctx) => {
 @val external navigator: {..} = "navigator"
 
 @react.component
-let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int, ~preCtx:mmContext, ~top:int) => {
+let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~srcs:array<mmCtxSrcDto>, ~preCtxV:int, ~preCtx:mmContext, ~top:int) => {
     let (jsonExportAppendTimestamp, setJsonExportAppendTimestampPriv) = React.useState(_ => {
         locStorReadBool(appendTimestampLocStorKey)->Belt_Option.getWithDefault(false)
     })
@@ -123,12 +123,12 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~preCtxV:int
         None
     }, [settingsV])
 
-    let actPreCtxUpdated = (preCtxV, preCtx) => {
-        setState(setPreCtx(_, preCtxV, preCtx))
+    let actPreCtxUpdated = (srcs, preCtxV, preCtx) => {
+        setState(setPreCtx(_, srcs, preCtxV, preCtx))
     }
 
     React.useEffect1(() => {
-        actPreCtxUpdated(preCtxV, preCtx)
+        actPreCtxUpdated(srcs, preCtxV, preCtx)
         None
     }, [preCtxV])
 

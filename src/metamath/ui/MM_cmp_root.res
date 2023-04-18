@@ -1,6 +1,7 @@
 open Expln_React_Mui
 open MM_context
 open MM_cmp_settings
+open MM_wrk_editor
 open MM_wrk_settings
 open Expln_React_Modal
 
@@ -13,22 +14,25 @@ type tabData =
 type state = {
     settings: settings,
     settingsV: int,
+    srcs: array<mmCtxSrcDto>,
     ctx: mmContext,
     ctxV: int,
 }
 
 let createInitialState = (~settings) => {
-    ctx: createContext(()),
-    ctxV: 0,
     settings,
     settingsV: 0,
+    srcs: [],
+    ctx: createContext(()),
+    ctxV: 0,
 }
 
-let setCtx = (st,ctx) => {
+let setCtx = (st,srcs,ctx) => {
     {
         ...st,
+        srcs,
         ctx,
-        ctxV: st.ctxV + 1
+        ctxV: st.ctxV + 1,
     }
 }
 
@@ -59,19 +63,19 @@ let make = () => {
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
-    let actCtxUpdated = (newCtx:mmContext, settingsOpt) => {
+    let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext, settingsOpt) => {
         let settings = switch settingsOpt {
             | Some(settings) => settings
             | None => state.settings
         }
         newCtx->moveConstsToBegin(settings.parens)
-        setState(setCtx(_,newCtx))
+        setState(setCtx(_,srcs,newCtx))
     }
 
     let actSettingsUpdated = newSettings => {
         setState(setSettings(_,newSettings))
         settingsSaveToLocStor(newSettings)
-        actCtxUpdated(state.ctx, Some(newSettings))
+        actCtxUpdated(state.srcs, state.ctx, Some(newSettings))
     }
 
     React.useEffect0(()=>{
@@ -107,6 +111,7 @@ let make = () => {
                             modalRef
                             settings=state.settings
                             settingsV=state.settingsV
+                            srcs=state.srcs
                             preCtxV=state.ctxV
                             preCtx=state.ctx
                         />
@@ -128,7 +133,7 @@ let make = () => {
                         onUrlBecomesTrusted={url=>{
                             state.settings->markUrlAsTrusted(url)->actSettingsUpdated
                         }}
-                        onChange={(_,ctx)=>actCtxUpdated(ctx, None)}
+                        onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx, None)}
                     />
                     {renderTabs()}
                 </Col>

@@ -10,6 +10,7 @@ type userStmtLocStor = {
 }
 
 type editorStateLocStor = {
+    srcs: array<mmCtxSrcDto>,
     varsText: string, 
     disjText: string, 
     stmts: array<userStmtLocStor>

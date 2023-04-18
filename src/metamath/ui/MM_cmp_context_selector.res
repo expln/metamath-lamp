@@ -296,13 +296,30 @@ let make = (
                             }
                             | Ok(ctx) => {
                                 let mmCtxSrcDtos = state.singleScopes->Js.Array2.map(ss => {
-                                    {
-                                        fileSrc: switch ss.fileSrc {
-                                            | None => raise(MmException({msg:`ss.fileSrc is None`}))
-                                            | Some(src) => src
-                                        },
-                                        readInstr: ss.readInstr,
-                                        label: ss.label->Belt_Option.getWithDefault(""),
+                                    switch ss.fileSrc {
+                                        | None => raise(MmException({msg:`ss.fileSrc is None`}))
+                                        | Some(src) => {
+                                            switch src {
+                                                | Local({fileName}) => {
+                                                    {
+                                                        typ: Local->mmFileSourceTypeToStr,
+                                                        fileName,
+                                                        url:"",
+                                                        readInstr: ss.readInstr->readInstrToStr,
+                                                        label: ss.label->Belt.Option.getWithDefault(""),
+                                                    }
+                                                }
+                                                | Web({ url, }) => {
+                                                    {
+                                                        typ: Web->mmFileSourceTypeToStr,
+                                                        fileName:"",
+                                                        url,
+                                                        readInstr: ss.readInstr->readInstrToStr,
+                                                        label: ss.label->Belt.Option.getWithDefault(""),
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 })
                                 actNewCtxIsReady(mmCtxSrcDtos, ctx)

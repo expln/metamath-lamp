@@ -21,8 +21,10 @@ type mmFileSource =
     | Web(webSource)
 
 type mmCtxSrcDto = {
-    fileSrc: mmFileSource,
-    readInstr: readInstr,
+    typ: string,
+    fileName: string,
+    url: string,
+    readInstr: string,
     label: string,
 }
 
@@ -86,6 +88,7 @@ type editorState = {
     settings:settings,
     typeColors: Belt_HashMapString.t<string>,
 
+    srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
     frms: Belt_MapString.t<frmSubsData>,
@@ -152,7 +155,7 @@ let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, string, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
 let setSettings: (editorState, int, settings) => editorState
-let setPreCtx: (editorState, int, mmContext) => editorState
+let setPreCtx: (editorState, array<mmCtxSrcDto>, int, mmContext) => editorState
 let editorStateHasErrors: editorState => bool
 let prepareEditorForUnification: editorState => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
