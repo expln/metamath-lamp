@@ -2,7 +2,6 @@ open Expln_React_Mui
 open Expln_utils_promise
 open MM_parser
 open MM_react_common
-open MM_cmp_context_selector_single
 open MM_context
 open Expln_React_Modal
 open MM_wrk_settings
@@ -19,7 +18,7 @@ type mmSingleScope = {
     label: option<string>,
 }
 
-type rec mmScope = {
+type mmScope = {
     nextId: int,
     expanded: bool,
     singleScopes: array<mmSingleScope>,
@@ -92,6 +91,60 @@ let getSummary = st => {
             name ++ readInstr
         })
         "Loaded: " ++ filesInfo->Js_array2.joinWith("; ")
+    }
+}
+
+let parseMmFileForSingleScope = (st:mmScope, singleScopeId:string):mmScope => {
+    switch st.singleScopes->Js_array2.find(ss => ss.id == singleScopeId) {
+        | None => raise(MmException({msg:`Could not find an mmSingleScope with id '${singleScopeId}'`}))
+        | Some(ss) => {
+            switch ss.fileSrc {
+                | None => raise(MmException({
+                    msg:`fileSrc is not set for the mmSingleScope with id '${singleScopeId}'`
+                }))
+                | Some(src) => {
+                    switch ss.fileText {
+                        | None => raise(MmException({
+                            msg:`fileText is not set for the mmSingleScope with id '${singleScopeId}'`
+                        }))
+                        | Some(text) => {
+                            let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
+                            openModal(modalRef, _ => rndParseMmFileProgress(name, 0., None))->promiseMap(modalId => {
+                                updateModal(
+                                    modalRef, modalId, () => rndParseMmFileProgress(name, 0., Some(modalId))
+                                )
+                                MM_wrk_ParseMmFile.beginParsingMmFile(
+                                    ~mmFileText = text,
+                                    ~onProgress = pct => updateModal(
+                                        modalRef, modalId, () => rndParseMmFileProgress(name, pct, Some(modalId))
+                                    ),
+                                    ~onDone = parseResult => {
+                                        let st = st->updateSingleScope(id,setFileSrc(_,Some(src)))
+                                        let st = st->updateSingleScope(id,setFileText(_,Some(text)))
+                                        let st = st->updateSingleScope(id,setReadInstr(_,ReadAll))
+                                        let st = st->updateSingleScope(id,setLabel(_,None))
+                                        let st = switch parseResult {
+                                            | Error(msg) => {
+                                                let st = st->updateSingleScope(id,setAst(_, Some(Error(msg))))
+                                                let st = st->updateSingleScope(id,setAllLabels(_, []))
+                                                st
+                                            }
+                                            | Ok((ast,allLabels)) => {
+                                                let st = st->updateSingleScope(id,setAst(_,Some(Ok(ast))))
+                                                let st = st->updateSingleScope(id,setAllLabels(_, allLabels))
+                                                st
+                                            }
+                                        }
+                                        closeModal(modalRef, modalId)
+                                        st
+                                    }
+                                )
+                            })->ignore
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
