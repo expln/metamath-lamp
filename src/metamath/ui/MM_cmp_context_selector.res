@@ -123,13 +123,12 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                         | Some(text) => {
                             let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
                             let progressText = `Parsing ${name}`
-                            promise(rsl => {
+                            promise(rsv => {
                                 openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
                                     let onTerminate = makeActTerminate(modalRef, modalId)
                                     updateModal( 
                                         modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) 
                                     )
-                                    let stMut = ref(st)
                                     MM_wrk_ParseMmFile.beginParsingMmFile(
                                         ~mmFileText = text,
                                         ~onProgress = pct => updateModal( 
@@ -152,7 +151,7 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                                                 }
                                             }
                                             closeModal(modalRef, modalId)
-                                            rsl(st)
+                                            rsv(st)
                                         }
                                     )
                                 })->ignore
@@ -163,6 +162,72 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
             }
         }
     }
+}
+
+let scopeIsEmpty = (st:mmScope):bool => 
+    st.singleScopes->Js.Array2.length == 1 && st.singleScopes[0].fileSrc->Belt_Option.isNone
+
+let loadMmContext = (st:mmScope, ~modalRef:modalRef):promise<result<mmContext,string>> => {
+    promise(rsv => {
+        if (scopeIsEmpty(st)) {
+            rsv(Ok(createContext(())))
+        } else {
+            let progressText = `Loading MM context`
+            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+                let onTerminate = makeActTerminate(modalRef, modalId)
+                updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) )
+                MM_wrk_LoadCtx.beginLoadingMmContext(
+                    ~scopes = st.singleScopes->Js.Array2.map(ss => {
+                        let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
+                        let stopAfter = if (ss.readInstr == StopAfter) {ss.label} else {None}
+                        let label = stopBefore->Belt_Option.getWithDefault(
+                            stopAfter->Belt_Option.getWithDefault(
+                                ss.allLabels->Belt_Array.get(ss.allLabels->Js_array2.length-1)->Belt_Option.getWithDefault("")
+                            )
+                        )
+                        {
+                            MM_wrk_LoadCtx.ast: switch ss.ast {
+                                | Some(Ok(ast)) => ast
+                                | _ => raise(MmException({msg:`Cannot load an MM context from an empty or error ast.`}))
+                            },
+                            stopBefore,
+                            stopAfter,
+                            expectedNumOfAssertions: ss.allLabels->Js_array2.indexOf(label) + 1
+                        }
+                    }),
+                    ~onProgress = pct => 
+                        updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
+                    ~onDone = ctx => {
+                        switch ctx {
+                            | Error(msg) => {
+                                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                    updateModal(modalRef, modalId, () => {
+                                        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                            <Col spacing=1.>
+                                                {React.string("Error loading context:")}
+                                                <pre style=ReactDOM.Style.make(~color="red", ())>
+                                                    {React.string(msg)}
+                                                </pre>
+                                                <Button
+                                                    onClick={_=>closeModal(modalRef, modalId)}
+                                                    variant=#contained
+                                                > 
+                                                    {React.string("Ok")} 
+                                                </Button>
+                                            </Col>
+                                        </Paper>
+                                    })
+                                })->ignore
+                            }
+                            | Ok(_) => ()
+                        }
+                        rsv(ctx)
+                        closeModal(modalRef, modalId)
+                    }
+                )
+            })->ignore
+        }
+    })
 }
 
 @react.component
@@ -269,94 +334,47 @@ let make = (
         }
     }
 
-    let scopeIsEmpty = state.singleScopes->Js.Array2.length == 1 && state.singleScopes[0].fileSrc->Belt_Option.isNone
+    let scopeIsEmpty = scopeIsEmpty(state)
 
     let applyChanges = () => {
         if (scopeIsEmpty) {
             actNewCtxIsReady([],createContext(()))
         } else {
-            let progressText = `Loading MM context`
-            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
-                let onTerminate = makeActTerminate(modalRef, modalId)
-                updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) )
-                MM_wrk_LoadCtx.beginLoadingMmContext(
-                    ~scopes = state.singleScopes->Js.Array2.map(ss => {
-                        let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
-                        let stopAfter = if (ss.readInstr == StopAfter) {ss.label} else {None}
-                        let label = stopBefore->Belt_Option.getWithDefault(
-                            stopAfter->Belt_Option.getWithDefault(
-                                ss.allLabels->Belt_Array.get(ss.allLabels->Js_array2.length-1)->Belt_Option.getWithDefault("")
-                            )
-                        )
-                        {
-                            MM_wrk_LoadCtx.ast: switch ss.ast {
-                                | Some(Ok(ast)) => ast
-                                | _ => raise(MmException({msg:`Cannot load an MM context from an empty or error ast.`}))
-                            },
-                            stopBefore,
-                            stopAfter,
-                            expectedNumOfAssertions: ss.allLabels->Js_array2.indexOf(label) + 1
-                        }
-                    }),
-                    ~onProgress = pct => 
-                        updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
-                    ~onDone = ctx => {
-                        switch ctx {
-                            | Error(msg) => {
-                                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                    updateModal(modalRef, modalId, () => {
-                                        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                            <Col spacing=1.>
-                                                {React.string("Error loading context:")}
-                                                <pre style=ReactDOM.Style.make(~color="red", ())>
-                                                    {React.string(msg)}
-                                                </pre>
-                                                <Button
-                                                    onClick={_=>closeModal(modalRef, modalId)}
-                                                    variant=#contained
-                                                > 
-                                                    {React.string("Ok")} 
-                                                </Button>
-                                            </Col>
-                                        </Paper>
-                                    })
-                                })->ignore
-                            }
-                            | Ok(ctx) => {
-                                let mmCtxSrcDtos = state.singleScopes->Js.Array2.map(ss => {
-                                    switch ss.fileSrc {
-                                        | None => raise(MmException({msg:`ss.fileSrc is None`}))
-                                        | Some(src) => {
-                                            switch src {
-                                                | Local({fileName}) => {
-                                                    {
-                                                        typ: Local->mmFileSourceTypeToStr,
-                                                        fileName,
-                                                        url:"",
-                                                        readInstr: ss.readInstr->readInstrToStr,
-                                                        label: ss.label->Belt.Option.getWithDefault(""),
-                                                    }
-                                                }
-                                                | Web({ url, }) => {
-                                                    {
-                                                        typ: Web->mmFileSourceTypeToStr,
-                                                        fileName:"",
-                                                        url,
-                                                        readInstr: ss.readInstr->readInstrToStr,
-                                                        label: ss.label->Belt.Option.getWithDefault(""),
-                                                    }
-                                                }
+            loadMmContext(state, ~modalRef)->promiseMap(ctx => {
+                switch ctx {
+                    | Error(_) => ()
+                    | Ok(ctx) => {
+                        let mmCtxSrcDtos = state.singleScopes->Js.Array2.map(ss => {
+                            switch ss.fileSrc {
+                                | None => raise(MmException({msg:`ss.fileSrc is None`}))
+                                | Some(src) => {
+                                    switch src {
+                                        | Local({fileName}) => {
+                                            {
+                                                typ: Local->mmFileSourceTypeToStr,
+                                                fileName,
+                                                url:"",
+                                                readInstr: ss.readInstr->readInstrToStr,
+                                                label: ss.label->Belt.Option.getWithDefault(""),
+                                            }
+                                        }
+                                        | Web({ url, }) => {
+                                            {
+                                                typ: Web->mmFileSourceTypeToStr,
+                                                fileName:"",
+                                                url,
+                                                readInstr: ss.readInstr->readInstrToStr,
+                                                label: ss.label->Belt.Option.getWithDefault(""),
                                             }
                                         }
                                     }
-                                })
-                                actNewCtxIsReady(mmCtxSrcDtos, ctx)
-                                closeAccordion()
+                                }
                             }
-                        }
-                        closeModal(modalRef, modalId)
+                        })
+                        actNewCtxIsReady(mmCtxSrcDtos, ctx)
+                        closeAccordion()
                     }
-                )
+                }
             })->ignore
         }
     }
