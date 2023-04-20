@@ -121,7 +121,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     readInstr: d->str("readInstr", ()),
                     label: d->str("label", ()),
                 }
-            }, ()), ()),
+            }, ()), ~default=()=>[], ()),
             varsText: d->str("varsText", ~default=()=>"", ()),
             disjText: d->str("disjText", ~default=()=>"", ()),
             stmts: d->arr("stmts", asObj(_, d=>{

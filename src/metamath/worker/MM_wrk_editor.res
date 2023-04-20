@@ -1749,6 +1749,7 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                             let preCtx = st.preCtx
                             let expr = userStmtToRootStmt(stmt).expr
                             let proofTable = createProofTable(proofTreeDto,proofNode)
+                            // MM_proof_table.proofTablePrint(wrkCtx, proofTable, "proof table")
                             let exprsUsedInProof = proofTable->Js.Array2.map(r => r.expr)
                                 ->Belt_HashSet.fromArray(~id=module(ExprHash))
                             let rootStmts = st.stmts->Js_array2.map(userStmtToRootStmt)

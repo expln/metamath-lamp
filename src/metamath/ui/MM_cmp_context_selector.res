@@ -73,7 +73,13 @@ let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
     switch src {
         | None => None
         | Some(Local({fileName})) => Some(fileName)
-        | Some(Web({alias})) => Some(alias)
+        | Some(Web({alias,url})) => {
+            if (alias->Js_string2.trim != "") {
+                Some(alias)
+            } else {
+                Some(url)
+            }
+        }
     }
 }
 
@@ -94,7 +100,14 @@ let getSummary = st => {
     }
 }
 
-let parseMmFileForSingleScope = (st:mmScope, singleScopeId:string):mmScope => {
+let makeActTerminate = (modalRef:modalRef, modalId:modalId):(unit=>unit) => {
+    () => {
+        MM_wrk_client.terminateWorker()
+        closeModal(modalRef, modalId)
+    }
+}
+
+let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:modalRef):promise<mmScope> => {
     switch st.singleScopes->Js_array2.find(ss => ss.id == singleScopeId) {
         | None => raise(MmException({msg:`Could not find an mmSingleScope with id '${singleScopeId}'`}))
         | Some(ss) => {
@@ -109,37 +122,41 @@ let parseMmFileForSingleScope = (st:mmScope, singleScopeId:string):mmScope => {
                         }))
                         | Some(text) => {
                             let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
-                            openModal(modalRef, _ => rndParseMmFileProgress(name, 0., None))->promiseMap(modalId => {
-                                updateModal(
-                                    modalRef, modalId, () => rndParseMmFileProgress(name, 0., Some(modalId))
-                                )
-                                MM_wrk_ParseMmFile.beginParsingMmFile(
-                                    ~mmFileText = text,
-                                    ~onProgress = pct => updateModal(
-                                        modalRef, modalId, () => rndParseMmFileProgress(name, pct, Some(modalId))
-                                    ),
-                                    ~onDone = parseResult => {
-                                        let st = st->updateSingleScope(id,setFileSrc(_,Some(src)))
-                                        let st = st->updateSingleScope(id,setFileText(_,Some(text)))
-                                        let st = st->updateSingleScope(id,setReadInstr(_,ReadAll))
-                                        let st = st->updateSingleScope(id,setLabel(_,None))
-                                        let st = switch parseResult {
-                                            | Error(msg) => {
-                                                let st = st->updateSingleScope(id,setAst(_, Some(Error(msg))))
-                                                let st = st->updateSingleScope(id,setAllLabels(_, []))
-                                                st
+                            let progressText = `Parsing ${name}`
+                            promise(rsl => {
+                                openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+                                    let onTerminate = makeActTerminate(modalRef, modalId)
+                                    updateModal( 
+                                        modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) 
+                                    )
+                                    let stMut = ref(st)
+                                    MM_wrk_ParseMmFile.beginParsingMmFile(
+                                        ~mmFileText = text,
+                                        ~onProgress = pct => updateModal( 
+                                            modalRef, modalId, 
+                                            () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())
+                                        ),
+                                        ~onDone = parseResult => {
+                                            let st = st->updateSingleScope(ss.id,setReadInstr(_,ReadAll))
+                                            let st = st->updateSingleScope(ss.id,setLabel(_,None))
+                                            let st = switch parseResult {
+                                                | Error(msg) => {
+                                                    let st = st->updateSingleScope(ss.id,setAst(_, Some(Error(msg))))
+                                                    let st = st->updateSingleScope(ss.id,setAllLabels(_, []))
+                                                    st
+                                                }
+                                                | Ok((ast,allLabels)) => {
+                                                    let st = st->updateSingleScope(ss.id,setAst(_,Some(Ok(ast))))
+                                                    let st = st->updateSingleScope(ss.id,setAllLabels(_, allLabels))
+                                                    st
+                                                }
                                             }
-                                            | Ok((ast,allLabels)) => {
-                                                let st = st->updateSingleScope(id,setAst(_,Some(Ok(ast))))
-                                                let st = st->updateSingleScope(id,setAllLabels(_, allLabels))
-                                                st
-                                            }
+                                            closeModal(modalRef, modalId)
+                                            rsl(st)
                                         }
-                                        closeModal(modalRef, modalId)
-                                        st
-                                    }
-                                )
-                            })->ignore
+                                    )
+                                })->ignore
+                            })
                         }
                     }
                 }
@@ -179,51 +196,10 @@ let make = (
         onChange(srcs,ctx)
     }
 
-    let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
-        modalId->Belt.Option.map(modalId => () => {
-            MM_wrk_client.terminateWorker()
-            closeModal(modalRef, modalId)
-        })
-    }
-
-    let rndParseMmFileProgress = (fileName, pct, modalIdOpt) => {
-        rndProgress(~text=`Parsing ${fileName}`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
-    }
-
-    let rndLoadMmContextProgress = (pct, modalIdOpt) => {
-        rndProgress(~text=`Loading MM context`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
-    }
-
-    let parseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
-        let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
-        openModal(modalRef, _ => rndParseMmFileProgress(name, 0., None))->promiseMap(modalId => {
-            updateModal(
-                modalRef, modalId, () => rndParseMmFileProgress(name, 0., Some(modalId))
-            )
-            MM_wrk_ParseMmFile.beginParsingMmFile(
-                ~mmFileText = text,
-                ~onProgress = pct => updateModal(
-                    modalRef, modalId, () => rndParseMmFileProgress(name, pct, Some(modalId))
-                ),
-                ~onDone = parseResult => {
-                    setState(updateSingleScope(_,id,setFileSrc(_,Some(src))))
-                    setState(updateSingleScope(_,id,setFileText(_,Some(text))))
-                    setState(updateSingleScope(_,id,setReadInstr(_,ReadAll)))
-                    setState(updateSingleScope(_,id,setLabel(_,None)))
-                    switch parseResult {
-                        | Error(msg) => {
-                            setState(updateSingleScope(_,id,setAst(_, Some(Error(msg)))))
-                            setState(updateSingleScope(_,id,setAllLabels(_, [])))
-                        }
-                        | Ok((ast,allLabels)) => {
-                            setState(updateSingleScope(_,id,setAst(_,Some(Ok(ast)))))
-                            setState(updateSingleScope(_,id,setAllLabels(_, allLabels)))
-                        }
-                    }
-                    closeModal(modalRef, modalId)
-                }
-            )
-        })->ignore
+    let actParseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
+        let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
+        let st = st->updateSingleScope(id,setFileText(_,Some(text)))
+        st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->promiseMap(st => setState(_ => st))->ignore
     }
 
     let toggleAccordion = () => {
@@ -259,7 +235,7 @@ let make = (
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))}
                 fileSrc=singleScope.fileSrc
-                onFileChange={(src,text)=>parseMmFileText(singleScope.id, src, text)}
+                onFileChange={(src,text)=>actParseMmFileText(singleScope.id, src, text)}
                 parseError={
                     switch singleScope.ast {
                         | Some(Error(msg)) => Some(msg)
@@ -299,10 +275,10 @@ let make = (
         if (scopeIsEmpty) {
             actNewCtxIsReady([],createContext(()))
         } else {
-            openModal(modalRef, () => rndLoadMmContextProgress(0., None))->promiseMap(modalId => {
-                updateModal(
-                    modalRef, modalId, () => rndLoadMmContextProgress(0., Some(modalId))
-                )
+            let progressText = `Loading MM context`
+            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+                let onTerminate = makeActTerminate(modalRef, modalId)
+                updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) )
                 MM_wrk_LoadCtx.beginLoadingMmContext(
                     ~scopes = state.singleScopes->Js.Array2.map(ss => {
                         let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
@@ -322,9 +298,8 @@ let make = (
                             expectedNumOfAssertions: ss.allLabels->Js_array2.indexOf(label) + 1
                         }
                     }),
-                    ~onProgress = pct => updateModal(
-                        modalRef, modalId, () => rndLoadMmContextProgress(pct, Some(modalId))
-                    ),
+                    ~onProgress = pct => 
+                        updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
                     ~onDone = ctx => {
                         switch ctx {
                             | Error(msg) => {
