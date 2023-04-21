@@ -38,6 +38,15 @@ let createEmptySingleScope = id => {
     }
 }
 
+let createInitialMmScope = () => {
+    {
+        nextId: 1,
+        singleScopes: [createEmptySingleScope("0")],
+        expanded: true,
+        loadedContextSummary: "",
+    }
+}
+
 let setSrcType = (ss:mmSingleScope, srcType) => {...ss, srcType}
 let setFileSrc = (ss:mmSingleScope, fileSrc:option<mmFileSource>) => {...ss, fileSrc}
 let setFileText = (ss:mmSingleScope, fileText) => {...ss, fileText}
@@ -107,6 +116,49 @@ let makeActTerminate = (modalRef:modalRef, modalId:modalId):(unit=>unit) => {
     }
 }
 
+let webTypStr = Web->mmFileSourceTypeToStr
+
+let isSingleScopeSame = (ss:mmSingleScope,srcDto:mmCtxSrcDto):bool => {
+    switch ss.fileSrc {
+        | None => false
+        | Some(ssFileSrc) => {
+            switch ssFileSrc {
+                | Local(_) => false
+                | Web({url:ssUrl}) => {
+                    if (srcDto.typ != webTypStr 
+                            || srcDto.url != ssUrl 
+                            || srcDto.readInstr->readInstrFromStr != ss.readInstr) {
+                        false
+                    } else {
+                        switch ss.readInstr {
+                            | ReadAll => true
+                            | StopBefore | StopAfter => {
+                                switch ss.label {
+                                    | None => false
+                                    | Some(ssLabel) => ssLabel == srcDto.label
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let isScopeSame = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>):bool => {
+    singleScopes->Js.Array2.length == srcs->Js_array2.length
+        && singleScopes->Js.Array2.everyi((ss,i) => isSingleScopeSame(ss, srcs[i]))
+}
+
+let canLoadContext = (srcs: array<mmCtxSrcDto>):bool => {
+    srcs->Js_array2.length > 0 && srcs->Js_array2.every(src => src.typ == webTypStr)
+}
+
+let shouldReloadContext = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>):bool => {
+    canLoadContext(srcs) && !isScopeSame(singleScopes, srcs)
+}
+
 let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:modalRef):promise<mmScope> => {
     switch st.singleScopes->Js_array2.find(ss => ss.id == singleScopeId) {
         | None => raise(MmException({msg:`Could not find an mmSingleScope with id '${singleScopeId}'`}))
@@ -164,12 +216,12 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
     }
 }
 
-let scopeIsEmpty = (st:mmScope):bool => 
-    st.singleScopes->Js.Array2.length == 1 && st.singleScopes[0].fileSrc->Belt_Option.isNone
+let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool => 
+    singleScopes->Js.Array2.length == 1 && singleScopes[0].fileSrc->Belt_Option.isNone
 
-let loadMmContext = (st:mmScope, ~modalRef:modalRef):promise<result<mmContext,string>> => {
+let loadMmContext = (singleScopes: array<mmSingleScope>, ~modalRef:modalRef):promise<result<mmContext,string>> => {
     promise(rsv => {
-        if (scopeIsEmpty(st)) {
+        if (scopeIsEmpty(singleScopes)) {
             rsv(Ok(createContext(())))
         } else {
             let progressText = `Loading MM context`
@@ -177,7 +229,7 @@ let loadMmContext = (st:mmScope, ~modalRef:modalRef):promise<result<mmContext,st
                 let onTerminate = makeActTerminate(modalRef, modalId)
                 updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) )
                 MM_wrk_LoadCtx.beginLoadingMmContext(
-                    ~scopes = st.singleScopes->Js.Array2.map(ss => {
+                    ~scopes = singleScopes->Js.Array2.map(ss => {
                         let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
                         let stopAfter = if (ss.readInstr == StopAfter) {ss.label} else {None}
                         let label = stopBefore->Belt_Option.getWithDefault(
@@ -230,6 +282,71 @@ let loadMmContext = (st:mmScope, ~modalRef:modalRef):promise<result<mmContext,st
     })
 }
 
+let loadMmFileText = (
+    ~modalRef:modalRef,
+    ~trustedUrls:array<string>,
+    ~onUrlBecomesTrusted:string=>unit,
+    ~alias:string,
+    ~url:string,
+):promise<result<string,string>> => {
+    promise(rslv => {
+        FileLoader.loadFileWithProgress(
+            ~modalRef,
+            ~showWarning=!(trustedUrls->Js_array2.includes(url)),
+            ~progressText=`Downloading MM file from "${alias}"`,
+            ~url,
+            ~onUrlBecomesTrusted,
+            ~onReady = text => rslv(Ok(text)),
+            ~onError = () => rslv(Error(`An error occurred while downloading from "${alias}".`)),
+            ~onTerminated = () => rslv(Error(`Downloading from "${alias}" was terminated.`)),
+            ()
+        )
+    })
+}
+
+let srcDtoToFileSrc = (~src:mmCtxSrcDto, ~webSrcSettings:array<webSrcSettings>):mmFileSource => {
+    if (src.typ != webTypStr) {
+        raise(MmException({msg:`Cannot convert a non-Web mmCtxSrcDto to a mmFileSource.`}))
+    } else {
+        Web({
+            alias: switch webSrcSettings->Js_array2.find(ws => ws.url == src.url) {
+                | Some({alias}) => {
+                    if (alias->Js_string2.trim != "") {
+                        alias
+                    } else {
+                        src.url
+                    }
+                }
+                | None => src.url
+            },
+            url: src.url
+        })
+    }
+}
+
+let makeMmScopeFromSrcDtos = (
+    ~webSrcSettings:array<webSrcSettings>,
+    ~srcs: array<mmCtxSrcDto>,
+    ~trustedUrls:array<string>,
+    ~onUrlBecomesTrusted:string=>unit,
+):promise<result<mmScope,string>> => {
+    let mmScope = srcs->Js_array2.reduce(
+        (mmScope, src) => {
+            let mmScope = mmScope->addSingleScope
+            let ssId = mmScope.singleScopes[mmScope.singleScopes->Js_array2.length-1].id
+            let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
+            let mmScope = mmScope->updateSingleScope(ssId,setLabel(_,None))
+        },
+        {
+            nextId: 0,
+            singleScopes: [],
+            expanded: false,
+            loadedContextSummary: "",
+        }
+    )
+    
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -237,14 +354,7 @@ let make = (
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
 ) => {
-    let (state, setState) = React.useState(_ => {
-        {
-            nextId: 1, 
-            singleScopes: [createEmptySingleScope("0")], 
-            expanded: true, 
-            loadedContextSummary: "",
-        }
-    })
+    let (state, setState) = React.useState(createInitialMmScope)
     let (prevState, setPrevState) = React.useState(_ => state)
 
     React.useEffect0(() => {
@@ -334,13 +444,13 @@ let make = (
         }
     }
 
-    let scopeIsEmpty = scopeIsEmpty(state)
+    let scopeIsEmpty = scopeIsEmpty(state.singleScopes)
 
     let applyChanges = () => {
         if (scopeIsEmpty) {
             actNewCtxIsReady([],createContext(()))
         } else {
-            loadMmContext(state, ~modalRef)->promiseMap(ctx => {
+            loadMmContext(state.singleScopes, ~modalRef)->promiseMap(ctx => {
                 switch ctx {
                     | Error(_) => ()
                     | Ok(ctx) => {

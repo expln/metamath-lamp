@@ -19,5 +19,8 @@ let loadFileWithProgress: (
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
-    ~errorMsg:string,
+    ~onError:string=>unit=?,
+    ~errorMsg:string=?,
+    ~onTerminated:unit=>unit=?,
+    ()
 ) => unit

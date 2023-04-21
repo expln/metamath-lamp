@@ -28,7 +28,10 @@ let loadFileWithProgress = (
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
-    ~errorMsg:string,
+    ~errorMsg:option<string>=?,
+    ~onError:option<unit=>unit>=?,
+    ~onTerminated:option<unit=>unit>=?,
+    ()
 ):unit => {
 
     let isTerminated = ref(false)
@@ -36,6 +39,10 @@ let loadFileWithProgress = (
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
             isTerminated.contents = true
+            switch onTerminated {
+                | None => ()
+                | Some(onTerminated) => onTerminated()
+            }
             closeModal(modalRef, modalId)
         }
     }
@@ -57,18 +64,27 @@ let loadFileWithProgress = (
                 },
                 ~onError = () => {
                     closeModal(modalRef, modalId)
-                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                        updateModal(modalRef, modalId, () => {
-                            <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                <Col spacing=1.>
-                                    { React.string(errorMsg) }
-                                    <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
-                                        {React.string("Ok")} 
-                                    </Button>
-                                </Col>
-                            </Paper>
-                        })
-                    })->ignore
+                    switch onError {
+                        | Some(onError) => onError()
+                        | None => ()
+                    }
+                    switch errorMsg {
+                        | Some(errorMsg) => {
+                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                updateModal(modalRef, modalId, () => {
+                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                        <Col spacing=1.>
+                                            { React.string(errorMsg) }
+                                            <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                                {React.string("Ok")} 
+                                            </Button>
+                                        </Col>
+                                    </Paper>
+                                })
+                            })->ignore
+                        }
+                        | None => ()
+                    }
                 },
                 ~onReady = text => {
                     if (!isTerminated.contents) {
