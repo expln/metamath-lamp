@@ -35,7 +35,8 @@ let make = (
                     ~errorMsg=`An error occurred while downloading from "${alias}".`,
                     ~url=webSrc.url,
                     ~onUrlBecomesTrusted,
-                    ~onReady = text => onFileChange(Web(webSrc), text)
+                    ~onReady = text => onFileChange(Web(webSrc), text),
+                    ()
                 )
             }
         }

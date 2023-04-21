@@ -1,8 +1,4 @@
-open Expln_React_common
-open Expln_React_Mui
 open Expln_React_Modal
-open Expln_utils_promise
-open MM_react_common
 
 let loadFile: (
     ~url: string,
@@ -19,7 +15,7 @@ let loadFileWithProgress: (
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
-    ~onError:string=>unit=?,
+    ~onError:unit=>unit=?,
     ~errorMsg:string=?,
     ~onTerminated:unit=>unit=?,
     ()

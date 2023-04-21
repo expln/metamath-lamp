@@ -216,6 +216,26 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
     }
 }
 
+let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ssIdx:int):promise<result<mmScope,string>> => {
+    if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
+        promise(rslv => rslv(Ok(mmScope)))
+    } else {
+        let ss = mmScope.singleScopes[ssIdx]
+        parseMmFileForSingleScope(mmScope, ~singleScopeId=ss.id, ~modalRef)->promiseFlatMap(mmScope => {
+            switch mmScope.singleScopes->Js_array2.find(s => s.id == ss.id) {
+                | None => raise(MmException({msg:`None == singleScopes->find(s => s.id == ss.id)`}))
+                | Some(ss) => {
+                    switch ss.ast {
+                        | None => raise(MmException({msg:`Could not parse MM file for ss.id = ${ss.id}`}))
+                        | Some(Error(msg)) => promise(rslv => rslv(Error(msg)))
+                        | Some(Ok(_)) => parseMmFileForSingleScopeRec(mmScope, ~modalRef, ~ssIdx = ssIdx + 1)
+                    }
+                }
+            }
+        })
+    }
+}
+
 let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool => 
     singleScopes->Js.Array2.length == 1 && singleScopes[0].fileSrc->Belt_Option.isNone
 
@@ -304,6 +324,41 @@ let loadMmFileText = (
     })
 }
 
+let rec loadMmFileTextForSingleScope = (
+    ~mmScope:mmScope,
+    ~modalRef:modalRef,
+    ~trustedUrls:array<string>,
+    ~onUrlBecomesTrusted:string=>unit,
+    ~ssIdx:int,
+):promise<result<mmScope,string>> => {
+    if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
+        promise(rslv => rslv(Ok(mmScope)))
+    } else {
+        let ss = mmScope.singleScopes[ssIdx]
+        switch ss.fileSrc {
+            | None => raise(MmException({msg:`Cannot load MM file text for a None fileSrc.`}))
+            | Some(Local(_)) => raise(MmException({msg:`Cannot load MM file text for a Local fileSrc.`}))
+            | Some(Web({alias,url})) => {
+                loadMmFileText( ~modalRef, ~trustedUrls, ~onUrlBecomesTrusted, ~alias, ~url, )->promiseFlatMap(res => {
+                    switch res {
+                        | Error(msg) => promise(rslv => rslv(Error(msg)))
+                        | Ok(text) => {
+                            let mmScope = mmScope->updateSingleScope(ss.id, setFileText(_,Some(text)))
+                            loadMmFileTextForSingleScope(
+                                ~mmScope,
+                                ~modalRef,
+                                ~trustedUrls,
+                                ~onUrlBecomesTrusted,
+                                ~ssIdx = ssIdx + 1,
+                            )
+                        }
+                    }
+                })
+            }
+        }
+    }
+}
+
 let srcDtoToFileSrc = (~src:mmCtxSrcDto, ~webSrcSettings:array<webSrcSettings>):mmFileSource => {
     if (src.typ != webTypStr) {
         raise(MmException({msg:`Cannot convert a non-Web mmCtxSrcDto to a mmFileSource.`}))
@@ -325,6 +380,7 @@ let srcDtoToFileSrc = (~src:mmCtxSrcDto, ~webSrcSettings:array<webSrcSettings>):
 }
 
 let makeMmScopeFromSrcDtos = (
+    ~modalRef:modalRef,
     ~webSrcSettings:array<webSrcSettings>,
     ~srcs: array<mmCtxSrcDto>,
     ~trustedUrls:array<string>,
@@ -335,7 +391,7 @@ let makeMmScopeFromSrcDtos = (
             let mmScope = mmScope->addSingleScope
             let ssId = mmScope.singleScopes[mmScope.singleScopes->Js_array2.length-1].id
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
-            let mmScope = mmScope->updateSingleScope(ssId,setLabel(_,None))
+            mmScope
         },
         {
             nextId: 0,
@@ -344,7 +400,18 @@ let makeMmScopeFromSrcDtos = (
             loadedContextSummary: "",
         }
     )
-    
+    loadMmFileTextForSingleScope(
+        ~mmScope,
+        ~modalRef,
+        ~trustedUrls,
+        ~onUrlBecomesTrusted,
+        ~ssIdx = 0,
+    )->promiseFlatMap(res => {
+        switch res {
+            | Error(msg) => promise(rslv => rslv(Error(msg)))
+            | Ok(mmScope) => parseMmFileForSingleScopeRec(mmScope, ~modalRef, ~ssIdx=0)
+        }
+    })
 }
 
 @react.component

@@ -28,8 +28,8 @@ let loadFileWithProgress = (
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
-    ~errorMsg:option<string>=?,
     ~onError:option<unit=>unit>=?,
+    ~errorMsg:option<string>=?,
     ~onTerminated:option<unit=>unit>=?,
     ()
 ):unit => {
