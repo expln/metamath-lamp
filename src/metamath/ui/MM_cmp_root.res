@@ -63,6 +63,8 @@ let make = () => {
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
+    let reloadCtx = React.useRef(Js.Nullable.null)
+
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext, settingsOpt) => {
         let settings = switch settingsOpt {
             | Some(settings) => settings
@@ -134,6 +136,7 @@ let make = () => {
                             state.settings->markUrlAsTrusted(url)->actSettingsUpdated
                         }}
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx, None)}
+                        reloadCtx
                     />
                     {renderTabs()}
                 </Col>

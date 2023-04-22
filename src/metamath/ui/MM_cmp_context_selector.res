@@ -188,8 +188,6 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                                             () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())
                                         ),
                                         ~onDone = parseResult => {
-                                            let st = st->updateSingleScope(ss.id,setReadInstr(_,ReadAll))
-                                            let st = st->updateSingleScope(ss.id,setLabel(_,None))
                                             let st = switch parseResult {
                                                 | Error(msg) => {
                                                     let st = st->updateSingleScope(ss.id,setAst(_, Some(Error(msg))))
@@ -390,7 +388,10 @@ let makeMmScopeFromSrcDtos = (
         (mmScope, src) => {
             let mmScope = mmScope->addSingleScope
             let ssId = mmScope.singleScopes[mmScope.singleScopes->Js_array2.length-1].id
+            let mmScope = mmScope->updateSingleScope( ssId,setSrcType(_,Web) )
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
+            let mmScope = mmScope->updateSingleScope( ssId,setReadInstr(_,src.readInstr->readInstrFromStr))
+            let mmScope = mmScope->updateSingleScope( ssId,setLabel(_,Some(src.label)))
             mmScope
         },
         {
@@ -420,6 +421,7 @@ let make = (
     ~webSrcSettings:array<webSrcSettings>,
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
+    ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
 ) => {
     let (state, setState) = React.useState(createInitialMmScope)
     let (prevState, setPrevState) = React.useState(_ => state)
@@ -437,6 +439,8 @@ let make = (
         })
         onChange(srcs,ctx)
     }
+
+    let trustedUrls= webSrcSettings->Js_array2.filter(s => s.trusted)->Js_array2.map(s => s.url)
 
     let actParseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
@@ -468,11 +472,7 @@ let make = (
                             }
                         })
                 }
-                trustedUrls={
-                    webSrcSettings
-                        ->Js_array2.filter(s => s.trusted)
-                        ->Js_array2.map(s => s.url)
-                }
+                trustedUrls
                 onUrlBecomesTrusted
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))}
@@ -511,15 +511,17 @@ let make = (
         }
     }
 
-    let scopeIsEmpty = scopeIsEmpty(state.singleScopes)
-
-    let applyChanges = () => {
-        if (scopeIsEmpty) {
-            actNewCtxIsReady([],createContext(()))
+    let applyChanges = (state:mmScope):promise<result<unit,string>> => {
+        if (scopeIsEmpty(state.singleScopes)) {
+            promise(rslv => {
+                setState(_ => state)
+                actNewCtxIsReady([],createContext(()))
+                rslv(Ok(()))
+            })
         } else {
-            loadMmContext(state.singleScopes, ~modalRef)->promiseMap(ctx => {
-                switch ctx {
-                    | Error(_) => ()
+            loadMmContext(state.singleScopes, ~modalRef)->promiseMap(res => {
+                switch res {
+                    | Error(msg) => Error(msg)
                     | Ok(ctx) => {
                         let mmCtxSrcDtos = state.singleScopes->Js.Array2.map(ss => {
                             switch ss.fileSrc {
@@ -548,13 +550,37 @@ let make = (
                                 }
                             }
                         })
+                        setState(_ => state)
                         actNewCtxIsReady(mmCtxSrcDtos, ctx)
-                        closeAccordion()
+                        Ok(())
                     }
                 }
-            })->ignore
+            })
         }
     }
+
+    reloadCtx.current = React.useMemo0(() => {
+        Js.Nullable.return(
+            (srcs: array<mmCtxSrcDto>):promise<result<unit,string>> => {
+                if (!shouldReloadContext(prevState.singleScopes, srcs)) {
+                    promise(rslv => rslv(Ok(())))
+                } else {
+                    makeMmScopeFromSrcDtos(
+                        ~modalRef,
+                        ~webSrcSettings,
+                        ~srcs,
+                        ~trustedUrls,
+                        ~onUrlBecomesTrusted,
+                    )->promiseFlatMap(res => {
+                        switch res {
+                            | Error(msg) => promise(rslv => rslv(Error(msg)))
+                            | Ok(mmScope) => applyChanges(mmScope)
+                        }
+                    })
+                }
+            }
+        )
+    })
 
     let rndSaveButtons = () => {
         let thereAreNoChanges = state.singleScopes == prevState.singleScopes
@@ -577,8 +603,22 @@ let make = (
                     | _ => false
                 }
             })
+            let scopeIsEmpty = scopeIsEmpty(state.singleScopes)
             <Row>
-                <Button variant=#contained disabled={!scopeIsCorrect && !scopeIsEmpty} onClick={_=>applyChanges()} >
+                <Button variant=#contained disabled={!scopeIsCorrect && !scopeIsEmpty} 
+                    onClick={_=>{
+                        applyChanges(state)->promiseMap(res => {
+                            switch res {
+                                | Error(_) => ()
+                                | Ok(_) => {
+                                    if (!scopeIsEmpty) {
+                                        closeAccordion()
+                                    }
+                                }
+                            }
+                        })->ignore
+                    }} 
+                >
                     {React.string("Apply changes")}
                 </Button>
             </Row>

@@ -687,7 +687,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~srcs:array<
             let textToShow = timestampStr ++ json
             <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
                 <Col>
-                    <Row>
+                    <Row spacing=1.>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -836,7 +836,7 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~srcs:array<
                                 actExportToJson()
                             }}
                         >
-                            {"Export to JSON ..."->React.string}
+                            {"Export to JSON"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
