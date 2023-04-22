@@ -13,6 +13,8 @@ open MM_proof_tree
 open MM_provers
 open Local_storage_utils
 
+@val external strToBase64: string => string = "btoa"
+@val external base64ToStr: string => string = "atob"
 
 let unifyAllIsRequiredCnt = ref(0)
 
@@ -674,45 +676,25 @@ let make = (
         }
     }
 
-    let rec rndExportedJson = (modalId,json:string,appendTimestamp:bool):unit => {
-        updateModal(modalRef, modalId, () => {
-            let timestampStr = if (appendTimestamp) {
-                Common.currTimeStr() ++ " "
-            } else {
-                ""
-            }
-            let textToShow = timestampStr ++ json
-            <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
-                <Col>
-                    <Row spacing=1.>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked=appendTimestamp
-                                    onChange={evt2bool(appendTimestamp => {
-                                        setJsonExportAppendTimestamp(appendTimestamp)
-                                        rndExportedJson(modalId,json,appendTimestamp)
-                                    })}
-                                />
-                            }
-                            label="append timestamp"
-                        />
-                        <Button onClick={_=>copyToClipboard(textToShow)} variant=#contained > {React.string("Copy")} </Button>
-                        <Button onClick={_=>closeModal(modalRef, modalId)} > {React.string("Close")} </Button>
-                    </Row>
-                    <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(textToShow)}</pre>
-                </Col>
-            </Paper>
-        })
-    }
-
     let actExportToJson = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
-            rndExportedJson(
-                modalId,
-                Expln_utils_common.stringify(state->editorStateToEditorStateLocStor),
-                jsonExportAppendTimestamp
-            )
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_export_state_to_json 
+                    jsonStr=Expln_utils_common.stringify(state->editorStateToEditorStateLocStor)
+                    onClose={_=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
+    let actExportToUrl = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_export_state_to_url 
+                    editoStateBase64=strToBase64(Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+                    onClose={_=>closeModal(modalRef, modalId)} 
+                />
+            })
         })->ignore
     }
 
@@ -881,6 +863,14 @@ let make = (
                         anchorEl=mainMenuButtonRef
                         onClose=actCloseMainMenu
                     >
+                        <MenuItem 
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actExportToUrl()
+                            }}
+                        >
+                            {"Export to URL"->React.string}
+                        </MenuItem>
                         <MenuItem 
                             onClick={() => {
                                 actCloseMainMenu()
