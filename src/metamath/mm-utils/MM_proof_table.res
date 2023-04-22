@@ -22,16 +22,26 @@ let rightPad = (~content:string, ~char:string, ~totalLen:int):string => {
     }
 }
 
-let exprSourceToStr = src => {
+let leftPad = (~content:string, ~char:string, ~totalLen:int):string => {
+    let contentLen = content->Js_string2.length
+    if (totalLen <= contentLen) {
+        content
+    } else {
+        Js_string2.repeat(char, totalLen - contentLen) ++ content
+    }
+}
+
+let exprSourceToArgsStr = src => {
+    switch src {
+        | Hypothesis(_) => ""
+        | Assertion({args}) => args->Js_array2.map(i=>i+1)->Js_array2.joinWith(",")
+    }
+}
+
+let exprSourceToLabelStr = src => {
     switch src {
         | Hypothesis({label}) => label
-        | Assertion({args, label}) => {
-            if (args->Js.Array2.length == 0) {
-                ": " ++ label
-            } else {
-                args->Js_array2.map(i=>i+1)->Js_array2.joinWith(",") ++ " : " ++ label
-            }
-        }
+        | Assertion({label}) => label
     }
 }
 
@@ -40,24 +50,29 @@ let maxLength = (arr:array<string>):int => {
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
-    let srcs = tbl->Js_array2.map(r => r.proof->exprSourceToStr)
+    let srcsArgs = tbl->Js_array2.map(r => r.proof->exprSourceToArgsStr)
+    let srcsLabels = tbl->Js_array2.map(r => r.proof->exprSourceToLabelStr)
     let exprs = tbl->Js_array2.map(r => ctx->ctxIntsToStrExn(r.expr))
 
     let maxNumOfDigits = tbl->Js_array2.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
-    let col1Width = maxNumOfDigits + 1
-    let col2Width = maxLength(srcs) + 1
+    let numColWidth = maxNumOfDigits + 1
+    let argsColWidth = maxLength(srcsArgs) + 1
+    let labelColWidth = maxLength(srcsLabels) + 1
 
     tbl->Js_array2.mapi((_,i) => {
-        rightPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=col1Width)
-            ++ "| " ++ rightPad(~content=srcs[i], ~char=" ", ~totalLen=col2Width)
+        leftPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=numColWidth)
+            ++ "| " ++ rightPad(~content=srcsArgs[i], ~char=" ", ~totalLen=argsColWidth)
+            ++ "| " ++ rightPad(~content=srcsLabels[i], ~char=" ", ~totalLen=labelColWidth)
             ++ "| " ++ exprs[i]
     })
 }
 
 let proofTableToStr = (ctx,tbl,title):string => {
-    `--- ${title} ---------------------------------------------------------------------------\n`
-        ++ proofTableToArrStr(ctx,tbl)->Js_array2.joinWith("\n")
-        ++ `\n--------------------------------------------------------------------------------------------`
+    let proofTableArrStr = proofTableToArrStr(ctx,tbl)
+    let tableWidth = maxLength(proofTableArrStr)
+    rightPad(~content=`--- ${title} `, ~char="-", ~totalLen=tableWidth) ++ "\n"
+        ++ proofTableArrStr->Js_array2.joinWith("\n") ++ "\n"
+        ++ rightPad(~content="", ~char="-", ~totalLen=maxLength(proofTableArrStr))
 }
 
 let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
