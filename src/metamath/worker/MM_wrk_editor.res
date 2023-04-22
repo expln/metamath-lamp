@@ -138,6 +138,14 @@ let mmFileSourceTypeFromStr = (str:string):mmFileSourceType => {
     }
 }
 
+let mmFileSourceTypeFromStrOpt = (str:string):option<mmFileSourceType> => {
+    switch str {
+        | "Local" => Some(Local)
+        | "Web" => Some(Web)
+        | _ => None
+    }
+}
+
 type stmtId = string
 
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect

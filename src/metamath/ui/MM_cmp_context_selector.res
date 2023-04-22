@@ -6,6 +6,7 @@ open MM_context
 open Expln_React_Modal
 open MM_wrk_settings
 open MM_wrk_editor
+open Local_storage_utils
 
 type mmSingleScope = {
     id:string,
@@ -25,10 +26,10 @@ type mmScope = {
     loadedContextSummary: string,
 }
 
-let createEmptySingleScope = id => {
+let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
     {
         id,
-        srcType:Web,
+        srcType,
         fileSrc:None,
         fileText:None,
         ast:None,
@@ -38,10 +39,10 @@ let createEmptySingleScope = id => {
     }
 }
 
-let createInitialMmScope = () => {
+let createInitialMmScope = (~defaultSrcType:mmFileSourceType) => {
     {
         nextId: 1,
-        singleScopes: [createEmptySingleScope("0")],
+        singleScopes: [createEmptySingleScope(~id="0", ~srcType=defaultSrcType)],
         expanded: true,
         loadedContextSummary: "",
     }
@@ -54,23 +55,24 @@ let setAst = (ss:mmSingleScope, ast) => {...ss, ast}
 let setAllLabels = (ss:mmSingleScope, allLabels) => {...ss, allLabels}
 let setReadInstr = (ss:mmSingleScope, readInstr) => {...ss, readInstr}
 let setLabel = (ss:mmSingleScope, label) => {...ss, label}
-let reset = (ss:mmSingleScope) => createEmptySingleScope(ss.id)
 
-let addSingleScope = st => {
+let addSingleScope = (st:mmScope, ~defaultSrcType:mmFileSourceType) => {
     {
         ...st,
         nextId:st.nextId+1,
-        singleScopes: st.singleScopes->Belt.Array.concat([createEmptySingleScope(st.nextId->Belt_Int.toString)])
+        singleScopes: st.singleScopes->Belt.Array.concat([
+            createEmptySingleScope(~id=st.nextId->Belt_Int.toString, ~srcType=defaultSrcType)
+        ])
     }
 }
 let updateSingleScope = (st,id,update) => {...st, singleScopes:st.singleScopes->Js_array2.map(ss => if ss.id == id {update(ss)} else {ss})}
-let deleteSingleScope = (st,id) => {
+let deleteSingleScope = (st,id,~defaultSrcType:mmFileSourceType) => {
     let st = {
         ...st, 
         singleScopes:st.singleScopes->Belt.Array.keep(ss => ss.id != id)
     }
     if (st.singleScopes->Js_array2.length == 0) {
-        addSingleScope(st)
+        addSingleScope(st, ~defaultSrcType)
     } else {
         st
     }
@@ -401,7 +403,7 @@ let makeMmScopeFromSrcDtos = (
 ):promise<result<mmScope,string>> => {
     let mmScope = srcs->Js_array2.reduce(
         (mmScope, src) => {
-            let mmScope = mmScope->addSingleScope
+            let mmScope = mmScope->addSingleScope(~defaultSrcType=Web)
             let ssId = mmScope.singleScopes[mmScope.singleScopes->Js_array2.length-1].id
             let mmScope = mmScope->updateSingleScope( ssId,setSrcType(_,Web) )
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
@@ -431,6 +433,8 @@ let makeMmScopeFromSrcDtos = (
     })
 }
 
+let defaultSrcTypeStrLocStorKey = "ctx-selector-default-src-type"
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -439,7 +443,16 @@ let make = (
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
 ) => {
-    let (state, setState) = React.useState(createInitialMmScope)
+    let (defaultSrcTypeStr, setDefaultSrcTypeStrPriv) = React.useState(() => {
+        locStorReadString(defaultSrcTypeStrLocStorKey)->Belt_Option.getWithDefault(Web->mmFileSourceTypeToStr)
+    })
+    let setDefaultSrcTypeStr = (defaultSrcTypeStr:string):unit => {
+        locStorWriteString(defaultSrcTypeStrLocStorKey, defaultSrcTypeStr)
+        setDefaultSrcTypeStrPriv(_ => defaultSrcTypeStr)
+    }
+    let defaultSrcType = mmFileSourceTypeFromStrOpt(defaultSrcTypeStr)->Belt_Option.getWithDefault(Web)
+
+    let (state, setState) = React.useState(() => createInitialMmScope(~defaultSrcType))
     let (prevState, setPrevState) = React.useState(_ => state)
 
     React.useEffect0(() => {
@@ -491,7 +504,12 @@ let make = (
                 trustedUrls
                 onUrlBecomesTrusted
                 srcType=singleScope.srcType
-                onSrcTypeChange={srcType => setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))}
+                onSrcTypeChange={srcType => {
+                    if (state.singleScopes->Js.Array2.length == 1) {
+                        setDefaultSrcTypeStr(srcType->mmFileSourceTypeToStr)
+                    }
+                    setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))
+                }}
                 fileSrc=singleScope.fileSrc
                 onFileChange={(src,text)=>actParseMmFileText(singleScope.id, src, text)}
                 parseError={
@@ -506,7 +524,7 @@ let make = (
                 onLabelChange={labelOpt => setState(updateSingleScope(_,singleScope.id,setLabel(_,labelOpt)))}
                 allLabels=singleScope.allLabels
                 renderDeleteButton
-                onDelete={_=>setState(deleteSingleScope(_,singleScope.id))}
+                onDelete={_=>setState(deleteSingleScope(_,singleScope.id,~defaultSrcType))}
             />
         })->React.array
     }
@@ -519,7 +537,7 @@ let make = (
             }
         })
         if (thereIsAtLeastOneValidSingleScope) {
-            <IconButton key="add-button" onClick={_ => setState(addSingleScope)} >
+            <IconButton key="add-button" onClick={_ => setState(addSingleScope(_, ~defaultSrcType))} >
                 <MM_Icons.Add/>
             </IconButton>
         } else {

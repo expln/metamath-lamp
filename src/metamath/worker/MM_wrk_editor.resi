@@ -56,6 +56,7 @@ let readInstrToStr: readInstr => string
 let readInstrFromStr: string => readInstr
 let mmFileSourceTypeToStr: mmFileSourceType => string
 let mmFileSourceTypeFromStr: string => mmFileSourceType
+let mmFileSourceTypeFromStrOpt: string => option<mmFileSourceType>
 
 type stmtId = string
 
