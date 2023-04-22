@@ -16,3 +16,5 @@ let kbrdHnd: (
     unit,
     ReactEvent.Keyboard.t,
 ) => unit
+
+let copyToClipboard: string => unit

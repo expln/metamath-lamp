@@ -61,8 +61,6 @@ let getLastUsedTyp = (ctx) => {
     }
 }
 
-@val external navigator: {..} = "navigator"
-
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -660,38 +658,20 @@ let make = (
         None
     }, [state.unifyAllIsRequiredCnt])
 
-    let rndExportedProof = (modalId, proofText:string, proofTableWithTypes:string, proofTableWithoutTypes:string) => {
-        <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
-            <Col spacing=1.>
-                <pre style=ReactDOM.Style.make(~overflowWrap="break-word", ~whiteSpace="pre-wrap", ())>
-                    {React.string(proofText)}
-                </pre>
-                <pre>
-                    {React.string(proofTableWithTypes)}
-                </pre>
-                <pre>
-                    {React.string(proofTableWithoutTypes)}
-                </pre>
-                <Button onClick={_=>closeModal(modalRef, modalId)}> {React.string("Close")} </Button>
-            </Col>
-        </Paper>
-    }
-
     let actExportProof = (stmtId) => {
         switch generateCompressedProof(state, stmtId) {
             | None => ()
             | Some((proofText,proofTableWithTypes,proofTableWithoutTypes)) => {
                 openModal(modalRef, () => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        rndExportedProof(modalId, proofText, proofTableWithTypes, proofTableWithoutTypes)
+                        <MM_cmp_export_proof 
+                            proofText proofTableWithTypes proofTableWithoutTypes 
+                            onClose={_=>closeModal(modalRef, modalId)} 
+                        />
                     })
                 })->ignore
             }
         }
-    }
-
-    let copyToClipboard = (text:string) => {
-        navigator["clipboard"]["writeText"](. text)
     }
 
     let rec rndExportedJson = (modalId,json:string,appendTimestamp:bool):unit => {
