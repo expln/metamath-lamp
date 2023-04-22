@@ -333,6 +333,7 @@ let rec loadMmFileTextForSingleScope = (
     ~modalRef:modalRef,
     ~trustedUrls:array<string>,
     ~onUrlBecomesTrusted:string=>unit,
+    ~loadedTexts:Belt_HashMapString.t<string>,
     ~ssIdx:int,
 ):promise<result<mmScope,string>> => {
     if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
@@ -343,21 +344,28 @@ let rec loadMmFileTextForSingleScope = (
             | None => raise(MmException({msg:`Cannot load MM file text for a None fileSrc.`}))
             | Some(Local(_)) => raise(MmException({msg:`Cannot load MM file text for a Local fileSrc.`}))
             | Some(Web({alias,url})) => {
-                loadMmFileText( ~modalRef, ~trustedUrls, ~onUrlBecomesTrusted, ~alias, ~url, )->promiseFlatMap(res => {
-                    switch res {
-                        | Error(msg) => promise(rslv => rslv(Error(msg)))
-                        | Ok(text) => {
-                            let mmScope = mmScope->updateSingleScope(ss.id, setFileText(_,Some(text)))
-                            loadMmFileTextForSingleScope(
-                                ~mmScope,
-                                ~modalRef,
-                                ~trustedUrls,
-                                ~onUrlBecomesTrusted,
-                                ~ssIdx = ssIdx + 1,
-                            )
-                        }
+                let continue = (text:string):promise<result<mmScope,string>> => {
+                    let mmScope = mmScope->updateSingleScope(ss.id, setFileText(_,Some(text)))
+                    loadMmFileTextForSingleScope(
+                        ~mmScope,
+                        ~modalRef,
+                        ~trustedUrls,
+                        ~onUrlBecomesTrusted,
+                        ~loadedTexts,
+                        ~ssIdx = ssIdx + 1,
+                    )
+                }
+                switch loadedTexts->Belt_HashMapString.get(url) {
+                    | Some(text) => continue(text)
+                    | None => {
+                        loadMmFileText( ~modalRef, ~trustedUrls, ~onUrlBecomesTrusted, ~alias, ~url, )->promiseFlatMap(res => {
+                            switch res {
+                                | Error(msg) => promise(rslv => rslv(Error(msg)))
+                                | Ok(text) => continue(text)
+                            }
+                        })
                     }
-                })
+                }
             }
         }
     }
@@ -389,6 +397,7 @@ let makeMmScopeFromSrcDtos = (
     ~srcs: array<mmCtxSrcDto>,
     ~trustedUrls:array<string>,
     ~onUrlBecomesTrusted:string=>unit,
+    ~loadedTexts:Belt_HashMapString.t<string>,
 ):promise<result<mmScope,string>> => {
     let mmScope = srcs->Js_array2.reduce(
         (mmScope, src) => {
@@ -412,6 +421,7 @@ let makeMmScopeFromSrcDtos = (
         ~modalRef,
         ~trustedUrls,
         ~onUrlBecomesTrusted,
+        ~loadedTexts,
         ~ssIdx = 0,
     )->promiseFlatMap(res => {
         switch res {
@@ -570,12 +580,27 @@ let make = (
             if (!shouldReloadContext(prevState.singleScopes, srcs)) {
                 promise(rslv => rslv(Ok(())))
             } else {
+                let loadedTexts = Belt_HashMapString.fromArray(
+                    prevState.singleScopes->Js_array2.map(ss => {
+                        switch ss.fileSrc {
+                            | None | Some(Local(_)) => None
+                            | Some(Web({url})) => {
+                                switch ss.fileText {
+                                    | None => None
+                                    | Some(text) => Some((url,text))
+                                }
+                            }
+                            
+                        }
+                    })->Js_array2.filter(Belt_Option.isSome)->Js_array2.map(Belt_Option.getExn)
+                )
                 makeMmScopeFromSrcDtos(
                     ~modalRef,
                     ~webSrcSettings,
                     ~srcs,
                     ~trustedUrls,
                     ~onUrlBecomesTrusted,
+                    ~loadedTexts,
                 )->promiseFlatMap(res => {
                     switch res {
                         | Error(msg) => promise(rslv => rslv(Error(msg)))
