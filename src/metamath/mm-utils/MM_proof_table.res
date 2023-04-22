@@ -55,7 +55,7 @@ let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
 }
 
 let proofTableToStr = (ctx,tbl,title):string => {
-    `--- TBL ${title} ---------------------------------------------------------------------------\n`
+    `--- ${title} ---------------------------------------------------------------------------\n`
         ++ proofTableToArrStr(ctx,tbl)->Js_array2.joinWith("\n")
         ++ `\n--------------------------------------------------------------------------------------------`
 }

@@ -164,7 +164,7 @@ let applySubstitutionForEditor: (editorState, wrkSubs) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
-let generateCompressedProof: (editorState, string) => option<string>
+let generateCompressedProof: (editorState, string) => option<(string,string,string)>
 let updateColorsInAllStmts: editorState => editorState
 let getTheOnlySelectedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, string) => option<userStmt>

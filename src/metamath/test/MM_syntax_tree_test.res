@@ -46,7 +46,7 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     )
     let proofTreeDto = proofTreeToDto(proofTree, [expr])
     let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
-    let proofTable = createProofTable(proofTreeDto, node)
+    let proofTable = createProofTable(~tree=proofTreeDto, ~root=node, ())
 
     //when
     let actualSyntaxTree = buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)

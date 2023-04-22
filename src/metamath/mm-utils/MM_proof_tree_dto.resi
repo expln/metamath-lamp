@@ -34,4 +34,10 @@ type proofTreeDto = {
 
 let proofTreeToDto: (proofTree, array<expr>) => proofTreeDto
 
-let createProofTable: (proofTreeDto, proofNodeDto) => proofTable
+let createProofTable: (
+    ~tree:proofTreeDto, 
+    ~root:proofNodeDto, 
+    ~essentialsOnly:bool=?,
+    ~ctx:mmContext=?,
+    ()
+) => proofTable

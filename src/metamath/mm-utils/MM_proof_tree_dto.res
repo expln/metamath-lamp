@@ -132,7 +132,31 @@ let proofTreeToDto = (
     }
 }
 
-let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {
+let createProofTable = (
+    ~tree:proofTreeDto, 
+    ~root:proofNodeDto, 
+    ~essentialsOnly:bool=false,
+    ~ctx:option<mmContext>=?,
+    ()
+):proofTable => {
+    if (essentialsOnly && ctx->Belt_Option.isNone) {
+        raise(MmException({msg:"Error in createProofTable: ctx must be set when essentialsOnly == true."}))
+    }
+
+    let filterArgs = (args:array<int>, label:string):array<int> => {
+        if (essentialsOnly && args->Js_array2.length > 0) {
+            let essentialArgs = []
+            (ctx->Belt_Option.getExn->getFrameExn(label)).hyps->Js_array2.forEachi((hyp,i) => {
+                if (hyp.typ == E) {
+                    essentialArgs->Js.Array2.push(args[i])->ignore
+                }
+            })
+            essentialArgs
+        } else {
+            args
+        }
+    }
+
     let exprToIdx = Belt_HashMap.make(~id = module(ExprHash), ~hintSize=64)
     let tbl = []
 
@@ -163,7 +187,9 @@ let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {
                 | Some(AssertionWithErr(_)) =>
                     raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [1].`}))
                 | Some(Hypothesis(_)) => None
-                | Some(Assertion({args})) => Some(args->Js.Array2.map(idx => tree.nodes[idx]))
+                | Some(Assertion({args,label})) => {
+                    Some(filterArgs(args,label)->Js.Array2.map(idx => tree.nodes[idx]))
+                }
             }
         },
         ~postProcess = (_, n) => {
@@ -183,7 +209,8 @@ let createProofTable = (tree:proofTreeDto, root:proofNodeDto):proofTable => {
                             n.expr, 
                             Assertion({
                                 label,
-                                args: args->Js_array2.map(nodeIdx => getIdxByExprExn(tree.nodes[nodeIdx].expr))
+                                args: filterArgs(args,label)
+                                        ->Js_array2.map(nodeIdx => getIdxByExprExn(tree.nodes[nodeIdx].expr))
                             })
                         )
                     }

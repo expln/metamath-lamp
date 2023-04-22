@@ -1736,7 +1736,7 @@ let proofToText = (
     }
 }
 
-let generateCompressedProof = (st, stmtId):option<string> => {
+let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
     switch st.wrkCtx {
         | None => None
         | Some(wrkCtx) => {
@@ -1748,9 +1748,11 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                         | Some((proofTreeDto,proofNode)) => {
                             let preCtx = st.preCtx
                             let expr = userStmtToRootStmt(stmt).expr
-                            let proofTable = createProofTable(proofTreeDto,proofNode)
-                            // MM_proof_table.proofTablePrint(wrkCtx, proofTable, "proof table")
-                            let exprsUsedInProof = proofTable->Js.Array2.map(r => r.expr)
+                            let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
+                            let proofTableWithoutTypes = createProofTable(
+                                ~tree=proofTreeDto, ~root=proofNode, ~essentialsOnly=true, ~ctx=wrkCtx, ()
+                            )
+                            let exprsUsedInProof = proofTableWithTypes->Js.Array2.map(r => r.expr)
                                 ->Belt_HashSet.fromArray(~id=module(ExprHash))
                             let rootStmts = st.stmts->Js_array2.map(userStmtToRootStmt)
                             let proofCtx = createProofCtx(
@@ -1762,7 +1764,7 @@ let generateCompressedProof = (st, stmtId):option<string> => {
 
                             let mandHyps = proofCtx->getMandHyps(expr)
                             let proof = MM_proof_table.createProof(
-                                mandHyps, proofTable, proofTable->Js_array2.length-1
+                                mandHyps, proofTableWithTypes, proofTableWithTypes->Js_array2.length-1
                             )
 
                             let newHyps = []
@@ -1807,7 +1809,11 @@ let generateCompressedProof = (st, stmtId):option<string> => {
                                 }
                             )->ignore
                             
-                            Some(proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ))
+                            Some((
+                                proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ),
+                                MM_proof_table.proofTableToStr(wrkCtx, proofTableWithTypes, stmt.label),
+                                MM_proof_table.proofTableToStr(wrkCtx, proofTableWithoutTypes, stmt.label),
+                            ))
                         }
                     }
                 }

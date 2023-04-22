@@ -660,10 +660,18 @@ let make = (
         None
     }, [state.unifyAllIsRequiredCnt])
 
-    let rndExportedProof = (proofStr, modalId) => {
+    let rndExportedProof = (modalId, proofText:string, proofTableWithTypes:string, proofTableWithoutTypes:string) => {
         <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
-            <Col>
-                <pre style=ReactDOM.Style.make(~overflowWrap="break-word", ~whiteSpace="pre-wrap", ())>{React.string(proofStr)}</pre>
+            <Col spacing=1.>
+                <pre style=ReactDOM.Style.make(~overflowWrap="break-word", ~whiteSpace="pre-wrap", ())>
+                    {React.string(proofText)}
+                </pre>
+                <pre>
+                    {React.string(proofTableWithTypes)}
+                </pre>
+                <pre>
+                    {React.string(proofTableWithoutTypes)}
+                </pre>
                 <Button onClick={_=>closeModal(modalRef, modalId)}> {React.string("Close")} </Button>
             </Col>
         </Paper>
@@ -672,10 +680,10 @@ let make = (
     let actExportProof = (stmtId) => {
         switch generateCompressedProof(state, stmtId) {
             | None => ()
-            | Some(proofText) => {
+            | Some((proofText,proofTableWithTypes,proofTableWithoutTypes)) => {
                 openModal(modalRef, () => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
-                        rndExportedProof(proofText, modalId)
+                        rndExportedProof(modalId, proofText, proofTableWithTypes, proofTableWithoutTypes)
                     })
                 })->ignore
             }

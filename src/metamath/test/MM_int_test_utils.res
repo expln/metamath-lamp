@@ -128,9 +128,10 @@ let assertStmtsDto = (stmtsDto, expectedStrFileName:string) => {
 }
 
 let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
-    let actualStr = st->generateCompressedProof(stmtId)
-        ->Belt.Option.getWithDefault("no proof generated")
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+    let actualStr = switch st->generateCompressedProof(stmtId) {
+        | None => "no proof generated"
+        | Some((actualStr, _, _)) => actualStr->Js.String2.replaceByRe(%re("/\r/g"), "")
+    }
     assertStrEqFile(actualStr, expectedStrFileName)
 }
 
