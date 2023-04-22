@@ -116,6 +116,7 @@ let make = () => {
                             srcs=state.srcs
                             preCtxV=state.ctxV
                             preCtx=state.ctx
+                            reloadCtx
                         />
                     | Search => <MM_cmp_click_counter title="Search" />
                     | ProofExplorer({label}) => <MM_cmp_click_counter title=label />

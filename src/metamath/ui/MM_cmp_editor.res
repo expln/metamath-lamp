@@ -64,7 +64,16 @@ let getLastUsedTyp = (ctx) => {
 @val external navigator: {..} = "navigator"
 
 @react.component
-let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~srcs:array<mmCtxSrcDto>, ~preCtxV:int, ~preCtx:mmContext, ~top:int) => {
+let make = (
+    ~modalRef:modalRef, 
+    ~settingsV:int, 
+    ~settings:settings, 
+    ~srcs:array<mmCtxSrcDto>, 
+    ~preCtxV:int, 
+    ~preCtx:mmContext, 
+    ~top:int,
+    ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+) => {
     let (jsonExportAppendTimestamp, setJsonExportAppendTimestampPriv) = React.useState(_ => {
         locStorReadBool(appendTimestampLocStorKey)->Belt_Option.getWithDefault(false)
     })
@@ -740,6 +749,33 @@ let make = (~modalRef:modalRef, ~settingsV:int, ~settings:settings, ~srcs:array<
                 setState(_ => createInitialEditorState(
                     ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=Some(stateLocStor)
                 ))
+                reloadCtx.current->Js.Nullable.toOption
+                    ->Belt.Option.map(reloadCtx => {
+                        reloadCtx(stateLocStor.srcs)->promiseMap(res => {
+                            switch res {
+                                | Ok(_) => ()
+                                | Error(msg) => {
+                                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                        updateModal(modalRef, modalId, () => {
+                                            <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                                <Col spacing=1.>
+                                                    <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                                                        { React.string(`Could not realod the context because of the error:`) }
+                                                    </span>
+                                                    <span style=ReactDOM.Style.make(~color="red", ())>
+                                                        { React.string(msg) }
+                                                    </span>
+                                                    <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                                        {React.string("Ok")} 
+                                                    </Button>
+                                                </Col>
+                                            </Paper>
+                                        })
+                                    })->ignore
+                                }
+                            }
+                        })
+                    })->ignore
                 true
             }
         }
