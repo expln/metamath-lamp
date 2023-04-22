@@ -8,6 +8,7 @@
 - add "restore defaults" buttons to Settings.
 - check if adding a cache to proveStmtBottomUp() (for getParents) improves performance.
 - move word "justification" outside the paper.
+- hide delete button for an empty justification.
 - in the "search" dialog, in the pattern text field, replace variables with their types.
 - check exporting local variables when they are used implicitly in the proof.
 - fix mistakes in tooltips.
