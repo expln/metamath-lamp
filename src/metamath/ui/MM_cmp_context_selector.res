@@ -237,7 +237,11 @@ let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ss
 let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool => 
     singleScopes->Js.Array2.length == 1 && singleScopes[0].fileSrc->Belt_Option.isNone
 
-let loadMmContext = (singleScopes: array<mmSingleScope>, ~modalRef:modalRef):promise<result<mmContext,string>> => {
+let loadMmContext = (
+    ~singleScopes: array<mmSingleScope>, 
+    ~modalRef:modalRef,
+    ~showError:bool,
+):promise<result<mmContext,string>> => {
     promise(rsv => {
         if (scopeIsEmpty(singleScopes)) {
             rsv(Ok(createContext(())))
@@ -270,24 +274,26 @@ let loadMmContext = (singleScopes: array<mmSingleScope>, ~modalRef:modalRef):pro
                     ~onDone = ctx => {
                         switch ctx {
                             | Error(msg) => {
-                                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                    updateModal(modalRef, modalId, () => {
-                                        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                            <Col spacing=1.>
-                                                {React.string("Error loading context:")}
-                                                <pre style=ReactDOM.Style.make(~color="red", ())>
-                                                    {React.string(msg)}
-                                                </pre>
-                                                <Button
-                                                    onClick={_=>closeModal(modalRef, modalId)}
-                                                    variant=#contained
-                                                > 
-                                                    {React.string("Ok")} 
-                                                </Button>
-                                            </Col>
-                                        </Paper>
-                                    })
-                                })->ignore
+                                if (showError) {
+                                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                        updateModal(modalRef, modalId, () => {
+                                            <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                                <Col spacing=1.>
+                                                    {React.string("Error loading context:")}
+                                                    <pre style=ReactDOM.Style.make(~color="red", ())>
+                                                        {React.string(msg)}
+                                                    </pre>
+                                                    <Button
+                                                        onClick={_=>closeModal(modalRef, modalId)}
+                                                        variant=#contained
+                                                    > 
+                                                        {React.string("Ok")}
+                                                    </Button>
+                                                </Col>
+                                            </Paper>
+                                        })
+                                    })->ignore
+                                }
                             }
                             | Ok(_) => ()
                         }
@@ -511,7 +517,7 @@ let make = (
         }
     }
 
-    let applyChanges = (state:mmScope):promise<result<unit,string>> => {
+    let applyChanges = (~state:mmScope, ~showError:bool):promise<result<unit,string>> => {
         if (scopeIsEmpty(state.singleScopes)) {
             promise(rslv => {
                 setState(_ => state)
@@ -519,7 +525,7 @@ let make = (
                 rslv(Ok(()))
             })
         } else {
-            loadMmContext(state.singleScopes, ~modalRef)->promiseMap(res => {
+            loadMmContext(~singleScopes=state.singleScopes, ~modalRef, ~showError)->promiseMap(res => {
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {
@@ -559,28 +565,26 @@ let make = (
         }
     }
 
-    reloadCtx.current = React.useMemo0(() => {
-        Js.Nullable.return(
-            (srcs: array<mmCtxSrcDto>):promise<result<unit,string>> => {
-                if (!shouldReloadContext(prevState.singleScopes, srcs)) {
-                    promise(rslv => rslv(Ok(())))
-                } else {
-                    makeMmScopeFromSrcDtos(
-                        ~modalRef,
-                        ~webSrcSettings,
-                        ~srcs,
-                        ~trustedUrls,
-                        ~onUrlBecomesTrusted,
-                    )->promiseFlatMap(res => {
-                        switch res {
-                            | Error(msg) => promise(rslv => rslv(Error(msg)))
-                            | Ok(mmScope) => applyChanges(mmScope)
-                        }
-                    })
-                }
+    reloadCtx.current = Js.Nullable.return(
+        (srcs: array<mmCtxSrcDto>):promise<result<unit,string>> => {
+            if (!shouldReloadContext(prevState.singleScopes, srcs)) {
+                promise(rslv => rslv(Ok(())))
+            } else {
+                makeMmScopeFromSrcDtos(
+                    ~modalRef,
+                    ~webSrcSettings,
+                    ~srcs,
+                    ~trustedUrls,
+                    ~onUrlBecomesTrusted,
+                )->promiseFlatMap(res => {
+                    switch res {
+                        | Error(msg) => promise(rslv => rslv(Error(msg)))
+                        | Ok(mmScope) => applyChanges(~state=mmScope, ~showError=false)
+                    }
+                })
             }
-        )
-    })
+        }
+    )
 
     let rndSaveButtons = () => {
         let thereAreNoChanges = state.singleScopes == prevState.singleScopes
@@ -607,7 +611,7 @@ let make = (
             <Row>
                 <Button variant=#contained disabled={!scopeIsCorrect && !scopeIsEmpty} 
                     onClick={_=>{
-                        applyChanges(state)->promiseMap(res => {
+                        applyChanges(~state, ~showError=true)->promiseMap(res => {
                             switch res {
                                 | Error(_) => ()
                                 | Ok(_) => {

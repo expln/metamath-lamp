@@ -709,7 +709,7 @@ let make = (
                             }
                             label="append timestamp"
                         />
-                        <Button onClick={_=>copyToClipboard(textToShow)} variant=#outlined > {React.string("Copy")} </Button>
+                        <Button onClick={_=>copyToClipboard(textToShow)} variant=#contained > {React.string("Copy")} </Button>
                         <Button onClick={_=>closeModal(modalRef, modalId)} > {React.string("Close")} </Button>
                     </Row>
                     <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(textToShow)}</pre>
