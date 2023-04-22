@@ -728,6 +728,29 @@ let make = (
         })->ignore
     }
 
+    let rndSrcDtos = (srcs:array<mmCtxSrcDto>):reElem => {
+        <Col>
+        {
+            srcs->Js_array2.mapi((src,i) => {
+                <Paper key={i->Belt.Int.toString} style=ReactDOM.Style.make(~padding="3px", ())>
+                    <Col>
+                        {src.url->React.string}
+                        {
+                            let readInstr = src.readInstr->readInstrFromStr
+                            if (readInstr == ReadAll) {
+                                `read all`->React.string
+                            } else {
+                                let readInstrStr = if (readInstr == StopBefore) {"stop before"} else {"stop after"}
+                                `${readInstrStr}: ${src.label}`->React.string
+                            }
+                        }
+                    </Col>
+                </Paper>
+            })->React.array
+        }
+        </Col>
+    }
+
     let actImportFromJson = (jsonStr):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
             | Error(errorMsg) => {
@@ -765,6 +788,10 @@ let make = (
                                                     <span style=ReactDOM.Style.make(~color="red", ())>
                                                         { React.string(msg) }
                                                     </span>
+                                                    <span>
+                                                        { React.string(`This error happened when loading the context:`) }
+                                                    </span>
+                                                    {rndSrcDtos(stateLocStor.srcs)}
                                                     <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
                                                         {React.string("Ok")} 
                                                     </Button>
