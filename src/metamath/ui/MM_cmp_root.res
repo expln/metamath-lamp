@@ -79,6 +79,15 @@ let make = () => {
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
+    let parsed = Xml_parser.parseStr(`
+        <pre attr1="111111" attr2="222222">
+            text1
+            <format bold="true">text2</format>
+            text3
+        </pre>
+    `)
+    Js.Console.log2("parsed", parsed)
+
     let reloadCtx = React.useRef(Js.Nullable.null)
 
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext, settingsOpt) => {
