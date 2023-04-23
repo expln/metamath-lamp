@@ -80,27 +80,33 @@ let make = () => {
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
     let rndXml = () => {
+        let rndErr = (errorMsg,xmlStr) => {
+            <Col>
+                {React.string("An error happened when rendering description:")}
+                <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(errorMsg)}</pre>
+                {React.string("Showing raw content:")}
+                <pre>{React.string(xmlStr)}</pre>
+            </Col>
+        }
+
         let xmlStr = `
             <div>
                 text1
                 <span>text2</span>
+                <script />
                 text3
             </div>
         `
         let xml = Xml_parser.parseStr(xmlStr)
 
         switch xml {
-            | Error(msg) => {
-                <Col>
-                    <Row>
-                        {React.string("An error happened when rendering description:")}
-                        <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
-                    </Row>
-                    {React.string("Showing raw content:")}
-                    <pre>{React.string(xmlStr)}</pre>
-                </Col>
+            | Error(msg) => rndErr(msg,xmlStr)
+            | Ok(xml) => {
+                switch Xml_to_React.xmlToReactElem(xml) {
+                    | Error(msg) => rndErr(msg,xmlStr)
+                    | Ok(reElem) => reElem
+                }
             }
-            | Ok(xml) => Xml_to_React.xmlToReactElem(xml)
         }
     }
 
