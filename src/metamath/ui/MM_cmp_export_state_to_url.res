@@ -14,7 +14,8 @@ let make = (
     let location = window["location"]
     let origin = location["origin"]
     let pathname = location["pathname"]->Js.String2.replaceByRe(%re("/\/v\d+\//g"), "/latest/")
-    let url = origin ++ pathname ++ "?editorState=" ++ editoStateBase64
+    let url = origin ++ pathname ++ "?editorState=" 
+        ++ (editoStateBase64->Js.String2.replaceByRe(%re("/\+/g"), "-")->Js.String2.replaceByRe(%re("/\//g"), "_"))
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
         <Col>

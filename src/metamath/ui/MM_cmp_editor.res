@@ -44,7 +44,6 @@ let rndIconButton = (
 }
 
 let stateLocStorKey = "editor-state"
-let appendTimestampLocStorKey = "export-to-json-append-timestamp"
 
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
@@ -73,16 +72,8 @@ let make = (
     ~preCtx:mmContext, 
     ~top:int,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~initialStateSafeBase64:option<string>,
 ) => {
-    let (jsonExportAppendTimestamp, setJsonExportAppendTimestampPriv) = React.useState(_ => {
-        locStorReadBool(appendTimestampLocStorKey)->Belt_Option.getWithDefault(false)
-    })
-
-    let setJsonExportAppendTimestamp = (appendTimestamp:bool):unit => {
-        locStorWriteBool(appendTimestampLocStorKey, appendTimestamp)
-        setJsonExportAppendTimestampPriv(_ => appendTimestamp)
-    }
-
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=readEditorStateFromLocStor(stateLocStorKey)
     ))
@@ -721,7 +712,7 @@ let make = (
         </Col>
     }
 
-    let actImportFromJson = (jsonStr):bool => {
+    let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
             | Error(errorMsg) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -777,6 +768,21 @@ let make = (
             }
         }
     }
+
+    React.useEffect0(() => {
+        switch initialStateSafeBase64 {
+            | None => ()
+            | Some(initialStateSafeBase64) => {
+                actImportFromJson(
+                    initialStateSafeBase64
+                        ->Js.String2.replaceByRe(%re("/-/g"), "+")
+                        ->Js.String2.replaceByRe(%re("/_/g"), "/")
+                        ->base64ToStr
+                )->ignore
+            }
+        }
+        None
+    })
 
     let actOpenImportFromJsonDialog = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {

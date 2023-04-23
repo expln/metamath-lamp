@@ -57,6 +57,22 @@ let mainTheme = ThemeProvider.createTheme(
     }
 )
 
+@new external parseUrlQuery: string => {..} = "URLSearchParams"
+@val external window: {..} = "window"
+
+let location = window["location"]
+let initialStateSafeBase64 = switch parseUrlQuery(location["search"])["get"](. "editorState")->Js.Nullable.toOption {
+    | None => None
+    | Some(initialStateSafeBase64) => {
+        window["history"]["replaceState"](. 
+            "removing editorState from the URL", 
+            "", 
+            location["origin"] ++ location["pathname"]
+        )
+        Some(initialStateSafeBase64)
+    }
+}
+
 @react.component
 let make = () => {
     let modalRef = useModalRef()
@@ -117,6 +133,7 @@ let make = () => {
                             preCtxV=state.ctxV
                             preCtx=state.ctx
                             reloadCtx
+                            initialStateSafeBase64
                         />
                     | Search => <MM_cmp_click_counter title="Search" />
                     | ProofExplorer({label}) => <MM_cmp_click_counter title=label />
