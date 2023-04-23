@@ -1035,6 +1035,7 @@ let make = (
                     renderer={str => {
                         <Static_XML_to_HTML xmlStr=state.descr />
                     }}
+                    fullWidth=true
                 />
             </Col>
         </Row>

@@ -32,6 +32,8 @@ let rndIconButton = (
     </span>
 }
 
+@val external window: {..} = "window"
+
 @react.component
 let make = (
     ~text:string, 
@@ -41,6 +43,8 @@ let make = (
     ~onEditCancel:string=>unit,
     ~editByAltClick:bool=false,
     ~renderer:option<string=>reElem>=?,
+    ~width:int=600,
+    ~fullWidth:bool=false,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -77,10 +81,16 @@ let make = (
 
     let rndText = () => {
         if (editMode) {
+            let width = if (fullWidth) {
+                let windowWidth = window["innerWidth"]
+                windowWidth - 200
+            } else {
+                width
+            }
             <Row>
                 <TextField
                     size=#small
-                    style=ReactDOM.Style.make(~width="600px", ())
+                    style=ReactDOM.Style.make(~width = width->Belt_Int.toString ++ "px", ())
                     autoFocus=true
                     multiline=true
                     value=state.newText
