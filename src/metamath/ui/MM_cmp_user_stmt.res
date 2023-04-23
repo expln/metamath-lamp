@@ -338,19 +338,26 @@ let make = (
                     ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
+            let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
+            let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "3px" }
             <Row >
                 <Paper 
                     onClick=leftClickHnd(_, onJstfEditRequested, _ => ()) 
-                    style=ReactDOM.Style.make(~padding="3px", ~marginTop="5px", ())
+                    style=ReactDOM.Style.make( ~padding, ~marginTop="5px", () )
                     title="<left-click> to change"
                 >
-                    {React.string("Justification: ")}
-                    {React.string(stmt.jstfText)}
+                    {React.string(jstfText)}
                 </Paper>
-                <span>
-                    {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
-                        ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
-                </span>
+                {
+                    if (jstfText->Js_string2.trim == "") {
+                        React.null
+                    } else {
+                        <span>
+                            {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
+                                ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
+                        </span>
+                    }
+                }
             </Row>
         }
     }
