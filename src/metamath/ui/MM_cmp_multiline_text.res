@@ -39,6 +39,7 @@ let make = (
     ~onEditRequested:unit=>unit, 
     ~onEditDone:string=>unit,
     ~onEditCancel:string=>unit,
+    ~editByAltClick:bool=false,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -63,6 +64,12 @@ let make = (
 
     let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
         if (mouseEvt->ReactEvent.Mouse.button == 0) {
+            clbk()
+        }
+    }
+
+    let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
+        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
             clbk()
         }
     }
@@ -92,9 +99,15 @@ let make = (
             }
             <Paper 
                 variant=#outlined 
-                onClick=leftClickHnd(_, onEditRequested) 
+                onClick={
+                    if (editByAltClick) {
+                        altLeftClickHnd(_, onEditRequested)
+                    } else {
+                        leftClickHnd(_, onEditRequested)
+                    }
+                } 
                 style 
-                title="<left-click> to change"
+                title={if (editByAltClick) {"Alt + <left-click> to change"} else {"<left-click> to change"}}
             >
                 <pre>
                     {React.string(text)}

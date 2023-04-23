@@ -1028,6 +1028,7 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.descr
                     editMode=state.descrEditMode
+                    editByAltClick=true
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDescrEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDescr(newText)}

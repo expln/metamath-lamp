@@ -1,3 +1,4 @@
+- add hotkeys for Mac.
 - analyze possibility to keep editor history with URLs.
 - store last selected file source type.
 - review usages of "alias", it may be empty.
