@@ -9,8 +9,13 @@ let validateValue = ( ~value:string, ~allowedValues:array<string>, ~valueType:st
     }
 }
 
-let allowedTags = ["div", "span", "ol", "ul", "li", "pre", "table", "tbody", "tr", "td", "a"]
-let styleAttrs = ["font-weight", "color"]
+let allowedTags = [
+    "div", "p", "span", "ol", "ul", "li", "pre", 
+    "table", "tbody", "thead", "tr", "td", 
+    "a", "hr", "b", "i",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+]
+let styleAttrs = ["color", "font-weight", "font-family", "font-style", "font-size"]
 let otherAttrs = ["href"]
 let supportedAttrs = styleAttrs->Js_array2.concat(otherAttrs)
 
@@ -25,16 +30,33 @@ let isIncludedIntoAllowedValues = (
     if (allowedValues->Js_array2.includes(value)) {
         Ok(())
     } else {
-        Error(`Value of "${value}" is not supported by "${attrName}" attribute.`)
+        Error(
+            `Value of "${value}" is not supported by "${attrName}" attribute. All the supported values are: ` 
+            ++ allowedValues->Js.Array2.joinWith(", ") ++ " ."
+        )
     }
 }
+
+let fontSizeValuePattern = %re("/^\d+(.\d+)?em$/")
 
 let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
     switch validateAttrName(attrName) {
         | Error(msg) => Error(msg)
         | Ok(_) => {
             switch attrName {
-                | "font-weight" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, ~allowedValues=["normal","bold"])
+                | "font-weight" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, 
+                    ~allowedValues=["normal","bold"])
+                | "font-style" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, 
+                    ~allowedValues=["normal","italic"])
+                | "font-family" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, 
+                    ~allowedValues=[ "serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif", 
+                        "ui-sans-serif", "ui-monospace", "ui-rounded", "emoji", "math", "fangsong", ])
+                | "font-size" => {
+                    switch attrValue->Js_string2.match_(fontSizeValuePattern) {
+                        | None => Error(`"font-size" attribute should be specified using "em" units.`)
+                        | Some(_) => Ok(())
+                    }
+                }
                 | "color" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, 
                     ~allowedValues=["aqua", "black", "blue", "fuchsia", "gray", "green", "lime", "maroon", "navy", "olive", 
                                     "purple", "red", "silver", "teal", "white", "yellow"])
@@ -51,37 +73,46 @@ let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
     }
 }
 
-let createStyle = (attrs:Belt_MapString.t<string>):option<ReactDOM.style> => {
-    if (attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Js_array2.includes(attr))->Belt.Option.isNone) {
-        None
-    } else {
+let createStyle = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<ReactDOM.style> => {
+    if (
+        attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Js_array2.includes(attr))->Belt.Option.isSome
+        || addBorder
+    ) {
         Some(ReactDOM.Style.make(
             ~fontWeight=?(attrs->Belt_MapString.get("font-weight")),
+            ~fontFamily=?(attrs->Belt_MapString.get("font-family")),
+            ~fontSize=?(attrs->Belt_MapString.get("font-size")),
+            ~fontStyle=?(attrs->Belt_MapString.get("font-style")),
             ~color=?(attrs->Belt_MapString.get("color")),
+            ~border=?(if (addBorder) {Some("1px solid black")} else {None}),
+            ~borderCollapse=?(if (addBorder) {Some("collapse")} else {None}),
             ()
         ))
+    } else {
+        None
     }
 }
 
-let createDomProps = (attrs:Belt_MapString.t<string>):option<ReactDOMRe.domProps> => {
-    if (attrs->Belt_MapString.size == 0) {
-        None
-    } else {
+let createDomProps = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<ReactDOMRe.domProps> => {
+    if (attrs->Belt_MapString.size != 0 || addBorder) {
         Some(ReactDOMRe.domProps(
-            ~style=?createStyle(attrs),
+            ~style=?createStyle(attrs,~addBorder),
             ~fontWeight=?(attrs->Belt_MapString.get("font-weight")),
             ~href=?(attrs->Belt_MapString.get("href")),
             ~title=?(attrs->Belt_MapString.get("href")),
+            ~target=?(attrs->Belt_MapString.get("href")->Belt_Option.map(_ => "_blank")),
             ()
         ))
+    } else {
+        None
     }
 }
 
 let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
-    let saveChild = (childrenStack:Belt_MutableStack.t<array<reElem>>, child:reElem):unit => {
+    let saveChild = (childrenStack:Belt_MutableStack.t<(string,array<reElem>)>, child:reElem):unit => {
         switch childrenStack->Belt_MutableStack.top {
             | None => Js.Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
-            | Some(children) => children->Js_array2.push(child)->ignore
+            | Some((_,children)) => children->Js_array2.push(child)->ignore
         }
     }
 
@@ -96,15 +127,23 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
         },
         ~process = (childrenStack, node) => {
             switch node {
-                | Node(_) => childrenStack->Belt_MutableStack.push([])
+                | Node({name}) => childrenStack->Belt_MutableStack.push((name,[]))
                 | Text(_) => ()
             }
             None
         },
         ~postProcess = (childrenStack,node) => {
+            let parentTagName = childrenStack->Belt_MutableStack.top
+                ->Belt.Option.map(((parentTagName,_)) => parentTagName)->Belt.Option.getWithDefault("")
             let thisElem = switch node {
-                | Text(str) => Ok(str->React.string)
-                | Node({name, attrs, children}) => {
+                | Text(str) => {
+                    if (parentTagName == "table" || parentTagName == "tbody" || parentTagName == "thead" || parentTagName == "tr") {
+                        Ok(React.null)
+                    } else {
+                        Ok(str->React.string)
+                    }
+                }
+                | Node({name, attrs}) => {
                     switch validateTagName(name) {
                         | Error(msg) => Error(msg)
                         | Ok(_) => {
@@ -122,10 +161,15 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
                                 | Ok(_) => {
                                     let children = switch childrenStack->Belt_MutableStack.pop {
                                         | None => []
-                                        | Some(children) => children
+                                        | Some((_,children)) => children
                                     }
                                     Ok(ReactDOMRe.createDOMElementVariadic(
-                                        name, ~props=?createDomProps(attrs), children
+                                        name, 
+                                        ~props=?createDomProps(
+                                            attrs,
+                                            ~addBorder=("table" == name || "tr" == name || "td" == name)
+                                        ), 
+                                        children
                                     ))
                                 }
                             }
@@ -139,7 +183,9 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
                     if (childrenStack->Belt_MutableStack.size == 0) {
                         Some(Ok(thisElem))
                     } else {
-                        childrenStack->saveChild(thisElem)
+                        if (thisElem !== React.null) {
+                            childrenStack->saveChild(thisElem)
+                        }
                         None
                     }
                 }
