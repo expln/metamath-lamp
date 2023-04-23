@@ -1,13 +1,6 @@
-type xmlAttr = {
-    name:string,
-    value:string,
-}
-
-type rec xmlNode = {
-    name:string,
-    attrs:array<xmlAttr>,
-    children: array<xmlNode>
-}
+type rec xmlNode =
+    | Node({ name:string, attrs:Belt_MapString.t<string>, children: array<xmlNode>, })
+    | Text(string)
 
 type attr = {
     name: string,
@@ -19,9 +12,15 @@ type namedNodeMap = {
     item: (. int) => Js.Nullable.t<attr>
 }
 
-type element = {
+type rec element = {
     tagName: string,
-    attributes: namedNodeMap,
+    attributes: option<namedNodeMap>,
+    childNodes: nodeList,
+    nodeType: int,
+    nodeValue: string,
+} and nodeList = {
+    length: int,
+    item: (. int) => Js.Nullable.t<element>
 }
 
 type xmlDocument = { 
@@ -34,33 +33,87 @@ let parseXmlFromStr = (str:string):xmlDocument => {
     newDomParser()["parseFromString"](. str, "text/xml")
 }
 
-let attrToXmlAttr = (attr:attr):xmlAttr => {
-    {
-        name:attr.name,
-        value:attr.value,
-    }
-}
-
-let elementGetAttrs = (element:element):array<xmlAttr> => {
+let elementGetAttrs = (element:element):Belt_MapString.t<string> => {
     let res = []
-    let attrs = element.attributes
-    for i in 0 to attrs.length-1 {
-        switch attrs.item(. i)->Js.Nullable.toOption {
-            | None => ()
-            | Some(attr) => {
-                res->Js_array2.push(attr->attrToXmlAttr)->ignore
+    switch element.attributes {
+        | None => ()
+        | Some(attrs) => {
+            for i in 0 to attrs.length-1 {
+                switch attrs.item(. i)->Js.Nullable.toOption {
+                    | None => ()
+                    | Some(attr) => {
+                        res->Js_array2.push((attr.name,attr.value))->ignore
+                    }
+                }
             }
         }
     }
-    res
+    res->Belt_MapString.fromArray
 }
+
+let nodeTypeElement = 1
+let nodeTypeText = 3
 
 let parseStr = (str:string):result<xmlNode,string> => {
     let doc = parseXmlFromStr(str)
     let root = doc.documentElement
-    Ok({
-        name:root.tagName,
-        attrs:root->elementGetAttrs,
-        children: []
-    })
+
+    let (_, rootXmlNodeOpt) = Expln_utils_data.traverseTree(
+        Belt_MutableStack.make(),
+        root,
+        (_,node) => {
+            if (node.nodeType == nodeTypeElement) {
+                let children = []
+                let cNodes = node.childNodes
+                for i in 0 to cNodes.length-1 {
+                    switch cNodes.item(. i)->Js.Nullable.toOption {
+                        | None => ()
+                        | Some(cNode) => {
+                            if (cNode.nodeType == nodeTypeElement || cNode.nodeType == nodeTypeText) {
+                                children->Js_array2.push(cNode)->ignore
+                            }
+                        }
+                    }
+                }
+                Some(children)
+            } else {
+                None
+            }
+        },
+        ~process = (parents,node) => {
+            let xmlNode = 
+                if (node.nodeType == nodeTypeElement) {
+                    Node({
+                        name:node.tagName,
+                        attrs:node->elementGetAttrs,
+                        children: [],
+                    })
+                } else if (node.nodeType == nodeTypeText) {
+                    Text(node.nodeValue)
+                } else {
+                    Js.Exn.raiseError(`Node type of ${node.nodeType->Belt.Int.toString} is not expected here.`)
+                }
+            switch parents->Belt_MutableStack.top {
+                | None => ()
+                | Some(Node({children})) => children->Js_array2.push(xmlNode)->ignore
+                | Some(Text(_)) => ()
+            }
+            parents->Belt_MutableStack.push(xmlNode)
+            None
+        },
+        ~postProcess = (parents, _) => {
+            if (parents->Belt_MutableStack.size == 1) {
+                parents->Belt_MutableStack.pop
+            } else {
+                (parents->Belt_MutableStack.pop)->ignore
+                None
+            }
+        },
+        ()
+    )
+
+    switch rootXmlNodeOpt {
+        | None => Error("Got None as a result of parsing.")
+        | Some(xmlNode) => Ok(xmlNode)
+    }
 }
