@@ -54,7 +54,7 @@ let elementGetAttrs = (element:element):Belt_MapString.t<string> => {
 let nodeTypeElement = 1
 let nodeTypeText = 3
 
-let parseStr = (str:string):result<xmlNode,string> => {
+let parseStrExn = (str:string):xmlNode => {
     let doc = parseXmlFromStr(str)
     let root = doc.documentElement
 
@@ -113,7 +113,31 @@ let parseStr = (str:string):result<xmlNode,string> => {
     )
 
     switch rootXmlNodeOpt {
-        | None => Error("Got None as a result of parsing.")
-        | Some(xmlNode) => Ok(xmlNode)
+        | None => Js.Exn.raiseError("Got None as a result of parsing.")
+        | Some(xmlNode) => xmlNode
+    }
+}
+
+
+
+let parseStr = (str:string):result<xmlNode,string> => {
+    let exToError = (ex:option<Js.Exn.t>):result<xmlNode,string> => {
+        let msg = switch ex {
+            | None => "no error message"
+            | Some(ex) => {
+                switch Js.Exn.message(ex) {
+                    | None => "no error message"
+                    | Some(msg) => msg
+                }
+            }
+        }
+        Error(msg)
+    }
+
+    try {
+        Ok(parseStrExn(str))
+    } catch {
+        | Js.Exn.Error(ex) => exToError(Some(ex))
+        | reEx => exToError(reEx->Js.Exn.asJsExn)
     }
 }
