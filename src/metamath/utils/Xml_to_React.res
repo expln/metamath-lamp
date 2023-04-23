@@ -70,8 +70,8 @@ let createDomProps = (attrs:Belt_MapString.t<string>):option<ReactDOMRe.domProps
         Some(ReactDOMRe.domProps(
             ~style=?createStyle(attrs),
             ~fontWeight=?(attrs->Belt_MapString.get("font-weight")),
-            // ~color=?(attrs->Belt_MapString.get("color")),
             ~href=?(attrs->Belt_MapString.get("href")),
+            ~title=?(attrs->Belt_MapString.get("href")),
             ()
         ))
     }

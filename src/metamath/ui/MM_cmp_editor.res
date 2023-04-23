@@ -1032,6 +1032,9 @@ let make = (
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDescrEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDescr(newText)}
+                    renderer={str => {
+                        <Static_XML_to_HTML xmlStr=state.descr />
+                    }}
                 />
             </Col>
         </Row>

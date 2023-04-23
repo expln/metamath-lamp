@@ -40,6 +40,7 @@ let make = (
     ~onEditDone:string=>unit,
     ~onEditCancel:string=>unit,
     ~editByAltClick:bool=false,
+    ~renderer:option<string=>reElem>=?,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -109,9 +110,15 @@ let make = (
                 style 
                 title={if (editByAltClick) {"Alt + <left-click> to change"} else {"<left-click> to change"}}
             >
-                <pre>
-                    {React.string(text)}
-                </pre>
+                {
+                    if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {
+                        <pre>
+                            {React.string(text)}
+                        </pre>
+                    } else {
+                        (renderer->Belt.Option.getExn)(text)
+                    }
+                }
             </Paper>
         }
     }

@@ -79,36 +79,6 @@ let make = () => {
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
-    let rndXml = () => {
-        let rndErr = (errorMsg,xmlStr) => {
-            <Col>
-                {React.string("An error happened when rendering description:")}
-                <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(errorMsg)}</pre>
-                {React.string("Showing raw content:")}
-                <pre>{React.string(xmlStr)}</pre>
-            </Col>
-        }
-
-        let xmlStr = `
-            <div>
-                text1
-                <span font-weight="bold">text2</span>
-                text3
-            </div>
-        `
-        let xml = Xml_parser.parseStr(xmlStr)
-
-        switch xml {
-            | Error(msg) => rndErr(msg,xmlStr)
-            | Ok(xml) => {
-                switch Xml_to_React.xmlToReactElem(xml) {
-                    | Error(msg) => rndErr(msg,xmlStr)
-                    | Ok(reElem) => reElem
-                }
-            }
-        }
-    }
-
     let reloadCtx = React.useRef(Js.Nullable.null)
 
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext, settingsOpt) => {
@@ -193,7 +163,6 @@ let make = () => {
                 <Col>
                     {React.array(tabs->Js_array2.map(rndTabContent(contentTop, _)))}
                     <Expln_React_Modal modalRef />
-                    {rndXml()}
                 </Col>
             }}
         />
