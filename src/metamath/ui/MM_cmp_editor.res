@@ -1036,6 +1036,14 @@ let make = (
                         <Static_XML_to_HTML xmlStr=state.descr />
                     }}
                     fullWidth=true
+                    buttonDirHor=false
+                    onHelp={() => {
+                        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <XML_formatting_help onClose={_=>closeModal(modalRef, modalId)} />
+                            })
+                        })->ignore
+                    }}
                 />
             </Col>
         </Row>

@@ -45,6 +45,8 @@ let make = (
     ~renderer:option<string=>reElem>=?,
     ~width:int=600,
     ~fullWidth:bool=false,
+    ~buttonDirHor:bool=true,
+    ~onHelp:option<unit=>unit>=?,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -79,6 +81,25 @@ let make = (
         }
     }
 
+    let rndButtons = () => {
+        let saveBtn = rndIconButton(
+            ~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter", ())
+        let cancelBtn = rndIconButton(
+            ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None, ())
+        let helpBtn = switch onHelp {
+            | None => React.null
+            | Some(onHelp) => {
+                rndIconButton(
+                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None, ())
+            }
+        }
+        if (buttonDirHor) {
+            <Row> saveBtn cancelBtn helpBtn </Row>
+        } else {
+            <Col> saveBtn cancelBtn helpBtn </Col>
+        }
+    }
+
     let rndText = () => {
         if (editMode) {
             let width = if (fullWidth) {
@@ -97,10 +118,9 @@ let make = (
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd(~onEnter=actEditDone, ~onEsc=actEditCancel, ())
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
+                    minRows={if (buttonDirHor) {1} else if (onHelp->Belt.Option.isNone) {3} else {5} }
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
-                    ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                {rndButtons()}
             </Row>
         } else {
             let style = if (text->Js.String2.trim == "") {

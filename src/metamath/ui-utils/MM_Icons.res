@@ -10,6 +10,7 @@ module Delete = { @module("@mui/icons-material/Delete") @react.component externa
 module ExpandMore = { @module("@mui/icons-material/ExpandMore") @react.component external make: () => React.element = "default" }
 module FilterNone = { @module("@mui/icons-material/FilterNone") @react.component external make: () => React.element = "default" }
 module Hub = { @module("@mui/icons-material/Hub") @react.component external make: () => React.element = "default" }
+module HelpOutline = { @module("@mui/icons-material/HelpOutline") @react.component external make: () => React.element = "default" }
 module IosShare = { @module("@mui/icons-material/IosShare") @react.component external make: () => React.element = "default" }
 module MergeType = { @module("@mui/icons-material/MergeType") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module Menu = { @module("@mui/icons-material/Menu") @react.component external make: (~style: reStyle=?) => React.element = "default" }
