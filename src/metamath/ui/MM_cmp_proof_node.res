@@ -103,7 +103,12 @@ module rec ProofNodeDtoCmp: {
 
         let rndExpandCollapseIcon = (expand) => {
             let char = if (expand) {"\u229E"} else {"\u229F"}
-            <span style=ReactDOM.Style.make(~fontSize="13px", ())>
+            <span 
+                style=ReactDOM.Style.make(
+                    ~fontSize="13px", 
+                    ~opacity={if (parents->Js.Array2.length == 0) {"0.0"} else {"1.0"}}, 
+                    ()
+                )>
                 {React.string(char)}
             </span>
         }
