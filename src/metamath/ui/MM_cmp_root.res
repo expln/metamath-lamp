@@ -92,8 +92,7 @@ let make = () => {
         let xmlStr = `
             <div>
                 text1
-                <span>text2</span>
-                <script />
+                <span font-weight="bold">text2</span>
                 text3
             </div>
         `

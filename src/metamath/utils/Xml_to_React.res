@@ -1,17 +1,23 @@
 open Expln_React_Mui
 open Expln_React_common
 
-let allowedTags = ["div", "span", "ol", "ul", "li", "pre", "table", "tbody", "tr", "td", "a"]
-
-let validateTagName = (tagName:string): result<unit,string> => {
-    if (allowedTags->Js_array2.includes(tagName)) {
+let validateValue = ( ~value:string, ~allowedValues:array<string>, ~valueType:string, ): result<unit,string> => {
+    if (allowedValues->Js_array2.includes(value)) {
         Ok(())
     } else {
-        Error(`Tag "${tagName}" is not supported.`)
+        Error(`${valueType} "${value}" is not supported.`)
     }
 }
 
-let validateValue = (
+let allowedTags = ["div", "span", "ol", "ul", "li", "pre", "table", "tbody", "tr", "td", "a"]
+let styleAttrs = ["font-weight", "color"]
+let otherAttrs = ["href"]
+let supportedAttrs = styleAttrs->Js_array2.concat(otherAttrs)
+
+let validateTagName = tagName => validateValue(~value=tagName, ~allowedValues=allowedTags, ~valueType="Tag")
+let validateAttrName = attrName => validateValue(~value=attrName, ~allowedValues=supportedAttrs, ~valueType="Attribute")
+
+let isIncludedIntoAllowedValues = (
     ~value:string,
     ~allowedValues:array<string>,
     ~attrName:string,
@@ -23,20 +29,51 @@ let validateValue = (
     }
 }
 
-let validateAttrValue = (attrName:string, attrValue:string): result<unit,string> => {
-    switch attrName {
-        | "font-weight" => validateValue(~value=attrValue, ~attrName, ~allowedValues=["normal","bold"])
-        | "color" => validateValue(~value=attrValue, ~attrName, 
-            ~allowedValues=["aqua", "black", "blue", "fuchsia", "gray", "green", "lime", "maroon", "navy", "olive", 
-                            "purple", "red", "silver", "teal", "white", "yellow"])
-        | "href" => {
-            if (attrValue->Js_string2.startsWith("http://") || attrValue->Js_string2.startsWith("https://")) {
-                Ok(())
-            } else {
-                Error(`A link url should start with http or https, but got: ${attrValue}`)
+let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
+    switch validateAttrName(attrName) {
+        | Error(msg) => Error(msg)
+        | Ok(_) => {
+            switch attrName {
+                | "font-weight" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, ~allowedValues=["normal","bold"])
+                | "color" => isIncludedIntoAllowedValues(~value=attrValue, ~attrName, 
+                    ~allowedValues=["aqua", "black", "blue", "fuchsia", "gray", "green", "lime", "maroon", "navy", "olive", 
+                                    "purple", "red", "silver", "teal", "white", "yellow"])
+                | "href" => {
+                    if (attrValue->Js_string2.startsWith("http://") || attrValue->Js_string2.startsWith("https://")) {
+                        Ok(())
+                    } else {
+                        Error(`A link url should start with http or https, but got: ${attrValue}`)
+                    }
+                }
+                | _ => Error(`Attribute "${attrName}" is not supported [2].`)
             }
         }
-        | _ => Error(`Attribute "${attrName}" is not supported.`)
+    }
+}
+
+let createStyle = (attrs:Belt_MapString.t<string>):option<ReactDOM.style> => {
+    if (attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Js_array2.includes(attr))->Belt.Option.isNone) {
+        None
+    } else {
+        Some(ReactDOM.Style.make(
+            ~fontWeight=?(attrs->Belt_MapString.get("font-weight")),
+            ~color=?(attrs->Belt_MapString.get("color")),
+            ()
+        ))
+    }
+}
+
+let createDomProps = (attrs:Belt_MapString.t<string>):option<ReactDOMRe.domProps> => {
+    if (attrs->Belt_MapString.size == 0) {
+        None
+    } else {
+        Some(ReactDOMRe.domProps(
+            ~style=?createStyle(attrs),
+            ~fontWeight=?(attrs->Belt_MapString.get("font-weight")),
+            // ~color=?(attrs->Belt_MapString.get("color")),
+            ~href=?(attrs->Belt_MapString.get("href")),
+            ()
+        ))
     }
 }
 
@@ -76,7 +113,7 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
                                 (res,attrName,attrValue) => {
                                     switch res {
                                         | Error(_) => res
-                                        | Ok(_) => validateAttrValue(attrName,attrValue)
+                                        | Ok(_) => validateAttr(attrName,attrValue)
                                     }
                                 }
                             )
@@ -87,7 +124,9 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
                                         | None => []
                                         | Some(children) => children
                                     }
-                                    Ok(ReactDOMRe.createDOMElementVariadic(name, children))
+                                    Ok(ReactDOMRe.createDOMElementVariadic(
+                                        name, ~props=?createDomProps(attrs), children
+                                    ))
                                 }
                             }
                         }
