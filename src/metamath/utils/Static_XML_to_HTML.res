@@ -1,9 +1,7 @@
-open Expln_React_common
 open Expln_React_Mui
-open MM_react_common
 
 @react.component
-let make = ( ~xmlStr:string ) => {
+let make = React.memo( ( ~xmlStr:string ) => {
     let rndErr = (errorMsg,xmlStr) => {
         <Col>
             {React.string("An error happened when rendering description:")}
@@ -22,4 +20,4 @@ let make = ( ~xmlStr:string ) => {
             }
         }
     }
-}
+} )
