@@ -54,7 +54,6 @@ let createEditorState = (
             switch editorState {
                 | None => None
                 | Some(fileName) => {
-                    open Belt_Option
                     readEditorStateFromJsonStr(
                         Expln_utils_files.readStringFromFile(
                             getTestDataDir() ++ "/" ++ fileName ++ ".json"

@@ -1,6 +1,5 @@
 open Expln_React_common
 open Expln_React_Mui
-open Common
 
 @react.component
 let make = (
