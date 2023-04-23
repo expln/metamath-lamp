@@ -12,6 +12,7 @@ type userStmtLocStor = {
 
 type editorStateLocStor = {
     srcs: array<mmCtxSrcDto>,
+    descr: string,
     varsText: string,
     disjText: string,
     stmts: array<userStmtLocStor>,
@@ -60,6 +61,9 @@ let createInitialEditorState = (
         parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
 
+        descr: stateLocStor->Belt.Option.map(obj => obj.descr)->Belt.Option.getWithDefault(""),
+        descrEditMode: false,
+
         varsText: stateLocStor->Belt.Option.map(obj => obj.varsText)->Belt.Option.getWithDefault(""),
         varsEditMode: false,
         varsErr: None,
@@ -96,6 +100,7 @@ let createInitialEditorState = (
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
         srcs: state.srcs,
+        descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
         stmts: state.stmts->Js_array2.map(stmt => {
@@ -122,6 +127,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     label: d->str("label", ()),
                 }
             }, ()), ~default=()=>[], ()),
+            descr: d->str("descr", ~default=()=>"", ()),
             varsText: d->str("varsText", ~default=()=>"", ()),
             disjText: d->str("disjText", ~default=()=>"", ()),
             stmts: d->arr("stmts", asObj(_, d=>{

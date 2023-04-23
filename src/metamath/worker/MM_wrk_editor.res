@@ -184,6 +184,9 @@ type editorState = {
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
 
+    descr: string,
+    descrEditMode: bool,
+
     varsText: string,
     varsEditMode: bool,
     varsErr: option<string>,
@@ -462,6 +465,13 @@ let canGoEditModeForStmt = (st:editorState,stmtId) => {
     ))
 }
 
+let setDescrEditMode = st => {
+    {
+        ...st,
+        descrEditMode: true
+    }
+}
+
 let setVarsEditMode = st => {
     {
         ...st,
@@ -670,6 +680,14 @@ let setSettings = (st, settingsV, settings) => {
     let st = recalcWrkCtxColors(st)
     let st = updateColorsInAllStmts(st)
     st
+}
+
+let completeDescrEditMode = (st, newDescr) => {
+    {
+        ...st,
+        descr:newDescr,
+        descrEditMode: false
+    }
 }
 
 let completeVarsEditMode = (st, newVarsText) => {

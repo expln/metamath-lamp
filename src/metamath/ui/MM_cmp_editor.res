@@ -338,6 +338,34 @@ let make = (
         }
     }
 
+    let actCancelEditDescr = (newText):unit => {
+        let textOld = state.descr->Js_string2.trim
+        let textNew = newText->Js_string2.trim
+        if (textOld == textNew || textNew == "") {
+            setState(completeDescrEditMode(_,textOld))
+        } else {
+            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                updateModal(modalRef, modalId, () => {
+                    <MM_cmp_save_or_discard
+                        contOld={<pre>{React.string(textOld)}</pre>}
+                        contNew={<pre>{React.string(textNew)}</pre>}
+                        onDiscard={() => {
+                            closeModal(modalRef, modalId)
+                            setState(completeDescrEditMode(_,textOld))
+                        }}
+                        onSave={() => {
+                            closeModal(modalRef, modalId)
+                            setState(completeDescrEditMode(_,textNew))
+                        }}
+                        onContinueEditing={() => {
+                            closeModal(modalRef, modalId)
+                        }}
+                    />
+                })
+            })->ignore
+        }
+    }
+
     let actCancelEditVars = (newText):unit => {
         let textOld = state.varsText->Js_string2.trim
         let textNew = newText->Js_string2.trim
@@ -993,6 +1021,21 @@ let make = (
         </tr>
     }
 
+    let rndDescr = () => {
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+            {React.string("Description")}
+            <Col>
+                <MM_cmp_multiline_text
+                    text=state.descr
+                    editMode=state.descrEditMode
+                    onEditRequested={() => actBeginEdit0(setDescrEditMode)}
+                    onEditDone={newText => actCompleteEdit(completeDescrEditMode(_,newText))}
+                    onEditCancel={newText => actCancelEditDescr(newText)}
+                />
+            </Col>
+        </Row>
+    }
+
     let rndVars = () => {
         <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
             {React.string("Variables")}
@@ -1039,6 +1082,7 @@ let make = (
         content={_ => {
             <Col>
                 {rndMainMenu()}
+                {rndDescr()}
                 {rndVars()}
                 {rndDisj()}
                 {rndStmts()}

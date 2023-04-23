@@ -1,3 +1,4 @@
+- analyze possibility to keep editor history with URLs.
 - store last selected file source type.
 - review usages of "alias", it may be empty.
 - print a proof table in the "show proof" dialog (with possibility to hide floatings).

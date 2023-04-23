@@ -96,6 +96,9 @@ type editorState = {
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
 
+    descr: string,
+    descrEditMode: bool,
+
     varsText: string,
     varsEditMode: bool,
     varsErr: option<string>,
@@ -142,6 +145,8 @@ let addNewStmt: editorState => (editorState,string)
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: editorState => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
+let setDescrEditMode: editorState => editorState
+let completeDescrEditMode: (editorState, string) => editorState
 let setVarsEditMode: editorState => editorState
 let completeVarsEditMode: (editorState, string) => editorState
 let setDisjEditMode: editorState => editorState
