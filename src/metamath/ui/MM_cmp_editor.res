@@ -986,8 +986,9 @@ let make = (
 
     let rndStmt = (stmt:userStmt) => {
         <tr key=stmt.id >
-            <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+            <td>
                 <Checkbox
+                    style=ReactDOM.Style.make(~margin="-7px 0px", ())
                     disabled=editIsActive
                     checked={state->isStmtChecked(stmt.id)}
                     onChange={_ => actToggleStmtChecked(stmt.id)}

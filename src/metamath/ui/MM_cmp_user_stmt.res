@@ -374,7 +374,7 @@ let make = (
         }
     }
 
-    <table>
+    <table style=ReactDOM.Style.make(~margin="-5px", ())>
         <tbody>
             <tr>
                 <td>

@@ -12,7 +12,8 @@ This is a hyperlink -> <a font-weight="bold" color="green" href="https://us.meta
 <hr/>
 Text may be separated by horizontal lines.
 <hr/>
-Text may be <b>bold</b>, <i>italic</i>, <span font-family="monospace" font-size="1.25em">monospace</span>, it may have <span font-size="0.6em">different</span> <span font-size="1.5em">sizes</span>
+Text may be <b>bold</b>, <i>italic</i>, <span font-family="monospace" font-size="1.25em">monospace</span>, 
+it may have <span font-size="0.6em">different</span> <span font-size="1.5em">sizes</span>
 and <span color="blue">different</span> <span color="red">colors</span>.
 
 <p>Long chunks of text may be grouped into paragraphs.</p>
