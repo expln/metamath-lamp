@@ -638,7 +638,10 @@ let recalcPreCtxColors = (st:editorState):editorState => {
 let recalcWrkCtxColors = (st:editorState):editorState => {
     {
         ...st,
-        wrkCtxColors: extractVarColorsFromVarsText(st.varsText, st.typeColors),
+        wrkCtxColors: 
+            st.preCtxColors->Belt_HashMapString.toArray->Js_array2.concat(
+                extractVarColorsFromVarsText(st.varsText, st.typeColors)->Belt_HashMapString.toArray
+            )->Belt_HashMapString.fromArray,
     }
 }
 
