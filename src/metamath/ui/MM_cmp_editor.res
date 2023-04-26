@@ -1024,7 +1024,9 @@ let make = (
 
     let rndDescr = () => {
         <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
-            {React.string("Description")}
+            <span onClick={_=>actBeginEdit0(setDescrEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+                {React.string("Description")}
+            </span>
             <Col>
                 <MM_cmp_multiline_text
                     text=state.descr
@@ -1052,7 +1054,9 @@ let make = (
 
     let rndVars = () => {
         <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
-            {React.string("Variables")}
+            <span onClick={_=>actBeginEdit0(setVarsEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+                {React.string("Variables")}
+            </span>
             <Col>
                 <MM_cmp_multiline_text
                     text=state.varsText
@@ -1068,7 +1072,9 @@ let make = (
 
     let rndDisj = () => {
         <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
-            {React.string("Disjoints")}
+            <span onClick={_=>actBeginEdit0(setDisjEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
+                {React.string("Disjoints")}
+            </span>
             <Col>
                 <MM_cmp_multiline_text
                     text=state.disjText

@@ -630,7 +630,8 @@ let make = (
     )
 
     let rndSaveButtons = () => {
-        let thereAreNoChanges = state.singleScopes == prevState.singleScopes
+        let thereAreNoChanges = (scopeIsEmpty(state.singleScopes) && scopeIsEmpty(prevState.singleScopes)) 
+                                    || state.singleScopes == prevState.singleScopes
         if (thereAreNoChanges) {
             React.null
         } else {
