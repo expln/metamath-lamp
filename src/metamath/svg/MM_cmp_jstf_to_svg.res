@@ -16,14 +16,13 @@ open Local_storage_utils
 
 @react.component
 let make = (
-    ~settingsVer:int,
-    ~ctxVer:int,
     ~ctx:mmContext,
-    ~symColors:Belt_HashMapString.t<string>,
-    ~essOnly:bool=true,
-    ~args:array<string>,
+    ~args:array<expr>,
     ~label:string,
-    ~asrt:string,
+    ~asrt:expr,
+    ~symColors1:option<Belt_HashMapString.t<string>>=?,
+    ~symColors2:option<Belt_HashMapString.t<string>>=?,
+    ~essOnly:bool=true,
 ) => {
     React.null
 }

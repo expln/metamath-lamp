@@ -79,7 +79,9 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<jstf>,
-    proof: option<(proofTreeDto, proofNodeDto)>,
+    proofTree: option<proofTreeDto>,
+    src: option<exprSrcDto>,
+    proof: option<proofNodeDto>,
     proofStatus: option<proofStatus>,
     unifErr: option<string>,
 }

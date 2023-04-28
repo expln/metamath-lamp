@@ -167,7 +167,9 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<jstf>,
-    proof: option<(proofTreeDto, proofNodeDto)>,
+    proofTree: option<proofTreeDto>,
+    src: option<exprSrcDto>,
+    proof: option<proofNodeDto>,
     proofStatus: option<proofStatus>,
     unifErr: option<string>,
 }
@@ -224,7 +226,7 @@ let createEmptyUserStmt = (id, typ, label):userStmt => {
         cont:Text([]), contEditMode:true,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
-        expr:None, jstf:None, proof:None, proofStatus:None, unifErr:None,
+        expr:None, jstf:None, proofTree:None, src:None, proof:None, proofStatus:None, unifErr:None,
     }
 }
 
@@ -638,10 +640,7 @@ let recalcPreCtxColors = (st:editorState):editorState => {
 let recalcWrkCtxColors = (st:editorState):editorState => {
     {
         ...st,
-        wrkCtxColors: 
-            st.preCtxColors->Belt_HashMapString.toArray->Js_array2.concat(
-                extractVarColorsFromVarsText(st.varsText, st.typeColors)->Belt_HashMapString.toArray
-            )->Belt_HashMapString.fromArray,
+        wrkCtxColors: extractVarColorsFromVarsText(st.varsText, st.typeColors),
     }
 }
 
@@ -752,6 +751,8 @@ let removeAllTempData = st => {
                 stmtErr: None,
                 expr: None, 
                 jstf: None, 
+                proofTree: None, 
+                src: None, 
                 proof: None, 
                 proofStatus: None,
                 unifErr: None,
@@ -1579,14 +1580,16 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
                             {
                                 ...stmt,
                                 jstfText: jstfToStr(jstfFromProof),
-                                proof: Some((proofTree, proofNode)),
+                                proofTree: Some(proofTree),
+                                proof: Some(proofNode),
                             }
                         }
                         | Some(existingJstf) => {
                             if (jstfFromProof->jstfEq(existingJstf)) {
                                 {
                                     ...stmt,
-                                    proof: Some((proofTree, proofNode)),
+                                    proofTree: Some(proofTree),
+                                    proof: Some(proofNode),
                                 }
                             } else {
                                 stmt
@@ -1608,13 +1611,13 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
     }
 
     switch stmt.proof {
-        | Some(_) => {...stmt, proofStatus:Some(Ready)}
+        | Some(proofNode) => {...stmt, proofStatus:Some(Ready), src:proofNode.proof}
         | None => {
             switch stmt.jstf {
                 | None => {...stmt, proofStatus:Some(NoJstf)}
                 | Some(jstf) => {
                     switch proofNode.parents->Js.Array2.find(srcEqJstf(_, jstf)) {
-                        | Some(_) => {...stmt, proofStatus:Some(Waiting)}
+                        | Some(src) => {...stmt, proofStatus:Some(Waiting), src:Some(src)}
                         | None => {
                             let errors = proofNode.parents->Js.Array2.map(src => {
                                 switch src {
@@ -1772,77 +1775,82 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
             switch st->editorGetStmtById(stmtId) {
                 | None => None
                 | Some(stmt) => {
-                    switch stmt.proof {
+                    switch stmt.proofTree {
                         | None => None
-                        | Some((proofTreeDto,proofNode)) => {
-                            let preCtx = st.preCtx
-                            let expr = userStmtToRootStmt(stmt).expr
-                            let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
-                            let proofTableWithoutTypes = createProofTable(
-                                ~tree=proofTreeDto, ~root=proofNode, ~essentialsOnly=true, ~ctx=wrkCtx, ()
-                            )
-                            let exprsUsedInProof = proofTableWithTypes->Js.Array2.map(r => r.expr)
-                                ->Belt_HashSet.fromArray(~id=module(ExprHash))
-                            let rootStmts = st.stmts->Js_array2.map(userStmtToRootStmt)
-                            let proofCtx = createProofCtx(
-                                wrkCtx,
-                                rootStmts->Js_array2.filter(stmt => {
-                                    stmt.isHyp && exprsUsedInProof->Belt_HashSet.has(stmt.expr)
-                                })
-                            )
+                        | Some(proofTreeDto) => {
+                            switch stmt.proof {
+                                | None => None
+                                | Some(proofNode) => {
+                                    let preCtx = st.preCtx
+                                    let expr = userStmtToRootStmt(stmt).expr
+                                    let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
+                                    let proofTableWithoutTypes = createProofTable(
+                                        ~tree=proofTreeDto, ~root=proofNode, ~essentialsOnly=true, ~ctx=wrkCtx, ()
+                                    )
+                                    let exprsUsedInProof = proofTableWithTypes->Js.Array2.map(r => r.expr)
+                                        ->Belt_HashSet.fromArray(~id=module(ExprHash))
+                                    let rootStmts = st.stmts->Js_array2.map(userStmtToRootStmt)
+                                    let proofCtx = createProofCtx(
+                                        wrkCtx,
+                                        rootStmts->Js_array2.filter(stmt => {
+                                            stmt.isHyp && exprsUsedInProof->Belt_HashSet.has(stmt.expr)
+                                        })
+                                    )
 
-                            let mandHyps = proofCtx->getMandHyps(expr)
-                            let proof = MM_proof_table.createProof(
-                                mandHyps, proofTableWithTypes, proofTableWithTypes->Js_array2.length-1
-                            )
+                                    let mandHyps = proofCtx->getMandHyps(expr)
+                                    let proof = MM_proof_table.createProof(
+                                        mandHyps, proofTableWithTypes, proofTableWithTypes->Js_array2.length-1
+                                    )
 
-                            let newHyps = []
-                            mandHyps->Js.Array2.forEach(hyp => {
-                                if (preCtx->getHypByExpr(hyp.expr)->Belt.Option.isNone) {
-                                    newHyps->Js.Array2.push(hyp)->ignore
-                                }
-                            })
-                            let varsUsedInProof = Belt_HashSetInt.make(~hintSize=16)
-                            exprsUsedInProof->Belt_HashSet.forEach(expr => {
-                                expr->Js_array2.forEach(s => {
-                                    if (s >= 0) {
-                                        varsUsedInProof->Belt_HashSetInt.add(s)
-                                    }
-                                })
-                            })
-                            let mandVars = mandHyps->Js.Array2.map(hyp => hyp.expr[1])->Belt_HashSetInt.fromArray
-                            wrkCtx->getLocalHyps->Js.Array2.forEach(hyp => {
-                                if (hyp.typ == F) {
-                                    let var = hyp.expr[1]
-                                    if (varsUsedInProof->Belt_HashSetInt.has(var) 
-                                        && !(mandVars->Belt_HashSetInt.has(var))) {
-                                        newHyps->Js.Array2.push(hyp)->ignore
-                                    }
-                                }
-                            })
-
-                            let newDisj = disjMake()
-                            MM_proof_verifier.verifyProof(
-                                ~ctx=proofCtx,
-                                ~expr,
-                                ~proof,
-                                ~isDisjInCtx = (n,m) => {
-                                    if (!(wrkCtx->isDisj(n,m))) {
-                                        raise(MmException({msg:`!(wrkCtx->isDisj(n,m))`}))
-                                    } else {
-                                        if (!(preCtx->isDisj(n,m))) {
-                                            newDisj->disjAddPair(n,m)
+                                    let newHyps = []
+                                    mandHyps->Js.Array2.forEach(hyp => {
+                                        if (preCtx->getHypByExpr(hyp.expr)->Belt.Option.isNone) {
+                                            newHyps->Js.Array2.push(hyp)->ignore
                                         }
-                                        true
-                                    }
+                                    })
+                                    let varsUsedInProof = Belt_HashSetInt.make(~hintSize=16)
+                                    exprsUsedInProof->Belt_HashSet.forEach(expr => {
+                                        expr->Js_array2.forEach(s => {
+                                            if (s >= 0) {
+                                                varsUsedInProof->Belt_HashSetInt.add(s)
+                                            }
+                                        })
+                                    })
+                                    let mandVars = mandHyps->Js.Array2.map(hyp => hyp.expr[1])->Belt_HashSetInt.fromArray
+                                    wrkCtx->getLocalHyps->Js.Array2.forEach(hyp => {
+                                        if (hyp.typ == F) {
+                                            let var = hyp.expr[1]
+                                            if (varsUsedInProof->Belt_HashSetInt.has(var) 
+                                                && !(mandVars->Belt_HashSetInt.has(var))) {
+                                                newHyps->Js.Array2.push(hyp)->ignore
+                                            }
+                                        }
+                                    })
+
+                                    let newDisj = disjMake()
+                                    MM_proof_verifier.verifyProof(
+                                        ~ctx=proofCtx,
+                                        ~expr,
+                                        ~proof,
+                                        ~isDisjInCtx = (n,m) => {
+                                            if (!(wrkCtx->isDisj(n,m))) {
+                                                raise(MmException({msg:`!(wrkCtx->isDisj(n,m))`}))
+                                            } else {
+                                                if (!(preCtx->isDisj(n,m))) {
+                                                    newDisj->disjAddPair(n,m)
+                                                }
+                                                true
+                                            }
+                                        }
+                                    )->ignore
+                                    
+                                    Some((
+                                        proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ),
+                                        MM_proof_table.proofTableToStr(wrkCtx, proofTableWithTypes, stmt.label),
+                                        MM_proof_table.proofTableToStr(wrkCtx, proofTableWithoutTypes, stmt.label),
+                                    ))
                                 }
-                            )->ignore
-                            
-                            Some((
-                                proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ),
-                                MM_proof_table.proofTableToStr(wrkCtx, proofTableWithTypes, stmt.label),
-                                MM_proof_table.proofTableToStr(wrkCtx, proofTableWithoutTypes, stmt.label),
-                            ))
+                            }
                         }
                     }
                 }
