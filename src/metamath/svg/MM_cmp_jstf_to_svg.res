@@ -36,29 +36,33 @@ let vecLine = (v:vector, ~color:string="black", ~strokeWidth:float=0.1, ()):(reE
     )
 }
 
-@react.component
-let make = (
-    // ~ctx:mmContext,
-    // ~args:array<expr>,
-    // ~label:string,
-    // ~asrt:expr,
-    // ~symColors1:option<Belt_HashMapString.t<string>>=?,
-    // ~symColors2:option<Belt_HashMapString.t<string>>=?,
-    // ~essOnly:bool=true,
-) => {
-    let dir = ex->vecRot(15.->deg)->vecMult(0.3)
-    let (l1,b1) = ex->vecTr(dir)->vecLine(~color="red", ())
-    let (l2,b2) = ey->vecTr(dir)->vecLine(~color="green", ())
-    let (l3,b3) = ex->vecRot(45.->deg)->vecTr(dir)->vecLine(~color="blue", ())
-    let (l4,b4) = dir->vecLine(~color="black", ())
-    <svg
-        viewBox=viewBox(bndMergeAll([b1,b2,b3]))
-        width={300.->Belt.Float.toString}
-        height={300.->Belt.Float.toString}
-        transform="scale(1, -1)"
-    >
-        l1
-        l2
-        l3
-    </svg>
+module SubModule = {
+    @react.component
+    let make = (
+        ~ctx:mmContext,
+        ~args:array<expr>,
+        ~label:string,
+        ~asrt:expr,
+        ~symColors1:option<Belt_HashMapString.t<string>>=?,
+        ~symColors2:option<Belt_HashMapString.t<string>>=?,
+        ~essOnly:bool=true,
+    ) => {
+        let dir = ex->vecRot(15.->deg)->vecMult(0.3)
+        let (l1,b1) = ex->vecTr(dir)->vecLine(~color="red", ())
+        let (l2,b2) = ey->vecTr(dir)->vecLine(~color="green", ())
+        let (l3,b3) = ex->vecRot(45.->deg)->vecTr(dir)->vecLine(~color="blue", ())
+        let (l4,b4) = dir->vecLine(~color="black", ())
+        <svg
+            viewBox=viewBox(bndMergeAll([b1,b2,b3]))
+            width={300.->Belt.Float.toString}
+            height={300.->Belt.Float.toString}
+            transform="scale(1, -1)"
+        >
+            l1
+            l2
+            l3
+        </svg>
+    }
 }
+
+let make = React.memoCustomCompareProps( SubModule.make, (_,_) => true )

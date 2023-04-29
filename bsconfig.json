@@ -1,6 +1,5 @@
 {
-  "name": "learn-js-react-app",
-  "version": "0.0.1",
+  "name": "metamath-lamp",
   "sources": {
     "dir" : "src",
     "subdirs" : true
@@ -10,12 +9,10 @@
     "in-source": true
   },
   "suffix": ".bs.js",
-  "reason": { "react-jsx": 3 },
+
+  "jsx": { "version": 4, "mode": "classic" },
   "bs-dependencies": [
     "@rescript/react",
     "@expln/utils"
-  ],
-  "warnings": {
-    "error" : "+101"
-  }
+  ]
 }

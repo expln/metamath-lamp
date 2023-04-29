@@ -3,6 +3,7 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
 open MM_react_common
+open MM_context
 
 let rndIconButton = (
     ~icon:reElem, 
@@ -149,6 +150,7 @@ let rndProofStatus = (
 
 @react.component
 let make = (
+    ~wrkCtx:option<mmContext>,
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
@@ -156,6 +158,8 @@ let make = (
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
     ~onDebug:unit=>unit,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
@@ -362,10 +366,40 @@ let make = (
         }
     }
 
+    let rndJstfVisualization = () => {
+        switch wrkCtx {
+            | None => React.null
+            | Some(wrkCtx) => {
+                switch stmt.src {
+                    | None => React.null
+                    | Some(src) => {
+                        switch stmt.proofTree {
+                            | None => React.null
+                            | Some(proofTree) => {
+                                <MM_cmp_jstf_to_svg
+                                    ctx=wrkCtx
+                                    args=[]
+                                    label=""
+                                    asrt=[]
+                                    symColors1=preCtxColors
+                                    symColors2=wrkCtxColors
+                                    essOnly=true
+                                />
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let rndInfoBody = () => {
         if (stmt.typ == P) {
             if (state.infoExpanded || stmt.jstfEditMode) {
-                rndJstf()
+                <Col>
+                    {rndJstf()}
+                    {rndJstfVisualization()}
+                </Col>
             } else {
                 React.null
             }

@@ -986,7 +986,7 @@ let make = (
 
     let rndStmt = (stmt:userStmt) => {
         <tr key=stmt.id >
-            <td>
+            <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
                 <Checkbox
                     style=ReactDOM.Style.make(~margin="-7px 0px", ())
                     disabled=editIsActive
@@ -996,7 +996,10 @@ let make = (
             </td>
             <td>
                 <MM_cmp_user_stmt
+                    wrkCtx={state.wrkCtx}
                     stmt
+                    preCtxColors=state.preCtxColors
+                    wrkCtxColors=state.wrkCtxColors
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
                     onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
@@ -1106,7 +1109,6 @@ let make = (
                 {rndVars()}
                 {rndDisj()}
                 {rndStmts()}
-                <MM_cmp_jstf_to_svg/>
             </Col>
         }}
     />

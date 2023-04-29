@@ -1,4 +1,5 @@
 open MM_wrk_editor
+open MM_context
 
 let rndProofStatus: (
     ~proofStatus:option<proofStatus>,
@@ -14,6 +15,7 @@ let rndProofStatus: (
 
 @react.component
 let make: (
+    ~wrkCtx:option<mmContext>,
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
@@ -21,6 +23,8 @@ let make: (
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
     ~onDebug:unit=>unit,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
 ) => React.element
 
 let rndContText: stmtCont => React.element
