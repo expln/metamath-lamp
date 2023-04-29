@@ -1106,6 +1106,7 @@ let make = (
                 {rndVars()}
                 {rndDisj()}
                 {rndStmts()}
+                <MM_cmp_jstf_to_svg/>
             </Col>
         }}
     />
