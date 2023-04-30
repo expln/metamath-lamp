@@ -24,17 +24,45 @@ let scale = 1.
 
 let fontSize = scale *. 15.
 let charLength = fontSize *. 0.6
-let charHeight = charLength *. 0.85
+let charHeight = charLength *. 1.0
 let lineWidth = scale *. 1.
 let lineWidthStr = lineWidth->Belt_Float.toString ++ "px"
 
 let subsAvailableColors = ["green", "orange", "#03a9f4", "pink", "brown", "lawngreen", "olive", "blue", "red", "magenta"]
 
-let viewBox = (b:boundaries):string => 
+let viewBox = (b:boundaries):string => {
     `${b->bndMinX->Belt.Float.toString}` 
         ++ ` ${b->bndMinY->Belt.Float.toString}` 
         ++ ` ${b->bndWidth->Belt.Float.toString}`
         ++ ` ${b->bndHeight->Belt.Float.toString}`
+}
+
+let rndSvg = (~boundaries:boundaries, ~width:option<int>=?, ~height:option<int>=?, ~content:reElem, ()):reElem => {
+    let bndWidth = boundaries->bndWidth
+    let bndHeight = boundaries->bndHeight
+    let (width,height):(int,int) =
+        switch width {
+            | Some(width) => {
+                switch height {
+                    | Some(height) => (width,height)
+                    | None => (width, width * (bndHeight /. bndWidth)->Belt_Float.toInt)
+                }
+            }
+            | None => {
+                switch height {
+                    | Some(height) => (height * (bndWidth /. bndHeight)->Belt_Float.toInt, height)
+                    | None => Js.Exn.raiseError("At least one of (~width, ~heing) must be specified.")
+                }
+            }
+        }
+    <svg
+        viewBox=viewBox(boundaries)
+        width={width->Belt.Int.toString}
+        height={height->Belt.Int.toString}
+    >
+        content
+    </svg>
+}
 
 let vecLine = (v:vector, ~color:string):(reElem,boundaries) => {
     let b = v->vecBegin
@@ -65,8 +93,10 @@ let polyline = (~ps:array<point>, ~color:string):(reElem,boundaries) => {
     )
 }
 
-let rect = (~at:point, ~width:float, ~height:float, ~color:string):(reElem,boundaries) => {
-    let p1 = at
+let rect = (~bnd:boundaries, ~color:string):(reElem,boundaries) => {
+    let height = bnd->bndHeight
+    let width = bnd->bndWidth
+    let p1 = ex->vecMult(bnd->bndMinX)->vecAdd(ey->vecMult(bnd->bndMinY))->vecBegin
     let p2 = p1->pntTrDir(ey, height)
     let p3 = p2->pntTrDir(ex, width)
     let p4 = p3->pntTrDir(ey, -. height)
@@ -123,8 +153,8 @@ module SubModule = {
         let mainSvgComp:svgComp = switch ctx->getFrame(label) {
             | _ => {
                 ex => {
-                    let (textElem, textBnd) = text(~text="Test text", ())(ex)
-                    let (rectElem, rectBnd) = rect(~at=ex->vecBegin, ~width=textBnd->bndWidth, ~height=textBnd->bndHeight, ~color="red")
+                    let (textElem, textBnd) = text(~text="Test gy ..WW..", ())(ex)
+                    let (rectElem, rectBnd) = rect(~bnd=textBnd, ~color="red")
                     (
                         <> rectElem textElem </>,
                         bndMergeAll([textBnd, rectBnd])
@@ -140,15 +170,16 @@ module SubModule = {
         // let (l4,b4) = dir->vecLine(~color="black", ())
 
         let (mainElem,mainBoundaries) = mainSvgComp(ex)
-        <svg
-            // viewBox=viewBox(bndMergeAll([b1,b2,b3]))
-            viewBox=viewBox(mainBoundaries)
-            width={300.->Belt.Float.toString}
-            height={300.->Belt.Float.toString}
-        >
-            // l1 l2 l3
-            mainElem
-        </svg>
+        // <svg
+        //     // viewBox=viewBox(bndMergeAll([b1,b2,b3]))
+        //     viewBox=viewBox(mainBoundaries)
+        //     width={300.->Belt.Float.toString}
+        //     height={300.->Belt.Float.toString}
+        // >
+        //     // l1 l2 l3
+        //     mainElem
+        // </svg>
+        rndSvg(~boundaries=mainBoundaries->bndAddMarginPct(0.01), ~height=150, ~content=mainElem, ())
     }
 }
 
