@@ -244,6 +244,7 @@ let make = (
                 ref=ReactDOM.Ref.domRef(labelRef)
                 onClick=leftClickHnd(_, onLabelEditRequested, _ => ()) 
                 title="<left-click> to change"
+                style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ())
             >
                 {React.string(stmt.label)}
             </span>
@@ -408,9 +409,9 @@ let make = (
         }
     }
 
-    <table style=ReactDOM.Style.make(~margin="-5px", ())>
+    <table style=ReactDOM.Style.make(~margin="-2px", ())>
         <tbody>
-            <tr>
+            <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
                 <td>
                     {
                         rndProofStatus(
