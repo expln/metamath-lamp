@@ -171,10 +171,31 @@ let testTextRendering = ():reElem => {
 
 }
 
+let rndConnection = (~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:string):(reElem,boundaries) => {
+    let lineWidth = bnd1->bndHeight *. 0.1
+    let (topBnd,bottomBnd) = if (bnd1->bndMinY <= bnd2->bndMinY) {
+        (bnd1, bnd2)
+    } else {
+        (bnd2, bnd1)
+    }
+    let (rElem1,rBnd1) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
+    let (rElem2,rBnd2) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`, ())
+    let lineVec = pntVec(
+        pntVec(topBnd->bndLeftBottom, topBnd->bndRightBottom)->vecMul(0.5)->vecEnd,
+        pntVec(bottomBnd->bndLeftTop, bottomBnd->bndRightTop)->vecMul(0.5)->vecEnd,
+    )
+    let (lElem,lBnd) = lineVec->vecToLine(~color, ~key=`line-${key}`, ~lineWidth, ())
+    (
+        [rElem1,rElem2,lElem]->React.array,
+        bndMergeAll([rBnd1,rBnd2,lBnd])
+    )
+}
+
 let rndStmtAndHyp = (
     ~ctxFirst:bool,
     ~frmStmt:array<string>,
     ~subs:Belt_HashMapString.t<array<string>>,
+    ~subsColors:Belt_HashMapString.t<string>,
     ~frmColors:option<Belt_HashMapString.t<string>>,
     ~ctxColors1:option<Belt_HashMapString.t<string>>,
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
@@ -216,6 +237,7 @@ let rndStmtAndHyp = (
         }
         let frmElems = []
         let ctxElems = []
+        let conElems = []
         let bnds = []
         frmStmt->Js_array2.forEachi((frmSym,i) => {
             let (fElems,frmBnd) = rndStmt(
@@ -239,8 +261,17 @@ let rndStmtAndHyp = (
             ctxElems->Js_array2.pushMany(cElems)->ignore
             bnds->Js_array2.push(ctxBnd)->ignore
             ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
+
+            switch subsColors->Belt_HashMapString.get(frmSym) {
+                | None => ()
+                | Some(color) => {
+                    let (conElem,conBnd) = rndConnection(~bnd1=frmBnd, ~bnd2=ctxBnd, ~color, ~key=i->Belt_Int.toString)
+                    conElems->Js_array2.push(conElem)->ignore
+                    bnds->Js_array2.push(conBnd)->ignore
+                }
+            }
         })
-        (ctxElems->Js.Array2.concat(frmElems)->React.array, bndMergeAll(bnds))
+        (conElems->Js.Array2.concat(frmElems)->Js.Array2.concat(ctxElems)->React.array, bndMergeAll(bnds))
     }
 }
 
@@ -253,11 +284,20 @@ let make = (
     ~ctxColors1:option<Belt_HashMapString.t<string>>,
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
 ) => {
+    let (_, bndSample) = text(~ex, ~text=".", ())
+    let charHeight = bndSample->bndHeight
+
+    let numOfColors = subsAvailableColors->Js.Array2.length
+    let subsColors = subs->Belt_HashMapString.toArray->Js.Array2.mapi(((frmSym,_),i) => {
+        (frmSym, subsAvailableColors[mod(i, numOfColors)])
+    })->Belt_HashMapString.fromArray
+
     let rndAsrt = ():(reElem, boundaries) => {
         let (elem,bnd) = rndStmtAndHyp(
             ~ctxFirst=false,
             ~frmStmt=asrt,
             ~subs,
+            ~subsColors,
             ~frmColors,
             ~ctxColors1,
             ~ctxColors2,
@@ -268,7 +308,7 @@ let make = (
     let rndContent = () => {
         let (elem, bnd) = rndAsrt()
         rndSvg(
-            ~boundaries=bnd, 
+            ~boundaries=bnd->bndAddMargin(~all=charHeight *. 0.3, ()), 
             ~content = <> elem </>, 
             ()
         )
