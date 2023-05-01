@@ -332,6 +332,8 @@ let make = (
         } else {
             let hypsBnd = bndMergeAll(hypBnds)
             let (sepElem, sepBnd) = pntVec(hypsBnd->bndLeftBottom, hypsBnd->bndRightBottom)
+                ->vecNorm
+                ->vecMul(Js_math.max_float(hypsBnd->bndWidth, asrtSampleBnd->bndWidth))
                 ->vecTr(ey->vecMul(-. delimLineMargin))->vecToLine(
                     ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
                 )
