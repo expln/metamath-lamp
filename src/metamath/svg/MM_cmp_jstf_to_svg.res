@@ -16,11 +16,6 @@ open Local_storage_utils
 
 type svgComp = vector => (reElem,boundaries)
 
-let scale = 1.
-
-let lineWidth:float = scale *. 0.1
-let lineWidthStr = lineWidth->Belt_Float.toString ++ "px"
-
 let subsAvailableColors = ["green", "orange", "#03a9f4", "pink", "brown", "lawngreen", "olive", "blue", "red", "magenta"]
 
 let viewBox = (b:boundaries):string => {
@@ -57,7 +52,7 @@ let rndSvg = (~boundaries:boundaries, ~width:option<int>=?, ~height:option<int>=
     </svg>
 }
 
-let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ()):(reElem,boundaries) => {
+let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWidth:float, ()):(reElem,boundaries) => {
     let b = v->vecBegin
     let e = v->vecEnd
     (
@@ -68,13 +63,13 @@ let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ()):(re
             x2={e->pntX->Belt.Float.toString}
             y2={e->pntY->Belt.Float.toString}
             stroke=color
-            strokeWidth=lineWidthStr
+            strokeWidth={lineWidth->Belt.Float.toString}
         />,
         bndFromPoints([v->vecBegin, v->vecEnd])
     )
 }
 
-let polyline = (~ps:array<point>, ~color:string, ~strokeWidth:float=lineWidth, ~key:option<string>=?, ()):(reElem,boundaries) => {
+let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<string>=?, ()):(reElem,boundaries) => {
     (
         <polyline 
             ?key
@@ -82,18 +77,18 @@ let polyline = (~ps:array<point>, ~color:string, ~strokeWidth:float=lineWidth, ~
                 ps->Js_array2.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
                     ->Js.Array2.joinWith(" ")
             } 
-            style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={strokeWidth->Belt_Float.toString}, ())
+            style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={lineWidth->Belt_Float.toString}, ())
         />,
         bndFromPoints(ps)
     )
 }
 
-let rect = (~bnd:boundaries, ~color:string, ~strokeWidth:float=lineWidth, ~key:option<string>=?, ()):(reElem,boundaries) => {
+let rect = (~bnd:boundaries, ~color:string, ~lineWidth:float, ~key:option<string>=?, ()):(reElem,boundaries) => {
     let p1 = bnd->bndLeftBottom
     let p2 = bnd->bndLeftTop
     let p3 = bnd->bndRightTop
     let p4 = bnd->bndRightBottom
-    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~strokeWidth, ~key=?key, ())
+    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~lineWidth, ~key=?key, ())
 }
 
 let text = (
@@ -103,47 +98,68 @@ let text = (
     ~bold:bool=false,
     ()
 ):svgComp => {
-    let fontSize:float = scale *. 20.
-    let charLength:float = fontSize *. 0.6
-    let charHeight:float = charLength *. 1.
     ex => {
         let ey = ex->vecRot(90.->deg)
-        let at = ex->vecBegin
+
+        let fontSize:float = 20. *. ex->vecLen
+
+        let yShift = fontSize *. 0.21
+        let at = ex->vecBegin->pntTr(ey->vecMul(yShift))
+        let charHeight:float = fontSize *. 0.84
+        let charWidth:float = fontSize *. 0.6
         (
             <text
                 ?key
                 x={at->pntX->Belt_Float.toString}
                 y={at->pntY->Belt_Float.toString}
                 fill=color
-                fontSize={fontSize->Belt_Float.toString ++ "px"}
+                fontSize={fontSize->Belt_Float.toString}
                 fontFamily="courier"
                 fontWeight={if (bold) {"bold"} else {"normal"}}
+                style=ReactDOM.Style.make(~whiteSpace="pre", ())
             >
                 {text->React.string}
             </text>,
             bndFromVectors([
-                ex->vecMult(charLength *. text->Js_string2.length->Belt_Int.toFloat),
-                ey->vecMult(charHeight),
+                ex->vecMul(charWidth *. text->Js_string2.length->Belt_Int.toFloat),
+                ey->vecMul(charHeight),
             ])
-
         )
     }
 }
 
 let testTextRendering = ():reElem => {
-    let (textElem1, textBnd1) = text(~text="Test gy ..WW..", ~bold=true, ())(ex)
-    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~strokeWidth=lineWidth, ())
-    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~strokeWidth=lineWidth *. 10., ())
+    let testText = "|Test gy ..WW.."
+    let (textElem1, textBnd1) = text(~text=testText, ~bold=true, ())(ex)
+    let textHeight = textBnd1->bndHeight
+    let lineWidth = textHeight *. 0.01
+    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~lineWidth, ())
+    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~lineWidth=lineWidth *. 10., ())
 
-    let (textElem2, textBnd2) = text(~text="Test gy ..WW..", ~bold=false, ())(ex->vecTr(ey->vecRev->vecMult(textBnd1->bndHeight *. 1.5)))
-    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~strokeWidth=lineWidth, ())
-    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~strokeWidth=lineWidth *. 10., ())
+    let (textElem2, textBnd2) = text(~text=testText, ~bold=false, ())(ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)))
+    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~lineWidth, ())
+    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~lineWidth=lineWidth *. 10., ())
+
+    let testText2 = "|- AbCdEf       WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... |||"
+    let (textElem3, textBnd3) = text(~text=testText2, ~bold=false, ())(ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)))
+    let charWidth = textBnd3->bndWidth /. (testText2->Js.String2.length->Belt.Int.toFloat)
+    let textBnd4Arr = []
+    let textElem4Arr = []
+    let ex4 = ref(ex->vecTr(ey->vecRev->vecMul(3. *. textHeight *. 1.1)))
+    let dx = ex->vecMul(charWidth)
+    for i in 0 to testText2->Js.String2.length-1 {
+        let (textElem4, textBnd4) = text(~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())(ex4.contents)
+        textElem4Arr->Js.Array2.push(textElem4)->ignore
+        textBnd4Arr->Js.Array2.push(textBnd4)->ignore
+        ex4 := ex4.contents->vecTr(dx)
+    }
+
     rndSvg(
         ~boundaries=
-            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22])
+            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Js_array2.concat(textBnd4Arr))
             ->bndAddMarginPct(~all=0.01, ()), 
-        ~height=700, 
-        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 </>, 
+        ~height=700,
+        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>, 
         ()
     )
 
