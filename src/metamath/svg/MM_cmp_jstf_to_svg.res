@@ -202,6 +202,7 @@ let rndConnection = (~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:str
 let rndStmtAndHyp = (
     ~ctxFirst:bool,
     ~frmStmt:array<string>,
+    ~hypLabel:option<string>,
     ~subs:Belt_HashMapString.t<array<string>>,
     ~subsColors:Belt_HashMapString.t<string>,
     ~frmColors:option<Belt_HashMapString.t<string>>,
@@ -284,6 +285,23 @@ let rndStmtAndHyp = (
                 }
             }
         })
+        switch hypLabel {
+            | None => ()
+            | Some(hypLabel) => {
+                let stmtsBnd = bndMergeAll(bnds)
+                let (labelElem, labelBnd) = text(
+                    ~ex = pntVec(stmtsBnd->bndLeftTop, stmtsBnd->bndRightTop)
+                        ->vecNorm->vecTr(ey->vecMul(charHeight)),
+                    ~color="darkgrey",
+                    ~bold=false,
+                    ~key="label",
+                    ~text=hypLabel,
+                    ()
+                )
+                bnds->Js_array2.push(labelBnd)->ignore
+                ctxElems->Js_array2.push(labelElem)->ignore
+            }
+        }
         (conElems->Js.Array2.concat(frmElems)->Js.Array2.concat(ctxElems)->React.array, bndMergeAll(bnds))
     }
 }
@@ -291,6 +309,7 @@ let rndStmtAndHyp = (
 @react.component 
 let make = (
     ~hyps:array<array<string>>,
+    ~hypLabels:array<string>,
     ~asrt:array<string>,
     ~subs:Belt_HashMapString.t<array<string>>,
     ~frmColors:option<Belt_HashMapString.t<string>>,
@@ -312,9 +331,10 @@ let make = (
         let curEx = ref(ex)
         let hypElems = []
         let hypBnds = []
-        hyps->Js.Array2.forEach(hyp => {
+        hyps->Js.Array2.forEachi((hyp,i) => {
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
+                ~hypLabel=Some(hypLabels[i])
             )(curEx.contents)
             hypElems->Js.Array2.push(elem)->ignore
             hypBnds->Js.Array2.push(bnd)->ignore
@@ -322,6 +342,7 @@ let make = (
         })
         let asrtComp = rndStmtAndHyp( 
             ~ctxFirst=false, ~frmStmt=asrt, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
+            ~hypLabel=None
         )
         let (_, asrtSampleBnd) = asrtComp(ex)
         let (hypsElem, hypsBnd) = if (hyps->Js.Array2.length == 0) {

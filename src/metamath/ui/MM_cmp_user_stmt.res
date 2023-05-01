@@ -155,55 +155,51 @@ module VisualizedJstf = {
         wrkCtxColors:Belt_HashMapString.t<string>,
     }
     let make = React.memoCustomCompareProps( @react.component (props:props) => {
-        switch props.wrkCtx {
-            | None => React.null
-            | Some(ctx) => {
-                switch props.stmt.proofTreeDto {
-                    | None => React.null
-                    | Some(proofTreeDto) => {
-                        switch props.stmt.src {
-                            | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => React.null
-                            | Some(Assertion({args, label})) => {
-                                switch ctx->getFrame(label) {
-                                    | None => React.null
-                                    | Some(frame) => {
-                                        let asrt = ctx->frmIntsToSymsExn(frame, frame.asrt)
-                                        let hyps = []
-                                        let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
-                                        let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
-                                        frame.hyps->Js.Array2.forEachi((hyp,i) => {
-                                            if (hyp.typ == E) {
-                                                hyps->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
-                                            } else {
-                                                let frmSym = ctx->frmIntToSymExn(frame, hyp.expr[1])
-                                                subs->Belt_HashMapString.set(
-                                                    frmSym,
-                                                    ctx->ctxIntsToSymsExn( 
-                                                        proofTreeDto.nodes[args[i]].expr->Js_array2.sliceFrom(1) 
-                                                    )
-                                                )
-                                                let typeSym = ctx->ctxIntToSymExn(hyp.expr[0])
-                                                switch props.typeColors->Belt_HashMapString.get(typeSym) {
-                                                    | None => ()
-                                                    | Some(color) => frmColors->Belt_HashMapString.set( frmSym, color )
-                                                }
-                                            }
-                                        })
-                                        <MM_cmp_jstf_to_svg
-                                            hyps
-                                            asrt
-                                            frmColors=Some(frmColors)
-                                            ctxColors1=Some(props.preCtxColors)
-                                            ctxColors2=Some(props.wrkCtxColors)
-                                            subs
-                                        />
+        switch (props.wrkCtx, props.stmt.proofTreeDto, props.stmt.jstf) {
+            | (Some(ctx), Some(proofTreeDto), Some(jstf)) => {
+                switch props.stmt.src {
+                    | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => React.null
+                    | Some(Assertion({args, label})) => {
+                        switch ctx->getFrame(label) {
+                            | None => React.null
+                            | Some(frame) => {
+                                let asrt = ctx->frmIntsToSymsExn(frame, frame.asrt)
+                                let hyps = []
+                                let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
+                                let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
+                                frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                                    if (hyp.typ == E) {
+                                        hyps->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                                    } else {
+                                        let frmSym = ctx->frmIntToSymExn(frame, hyp.expr[1])
+                                        subs->Belt_HashMapString.set(
+                                            frmSym,
+                                            ctx->ctxIntsToSymsExn( 
+                                                proofTreeDto.nodes[args[i]].expr->Js_array2.sliceFrom(1) 
+                                            )
+                                        )
+                                        let typeSym = ctx->ctxIntToSymExn(hyp.expr[0])
+                                        switch props.typeColors->Belt_HashMapString.get(typeSym) {
+                                            | None => ()
+                                            | Some(color) => frmColors->Belt_HashMapString.set( frmSym, color )
+                                        }
                                     }
-                                }
+                                })
+                                <MM_cmp_jstf_to_svg
+                                    hyps
+                                    hypLabels=jstf.args
+                                    asrt
+                                    frmColors=Some(frmColors)
+                                    ctxColors1=Some(props.preCtxColors)
+                                    ctxColors2=Some(props.wrkCtxColors)
+                                    subs
+                                />
                             }
                         }
                     }
                 }
             }
+            | _ => React.null
         }
     }, (_,_) => true )
 }
