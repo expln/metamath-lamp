@@ -107,7 +107,7 @@ let rndStmt = (
     ~symToColor:string=>option<string>,
     ~charWidth:float,
     ~key:string,
-):(reElem,boundaries) => {
+):(array<reElem>,boundaries) => {
     let elems = []
     let bnds = []
     let curEx = ref(ex)
@@ -132,7 +132,7 @@ let rndStmt = (
         printSymbol(~sym=stmt[i], ~key=`${subKey}-S`)
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
     }
-    (elems->React.array, bndMergeAll(bnds))
+    (elems, bndMergeAll(bnds))
 }
 
 let testTextRendering = ():reElem => {
@@ -214,32 +214,33 @@ let rndStmtAndHyp = (
                 ref(exS->vecTr(ey->vecMul(charHeight *. 3.)))
             )
         }
+        let frmElems = []
+        let ctxElems = []
         let bnds = []
-        let elems = []
         frmStmt->Js_array2.forEachi((frmSym,i) => {
-            let (frmElem,frmBnd) = rndStmt(
+            let (fElems,frmBnd) = rndStmt(
                 ~ex=frmEx.contents,
                 ~stmt=[frmSym],
                 ~symToColor=frmSymToColor,
                 ~charWidth,
                 ~key="frm-" ++ i->Belt_Int.toString,
             )
-            elems->Js_array2.push(frmElem)->ignore
+            frmElems->Js_array2.pushMany(fElems)->ignore
             bnds->Js_array2.push(frmBnd)->ignore
             frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
-            let (ctxElem,ctxBnd) = rndStmt(
+            let (cElems,ctxBnd) = rndStmt(
                 ~ex=ctxEx.contents,
                 ~stmt=getCtxSubStmt(frmSym),
                 ~symToColor=ctxSymToColor,
                 ~charWidth,
                 ~key="ctx-" ++ i->Belt_Int.toString,
             )
-            elems->Js_array2.push(ctxElem)->ignore
+            ctxElems->Js_array2.pushMany(cElems)->ignore
             bnds->Js_array2.push(ctxBnd)->ignore
             ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
         })
-        (elems->React.array, bndMergeAll(bnds))
+        (ctxElems->Js.Array2.concat(frmElems)->React.array, bndMergeAll(bnds))
     }
 }
 
