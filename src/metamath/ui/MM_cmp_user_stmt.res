@@ -431,13 +431,18 @@ let make = (
     }
 
     let rndJstfVisualization = () => {
-        <VisualizedJstf
-            wrkCtx
-            stmt
-            typeColors
-            preCtxColors
-            wrkCtxColors
-        />
+        switch stmt.src {
+            | None => React.null
+            | Some(_) => {
+                <VisualizedJstf
+                    wrkCtx
+                    stmt
+                    typeColors
+                    preCtxColors
+                    wrkCtxColors
+                />
+            }
+        }
     }
 
     let rndInfoBody = () => {

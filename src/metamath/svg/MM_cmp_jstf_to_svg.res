@@ -199,78 +199,76 @@ let testTextRendering = ():reElem => {
 }
 
 let rndStmtAndHyp = (
-    ~stmtFirst:bool=true,
-    ~hyp:array<string>,
+    ~ctxFirst:bool,
+    ~frmStmt:array<string>,
     ~subs:Belt_HashMapString.t<array<string>>,
     ~frmColors:option<Belt_HashMapString.t<string>>,
     ~ctxColors1:option<Belt_HashMapString.t<string>>,
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
 ):svgComp => {
+    subs->Belt_HashMapString.forEach((k,v) => {
+        Js.Console.log2(k, v)
+    })
     ex => {
-        let cntChars = (arr:array<string>):int => {
-            arr->Js_array2.reduce(
-                (cnt,sym) => cnt + sym->Js_string2.length,
-                0
-            )
-        }
-        let getSubStmt = (frmSym:string):array<string> => {
-            subs->Belt_HashMapString.get(frmSym)->Belt.Option.getWithDefault([frmSym])
-        }
-        let hypSymToColor = sym => frmColors->Belt_Option.flatMap(frmColors =>  frmColors->Belt_HashMapString.get(sym))
+        let frmSymToColor = sym => frmColors->Belt_Option.flatMap(frmColors =>  frmColors->Belt_HashMapString.get(sym))
         let ctxSymToColor = sym => {
             switch ctxColors1->Belt_Option.flatMap(ctxColors1 => ctxColors1->Belt_HashMapString.get(sym)) {
                 | Some(color) => Some(color)
                 | None => ctxColors2->Belt_Option.flatMap(ctxColors2 => ctxColors2->Belt_HashMapString.get(sym))
             }
         }
+        let getCtxSubStmt = (frmSym:string):array<string> => {
+            switch subs->Belt_HashMapString.get(frmSym) {
+                | Some(ctxSubStmt) => ctxSubStmt
+                | None => [frmSym]
+            }
+        }
 
         let (_, bndSample) = text(~ex, ~text=".", ())
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
-        let stmtLen = hyp->Js_array2.reduce(
-            (cnt,frmSym) => cnt + getSubStmt(frmSym)->cntChars,
-            0
-        )->Belt_Int.toFloat *. charWidth
-        let hypLen = cntChars(hyp)->Belt_Int.toFloat *. charWidth
+        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Js.Array2.joinWith(" ")
+        let ctxStmtLen = ctxStmtStr->Js.String2.length->Belt_Int.toFloat *. charWidth
+        let frmStmtLen = frmStmt->Js.Array2.joinWith(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
         let vertDist = charHeight *. 2.
-        let dx = (stmtLen -. hypLen) /. 2.
+        let dx = (ctxStmtLen -. frmStmtLen) /. 2.
         let exL = ex
         let exS = ex->vecTr(ex->vecMul(dx))
-        let (stmtEx,hypEx) = if (stmtFirst) {
+        let (ctxEx,frmEx) = if (ctxFirst) {
             (
                 ref(exL->vecTr(ey->vecMul(charHeight *. 3.))),
                 ref(exS)
             )
         } else {
             (
-                ref(exS->vecTr(ey->vecMul(charHeight *. 3.))),
-                ref(exL)
+                ref(exL),
+                ref(exS->vecTr(ey->vecMul(charHeight *. 3.)))
             )
         }
         let bnds = []
         let elems = []
-        hyp->Js_array2.forEachi((hypSym,i) => {
-            let (hypElem,hypBnd) = rndStmt(
-                ~ex=hypEx.contents,
-                ~stmt=[hypSym],
-                ~symToColor=hypSymToColor,
+        frmStmt->Js_array2.forEachi((frmSym,i) => {
+            let (frmElem,frmBnd) = rndStmt(
+                ~ex=frmEx.contents,
+                ~stmt=[frmSym],
+                ~symToColor=frmSymToColor,
                 ~charWidth,
-                ~key="hyp" ++ i->Belt_Int.toString,
+                ~key="frm-" ++ i->Belt_Int.toString,
             )
-            elems->Js_array2.push(hypElem)->ignore
-            bnds->Js_array2.push(hypBnd)->ignore
-            hypEx := hypEx.contents->vecTr(ex->vecMul(hypBnd->bndWidth))
+            elems->Js_array2.push(frmElem)->ignore
+            bnds->Js_array2.push(frmBnd)->ignore
+            frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
-            let (stmtElem,stmtBnd) = rndStmt(
-                ~ex=stmtEx.contents,
-                ~stmt=getSubStmt(hypSym),
+            let (ctxElem,ctxBnd) = rndStmt(
+                ~ex=ctxEx.contents,
+                ~stmt=getCtxSubStmt(frmSym),
                 ~symToColor=ctxSymToColor,
                 ~charWidth,
-                ~key="stmt" ++ i->Belt_Int.toString,
+                ~key="ctx-" ++ i->Belt_Int.toString,
             )
-            elems->Js_array2.push(stmtElem)->ignore
-            bnds->Js_array2.push(stmtBnd)->ignore
-            stmtEx := stmtEx.contents->vecTr(ex->vecMul(stmtBnd->bndWidth))
+            elems->Js_array2.push(ctxElem)->ignore
+            bnds->Js_array2.push(ctxBnd)->ignore
+            ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
         })
         (elems->React.array, bndMergeAll(bnds))
     }
@@ -287,8 +285,8 @@ let make = (
 ) => {
     let rndAsrt = ():(reElem, boundaries) => {
         rndStmtAndHyp(
-            ~stmtFirst=false,
-            ~hyp=asrt,
+            ~ctxFirst=false,
+            ~frmStmt=asrt,
             ~subs,
             ~frmColors,
             ~ctxColors1,
