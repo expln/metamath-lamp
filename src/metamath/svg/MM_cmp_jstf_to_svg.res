@@ -175,7 +175,9 @@ let testTextRendering = ():reElem => {
 
 }
 
-let rndConnection = (~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:string):(reElem,boundaries) => {
+let rndConnection = (
+    ~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:string, ~noFrameForBottomBnd:bool,
+):(reElem,boundaries) => {
     let bndHeight = bnd1->bndHeight
     let lineWidth = bndHeight *. 0.05
     let (topBnd,bottomBnd) = if (bnd1->bndMinY <= bnd2->bndMinY) {
@@ -184,19 +186,20 @@ let rndConnection = (~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:str
         (bnd2, bnd1)
     }
     let margin = bndHeight *. 0.4
-    let topBnd = topBnd->bndAddMargin(~top=margin, ~bottom=margin, ())
-    let bottomBnd = bottomBnd->bndAddMargin(~top=margin, ~bottom=margin, ())
-    let (rElem1,rBnd1) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
-    let (rElem2,rBnd2) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`, ())
+    let topBnd = if (noFrameForBottomBnd) {topBnd->bndAddMargin(~top=margin, ~bottom=margin, ())} else {topBnd}
+    let bottomBnd = if (noFrameForBottomBnd) {bottomBnd} else {bottomBnd->bndAddMargin(~top=margin, ~bottom=margin, ())}
+    let (rElemTop,rBndTop) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
+    let (rElemBottom,rBndBottom) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`, ())
     let lineVec = pntVec(
         pntVec(topBnd->bndLeftBottom, topBnd->bndRightBottom)->vecMul(0.5)->vecEnd,
         pntVec(bottomBnd->bndLeftTop, bottomBnd->bndRightTop)->vecMul(0.5)->vecEnd,
     )
     let (lElem,lBnd) = lineVec->vecToLine(~color, ~key=`line-${key}`, ~lineWidth, ())
-    (
-        [rElem1,rElem2,lElem]->React.array,
-        bndMergeAll([rBnd1,rBnd2,lBnd])
-    )
+    if (noFrameForBottomBnd) {
+        ( [ rElemTop, lElem ]->React.array, bndMergeAll([rBndTop,lBnd]) )
+    } else {
+        ( [ rElemBottom, lElem ]->React.array, bndMergeAll([rBndBottom,lBnd]) )
+    }
 }
 
 let rndStmtAndHyp = (
@@ -208,6 +211,7 @@ let rndStmtAndHyp = (
     ~frmColors:option<Belt_HashMapString.t<string>>,
     ~ctxColors1:option<Belt_HashMapString.t<string>>,
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
+    ~noFrameForBottomBnd:bool,
 ):svgComp => {
     ex => {
         let frmSymToColor = sym => frmColors->Belt_Option.flatMap(frmColors =>  frmColors->Belt_HashMapString.get(sym))
@@ -278,7 +282,8 @@ let rndStmtAndHyp = (
                         ~bnd1=frmContentOnlyBnd, 
                         ~bnd2=ctxContentOnlyBnd, 
                         ~color, 
-                        ~key=i->Belt_Int.toString
+                        ~key=i->Belt_Int.toString,
+                        ~noFrameForBottomBnd,
                     )
                     conElems->Js_array2.push(conElem)->ignore
                     bnds->Js_array2.push(conBnd)->ignore
@@ -334,7 +339,7 @@ let make = (
         hyps->Js.Array2.forEachi((hyp,i) => {
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
-                ~hypLabel=Some(hypLabels[i])
+                ~hypLabel=Some(hypLabels[i]), ~noFrameForBottomBnd=true,
             )(curEx.contents)
             hypElems->Js.Array2.push(elem)->ignore
             hypBnds->Js.Array2.push(bnd)->ignore
@@ -342,7 +347,7 @@ let make = (
         })
         let asrtComp = rndStmtAndHyp( 
             ~ctxFirst=false, ~frmStmt=asrt, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
-            ~hypLabel=None
+            ~hypLabel=None, ~noFrameForBottomBnd=false,
         )
         let (_, asrtSampleBnd) = asrtComp(ex)
         let (hypsElem, hypsBnd) = if (hyps->Js.Array2.length == 0) {
