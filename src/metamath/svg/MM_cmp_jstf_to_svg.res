@@ -3,7 +3,7 @@ open Expln_React_common
 
 type svgComp = vector => (reElem,boundaries)
 
-let pxSize = 1.
+let pxSize = 1.3
 
 let subsAvailableColors = ["green", "orange", "#03a9f4", "pink", "brown", "lawngreen", "olive", "blue", "red", "magenta"]
 
@@ -177,13 +177,13 @@ let testTextRendering = ():reElem => {
 
 let rndConnection = (~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:string):(reElem,boundaries) => {
     let bndHeight = bnd1->bndHeight
-    let lineWidth = bndHeight *. 0.1
+    let lineWidth = bndHeight *. 0.05
     let (topBnd,bottomBnd) = if (bnd1->bndMinY <= bnd2->bndMinY) {
         (bnd1, bnd2)
     } else {
         (bnd2, bnd1)
     }
-    let margin = bndHeight *. 0.2
+    let margin = bndHeight *. 0.4
     let topBnd = topBnd->bndAddMargin(~top=margin, ~bottom=margin, ())
     let bottomBnd = bottomBnd->bndAddMargin(~top=margin, ~bottom=margin, ())
     let (rElem1,rBnd1) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
@@ -235,13 +235,13 @@ let rndStmtAndHyp = (
         let exS = ex->vecTr(ex->vecMul(dx))
         let (ctxEx,frmEx) = if (ctxFirst) {
             (
-                ref(exL->vecTr(ey->vecMul(charHeight *. 3.))),
+                ref(exL->vecTr(ey->vecMul(charHeight *. 3.3))),
                 ref(exS)
             )
         } else {
             (
                 ref(exL),
-                ref(exS->vecTr(ey->vecMul(charHeight *. 3.)))
+                ref(exS->vecTr(ey->vecMul(charHeight *. 3.3)))
             )
         }
         let frmElems = []
@@ -319,7 +319,7 @@ let make = (
     let (_, bndSample) = text(~ex, ~text=".", ())
     let charHeight = bndSample->bndHeight
     let hypMargin = charHeight *. 3.
-    let delimLineWidth = charHeight *. 0.4
+    let delimLineWidth = charHeight *. 0.05
     let delimLineMargin = charHeight *. 0.5
 
     let numOfColors = subsAvailableColors->Js.Array2.length
