@@ -92,63 +92,96 @@ let rect = (~bnd:boundaries, ~color:string, ~lineWidth:float, ~key:option<string
 }
 
 let text = (
+    ~ex:vector,
     ~text:string,
     ~key:option<string>=?,
     ~color:string="black",
     ~bold:bool=false,
     ()
-):svgComp => {
-    ex => {
-        let ey = ex->vecRot(90.->deg)
+):(reElem,boundaries) => {
+    let ey = ex->vecRot(90.->deg)
 
-        let fontSize:float = 20. *. ex->vecLen
+    let fontSize:float = 20. *. ex->vecLen
 
-        let yShift = fontSize *. 0.21
-        let at = ex->vecBegin->pntTr(ey->vecMul(yShift))
-        let charHeight:float = fontSize *. 0.84
-        let charWidth:float = fontSize *. 0.6
-        (
-            <text
-                ?key
-                x={at->pntX->Belt_Float.toString}
-                y={at->pntY->Belt_Float.toString}
-                fill=color
-                fontSize={fontSize->Belt_Float.toString}
-                fontFamily="courier"
-                fontWeight={if (bold) {"bold"} else {"normal"}}
-                style=ReactDOM.Style.make(~whiteSpace="pre", ())
-            >
-                {text->React.string}
-            </text>,
-            bndFromVectors([
-                ex->vecMul(charWidth *. text->Js_string2.length->Belt_Int.toFloat),
-                ey->vecMul(charHeight),
-            ])
+    let yShift = fontSize *. 0.21
+    let at = ex->vecBegin->pntTr(ey->vecMul(yShift))
+    let charHeight:float = fontSize *. 0.84
+    let charWidth:float = fontSize *. 0.6
+    (
+        <text
+            ?key
+            x={at->pntX->Belt_Float.toString}
+            y={at->pntY->Belt_Float.toString}
+            fill=color
+            fontSize={fontSize->Belt_Float.toString}
+            fontFamily="courier"
+            fontWeight={if (bold) {"bold"} else {"normal"}}
+            style=ReactDOM.Style.make(~whiteSpace="pre", ())
+        >
+            {text->React.string}
+        </text>,
+        bndFromVectors([
+            ex->vecMul(charWidth *. text->Js_string2.length->Belt_Int.toFloat),
+            ey->vecMul(charHeight),
+        ])
+    )
+}
+
+let rndStmt = (
+    ~ex:vector,
+    ~stmt:array<string>,
+    ~symToColor:string=>option<string>,
+    ~charWidth:float,
+    ~key:string,
+):(reElem,boundaries) => {
+    let elems = []
+    let bnds = []
+    let curEx = ref(ex)
+
+    let printSymbol = (~sym:string, ~key:string):unit => {
+        let color = symToColor(sym)
+        let (elem, bnd) = text(
+            ~ex=curEx.contents,
+            ~text=sym, 
+            ~bold=color->Belt_Option.isSome, 
+            ~color=color->Belt_Option.getWithDefault("black"),
+            ~key, 
+            ()
         )
+        elems->Js.Array2.push(elem)->ignore
+        bnds->Js.Array2.push(bnd)->ignore
+        curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth))
     }
+
+    for i in 0 to stmt->Js_array2.length-1 {
+        let subKey = `${key}-${i->Belt_Int.toString}`
+        printSymbol(~sym=stmt[i], ~key=`${subKey}-S`)
+        printSymbol(~sym=" ", ~key=`${subKey}-s`)
+    }
+    (elems->React.array, bndMergeAll(bnds))
 }
 
 let testTextRendering = ():reElem => {
     let testText = "|Test gy ..WW.."
-    let (textElem1, textBnd1) = text(~text=testText, ~bold=true, ())(ex)
+    let (textElem1, textBnd1) = text(~ex=ex, ~text=testText, ~bold=true, ())
     let textHeight = textBnd1->bndHeight
     let lineWidth = textHeight *. 0.01
     let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~lineWidth, ())
     let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~lineWidth=lineWidth *. 10., ())
 
-    let (textElem2, textBnd2) = text(~text=testText, ~bold=false, ())(ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)))
+    let (textElem2, textBnd2) = text(~ex=ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)), ~text=testText, ~bold=false, ())
     let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~lineWidth, ())
     let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~lineWidth=lineWidth *. 10., ())
 
     let testText2 = "|- AbCdEf       WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... |||"
-    let (textElem3, textBnd3) = text(~text=testText2, ~bold=false, ())(ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)))
+    let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false, ())
     let charWidth = textBnd3->bndWidth /. (testText2->Js.String2.length->Belt.Int.toFloat)
     let textBnd4Arr = []
     let textElem4Arr = []
     let ex4 = ref(ex->vecTr(ey->vecRev->vecMul(3. *. textHeight *. 1.1)))
     let dx = ex->vecMul(charWidth)
     for i in 0 to testText2->Js.String2.length-1 {
-        let (textElem4, textBnd4) = text(~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())(ex4.contents)
+        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
         textElem4Arr->Js.Array2.push(textElem4)->ignore
         textBnd4Arr->Js.Array2.push(textBnd4)->ignore
         ex4 := ex4.contents->vecTr(dx)
@@ -165,16 +198,112 @@ let testTextRendering = ():reElem => {
 
 }
 
+let rndStmtAndHyp = (
+    ~stmtFirst:bool=true,
+    ~hyp:array<string>,
+    ~subs:Belt_HashMapString.t<array<string>>,
+    ~frmColors:option<Belt_HashMapString.t<string>>,
+    ~ctxColors1:option<Belt_HashMapString.t<string>>,
+    ~ctxColors2:option<Belt_HashMapString.t<string>>,
+):svgComp => {
+    ex => {
+        let cntChars = (arr:array<string>):int => {
+            arr->Js_array2.reduce(
+                (cnt,sym) => cnt + sym->Js_string2.length,
+                0
+            )
+        }
+        let getSubStmt = (frmSym:string):array<string> => {
+            subs->Belt_HashMapString.get(frmSym)->Belt.Option.getWithDefault([frmSym])
+        }
+        let hypSymToColor = sym => frmColors->Belt_Option.flatMap(frmColors =>  frmColors->Belt_HashMapString.get(sym))
+        let ctxSymToColor = sym => {
+            switch ctxColors1->Belt_Option.flatMap(ctxColors1 => ctxColors1->Belt_HashMapString.get(sym)) {
+                | Some(color) => Some(color)
+                | None => ctxColors2->Belt_Option.flatMap(ctxColors2 => ctxColors2->Belt_HashMapString.get(sym))
+            }
+        }
+
+        let (_, bndSample) = text(~ex, ~text=".", ())
+        let charHeight = bndSample->bndHeight
+        let charWidth = bndSample->bndWidth
+        let stmtLen = hyp->Js_array2.reduce(
+            (cnt,frmSym) => cnt + getSubStmt(frmSym)->cntChars,
+            0
+        )->Belt_Int.toFloat *. charWidth
+        let hypLen = cntChars(hyp)->Belt_Int.toFloat *. charWidth
+        let vertDist = charHeight *. 2.
+        let dx = (stmtLen -. hypLen) /. 2.
+        let exL = ex
+        let exS = ex->vecTr(ex->vecMul(dx))
+        let (stmtEx,hypEx) = if (stmtFirst) {
+            (
+                ref(exL->vecTr(ey->vecMul(charHeight *. 3.))),
+                ref(exS)
+            )
+        } else {
+            (
+                ref(exS->vecTr(ey->vecMul(charHeight *. 3.))),
+                ref(exL)
+            )
+        }
+        let bnds = []
+        let elems = []
+        hyp->Js_array2.forEachi((hypSym,i) => {
+            let (hypElem,hypBnd) = rndStmt(
+                ~ex=hypEx.contents,
+                ~stmt=[hypSym],
+                ~symToColor=hypSymToColor,
+                ~charWidth,
+                ~key="hyp" ++ i->Belt_Int.toString,
+            )
+            elems->Js_array2.push(hypElem)->ignore
+            bnds->Js_array2.push(hypBnd)->ignore
+            hypEx := hypEx.contents->vecTr(ex->vecMul(hypBnd->bndWidth))
+
+            let (stmtElem,stmtBnd) = rndStmt(
+                ~ex=stmtEx.contents,
+                ~stmt=getSubStmt(hypSym),
+                ~symToColor=ctxSymToColor,
+                ~charWidth,
+                ~key="stmt" ++ i->Belt_Int.toString,
+            )
+            elems->Js_array2.push(stmtElem)->ignore
+            bnds->Js_array2.push(stmtBnd)->ignore
+            stmtEx := stmtEx.contents->vecTr(ex->vecMul(stmtBnd->bndWidth))
+        })
+        (elems->React.array, bndMergeAll(bnds))
+    }
+}
+
 @react.component 
 let make = (
     ~hyps:array<array<string>>,
     ~asrt:array<string>,
-    ~symColors1:option<Belt_HashMapString.t<string>>,
-    ~symColors2:option<Belt_HashMapString.t<string>>,
     ~subs:Belt_HashMapString.t<array<string>>,
+    ~frmColors:option<Belt_HashMapString.t<string>>,
+    ~ctxColors1:option<Belt_HashMapString.t<string>>,
+    ~ctxColors2:option<Belt_HashMapString.t<string>>,
 ) => {
+    let rndAsrt = ():(reElem, boundaries) => {
+        rndStmtAndHyp(
+            ~stmtFirst=false,
+            ~hyp=asrt,
+            ~subs,
+            ~frmColors,
+            ~ctxColors1,
+            ~ctxColors2,
+        )(ex)
+    }
+
     let rndContent = () => {
-        testTextRendering()
+        let (elem, bnd) = rndAsrt()
+        rndSvg(
+            ~boundaries=bnd, 
+            ~height=100,
+            ~content = <> elem </>, 
+            ()
+        )
     }
 
     <table style=ReactDOM.Style.make(~tableLayout="fixed", ~width="100%", ())>

@@ -420,8 +420,15 @@ let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
     expr->Js_array2.map(ctxIntToSymExn(ctx, _))->Js_array2.joinWith(" ")
 }
 
+let frmIntToSym = (ctx:mmContext, frame:frame, i:int):option<string> => {
+    if (i < 0) {ctx->ctxIntToSym(i)} else {frame.frameVarToSymb->Belt_Array.get(i)}
+}
+
 let frmIntToSymExn = (ctx:mmContext, frame:frame, i:int):string => {
-    if (i < 0) {ctx->ctxIntToSymExn(i)} else {frame.frameVarToSymb[i]}
+    switch frmIntToSym(ctx, frame, i) {
+        | None => raise(MmException({msg:`Could not convert from int ${i->Belt.Int.toString} to a symbol.`}))
+        | Some(sym) => sym
+    }
 }
 
 let frmIntsToSymsExn = (ctx:mmContext, frame:frame, expr:expr):array<string> => {

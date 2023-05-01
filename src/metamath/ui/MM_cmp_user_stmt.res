@@ -150,6 +150,7 @@ module VisualizedJstf = {
     type props = {
         wrkCtx:option<mmContext>,
         stmt:userStmt,
+        typeColors:Belt_HashMapString.t<string>,
         preCtxColors:Belt_HashMapString.t<string>,
         wrkCtxColors:Belt_HashMapString.t<string>,
     }
@@ -169,23 +170,31 @@ module VisualizedJstf = {
                                         let asrt = ctx->frmIntsToSymsExn(frame, frame.asrt)
                                         let hyps = []
                                         let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
+                                        let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
                                         frame.hyps->Js.Array2.forEachi((hyp,i) => {
                                             if (hyp.typ == E) {
                                                 hyps->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
                                             } else {
+                                                let frmSym = ctx->frmIntToSymExn(frame, hyp.expr[1])
                                                 subs->Belt_HashMapString.set(
-                                                    ctx->frmIntToSymExn(frame, hyp.expr[1]),
+                                                    frmSym,
                                                     ctx->ctxIntsToSymsExn( 
                                                         proofTreeDto.nodes[i].expr->Js_array2.sliceFrom(1) 
                                                     )
                                                 )
+                                                let typeSym = ctx->ctxIntToSymExn(hyp.expr[0])
+                                                switch props.typeColors->Belt_HashMapString.get(typeSym) {
+                                                    | None => ()
+                                                    | Some(color) => frmColors->Belt_HashMapString.set( frmSym, color )
+                                                }
                                             }
                                         })
                                         <MM_cmp_jstf_to_svg
                                             hyps
                                             asrt
-                                            symColors1=Some(props.preCtxColors)
-                                            symColors2=Some(props.wrkCtxColors)
+                                            frmColors=Some(frmColors)
+                                            ctxColors1=Some(props.preCtxColors)
+                                            ctxColors2=Some(props.wrkCtxColors)
                                             subs
                                         />
                                     }
@@ -211,6 +220,7 @@ let make = (
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
     ~onDebug:unit=>unit,
+    ~typeColors:Belt_HashMapString.t<string>,
     ~preCtxColors:Belt_HashMapString.t<string>,
     ~wrkCtxColors:Belt_HashMapString.t<string>,
 ) => {
@@ -424,6 +434,7 @@ let make = (
         <VisualizedJstf
             wrkCtx
             stmt
+            typeColors
             preCtxColors
             wrkCtxColors
         />

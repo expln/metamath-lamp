@@ -998,6 +998,7 @@ let make = (
                 <MM_cmp_user_stmt
                     wrkCtx={state.wrkCtx}
                     stmt
+                    typeColors=state.typeColors
                     preCtxColors=state.preCtxColors
                     wrkCtxColors=state.wrkCtxColors
 
