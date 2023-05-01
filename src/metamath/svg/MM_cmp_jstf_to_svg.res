@@ -107,7 +107,7 @@ let rndStmt = (
     ~symToColor:string=>option<string>,
     ~charWidth:float,
     ~key:string,
-):(array<reElem>,boundaries) => {
+):(array<reElem>,boundaries,boundaries) => {
     let elems = []
     let bnds = []
     let curEx = ref(ex)
@@ -127,12 +127,16 @@ let rndStmt = (
         curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth))
     }
 
+    let contentOnlyBnd = []
     for i in 0 to stmt->Js_array2.length-1 {
         let subKey = `${key}-${i->Belt_Int.toString}`
         printSymbol(~sym=stmt[i], ~key=`${subKey}-S`)
+        if (i == stmt->Js_array2.length-1) {
+            contentOnlyBnd->Js.Array2.push(bndMergeAll(bnds))->ignore
+        }
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
     }
-    (elems, bndMergeAll(bnds))
+    (elems, bndMergeAll(bnds), contentOnlyBnd[0])
 }
 
 let testTextRendering = ():reElem => {
@@ -172,12 +176,16 @@ let testTextRendering = ():reElem => {
 }
 
 let rndConnection = (~bnd1:boundaries, ~bnd2:boundaries, ~color:string, ~key:string):(reElem,boundaries) => {
-    let lineWidth = bnd1->bndHeight *. 0.1
+    let bndHeight = bnd1->bndHeight
+    let lineWidth = bndHeight *. 0.1
     let (topBnd,bottomBnd) = if (bnd1->bndMinY <= bnd2->bndMinY) {
         (bnd1, bnd2)
     } else {
         (bnd2, bnd1)
     }
+    let margin = bndHeight *. 0.2
+    let topBnd = topBnd->bndAddMargin(~top=margin, ~bottom=margin, ())
+    let bottomBnd = bottomBnd->bndAddMargin(~top=margin, ~bottom=margin, ())
     let (rElem1,rBnd1) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
     let (rElem2,rBnd2) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`, ())
     let lineVec = pntVec(
@@ -240,7 +248,7 @@ let rndStmtAndHyp = (
         let conElems = []
         let bnds = []
         frmStmt->Js_array2.forEachi((frmSym,i) => {
-            let (fElems,frmBnd) = rndStmt(
+            let (fElems,frmBnd,frmContentOnlyBnd) = rndStmt(
                 ~ex=frmEx.contents,
                 ~stmt=[frmSym],
                 ~symToColor=frmSymToColor,
@@ -251,7 +259,7 @@ let rndStmtAndHyp = (
             bnds->Js_array2.push(frmBnd)->ignore
             frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
-            let (cElems,ctxBnd) = rndStmt(
+            let (cElems,ctxBnd,ctxContentOnlyBnd) = rndStmt(
                 ~ex=ctxEx.contents,
                 ~stmt=getCtxSubStmt(frmSym),
                 ~symToColor=ctxSymToColor,
@@ -265,7 +273,12 @@ let rndStmtAndHyp = (
             switch subsColors->Belt_HashMapString.get(frmSym) {
                 | None => ()
                 | Some(color) => {
-                    let (conElem,conBnd) = rndConnection(~bnd1=frmBnd, ~bnd2=ctxBnd, ~color, ~key=i->Belt_Int.toString)
+                    let (conElem,conBnd) = rndConnection(
+                        ~bnd1=frmContentOnlyBnd, 
+                        ~bnd2=ctxContentOnlyBnd, 
+                        ~color, 
+                        ~key=i->Belt_Int.toString
+                    )
                     conElems->Js_array2.push(conElem)->ignore
                     bnds->Js_array2.push(conBnd)->ignore
                 }
