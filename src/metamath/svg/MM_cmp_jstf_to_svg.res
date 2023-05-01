@@ -299,30 +299,56 @@ let make = (
 ) => {
     let (_, bndSample) = text(~ex, ~text=".", ())
     let charHeight = bndSample->bndHeight
+    let hypMargin = charHeight *. 3.
+    let delimLineWidth = charHeight *. 0.4
+    let delimLineMargin = charHeight *. 0.5
 
     let numOfColors = subsAvailableColors->Js.Array2.length
     let subsColors = subs->Belt_HashMapString.toArray->Js.Array2.mapi(((frmSym,_),i) => {
         (frmSym, subsAvailableColors[mod(i, numOfColors)])
     })->Belt_HashMapString.fromArray
 
-    let rndAsrt = ():(reElem, boundaries) => {
-        let (elem,bnd) = rndStmtAndHyp(
-            ~ctxFirst=false,
-            ~frmStmt=asrt,
-            ~subs,
-            ~subsColors,
-            ~frmColors,
-            ~ctxColors1,
-            ~ctxColors2,
-        )(ex)
-        (elem,bnd)
-    }
-
     let rndContent = () => {
-        let (elem, bnd) = rndAsrt()
+        let curEx = ref(ex)
+        let hypElems = []
+        let hypBnds = []
+        hyps->Js.Array2.forEach(hyp => {
+            let (elem, bnd) = rndStmtAndHyp( 
+                ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
+            )(curEx.contents)
+            hypElems->Js.Array2.push(elem)->ignore
+            hypBnds->Js.Array2.push(bnd)->ignore
+            curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth +. hypMargin))
+        })
+        let asrtComp = rndStmtAndHyp( 
+            ~ctxFirst=false, ~frmStmt=asrt, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
+        )
+        let (_, asrtSampleBnd) = asrtComp(ex)
+        let (hypsElem, hypsBnd) = if (hyps->Js.Array2.length == 0) {
+            let (sepElem, sepBnd) = pntVec(asrtSampleBnd->bndLeftTop, asrtSampleBnd->bndRightTop)->vecToLine(
+                ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
+            )
+            (sepElem, sepBnd)
+        } else {
+            let hypsBnd = bndMergeAll(hypBnds)
+            let (sepElem, sepBnd) = pntVec(hypsBnd->bndLeftBottom, hypsBnd->bndRightBottom)
+                ->vecTr(ey->vecMul(-. delimLineMargin))->vecToLine(
+                    ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
+                )
+            (
+                hypElems->Js.Array2.concat([sepElem])->React.array,
+                bndMergeAll([hypsBnd, sepBnd])
+            )
+        }
+        let (asrtElem, asrtBnd) = asrtComp(
+            pntVec(hypsBnd->bndLeftBottom, hypsBnd->bndRightBottom)
+                ->vecNorm
+                ->vecTr(ey->vecMul(-. (delimLineMargin +. asrtSampleBnd->bndHeight)))
+        )
+
         rndSvg(
-            ~boundaries=bnd->bndAddMargin(~all=charHeight *. 0.3, ()), 
-            ~content = <> elem </>, 
+            ~boundaries=bndMergeAll([hypsBnd, asrtBnd])->bndAddMargin(~all=charHeight *. 0.3, ()), 
+            ~content = <> hypsElem asrtElem </>, 
             ()
         )
     }
