@@ -89,6 +89,7 @@ let ctxIntsToSymsExn: (mmContext, expr) => array<string>
 let ctxIntsToStrExn: (mmContext, expr) => string
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
+let frmIntsToSymsExn: (mmContext, frame, expr) => array<string>
 let createFrame: (
     ~ctx:mmContext, 
     ~label:string, 

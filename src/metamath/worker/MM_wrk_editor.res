@@ -167,7 +167,7 @@ type userStmt = {
 
     expr: option<expr>,
     jstf: option<jstf>,
-    proofTree: option<proofTreeDto>,
+    proofTreeDto: option<proofTreeDto>,
     src: option<exprSrcDto>,
     proof: option<proofNodeDto>,
     proofStatus: option<proofStatus>,
@@ -226,7 +226,7 @@ let createEmptyUserStmt = (id, typ, label):userStmt => {
         cont:Text([]), contEditMode:true,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
-        expr:None, jstf:None, proofTree:None, src:None, proof:None, proofStatus:None, unifErr:None,
+        expr:None, jstf:None, proofTreeDto:None, src:None, proof:None, proofStatus:None, unifErr:None,
     }
 }
 
@@ -751,7 +751,7 @@ let removeAllTempData = st => {
                 stmtErr: None,
                 expr: None, 
                 jstf: None, 
-                proofTree: None, 
+                proofTreeDto: None, 
                 src: None, 
                 proof: None, 
                 proofStatus: None,
@@ -1580,7 +1580,7 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
                             {
                                 ...stmt,
                                 jstfText: jstfToStr(jstfFromProof),
-                                proofTree: Some(proofTree),
+                                proofTreeDto: Some(proofTree),
                                 proof: Some(proofNode),
                             }
                         }
@@ -1588,7 +1588,7 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
                             if (jstfFromProof->jstfEq(existingJstf)) {
                                 {
                                     ...stmt,
-                                    proofTree: Some(proofTree),
+                                    proofTreeDto: Some(proofTree),
                                     proof: Some(proofNode),
                                 }
                             } else {
@@ -1775,7 +1775,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
             switch st->editorGetStmtById(stmtId) {
                 | None => None
                 | Some(stmt) => {
-                    switch stmt.proofTree {
+                    switch stmt.proofTreeDto {
                         | None => None
                         | Some(proofTreeDto) => {
                             switch stmt.proof {

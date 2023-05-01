@@ -420,12 +420,16 @@ let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
     expr->Js_array2.map(ctxIntToSymExn(ctx, _))->Js_array2.joinWith(" ")
 }
 
-let frmIntToSymExn = (ctx:mmContext, frame:frame, i:int) => {
+let frmIntToSymExn = (ctx:mmContext, frame:frame, i:int):string => {
     if (i < 0) {ctx->ctxIntToSymExn(i)} else {frame.frameVarToSymb[i]}
 }
 
+let frmIntsToSymsExn = (ctx:mmContext, frame:frame, expr:expr):array<string> => {
+    expr->Js_array2.map(frmIntToSymExn(ctx, frame, _))
+}
+
 let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
-    expr->Js_array2.map(frmIntToSymExn(ctx, frame, _))->Js_array2.joinWith(" ")
+    frmIntsToSymsExn(ctx, frame, expr)->Js_array2.joinWith(" ")
 }
 
 let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {

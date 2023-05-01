@@ -146,6 +146,59 @@ let rndProofStatus = (
     }
 }
 
+module VisualizedJstf = {
+    type props = {
+        wrkCtx:option<mmContext>,
+        stmt:userStmt,
+        preCtxColors:Belt_HashMapString.t<string>,
+        wrkCtxColors:Belt_HashMapString.t<string>,
+    }
+    let make = React.memoCustomCompareProps( @react.component (props:props) => {
+        switch props.wrkCtx {
+            | None => React.null
+            | Some(ctx) => {
+                switch props.stmt.proofTreeDto {
+                    | None => React.null
+                    | Some(proofTreeDto) => {
+                        switch props.stmt.src {
+                            | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => React.null
+                            | Some(Assertion({args, label})) => {
+                                switch ctx->getFrame(label) {
+                                    | None => React.null
+                                    | Some(frame) => {
+                                        let asrt = ctx->frmIntsToSymsExn(frame, frame.asrt)
+                                        let hyps = []
+                                        let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
+                                        frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                                            if (hyp.typ == E) {
+                                                hyps->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                                            } else {
+                                                subs->Belt_HashMapString.set(
+                                                    ctx->frmIntToSymExn(frame, hyp.expr[1]),
+                                                    ctx->ctxIntsToSymsExn( 
+                                                        proofTreeDto.nodes[i].expr->Js_array2.sliceFrom(1) 
+                                                    )
+                                                )
+                                            }
+                                        })
+                                        <MM_cmp_jstf_to_svg
+                                            hyps
+                                            asrt
+                                            symColors1=Some(props.preCtxColors)
+                                            symColors2=Some(props.wrkCtxColors)
+                                            subs
+                                        />
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }, (_,_) => true )
+}
+
 @val external window: {..} = "window"
 
 @react.component
@@ -368,30 +421,12 @@ let make = (
     }
 
     let rndJstfVisualization = () => {
-        switch wrkCtx {
-            | None => React.null
-            | Some(wrkCtx) => {
-                switch stmt.src {
-                    | None => React.null
-                    | Some(src) => {
-                        switch stmt.proofTree {
-                            | None => React.null
-                            | Some(proofTree) => {
-                                <MM_cmp_jstf_to_svg
-                                    ctx=wrkCtx
-                                    args=[]
-                                    label=""
-                                    asrt=[]
-                                    symColors1=Some(preCtxColors)
-                                    symColors2=Some(wrkCtxColors)
-                                    essOnly=true
-                                />
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        <VisualizedJstf
+            wrkCtx
+            stmt
+            preCtxColors
+            wrkCtxColors
+        />
     }
 
     let rndInfoBody = () => {

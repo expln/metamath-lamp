@@ -165,16 +165,14 @@ let testTextRendering = ():reElem => {
 
 }
 
-type props = {
-    ctx:mmContext,
-    args:array<expr>,
-    label:string,
-    asrt:expr,
-    symColors1:option<Belt_HashMapString.t<string>>,
-    symColors2:option<Belt_HashMapString.t<string>>,
-    essOnly:bool,
-}
-let make = React.memoCustomCompareProps( @react.component (props:props) => {
+@react.component 
+let make = (
+    ~hyps:array<array<string>>,
+    ~asrt:array<string>,
+    ~symColors1:option<Belt_HashMapString.t<string>>,
+    ~symColors2:option<Belt_HashMapString.t<string>>,
+    ~subs:Belt_HashMapString.t<array<string>>,
+) => {
     let rndContent = () => {
         testTextRendering()
     }
@@ -190,6 +188,4 @@ let make = React.memoCustomCompareProps( @react.component (props:props) => {
             </tr>
         </tbody>
     </table>
-}, (_,_) => true )
-
-// let make = React.memoCustomCompareProps( SubModule.make, (_,_) => true )
+}
