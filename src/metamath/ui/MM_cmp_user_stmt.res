@@ -382,8 +382,8 @@ let make = (
                                     args=[]
                                     label=""
                                     asrt=[]
-                                    symColors1=preCtxColors
-                                    symColors2=wrkCtxColors
+                                    symColors1=Some(preCtxColors)
+                                    symColors2=Some(wrkCtxColors)
                                     essOnly=true
                                 />
                             }

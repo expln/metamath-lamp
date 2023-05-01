@@ -1,4 +1,4 @@
-open Expln_2d
+open Expln_2D.Svg2D
 open MM_context
 open Expln_React_common
 open Expln_React_Mui
@@ -16,16 +16,9 @@ open Local_storage_utils
 
 type svgComp = vector => (reElem,boundaries)
 
-let ey = ey->vecRev
-let deg = fl => deg(-. fl)
-let rad = fl => rad(-. fl)
-
 let scale = 1.
 
-let fontSize = scale *. 15.
-let charLength = fontSize *. 0.6
-let charHeight = charLength *. 1.0
-let lineWidth = scale *. 1.
+let lineWidth:float = scale *. 0.1
 let lineWidthStr = lineWidth->Belt_Float.toString ++ "px"
 
 let subsAvailableColors = ["green", "orange", "#03a9f4", "pink", "brown", "lawngreen", "olive", "blue", "red", "magenta"]
@@ -64,11 +57,12 @@ let rndSvg = (~boundaries:boundaries, ~width:option<int>=?, ~height:option<int>=
     </svg>
 }
 
-let vecLine = (v:vector, ~color:string):(reElem,boundaries) => {
+let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ()):(reElem,boundaries) => {
     let b = v->vecBegin
     let e = v->vecEnd
     (
         <line
+            ?key
             x1={b->pntX->Belt.Float.toString}
             y1={b->pntY->Belt.Float.toString}
             x2={e->pntX->Belt.Float.toString}
@@ -80,37 +74,40 @@ let vecLine = (v:vector, ~color:string):(reElem,boundaries) => {
     )
 }
 
-let polyline = (~ps:array<point>, ~color:string):(reElem,boundaries) => {
+let polyline = (~ps:array<point>, ~color:string, ~strokeWidth:float=lineWidth, ~key:option<string>=?, ()):(reElem,boundaries) => {
     (
         <polyline 
+            ?key
             points={
                 ps->Js_array2.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
                     ->Js.Array2.joinWith(" ")
             } 
-            style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth=lineWidthStr, ())
+            style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={strokeWidth->Belt_Float.toString}, ())
         />,
         bndFromPoints(ps)
     )
 }
 
-let rect = (~bnd:boundaries, ~color:string):(reElem,boundaries) => {
-    let height = bnd->bndHeight
-    let width = bnd->bndWidth
-    let p1 = ex->vecMult(bnd->bndMinX)->vecAdd(ey->vecMult(bnd->bndMinY))->vecBegin
-    let p2 = p1->pntTrDir(ey, height)
-    let p3 = p2->pntTrDir(ex, width)
-    let p4 = p3->pntTrDir(ey, -. height)
-    polyline(~ps=[p1,p2,p3,p4,p1], ~color)
+let rect = (~bnd:boundaries, ~color:string, ~strokeWidth:float=lineWidth, ~key:option<string>=?, ()):(reElem,boundaries) => {
+    let p1 = bnd->bndLeftBottom
+    let p2 = bnd->bndLeftTop
+    let p3 = bnd->bndRightTop
+    let p4 = bnd->bndRightBottom
+    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~strokeWidth, ~key=?key, ())
 }
 
 let text = (
     ~text:string,
     ~key:option<string>=?,
     ~color:string="black",
-    ~fontWeight:string="none",
+    ~bold:bool=false,
     ()
 ):svgComp => {
+    let fontSize:float = scale *. 20.
+    let charLength:float = fontSize *. 0.6
+    let charHeight:float = charLength *. 1.
     ex => {
+        let ey = ex->vecRot(90.->deg)
         let at = ex->vecBegin
         (
             <text
@@ -120,7 +117,7 @@ let text = (
                 fill=color
                 fontSize={fontSize->Belt_Float.toString ++ "px"}
                 fontFamily="courier"
-                fontWeight
+                fontWeight={if (bold) {"bold"} else {"normal"}}
             >
                 {text->React.string}
             </text>,
@@ -133,54 +130,50 @@ let text = (
     }
 }
 
-// let rndColoredText = (
+let testTextRendering = ():reElem => {
+    let (textElem1, textBnd1) = text(~text="Test gy ..WW..", ~bold=true, ())(ex)
+    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~strokeWidth=lineWidth, ())
+    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~strokeWidth=lineWidth *. 10., ())
 
-// ):svgElem => {
+    let (textElem2, textBnd2) = text(~text="Test gy ..WW..", ~bold=false, ())(ex->vecTr(ey->vecRev->vecMult(textBnd1->bndHeight *. 1.5)))
+    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~strokeWidth=lineWidth, ())
+    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~strokeWidth=lineWidth *. 10., ())
+    rndSvg(
+        ~boundaries=
+            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22])
+            ->bndAddMarginPct(~all=0.01, ()), 
+        ~height=700, 
+        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 </>, 
+        ()
+    )
 
-// }
-
-module SubModule = {
-    @react.component
-    let make = (
-        ~ctx:mmContext,
-        ~args:array<expr>,
-        ~label:string,
-        ~asrt:expr,
-        ~symColors1:option<Belt_HashMapString.t<string>>=?,
-        ~symColors2:option<Belt_HashMapString.t<string>>=?,
-        ~essOnly:bool=true,
-    ) => {
-        let mainSvgComp:svgComp = switch ctx->getFrame(label) {
-            | _ => {
-                ex => {
-                    let (textElem, textBnd) = text(~text="Test gy ..WW..", ())(ex)
-                    let (rectElem, rectBnd) = rect(~bnd=textBnd, ~color="red")
-                    (
-                        <> rectElem textElem </>,
-                        bndMergeAll([textBnd, rectBnd])
-                    )
-                }
-            }
-        }
-
-        // let dir = ex->vecRot(15.->deg)->vecMult(0.3)
-        // let (l1,b1) = ex->vecTr(dir)->vecLine(~color="red", ())
-        // let (l2,b2) = ey->vecTr(dir)->vecLine(~color="green", ())
-        // let (l3,b3) = ex->vecRot(45.->deg)->vecTr(dir)->vecLine(~color="blue", ())
-        // let (l4,b4) = dir->vecLine(~color="black", ())
-
-        let (mainElem,mainBoundaries) = mainSvgComp(ex)
-        // <svg
-        //     // viewBox=viewBox(bndMergeAll([b1,b2,b3]))
-        //     viewBox=viewBox(mainBoundaries)
-        //     width={300.->Belt.Float.toString}
-        //     height={300.->Belt.Float.toString}
-        // >
-        //     // l1 l2 l3
-        //     mainElem
-        // </svg>
-        rndSvg(~boundaries=mainBoundaries->bndAddMarginPct(0.01), ~height=150, ~content=mainElem, ())
-    }
 }
 
-let make = React.memoCustomCompareProps( SubModule.make, (_,_) => true )
+type props = {
+    ctx:mmContext,
+    args:array<expr>,
+    label:string,
+    asrt:expr,
+    symColors1:option<Belt_HashMapString.t<string>>,
+    symColors2:option<Belt_HashMapString.t<string>>,
+    essOnly:bool,
+}
+let make = React.memoCustomCompareProps( @react.component (props:props) => {
+    let rndContent = () => {
+        testTextRendering()
+    }
+
+    <table style=ReactDOM.Style.make(~tableLayout="fixed", ~width="100%", ())>
+        <tbody>
+            <tr>
+                <td>
+                    <div style=ReactDOM.Style.make(~width="100%", ~overflow="auto", ())>
+                        {rndContent()}
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+}, (_,_) => true )
+
+// let make = React.memoCustomCompareProps( SubModule.make, (_,_) => true )
