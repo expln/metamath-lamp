@@ -1,20 +1,9 @@
 open Expln_2D.Svg2D
-open MM_context
 open Expln_React_common
-open Expln_React_Mui
-open Expln_React_Modal
-open MM_wrk_editor
-open MM_wrk_settings
-open MM_wrk_unify
-open Expln_utils_promise
-open MM_react_common
-open MM_statements_dto
-open MM_wrk_editor_json
-open MM_proof_tree
-open MM_provers
-open Local_storage_utils
 
 type svgComp = vector => (reElem,boundaries)
+
+let pxSize = 1.
 
 let subsAvailableColors = ["green", "orange", "#03a9f4", "pink", "brown", "lawngreen", "olive", "blue", "red", "magenta"]
 
@@ -25,28 +14,13 @@ let viewBox = (b:boundaries):string => {
         ++ ` ${b->bndHeight->Belt.Float.toString}`
 }
 
-let rndSvg = (~boundaries:boundaries, ~width:option<int>=?, ~height:option<int>=?, ~content:reElem, ()):reElem => {
+let rndSvg = (~boundaries:boundaries, ~content:reElem, ()):reElem => {
     let bndWidth = boundaries->bndWidth
     let bndHeight = boundaries->bndHeight
-    let (width,height):(int,int) =
-        switch width {
-            | Some(width) => {
-                switch height {
-                    | Some(height) => (width,height)
-                    | None => (width, width * (bndHeight /. bndWidth)->Belt_Float.toInt)
-                }
-            }
-            | None => {
-                switch height {
-                    | Some(height) => (height * (bndWidth /. bndHeight)->Belt_Float.toInt, height)
-                    | None => Js.Exn.raiseError("At least one of (~width, ~heing) must be specified.")
-                }
-            }
-        }
     <svg
         viewBox=viewBox(boundaries)
-        width={width->Belt.Int.toString}
-        height={height->Belt.Int.toString}
+        width={(bndWidth /. pxSize)->Belt.Float.toString}
+        height={(bndHeight /. pxSize)->Belt.Float.toString}
     >
         content
     </svg>
@@ -191,7 +165,6 @@ let testTextRendering = ():reElem => {
         ~boundaries=
             bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Js_array2.concat(textBnd4Arr))
             ->bndAddMarginPct(~all=0.01, ()), 
-        ~height=700,
         ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>, 
         ()
     )
@@ -206,9 +179,6 @@ let rndStmtAndHyp = (
     ~ctxColors1:option<Belt_HashMapString.t<string>>,
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
 ):svgComp => {
-    subs->Belt_HashMapString.forEach((k,v) => {
-        Js.Console.log2(k, v)
-    })
     ex => {
         let frmSymToColor = sym => frmColors->Belt_Option.flatMap(frmColors =>  frmColors->Belt_HashMapString.get(sym))
         let ctxSymToColor = sym => {
@@ -230,7 +200,6 @@ let rndStmtAndHyp = (
         let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Js.Array2.joinWith(" ")
         let ctxStmtLen = ctxStmtStr->Js.String2.length->Belt_Int.toFloat *. charWidth
         let frmStmtLen = frmStmt->Js.Array2.joinWith(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
-        let vertDist = charHeight *. 2.
         let dx = (ctxStmtLen -. frmStmtLen) /. 2.
         let exL = ex
         let exS = ex->vecTr(ex->vecMul(dx))
@@ -284,7 +253,7 @@ let make = (
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
 ) => {
     let rndAsrt = ():(reElem, boundaries) => {
-        rndStmtAndHyp(
+        let (elem,bnd) = rndStmtAndHyp(
             ~ctxFirst=false,
             ~frmStmt=asrt,
             ~subs,
@@ -292,13 +261,13 @@ let make = (
             ~ctxColors1,
             ~ctxColors2,
         )(ex)
+        (elem,bnd)
     }
 
     let rndContent = () => {
         let (elem, bnd) = rndAsrt()
         rndSvg(
             ~boundaries=bnd, 
-            ~height=100,
             ~content = <> elem </>, 
             ()
         )

@@ -179,7 +179,7 @@ module VisualizedJstf = {
                                                 subs->Belt_HashMapString.set(
                                                     frmSym,
                                                     ctx->ctxIntsToSymsExn( 
-                                                        proofTreeDto.nodes[i].expr->Js_array2.sliceFrom(1) 
+                                                        proofTreeDto.nodes[args[i]].expr->Js_array2.sliceFrom(1) 
                                                     )
                                                 )
                                                 let typeSym = ctx->ctxIntToSymExn(hyp.expr[0])
