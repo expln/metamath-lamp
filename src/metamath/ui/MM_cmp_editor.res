@@ -74,12 +74,14 @@ let make = (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~initialStateSafeBase64:option<string>,
 ) => {
+    let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
+    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+
+    let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool("editor-visualization", false)
+
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=readEditorStateFromLocStor(stateLocStorKey)
     ))
-
-    let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
-    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
@@ -921,6 +923,14 @@ let make = (
                         >
                             {"Import from JSON ..."->React.string}
                         </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                setVisualizationIsOn(prev => !prev)
+                            }}
+                        >
+                            {React.string(if (visualizationIsOn) {"Visualization is On"} else {"Visualization is Off"})}
+                        </MenuItem>
                     </Menu>
                 }
             }
@@ -1001,6 +1011,7 @@ let make = (
                     typeColors=state.typeColors
                     preCtxColors=state.preCtxColors
                     wrkCtxColors=state.wrkCtxColors
+                    visualizationIsOn
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
                     onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}

@@ -219,6 +219,7 @@ let make = (
     ~typeColors:Belt_HashMapString.t<string>,
     ~preCtxColors:Belt_HashMapString.t<string>,
     ~wrkCtxColors:Belt_HashMapString.t<string>,
+    ~visualizationIsOn:bool,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
@@ -427,17 +428,21 @@ let make = (
     }
 
     let rndJstfVisualization = () => {
-        switch stmt.src {
-            | None => React.null
-            | Some(_) => {
-                <VisualizedJstf
-                    wrkCtx
-                    stmt
-                    typeColors
-                    preCtxColors
-                    wrkCtxColors
-                />
-            }
+        if (visualizationIsOn) {
+                switch stmt.src {
+                    | None => React.null
+                    | Some(_) => {
+                        <VisualizedJstf
+                            wrkCtx
+                            stmt
+                            typeColors
+                            preCtxColors
+                            wrkCtxColors
+                        />
+                    }
+                }
+        } else {
+            React.null
         }
     }
 

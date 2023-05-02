@@ -6,3 +6,11 @@ let locStorWriteInt: (string, int) => unit
 let locStorReadInt: string => option<int>
 let locStorWriteFloat: (string, float) => unit
 let locStorReadFloat: string => option<float>
+
+let useStateFromLocalStorage: (
+    ~key:string,
+    ~fromString:option<string>=>'a,
+    ~toString:'a=>string,
+) => ('a, ('a=>'a) => unit)
+
+let useStateFromLocalStorageBool: (string,bool) => (bool, (bool=>bool) => unit)

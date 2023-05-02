@@ -38,3 +38,36 @@ let locStorWriteFloat = (key:string, fl:float):unit => {
 let locStorReadFloat = (key:string):option<float> => {
     locStorReadString(key)->Belt_Option.flatMap(Belt_Float.fromString)
 }
+
+let useStateFromLocalStorage = (
+    ~key:string,
+    ~fromString:option<string>=>'a,
+    ~toString:'a=>string,
+):('a, ('a=>'a) => unit) => {
+    let (value, setValuePriv) = React.useState(_ => fromString(locStorReadString(key)))
+
+    let setValue = (mapper:('a=>'a)) => {
+        setValuePriv(old => {
+            let new = mapper(old)
+            locStorWriteString(key, toString(new))
+            new
+        })
+    }
+
+    ( value, setValue )
+}
+
+let useStateFromLocalStorageBool = (key:string,default:bool):(bool, (bool=>bool) => unit) => {
+    useStateFromLocalStorage(
+        ~key,
+        ~fromString = boolStrOpt => {
+            switch boolStrOpt {
+                | None => default
+                | Some("true") => true
+                | Some("false") => false
+                | Some(_) => default
+            }
+        },
+        ~toString = Expln_utils_common.stringify,
+    )
+}

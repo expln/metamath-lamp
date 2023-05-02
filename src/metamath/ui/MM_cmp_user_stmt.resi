@@ -26,6 +26,7 @@ let make: (
     ~typeColors:Belt_HashMapString.t<string>,
     ~preCtxColors:Belt_HashMapString.t<string>,
     ~wrkCtxColors:Belt_HashMapString.t<string>,
+    ~visualizationIsOn:bool,
 ) => React.element
 
 let rndContText: stmtCont => React.element
