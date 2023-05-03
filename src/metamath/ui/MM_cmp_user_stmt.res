@@ -10,6 +10,7 @@ open MM_provers
 open MM_proof_tree
 open MM_proof_tree_dto
 open Expln_React_Modal
+open Local_storage_utils
 
 let rndIconButton = (
     ~icon:reElem, 
@@ -82,25 +83,55 @@ let textToSyntaxTree = (
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
 ):result<syntaxTreeNode,string> => {
-    Js.Console.log2(Common.currTimeStr(), "textToSyntaxTree invoked")
     if (syntaxTypes->Js_array2.length == 0) {
         Error(`Cannot build a syntax tree without a list of syntax types.`)
     } else {
+        let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
+        let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
+            if (a == lastSyntaxTypeInt) {
+                -1
+            } else if (b == lastSyntaxTypeInt) {
+                1
+            } else {
+                a - b
+            }
+        })
         let expr = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
         let stmtsToProve = syntaxTypes->Js_array2.map(typ => [typ]->Js_array2.concat(expr->Js_array2.sliceFrom(1)))
-        let proofTree = proveFloatings(
-            ~wrkCtx,
-            ~frms,
-            ~floatingsToProve=stmtsToProve,
-            ~parenCnt,
-            ()
-        )
-        Js.Console.log2(Common.currTimeStr(), "proofTree is ready")
-        switch stmtsToProve->Js.Array2.findIndex(stmt => proofTree->ptGetNode(stmt)->pnGetProof->Belt_Option.isSome) {
-            | -1 => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
-            | provedIdx => {
-                let provedStmt = stmtsToProve[provedIdx]
+        let maxIdx = stmtsToProve->Js_array2.length-1
+        let idx = ref(0)
+        let proofTreeRef = ref(None)
+        while (idx.contents <= maxIdx && proofTreeRef.contents->Belt_Option.isNone) {
+            let stmtToProve = stmtsToProve[idx.contents]
+            let proofTree = proveFloatings(
+                ~wrkCtx,
+                ~frms,
+                ~floatingsToProve=[stmtToProve],
+                ~parenCnt,
+                ()
+            )
+            if (proofTree->ptGetNode(stmtToProve)->pnGetProof->Belt_Option.isSome) {
+                proofTreeRef := Some(proofTree)
+                switch (lastSyntaxType, wrkCtx->ctxIntToSym(syntaxTypes[idx.contents])) {
+                    | (None, Some(provedSyntaxTypeStr)) => onLastSyntaxTypeChange(provedSyntaxTypeStr)
+                    | (Some(lastSyntaxTypeStr), Some(provedSyntaxTypeStr)) => {
+                        if (lastSyntaxTypeStr != provedSyntaxTypeStr) {
+                            onLastSyntaxTypeChange(provedSyntaxTypeStr)
+                        }
+                    }
+                    | _ => ()
+                }
+            } else {
+                idx := idx.contents + 1
+            }
+        }
+        switch proofTreeRef.contents {
+            | None => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
+            | Some(proofTree) => {
+                let provedStmt = stmtsToProve[idx.contents]
                 let proofTreeDto = proofTree->proofTreeToDto([provedStmt])
                 switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(provedStmt)) {
                     | None => Error(`Could not find proof for: ${wrkCtx->ctxIntsToStrExn(provedStmt)}`)
@@ -108,10 +139,7 @@ let textToSyntaxTree = (
                         let proofTable = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
                         switch buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1) {
                             | Error(msg) => Error(msg)
-                            | Ok(syntaxTree) => {
-                                Js.Console.log2(Common.currTimeStr(), "syntaxTree is ready")
-                                Ok(syntaxTree)
-                            }
+                            | Ok(syntaxTree) => Ok(syntaxTree)
                         }
                     }
                 }
@@ -330,13 +358,18 @@ let make = (
     }, [syntaxTreeError])
 
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
+        let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
         switch wrkCtx {
             | None => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because there was an error setting MM context.`))
             | Some(wrkCtx) => {
                 switch stmt.cont {
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text(syms) => {
-                        switch textToSyntaxTree( ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, ) {
+                        switch textToSyntaxTree( 
+                            ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, 
+                            ~lastSyntaxType=locStorReadString(lastSyntaxTypeLocStorKey),
+                            ~onLastSyntaxTypeChange = locStorWriteString(lastSyntaxTypeLocStorKey, _),
+                        ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
                                 Js.Console.log2("syntaxTree", syntaxTree)
