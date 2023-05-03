@@ -281,8 +281,8 @@ let make = (
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_save_or_discard
                                     removeStmt={textOld == ""}
-                                    contOld={MM_cmp_user_stmt.rndContText(contOld)}
-                                    contNew={MM_cmp_user_stmt.rndContText(contNew)}
+                                    contOld={MM_cmp_user_stmt.rndContText(~stmtCont=contOld, ())}
+                                    contNew={MM_cmp_user_stmt.rndContText(~stmtCont=contNew, ())}
                                     onDiscard={() => {
                                         closeModal(modalRef, modalId)
                                         if (textOld == "") {
@@ -1006,7 +1006,11 @@ let make = (
             </td>
             <td>
                 <MM_cmp_user_stmt
-                    wrkCtx={state.wrkCtx}
+                    modalRef
+                    wrkCtx=state.wrkCtx
+                    frms=state.frms
+                    parenCnt=state.parenCnt
+                    syntaxTypes=state.syntaxTypes
                     stmt
                     typeColors=state.typeColors
                     preCtxColors=state.preCtxColors

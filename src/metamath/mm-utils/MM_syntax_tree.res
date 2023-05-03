@@ -3,14 +3,14 @@ open MM_parser
 open MM_proof_table
 
 type rec syntaxTreeNode = {
-    id: string,
+    id: int,
     parent:option<syntaxTreeNode>,
     label:string,
     children:array<childNode>,
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:string, sym:string})
+    | Symbol({id:int, sym:string})
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
@@ -109,9 +109,8 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
 let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
     let nextId = ref(0)
     let idSeq = () => {
-        let id = nextId.contents->Belt_Int.toString
         nextId := nextId.contents + 1
-        id
+        nextId.contents - 1
     }
     buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
 }

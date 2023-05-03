@@ -29,14 +29,13 @@ type mmCtxSrcDto = {
 }
 
 type stmtSym = {
-    id: string,
     sym: string,
     color: option<string>,
 }
 
 type stmtCont =
     | Text(array<stmtSym>)
-    | Tree(syntaxTreeNode)
+    | Tree({stmtTyp:string, root:syntaxTreeNode, selectedNodeId:option<string>})
 
 let contIsEmpty: stmtCont => bool
 let contToArrStr: stmtCont => array<string>
@@ -97,6 +96,7 @@ type editorState = {
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
+    syntaxTypes: array<int>,
 
     descr: string,
     descrEditMode: bool,

@@ -143,7 +143,7 @@ let makeInitialState = (
                 isHyp:stmt.typ == E,
                 label:stmt.label,
                 proofStatus:stmt.proofStatus,
-                exprReElem: <span> {MM_cmp_user_stmt.rndContText(stmt.cont)} </span>
+                exprReElem: <span> {MM_cmp_user_stmt.rndContText(~stmtCont=stmt.cont, ())} </span>
             }
         }),
         exprToProve,
@@ -152,7 +152,7 @@ let makeInitialState = (
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up "->React.string}
                 </span>
-                { MM_cmp_user_stmt.rndContText(rootUserStmts[maxRootStmtIdx].cont) }
+                { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts[maxRootStmtIdx].cont, ()) }
             </span>,
 
         args0: possibleArgs->Js_array2.map(params.args0->Js_array2.includes),

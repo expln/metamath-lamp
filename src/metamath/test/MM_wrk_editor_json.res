@@ -62,6 +62,7 @@ let createInitialEditorState = (
         frms: Belt_MapString.empty,
         parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
+        syntaxTypes: [],
 
         descr: stateLocStor->Belt.Option.map(obj => obj.descr)->Belt.Option.getWithDefault(""),
         descrEditMode: false,

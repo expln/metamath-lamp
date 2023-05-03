@@ -33,6 +33,7 @@ let createEditorState = (mmFile) => {
         frms: prepareFrmSubsData(~ctx, ()),
         parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
+        syntaxTypes: [],
 
         descr: "",
         descrEditMode: false,

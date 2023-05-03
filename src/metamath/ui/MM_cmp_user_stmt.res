@@ -4,6 +4,12 @@ open Expln_React_Mui
 open MM_wrk_editor
 open MM_react_common
 open MM_context
+open MM_substitution
+open MM_parenCounter
+open MM_provers
+open MM_proof_tree
+open MM_proof_tree_dto
+open Expln_React_Modal
 
 let rndIconButton = (
     ~icon:reElem, 
@@ -45,7 +51,9 @@ let setInfoExpanded = (st,infoExpanded):state => {
 }
 
 let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mouse.t => unit) => {
-    if (mouseEvt->ReactEvent.Mouse.button == 0) {
+    if (mouseEvt->ReactEvent.Mouse.button == 0 
+            && !(mouseEvt->ReactEvent.Mouse.altKey) 
+            && !(mouseEvt->ReactEvent.Mouse.ctrlKey)) {
         clbk()
     } else {
         ifNot(mouseEvt)
@@ -60,25 +68,84 @@ let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mous
     }
 }
 
-let rndContText = (stmtCont) => {
-    switch stmtCont {
-        | Text(arr) => {
-            arr->Js.Array2.map(stmtSym => {
-                <React.Fragment key={stmtSym.id}>
-                    {
-                        switch stmtSym.color {
-                            | None => (stmtSym.sym ++ " ")->React.string
-                            | Some(color) => {
-                                <span style=ReactDOM.Style.make(~color=color, ~fontWeight="500", ())>
-                                    {(stmtSym.sym ++ " ")->React.string}
-                                </span>
-                            }
+let ctrlLeftClickHnd = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
+    mouseEvt => {
+        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.ctrlKey) {
+            clbk()
+        }
+    }
+}
+
+let textToSyntaxTree = (
+    ~wrkCtx:mmContext,
+    ~syms:array<stmtSym>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+):result<syntaxTreeNode,string> => {
+    if (syntaxTypes->Js_array2.length == 0) {
+        Error(`Cannot build a syntax tree without a list of syntax types.`)
+    } else {
+        let expr = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
+        let stmtsToProve = syntaxTypes->Js_array2.map(typ => [typ]->Js_array2.concat(expr->Js_array2.sliceFrom(1)))
+        let proofTree = proveFloatings(
+            ~wrkCtx,
+            ~frms,
+            ~floatingsToProve=stmtsToProve,
+            ~parenCnt,
+            ()
+        )
+        switch stmtsToProve->Js.Array2.findIndex(stmt => proofTree->ptGetNode(stmt)->pnGetProof->Belt_Option.isSome) {
+            | -1 => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
+            | provedIdx => {
+                let provedStmt = stmtsToProve[provedIdx]
+                let proofTreeDto = proofTree->proofTreeToDto([provedStmt])
+                switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(provedStmt)) {
+                    | None => Error(`Could not find proof for: ${wrkCtx->ctxIntsToStrExn(provedStmt)}`)
+                    | Some(proofNode) => {
+                        let proofTable = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
+                        switch buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1) {
+                            | Error(msg) => Error(msg)
+                            | Ok(syntaxTree) => Ok(syntaxTree)
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let rndContText = (
+    ~stmtCont:stmtCont,
+    ~onTextClick:option<int=>unit>=?,
+    ~onTreeClick:option<int=>unit>=?,
+    ()
+) => {
+    switch stmtCont {
+        | Text(syms) => {
+            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => ctrlLeftClickHnd(() => onTextClick(idx)))
+            syms->Js.Array2.mapi((stmtSym,i) => {
+                <React.Fragment key={i->Belt.Int.toString}>
+                    {
+                        if (i != 0) {
+                            <span onClick=?{onClick(i)}> {" "->React.string} </span>
+                        } else {
+                            React.null
+                        }
+                    }
+                    {
+                        let (color,fontWeight) = switch stmtSym.color {
+                            | None => ("black","normal")
+                            | Some(color) => (color,"bold")
+                        }
+                        <span onClick=?{onClick(i)} style=ReactDOM.Style.make(~color, ~fontWeight, ())>
+                            {stmtSym.sym->React.string}
+                        </span>
                     }
                 </React.Fragment>
             })->React.array
         }
-        | Tree(syntaxTreeNode) => React.string(syntaxTreeToSymbols(syntaxTreeNode)->Js_array2.joinWith(" "))
+        | Tree({root,selectedNodeId}) => React.string(syntaxTreeToSymbols(root)->Js_array2.joinWith(" "))
     }
 }
 
@@ -208,7 +275,11 @@ module VisualizedJstf = {
 
 @react.component
 let make = (
+    ~modalRef:modalRef,
     ~wrkCtx:option<mmContext>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~syntaxTypes:array<int>,
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
@@ -282,6 +353,25 @@ let make = (
         onJstfEditDone("")
     }
 
+    let actBuildSyntaxTree = (clickedIdx:int) => {
+        switch wrkCtx {
+            | None => openInfoDialog( ~modalRef, ~text=`Cannot build a syntax tree because there was an error setting MM context.`, () )
+            | Some(wrkCtx) => {
+                switch stmt.cont {
+                    | Tree(_) => openInfoDialog( ~modalRef, ~text=`Cannot build a syntax tree because stmtCont is a tree.`, () )
+                    | Text(syms) => {
+                        switch textToSyntaxTree( ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, ) {
+                            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+                            | Ok(syntaxTree) => {
+                                Js.Console.log2("syntaxTree", syntaxTree)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Row>
@@ -352,7 +442,7 @@ let make = (
                 ) 
                 title="<left-click> to change"
             >
-                {rndContText(stmt.cont)}
+                {rndContText(~stmtCont=stmt.cont, ~onTextClick=actBuildSyntaxTree, ())}
             </Paper>
         }
     }

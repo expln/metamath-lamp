@@ -36,26 +36,25 @@ type mmCtxSrcDto = {
 }
 
 type stmtSym = {
-    id: string,
     sym: string,
     color: option<string>,
 }
 
 type stmtCont =
     | Text(array<stmtSym>)
-    | Tree(syntaxTreeNode)
+    | Tree({stmtTyp:string, root:syntaxTreeNode, selectedNodeId:option<string>})
 
 let contIsEmpty = cont => {
     switch cont {
         | Text(arr) => arr->Js_array2.length == 0
-        | Tree(syntaxTreeNode) => syntaxTreeIsEmpty(syntaxTreeNode)
+        | Tree({root}) => syntaxTreeIsEmpty(root)
     }
 }
 
 let contToArrStr = cont => {
     switch cont {
         | Text(arr) => arr->Js_array2.map(stmtSym => stmtSym.sym)
-        | Tree(syntaxTreeNode) => syntaxTreeToSymbols(syntaxTreeNode)
+        | Tree({root}) => syntaxTreeToSymbols(root)
     }
 }
 
@@ -72,7 +71,6 @@ let strToCont = (
     Text(
         getSpaceSeparatedValuesAsArray(str)->Js.Array2.mapi((sym,i) => {
             {
-                id: i->Belt.Int.toString ++ sym,
                 sym,
                 color:
                     switch preCtxColors->Belt_Option.flatMap(map => map->Belt_HashMapString.get(sym)) {
@@ -185,6 +183,7 @@ type editorState = {
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
+    syntaxTypes: array<int>,
 
     descr: string,
     descrEditMode: bool,
@@ -654,15 +653,29 @@ let updateColorsInAllStmts = st => {
     }
 }
 
+let findSyntaxTypes = (frms: Belt_MapString.t<frmSubsData>): array<int> => {
+    let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
+    frms->Belt_MapString.forEach((_,frm) => {
+        frm.frame.hyps->Js_array2.forEach(hyp => {
+            if (hyp.typ == F) {
+                syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
+            }
+        })
+    })
+    syntaxTypes->Belt_HashSetInt.toArray
+}
+
 let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) => {
     preCtx->moveConstsToBegin(st.settings.parens)
+    let frms = prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ())
     let st = { 
         ...st, 
         srcs,
         preCtxV, 
         preCtx, 
-        frms: prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ()),
-        parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ())
+        frms,
+        parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ()),
+        syntaxTypes: findSyntaxTypes(frms),
     }
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)
