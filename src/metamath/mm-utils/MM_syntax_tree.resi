@@ -11,6 +11,6 @@ and childNode =
     | Subtree(syntaxTreeNode)
     | Symbol({id:string, sym:string})
 
-let buildSyntaxTree: (mmContext, proofTable, int) => syntaxTreeNode
+let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 let syntaxTreeToSymbols: syntaxTreeNode => array<string>
 let syntaxTreeIsEmpty: syntaxTreeNode => bool

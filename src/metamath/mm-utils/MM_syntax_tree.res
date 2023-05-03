@@ -12,34 +12,41 @@ and childNode =
     | Subtree(syntaxTreeNode)
     | Symbol({id:string, sym:string})
 
-let extractVarToRecIdxMapping = (args:array<int>, frame):array<int> => {
+let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
     let locks = Belt_Array.make(frame.numOfVars, false)
     if (args->Js_array2.length != frame.numOfArgs) {
-        raise(MmException({msg:`extractVarToRecIdxMapping: args.Js_array2.length != frame.numOfArgs`}))
-    }
-    frame.hyps->Js_array2.forEachi((hyp,i) => {
-        if (hyp.typ == F) {
-            let v = hyp.expr[1]
-            if (locks[v]) {
-                raise(MmException({msg:`extractVarToRecIdxMapping: locks[v]`}))
-            } else {
-                locks[v] = true
-                varToRecIdxMapping[v] = args[i]
+        Error(`extractVarToRecIdxMapping: args.Js_array2.length != frame.numOfArgs`)
+    } else {
+        let err = ref(None)
+        frame.hyps->Js_array2.forEachi((hyp,i) => {
+            if (err.contents->Belt_Option.isNone && hyp.typ == F) {
+                let v = hyp.expr[1]
+                if (locks[v]) {
+                    err := Some(Error(`extractVarToRecIdxMapping: locks[v]`))
+                } else {
+                    locks[v] = true
+                    varToRecIdxMapping[v] = args[i]
+                }
+            }
+        })
+        switch err.contents {
+            | Some(err) => err
+            | None => {
+                if (locks->Js_array2.some(lock => !lock)) {
+                    Error(`extractVarToRecIdxMapping: locks->Js_array2.some(lock => !lock)`)
+                } else {
+                    Ok(varToRecIdxMapping)
+                }
             }
         }
-    })
-    if (locks->Js_array2.some(lock => !lock)) {
-        raise(MmException({msg:`extractVarToRecIdxMapping: locks->Js_array2.some(lock => !lock)`}))
-    } else {
-        varToRecIdxMapping
     }
 }
 
-let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):syntaxTreeNode => {
+let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
-            {
+            Ok({
                 id: idSeq(),
                 parent,
                 label,
@@ -54,44 +61,57 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):syntaxTreeNode => {
                     }
                     children
                 }
-            }
+            })
         }
         | Assertion({args, label}) => {
             switch ctx->getFrame(label) {
-                | None => raise(MmException({msg: `Cannot find a frame by label '${label}'`}))
+                | None => Error(`Cannot find a frame by label '${label}' in buildSyntaxTreeInner.`)
                 | Some(frame) => {
-                    let varToRecIdxMapping = extractVarToRecIdxMapping(args, frame)
-                    let this = {
-                        id: idSeq(),
-                        parent,
-                        label,
-                        children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1)
-                    }
-                    frame.asrt->Js_array2.forEachi((s,i) => {
-                        if (i > 0) {
-                            this.children[i-1] = 
-                                if (s < 0) {
-                                    Symbol({
-                                        id: idSeq(),
-                                        sym: ctx->ctxIntToSymExn(s)
-                                    })
-                                } else {
-                                    Subtree(buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]))
+                    switch extractVarToRecIdxMapping(args, frame) {
+                        | Error(msg) => Error(msg)
+                        | Ok(varToRecIdxMapping) => {
+                            let this = {
+                                id: idSeq(),
+                                parent,
+                                label,
+                                children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1)
+                            }
+                            let err = ref(None)
+                            frame.asrt->Js_array2.forEachi((s,i) => {
+                                if (i > 0 && err.contents->Belt_Option.isNone) {
+                                    if (s < 0) {
+                                        this.children[i-1] = Symbol({
+                                            id: idSeq(),
+                                            sym: ctx->ctxIntToSymExn(s)
+                                        })
+                                    } else {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
+                                            | Error(msg) => err := Some(Error(msg))
+                                            | Ok(subtree) => this.children[i-1] = Subtree(subtree)
+                                        }
+                                        
+                                    }
                                 }
+                            })
+                            switch err.contents {
+                                | Some(err) => err
+                                | None => Ok(this)
+                            }
+                            
                         }
-                    })
-                    this
+                    }
                 }
             }
         }
     }
 }
 
-let buildSyntaxTree = (ctx, tbl, targetIdx):syntaxTreeNode => {
+let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
     let nextId = ref(0)
     let idSeq = () => {
-        nextId.contents = nextId.contents + 1
-        Belt_Int.toString(nextId.contents-1)
+        let id = nextId.contents->Belt_Int.toString
+        nextId := nextId.contents + 1
+        id
     }
     buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
 }
