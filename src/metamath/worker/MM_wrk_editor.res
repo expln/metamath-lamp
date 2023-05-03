@@ -539,6 +539,15 @@ let completeContEditMode = (st, stmtId, newContText):editorState => {
     })
 }
 
+let setStmtCont = (st, stmtId, stmtCont):editorState => {
+    updateStmt(st, stmtId, stmt => {
+        {
+            ...stmt,
+            cont:stmtCont,
+        }
+    })
+}
+
 let setTypEditMode = (st, stmtId) => {
     if (canGoEditModeForStmt(st, stmtId)) {
         updateStmt(st, stmtId, stmt => {...stmt, typEditMode:true})

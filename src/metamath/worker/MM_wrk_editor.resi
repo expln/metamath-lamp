@@ -157,6 +157,7 @@ let setLabelEditMode: (editorState, string) => editorState
 let completeLabelEditMode: (editorState, string, Js_string2.t) => editorState
 let setContEditMode: (editorState, string) => editorState
 let completeContEditMode: (editorState, string, string) => editorState
+let setStmtCont: (editorState, stmtId, stmtCont) => editorState
 let setTypEditMode: (editorState, string) => editorState
 let completeTypEditMode: (editorState, string, userStmtType) => editorState
 let setJstfEditMode: (editorState, string) => editorState
