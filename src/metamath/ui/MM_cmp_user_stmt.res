@@ -72,9 +72,9 @@ let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mous
     }
 }
 
-let ctrlLeftClickHnd = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
+let altLeftClickHnd2 = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
     mouseEvt => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.ctrlKey) {
+        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
             clbk()
         }
     }
@@ -257,7 +257,7 @@ let rndContText = (
 ) => {
     switch stmtCont {
         | Text(syms) => {
-            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => ctrlLeftClickHnd(() => onTextClick(idx)))
+            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => altLeftClickHnd2(() => onTextClick(idx)))
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
@@ -270,7 +270,7 @@ let rndContText = (
             })->React.array
         }
         | Tree({exprTyp, root}) => {
-            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => ctrlLeftClickHnd(() => onTreeClick(id)))
+            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => altLeftClickHnd2(() => onTreeClick(id)))
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
@@ -660,6 +660,31 @@ let make = (
         onJstfEditDone("")
     }
 
+    let actUpdateSyntaxTree = (update:stmtContTreeData=>stmtContTreeData):unit => {
+        switch stmt.cont {
+            | Text(_) => ()
+            | Tree(treeData) => {
+                onSyntaxTreeUpdated(Tree(treeData->update))
+            }
+        }
+    }
+
+    let actTreeNodeClicked = (nodeId) => {
+        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:Some(nodeId), expLvl:0})
+    }
+
+    let actUnselect = () => {
+        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:None})
+    }
+
+    let actExpandSelection = () => {
+        actUpdateSyntaxTree(treeData => {...treeData, expLvl: treeData.expLvl + 1})
+    }
+
+    let actShrinkSelection = () => {
+        actUpdateSyntaxTree(treeData => {...treeData, expLvl: Js_math.max_int(treeData.expLvl - 1, 0)})
+    }
+
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Row>
@@ -719,7 +744,11 @@ let make = (
                     ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
-            let stmtElem = 
+            let textIsSelected = switch stmt.cont {
+                | Text(_) => false
+                | Tree({clickedNodeId}) => clickedNodeId->Belt.Option.isSome
+            }
+            let elems = [
                 <Paper 
                     onClick=leftClickHnd(_, onContEditRequested, _ => ()) 
                     style=ReactDOM.Style.make(
@@ -735,31 +764,30 @@ let make = (
                         rndContText(
                             ~stmtCont=stmt.cont, 
                             ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)), 
-                            ~onTreeClick=id=>{
-                                switch stmt.cont {
-                                    | Text(_) => ()
-                                    | Tree(treeData) => {
-                                        onSyntaxTreeUpdated(Tree({
-                                            ...treeData,
-                                            clickedNodeId:Some(id),
-                                            expLvl:0,
-                                        }))
-                                    }
-                                }
-                            }, 
+                            ~onTreeClick=actTreeNodeClicked, 
                             ()
                         )
                     }
                 </Paper>
-            switch syntaxTreeWasRequested {
-                | None => stmtElem
-                | Some(_) => {
-                    <Col>
-                        stmtElem
-                        <span> {"Building a syntax tree..."->React.string} </span>
-                    </Col>
-                }
+            ]
+            if (syntaxTreeWasRequested->Belt.Option.isSome) {
+                elems->Js_array2.push(
+                    <span> {"Building a syntax tree..."->React.string} </span>
+                )->ignore
             }
+            if (textIsSelected) {
+                elems->Js_array2.push(
+                    <ButtonGroup variant=#contained size=#small color="grey" >
+                        <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
+                        <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
+                        <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+                    </ButtonGroup>
+                )->ignore
+            }
+
+            <Col>
+                {elems->React.array}
+            </Col>
         }
     }
 

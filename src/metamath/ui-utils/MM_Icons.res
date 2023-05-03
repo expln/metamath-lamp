@@ -20,3 +20,5 @@ module Settings = { @module("@mui/icons-material/Settings") @react.component ext
 module Sync = { @module("@mui/icons-material/Sync") @react.component external make: () => React.element = "default" }
 module SwapVert = { @module("@mui/icons-material/SwapVert") @react.component external make: () => React.element = "default" }
 module TextRotationNone = { @module("@mui/icons-material/TextRotationNone") @react.component external make: () => React.element = "default" }
+module ZoomInMap = { @module("@mui/icons-material/ZoomInMap") @react.component external make: () => React.element = "default" }
+module ZoomOutMap = { @module("@mui/icons-material/ZoomOutMap") @react.component external make: () => React.element = "default" }
