@@ -83,6 +83,7 @@ let textToSyntaxTree = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
 ):result<syntaxTreeNode,string> => {
+    Js.Console.log2(Common.currTimeStr(), "textToSyntaxTree invoked")
     if (syntaxTypes->Js_array2.length == 0) {
         Error(`Cannot build a syntax tree without a list of syntax types.`)
     } else {
@@ -95,6 +96,7 @@ let textToSyntaxTree = (
             ~parenCnt,
             ()
         )
+        Js.Console.log2(Common.currTimeStr(), "proofTree is ready")
         switch stmtsToProve->Js.Array2.findIndex(stmt => proofTree->ptGetNode(stmt)->pnGetProof->Belt_Option.isSome) {
             | -1 => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
             | provedIdx => {
@@ -106,7 +108,10 @@ let textToSyntaxTree = (
                         let proofTable = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
                         switch buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1) {
                             | Error(msg) => Error(msg)
-                            | Ok(syntaxTree) => Ok(syntaxTree)
+                            | Ok(syntaxTree) => {
+                                Js.Console.log2(Common.currTimeStr(), "syntaxTree is ready")
+                                Ok(syntaxTree)
+                            }
                         }
                     }
                 }
@@ -273,6 +278,8 @@ module VisualizedJstf = {
 
 @val external window: {..} = "window"
 
+@val external setTimeout: (unit => unit, int) => unit = "setTimeout"
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -295,6 +302,9 @@ let make = (
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
 
+    let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
+    let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
+
     React.useEffect1(() => {
         if (stmt.labelEditMode) {
             setState(setNewText(_,stmt.label))
@@ -307,6 +317,52 @@ let make = (
         }
         None
     }, [stmt.labelEditMode, stmt.typEditMode, stmt.contEditMode, stmt.jstfEditMode])
+
+    React.useEffect1(() => {
+        switch syntaxTreeError {
+            | None => ()
+            | Some(msg) => {
+                setSyntaxTreeError(_ => None)
+                openInfoDialog( ~modalRef, ~text=msg, () )
+            }
+        }
+        None
+    }, [syntaxTreeError])
+
+    let actBuildSyntaxTree = (clickedIdx:int):unit => {
+        switch wrkCtx {
+            | None => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because there was an error setting MM context.`))
+            | Some(wrkCtx) => {
+                switch stmt.cont {
+                    | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
+                    | Text(syms) => {
+                        switch textToSyntaxTree( ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, ) {
+                            | Error(msg) => setSyntaxTreeError(_ => Some(msg))
+                            | Ok(syntaxTree) => {
+                                Js.Console.log2("syntaxTree", syntaxTree)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    React.useEffect1(() => {
+        switch syntaxTreeWasRequested {
+            | None => ()
+            | Some(clickedIdx) => {
+                setTimeout(
+                    () => {
+                        setSyntaxTreeWasRequested(_ => None)
+                        actBuildSyntaxTree(clickedIdx)
+                    },
+                    10
+                )
+            }
+        }
+        None
+    }, [syntaxTreeWasRequested])
 
     let actToggleInfoExpanded = () => {
         setState(st => setInfoExpanded(st, !st.infoExpanded))
@@ -351,25 +407,6 @@ let make = (
     
     let actJstfDeleted = () => {
         onJstfEditDone("")
-    }
-
-    let actBuildSyntaxTree = (clickedIdx:int) => {
-        switch wrkCtx {
-            | None => openInfoDialog( ~modalRef, ~text=`Cannot build a syntax tree because there was an error setting MM context.`, () )
-            | Some(wrkCtx) => {
-                switch stmt.cont {
-                    | Tree(_) => openInfoDialog( ~modalRef, ~text=`Cannot build a syntax tree because stmtCont is a tree.`, () )
-                    | Text(syms) => {
-                        switch textToSyntaxTree( ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, ) {
-                            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
-                            | Ok(syntaxTree) => {
-                                Js.Console.log2("syntaxTree", syntaxTree)
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     let rndLabel = () => {
@@ -431,19 +468,29 @@ let make = (
                     ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
-            <Paper 
-                onClick=leftClickHnd(_, onContEditRequested, _ => ()) 
-                style=ReactDOM.Style.make(
-                    ~padding="1px 10px", 
-                    ~backgroundColor="rgb(255,255,235)", 
-                    ~fontFamily="monospace",
-                    ~fontSize="1.3em",
-                    ()
-                ) 
-                title="<left-click> to change"
-            >
-                {rndContText(~stmtCont=stmt.cont, ~onTextClick=actBuildSyntaxTree, ())}
-            </Paper>
+            let stmtElem = 
+                <Paper 
+                    onClick=leftClickHnd(_, onContEditRequested, _ => ()) 
+                    style=ReactDOM.Style.make(
+                        ~padding="1px 10px", 
+                        ~backgroundColor="rgb(255,255,235)", 
+                        ~fontFamily="monospace",
+                        ~fontSize="1.3em",
+                        ()
+                    ) 
+                    title="<left-click> to change"
+                >
+                    {rndContText(~stmtCont=stmt.cont, ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)), ())}
+                </Paper>
+            switch syntaxTreeWasRequested {
+                | None => stmtElem
+                | Some(_) => {
+                    <Col>
+                        stmtElem
+                        <span> {"Building a syntax tree..."->React.string} </span>
+                    </Col>
+                }
+            }
         }
     }
 
@@ -551,7 +598,12 @@ let make = (
         }
     }
 
-    <table style=ReactDOM.Style.make(~margin="-2px", ())>
+    <table 
+        style=ReactDOM.Style.make(
+            ~margin="-2px", 
+            ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""}, 
+            ()
+        )>
         <tbody>
             <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
                 <td>
