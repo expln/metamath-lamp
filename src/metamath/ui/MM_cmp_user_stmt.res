@@ -157,8 +157,8 @@ let rndSymbol = (
     ~sym:string,
     ~color:option<string>,
     ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
-    ~backgroundColor:option<string>=?,
-    ~highlightSpace:bool=true,
+    ~spaceBackgroundColor:option<string>=?,
+    ~symbolBackgroundColor:option<string>=?,
     ()
 ):reElem => {
     <React.Fragment key>
@@ -169,7 +169,7 @@ let rndSymbol = (
                 <span 
                     ?onClick 
                     style=ReactDOM.Style.make(
-                        ~backgroundColor=?{if (highlightSpace) {backgroundColor} else {None}},
+                        ~backgroundColor=?spaceBackgroundColor,
                         ()
                     )
                 > 
@@ -182,7 +182,7 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor?, () ) >
+            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, () ) >
                 {sym->React.string}
             </span>
         }
@@ -212,22 +212,22 @@ let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
     Belt_SetInt.fromArray(res)
 }
 
-let getIdsOfSelectedNodes = (stmtCont:stmtCont):Belt_SetInt.t => {
+let getIdsOfSelectedNodes = (stmtCont:stmtCont):(int,Belt_SetInt.t) => {
     switch stmtCont {
-        | Text(_) => Belt_SetInt.empty
+        | Text(_) => (-1,Belt_SetInt.empty)
         | Tree({root, clickedNodeId, expLvl}) => {
             switch clickedNodeId {
-                | None => Belt_SetInt.empty
+                | None => (-1,Belt_SetInt.empty)
                 | Some(nodeId) => {
                     switch root->getNodeById(nodeId) {
-                        | None => Belt_SetInt.empty
-                        | Some(Subtree(_)) => Belt_SetInt.empty //this should never happen because a Subtree cannot be clicked
+                        | None => (-1,Belt_SetInt.empty)
+                        | Some(Subtree(_)) => (-1,Belt_SetInt.empty) //this should never happen because a Subtree cannot be clicked
                         | Some(Symbol({parent, isVar})) => {
                             if (expLvl == 0) {
                                 if (isVar) {
-                                    Belt_SetInt.fromArray([nodeId])
+                                    (nodeId,Belt_SetInt.fromArray([nodeId]))
                                 } else {
-                                    getIdsOfAllChildSymbols(parent)
+                                    (nodeId,getIdsOfAllChildSymbols(parent))
                                 }
                             } else {
                                 let curParent = ref(Some(parent))
@@ -237,8 +237,8 @@ let getIdsOfSelectedNodes = (stmtCont:stmtCont):Belt_SetInt.t => {
                                     curParent := (curParent.contents->Belt_Option.getExn).parent
                                 }
                                 switch curParent.contents {
-                                    | Some(parent) => getIdsOfAllChildSymbols(parent)
-                                    | None => getIdsOfAllChildSymbols(root)
+                                    | Some(parent) => (nodeId,getIdsOfAllChildSymbols(parent))
+                                    | None => (nodeId,getIdsOfAllChildSymbols(root))
                                 }
                             }
                         }
@@ -271,7 +271,7 @@ let rndContText = (
         }
         | Tree({exprTyp, root}) => {
             let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => ctrlLeftClickHnd(() => onTreeClick(id)))
-            let selectedIds = getIdsOfSelectedNodes(stmtCont)
+            let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
                 rndSymbol(
@@ -303,8 +303,24 @@ let rndContText = (
                                     ~sym,
                                     ~color,
                                     ~onClick=?onClick(id),
-                                    ~backgroundColor=?{ if (symbolIsHighlighted) {Some("#ADD6FF")} else {None} },
-                                    ~highlightSpace=selectionIsOn.contents,
+                                    ~spaceBackgroundColor=?{ 
+                                        if (symbolIsHighlighted && selectionIsOn.contents) {
+                                            Some("#ADD6FF")
+                                        } else {
+                                            None
+                                        } 
+                                    },
+                                    ~symbolBackgroundColor=?{ 
+                                        if (symbolIsHighlighted) {
+                                            if (id == clickedId) {
+                                                Some("#99bce0")
+                                            } else {
+                                                Some("#ADD6FF")
+                                            }
+                                        } else {
+                                            None
+                                        } 
+                                    },
                                     ()
                                 )
                             )->ignore
