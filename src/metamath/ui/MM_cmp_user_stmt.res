@@ -542,9 +542,11 @@ let make = (
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
+    let stmtTextFieldRef = React.useRef(Js.Nullable.null)
 
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
     let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
+    let (selectionRange, setSelectionRange) = React.useState(() => None)
 
     React.useEffect1(() => {
         if (stmt.labelEditMode) {
@@ -569,6 +571,22 @@ let make = (
         }
         None
     }, [syntaxTreeError])
+
+    React.useEffect1(() => {
+        switch stmtTextFieldRef.current->Js.Nullable.toOption {
+            | None => ()
+            | Some(domElem) => {
+                switch selectionRange {
+                    | None => ()
+                    | Some((f,t)) => {
+                        setSelectionRange(_ => None)
+                        ReactDOM.domElementToObj(domElem)["setSelectionRange"](. f, t)
+                    }
+                }
+            }
+        }
+        None
+    }, [stmtTextFieldRef.current])
 
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
         let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
@@ -685,6 +703,54 @@ let make = (
         actUpdateSyntaxTree(treeData => {...treeData, expLvl: Js_math.max_int(treeData.expLvl - 1, 0)})
     }
 
+    let getSelectedRange = ():option<(int,int)> => {
+        switch stmt.cont {
+            | Text(_) => None
+            | Tree({exprTyp, root}) => {
+                let (_,selectedIds) = getIdsOfSelectedNodes(stmt.cont)
+                let idxFrom = ref(None)
+                let idxTo = ref(None)
+                Expln_utils_data.traverseTree(
+                    (ref(false),ref(exprTyp->Js_string2.length)),
+                    Subtree(root),
+                    (_, node) => {
+                        switch node {
+                            | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                            | Symbol(_) => None
+                        }
+                    },
+                    ~process = ((selectionIsOn,charsPassed), node) => {
+                        switch node {
+                            | Subtree(_) => ()
+                            | Symbol({id,sym}) => {
+                                let symbolIsHighlighted = selectedIds->Belt_SetInt.has(id)
+                                if (selectionIsOn.contents && !symbolIsHighlighted) {
+                                    idxTo := Some(charsPassed.contents)
+                                }
+                                if (!(selectionIsOn.contents) && symbolIsHighlighted) {
+                                    idxFrom := Some(charsPassed.contents + 1)
+                                }
+                                charsPassed := charsPassed.contents + 1 + sym->Js_string2.length
+                                selectionIsOn := symbolIsHighlighted
+                            }
+                        }
+                        idxTo.contents
+                    },
+                    ()
+                )->ignore
+                switch (idxFrom.contents, idxTo.contents) {
+                    | (Some(idxFrom), Some(idxTo)) => Some((idxFrom, idxTo))
+                    | _ => None
+                }
+            }
+        }
+    }
+
+    let actEditSelection = () => {
+        setSelectionRange(_ => getSelectedRange())
+        onContEditRequested()
+    }
+
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Row>
@@ -723,6 +789,7 @@ let make = (
             }
             <Row>
                 <TextField
+                    inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
                     style=ReactDOM.Style.make(
                         ~width = (windowWidth - 200 - labelWidth)->Belt_Int.toString ++ "px", 
@@ -780,6 +847,7 @@ let make = (
                     <ButtonGroup variant=#contained size=#small color="grey" >
                         <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
                         <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
+                        <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
                         <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
                     </ButtonGroup>
                 )->ignore
