@@ -270,6 +270,7 @@ let rndContText = (
             })->React.array
         }
         | Tree({exprTyp, root}) => {
+            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => ctrlLeftClickHnd(() => onTreeClick(id)))
             let selectedIds = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
@@ -301,7 +302,7 @@ let rndContText = (
                                     ~key=id->Belt.Int.toString,
                                     ~sym,
                                     ~color,
-                                    ~onClick=_=>(),
+                                    ~onClick=?onClick(id),
                                     ~backgroundColor=?{ if (symbolIsHighlighted) {Some("#ADD6FF")} else {None} },
                                     ~highlightSpace=selectionIsOn.contents,
                                     ()
@@ -568,7 +569,6 @@ let make = (
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
-                                Js.Console.log2("syntaxTree", syntaxTree)
                                 onSyntaxTreeUpdated(Tree({
                                     exprTyp:syms[0].sym, 
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors ), 
@@ -715,7 +715,25 @@ let make = (
                     ) 
                     title="<left-click> to change"
                 >
-                    {rndContText(~stmtCont=stmt.cont, ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)), ())}
+                    {
+                        rndContText(
+                            ~stmtCont=stmt.cont, 
+                            ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)), 
+                            ~onTreeClick=id=>{
+                                switch stmt.cont {
+                                    | Text(_) => ()
+                                    | Tree(treeData) => {
+                                        onSyntaxTreeUpdated(Tree({
+                                            ...treeData,
+                                            clickedNodeId:Some(id),
+                                            expLvl:0,
+                                        }))
+                                    }
+                                }
+                            }, 
+                            ()
+                        )
+                    }
                 </Paper>
             switch syntaxTreeWasRequested {
                 | None => stmtElem
