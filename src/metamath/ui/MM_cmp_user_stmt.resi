@@ -28,7 +28,7 @@ let make: (
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
     ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
-    ~onSyntaxTreeCreated:stmtCont=>unit,
+    ~onSyntaxTreeUpdated:stmtCont=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
     ~onDebug:unit=>unit,

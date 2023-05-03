@@ -217,7 +217,7 @@ let make = (
     let actCompleteEdit = (setter:editorState=>editorState) => {
         setState(setter)
     }
-    let actSyntaxTreeCreated = (setter:editorState=>editorState) => {
+    let actSyntaxTreeUpdated = (setter:editorState=>editorState) => {
         setState(setter)
     }
 
@@ -1030,7 +1030,7 @@ let make = (
                     onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
                     onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
                     onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
-                    onSyntaxTreeCreated={newStmtCont => actSyntaxTreeCreated(setStmtCont(_,stmt.id,newStmtCont))}
+                    onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
                     
                     onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
                     onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}

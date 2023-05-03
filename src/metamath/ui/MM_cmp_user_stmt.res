@@ -12,6 +12,9 @@ open MM_proof_tree_dto
 open Expln_React_Modal
 open Local_storage_utils
 
+@val external window: {..} = "window"
+@val external setTimeout: (unit => unit, int) => unit = "setTimeout"
+
 let rndIconButton = (
     ~icon:reElem, 
     ~onClick:unit=>unit, 
@@ -155,6 +158,7 @@ let rndSymbol = (
     ~color:option<string>,
     ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
     ~backgroundColor:option<string>=?,
+    ~highlightSpace:bool=true,
     ()
 ):reElem => {
     <React.Fragment key>
@@ -162,7 +166,15 @@ let rndSymbol = (
             if (isFirst) {
                 React.null
             } else {
-                <span ?onClick> {" "->React.string} </span>
+                <span 
+                    ?onClick 
+                    style=ReactDOM.Style.make(
+                        ~backgroundColor=?{if (highlightSpace) {backgroundColor} else {None}},
+                        ()
+                    )
+                > 
+                    {" "->React.string} 
+                </span>
             }
         }
         {
@@ -170,11 +182,71 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            <span ?onClick style=ReactDOM.Style.make(~color, ~fontWeight, ())>
+            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor?, () ) >
                 {sym->React.string}
             </span>
         }
     </React.Fragment>
+}
+
+let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
+    let res = []
+    Expln_utils_data.traverseTree(
+        (),
+        Subtree(tree),
+        (_, node) => {
+            switch node {
+                | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                | Symbol(_) => None
+            }
+        },
+        ~process = (_, node) => {
+            switch node {
+                | Subtree(_) => ()
+                | Symbol({id}) => res->Js.Array2.push(id)->ignore
+            }
+            None
+        },
+        ()
+    )->ignore
+    Belt_SetInt.fromArray(res)
+}
+
+let getIdsOfSelectedNodes = (stmtCont:stmtCont):Belt_SetInt.t => {
+    switch stmtCont {
+        | Text(_) => Belt_SetInt.empty
+        | Tree({root, clickedNodeId, expLvl}) => {
+            switch clickedNodeId {
+                | None => Belt_SetInt.empty
+                | Some(nodeId) => {
+                    switch root->getNodeById(nodeId) {
+                        | None => Belt_SetInt.empty
+                        | Some(Subtree(_)) => Belt_SetInt.empty //this should never happen because a Subtree cannot be clicked
+                        | Some(Symbol({parent, isVar})) => {
+                            if (expLvl == 0) {
+                                if (isVar) {
+                                    Belt_SetInt.fromArray([nodeId])
+                                } else {
+                                    getIdsOfAllChildSymbols(parent)
+                                }
+                            } else {
+                                let curParent = ref(Some(parent))
+                                let curLvl = ref(expLvl)
+                                while (curLvl.contents > 0 && curParent.contents->Belt_Option.isSome) {
+                                    curLvl := curLvl.contents - 1
+                                    curParent := (curParent.contents->Belt_Option.getExn).parent
+                                }
+                                switch curParent.contents {
+                                    | Some(parent) => getIdsOfAllChildSymbols(parent)
+                                    | None => getIdsOfAllChildSymbols(root)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 let rndContText = (
@@ -197,7 +269,8 @@ let rndContText = (
                 )
             })->React.array
         }
-        | Tree({exprTyp, root,selectedNodeId}) => {
+        | Tree({exprTyp, root}) => {
+            let selectedIds = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
                 rndSymbol(
@@ -209,7 +282,7 @@ let rndContText = (
                 )
             )->ignore
             Expln_utils_data.traverseTree(
-                (),
+                ref(false),
                 Subtree(root),
                 (_, node) => {
                     switch node {
@@ -217,10 +290,11 @@ let rndContText = (
                         | Symbol(_) => None
                     }
                 },
-                ~process = (_, node) => {
+                ~process = (selectionIsOn, node) => {
                     switch node {
                         | Subtree(_) => ()
                         | Symbol({id, sym, color}) => {
+                            let symbolIsHighlighted = selectedIds->Belt_SetInt.has(id)
                             elems->Js.Array2.push(
                                 rndSymbol(
                                     ~isFirst=false,
@@ -228,9 +302,12 @@ let rndContText = (
                                     ~sym,
                                     ~color,
                                     ~onClick=_=>(),
+                                    ~backgroundColor=?{ if (symbolIsHighlighted) {Some("#ADD6FF")} else {None} },
+                                    ~highlightSpace=selectionIsOn.contents,
                                     ()
                                 )
                             )->ignore
+                            selectionIsOn := symbolIsHighlighted
                         }
                     }
                     None
@@ -387,17 +464,44 @@ let rec addColorsToSyntaxTree = (
                 | Subtree(syntaxTreeNode) => {
                     Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors, ~wrkCtxColors))
                 }
-                | Symbol({id, sym}) => {
-                    Symbol({ id, sym, color:getColorForSymbol(~sym, ~preCtxColors, ~wrkCtxColors)})
+                | Symbol(symData) => {
+                    Symbol({ ...symData, color:getColorForSymbol(~sym=symData.sym, ~preCtxColors, ~wrkCtxColors)})
                 }
             }
         })
     }
 }
 
-@val external window: {..} = "window"
-
-@val external setTimeout: (unit => unit, int) => unit = "setTimeout"
+let getNodeIdBySymIdx = (
+    ~symIdx:int,
+    ~tree:syntaxTreeNode,
+):option<int> => {
+    let (_, idOpt) = Expln_utils_data.traverseTree(
+        ref(0),
+        Subtree(tree),
+        (_, node) => {
+            switch node {
+                | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                | Symbol(_) => None
+            }
+        },
+        ~process = (cnt, node) => {
+            switch node {
+                | Subtree(_) => None
+                | Symbol({id}) => {
+                    cnt := cnt.contents + 1
+                    if (cnt.contents == symIdx) {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                }
+            }
+        },
+        ()
+    )
+    idOpt
+}
 
 @react.component
 let make = (
@@ -410,7 +514,7 @@ let make = (
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
     ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
-    ~onSyntaxTreeCreated:stmtCont=>unit,
+    ~onSyntaxTreeUpdated:stmtCont=>unit,
     ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
     ~onGenerateProof:unit=>unit,
     ~onDebug:unit=>unit,
@@ -465,10 +569,11 @@ let make = (
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
                                 Js.Console.log2("syntaxTree", syntaxTree)
-                                onSyntaxTreeCreated(Tree({
+                                onSyntaxTreeUpdated(Tree({
                                     exprTyp:syms[0].sym, 
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors ), 
-                                    selectedNodeId:None,
+                                    clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
+                                    expLvl:0,
                                 }))
                             }
                         }

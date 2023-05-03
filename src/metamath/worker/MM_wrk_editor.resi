@@ -35,7 +35,7 @@ type stmtSym = {
 
 type stmtCont =
     | Text(array<stmtSym>)
-    | Tree({exprTyp:string, root:syntaxTreeNode, selectedNodeId:option<string>})
+    | Tree({exprTyp:string, root:syntaxTreeNode, clickedNodeId:option<int>, expLvl:int})
 
 let contIsEmpty: stmtCont => bool
 let contToArrStr: stmtCont => array<string>

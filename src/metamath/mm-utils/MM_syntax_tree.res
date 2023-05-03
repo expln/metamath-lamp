@@ -10,7 +10,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, sym:string, color:option<string>})
+    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool})
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
@@ -46,23 +46,23 @@ let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,strin
 let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
-            Ok({
+            let maxI = r.expr->Js_array2.length - 1
+            let this = {
                 id: idSeq(),
                 parent,
                 label,
-                children: {
-                    let maxI = r.expr->Js_array2.length - 1
-                    let children = Expln_utils_common.createArray(maxI)
-                    for i in 1 to maxI {
-                        children[i-1] = Symbol({
-                            id: idSeq(),
-                            sym: ctx->ctxIntToSymExn(r.expr[i]),
-                            color: None,
-                        })
-                    }
-                    children
-                }
-            })
+                children: Expln_utils_common.createArray(maxI)
+            }
+            for i in 1 to maxI {
+                this.children[i-1] = Symbol({
+                    id: idSeq(),
+                    parent:this,
+                    sym: ctx->ctxIntToSymExn(r.expr[i]),
+                    isVar: r.expr[i] >= 0,
+                    color: None,
+                })
+            }
+            Ok(this)
         }
         | Assertion({args, label}) => {
             switch ctx->getFrame(label) {
@@ -83,7 +83,9 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                     if (s < 0) {
                                         this.children[i-1] = Symbol({
                                             id: idSeq(),
+                                            parent:this,
                                             sym: ctx->ctxIntToSymExn(s),
+                                            isVar: false,
                                             color: None,
                                         })
                                     } else {
@@ -128,4 +130,33 @@ let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
 
 let syntaxTreeIsEmpty: syntaxTreeNode => bool = node => {
     node.children->Js_array2.length == 0
+}
+
+let rec getNodeById = ( 
+    tree:syntaxTreeNode, 
+    childId:int, 
+):option<childNode> => {
+    let (_, found) = Expln_utils_data.traverseTree(
+        (),
+        Subtree(tree),
+        (_, node) => {
+            switch node {
+                | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                | Symbol(_) => None
+            }
+        },
+        ~process = (_, node) => {
+            switch node {
+                | Subtree({id}) | Symbol({id}) => {
+                    if (id == childId) {
+                        Some(node)
+                    } else {
+                        None
+                    }
+                }
+            }
+        },
+        ()
+    )
+    found
 }
