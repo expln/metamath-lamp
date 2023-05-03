@@ -148,6 +148,35 @@ let textToSyntaxTree = (
     }
 }
 
+let rndSymbol = (
+    ~isFirst:bool,
+    ~key:string,
+    ~sym:string,
+    ~color:option<string>,
+    ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
+    ~backgroundColor:option<string>=?,
+    ()
+):reElem => {
+    <React.Fragment key>
+        {
+            if (isFirst) {
+                React.null
+            } else {
+                <span ?onClick> {" "->React.string} </span>
+            }
+        }
+        {
+            let (color,fontWeight) = switch color {
+                | None => ("black","normal")
+                | Some(color) => (color,"bold")
+            }
+            <span ?onClick style=ReactDOM.Style.make(~color, ~fontWeight, ())>
+                {sym->React.string}
+            </span>
+        }
+    </React.Fragment>
+}
+
 let rndContText = (
     ~stmtCont:stmtCont,
     ~onTextClick:option<int=>unit>=?,
@@ -158,27 +187,58 @@ let rndContText = (
         | Text(syms) => {
             let onClick = idx => onTextClick->Belt_Option.map(onTextClick => ctrlLeftClickHnd(() => onTextClick(idx)))
             syms->Js.Array2.mapi((stmtSym,i) => {
-                <React.Fragment key={i->Belt.Int.toString}>
-                    {
-                        if (i != 0) {
-                            <span onClick=?{onClick(i)}> {" "->React.string} </span>
-                        } else {
-                            React.null
-                        }
-                    }
-                    {
-                        let (color,fontWeight) = switch stmtSym.color {
-                            | None => ("black","normal")
-                            | Some(color) => (color,"bold")
-                        }
-                        <span onClick=?{onClick(i)} style=ReactDOM.Style.make(~color, ~fontWeight, ())>
-                            {stmtSym.sym->React.string}
-                        </span>
-                    }
-                </React.Fragment>
+                rndSymbol(
+                    ~isFirst = i==0,
+                    ~key=i->Belt.Int.toString,
+                    ~sym=stmtSym.sym,
+                    ~color=stmtSym.color,
+                    ~onClick=?onClick(i),
+                    ()
+                )
             })->React.array
         }
-        | Tree({root,selectedNodeId}) => React.string(syntaxTreeToSymbols(root)->Js_array2.joinWith(" "))
+        | Tree({exprTyp, root,selectedNodeId}) => {
+            let elems = []
+            elems->Js.Array2.push(
+                rndSymbol(
+                    ~isFirst=true,
+                    ~key="expr-type",
+                    ~sym=exprTyp,
+                    ~color=None,
+                    ()
+                )
+            )->ignore
+            Expln_utils_data.traverseTree(
+                (),
+                Subtree(root),
+                (_, node) => {
+                    switch node {
+                        | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                        | Symbol(_) => None
+                    }
+                },
+                ~process = (_, node) => {
+                    switch node {
+                        | Subtree(_) => ()
+                        | Symbol({id, sym, color}) => {
+                            elems->Js.Array2.push(
+                                rndSymbol(
+                                    ~isFirst=false,
+                                    ~key=id->Belt.Int.toString,
+                                    ~sym,
+                                    ~color,
+                                    ~onClick=_=>(),
+                                    ()
+                                )
+                            )->ignore
+                        }
+                    }
+                    None
+                },
+                ()
+            )->ignore
+            elems->React.array
+        }
     }
 }
 
@@ -304,6 +364,37 @@ module VisualizedJstf = {
     }, (_,_) => true )
 }
 
+let getColorForSymbol = (
+    ~sym:string,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
+):option<string> => {
+    switch preCtxColors->Belt_HashMapString.get(sym) {
+        | Some(color) => Some(color)
+        | None => wrkCtxColors->Belt_HashMapString.get(sym)
+    }
+}
+
+let rec addColorsToSyntaxTree = (
+    ~tree:syntaxTreeNode,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
+):syntaxTreeNode => {
+    {
+        ...tree,
+        children: tree.children->Js.Array2.map(child => {
+            switch child {
+                | Subtree(syntaxTreeNode) => {
+                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors, ~wrkCtxColors))
+                }
+                | Symbol({id, sym}) => {
+                    Symbol({ id, sym, color:getColorForSymbol(~sym, ~preCtxColors, ~wrkCtxColors)})
+                }
+            }
+        })
+    }
+}
+
 @val external window: {..} = "window"
 
 @val external setTimeout: (unit => unit, int) => unit = "setTimeout"
@@ -375,8 +466,8 @@ let make = (
                             | Ok(syntaxTree) => {
                                 Js.Console.log2("syntaxTree", syntaxTree)
                                 onSyntaxTreeCreated(Tree({
-                                    stmtTyp:syms[0].sym, 
-                                    root:syntaxTree, 
+                                    exprTyp:syms[0].sym, 
+                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors ), 
                                     selectedNodeId:None,
                                 }))
                             }

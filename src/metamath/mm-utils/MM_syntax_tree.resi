@@ -9,7 +9,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, sym:string})
+    | Symbol({id:int, sym:string, color:option<string>})
 
 let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 let syntaxTreeToSymbols: syntaxTreeNode => array<string>

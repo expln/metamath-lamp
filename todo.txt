@@ -1,3 +1,4 @@
+- don't re-render cmp_user_stmt when it is not necessary.
 - move some dependencies to devDependencies.
 - Click on section name to edit it.
 - analyze possibility to keep editor history with URLs.

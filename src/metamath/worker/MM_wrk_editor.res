@@ -42,7 +42,7 @@ type stmtSym = {
 
 type stmtCont =
     | Text(array<stmtSym>)
-    | Tree({stmtTyp:string, root:syntaxTreeNode, selectedNodeId:option<string>})
+    | Tree({exprTyp:string, root:syntaxTreeNode, selectedNodeId:option<string>})
 
 let contIsEmpty = cont => {
     switch cont {
@@ -54,7 +54,7 @@ let contIsEmpty = cont => {
 let contToArrStr = cont => {
     switch cont {
         | Text(arr) => arr->Js_array2.map(stmtSym => stmtSym.sym)
-        | Tree({root}) => syntaxTreeToSymbols(root)
+        | Tree({exprTyp, root}) => [exprTyp]->Js.Array2.concat(syntaxTreeToSymbols(root))
     }
 }
 
