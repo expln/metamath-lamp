@@ -12,22 +12,12 @@ open MM_wrk_editor_json
 open MM_proof_tree
 open MM_provers
 open Local_storage_utils
-
-@val external strToBase64: string => string = "btoa"
-@val external base64ToStr: string => string = "atob"
+open Common
 
 let unifyAllIsRequiredCnt = ref(0)
 
 let editorSaveStateToLocStor = (state:editorState, key:string):unit => {
     locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
-}
-
-let readEditorStateFromLocStor = (key:string):option<editorStateLocStor> => {
-    switch locStorReadString(key) {
-        | None => None
-        | Some(stateLocStorStr) => 
-            readEditorStateFromJsonStr(stateLocStorStr)->Belt.Result.mapWithDefault(None, state => Some(state))
-    }
 }
 
 let rndIconButton = (
@@ -43,7 +33,7 @@ let rndIconButton = (
     </span>
 }
 
-let stateLocStorKey = "editor-state"
+let editorStateLocStorKey = "editor-state"
 
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
@@ -62,6 +52,12 @@ let getLastUsedTyp = (ctx) => {
     }
 }
 
+let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorStateLocStor> => {
+    jsonStrOpt->Belt_Option.flatMap(jsonStr => {
+        readEditorStateFromJsonStr(jsonStr)->Belt.Result.mapWithDefault(None, state => Some(state))
+    })
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -72,7 +68,7 @@ let make = (
     ~preCtx:mmContext, 
     ~top:int,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
-    ~initialStateSafeBase64:option<string>,
+    ~initialStateJsonStr:option<string>,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
@@ -80,13 +76,14 @@ let make = (
     let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool("editor-visualization", false)
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
-        ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=readEditorStateFromLocStor(stateLocStorKey)
+        ~settingsV, ~settings, ~srcs, ~preCtxV, ~preCtx, 
+        ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
             let st = updateEditorStateWithPostupdateActions(st, update)
-            editorSaveStateToLocStor(st, stateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey)
             st
         })
     }
@@ -182,7 +179,7 @@ let make = (
     let actToggleStmtChecked = id => {
         setStatePriv(st => {
             let st = toggleStmtChecked(st,id)
-            editorSaveStateToLocStor(st, stateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey)
             st
         })
     }
@@ -193,7 +190,7 @@ let make = (
         }
         setStatePriv(st => {
             let st = action(st)
-            editorSaveStateToLocStor(st, stateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey)
             st
         })
     }
@@ -552,7 +549,7 @@ let make = (
     let actUnifyAllResultsAreReady = proofTreeDto => {
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
-            editorSaveStateToLocStor(st, stateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey)
             st
         })
     }
@@ -715,7 +712,7 @@ let make = (
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_export_state_to_url 
-                    editoStateBase64=strToBase64(Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+                    editorStateBase64=strToSafeBase64(Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
                     onClose={_=>closeModal(modalRef, modalId)} 
                 />
             })
@@ -764,7 +761,7 @@ let make = (
             }
             | Ok(stateLocStor) => {
                 setState(_ => createInitialEditorState(
-                    ~settingsV, ~settings, ~preCtxV, ~preCtx, ~stateLocStor=Some(stateLocStor)
+                    ~settingsV, ~settings, ~srcs=stateLocStor.srcs, ~preCtxV, ~preCtx, ~stateLocStor=Some(stateLocStor)
                 ))
                 reloadCtx.current->Js.Nullable.toOption
                     ->Belt.Option.map(reloadCtx => {
@@ -803,16 +800,9 @@ let make = (
     }
 
     React.useEffect0(() => {
-        switch initialStateSafeBase64 {
+        switch initialStateJsonStr {
             | None => ()
-            | Some(initialStateSafeBase64) => {
-                actImportFromJson(
-                    initialStateSafeBase64
-                        ->Js.String2.replaceByRe(%re("/-/g"), "+")
-                        ->Js.String2.replaceByRe(%re("/_/g"), "/")
-                        ->base64ToStr
-                )->ignore
-            }
+            | Some(jsonStr) => actImportFromJson(jsonStr)->ignore
         }
         None
     })

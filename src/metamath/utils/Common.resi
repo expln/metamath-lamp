@@ -7,3 +7,8 @@ let cacheGet: (cache<'depVer,'dep,'data>, 'depVer, 'dep) => 'data
 
 let multilineTextToNonEmptyLines: string => array<string>
 let getSpaceSeparatedValuesAsArray: string => array<string>
+
+let strToBase64: string => string
+let base64ToStr: string => string
+let strToSafeBase64: string => string
+let safeBase64ToStr: string => string

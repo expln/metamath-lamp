@@ -48,3 +48,23 @@ let multilineTextToNonEmptyLines = splitByRegex(_, newLineRegex)
 
 let whitespaceDelimRegex = %re("/[\s\n\r]/")
 let getSpaceSeparatedValuesAsArray = splitByRegex(_, whitespaceDelimRegex)
+
+@val external strToBase64: string => string = "btoa"
+@val external base64ToStr: string => string = "atob"
+
+let plusSignRegex = %re("/\+/g")
+let minusSignRegex = %re("/-/g")
+let forwardSlashSignRegex = %re("/\//g")
+let underscoreSignRegex = %re("/_/g")
+let strToSafeBase64 = str => {
+    str
+        ->strToBase64
+        ->Js.String2.replaceByRe(plusSignRegex, "-")
+        ->Js.String2.replaceByRe(forwardSlashSignRegex, "_")
+}
+let safeBase64ToStr = safeBase64 => {
+    safeBase64
+        ->Js.String2.replaceByRe(underscoreSignRegex, "/")
+        ->Js.String2.replaceByRe(minusSignRegex, "+")
+        ->base64ToStr
+}

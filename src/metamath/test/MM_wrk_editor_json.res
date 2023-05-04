@@ -47,6 +47,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
 let createInitialEditorState = (
     ~settingsV:int, 
     ~settings:settings, 
+    ~srcs:array<mmCtxSrcDto>,
     ~preCtxV:int, 
     ~preCtx:mmContext, 
     ~stateLocStor:option<editorStateLocStor>
@@ -56,7 +57,7 @@ let createInitialEditorState = (
         settings,
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
-        srcs: stateLocStor->Belt_Option.mapWithDefault([], st => st.srcs),
+        srcs,
         preCtxV,
         preCtx,
         frms: Belt_MapString.empty,

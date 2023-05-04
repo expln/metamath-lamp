@@ -7,15 +7,14 @@ open Local_storage_utils
 
 @react.component
 let make = (
-    ~editoStateBase64:string,
+    ~editorStateBase64:string,
     ~onClose:unit=>unit
 ) => {
 
     let location = window["location"]
     let origin = location["origin"]
     let pathname = location["pathname"]->Js.String2.replaceByRe(%re("/\/v\d+\//g"), "/latest/")
-    let url = origin ++ pathname ++ "?editorState=" 
-        ++ (editoStateBase64->Js.String2.replaceByRe(%re("/\+/g"), "-")->Js.String2.replaceByRe(%re("/\//g"), "_"))
+    let url = origin ++ pathname ++ "?editorState=" ++ editorStateBase64
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
         <Col>

@@ -49,7 +49,7 @@ let createEditorState = (
     let preCtxV = 1
     let preCtx = ctx
     let st = createInitialEditorState(
-        ~settingsV, ~settings, ~preCtxV, ~preCtx, 
+        ~settingsV, ~settings, ~srcs=[], ~preCtxV, ~preCtx, 
         ~stateLocStor=
             switch editorState {
                 | None => None

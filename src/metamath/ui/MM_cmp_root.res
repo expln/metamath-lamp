@@ -4,6 +4,7 @@ open MM_cmp_settings
 open MM_wrk_editor
 open MM_wrk_settings
 open Expln_React_Modal
+open Common
 
 type tabData =
     | Settings
@@ -61,16 +62,16 @@ let mainTheme = ThemeProvider.createTheme(
 @val external window: {..} = "window"
 
 let location = window["location"]
-let initialStateSafeBase64 = switch parseUrlQuery(location["search"])["get"](. "editorState")->Js.Nullable.toOption {
-    | None => None
+let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Js.Nullable.toOption {
     | Some(initialStateSafeBase64) => {
         window["history"]["replaceState"](. 
             "removing editorState from the URL", 
             "", 
             location["origin"] ++ location["pathname"]
-        )
-        Some(initialStateSafeBase64)
+        )->ignore
+        Some(initialStateSafeBase64->safeBase64ToStr)
     }
+    | None => Local_storage_utils.locStorReadString(MM_cmp_editor.editorStateLocStorKey)
 }
 
 @react.component
@@ -133,7 +134,7 @@ let make = () => {
                             preCtxV=state.ctxV
                             preCtx=state.ctx
                             reloadCtx
-                            initialStateSafeBase64
+                            initialStateJsonStr=editorInitialStateJsonStr
                         />
                     | Search => <MM_cmp_click_counter title="Search" />
                     | ProofExplorer({label}) => <MM_cmp_click_counter title=label />
