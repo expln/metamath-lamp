@@ -5,6 +5,7 @@ module ArrowDownward = { @module("@mui/icons-material/ArrowDownward") @react.com
 module ArrowUpward = { @module("@mui/icons-material/ArrowUpward") @react.component external make: () => React.element = "default" }
 module CancelOutlined = { @module("@mui/icons-material/CancelOutlined") @react.component external make: () => React.element = "default" }
 module ControlPointDuplicate = { @module("@mui/icons-material/ControlPointDuplicate") @react.component external make: () => React.element = "default" }
+module ContentCopy = { @module("@mui/icons-material/ContentCopy") @react.component external make: () => React.element = "default" }
 module DeleteForever = { @module("@mui/icons-material/DeleteForever") @react.component external make: () => React.element = "default" }
 module Delete = { @module("@mui/icons-material/Delete") @react.component external make: () => React.element = "default" }
 module Edit = { @module("@mui/icons-material/Edit") @react.component external make: () => React.element = "default" }

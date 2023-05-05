@@ -68,3 +68,7 @@ let safeBase64ToStr = safeBase64 => {
         ->Js.String2.replaceByRe(minusSignRegex, "+")
         ->base64ToStr
 }
+
+type timeoutID
+@val external setTimeout: (unit => unit, int) => timeoutID = "setTimeout"
+@val external clearTimeout: (timeoutID) => unit = "clearTimeout"

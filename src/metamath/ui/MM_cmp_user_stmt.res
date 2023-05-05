@@ -11,9 +11,9 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open Expln_React_Modal
 open Local_storage_utils
+open Common
 
 @val external window: {..} = "window"
-@val external setTimeout: (unit => unit, int) => unit = "setTimeout"
 
 let rndIconButton = (
     ~icon:reElem, 
@@ -520,6 +520,43 @@ let getNodeIdBySymIdx = (
     idOpt
 }
 
+let getSelectedSymbols = (stmtCont:stmtCont):option<array<string>> => {
+    switch stmtCont {
+        | Text(_) => None
+        | Tree({root}) => {
+            let (_,selectedIds) = getIdsOfSelectedNodes(stmtCont)
+            if (selectedIds->Belt_SetInt.isEmpty) {
+                None
+            } else {
+                let syms = []
+                Expln_utils_data.traverseTree(
+                    (),
+                    Subtree(root),
+                    (_, node) => {
+                        switch node {
+                            | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                            | Symbol(_) => None
+                        }
+                    },
+                    ~process = (_, node) => {
+                        switch node {
+                            | Subtree(_) => ()
+                            | Symbol({id,sym}) => {
+                                if (selectedIds->Belt_SetInt.has(id)) {
+                                    syms->Js.Array2.push(sym)->ignore
+                                }
+                            }
+                        }
+                        None
+                    },
+                    ()
+                )->ignore
+                Some(syms)
+            }
+        }
+    }
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -547,6 +584,7 @@ let make = (
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
     let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
     let (selectionRange, setSelectionRange) = React.useState(() => None)
+    let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
     React.useEffect1(() => {
         if (stmt.labelEditMode) {
@@ -627,7 +665,7 @@ let make = (
                         actBuildSyntaxTree(clickedIdx)
                     },
                     10
-                )
+                )->ignore
             }
         }
         None
@@ -701,6 +739,25 @@ let make = (
 
     let actShrinkSelection = () => {
         actUpdateSyntaxTree(treeData => {...treeData, expLvl: Js_math.max_int(treeData.expLvl - 1, 0)})
+    }
+
+    let actCopyToClipboard = () => {
+        switch getSelectedSymbols(stmt.cont) {
+            | None => ()
+            | Some(syms) => {
+                copyToClipboard(syms->Js_array2.joinWith(" "))
+                setCopiedToClipboard(timerId => {
+                    switch timerId {
+                        | None => ()
+                        | Some(timerId) => clearTimeout(timerId)
+                    }
+                    Some(setTimeout(
+                        () => setCopiedToClipboard(_ => None),
+                        1000
+                    ))
+                })
+            }
+        }
     }
 
     let getSelectedRange = ():option<(int,int)> => {
@@ -844,12 +901,20 @@ let make = (
             }
             if (textIsSelected) {
                 elems->Js_array2.push(
-                    <ButtonGroup variant=#contained size=#small color="grey" >
-                        <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
-                        <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
-                        <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
-                        <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
-                    </ButtonGroup>
+                    <Row alignItems=#center>
+                        <ButtonGroup variant=#contained size=#small color="grey" >
+                            <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
+                            <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
+                            <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
+                            <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
+                            <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+                        </ButtonGroup>
+                        {
+                            if (copiedToClipboard->Belt.Option.isSome) {
+                                React.string("Copied to the clipboard.")
+                            } else {React.null}
+                        }
+                    </Row>
                 )->ignore
             }
 

@@ -12,3 +12,7 @@ let strToBase64: string => string
 let base64ToStr: string => string
 let strToSafeBase64: string => string
 let safeBase64ToStr: string => string
+
+type timeoutID
+let setTimeout: (unit => unit, int) => timeoutID
+let clearTimeout: (timeoutID) => unit
