@@ -98,6 +98,7 @@ type editorState = {
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
     syntaxTypes: array<int>,
+    parensMap: Belt_HashMapString.t<string>,
 
     descr: string,
     descrEditMode: bool,

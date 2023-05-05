@@ -185,6 +185,7 @@ type editorState = {
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
     syntaxTypes: array<int>,
+    parensMap: Belt_HashMapString.t<string>,
 
     descr: string,
     descrEditMode: bool,
@@ -678,14 +679,24 @@ let findSyntaxTypes = (frms: Belt_MapString.t<frmSubsData>): array<int> => {
 let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) => {
     preCtx->moveConstsToBegin(st.settings.parens)
     let frms = prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ())
+    let parenInts = prepareParenInts(preCtx, st.settings.parens)
+    let numOfParens = parenInts->Js_array2.length / 2
+    let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
+    for i in 0 to numOfParens-1 {
+        parensMap->Belt_HashMapString.set(
+            preCtx->ctxIntToSymExn(parenInts[2*i]), 
+            preCtx->ctxIntToSymExn(parenInts[2*i+1])
+        )
+    }
     let st = { 
         ...st, 
         srcs,
         preCtxV, 
         preCtx, 
         frms,
-        parenCnt: parenCntMake(prepareParenInts(preCtx, st.settings.parens), ()),
+        parenCnt: parenCntMake(parenInts, ()),
         syntaxTypes: findSyntaxTypes(frms),
+        parensMap,
     }
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)

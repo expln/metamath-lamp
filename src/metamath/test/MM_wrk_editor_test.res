@@ -34,6 +34,7 @@ let createEditorState = (mmFile) => {
         parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
         syntaxTypes: [],
+        parensMap:Belt_HashMapString.make(~hintSize=0),
 
         descr: "",
         descrEditMode: false,

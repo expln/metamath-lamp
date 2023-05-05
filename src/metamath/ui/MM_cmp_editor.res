@@ -1004,6 +1004,7 @@ let make = (
                     frms=state.frms
                     parenCnt=state.parenCnt
                     syntaxTypes=state.syntaxTypes
+                    parensMap=state.parensMap
                     stmt
                     typeColors=state.typeColors
                     preCtxColors=state.preCtxColors

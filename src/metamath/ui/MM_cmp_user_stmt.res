@@ -585,6 +585,7 @@ let make = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~syntaxTypes:array<int>,
+    ~parensMap:Belt_HashMapString.t<string>,
     ~stmt:userStmt, 
     ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
     ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
@@ -606,6 +607,7 @@ let make = (
     let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
     let (selectionRange, setSelectionRange) = React.useState(() => None)
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
+    let (newTextCursorPosition, setNewTextCursorPosition) = React.useState(() => None)
 
     React.useEffect1(() => {
         if (stmt.labelEditMode) {
@@ -647,6 +649,24 @@ let make = (
         None
     }, [stmtTextFieldRef.current])
 
+    React.useEffect1(() => {
+        switch newTextCursorPosition {
+            | None => ()
+            | Some(newTextCursorPosition) => {
+                setNewTextCursorPosition(_ => None)
+                switch stmtTextFieldRef.current->Js.Nullable.toOption {
+                    | None => ()
+                    | Some(domElem) => {
+                        let input = ReactDOM.domElementToObj(domElem)
+                        input["selectionStart"]=newTextCursorPosition
+                        input["selectionEnd"]=newTextCursorPosition
+                    }
+                }
+            }
+        }
+        None
+    }, [newTextCursorPosition])
+
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
         let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
         switch wrkCtx {
@@ -685,7 +705,7 @@ let make = (
                         setSyntaxTreeWasRequested(_ => None)
                         actBuildSyntaxTree(clickedIdx)
                     },
-                    10
+                    0
                 )->ignore
             }
         }
@@ -702,6 +722,45 @@ let make = (
 
     let actNewTextUpdated = newText => {
         setState(setNewText(_, newText))
+    }
+
+    let before = (str:string, pos:int):string => str->Js.String2.substring(~from=0,~to_=pos)
+    let after = (str:string, pos:int):string => str->Js.String2.substringToEnd(~from=pos+1)
+
+    let getLastSymbol = (str:string):string => {
+        switch str->Js_string2.lastIndexOf(" ") {
+            | -1 => str
+            | idx => str->Js_string2.substringToEnd(~from=idx+1)
+        }
+    }
+
+    let actStmtContentUpdated = (newText:string,selectionStart:int):unit => {
+        let prevLen = state.newText->Js.String2.length
+        let newLen = newText->Js.String2.length
+        let newText = 
+            if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->Js.String2.charAt(selectionStart - 1)) {
+                let pos = selectionStart-1
+                let prevBefore = state.newText->before(pos)
+                let newBefore = newText->before(pos)
+                let prevAfter = state.newText->after(pos-1)
+                let newAfter = newText->after(pos)
+                if ( prevBefore == newBefore && prevAfter == newAfter ) {
+                    let lastSymbol = getLastSymbol(newBefore)
+                    switch parensMap->Belt_HashMapString.get(lastSymbol) {
+                        | None => newText
+                        | Some(closingParen) => {
+                            let newText = newBefore ++ "  " ++ closingParen ++ newAfter
+                            setNewTextCursorPosition(_ => Some(selectionStart))
+                            newText
+                        }
+                    }
+                } else {
+                    newText
+                }
+            } else {
+                newText
+            }
+        actNewTextUpdated(newText)
     }
     
     let actLabelEditDone = () => {
@@ -900,7 +959,11 @@ let make = (
                     autoFocus=true
                     multiline=true
                     value=state.newText
-                    onChange=evt2str(actNewTextUpdated)
+                    onChange={evt => {
+                        let selectionStart = (evt->ReactEvent.Form.target)["selectionStart"]
+                        let value = (evt->ReactEvent.Form.target)["value"]
+                        actStmtContentUpdated(value, selectionStart)
+                    }}
                     onKeyDown=kbrdHnd(~onEnter=actContEditDone, ~onEsc=actContEditCancel, ())
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
