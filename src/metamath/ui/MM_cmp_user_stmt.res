@@ -462,6 +462,8 @@ let make = (
     ~wrkCtxColors:Belt_HashMapString.t<string>,
     ~visualizationIsOn:bool,
     ~editStmtsByLeftClick:bool,
+    ~addStmtAbove:string=>unit,
+    ~addStmtBelow:string=>unit,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
@@ -706,6 +708,28 @@ let make = (
         actUpdateSyntaxTree(updateExpLavel(_,false))
     }
 
+    let actAddStmtAbove = () => {
+        stmt.cont->getSelectedText->Belt.Option.forEach(selectedText => {
+            switch stmt.cont {
+                | Text(_) => ()
+                | Tree({exprTyp}) => {
+                    addStmtAbove(exprTyp ++ " " ++ selectedText)
+                }
+            }
+        })
+    }
+
+    let actAddStmtBelow = () => {
+        stmt.cont->getSelectedText->Belt.Option.forEach(selectedText => {
+            switch stmt.cont {
+                | Text(_) => ()
+                | Tree({exprTyp}) => {
+                    addStmtBelow(exprTyp ++ " " ++ selectedText)
+                }
+            }
+        })
+    }
+
     let actCopyToClipboard = () => {
         switch getSelectedSymbols(stmt.cont) {
             | None => ()
@@ -802,6 +826,29 @@ let make = (
         }
     }
 
+    let rndSelectionButtons = () => {
+        <Row alignItems=#center>
+            <ButtonGroup variant=#contained size=#small color="grey" >
+                <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
+                <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Add new statement above" onClick={_=>actAddStmtAbove()}> 
+                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
+                </Button>
+                <Button title="Add new statement below" onClick={_=>actAddStmtBelow()}> 
+                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
+                </Button>
+                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
+                <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+            </ButtonGroup>
+            {
+                if (copiedToClipboard->Belt.Option.isSome) {
+                    React.string("Copied to the clipboard.")
+                } else {React.null}
+            }
+        </Row>
+    }
+
     let rndCont = () => {
         if (stmt.contEditMode) {
             let windowWidth = window["innerWidth"]
@@ -884,20 +931,7 @@ let make = (
             }
             if (textIsSelected) {
                 elems->Js_array2.push(
-                    <Row alignItems=#center>
-                        <ButtonGroup variant=#contained size=#small color="grey" >
-                            <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
-                            <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
-                            <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
-                            <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
-                            <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
-                        </ButtonGroup>
-                        {
-                            if (copiedToClipboard->Belt.Option.isSome) {
-                                React.string("Copied to the clipboard.")
-                            } else {React.null}
-                        }
-                    </Row>
+                    rndSelectionButtons()
                 )->ignore
             }
 

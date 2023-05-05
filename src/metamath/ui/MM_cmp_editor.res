@@ -203,6 +203,35 @@ let make = (
         let st = uncheckAllStmts(st)
         st
     })
+    let actAddStmtAbove = (id:stmtId, text:string):unit => {
+        setState(st => {
+            let st = uncheckAllStmts(st)
+            let st = toggleStmtChecked(st,id)
+            let (st, newId) = addNewStmt(st)
+            let st = setStmtCont(st, newId, text->strToCont(()))
+            let st = uncheckAllStmts(st)
+            st
+        })
+    }
+    let actAddStmtBelow = (id:stmtId, text:string):unit => {
+        setState(st => {
+            let st = uncheckAllStmts(st)
+            let st = switch st.stmts->Js.Array2.findIndex(stmt => stmt.id == id) {
+                | -1 => st
+                | idx => {
+                    if (idx == st.stmts->Js.Array2.length-1) {
+                        st
+                    } else {
+                        toggleStmtChecked(st,st.stmts[idx+1].id)
+                    }
+                }
+            }
+            let (st, newId) = addNewStmt(st)
+            let st = setStmtCont(st, newId, text->strToCont(()))
+            let st = uncheckAllStmts(st)
+            st
+        })
+    }
     let actBeginEdit0 = (setter:editorState=>editorState) => {
         if (!editIsActive) {
             setState(setter)
@@ -1062,6 +1091,9 @@ let make = (
 
                     onGenerateProof={()=>actExportProof(stmt.id)}
                     onDebug={()=>actDebugUnifyAll(stmt.id)}
+
+                    addStmtAbove=actAddStmtAbove(stmt.id)
+                    addStmtBelow=actAddStmtBelow(stmt.id)
                 />
                 {rndError(stmt.stmtErr,"red")}
                 {rndError(stmt.unifErr,"darkgrey")}

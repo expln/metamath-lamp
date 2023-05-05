@@ -37,6 +37,8 @@ let make: (
     ~wrkCtxColors:Belt_HashMapString.t<string>,
     ~visualizationIsOn:bool,
     ~editStmtsByLeftClick:bool,
+    ~addStmtAbove:string=>unit,
+    ~addStmtBelow:string=>unit,
 ) => React.element
 
 let rndContText: (
