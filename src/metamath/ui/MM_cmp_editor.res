@@ -510,22 +510,61 @@ let make = (
         }
     }
 
+    let getIdOfFirstStmtToSubstitute = ():option<stmtId> => {
+        if (state.checkedStmtIds->Js.Array2.length >= 1) {
+            Some(state.checkedStmtIds[0])
+        } else {
+            state.stmts->Js.Array2.find(stmt => stmt.cont->getSelectedText->Belt_Option.isSome)
+                ->Belt.Option.map(stmt=>stmt.id)
+        }
+    }
+
+    let getIdOfSecondStmtToSubstitute = (firstId:option<stmtId>):option<stmtId> => {
+        switch firstId {
+            | None => None
+            | Some(firstId) => {
+                if (state.checkedStmtIds->Js.Array2.length >= 2) {
+                    Some(state.checkedStmtIds[1])
+                } else {
+                    state.stmts
+                        ->Js.Array2.find(stmt => stmt.id != firstId && stmt.cont->getSelectedText->Belt_Option.isSome)
+                        ->Belt.Option.map(stmt=>stmt.id)
+                }
+            }
+        }
+    }
+
+    let getTextToSubstitute = (id:option<stmtId>):option<string> => {
+        switch id {
+            | None => None
+            | Some(id) => {
+                switch state->editorGetStmtById(id) {
+                    | None => None
+                    | Some(stmt) => {
+                        switch stmt.cont->getSelectedText {
+                            | Some(text) => Some(text)
+                            | None => Some(stmt.cont->contToStr)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let getExprsToSubstitute = ():(option<string>,option<string>) => {
+        let id1 = getIdOfFirstStmtToSubstitute()
+        let id2 = getIdOfSecondStmtToSubstitute(id1)
+        (
+            getTextToSubstitute(id1),
+            getTextToSubstitute(id2)
+        )
+    }
+
     let actSubstitute = () => {
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
-                let expr1Init = if (state.checkedStmtIds->Js.Array2.length >= 1) {
-                    let id = state.checkedStmtIds[0]
-                    state.stmts->Js_array2.find(stmt => stmt.id == id)->Belt_Option.map(stmt => stmt.cont->contToStr)
-                } else {
-                    None
-                }
-                let expr2Init = if (state.checkedStmtIds->Js.Array2.length >= 2) {
-                    let id = state.checkedStmtIds[1]
-                    state.stmts->Js_array2.find(stmt => stmt.id == id)->Belt_Option.map(stmt => stmt.cont->contToStr)
-                } else {
-                    None
-                }
+                let (expr1Init,expr2Init) = getExprsToSubstitute()
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_substitution

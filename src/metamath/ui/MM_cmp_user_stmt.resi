@@ -1,7 +1,6 @@
 open MM_wrk_editor
 open MM_context
 open Expln_React_Modal
-open MM_react_common
 open MM_substitution
 open MM_parenCounter
 

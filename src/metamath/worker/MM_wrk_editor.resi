@@ -183,3 +183,11 @@ let mergeStmts: (editorState, string, string) => result<editorState, string>
 let renameStmt: (editorState, string, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
 let parseJstf: string => result<option<jstf>,string>
+
+let getIdsOfSelectedNodes: stmtCont => (int,Belt_SetInt.t)
+let getSelectedText: stmtCont => option<string>
+let getNodeIdBySymIdx: ( ~symIdx:int, ~tree:syntaxTreeNode) => option<int>
+let incExpLvl: stmtContTreeData => stmtContTreeData
+let decExpLvl: stmtContTreeData => stmtContTreeData
+let getNumberOfSelectedSymbols: stmtContTreeData => int
+let getSelectedSymbols: stmtCont => option<array<string>>
