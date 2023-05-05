@@ -14,6 +14,7 @@ type settings = {
     parens: string,
     asrtsToSkip: array<string>,
     asrtsToSkipRegex: string,
+    editStmtsByLeftClick:bool,
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
 }

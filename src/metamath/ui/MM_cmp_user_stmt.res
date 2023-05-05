@@ -54,27 +54,25 @@ let setInfoExpanded = (st,infoExpanded):state => {
     }
 }
 
-let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mouse.t => unit) => {
-    if (mouseEvt->ReactEvent.Mouse.button == 0 
-            && !(mouseEvt->ReactEvent.Mouse.altKey) 
-            && !(mouseEvt->ReactEvent.Mouse.ctrlKey)) {
-        clbk()
-    } else {
-        ifNot(mouseEvt)
-    }
-}
-
-let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk, ifNot: ReactEvent.Mouse.t => unit) => {
-    if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
-        clbk()
-    } else {
-        ifNot(mouseEvt)
-    }
-}
-
-let altLeftClickHnd2 = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
+let leftClickHnd = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
     mouseEvt => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
+        if (mouseEvt->ReactEvent.Mouse.button == 0 
+            && !(mouseEvt->ReactEvent.Mouse.altKey)
+            && !(mouseEvt->ReactEvent.Mouse.ctrlKey)
+            && !(mouseEvt->ReactEvent.Mouse.shiftKey)
+        ) {
+            clbk()
+        }
+    }
+}
+
+let altLeftClickHnd = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
+    mouseEvt => {
+        if (mouseEvt->ReactEvent.Mouse.button == 0 
+            && mouseEvt->ReactEvent.Mouse.altKey
+            && !(mouseEvt->ReactEvent.Mouse.ctrlKey)
+            && !(mouseEvt->ReactEvent.Mouse.shiftKey)
+        ) {
             clbk()
         }
     }
@@ -260,11 +258,19 @@ let rndContText = (
     ~stmtCont:stmtCont,
     ~onTextClick:option<int=>unit>=?,
     ~onTreeClick:option<int=>unit>=?,
+    ~editStmtsByLeftClick:bool=true,
+    ~renderSelection:bool=false,
     ()
 ) => {
     switch stmtCont {
         | Text(syms) => {
-            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => altLeftClickHnd2(() => onTextClick(idx)))
+            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => {
+                if (editStmtsByLeftClick) {
+                    altLeftClickHnd(() => onTextClick(idx))
+                } else {
+                    leftClickHnd(() => onTextClick(idx))
+                }
+            })
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
@@ -277,7 +283,13 @@ let rndContText = (
             })->React.array
         }
         | Tree({exprTyp, root}) => {
-            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => altLeftClickHnd2(() => onTreeClick(id)))
+            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => {
+                if (editStmtsByLeftClick) {
+                    altLeftClickHnd(() => onTreeClick(id))
+                } else {
+                    leftClickHnd(() => onTreeClick(id))
+                }
+            })
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
@@ -311,14 +323,14 @@ let rndContText = (
                                     ~color,
                                     ~onClick=?onClick(id),
                                     ~spaceBackgroundColor=?{ 
-                                        if (symbolIsHighlighted && selectionIsOn.contents) {
+                                        if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
                                             Some("#ADD6FF")
                                         } else {
                                             None
                                         } 
                                     },
                                     ~symbolBackgroundColor=?{ 
-                                        if (symbolIsHighlighted) {
+                                        if (renderSelection && symbolIsHighlighted) {
                                             if (id == clickedId) {
                                                 Some("#99bce0")
                                             } else {
@@ -598,6 +610,7 @@ let make = (
     ~preCtxColors:Belt_HashMapString.t<string>,
     ~wrkCtxColors:Belt_HashMapString.t<string>,
     ~visualizationIsOn:bool,
+    ~editStmtsByLeftClick:bool,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
@@ -929,7 +942,7 @@ let make = (
         } else {
             <span 
                 ref=ReactDOM.Ref.domRef(labelRef)
-                onClick=leftClickHnd(_, onLabelEditRequested, _ => ()) 
+                onClick=leftClickHnd(onLabelEditRequested) 
                 title="<left-click> to change"
                 style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ())
             >
@@ -979,7 +992,13 @@ let make = (
             }
             let elems = [
                 <Paper 
-                    onClick=leftClickHnd(_, onContEditRequested, _ => ()) 
+                    onClick={
+                        if (editStmtsByLeftClick) {
+                            leftClickHnd(onContEditRequested)
+                        } else {
+                            altLeftClickHnd(onContEditRequested)
+                        }
+                    }
                     style=ReactDOM.Style.make(
                         ~padding="1px 10px", 
                         ~backgroundColor="rgb(255,255,235)", 
@@ -987,13 +1006,21 @@ let make = (
                         ~fontSize="1.3em",
                         ()
                     ) 
-                    title="<left-click> to change"
+                    title={
+                        if (editStmtsByLeftClick) {
+                            "<left-click> to change, Alt+<left-click> to select"
+                        } else {
+                            "Alt + <left-click> to change, <left-click> to select"
+                        }
+                    }
                 >
                     {
                         rndContText(
                             ~stmtCont=stmt.cont, 
-                            ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)), 
-                            ~onTreeClick=actTreeNodeClicked, 
+                            ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
+                            ~onTreeClick=actTreeNodeClicked,
+                            ~renderSelection=true,
+                            ~editStmtsByLeftClick,
                             ()
                         )
                     }
@@ -1046,7 +1073,10 @@ let make = (
                 | P => "P"
             }
             <span 
-                onClick=altLeftClickHnd(_, onTypEditRequested, _ => actToggleInfoExpanded()) 
+                onClick={evt=>{
+                    altLeftClickHnd(onTypEditRequested)(evt)
+                    leftClickHnd(actToggleInfoExpanded)(evt)
+                }}
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
                 title="Alt+<left-click> to change statement type. Left-click to show/hide the justification for provable."
             >
@@ -1079,7 +1109,7 @@ let make = (
             let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "3px" }
             <Row >
                 <Paper 
-                    onClick=leftClickHnd(_, onJstfEditRequested, _ => ()) 
+                    onClick=leftClickHnd(onJstfEditRequested) 
                     style=ReactDOM.Style.make( ~padding, ~marginTop="5px", () )
                     title="<left-click> to change"
                 >

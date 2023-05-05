@@ -7,11 +7,9 @@
     ER: visualization is showing
 - don't re-render cmp_user_stmt when it is not necessary.
 - move some dependencies to devDependencies.
-- Click on section name to edit it.
 - analyze possibility to keep editor history with URLs.
 - store last selected file source type.
 - review usages of "alias", it may be empty.
-- print a proof table in the "show proof" dialog (with possibility to hide floatings).
 - hide "plus" button on nodes without children in the proof tree.
 - implement a builder of statements.
 - add "About" page.
@@ -61,3 +59,7 @@
 - precalculate number of combinations (store in an array)
 - use uncurried functions everywhere
 - replace a[i] with a->Js_array2.unsafe_get(i), or open Belt and replace with Option.getExn
+
+DONE:
+- print a proof table in the "show proof" dialog (with possibility to hide floatings).
+- Click on section name to edit it.

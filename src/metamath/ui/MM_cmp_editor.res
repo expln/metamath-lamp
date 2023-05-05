@@ -1010,6 +1010,7 @@ let make = (
                     preCtxColors=state.preCtxColors
                     wrkCtxColors=state.wrkCtxColors
                     visualizationIsOn
+                    editStmtsByLeftClick=settings.editStmtsByLeftClick
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
                     onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}

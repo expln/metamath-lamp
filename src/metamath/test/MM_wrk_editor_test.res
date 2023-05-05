@@ -17,6 +17,7 @@ let createEditorState = (mmFile) => {
         parens,
         asrtsToSkip: [],
         asrtsToSkipRegex: "",
+        editStmtsByLeftClick:true,
         typeSettings: [ ],
         webSrcSettings: [ ],
     }

@@ -43,6 +43,7 @@ let createEditorState = (
                 | Some(filePath) => multilineTextToNonEmptyLines(Expln_utils_files.readStringFromFile(filePath))
             },
         asrtsToSkipRegex: "",
+        editStmtsByLeftClick:true,
         typeSettings: [ ],
         webSrcSettings: [ ],
     }

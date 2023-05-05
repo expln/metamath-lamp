@@ -37,11 +37,14 @@ let make: (
     ~preCtxColors:Belt_HashMapString.t<string>,
     ~wrkCtxColors:Belt_HashMapString.t<string>,
     ~visualizationIsOn:bool,
+    ~editStmtsByLeftClick:bool,
 ) => React.element
 
 let rndContText: (
     ~stmtCont:stmtCont,
     ~onTextClick:int=>unit=?,
     ~onTreeClick:int=>unit=?,
+    ~editStmtsByLeftClick:bool=?,
+    ~renderSelection:bool=?,
     ()
 ) => React.element

@@ -17,6 +17,8 @@ type settingsState = {
     asrtsToSkip: array<string>,
     asrtsToSkipRegex: string,
 
+    editStmtsByLeftClick:bool,
+
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
 
@@ -52,6 +54,7 @@ let createDefaultSettings = () => {
         parensErr: None,
         asrtsToSkip: [],
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
+        editStmtsByLeftClick: true,
         typeNextId: 4,
         typeSettings: [
             {
@@ -225,6 +228,7 @@ let stateToSettings = (st:settingsState):settings => {
         parens: st.parens,
         asrtsToSkip: st.asrtsToSkip,
         asrtsToSkipRegex: st.asrtsToSkipRegex,
+        editStmtsByLeftClick:st.editStmtsByLeftClick,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -244,6 +248,7 @@ let settingsToState = (ls:settings):settingsState => {
         parensErr: None,
         asrtsToSkip: ls.asrtsToSkip,
         asrtsToSkipRegex: ls.asrtsToSkipRegex,
+        editStmtsByLeftClick:ls.editStmtsByLeftClick,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -285,6 +290,9 @@ let readStateFromLocStor = ():settingsState => {
                     parensErr: None,
                     asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>[], ()),
                     asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>asrtsToSkipRegexDefault, ()),
+                    editStmtsByLeftClick: d->bool(
+                        "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
+                    ),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -337,6 +345,7 @@ let eqState = (st1, st2) => {
     st1.parens == st2.parens
         && st1.asrtsToSkip == st2.asrtsToSkip
         && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
+        && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -353,6 +362,8 @@ let updateParens = (st,parens) => {
 
 let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
 let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
+
+let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -477,6 +488,10 @@ let make = (
             let st = st->setAsrtsToSkipRegex(res.regex)
             st
         })
+    }
+
+    let actEditStmtsByLeftClickChange = editStmtsByLeftClick => {
+        setState(updateEditStmtsByLeftClick(_, editStmtsByLeftClick))
     }
 
     let actTypeSettingAdd = () => {
@@ -688,13 +703,17 @@ let make = (
                 </IconButton>
             </span>
         </Row>
-        {rndAsrtsToSkip()}
         {
             switch state.parensErr {
                 | None => React.null
                 | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
             }
         }
+        {rndAsrtsToSkip()}
+        <MM_cmp_edit_stmts_setting
+            editStmtsByLeftClick=state.editStmtsByLeftClick
+            onChange=actEditStmtsByLeftClickChange
+        />
         <Divider/>
         <MM_cmp_type_settings
             typeSettings=state.typeSettings
