@@ -177,7 +177,7 @@ let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
 let generateCompressedProof: (editorState, string) => option<(string,string,string)>
 let updateColorsInAllStmts: editorState => editorState
-let getTheOnlySelectedStmt: editorState => option<userStmt>
+let getTheOnlyCheckedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, string) => option<userStmt>
 let mergeStmts: (editorState, string, string) => result<editorState, string>
 let renameStmt: (editorState, string, string) => result<editorState, string>
@@ -185,6 +185,7 @@ let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
 let parseJstf: string => result<option<jstf>,string>
 
 let getIdsOfSelectedNodes: stmtCont => (int,Belt_SetInt.t)
+let hasSelectedText: stmtCont => bool
 let getSelectedText: stmtCont => option<string>
 let getNodeIdBySymIdx: ( ~symIdx:int, ~tree:syntaxTreeNode) => option<int>
 let incExpLvl: stmtContTreeData => stmtContTreeData

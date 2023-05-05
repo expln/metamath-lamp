@@ -93,10 +93,13 @@ let make = (
         state.stmts->Js.Array2.some(stmt => stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode )
 
     let thereAreSyntaxErrors = editorStateHasErrors(state)
+    let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
+    let atLeastOneStmtHasSelectedText = state.stmts
+        ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
+        ->Belt.Option.isSome
     let mainCheckboxState = {
-        let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
         let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
-        if (atLeastOneStmtIsChecked && atLeastOneStmtIsNotChecked) {
+        if ((atLeastOneStmtIsChecked || atLeastOneStmtHasSelectedText) && atLeastOneStmtIsNotChecked) {
             None
         } else if (atLeastOneStmtIsChecked && !atLeastOneStmtIsNotChecked) {
             Some(true)
@@ -106,12 +109,11 @@ let make = (
     }
 
     let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
-    let atLeastOneStmtIsSelected = mainCheckboxState->Belt_Option.getWithDefault(true)
-    let singleProvableSelected = switch getTheOnlySelectedStmt(state) {
+    let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
         | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
     }
-    let oneStatementIsSelected = state.checkedStmtIds->Js.Array2.length == 1
+    let oneStatementIsChecked = state.checkedStmtIds->Js.Array2.length == 1
 
     let actSettingsUpdated = (settingsV, settings) => {
         setState(setSettings(_, settingsV, settings))
@@ -514,7 +516,7 @@ let make = (
         if (state.checkedStmtIds->Js.Array2.length >= 1) {
             Some(state.checkedStmtIds[0])
         } else {
-            state.stmts->Js.Array2.find(stmt => stmt.cont->getSelectedText->Belt_Option.isSome)
+            state.stmts->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
                 ->Belt.Option.map(stmt=>stmt.id)
         }
     }
@@ -526,8 +528,7 @@ let make = (
                 if (state.checkedStmtIds->Js.Array2.length >= 2) {
                     Some(state.checkedStmtIds[1])
                 } else {
-                    state.stmts
-                        ->Js.Array2.find(stmt => stmt.id != firstId && stmt.cont->getSelectedText->Belt_Option.isSome)
+                    state.stmts->Js.Array2.find(stmt => stmt.id != firstId && stmt.cont->hasSelectedText)
                         ->Belt.Option.map(stmt=>stmt.id)
                 }
             }
@@ -634,16 +635,12 @@ let make = (
                 }
                 let rootUserStmts = state->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                let singleProvableSelected = switch state->getTheOnlySelectedStmt {
-                    | Some(stmt) if stmt.typ == P => Some(stmt)
-                    | _ => None
-                }
-                switch singleProvableSelected {
-                    | Some(singleProvableSelected) => {
+                switch singleProvableChecked {
+                    | Some(singleProvableChecked) => {
                         let initialParams = switch params {
                             | Some(_) => params
                             | None => {
-                                switch getArgs0AndAsrtLabel(singleProvableSelected.jstfText, rootStmts) {
+                                switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
                                     | None => None
                                     | Some((args0,asrtLabel)) => Some(bottomUpProverParamsMake(~asrtLabel, ~args0, ()))
                                 }
@@ -865,16 +862,12 @@ let make = (
         let st = state
         let st = st->uncheckAllStmts
         let st = st->toggleStmtChecked(stmtId)
-        let provableSelected = switch getTheOnlySelectedStmt(st) {
-            | Some(stmt) if stmt.typ == P => Some(stmt)
-            | _ => None
-        }
-        switch provableSelected {
+        switch singleProvableChecked {
             | None => ()
-            | Some(provableSelected) => {
+            | Some(singleProvableChecked) => {
                 let rootUserStmts = st->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                let params = switch getArgs0AndAsrtLabel(provableSelected.jstfText, rootStmts) {
+                let params = switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
                     | Some((args0,asrtLabel)) => {
                         bottomUpProverParamsMake(
                             ~args0, 
@@ -983,7 +976,7 @@ let make = (
             >
                 <Checkbox
                     disabled=editIsActive
-                    indeterminate={mainCheckboxState->Belt_Option.isNone}
+                    indeterminate={ mainCheckboxState->Belt_Option.isNone }
                     checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
                     onChange={_ => actToggleMainCheckbox()}
                 />
@@ -994,13 +987,13 @@ let make = (
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new statement (and place before selected statements if any)", ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
-                    ~active= !editIsActive && atLeastOneStmtIsSelected, ~title="Delete selected statements", ()
+                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ()
                 )}
                 {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts,
-                    ~active=oneStatementIsSelected, ~title="Merge two similar statements", ())}
+                    ~active=oneStatementIsChecked, ~title="Merge two similar statements", ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
@@ -1013,7 +1006,7 @@ let make = (
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
-                                    && (!atLeastOneStmtIsSelected || singleProvableSelected->Belt.Option.isSome)
+                                    && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 
                         ~title="Unify all statements or unify selected provable bottom-up", () )
                 }

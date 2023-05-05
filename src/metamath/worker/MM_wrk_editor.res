@@ -244,6 +244,23 @@ let userStmtToRootStmt = (stmt:userStmt):rootStmt => {
     }
 }
 
+let unselectStmt = (stmt:userStmt):userStmt => {
+    switch stmt.cont {
+        | Text(_) => stmt
+        | Tree(treeData) => {
+            switch treeData.clickedNodeId {
+                | None => stmt
+                | Some(_) => {
+                    {
+                        ...stmt,
+                        cont: Tree({...treeData, clickedNodeId: None})
+                    }
+                }
+            }
+        }
+    }
+}
+
 let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
 
 let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
@@ -292,7 +309,8 @@ let checkAllStmts = (st:editorState):editorState => {
 let uncheckAllStmts = (st:editorState):editorState => {
     {
         ...st,
-        checkedStmtIds: []
+        checkedStmtIds: [],
+        stmts: st.stmts->Js.Array2.map(unselectStmt)
     }
 }
 
@@ -390,7 +408,7 @@ let createNewLabel = (st:editorState, prefix:string):string => {
     newLabel.contents
 }
 
-let getTopmostSelectedStmt = (st):option<userStmt> => {
+let getTopmostCheckedStmt = (st):option<userStmt> => {
     if (st.checkedStmtIds->Js.Array2.length == 0) {
         None
     } else {
@@ -401,7 +419,7 @@ let getTopmostSelectedStmt = (st):option<userStmt> => {
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let newLabel = createNewLabel(st, newLabelPrefix)
-    let idToAddBefore = getTopmostSelectedStmt(st)->Belt_Option.map(stmt => stmt.id)
+    let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
             ...st,
@@ -1062,11 +1080,11 @@ let prepareEditorForUnification = st => {
     )
 }
 
-let getTheOnlySelectedStmt = (st):option<userStmt> => {
+let getTheOnlyCheckedStmt = (st):option<userStmt> => {
     if (st.checkedStmtIds->Js.Array2.length != 1) {
         None
     } else {
-        getTopmostSelectedStmt(st)
+        getTopmostCheckedStmt(st)
     }
 }
 
@@ -1292,7 +1310,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     })
     let st = createNewDisj(st, newCtxDisj)
 
-    let checkedStmt = st->getTopmostSelectedStmt
+    let checkedStmt = st->getTopmostCheckedStmt
     let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
 
     let replaceDtoLabelsWithCtxLabels = jstf => {
@@ -2134,6 +2152,13 @@ let getSelectedSymbols = (stmtCont:stmtCont):option<array<string>> => {
                 Some(syms)
             }
         }
+    }
+}
+
+let hasSelectedText = (stmtCont:stmtCont):bool => {
+    switch stmtCont {
+        | Text(_) | Tree({clickedNodeId:None}) => false
+        | Tree({clickedNodeId:Some(_)}) => true
     }
 }
 
