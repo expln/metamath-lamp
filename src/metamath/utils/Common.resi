@@ -1,3 +1,5 @@
+let nbsp:string
+
 let currTimeStr: unit => string
 
 type cache<'depVer,'dep,'data>

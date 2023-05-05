@@ -1,3 +1,5 @@
+let nbsp = Js_string2.fromCharCode(160)
+
 let currTimeStr = () => Js.Date.now()->Js.Date.fromFloat->Js.Date.toISOString
 
 type cache<'depVer,'dep,'data> = {
