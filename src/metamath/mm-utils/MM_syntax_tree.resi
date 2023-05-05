@@ -6,6 +6,7 @@ type rec syntaxTreeNode = {
     parent:option<syntaxTreeNode>,
     label:string,
     children:array<childNode>,
+    height:int,
 }
 and childNode =
     | Subtree(syntaxTreeNode)

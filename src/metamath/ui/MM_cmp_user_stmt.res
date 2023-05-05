@@ -212,40 +212,47 @@ let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
     Belt_SetInt.fromArray(res)
 }
 
-let getIdsOfSelectedNodes = (stmtCont:stmtCont):(int,Belt_SetInt.t) => {
-    switch stmtCont {
-        | Text(_) => (-1,Belt_SetInt.empty)
-        | Tree({root, clickedNodeId, expLvl}) => {
-            switch clickedNodeId {
+let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_SetInt.t) => {
+    switch treeData.clickedNodeId {
+        | None => (-1,Belt_SetInt.empty)
+        | Some(nodeId) => {
+            switch treeData.root->getNodeById(nodeId) {
                 | None => (-1,Belt_SetInt.empty)
-                | Some(nodeId) => {
-                    switch root->getNodeById(nodeId) {
-                        | None => (-1,Belt_SetInt.empty)
-                        | Some(Subtree(_)) => (-1,Belt_SetInt.empty) //this should never happen because a Subtree cannot be clicked
-                        | Some(Symbol({parent, isVar})) => {
-                            if (expLvl == 0) {
-                                if (isVar) {
-                                    (nodeId,Belt_SetInt.fromArray([nodeId]))
-                                } else {
-                                    (nodeId,getIdsOfAllChildSymbols(parent))
-                                }
-                            } else {
-                                let curParent = ref(Some(parent))
-                                let curLvl = ref(expLvl)
-                                while (curLvl.contents > 0 && curParent.contents->Belt_Option.isSome) {
-                                    curLvl := curLvl.contents - 1
-                                    curParent := (curParent.contents->Belt_Option.getExn).parent
-                                }
-                                switch curParent.contents {
-                                    | Some(parent) => (nodeId,getIdsOfAllChildSymbols(parent))
-                                    | None => (nodeId,getIdsOfAllChildSymbols(root))
-                                }
-                            }
+                | Some(Subtree(_)) => (-1,Belt_SetInt.empty) //this should never happen because a Subtree cannot be clicked
+                | Some(Symbol({parent, isVar})) => {
+                    if (treeData.expLvl == 0) {
+                        if (isVar) {
+                            (nodeId,Belt_SetInt.fromArray([nodeId]))
+                        } else {
+                            (nodeId,getIdsOfAllChildSymbols(parent))
+                        }
+                    } else {
+                        let curParent = ref(Some(parent))
+                        let curLvl = ref(treeData.expLvl)
+                        while (curLvl.contents > 0 && curParent.contents->Belt_Option.isSome) {
+                            curLvl := curLvl.contents - 1
+                            curParent := (curParent.contents->Belt_Option.getExn).parent
+                        }
+                        switch curParent.contents {
+                            | Some(parent) => (nodeId,getIdsOfAllChildSymbols(parent))
+                            | None => (nodeId,getIdsOfAllChildSymbols(treeData.root))
                         }
                     }
                 }
             }
         }
+    }
+}
+
+let getNumberOfSelectedSymbols = (treeData:stmtContTreeData):int => {
+    let (_, ids) = getIdsOfSelectedNodesFromTreeData(treeData)
+    ids->Belt_SetInt.size
+}
+
+let getIdsOfSelectedNodes = (stmtCont:stmtCont):(int,Belt_SetInt.t) => {
+    switch stmtCont {
+        | Text(_) => (-1,Belt_SetInt.empty)
+        | Tree(treeData) => getIdsOfSelectedNodesFromTreeData(treeData)
     }
 }
 
@@ -557,6 +564,20 @@ let getSelectedSymbols = (stmtCont:stmtCont):option<array<string>> => {
     }
 }
 
+let incExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
+    {
+        ...treeData, 
+        expLvl: Js_math.min_int(treeData.expLvl + 1, treeData.root.height)
+    }
+}
+
+let decExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
+    {
+        ...treeData, 
+        expLvl: Js_math.max_int(treeData.expLvl - 1, 0)
+    }
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -733,12 +754,33 @@ let make = (
         actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:None})
     }
 
+    let updateExpLavel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
+        let update = if (inc) {incExpLvl} else {decExpLvl}
+        let prevTreeData = ref(treeData)
+        let prevNum = ref(getNumberOfSelectedSymbols(prevTreeData.contents))
+        let newTreeData = ref(update(prevTreeData.contents))
+        let newNum = ref(getNumberOfSelectedSymbols(newTreeData.contents))
+        while (
+            prevNum.contents == newNum.contents
+            && (
+                inc && newTreeData.contents.expLvl < newTreeData.contents.root.height
+                || !inc && newTreeData.contents.expLvl > 0
+            )
+        ) {
+            prevTreeData := newTreeData.contents
+            prevNum := getNumberOfSelectedSymbols(prevTreeData.contents)
+            newTreeData := update(prevTreeData.contents)
+            newNum := getNumberOfSelectedSymbols(newTreeData.contents)
+        }
+        newTreeData.contents
+    }
+
     let actExpandSelection = () => {
-        actUpdateSyntaxTree(treeData => {...treeData, expLvl: treeData.expLvl + 1})
+        actUpdateSyntaxTree(updateExpLavel(_,true))
     }
 
     let actShrinkSelection = () => {
-        actUpdateSyntaxTree(treeData => {...treeData, expLvl: Js_math.max_int(treeData.expLvl - 1, 0)})
+        actUpdateSyntaxTree(updateExpLavel(_,false))
     }
 
     let actCopyToClipboard = () => {

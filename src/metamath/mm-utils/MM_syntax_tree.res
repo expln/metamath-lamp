@@ -7,6 +7,7 @@ type rec syntaxTreeNode = {
     parent:option<syntaxTreeNode>,
     label:string,
     children:array<childNode>,
+    height:int,
 }
 and childNode =
     | Subtree(syntaxTreeNode)
@@ -43,6 +44,20 @@ let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,strin
     }
 }
 
+let getHeight = (ch:childNode):int => {
+    switch ch {
+        | Subtree({height}) => height
+        | Symbol(_) => 0
+    }
+}
+
+let getMaxHeight = (children:array<childNode>):int => {
+    children->Js_array2.reduce(
+        (max,ch) => Js_math.max_int(max,ch->getHeight),
+        0
+    )
+}
+
 let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
@@ -51,7 +66,8 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                 id: idSeq(),
                 parent,
                 label,
-                children: Expln_utils_common.createArray(maxI)
+                children: Expln_utils_common.createArray(maxI),
+                height:0,
             }
             for i in 1 to maxI {
                 this.children[i-1] = Symbol({
@@ -62,7 +78,10 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                     color: None,
                 })
             }
-            Ok(this)
+            Ok({
+                ...this,
+                height: getMaxHeight(this.children) + 1
+            })
         }
         | Assertion({args, label}) => {
             switch ctx->getFrame(label) {
@@ -75,7 +94,8 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                 id: idSeq(),
                                 parent,
                                 label,
-                                children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1)
+                                children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1),
+                                height:0,
                             }
                             let err = ref(None)
                             frame.asrt->Js_array2.forEachi((s,i) => {
@@ -99,9 +119,13 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                             })
                             switch err.contents {
                                 | Some(err) => err
-                                | None => Ok(this)
+                                | None => {
+                                    Ok({
+                                        ...this,
+                                        height: getMaxHeight(this.children) + 1
+                                    })
+                                }
                             }
-                            
                         }
                     }
                 }

@@ -11,6 +11,7 @@ open Common
 type rec syntaxTreeNodeTest = {
     label:string,
     children:array<childNodeTest>,
+    height: int
 }
 and childNodeTest =
     | Subtree(syntaxTreeNodeTest)
@@ -24,7 +25,8 @@ let rec syntaxTreeToSyntaxTreeTest = (node:syntaxTreeNode) => {
                 | Subtree(childNode) => Subtree(syntaxTreeToSyntaxTreeTest(childNode))
                 | Symbol({sym}) => Symbol(sym)
             }
-        })
+        }),
+        height: node.height
     }
 }
 
@@ -73,16 +75,19 @@ describe("buildSyntaxTree", _ => {
                         label: "tt",
                         children: [
                             Symbol("t")
-                        ]
+                        ],
+                        height: 1,
                     }),
                     Symbol("="),
                     Subtree({
                         label: "tt",
                         children: [ 
                             Symbol("t") 
-                        ]
+                        ],
+                        height: 1,
                     })
-                ]
+                ],
+                height: 2,
             }
         )
 
@@ -99,17 +104,20 @@ describe("buildSyntaxTree", _ => {
                                 label: "wph",
                                 children: [
                                     Symbol("ph")
-                                ]
+                                ],
+                                height: 1,
                             }),
                             Symbol("<->"),
                             Subtree({
                                 label: "wps",
                                 children: [
                                     Symbol("ps")
-                                ]
+                                ],
+                                height: 1,
                             }),
                             Symbol(")")
-                        ]
+                        ],
+                        height: 2,
                     }),
                     Symbol("<->"),
                     Subtree({
@@ -128,17 +136,20 @@ describe("buildSyntaxTree", _ => {
                                                 label: "wph",
                                                 children: [
                                                     Symbol("ph")
-                                                ]
+                                                ],
+                                                height: 1,
                                             }),
                                             Symbol("->"),
                                             Subtree({
                                                 label: "wps",
                                                 children: [
                                                     Symbol("ps")
-                                                ]
+                                                ],
+                                                height: 1,
                                             }),
                                             Symbol(")")
-                                        ]
+                                        ],
+                                        height: 2,
                                     }),
                                     Symbol("->"),
                                     Subtree({
@@ -153,27 +164,34 @@ describe("buildSyntaxTree", _ => {
                                                         label: "wps",
                                                         children: [
                                                             Symbol("ps")
-                                                        ]
+                                                        ],
+                                                        height: 1,
                                                     }),
                                                     Symbol("->"),
                                                     Subtree({
                                                         label: "wph",
                                                         children: [
                                                             Symbol("ph")
-                                                        ]
+                                                        ],
+                                                        height: 1,
                                                     }),
                                                     Symbol(")")
-                                                ]
+                                                ],
+                                                height: 2,
                                             })
-                                        ]
+                                        ],
+                                        height: 3,
                                     }),
                                     Symbol(")")
-                                ]
+                                ],
+                                height: 4,
                             })
-                        ]
+                        ],
+                        height: 5,
                     }),
                     Symbol(")")
-                ]
+                ],
+                height: 6,
             }
         )
     })
