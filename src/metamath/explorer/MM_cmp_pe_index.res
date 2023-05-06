@@ -6,86 +6,55 @@ open Expln_React_Mui
 open Expln_React_Modal
 
 type props = {
-    settingsV:int,
+    settingsVer:int,
     settings:settings,
-    preCtxV:int,
+    preCtxVer:int,
     preCtx:mmContext,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    a.settingsV == b.settingsV
-    && a.preCtxV == b.preCtxV
+    a.settingsVer == b.settingsVer
+    && a.preCtxVer == b.preCtxVer
 }
 
-let pageSize = 20
-let nonDigitPattern = %re("/\D/g")
-
 let make = React.memoCustomCompareProps(({
-    settingsV,
+    settingsVer,
     settings,
-    preCtxV,
+    preCtxVer,
     preCtx,
 }:props) => {
-    let (labels, setLabels) = React.useState(() => [])
-    let (pageIdx, setPageIdx) = React.useState(() => 0)
+    let (allLabels, setAllLabels) = React.useState(() => [])
+    let (filteredLabels, setFilteredLabels) = React.useState(() => [])
+    let (filteredLabelsVer, setFilteredLabelsVer) = React.useState(() => 0)
 
-    let (goToPageText, setGoToPageText) = React.useState(() => "")
-
-    let numOfPages = (labels->Js.Array2.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
-                        ->Js_math.ceil_float->Belt.Float.toInt
-    let beginIdx = pageIdx*pageSize
-    let endIdx = beginIdx + pageSize - 1
-
-    let actChangePage = newPageNum => {
-        if (1 <= newPageNum && newPageNum <= numOfPages) {
-            setPageIdx(_ => newPageNum-1)
-            setGoToPageText(_ => "")
-        }
+    let actSettingsChanged = () => {
+        ()
     }
 
-    let actGoToPage = () => {
-        switch goToPageText->Belt_Int.fromString {
-            | None => ()
-            | Some(newPageNum) => actChangePage(newPageNum)
-        }
+    let actCtxChanged = () => {
+        let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
+        setAllLabels(_ => allLabels)
+        setFilteredLabels(_ => allLabels)
+        setFilteredLabelsVer(prev => prev+1)
     }
 
-    React.useEffect2(() => {
-        setLabels(_ => preCtx->getAllFrameLabels)
+    React.useEffect1(() => {
+        actSettingsChanged()
         None
-    }, (settingsV, preCtxV))
+    }, [settingsVer])
 
-    let rndPagination = () => {
-        <Row alignItems=#center>
-            <Pagination 
-                count=numOfPages 
-                page={pageIdx+1} 
-                onChange={(_,newPage) => actChangePage(newPage)}
-            />
-            <TextField 
-                size=#small
-                style=ReactDOM.Style.make(~width="100px", ())
-                label="Go to page" 
-                value=goToPageText 
-                onChange=evt2str(newPage => setGoToPageText(_ => newPage->Js.String2.replaceByRe(nonDigitPattern, "")))
-                onKeyDown=kbrdHnd(~onEnter=actGoToPage, ())
-            />
-        </Row>
-    }
+    React.useEffect1(() => {
+        actCtxChanged()
+        None
+    }, [preCtxVer])
 
-    let rndFrames = () => {
-        if (labels->Js.Array2.length == 0) {
-            "No assertions loaded."->React.string
-        } else {
-            <Col>
-                {rndPagination()}
-                {
-                    labels->Js_array2.slice(~start=beginIdx, ~end_=endIdx+1)->Js_array2.map(React.string)->React.array
-                }
-            </Col>
-        }
-    }
-
-    rndFrames()
+    <MM_cmp_pe_asrt_list
+        settingsVer
+        settings
+        preCtxVer
+        preCtx
+        labelsVer=filteredLabelsVer
+        labels=filteredLabels
+    />
 
 }, propsAreSame)

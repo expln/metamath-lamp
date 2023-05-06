@@ -138,9 +138,9 @@ let make = () => {
                         />
                     | ExplorerIndex => 
                         <MM_cmp_pe_index
-                            settingsV=state.settingsV
+                            settingsVer=state.settingsV
                             settings=state.settings
-                            preCtxV=state.ctxV
+                            preCtxVer=state.ctxV
                             preCtx=state.ctx
                         />
                     | ExplorerAsrt({label}) => <MM_cmp_click_counter title=label />
