@@ -44,6 +44,7 @@ let createEditorState = (
             },
         asrtsToSkipRegex: "",
         editStmtsByLeftClick:true,
+        defaultStmtType: "",
         typeSettings: [ ],
         webSrcSettings: [ ],
     }

@@ -298,7 +298,7 @@ let make = (
                 let contNew = newContText->strToCont(())
                 let textOld = contOld->contToStr
                 let textNew = contNew->contToStr
-                if (textOld == textNew) {
+                if (textOld == textNew || (textOld == "" && textNew == settings.defaultStmtType->Js.String2.trim)) {
                     if (textOld == "") {
                         setState(deleteStmt(_,stmtId))
                     } else {
@@ -1074,6 +1074,7 @@ let make = (
                     wrkCtxColors=state.wrkCtxColors
                     visualizationIsOn
                     editStmtsByLeftClick=settings.editStmtsByLeftClick
+                    defaultStmtType=settings.defaultStmtType
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
                     onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}

@@ -17,7 +17,6 @@ let make = (
     ~onChange:bool=>unit,
 ) => {
     <Row alignItems=#center>
-        {"Edit statements by "->React.string}
         <FormControl size=#small >
             <InputLabel id="label-for-edit-statements-by">"Edit statements by"</InputLabel>
             <Select 
@@ -31,7 +30,6 @@ let make = (
                 <MenuItem value="false"> {React.string("Alt + Left click")} </MenuItem>
             </Select>
         </FormControl>
-        {"Select statements by "->React.string}
         <FormControl size=#small >
             <InputLabel id="label-for-select-statements-by">"Select statements by"</InputLabel>
             <Select 

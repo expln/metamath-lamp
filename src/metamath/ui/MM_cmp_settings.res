@@ -18,6 +18,7 @@ type settingsState = {
     asrtsToSkipRegex: string,
 
     editStmtsByLeftClick:bool,
+    defaultStmtType:string,
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
@@ -55,6 +56,7 @@ let createDefaultSettings = () => {
         asrtsToSkip: [],
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
         editStmtsByLeftClick: true,
+        defaultStmtType:"|-",
         typeNextId: 4,
         typeSettings: [
             {
@@ -105,6 +107,13 @@ let validateAndCorrectParens = (st:settingsState):settingsState => {
         ...st,
         parens: newParens,
         parensErr,
+    }
+}
+
+let validateAndCorrectDefaultStmtType = (st:settingsState):settingsState => {
+    {
+        ...st,
+        defaultStmtType: st.defaultStmtType->Js_string2.trim,
     }
 }
 
@@ -218,6 +227,7 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
 
 let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
+    let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectWebSrcSettings(st)
     st
@@ -229,6 +239,7 @@ let stateToSettings = (st:settingsState):settings => {
         asrtsToSkip: st.asrtsToSkip,
         asrtsToSkipRegex: st.asrtsToSkipRegex,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
+        defaultStmtType:st.defaultStmtType,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -249,6 +260,7 @@ let settingsToState = (ls:settings):settingsState => {
         asrtsToSkip: ls.asrtsToSkip,
         asrtsToSkipRegex: ls.asrtsToSkipRegex,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
+        defaultStmtType:ls.defaultStmtType,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -288,11 +300,12 @@ let readStateFromLocStor = ():settingsState => {
                 {
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
-                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>[], ()),
-                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>asrtsToSkipRegexDefault, ()),
+                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>defaultSettings.asrtsToSkip, ()),
+                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>defaultSettings.asrtsToSkipRegex, ()),
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
+                    defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -346,6 +359,7 @@ let eqState = (st1, st2) => {
         && st1.asrtsToSkip == st2.asrtsToSkip
         && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
+        && st1.defaultStmtType == st2.defaultStmtType
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -364,6 +378,7 @@ let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
 let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
+let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -492,6 +507,10 @@ let make = (
 
     let actEditStmtsByLeftClickChange = editStmtsByLeftClick => {
         setState(updateEditStmtsByLeftClick(_, editStmtsByLeftClick))
+    }
+
+    let actDefaultStmtTypeChange = defaultStmtType => {
+        setState(updateDefaultStmtType(_, defaultStmtType))
     }
 
     let actTypeSettingAdd = () => {
@@ -671,9 +690,40 @@ let make = (
         })->ignore
     }
 
+    let rndParens = () => {
+        let elems = []
+        elems->Js_array2.push(
+            <Row alignItems=#center key="parens-text-field">
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="400px", ())
+                    label="Parentheses" 
+                    value=state.parens 
+                    onChange=evt2str(actParensChange)
+                    error={state.parensErr->Belt_Option.isSome}
+                    title="Parentheses are used to speed up finding of substitutions"
+                />
+                <span title="Determine parentheses from the loaded MM file">
+                    <IconButton onClick={_ => syncParens()}>
+                        <MM_Icons.Sync/>
+                    </IconButton>
+                </span>
+            </Row>
+        )->ignore
+        switch state.parensErr {
+            | None => ()
+            | Some(msg) => {
+                elems->Js_array2.push(
+                    <pre style=ReactDOM.Style.make(~color="red", ()) key="parens-error">{React.string(msg)}</pre>
+                )->ignore
+            }
+        }
+        elems->React.array
+    }
+
     let rndAsrtsToSkip = () => {
         let asrtsSelected = state.asrtsToSkip->Js_array2.length->Belt.Int.toString
-        <Row style=ReactDOM.Style.make(~marginTop="5px", ~marginBottom="5px", ())>
+        <Row /* style=ReactDOM.Style.make(~marginTop="5px", ~marginBottom="5px", ()) */>
             <span>
                 {`Assertions to skip: ${asrtsSelected} assertions selected.`->React.string}
             </span>
@@ -686,30 +736,17 @@ let make = (
         </Row>
     }
 
-    <Col spacing=1. style=ReactDOM.Style.make(~margin="30px", ())>
-        <Row alignItems=#center>
-            <TextField 
-                size=#small
-                style=ReactDOM.Style.make(~width="400px", ())
-                label="Parentheses" 
-                value=state.parens 
-                onChange=evt2str(actParensChange)
-                error={state.parensErr->Belt_Option.isSome}
-                title="Parentheses are used to speed up finding of substitutions"
-            />
-            <span title="Determine parentheses from the loaded MM file">
-                <IconButton onClick={_ => syncParens()}>
-                    <MM_Icons.Sync/>
-                </IconButton>
-            </span>
-        </Row>
-        {
-            switch state.parensErr {
-                | None => React.null
-                | Some(msg) => <pre style=ReactDOM.Style.make(~color="red", ())>{React.string(msg)}</pre>
-            }
-        }
+    <Col spacing=2. style=ReactDOM.Style.make(~margin="30px", ())>
+        {rndParens()}
         {rndAsrtsToSkip()}
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="200px", ())
+            label="Default statement type" 
+            value=state.defaultStmtType 
+            onChange=evt2str(actDefaultStmtTypeChange)
+            title="This text is used as initial content for new statements"
+        />
         <MM_cmp_edit_stmts_setting
             editStmtsByLeftClick=state.editStmtsByLeftClick
             onChange=actEditStmtsByLeftClickChange

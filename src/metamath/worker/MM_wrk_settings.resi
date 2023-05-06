@@ -15,6 +15,7 @@ type settings = {
     asrtsToSkip: array<string>,
     asrtsToSkipRegex: string,
     editStmtsByLeftClick:bool,
+    defaultStmtType:string,
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
 }

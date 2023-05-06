@@ -31,6 +31,7 @@ type props = {
     preCtxColors:Belt_HashMapString.t<string>,
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+    defaultStmtType:string,
 
     visualizationIsOn:bool,
 

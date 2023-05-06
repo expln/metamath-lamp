@@ -466,6 +466,7 @@ type props = {
     preCtxColors:Belt_HashMapString.t<string>,
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+    defaultStmtType:string,
 
     visualizationIsOn:bool,
 
@@ -535,6 +536,7 @@ let make = React.memoCustomCompareProps( ({
     wrkCtxColors,
     visualizationIsOn,
     editStmtsByLeftClick,
+    defaultStmtType,
     addStmtAbove,
     addStmtBelow,
 }:props) =>  {
@@ -554,7 +556,14 @@ let make = React.memoCustomCompareProps( ({
         } else if (stmt.typEditMode) {
             setState(setNewText(_,stmt.typ->userStmtTypeToStr))
         } else if (stmt.contEditMode) {
-            setState(setNewText(_,contToStr(stmt.cont)))
+            let contStr = stmt.cont->contToStr
+            let contStr =
+                if (contStr == "" && defaultStmtType != "") {
+                    defaultStmtType ++ " "
+                } else {
+                    contStr
+                }
+            setState(setNewText(_,contStr))
         } else if (stmt.jstfEditMode) {
             setState(setNewText(_,stmt.jstfText))
         }
