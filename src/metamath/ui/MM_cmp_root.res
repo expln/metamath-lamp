@@ -9,8 +9,8 @@ open Common
 type tabData =
     | Settings
     | Editor
-    | Search
-    | ProofExplorer({label:string})
+    | ExplorerIndex
+    | ExplorerAsrt({label:string})
 
 type state = {
     settings: settings,
@@ -102,7 +102,7 @@ let make = () => {
             if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, editorTabId) = st->Expln_React_UseTabs.addTab(~label="Editor", ~closable=false, ~data=Editor)
-                // let (st, _) = st->Expln_React_UseTabs.addTab(~label="Search", ~closable=false, ~data=Search)
+                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Explorer", ~closable=false, ~data=ExplorerIndex)
                 let st = st->Expln_React_UseTabs.openTab(editorTabId)
                 st
             } else {
@@ -136,8 +136,14 @@ let make = () => {
                             reloadCtx
                             initialStateJsonStr=editorInitialStateJsonStr
                         />
-                    | Search => <MM_cmp_click_counter title="Search" />
-                    | ProofExplorer({label}) => <MM_cmp_click_counter title=label />
+                    | ExplorerIndex => 
+                        <MM_cmp_pe_index
+                            settingsV=state.settingsV
+                            settings=state.settings
+                            preCtxV=state.ctxV
+                            preCtx=state.ctx
+                        />
+                    | ExplorerAsrt({label}) => <MM_cmp_click_counter title=label />
                 }
             }
         </div>

@@ -527,6 +527,10 @@ let getAllFrames = (ctx:mmContext):Belt_MapString.t<frame> => {
     Belt_MapString.fromArray(frames)
 }
 
+let getAllFrameLabels = (ctx:mmContext):array<string> => {
+    (ctx.contents.root->Belt_Option.getExn).frameLabels->Js_array2.copy
+}
+
 let forEachFrame = (ctx:mmContext, consumer:frame => option<'a>):option<'a> => {
     ctx.contents->forEachCtxInDeclarationOrder(ctx => {
         let result = ref(None)
