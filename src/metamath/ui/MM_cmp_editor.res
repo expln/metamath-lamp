@@ -979,7 +979,6 @@ let make = (
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
-                                actCloseMainMenu()
                                 setVisualizationIsOn(prev => !prev)
                             }}
                         >

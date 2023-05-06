@@ -354,38 +354,49 @@ let rndProofStatus = (
 
 module VisualizedJstf = {
     type props = {
-        wrkCtx:option<mmContext>,
-        stmt:userStmt,
+        wrkCtx:mmContext,
+        proofTreeDto:proofTreeDto,
+        jstfText:string,
+        src:exprSrcDto,
         typeColors:Belt_HashMapString.t<string>,
         preCtxColors:Belt_HashMapString.t<string>,
         wrkCtxColors:Belt_HashMapString.t<string>,
     }
-    let make = React.memoCustomCompareProps( @react.component (props:props) => {
-        switch (props.wrkCtx, props.stmt.proofTreeDto, props.stmt.jstf) {
-            | (Some(ctx), Some(proofTreeDto), Some(jstf)) => {
-                switch props.stmt.src {
-                    | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => React.null
-                    | Some(Assertion({args, label})) => {
-                        switch ctx->getFrame(label) {
+    let make = React.memoCustomCompareProps( ({
+        wrkCtx,
+        proofTreeDto,
+        jstfText,
+        src,
+        typeColors,
+        preCtxColors,
+        wrkCtxColors,
+    }:props) => {
+        switch parseJstf(jstfText) {
+            | Error(_) | Ok(None) => React.null
+            | Ok(Some(jstf)) => {
+                switch src {
+                    | VarType | Hypothesis(_) | AssertionWithErr(_) => React.null
+                    | Assertion({args, label}) => {
+                        switch wrkCtx->getFrame(label) {
                             | None => React.null
                             | Some(frame) => {
-                                let asrt = ctx->frmIntsToSymsExn(frame, frame.asrt)
+                                let asrt = wrkCtx->frmIntsToSymsExn(frame, frame.asrt)
                                 let hyps = []
                                 let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
                                 let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
                                 frame.hyps->Js.Array2.forEachi((hyp,i) => {
                                     if (hyp.typ == E) {
-                                        hyps->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                                        hyps->Js.Array2.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))->ignore
                                     } else {
-                                        let frmSym = ctx->frmIntToSymExn(frame, hyp.expr[1])
+                                        let frmSym = wrkCtx->frmIntToSymExn(frame, hyp.expr[1])
                                         subs->Belt_HashMapString.set(
                                             frmSym,
-                                            ctx->ctxIntsToSymsExn( 
+                                            wrkCtx->ctxIntsToSymsExn( 
                                                 proofTreeDto.nodes[args[i]].expr->Js_array2.sliceFrom(1) 
                                             )
                                         )
-                                        let typeSym = ctx->ctxIntToSymExn(hyp.expr[0])
-                                        switch props.typeColors->Belt_HashMapString.get(typeSym) {
+                                        let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr[0])
+                                        switch typeColors->Belt_HashMapString.get(typeSym) {
                                             | None => ()
                                             | Some(color) => frmColors->Belt_HashMapString.set( frmSym, color )
                                         }
@@ -396,8 +407,8 @@ module VisualizedJstf = {
                                     hypLabels=jstf.args
                                     asrt
                                     frmColors=Some(frmColors)
-                                    ctxColors1=Some(props.preCtxColors)
-                                    ctxColors2=Some(props.wrkCtxColors)
+                                    ctxColors1=Some(preCtxColors)
+                                    ctxColors2=Some(wrkCtxColors)
                                     subs
                                 />
                             }
@@ -405,7 +416,6 @@ module VisualizedJstf = {
                     }
                 }
             }
-            | _ => React.null
         }
     }, (_,_) => true )
 }
@@ -528,7 +538,6 @@ let make = React.memoCustomCompareProps( ({
     addStmtAbove,
     addStmtBelow,
 }:props) =>  {
-    Js.Console.log2("render stmt", stmt.id)
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
     let stmtTextFieldRef = React.useRef(Js.Nullable.null)
@@ -1079,19 +1088,21 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndJstfVisualization = () => {
-        if (visualizationIsOn) {
-                switch stmt.src {
-                    | None => React.null
-                    | Some(_) => {
-                        <VisualizedJstf
-                            wrkCtx
-                            stmt
-                            typeColors
-                            preCtxColors
-                            wrkCtxColors
-                        />
-                    }
-                }
+        if (
+            visualizationIsOn 
+            && wrkCtx->Belt.Option.isSome
+            && stmt.proofTreeDto->Belt.Option.isSome
+            && stmt.src->Belt.Option.isSome
+        ) {
+                <VisualizedJstf
+                    wrkCtx={wrkCtx->Belt_Option.getExn}
+                    proofTreeDto={stmt.proofTreeDto->Belt_Option.getExn}
+                    jstfText=stmt.jstfText
+                    src={stmt.src->Belt_Option.getExn}
+                    typeColors
+                    preCtxColors
+                    wrkCtxColors
+                />
         } else {
             React.null
         }
