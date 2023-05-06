@@ -1,3 +1,4 @@
+- optimize re-rendering for all tabs.
 - in the bottom up prover use existing vars together with new vars
 - fix a bug:
     1. open visualization

@@ -52,6 +52,7 @@ let loadContext: (
     ~debug:bool=?, 
     ()
 ) => mmContext
+let ctxOptimizeForProver: mmContext => mmContext
 
 let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool

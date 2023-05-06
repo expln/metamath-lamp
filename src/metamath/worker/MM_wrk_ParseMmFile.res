@@ -48,8 +48,6 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
             try {
                 let parseResult = parseMmFile(
                     ~mmFileContent=mmFileText,
-                    ~skipComments=true,
-                    ~skipProofs=true,
                     ~onProgress = pct => {
                         sendToClient(MmFileParseProgress({pct:pct}))
                     },

@@ -94,6 +94,7 @@ type rec mmContextContents = {
     varTypes: Belt_HashMapInt.t<int>,
     mutable lastComment: option<string>,
     frames: Belt_HashMapString.t<frame>,
+    frameLabels:array<string>,
     debug:bool,
 }
 
@@ -680,6 +681,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             varTypes: Belt_HashMapInt.make(~hintSize=4),
             lastComment: None,
             frames: Belt_HashMapString.make(~hintSize=1),
+            frameLabels:[],
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
@@ -910,6 +912,7 @@ let addAssertion = ( ctx:mmContext, ~label:string, ~exprStr:array<string>, ~proo
             ()
         )
     )
+    (ctx.contents.root->Belt_Option.getExn).frameLabels->Js_array2.push(label)->ignore
 }
 
 let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
@@ -1135,3 +1138,44 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
     })->ignore
 }
 
+let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, mmContextContents) => {
+    let removeRedundantData = ctx => {
+        {
+            ...ctx,
+            lastComment: None,
+            frames: ctx.frames->Belt_HashMapString.toArray->Js_array2.map(((label,frame)) => {
+                (
+                    label,
+                    {
+                        ...frame,
+                        descr:None,
+                        proof:None,
+                    }
+                )
+            })->Belt_HashMapString.fromArray,
+            frameLabels:[]
+        }
+    }
+
+    switch ctx.parent {
+        | None => {
+            let res = removeRedundantData(ctx)
+            res.root = Some(res)
+            (res, res)
+        }
+        | Some(parent) => {
+            let (newRoot, newParent) = ctxOptimizeForProverPriv(parent)
+            let res = {
+                ...removeRedundantData(ctx),
+                root: Some(newRoot),
+                parent: Some(newParent),
+            }
+            (newRoot, res)
+        }
+    }
+}
+
+let ctxOptimizeForProver = (ctx:mmContext):mmContext => {
+    let (_,res) = ctx.contents->ctxOptimizeForProverPriv
+    ref(res)
+}

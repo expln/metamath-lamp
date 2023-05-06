@@ -695,6 +695,7 @@ let findSyntaxTypes = (frms: Belt_MapString.t<frmSubsData>): array<int> => {
 }
 
 let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) => {
+    let preCtx = preCtx->ctxOptimizeForProver
     preCtx->moveConstsToBegin(st.settings.parens)
     let frms = prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ())
     let parenInts = prepareParenInts(preCtx, st.settings.parens)
