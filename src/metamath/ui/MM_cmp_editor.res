@@ -1061,6 +1061,9 @@ let make = (
             <td>
                 <MM_cmp_user_stmt
                     modalRef
+                    settingsVer=settingsV
+                    preCtxVer=preCtxV
+                    varsText=state.varsText
                     wrkCtx=state.wrkCtx
                     frms=state.frms
                     parenCnt=state.parenCnt

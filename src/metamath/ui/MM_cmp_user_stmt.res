@@ -441,30 +441,94 @@ let rec addColorsToSyntaxTree = (
     }
 }
 
-@react.component
-let make = (
-    ~modalRef:modalRef,
-    ~wrkCtx:option<mmContext>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~syntaxTypes:array<int>,
-    ~parensMap:Belt_HashMapString.t<string>,
-    ~stmt:userStmt, 
-    ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
-    ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
-    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
-    ~onSyntaxTreeUpdated:stmtCont=>unit,
-    ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
-    ~onGenerateProof:unit=>unit,
-    ~onDebug:unit=>unit,
-    ~typeColors:Belt_HashMapString.t<string>,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
-    ~visualizationIsOn:bool,
-    ~editStmtsByLeftClick:bool,
-    ~addStmtAbove:string=>unit,
-    ~addStmtBelow:string=>unit,
-) => {
+type props = {
+    modalRef:modalRef,
+
+    settingsVer:int,
+    preCtxVer:int,
+    varsText:string,
+    wrkCtx:option<mmContext>,
+    frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
+    syntaxTypes:array<int>,
+    parensMap:Belt_HashMapString.t<string>,
+    typeColors:Belt_HashMapString.t<string>,
+    preCtxColors:Belt_HashMapString.t<string>,
+    wrkCtxColors:Belt_HashMapString.t<string>,
+    editStmtsByLeftClick:bool,
+
+    visualizationIsOn:bool,
+
+    stmt:userStmt, 
+    onLabelEditRequested:unit=>unit, 
+    onLabelEditDone:string=>unit, 
+    onLabelEditCancel:string=>unit,
+    onTypEditRequested:unit=>unit, 
+    onTypEditDone:userStmtType=>unit,
+    onContEditRequested:unit=>unit, 
+    onContEditDone:string=>unit, 
+    onContEditCancel:string=>unit,
+    onSyntaxTreeUpdated:stmtCont=>unit,
+    onJstfEditRequested:unit=>unit, 
+    onJstfEditDone:string=>unit, 
+    onJstfEditCancel:string=>unit,
+
+    onGenerateProof:unit=>unit,
+    onDebug:unit=>unit,
+    addStmtAbove:string=>unit,
+    addStmtBelow:string=>unit,
+}
+
+let propsAreSame = (a:props,b:props):bool => {
+    a.settingsVer == b.settingsVer
+    && a.preCtxVer == b.preCtxVer
+    && a.varsText == b.varsText
+    && a.visualizationIsOn == b.visualizationIsOn
+
+    && a.stmt.label == b.stmt.label
+    && a.stmt.labelEditMode == b.stmt.labelEditMode
+    && a.stmt.typ == b.stmt.typ
+    && a.stmt.typEditMode == b.stmt.typEditMode
+    && a.stmt.cont === b.stmt.cont
+    && a.stmt.contEditMode == b.stmt.contEditMode
+    && a.stmt.jstfText == b.stmt.jstfText
+    && a.stmt.jstfEditMode == b.stmt.jstfEditMode
+
+    && a.stmt.src == b.stmt.src
+    && a.stmt.proofStatus === b.stmt.proofStatus
+}
+
+let make = React.memoCustomCompareProps( ({
+    modalRef,
+    wrkCtx,
+    frms,
+    parenCnt,
+    syntaxTypes,
+    parensMap,
+    stmt,
+    onLabelEditRequested,
+    onLabelEditDone,
+    onLabelEditCancel,
+    onTypEditRequested,
+    onTypEditDone,
+    onContEditRequested,
+    onContEditDone,
+    onContEditCancel,
+    onSyntaxTreeUpdated,
+    onJstfEditRequested,
+    onJstfEditDone,
+    onJstfEditCancel,
+    onGenerateProof,
+    onDebug,
+    typeColors,
+    preCtxColors,
+    wrkCtxColors,
+    visualizationIsOn,
+    editStmtsByLeftClick,
+    addStmtAbove,
+    addStmtBelow,
+}:props) =>  {
+    Js.Console.log2("render stmt", stmt.id)
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
     let stmtTextFieldRef = React.useRef(Js.Nullable.null)
@@ -1097,4 +1161,4 @@ let make = (
             </tr>
         </tbody>
     </table>
-}
+}, propsAreSame)

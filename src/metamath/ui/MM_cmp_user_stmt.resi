@@ -16,30 +16,46 @@ let rndProofStatus: (
     ()
 ) => React.element
 
-@react.component
-let make: (
-    ~modalRef:modalRef,
-    ~wrkCtx:option<mmContext>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~syntaxTypes:array<int>,
-    ~parensMap:Belt_HashMapString.t<string>,
-    ~stmt:userStmt, 
-    ~onLabelEditRequested:unit=>unit, ~onLabelEditDone:string=>unit, ~onLabelEditCancel:string=>unit,
-    ~onTypEditRequested:unit=>unit, ~onTypEditDone:userStmtType=>unit,
-    ~onContEditRequested:unit=>unit, ~onContEditDone:string=>unit, ~onContEditCancel:string=>unit,
-    ~onSyntaxTreeUpdated:stmtCont=>unit,
-    ~onJstfEditRequested:unit=>unit, ~onJstfEditDone:string=>unit, ~onJstfEditCancel:string=>unit,
-    ~onGenerateProof:unit=>unit,
-    ~onDebug:unit=>unit,
-    ~typeColors:Belt_HashMapString.t<string>,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
-    ~visualizationIsOn:bool,
-    ~editStmtsByLeftClick:bool,
-    ~addStmtAbove:string=>unit,
-    ~addStmtBelow:string=>unit,
-) => React.element
+type props = {
+    modalRef:modalRef,
+
+    settingsVer:int,
+    preCtxVer:int,
+    varsText:string,
+    wrkCtx:option<mmContext>,
+    frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
+    syntaxTypes:array<int>,
+    parensMap:Belt_HashMapString.t<string>,
+    typeColors:Belt_HashMapString.t<string>,
+    preCtxColors:Belt_HashMapString.t<string>,
+    wrkCtxColors:Belt_HashMapString.t<string>,
+    editStmtsByLeftClick:bool,
+
+    visualizationIsOn:bool,
+
+    stmt:userStmt, 
+    onLabelEditRequested:unit=>unit, 
+    onLabelEditDone:string=>unit, 
+    onLabelEditCancel:string=>unit,
+    onTypEditRequested:unit=>unit, 
+    onTypEditDone:userStmtType=>unit,
+    onContEditRequested:unit=>unit, 
+    onContEditDone:string=>unit, 
+    onContEditCancel:string=>unit,
+    onSyntaxTreeUpdated:stmtCont=>unit,
+    onJstfEditRequested:unit=>unit, 
+    onJstfEditDone:string=>unit, 
+    onJstfEditCancel:string=>unit,
+
+    onGenerateProof:unit=>unit,
+    onDebug:unit=>unit,
+    addStmtAbove:string=>unit,
+    addStmtBelow:string=>unit,
+}
+
+// @react.component
+let make: props => React.element
 
 let rndContText: (
     ~stmtCont:stmtCont,
