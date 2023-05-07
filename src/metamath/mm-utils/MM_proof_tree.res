@@ -50,6 +50,7 @@ and proofTree = {
     parenCnt:parenCnt,
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     rootStmts:array<rootStmt>,
+    syntaxProofs: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     dbg: option<proofTreeDbg>,
 }
 
@@ -135,6 +136,7 @@ let ptMake = (
         parenCnt,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
         rootStmts: [],
+        syntaxProofs: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
         dbg: exprToStr->Belt_Option.map(exprToStr => {
             {
                 newVars: [],
@@ -181,6 +183,18 @@ let ptAddRootStmt = (tree, stmt:rootStmt) => {
         | Some(_) => ()
         | None => tree.rootStmts->Js_array2.push(stmt)->ignore
     }
+}
+
+let ptAddSyntaxProof = (tree, expr:expr, syntaxProof:proofNode):unit => {
+    tree.syntaxProofs->Belt_HashMap.set(expr,syntaxProof)
+}
+
+let ptGetSyntaxProof = (tree, expr):option<proofNode> => {
+    tree.syntaxProofs->Belt_HashMap.get(expr)
+}
+
+let ptGetAllSyntaxProofs = (tree):array<(expr,proofNode)> => {
+    tree.syntaxProofs->Belt_HashMap.toArray
 }
 
 let ptClearDists = tree => {

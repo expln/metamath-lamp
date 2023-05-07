@@ -39,13 +39,16 @@ let proveFloatings: (
     ~parenCnt: parenCnt,
 ) => proofTree
 
-let proveFloatingsMany: (
-    ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
+let proveSyntaxTypes: (
+    ~proofTree:proofTree=?,
+    ~wrkCtx:mmContext=?,
+    ~frms:Belt_MapString.t<frmSubsData>=?,
+    ~parenCnt:parenCnt=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
-) => (proofTree,array<option<expr>>)
+    ~onProgress:float=>unit=?,
+    ()
+) => proofTree
 
 
 let unifyAll: (
@@ -54,6 +57,9 @@ let unifyAll: (
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
+    ~syntaxTypes:array<int>=?,
+    ~syntaxProofTables:array<MM_proof_table.proofTable>=?,
+    ~exprsToSyntaxCheck:array<expr>=?,
     ~debugLevel:int=?,
     ~onProgress: string=>unit=?,
     (),

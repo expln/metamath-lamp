@@ -7,6 +7,7 @@ open MM_progress_tracker
 open MM_proof_tree
 open MM_unification_debug
 open MM_statements_dto
+open Common
 
 type lengthRestrict = No | LessEq | Less
 
@@ -653,22 +654,38 @@ let proveFloatings = (
     tree
 }
 
-let proveFloatingsMany = (
-    ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
+let proveSyntaxTypes = (
+    ~proofTree:option<proofTree>=?,
+    ~wrkCtx: option<mmContext>=?,
+    ~frms: option<Belt_MapString.t<frmSubsData>>=?,
+    ~parenCnt: option<parenCnt>=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
-):(proofTree,array<option<expr>>) => {
-    let tree = createProofTree(
-        ~proofCtx=wrkCtx,
-        ~frms,
-        ~parenCnt,
-    )
+    ~onProgress:option<float=>unit>=?,
+    ()
+):proofTree => {
+    if (
+        proofTree->Belt_Option.isNone
+        && (wrkCtx->Belt_Option.isNone || frms->Belt_Option.isNone || parenCnt->Belt_Option.isNone)
+    ) {
+        raise(MmException({msg:`Either proofTree or (wrkCtx and frms and parenCnt) should be passed.`}))
+    }
+
+    let progressState = progressTrackerMake( ~step=0.01, ~onProgress?, () )
+
+    let tree = switch proofTree {
+        | Some(tree) => tree
+        | None => {
+            createProofTree(
+                ~proofCtx=wrkCtx->Belt_Option.getExn,
+                ~frms=frms->Belt_Option.getExn,
+                ~parenCnt=parenCnt->Belt_Option.getExn,
+            )
+        }
+    }
     if (syntaxTypes->Js_array2.length == 0) {
-        (tree, Belt_Array.make(exprs->Js_array2.length, None))
+        tree
     } else {
-        let res = Expln_utils_common.createArray(exprs->Js_array2.length)
         let lastType = ref(syntaxTypes[0])
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs[ei]
@@ -684,15 +701,17 @@ let proveFloatingsMany = (
                 }
             }
             switch node.contents->pnGetProof {
-                | None => res[ei] = None
+                | None => ()
                 | Some(_) => {
-                    let provedTypeStmt = node.contents->pnGetExpr
-                    res[ei] = Some(provedTypeStmt)
-                    lastType := provedTypeStmt[0]
+                    tree->ptAddSyntaxProof(expr, node.contents)
+                    lastType := (node.contents->pnGetExpr)[0]
                 }
             }
+            progressState->progressTrackerSetCurrPct( 
+                (ei+1)->Belt_Int.toFloat /. exprs->Js_array2.length->Belt_Int.toFloat
+            )
         }
-        (tree,res)
+        tree
     }
 }
 
@@ -712,6 +731,9 @@ let unifyAll = (
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
+    ~syntaxTypes:option<array<int>>=?,
+    ~syntaxProofTables:option<array<MM_proof_table.proofTable>>=?,
+    ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
     ~onProgress:option<string=>unit>=?,
     ()
@@ -719,7 +741,7 @@ let unifyAll = (
     let progressState = progressTrackerMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
-            pct => onProgress(`Unifying all: ${(pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`)
+            pct => onProgress(`Unifying all: ${pct->floatToPctStr}`)
         }), 
         ()
     )
@@ -731,6 +753,50 @@ let unifyAll = (
         ~frms,
         ~parenCnt,
     )
+
+    switch syntaxTypes {
+        | None => ()
+        | Some(syntaxTypes) => {
+            if (syntaxTypes->Js_array2.length > 0) {
+                // switch syntaxProofTables {
+                //     | None => ()
+                //     | Some(syntaxProofTables) => {
+
+                //         Js.Console.log("--- syntaxProofTables ------------------------------------------------------------")
+                //         syntaxProofTables->Js.Array2.forEach(tbl => {
+                //             tbl->Js_array2.forEach(row => {
+                //                 Js.Console.log(wrkCtx->ctxIntsToStrExn(row.expr))
+                //             })
+                //         })
+                //         Js.Console.log("---------------------------------------------------------------")
+                //         Js.Console.log2("start loading syntax tables", currTimeStr())
+
+                //         syntaxProofTables->Js_array2.forEach(tbl => {
+                //             tbl->Js_array2.forEach(row => {
+                //                 proveFloating( ~tree, ~node=tree->ptGetNode(row.expr) )
+                //             })
+                //         })
+
+                //         Js.Console.log2("end loading syntax tables", currTimeStr())
+                //     }
+                // }
+                switch exprsToSyntaxCheck {
+                    | None => ()
+                    | Some(exprsToSyntaxCheck) => {
+                        proveSyntaxTypes(
+                            ~proofTree=tree,
+                            ~syntaxTypes,
+                            ~exprs=exprsToSyntaxCheck,
+                            ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
+                                pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
+                            }),
+                            ()
+                        )->ignore
+                    }
+                }
+            }
+        }
+    }
 
     let rootProvables = rootStmts->Js_array2.filter(stmt => !stmt.isHyp)
     let numOfStmts = rootProvables->Js_array2.length

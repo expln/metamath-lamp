@@ -1,6 +1,7 @@
 let nbsp:string
 
 let currTimeStr: unit => string
+let floatToPctStr: float => string
 
 type cache<'depVer,'dep,'data>
 let cacheMake: ( ~recalc:'dep=>'data, ~depVerEq: ('depVer,'depVer) => bool ) => cache<'depVer,'dep,'data>

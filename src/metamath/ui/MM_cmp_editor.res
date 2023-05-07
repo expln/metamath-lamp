@@ -643,6 +643,17 @@ let make = (
         }
     }
 
+    let getAllExprsToSyntaxCheck = (rootStmts:array<rootStmt>):array<expr> => {
+        let res = []
+        state.stmts->Js.Array2.forEachi((stmt,i) => {
+            switch stmt.cont {
+                | Tree(_) => ()
+                | Text(_) => res->Js.Array2.push(rootStmts[i].expr->Js_array2.sliceFrom(1))->ignore
+            }
+        })
+        res
+    }
+
     let actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
@@ -710,6 +721,7 @@ let make = (
                                     ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                                 )
                             )
+                            let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
                             unify(
                                 ~settingsVer=state.settingsV,
                                 ~settings=state.settings,
@@ -717,8 +729,11 @@ let make = (
                                 ~preCtx=state.preCtx,
                                 ~varsText,
                                 ~disjText,
-                                ~rootStmts={rootUserStmts->Js_array2.map(userStmtToRootStmt)},
+                                ~rootStmts,
                                 ~bottomUpProverParams=None,
+                                ~syntaxTypes=Some(state.syntaxTypes),
+                                ~syntaxProofTables=None,
+                                ~exprsToSyntaxCheck=Some(getAllExprsToSyntaxCheck(rootStmts)),
                                 ~debugLevel=0,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(

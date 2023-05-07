@@ -53,6 +53,9 @@ let ptGetNode: (proofTree, expr) => proofNode
 let ptAddNewVar: (proofTree, int) => int
 let ptAddDisjPair: (proofTree, int, int) => unit
 let ptAddRootStmt: (proofTree, rootStmt) => unit
+let ptAddSyntaxProof: (proofTree, expr, proofNode) => unit
+let ptGetSyntaxProof: (proofTree, expr) => option<proofNode>
+let ptGetAllSyntaxProofs: proofTree => array<(expr,proofNode)>
 let ptClearDists: proofTree => unit
 let ptGetDbg: proofTree => option<proofTreeDbg>
 

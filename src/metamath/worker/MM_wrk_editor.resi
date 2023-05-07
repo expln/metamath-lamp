@@ -192,3 +192,15 @@ let incExpLvl: stmtContTreeData => stmtContTreeData
 let decExpLvl: stmtContTreeData => stmtContTreeData
 let getNumberOfSelectedSymbols: stmtContTreeData => int
 let getSelectedSymbols: stmtCont => option<array<string>>
+
+let addColorsToSyntaxTree: (
+    ~tree:syntaxTreeNode,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
+) => syntaxTreeNode
+
+let getColorForSymbol: (
+    ~sym:string,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
+) => option<string>

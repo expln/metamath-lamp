@@ -11,7 +11,7 @@ type unifErr =
 
 let argsToString = (args:array<expr>, exprToStr:expr=>string):string => {
     args->Js_array2.mapi((arg,i) => {
-        `${i->Belt.Int.toString}: ${if (arg->Js_array2.length == 0) { "?" } else { exprToStr(arg) } }`
+        `${(i+1)->Belt.Int.toString}: ${if (arg->Js_array2.length == 0) { "?" } else { exprToStr(arg) } }`
     })->Js.Array2.joinWith("\n")
 }
 

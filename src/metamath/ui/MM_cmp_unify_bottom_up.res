@@ -583,6 +583,9 @@ let make = (
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
+                    ~syntaxTypes=None,
+                    ~syntaxProofTables=None,
+                    ~exprsToSyntaxCheck=None,
                     ~debugLevel = st.debugLevel,
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(

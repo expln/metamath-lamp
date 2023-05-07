@@ -2,6 +2,8 @@ let nbsp = Js_string2.fromCharCode(160)
 
 let currTimeStr = () => Js.Date.now()->Js.Date.fromFloat->Js.Date.toISOString
 
+let floatToPctStr = pct => (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString ++ "%"
+
 type cache<'depVer,'dep,'data> = {
     recalc:'dep=>'data,
     depVerEq: ('depVer,'depVer) => bool,

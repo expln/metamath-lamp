@@ -30,6 +30,7 @@ type proofTreeDto = {
     newVars: array<expr>,
     disj: disjMutable,
     nodes: array<proofNodeDto>,
+    syntaxProofs: array<(expr,proofNodeDto)>,
     dbg: option<proofTreeDbgDto>,
 }
 
@@ -84,6 +85,7 @@ let collectAllExprs = (
     roots:array<expr>,
 ):Belt_HashMap.t<expr,int,ExprHash.identity> => {
     let nodesToProcess = Belt_MutableStack.make()
+    tree->ptGetAllSyntaxProofs->Js_array2.forEach(((_,node)) => nodesToProcess->Belt_MutableStack.push(node))
     roots->Js_array2.forEach(expr => nodesToProcess->Belt_MutableStack.push(tree->ptGetNode(expr)))
     let processedNodes = Belt_HashSet.make(~id=module(ExprHash), ~hintSize=100)
     let res = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=100)
@@ -109,6 +111,22 @@ let collectAllExprs = (
     res
 }
 
+let createSyntaxProofsDto = (
+    ~tree:proofTree,
+    ~exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
+    ~nodes:array<proofNodeDto>,
+): array<(expr,proofNodeDto)> => {
+    tree->ptGetAllSyntaxProofs->Js_array2.map(((expr,proofNode)) => {
+        (
+            expr,
+            switch exprToIdx->Belt_HashMap.get(proofNode->pnGetExpr) {
+                | None => raise(MmException({msg:`Could not convert proofNode to proofNodeDto for a syntax proof.`}))
+                | Some(idx) => nodes[idx]
+            }
+        )
+    })
+}
+
 let proofTreeToDto = (
     tree:proofTree, 
     rootStmts:array<expr>, 
@@ -123,6 +141,7 @@ let proofTreeToDto = (
         newVars: tree->ptGetCopyOfNewVars,
         disj: tree->ptGetDisj,
         nodes,
+        syntaxProofs: createSyntaxProofsDto( ~tree, ~exprToIdx, ~nodes, ),
         dbg: tree->ptGetDbg->Belt_Option.map(dbg => {
             {
                 newVars: dbg.newVars,

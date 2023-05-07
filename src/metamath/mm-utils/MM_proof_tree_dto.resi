@@ -29,6 +29,7 @@ type proofTreeDto = {
     newVars: array<expr>,
     disj: disjMutable,
     nodes: array<proofNodeDto>,
+    syntaxProofs: array<(expr,proofNodeDto)>,
     dbg: option<proofTreeDbgDto>,
 }
 

@@ -90,27 +90,47 @@ let textToSyntaxTree = (
     if (syntaxTypes->Js_array2.length == 0) {
         Error(`Could not determine syntax types.`)
     } else {
-        let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
-        let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
-            if (a == lastSyntaxTypeInt) {
-                -1
-            } else if (b == lastSyntaxTypeInt) {
-                1
-            } else {
-                a - b
+        switch syms->Js.Array2.find(stmtSym => wrkCtx->ctxSymToInt(stmtSym.sym)->Belt_Option.isNone) {
+            | Some({sym:unrecognizedSymbol}) => {
+                Error(`The statement contain an unrecognized symbol: '${unrecognizedSymbol}'`)
             }
-        })
-        let stmt = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
-        let (proofTree,provedTypeStmts) = MM_provers.proveFloatingsMany(
-            ~wrkCtx=wrkCtx,
-            ~frms,
-            ~parenCnt,
-            ~exprs=[stmt->Js_array2.sliceFrom(1)],
-            ~syntaxTypes
-        )
-        switch provedTypeStmts[0] {
-            | None => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
-            | Some(typeStmt) => buildSyntaxTreeFromProofTree( ~ctx=wrkCtx, ~proofTree, ~typeStmt, )
+            | None => {
+                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
+                let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
+                    if (a == lastSyntaxTypeInt) {
+                        -1
+                    } else if (b == lastSyntaxTypeInt) {
+                        1
+                    } else {
+                        a - b
+                    }
+                })
+                let stmt = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
+                let expr = stmt->Js_array2.sliceFrom(1)
+                let proofTree = MM_provers.proveSyntaxTypes(
+                    ~wrkCtx=wrkCtx,
+                    ~frms,
+                    ~parenCnt,
+                    ~exprs=[expr],
+                    ~syntaxTypes,
+                    ()
+                )
+                switch proofTree->ptGetSyntaxProof(expr) {
+                    | None => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
+                    | Some(node) => {
+                        switch (lastSyntaxType, wrkCtx->ctxIntToSym((node->pnGetExpr)[0])) {
+                            | (None, Some(provedSyntaxTypeStr)) => onLastSyntaxTypeChange(provedSyntaxTypeStr)
+                            | (Some(lastSyntaxTypeStr), Some(provedSyntaxTypeStr)) => {
+                                if (lastSyntaxTypeStr != provedSyntaxTypeStr) {
+                                    onLastSyntaxTypeChange(provedSyntaxTypeStr)
+                                }
+                            }
+                            | _ => ()
+                        }
+                        buildSyntaxTreeFromProofTree( ~ctx=wrkCtx, ~proofTree, ~typeStmt=node->pnGetExpr, )
+                    }
+                }
+            }
         }
     }
 }
@@ -384,37 +404,6 @@ module VisualizedJstf = {
             }
         }
     }, (_,_) => true )
-}
-
-let getColorForSymbol = (
-    ~sym:string,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
-):option<string> => {
-    switch preCtxColors->Belt_HashMapString.get(sym) {
-        | Some(color) => Some(color)
-        | None => wrkCtxColors->Belt_HashMapString.get(sym)
-    }
-}
-
-let rec addColorsToSyntaxTree = (
-    ~tree:syntaxTreeNode,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
-):syntaxTreeNode => {
-    {
-        ...tree,
-        children: tree.children->Js.Array2.map(child => {
-            switch child {
-                | Subtree(syntaxTreeNode) => {
-                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors, ~wrkCtxColors))
-                }
-                | Symbol(symData) => {
-                    Symbol({ ...symData, color:getColorForSymbol(~sym=symData.sym, ~preCtxColors, ~wrkCtxColors)})
-                }
-            }
-        })
-    }
 }
 
 type props = {

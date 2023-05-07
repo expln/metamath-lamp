@@ -19,6 +19,9 @@ let unify: (
     ~disjText: string,
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
+    ~syntaxTypes:option<array<int>>,
+    ~syntaxProofTables:option<array<MM_proof_table.proofTable>>,
+    ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress: string => unit,
 ) => Expln_utils_promise.promise<MM_proof_tree_dto.proofTreeDto>

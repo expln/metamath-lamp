@@ -1691,9 +1691,102 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                             {
                                 ...stmt, 
                                 proofStatus:Some(JstfIsIncorrect),
-                                unifErr
+                                unifErr: stmt.unifErr->Belt.Option.orElse(unifErr)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let getColorForSymbol = (
+    ~sym:string,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
+):option<string> => {
+    switch preCtxColors->Belt_HashMapString.get(sym) {
+        | Some(color) => Some(color)
+        | None => wrkCtxColors->Belt_HashMapString.get(sym)
+    }
+}
+
+let rec addColorsToSyntaxTree = (
+    ~tree:syntaxTreeNode,
+    ~preCtxColors:Belt_HashMapString.t<string>,
+    ~wrkCtxColors:Belt_HashMapString.t<string>,
+):syntaxTreeNode => {
+    {
+        ...tree,
+        children: tree.children->Js.Array2.map(child => {
+            switch child {
+                | Subtree(syntaxTreeNode) => {
+                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors, ~wrkCtxColors))
+                }
+                | Symbol(symData) => {
+                    Symbol({ ...symData, color:getColorForSymbol(~sym=symData.sym, ~preCtxColors, ~wrkCtxColors)})
+                }
+            }
+        })
+    }
+}
+
+let checkParensMatch = (expr,parenCnt):bool => {
+    let parenState = ref(Balanced)
+    let i = ref(0)
+    while (i.contents < expr->Js_array2.length && parenState.contents != Failed) {
+        parenState := parenCnt->parenCntPut(expr[i.contents])
+        i := i.contents + 1
+    }
+    parenCnt->parenCntReset
+    parenState.contents == Balanced
+}
+
+let stmtSetSyntaxTree = (
+    ~st:editorState,
+    ~stmt:userStmt,
+    ~expr:expr,
+    ~wrkCtx:mmContext,
+    ~syntaxNodes:Belt_HashMap.t<expr,proofNodeDto,ExprHash.identity>,
+    ~proofTreeDto:proofTreeDto
+):userStmt => {
+    switch stmt.cont {
+        | Tree(_) => stmt
+        | Text(syms) => {
+            let syntaxTree = switch syntaxNodes->Belt_HashMap.get(expr->Js_array2.sliceFrom(1)) {
+                | None => None
+                | Some(nodeDto) => Some(buildSyntaxTreeFromProofTreeDto(~ctx=wrkCtx, ~proofTreeDto, ~typeStmt=nodeDto.expr))
+            }
+            switch syntaxTree {
+                | None => {
+                    {
+                        ...stmt,
+                        unifErr: {
+                            let msg = if (checkParensMatch(expr, st.parenCnt)) {""} else {"- parentheses mismatch"}
+                            Some(stmt.unifErr->Belt_Option.getWithDefault(`Syntax error${msg}.`))
+                        },
+                    }
+                }
+                | Some(Error(msg)) => {
+                    {
+                        ...stmt,
+                        unifErr: Some(stmt.unifErr->Belt_Option.getWithDefault("Syntax error (" ++ msg ++ ").")),
+                    }
+                }
+                | Some(Ok(syntaxTree)) => {
+                    {
+                        ...stmt,
+                        cont: Tree({
+                            exprTyp: syms[0].sym, 
+                            root: addColorsToSyntaxTree( 
+                                ~tree=syntaxTree, 
+                                ~preCtxColors=st.preCtxColors, 
+                                ~wrkCtxColors=st.wrkCtxColors, 
+                            ), 
+                            clickedNodeId: None,
+                            expLvl:0,
+                        })
                     }
                 }
             }
@@ -1719,29 +1812,38 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                                         }
                                     })
                                     ->Belt_HashMap.fromArray(~id=module(ExprHash))
+            let syntaxNodes = proofTreeDto.syntaxProofs->Belt_HashMap.fromArray(~id=module(ExprHash))
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}
-                    if (stmt.typ == P) {
-                        st->updateStmt(stmt.id, stmt => {
-                            switch stmt.expr {
-                                | None => 
-                                    raise(MmException({ msg:`Cannot applyUnifyAllResults without stmt.expr [2].`}))
-                                | Some(expr) => {
+                    st->updateStmt(stmt.id, stmt => {
+                        switch stmt.expr {
+                            | None => raise(MmException({ msg:`Cannot applyUnifyAllResults without stmt.expr [2].`}))
+                            | Some(expr) => {
+                                let stmt = stmtSetSyntaxTree(
+                                    ~st,
+                                    ~stmt,
+                                    ~expr,
+                                    ~wrkCtx,
+                                    ~syntaxNodes,
+                                    ~proofTreeDto
+                                )
+                                let stmt = if (stmt.typ == P) {
                                     switch exprToNode->Belt_HashMap.get(expr) {
-                                        | None => stmt
+                                        | None => raise(MmException({ msg:`exprToNode->Belt_HashMap.get(expr) is None`}))
                                         | Some(node) => {
                                             let stmt = userStmtSetJstfTextAndProof(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
                                             let stmt = userStmtSetProofStatus(stmt,wrkCtx,proofTreeDto,node,exprToUserStmt)
                                             stmt
                                         }
                                     }
+                                } else {
+                                    stmt
                                 }
+                                stmt
                             }
-                        })
-                    } else {
-                        st
-                    }
+                        }
+                    })
                 },
                 st
             )
