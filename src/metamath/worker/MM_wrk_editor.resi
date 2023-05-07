@@ -179,6 +179,7 @@ let generateCompressedProof: (editorState, string) => option<(string,string,stri
 let updateColorsInAllStmts: editorState => editorState
 let getTheOnlyCheckedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, string) => option<userStmt>
+let getAllExprsToSyntaxCheck: (editorState, array<rootStmt>) => array<expr>
 let mergeStmts: (editorState, string, string) => result<editorState, string>
 let renameStmt: (editorState, string, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>

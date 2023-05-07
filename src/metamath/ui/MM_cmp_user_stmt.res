@@ -92,7 +92,7 @@ let textToSyntaxTree = (
     } else {
         switch syms->Js.Array2.find(stmtSym => wrkCtx->ctxSymToInt(stmtSym.sym)->Belt_Option.isNone) {
             | Some({sym:unrecognizedSymbol}) => {
-                Error(`The statement contain an unrecognized symbol: '${unrecognizedSymbol}'`)
+                Error(`The statement contains an unrecognized symbol: '${unrecognizedSymbol}'`)
             }
             | None => {
                 let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)

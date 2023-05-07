@@ -283,6 +283,8 @@ let unifyAll = (st):editorState => {
                 ~frms = st.frms,
                 ~wrkCtx,
                 ~rootStmts,
+                ~syntaxTypes=st.syntaxTypes,
+                ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts),
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))

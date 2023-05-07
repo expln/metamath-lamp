@@ -547,6 +547,20 @@ describe("MM_wrk_editor integration tests", _ => {
 
     })
 
+    it("unify-all identifies syntax errors", _ => {
+        setTestDataDir("syntax-errors")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
+            ~asrtsToSkipFilePath, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let st = st->updateStmt(st->getStmtId(~label="stmt9-opabex2.11", ()), ~content="|- ( A e. _V -> -> A e. _V )", ())
+        let st = st->updateStmt(st->getStmtId(~label="stmt4", ()), ~content="|- ( ( u = x /\ v = y ) -> ( F ` u ) = ( F ` x ) ) ]", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step2")
+
+    })
+
     it("updateEditorStateWithPostupdateActions removes redundant variables from disjoints", _ => {
         setTestDataDir("no-redundant-vars-in-disj")
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 

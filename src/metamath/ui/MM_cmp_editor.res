@@ -643,17 +643,6 @@ let make = (
         }
     }
 
-    let getAllExprsToSyntaxCheck = (rootStmts:array<rootStmt>):array<expr> => {
-        let res = []
-        state.stmts->Js.Array2.forEachi((stmt,i) => {
-            switch stmt.cont {
-                | Tree(_) => ()
-                | Text(_) => res->Js.Array2.push(rootStmts[i].expr->Js_array2.sliceFrom(1))->ignore
-            }
-        })
-        res
-    }
-
     let actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
@@ -732,7 +721,7 @@ let make = (
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
                                 ~syntaxTypes=Some(state.syntaxTypes),
-                                ~exprsToSyntaxCheck=Some(getAllExprsToSyntaxCheck(rootStmts)),
+                                ~exprsToSyntaxCheck=Some(state->getAllExprsToSyntaxCheck(rootStmts)),
                                 ~debugLevel=0,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(

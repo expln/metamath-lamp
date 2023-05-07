@@ -1763,7 +1763,7 @@ let stmtSetSyntaxTree = (
                     {
                         ...stmt,
                         unifErr: {
-                            let msg = if (checkParensMatch(expr, st.parenCnt)) {""} else {"- parentheses mismatch"}
+                            let msg = if (checkParensMatch(expr, st.parenCnt)) {""} else {" - parentheses mismatch"}
                             Some(stmt.unifErr->Belt_Option.getWithDefault(`Syntax error${msg}.`))
                         },
                     }
@@ -2280,4 +2280,15 @@ let decExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
         ...treeData, 
         expLvl: Js_math.max_int(treeData.expLvl - 1, 0)
     }
+}
+
+let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array<expr> => {
+    let res = []
+    st.stmts->Js.Array2.forEachi((stmt,i) => {
+        switch stmt.cont {
+            | Tree(_) => ()
+            | Text(_) => res->Js.Array2.push(rootStmts[i].expr->Js_array2.sliceFrom(1))->ignore
+        }
+    })
+    res
 }
