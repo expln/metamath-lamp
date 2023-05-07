@@ -65,6 +65,7 @@ type frameDbg = {
 }
 
 type frame = {
+    isAxiom:bool,
     disj: Belt_MapInt.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
     asrt: expr,
@@ -853,7 +854,8 @@ let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMuta
 }
 
 let createFrame = (
-    ~ctx:mmContext, 
+    ~ctx:mmContext,
+    ~isAxiom:bool, 
     ~label:string, 
     ~exprStr:array<string>,
     ~proof:option<proof>,
@@ -880,6 +882,7 @@ let createFrame = (
                                         ->Js_array2.mapi((cv,fv) => (cv,fv))
                                         ->Belt_HashMapInt.fromArray
                 let frame = {
+                    isAxiom,
                     disj: ctxToFrameRenum->renumberVarsInDisj(mandatoryDisj),
                     hyps: mandatoryHypotheses->Js_array2.map(ctxToFrameRenum->renumberVarsInHypothesis),
                     asrt: ctxToFrameRenum->renumberVarsInExpr(asrt),
@@ -907,11 +910,11 @@ let createFrame = (
     }
 }
 
-let addAssertion = ( ctx:mmContext, ~label:string, ~exprStr:array<string>, ~proof:option<proof> ):unit => {
+let addAssertion = ( ctx:mmContext, ~isAxiom:bool, ~label:string, ~exprStr:array<string>, ~proof:option<proof> ):unit => {
     ctx.contents.frames->Belt_HashMapString.set(
         label, 
         createFrame(
-            ~ctx, ~label, ~exprStr, ~proof, 
+            ~ctx, ~isAxiom, ~label, ~exprStr, ~proof, 
             ~tokenType = if (proof->Belt_Option.isNone) {"an axiom"} else {"a theorem"}, 
             ()
         )
@@ -928,8 +931,8 @@ let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
         | Disj({vars}) => addDisj(ctx, vars)
         | Floating({label, expr}) => addFloating(ctx, ~label, ~exprStr=expr)
         | Essential({label, expr}) => addEssential(ctx, ~label, ~exprStr=expr)
-        | Axiom({label, expr}) => addAssertion(ctx, ~label, ~exprStr=expr, ~proof=None)
-        | Provable({label, expr, proof}) => addAssertion(ctx, ~label, ~exprStr=expr, ~proof)
+        | Axiom({label, expr}) => addAssertion(ctx, ~isAxiom=true, ~label, ~exprStr=expr, ~proof=None)
+        | Provable({label, expr, proof}) => addAssertion(ctx, ~isAxiom=false, ~label, ~exprStr=expr, ~proof)
     }
 }
 

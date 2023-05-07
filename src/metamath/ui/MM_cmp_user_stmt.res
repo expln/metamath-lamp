@@ -255,7 +255,7 @@ let rndContText = (
                                     ~sym,
                                     ~color,
                                     ~onClick=?onClick(id),
-                                    ~spaceBackgroundColor=?{ 
+                                    ~spaceBackgroundColor=?{
                                         if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
                                             Some("#ADD6FF")
                                         } else {

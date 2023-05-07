@@ -23,6 +23,7 @@ type frameDbg = {
 }
 
 type frame = {
+    isAxiom:bool,
     disj: Belt.Map.Int.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
     asrt: expr,
@@ -95,6 +96,7 @@ let frmIntsToStrExn: (mmContext, frame, expr) => string
 let frmIntsToSymsExn: (mmContext, frame, expr) => array<string>
 let createFrame: (
     ~ctx:mmContext, 
+    ~isAxiom:bool, 
     ~label:string, 
     ~exprStr:array<string>, 
     ~proof:option<proof>,

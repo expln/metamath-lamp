@@ -1461,7 +1461,7 @@ let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
         | Some(wrkCtx) => {
             let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
             let tmpFrame = createFrame(
-                ~ctx=wrkCtx, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
+                ~ctx=wrkCtx, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
                 ~skipEssentials=true, ~skipFirstSymCheck=true, ()
             )
             let frm = prepareFrmSubsDataForFrame(tmpFrame)
