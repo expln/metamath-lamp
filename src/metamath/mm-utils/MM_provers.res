@@ -732,7 +732,6 @@ let unifyAll = (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~syntaxTypes:option<array<int>>=?,
-    ~syntaxProofTables:option<array<MM_proof_table.proofTable>>=?,
     ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
     ~onProgress:option<string=>unit>=?,
@@ -758,28 +757,6 @@ let unifyAll = (
         | None => ()
         | Some(syntaxTypes) => {
             if (syntaxTypes->Js_array2.length > 0) {
-                // switch syntaxProofTables {
-                //     | None => ()
-                //     | Some(syntaxProofTables) => {
-
-                //         Js.Console.log("--- syntaxProofTables ------------------------------------------------------------")
-                //         syntaxProofTables->Js.Array2.forEach(tbl => {
-                //             tbl->Js_array2.forEach(row => {
-                //                 Js.Console.log(wrkCtx->ctxIntsToStrExn(row.expr))
-                //             })
-                //         })
-                //         Js.Console.log("---------------------------------------------------------------")
-                //         Js.Console.log2("start loading syntax tables", currTimeStr())
-
-                //         syntaxProofTables->Js_array2.forEach(tbl => {
-                //             tbl->Js_array2.forEach(row => {
-                //                 proveFloating( ~tree, ~node=tree->ptGetNode(row.expr) )
-                //             })
-                //         })
-
-                //         Js.Console.log2("end loading syntax tables", currTimeStr())
-                //     }
-                // }
                 switch exprsToSyntaxCheck {
                     | None => ()
                     | Some(exprsToSyntaxCheck) => {

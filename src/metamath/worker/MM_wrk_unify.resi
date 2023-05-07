@@ -1,5 +1,4 @@
 open MM_context
-open MM_wrk_ctx_data
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_statements_dto
@@ -20,7 +19,6 @@ let unify: (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
     ~syntaxTypes:option<array<int>>,
-    ~syntaxProofTables:option<array<MM_proof_table.proofTable>>,
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress: string => unit,

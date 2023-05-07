@@ -10,8 +10,6 @@ type rec syntaxTreeNode = {
     label:string,
     children:array<childNode>,
     height:int,
-    proofTable:proofTable,
-    proofTableRow:int
 }
 and childNode =
     | Subtree(syntaxTreeNode)
@@ -62,8 +60,7 @@ let getMaxHeight = (children:array<childNode>):int => {
     )
 }
 
-let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, rowIdx:int):result<syntaxTreeNode,string> => {
-    let r = tbl[rowIdx]
+let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
             let maxI = r.expr->Js_array2.length - 1
@@ -73,8 +70,6 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, rowIdx:int):result<synt
                 label,
                 children: Expln_utils_common.createArray(maxI),
                 height:0,
-                proofTable:tbl,
-                proofTableRow:rowIdx,
             }
             for i in 1 to maxI {
                 this.children[i-1] = Symbol({
@@ -103,8 +98,6 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, rowIdx:int):result<synt
                                 label,
                                 children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1),
                                 height:0,
-                                proofTable:tbl,
-                                proofTableRow:rowIdx,
                             }
                             let err = ref(None)
                             frame.asrt->Js_array2.forEachi((s,i) => {
@@ -118,7 +111,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, rowIdx:int):result<synt
                                             color: None,
                                         })
                                     } else {
-                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), varToRecIdxMapping[s]) {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
                                             | Error(msg) => err := Some(Error(msg))
                                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
                                         }
@@ -149,7 +142,7 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
         nextId := nextId.contents + 1
         nextId.contents - 1
     }
-    buildSyntaxTreeInner(idSeq, ctx, tbl, None, targetIdx)
+    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {

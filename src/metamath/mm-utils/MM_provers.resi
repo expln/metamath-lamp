@@ -58,7 +58,6 @@ let unifyAll: (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~syntaxTypes:array<int>=?,
-    ~syntaxProofTables:array<MM_proof_table.proofTable>=?,
     ~exprsToSyntaxCheck:array<expr>=?,
     ~debugLevel:int=?,
     ~onProgress: string=>unit=?,

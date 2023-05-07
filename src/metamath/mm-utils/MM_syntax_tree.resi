@@ -7,8 +7,6 @@ type rec syntaxTreeNode = {
     label:string,
     children:array<childNode>,
     height:int,
-    proofTable:proofTable,
-    proofTableRow:int
 }
 and childNode =
     | Subtree(syntaxTreeNode)

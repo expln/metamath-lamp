@@ -15,7 +15,6 @@ type request =
         rootStmts: array<rootStmt>, 
         bottomUpProverParams:option<bottomUpProverParams>,
         syntaxTypes:option<array<int>>,
-        syntaxProofTables:option<array<MM_proof_table.proofTable>>,
         exprsToSyntaxCheck:option<array<expr>>,
         debugLevel:int,
     })
@@ -61,7 +60,6 @@ let unify = (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<bottomUpProverParams>,
     ~syntaxTypes:option<array<int>>,
-    ~syntaxProofTables:option<array<MM_proof_table.proofTable>>,
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress:string=>unit,
@@ -79,7 +77,6 @@ let unify = (
                 rootStmts:rootStmts, 
                 bottomUpProverParams, 
                 syntaxTypes,
-                syntaxProofTables,
                 exprsToSyntaxCheck,
                 debugLevel,
             }),
@@ -100,7 +97,7 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({rootStmts, bottomUpProverParams, syntaxTypes, syntaxProofTables, exprsToSyntaxCheck, debugLevel}) => {
+        | Unify({rootStmts, bottomUpProverParams, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
@@ -108,7 +105,6 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~rootStmts,
                 ~bottomUpProverParams?,
                 ~syntaxTypes?, 
-                ~syntaxProofTables?,
                 ~exprsToSyntaxCheck?,
                 ~debugLevel,
                 ~onProgress = msg => sendToClient(OnProgress(msg)),

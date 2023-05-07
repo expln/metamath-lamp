@@ -732,7 +732,6 @@ let make = (
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
                                 ~syntaxTypes=Some(state.syntaxTypes),
-                                ~syntaxProofTables=None,
                                 ~exprsToSyntaxCheck=Some(getAllExprsToSyntaxCheck(rootStmts)),
                                 ~debugLevel=0,
                                 ~onProgress = msg => updateModal(
