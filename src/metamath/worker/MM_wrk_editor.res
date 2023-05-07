@@ -1367,7 +1367,6 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs):unit => {
         ~frms,
         ~floatingsToProve=typesToProve,
         ~parenCnt,
-        ()
     )
     varToExprArr->Js_array2.forEachi(((var,expr), i) =>
         if (wrkSubs.err->Belt_Option.isNone) {

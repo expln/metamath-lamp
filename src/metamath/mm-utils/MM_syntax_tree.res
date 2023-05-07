@@ -1,6 +1,8 @@
 open MM_context
 open MM_parser
 open MM_proof_table
+open MM_provers
+open MM_proof_tree
 
 type rec syntaxTreeNode = {
     id: int,
@@ -183,4 +185,19 @@ let rec getNodeById = (
         ()
     )
     found
+}
+
+let buildSyntaxTreeFromProofTree = (
+    ~ctx:mmContext,
+    ~proofTree:proofTree,
+    ~typeStmt:expr,
+):result<syntaxTreeNode,string> => {
+    let proofTreeDto = proofTree->MM_proof_tree_dto.proofTreeToDto([typeStmt])
+    switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(typeStmt)) {
+        | None => Error(`buildSyntaxTreeFromProofTree: could not find proof for: ${ctx->ctxIntsToStrExn(typeStmt)}`)
+        | Some(proofNode) => {
+            let proofTable = MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
+            buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
+        }
+    }
 }

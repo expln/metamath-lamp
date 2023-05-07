@@ -24,7 +24,6 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
         ~frms,
         ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
-        (),
     )
 
     //then

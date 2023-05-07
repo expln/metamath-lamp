@@ -88,7 +88,7 @@ let textToSyntaxTree = (
     ~onLastSyntaxTypeChange:string => unit,
 ):result<syntaxTreeNode,string> => {
     if (syntaxTypes->Js_array2.length == 0) {
-        Error(`Cannot build a syntax tree without a list of syntax types.`)
+        Error(`Could not determine syntax types.`)
     } else {
         let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
         let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
@@ -100,51 +100,17 @@ let textToSyntaxTree = (
                 a - b
             }
         })
-        let expr = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
-        let stmtsToProve = syntaxTypes->Js_array2.map(typ => [typ]->Js_array2.concat(expr->Js_array2.sliceFrom(1)))
-        let maxIdx = stmtsToProve->Js_array2.length-1
-        let idx = ref(0)
-        let proofTreeRef = ref(None)
-        while (idx.contents <= maxIdx && proofTreeRef.contents->Belt_Option.isNone) {
-            let stmtToProve = stmtsToProve[idx.contents]
-            let proofTree = proveFloatings(
-                ~wrkCtx,
-                ~frms,
-                ~floatingsToProve=[stmtToProve],
-                ~parenCnt,
-                ()
-            )
-            if (proofTree->ptGetNode(stmtToProve)->pnGetProof->Belt_Option.isSome) {
-                proofTreeRef := Some(proofTree)
-                switch (lastSyntaxType, wrkCtx->ctxIntToSym(syntaxTypes[idx.contents])) {
-                    | (None, Some(provedSyntaxTypeStr)) => onLastSyntaxTypeChange(provedSyntaxTypeStr)
-                    | (Some(lastSyntaxTypeStr), Some(provedSyntaxTypeStr)) => {
-                        if (lastSyntaxTypeStr != provedSyntaxTypeStr) {
-                            onLastSyntaxTypeChange(provedSyntaxTypeStr)
-                        }
-                    }
-                    | _ => ()
-                }
-            } else {
-                idx := idx.contents + 1
-            }
-        }
-        switch proofTreeRef.contents {
+        let stmt = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
+        let (proofTree,provedTypeStmts) = MM_provers.proveFloatingsMany(
+            ~wrkCtx=wrkCtx,
+            ~frms,
+            ~parenCnt,
+            ~exprs=[stmt->Js_array2.sliceFrom(1)],
+            ~syntaxTypes
+        )
+        switch provedTypeStmts[0] {
             | None => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
-            | Some(proofTree) => {
-                let provedStmt = stmtsToProve[idx.contents]
-                let proofTreeDto = proofTree->proofTreeToDto([provedStmt])
-                switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(provedStmt)) {
-                    | None => Error(`Could not find proof for: ${wrkCtx->ctxIntsToStrExn(provedStmt)}`)
-                    | Some(proofNode) => {
-                        let proofTable = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
-                        switch buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1) {
-                            | Error(msg) => Error(msg)
-                            | Ok(syntaxTree) => Ok(syntaxTree)
-                        }
-                    }
-                }
-            }
+            | Some(typeStmt) => buildSyntaxTreeFromProofTree( ~ctx=wrkCtx, ~proofTree, ~typeStmt, )
         }
     }
 }

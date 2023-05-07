@@ -640,8 +640,7 @@ let proveFloatings = (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
-    ()
-) => {
+):proofTree => {
     let tree = createProofTree(
         ~proofCtx=wrkCtx,
         ~frms,
@@ -652,6 +651,49 @@ let proveFloatings = (
         proveFloating( ~tree, ~node=tree->ptGetNode(expr) )
     })
     tree
+}
+
+let proveFloatingsMany = (
+    ~wrkCtx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~exprs: array<expr>,
+    ~syntaxTypes: array<int>,
+):(proofTree,array<option<expr>>) => {
+    let tree = createProofTree(
+        ~proofCtx=wrkCtx,
+        ~frms,
+        ~parenCnt,
+    )
+    if (syntaxTypes->Js_array2.length == 0) {
+        (tree, Belt_Array.make(exprs->Js_array2.length, None))
+    } else {
+        let res = Expln_utils_common.createArray(exprs->Js_array2.length)
+        let lastType = ref(syntaxTypes[0])
+        for ei in 0 to exprs->Js_array2.length-1 {
+            let expr = exprs[ei]
+            let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
+            proveFloating( ~tree, ~node=node.contents )
+            let ti = ref(0)
+            while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Js_array2.length ) {
+                let typ = syntaxTypes[ti.contents]
+                ti := ti.contents + 1
+                if (typ != lastType.contents) {
+                    node := tree->ptGetNode([typ]->Js.Array2.concat(expr))
+                    proveFloating( ~tree, ~node=node.contents )
+                }
+            }
+            switch node.contents->pnGetProof {
+                | None => res[ei] = None
+                | Some(_) => {
+                    let provedTypeStmt = node.contents->pnGetExpr
+                    res[ei] = Some(provedTypeStmt)
+                    lastType := provedTypeStmt[0]
+                }
+            }
+        }
+        (tree,res)
+    }
 }
 
 let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => {

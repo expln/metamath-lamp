@@ -44,7 +44,6 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
         ~frms=prepareFrmSubsData(~ctx, ()),
         ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
-        (),
     )
     let proofTreeDto = proofTreeToDto(proofTree, [expr])
     let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn

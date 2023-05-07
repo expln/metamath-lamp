@@ -37,8 +37,15 @@ let proveFloatings: (
     ~frms: Belt_MapString.t<frmSubsData>,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
-    (),
 ) => proofTree
+
+let proveFloatingsMany: (
+    ~wrkCtx: mmContext,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~exprs: array<expr>,
+    ~syntaxTypes: array<int>,
+) => (proofTree,array<option<expr>>)
 
 
 let unifyAll: (
