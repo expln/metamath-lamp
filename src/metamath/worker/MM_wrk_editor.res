@@ -1734,12 +1734,12 @@ let rec addColorsToSyntaxTree = (
 
 let checkParensMatch = (expr,parenCnt):bool => {
     let parenState = ref(Balanced)
+    parenCnt->parenCntReset
     let i = ref(0)
     while (i.contents < expr->Js_array2.length && parenState.contents != Failed) {
         parenState := parenCnt->parenCntPut(expr[i.contents])
         i := i.contents + 1
     }
-    parenCnt->parenCntReset
     parenState.contents == Balanced
 }
 

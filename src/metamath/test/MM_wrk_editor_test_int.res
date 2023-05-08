@@ -593,6 +593,7 @@ describe("MM_wrk_editor integration tests", _ => {
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
             ~asrtsToSkipFilePath, ~stopBefore="cvjust", ())
         let st = st->unifyAll
+        assertEditorState(st, "step1")
         assertProof(st, st->getStmtId(~label="cvjust", ()), "cvjust")
     })
 
