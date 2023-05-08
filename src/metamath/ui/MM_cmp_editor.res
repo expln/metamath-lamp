@@ -721,7 +721,12 @@ let make = (
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
                                 ~syntaxTypes=Some(state.syntaxTypes),
-                                ~exprsToSyntaxCheck=Some(state->getAllExprsToSyntaxCheck(rootStmts)),
+                                ~exprsToSyntaxCheck=
+                                    if (state.settings.checkSyntax) {
+                                        Some(state->getAllExprsToSyntaxCheck(rootStmts))
+                                    } else {
+                                        None
+                                    },
                                 ~debugLevel=0,
                                 ~onProgress = msg => updateModal(
                                     modalRef, modalId, () => rndProgress(

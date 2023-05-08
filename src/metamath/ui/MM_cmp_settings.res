@@ -19,6 +19,7 @@ type settingsState = {
 
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
+    checkSyntax: bool,
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
@@ -57,6 +58,7 @@ let createDefaultSettings = () => {
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
         editStmtsByLeftClick: true,
         defaultStmtType:"|-",
+        checkSyntax: true,
         typeNextId: 4,
         typeSettings: [
             {
@@ -240,6 +242,7 @@ let stateToSettings = (st:settingsState):settings => {
         asrtsToSkipRegex: st.asrtsToSkipRegex,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
         defaultStmtType:st.defaultStmtType,
+        checkSyntax:st.checkSyntax,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -261,6 +264,7 @@ let settingsToState = (ls:settings):settingsState => {
         asrtsToSkipRegex: ls.asrtsToSkipRegex,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         defaultStmtType:ls.defaultStmtType,
+        checkSyntax:ls.checkSyntax,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -306,6 +310,7 @@ let readStateFromLocStor = ():settingsState => {
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
                     defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
+                    checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -360,6 +365,7 @@ let eqState = (st1, st2) => {
         && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.defaultStmtType == st2.defaultStmtType
+        && st1.checkSyntax == st2.checkSyntax
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -379,6 +385,7 @@ let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
+let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -511,6 +518,10 @@ let make = (
 
     let actDefaultStmtTypeChange = defaultStmtType => {
         setState(updateDefaultStmtType(_, defaultStmtType))
+    }
+
+    let actCheckSyntaxChange = checkSyntax => {
+        setState(updateCheckSyntax(_, checkSyntax))
     }
 
     let actTypeSettingAdd = () => {
@@ -723,7 +734,7 @@ let make = (
 
     let rndAsrtsToSkip = () => {
         let asrtsSelected = state.asrtsToSkip->Js_array2.length->Belt.Int.toString
-        <Row /* style=ReactDOM.Style.make(~marginTop="5px", ~marginBottom="5px", ()) */>
+        <Row>
             <span>
                 {`Assertions to skip: ${asrtsSelected} assertions selected.`->React.string}
             </span>
@@ -736,8 +747,34 @@ let make = (
         </Row>
     }
 
+    let rndApplyChangesBtn = () => {
+        if (!eqState(prevState, state)) {
+            <Row spacing=3. >
+                <Button disabled={!isValid(state)} onClick={_=>applyChanges()} variant=#contained>
+                    {React.string("Apply changes")}
+                </Button>
+                <Button onClick={_ => discardChanges()}>
+                    {React.string("Discard changes")}
+                </Button>
+            </Row>
+        } else {
+            React.null
+        }
+    }
+
     <Col spacing=2. style=ReactDOM.Style.make(~margin="30px", ())>
+        {rndApplyChangesBtn()}
+        <Divider/>
         {rndParens()}
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.checkSyntax
+                    onChange=evt2bool(actCheckSyntaxChange)
+                />
+            }
+            label="Check syntax"
+        />
         {rndAsrtsToSkip()}
         <TextField 
             size=#small
@@ -773,19 +810,6 @@ let make = (
             onRestoreDefaults=actRestoreDefaultWebSrcSettings
         />
         <Divider/>
-        {
-            if (!eqState(prevState, state)) {
-                <Row spacing=3. >
-                    <Button disabled={!isValid(state)} onClick={_=>applyChanges()} variant=#contained>
-                        {React.string("Apply changes")}
-                    </Button>
-                    <Button onClick={_ => discardChanges()}>
-                        {React.string("Discard changes")}
-                    </Button>
-                </Row>
-            } else {
-                React.null
-            }
-        }
+        {rndApplyChangesBtn()}
     </Col>
 }

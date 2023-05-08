@@ -1762,9 +1762,13 @@ let stmtSetSyntaxTree = (
             }
             switch syntaxTree {
                 | None => {
-                    {
-                        ...stmt,
-                        syntaxErr: Some(if (checkParensMatch(expr, st.parenCnt)) {""} else {"parentheses mismatch"}),
+                    if (st.settings.checkSyntax) {
+                        {
+                            ...stmt,
+                            syntaxErr: Some(if (checkParensMatch(expr, st.parenCnt)) {""} else {"parentheses mismatch"}),
+                        }
+                    } else {
+                        stmt
                     }
                 }
                 | Some(Error(msg)) => {
