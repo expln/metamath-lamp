@@ -171,6 +171,7 @@ type userStmt = {
     proof: option<proofNodeDto>,
     proofStatus: option<proofStatus>,
     unifErr: option<string>,
+    syntaxErr: option<string>,
 }
 
 type editorState = {
@@ -227,7 +228,7 @@ let createEmptyUserStmt = (id, typ, label):userStmt => {
         cont:Text([]), contEditMode:true,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
-        expr:None, jstf:None, proofTreeDto:None, src:None, proof:None, proofStatus:None, unifErr:None,
+        expr:None, jstf:None, proofTreeDto:None, src:None, proof:None, proofStatus:None, unifErr:None, syntaxErr:None,
     }
 }
 
@@ -809,6 +810,7 @@ let removeAllTempData = st => {
                 proof: None, 
                 proofStatus: None,
                 unifErr: None,
+                syntaxErr: None,
             }
         })
     }
@@ -1762,16 +1764,13 @@ let stmtSetSyntaxTree = (
                 | None => {
                     {
                         ...stmt,
-                        unifErr: {
-                            let msg = if (checkParensMatch(expr, st.parenCnt)) {""} else {" - parentheses mismatch"}
-                            Some(stmt.unifErr->Belt_Option.getWithDefault(`Syntax error${msg}.`))
-                        },
+                        syntaxErr: Some(if (checkParensMatch(expr, st.parenCnt)) {""} else {"parentheses mismatch"}),
                     }
                 }
                 | Some(Error(msg)) => {
                     {
                         ...stmt,
-                        unifErr: Some(stmt.unifErr->Belt_Option.getWithDefault("Syntax error (" ++ msg ++ ").")),
+                        syntaxErr: Some(msg),
                     }
                 }
                 | Some(Ok(syntaxTree)) => {

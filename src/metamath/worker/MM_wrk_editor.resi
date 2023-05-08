@@ -84,6 +84,7 @@ type userStmt = {
     proof: option<proofNodeDto>,
     proofStatus: option<proofStatus>,
     unifErr: option<string>,
+    syntaxErr: option<string>,
 }
 
 type editorState = {

@@ -1102,6 +1102,18 @@ let make = (
                     addStmtBelow=actAddStmtBelow(stmt.id)
                 />
                 {rndError(stmt.stmtErr,"red")}
+                {
+                    rndError(
+                        stmt.syntaxErr->Belt.Option.map(msg => {
+                            if (msg == "") {
+                                "Syntax error."
+                            } else {
+                                `Syntax error - ${msg}.`
+                            }
+                        }),
+                        "red"
+                    )
+                }
                 {rndError(stmt.unifErr,"darkgrey")}
             </td>
         </tr>

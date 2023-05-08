@@ -822,6 +822,7 @@ let make = React.memoCustomCompareProps( ({
                     ()
                 )->ignore
                 switch (idxFrom.contents, idxTo.contents) {
+                    | (Some(idxFrom), None) => Some((idxFrom, stmt.cont->contToStr->Js.String2.length))
                     | (Some(idxFrom), Some(idxTo)) => Some((idxFrom, idxTo))
                     | _ => None
                 }
@@ -936,7 +937,10 @@ let make = React.memoCustomCompareProps( ({
                     }
                     style=ReactDOM.Style.make(
                         ~padding="1px 10px", 
-                        ~backgroundColor="rgb(255,255,235)", 
+                        ~backgroundColor=
+                            if (stmt.stmtErr->Belt_Option.isSome || stmt.syntaxErr->Belt_Option.isSome) {
+                                "rgb(255,230,230)"
+                            } else {"rgb(255,255,235)"}, 
                         ~fontFamily="monospace",
                         ~fontSize="1.3em",
                         ()

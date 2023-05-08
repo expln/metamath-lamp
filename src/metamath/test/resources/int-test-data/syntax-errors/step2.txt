@@ -29,7 +29,9 @@ stmt9-opabex2.11
  : elex
 |- ( A e. _V -> -> A e. _V )
 jstfIsIncorrect
-Unif Error: Syntax error.
+Syntax error.
+Unif Error: Could not prove this floating statement:
+class _V ->
 
 --- p -------------------------------------------------------------------------------
 stmt9-opabex2.31
@@ -83,7 +85,11 @@ stmt4
 stmt6 : adantr
 |- ( ( u = x / v = y ) -> ( F ` u ) = ( F ` x ) ) ]
 jstfIsIncorrect
-Unif Error: Syntax error - parentheses mismatch.
+Syntax error - parentheses mismatch.
+Unif Error: Could not find a unification for assertion:
+|- ( ( ph /\ ch ) -> ps )
+→
+|- ( ( u = x / v = y ) -> ( F ` u ) = ( F ` x ) ) ]
 
 --- p -------------------------------------------------------------------------------
 stmt3-brab2a.11

@@ -53,6 +53,18 @@ let editorStateToStr = st => {
             | None => ()
             | Some(msg) => lines->Js_array2.push("Stmt Error: " ++ msg)->ignore
         }
+        switch stmt.syntaxErr {
+            | None => ()
+            | Some(msg) => {
+                lines->Js_array2.push(
+                    if (msg == "") {
+                        "Syntax error."
+                    } else {
+                        `Syntax error - ${msg}.`
+                    }
+                )->ignore
+            }
+        }
         switch stmt.unifErr {
             | None => ()
             | Some(msg) => lines->Js_array2.push("Unif Error: " ++ msg)->ignore
