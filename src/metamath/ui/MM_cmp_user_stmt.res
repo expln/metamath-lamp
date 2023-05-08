@@ -288,51 +288,55 @@ let rndProofStatus = (
     ~onNoJstfIconClicked:option<unit=>unit>=?,
     ()
 ):React.element => {
+    let commonStyle = ReactDOM.Style.make(
+        ~fontWeight="bold", ~width="13px", ~display="inline-block",
+        ()
+    )
     switch proofStatus {
-        | None => React.null
+        | None => 
+            <span 
+                style=commonStyle
+            >{React.string(Common.nbsp)}</span>
         | Some(status) => {
             switch status {
                 | Ready =>
                     <span 
                         title=?readyTooltip
-                        style=ReactDOM.Style.make(
-                            ~color="green", ~fontWeight="bold", 
+                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                            ~color="green",
                             ~cursor=if (onReadyIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
                             ()
-                        )
+                        ))}
                         onClick={_=>onReadyIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >{React.string("\u2713")}</span>
                 | Waiting =>
                     <span 
                         title=?waitingTooltip
-                        style=ReactDOM.Style.make(~color="orange", ~fontWeight="bold", ())
-                    >
-                        {React.string("\u223F")}
-                    </span>
+                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                            ~color="orange",
+                            ()
+                        ))}
+                    >{React.string("\u223F")}</span>
                 | NoJstf =>
                     <span 
                         title=?noJstfTooltip
-                        style=ReactDOM.Style.make(
-                            ~color="red", ~fontWeight="bold", 
+                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                            ~color="red",
                             ~cursor=if (onNoJstfIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
                             ()
-                        )
+                        ))}
                         onClick={_=>onNoJstfIconClicked->Belt_Option.forEach(clbk => clbk())}
-                    >
-                        {React.string("?")}
-                    </span>
+                    >{React.string("?")}</span>
                 | JstfIsIncorrect =>
                     <span 
                         title=?jstfIsIncorrectTooltip
-                        style=ReactDOM.Style.make(
-                            ~color="red", ~fontWeight="bold", 
+                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                            ~color="red",
                             ~cursor=if (onErrorIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
                             ()
-                        )
+                        ))}
                         onClick={_=>onErrorIconClicked->Belt_Option.forEach(clbk => clbk())}
-                    >
-                        {React.string("\u2717")}
-                    </span>
+                    >{React.string("\u2717")}</span>
             }
         }
     }
@@ -866,7 +870,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndSelectionButtons = () => {
         <Row alignItems=#center>
-            <ButtonGroup variant=#contained size=#small color="grey" >
+            <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
                 <Button title="Add new statement above" onClick={_=>actAddStmtAbove()}> 
@@ -899,7 +903,7 @@ let make = React.memoCustomCompareProps( ({
                     inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
                     style=ReactDOM.Style.make(
-                        ~width = (windowWidth - 200 - labelWidth)->Belt_Int.toString ++ "px", 
+                        ~width = (windowWidth - 215 - labelWidth)->Belt_Int.toString ++ "px", 
                         ()
                     )
                     inputProps={

@@ -748,18 +748,15 @@ let make = (
     }
 
     let rndApplyChangesBtn = () => {
-        if (!eqState(prevState, state)) {
-            <Row spacing=3. >
-                <Button disabled={!isValid(state)} onClick={_=>applyChanges()} variant=#contained>
-                    {React.string("Apply changes")}
-                </Button>
-                <Button onClick={_ => discardChanges()}>
-                    {React.string("Discard changes")}
-                </Button>
-            </Row>
-        } else {
-            React.null
-        }
+        let disabled = !isValid(state) || eqState(prevState, state) 
+        <Row spacing=3. >
+            <Button disabled onClick={_=>applyChanges()} variant=#contained>
+                {React.string("Apply changes")}
+            </Button>
+            <Button disabled onClick={_ => discardChanges()}>
+                {React.string("Discard changes")}
+            </Button>
+        </Row>
     }
 
     <Col spacing=2. style=ReactDOM.Style.make(~margin="30px", ())>

@@ -664,6 +664,10 @@ let make = (
                 }
                 let rootUserStmts = state->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
+                let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
+                    | Some(stmt) if stmt.typ == P => Some(stmt)
+                    | _ => None
+                }
                 switch singleProvableChecked {
                     | Some(singleProvableChecked) => {
                         let initialParams = switch params {
@@ -899,6 +903,10 @@ let make = (
         let st = state
         let st = st->uncheckAllStmts
         let st = st->toggleStmtChecked(stmtId)
+        let singleProvableChecked = switch getTheOnlyCheckedStmt(st) {
+            | Some(stmt) if stmt.typ == P => Some(stmt)
+            | _ => None
+        }
         switch singleProvableChecked {
             | None => ()
             | Some(singleProvableChecked) => {
