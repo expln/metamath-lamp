@@ -52,7 +52,7 @@ let urlUsMmOrgSetMm = "https://us.metamath.org/metamath/set.mm"
 
 let createDefaultSettings = () => {
     {
-        parens: "( ) [ ] { }",
+        parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
         parensErr: None,
         asrtsToSkip: [],
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
