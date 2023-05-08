@@ -1,4 +1,4 @@
-# Lite Assistant for Metamath Proofs
+# Lite Assistant for [Metamath](https://us.metamath.org) Proofs
 
 ***How to run locally:***
 
