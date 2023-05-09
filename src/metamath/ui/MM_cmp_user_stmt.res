@@ -143,6 +143,7 @@ let rndSymbol = (
     ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
+    ~cursor:string="auto",
     ()
 ):reElem => {
     <React.Fragment key>
@@ -154,6 +155,7 @@ let rndSymbol = (
                     ?onClick 
                     style=ReactDOM.Style.make(
                         ~backgroundColor=?spaceBackgroundColor,
+                        ~cursor,
                         ()
                     )
                 > 
@@ -166,7 +168,7 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, () ) >
+            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) >
                 {sym->React.string}
             </span>
         }
@@ -190,6 +192,7 @@ let rndContText = (
                     leftClickHnd(() => onTextClick(idx))
                 }
             })
+            let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
@@ -197,6 +200,7 @@ let rndContText = (
                     ~sym=stmtSym.sym,
                     ~color=stmtSym.color,
                     ~onClick=?onClick(i),
+                    ~cursor,
                     ()
                 )
             })->React.array
@@ -209,6 +213,7 @@ let rndContText = (
                     leftClickHnd(() => onTreeClick(id))
                 }
             })
+            let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
@@ -217,6 +222,7 @@ let rndContText = (
                     ~key="expr-type",
                     ~sym=exprTyp,
                     ~color=None,
+                    ~cursor,
                     ()
                 )
             )->ignore
@@ -259,6 +265,7 @@ let rndContText = (
                                             None
                                         } 
                                     },
+                                    ~cursor,
                                     ()
                                 )
                             )->ignore
