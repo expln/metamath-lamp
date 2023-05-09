@@ -7,7 +7,6 @@
 - add "About" page.
 - check if adding a cache to proveStmtBottomUp() (for getParents) improves performance.
 - in the "search" dialog, in the pattern text field, replace variables with their types.
-- improve performance of MM_cmp_proof_node
 - provide more info on substitution found when "Could not unify essential hypothesis #1"
 - write a test for allowNewDisjForExistingVars
 - add an int test when a hyp is used in a bottom-up proof being applied.
@@ -15,29 +14,17 @@
     - pass error icon from src to all unproved children
     - sort srcs by var type, hyp, asrt
     - filter by asrt, min number of srcs
-- error messages for some specific cases
-    * number of args doesn't match
-    * could not prove type of floating
-    * missing disjoint
-    * failing disjoint
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 - write tests for collecting debug info
 
 - Automatically create correct labels for hypotheses.
 - implement table view in the editor.
-- tooltip: To start a new line in a multiline text editor press Shift+Enter
-- load *.mm files from metamath.org
 - add onEnter and onEscape wherever possible.
-- Make new stmt prefix configurable.
 - before merging of statements check if some statements should be moved up because they are referenced by above statements and don't merge in that case.
 - autofocus label selector after scope is set to StopBefore or StopAfter
 - in cmp_search use array2.slice and store idx in the rendered elem the same way as in cmp_bottom_up
 - add an int test with few hypotheses.
 - apply colors to search results, substitutions.
-- fix a bug:
-    1) load an MM file, apply changes;
-    2) load same file in the same file selector - nothing happens.
-- prefix for new statements
 - write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)
 - add possibility to comment statements
 - make error messages more informative: add the statement caused the error (for example in "variables" or in justifications).
@@ -64,3 +51,16 @@ DONE:
 - add "restore defaults" buttons to Settings.
 - move word "justification" outside the paper.
 - hide delete button for an empty justification.
+- improve performance of MM_cmp_proof_node
+- error messages for some specific cases
+    * number of args doesn't match
+    * could not prove type of floating
+    * missing disjoint
+    * failing disjoint
+- tooltip: To start a new line in a multiline text editor press Shift+Enter
+- load *.mm files from metamath.org
+- Make new stmt prefix configurable.
+- fix a bug:
+    1) load an MM file, apply changes;
+    2) load same file in the same file selector - nothing happens.
+- prefix for new statements
