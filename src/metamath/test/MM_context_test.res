@@ -5,7 +5,7 @@ open MM_context
 describe("findParentheses", _ => {
     it("finds all parentheses", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
 
@@ -91,7 +91,7 @@ describe("applySingleStmt", _ => {
 describe("moveConstsToBegin", _ => {
     it("descreases int codes of the specified constants", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
         let constsToMove = "( ) [ ] { }"
@@ -106,7 +106,7 @@ describe("moveConstsToBegin", _ => {
 
     it("doesn't fail if variables or unrecognized symbols are provided", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
         let constsToMove = "( ) [ ] { }"
@@ -121,7 +121,7 @@ describe("moveConstsToBegin", _ => {
 
     it("doesn't break var types", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ())
         let t = ctx->ctxSymToIntExn("t")
@@ -148,7 +148,7 @@ describe("moveConstsToBegin", _ => {
 
     it("doesn't break expr-to-hyp", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="mp", ())
         assertEq(

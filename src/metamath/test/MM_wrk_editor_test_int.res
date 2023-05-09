@@ -604,8 +604,8 @@ describe("MM_wrk_editor integration tests", _ => {
 // describe("prepare set.mm without proofs", _ => {
 //     it("prepare set.mm without proofs", _ => {
 //         generateReducedMmFile(
-//             ~pathToFullMmFile="C:/Users/Igor/igye/books/metamath/set.mm",
-//             ~pathToSaveTo="./src/metamath/test/resources/set-no-proofs.mm",
+//             ~pathToFullMmFile="/books/metamath/set.mm",
+//             ~pathToSaveTo="./src/metamath/test/resources/set-no-proofs._mm",
 //             ~skipComments=true,
 //             ~skipProofs=true,
 //             ()

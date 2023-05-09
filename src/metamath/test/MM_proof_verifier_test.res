@@ -6,7 +6,7 @@ open MM_proof_verifier
 describe("verifyProof", _ => {
     it("successfully verifies a valid uncompressed proof", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="th1", ())
         let foundTheorem = traverseAst((), ast, ~process=(_,node) => {
@@ -32,7 +32,7 @@ describe("verifyProof", _ => {
 
     it("shows an error for an invalid uncompressed proof", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="th2", ())
         let foundTheorem = traverseAst((), ast, ~process=(_,node) => {
@@ -58,7 +58,7 @@ describe("verifyProof", _ => {
 
     it("successfully verifies a valid compressed proof", _ => {
         //given
-        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/set-reduced.mm")
+        let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/set-reduced._mm")
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
         let ctx = loadContext(ast, ~stopBefore="dfbi1ALT", ())
         let foundTheorem = traverseAst((), ast, ~process=(_,node) => {

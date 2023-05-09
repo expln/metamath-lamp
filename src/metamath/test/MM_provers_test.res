@@ -53,8 +53,8 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
 
 describe("proveFloating", _ => {
     it("finds proofs for simple wffs", _ => {
-        let demo0 = "./src/metamath/test/resources/demo0.mm"
-        let setReduced = "./src/metamath/test/resources/set-reduced.mm"
+        let demo0 = "./src/metamath/test/resources/demo0._mm"
+        let setReduced = "./src/metamath/test/resources/set-reduced._mm"
 
         testCreateProof(~mmFile=demo0, ~exprStr="wff t = t", ~expectedProofStr="( weq ) AAB")
         testCreateProof(~mmFile=demo0, ~exprStr="wff ( t = t -> ( t = t -> t = t ) )", ~expectedProofStr="( weq wim ) AABZDDCC")

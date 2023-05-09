@@ -303,8 +303,8 @@ let testApplyAssertions = (
 }
 
 describe("applyAssertions", _ => {
-    let demo0 = "./src/metamath/test/resources/demo0.mm"
-    let asrtWithoutVars = "./src/metamath/test/resources/asrt-without-vars.mm"
+    let demo0 = "./src/metamath/test/resources/demo0._mm"
+    let asrtWithoutVars = "./src/metamath/test/resources/asrt-without-vars._mm"
     it("applies assertions when there are no statements", _ => {
         testApplyAssertions(
             ~mmFilePath = demo0,

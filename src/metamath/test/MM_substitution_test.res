@@ -6,7 +6,7 @@ open Common
 
 let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConstParts:array<(int,int)>, ~expectedMatchingConstParts:array<array<(int,int)>>) => {
     //given
-    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test.mm")
+    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
@@ -29,7 +29,7 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
 
 let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSubstitutions:array<array<string>>) => {
     //given
-    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test.mm")
+    let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"

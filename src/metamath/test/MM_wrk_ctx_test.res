@@ -9,7 +9,7 @@ let createMmCtx = (mmFile) => {
     loadContext(ast, ())
 }
 
-let demo0 = "./src/metamath/test/resources/demo0.mm"
+let demo0 = "./src/metamath/test/resources/demo0._mm"
 
 describe("prepareParenInts", _ => {
     it("filters out incorrect parentheses", _ => {

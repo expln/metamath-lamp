@@ -111,7 +111,7 @@ let wrkSubsToStr = (ctx:mmContext, wrkSubs:wrkSubs):string => {
         ++ "}"
 }
 
-let demo0 = "./src/metamath/test/resources/demo0.mm"
+let demo0 = "./src/metamath/test/resources/demo0._mm"
 let findPossibleSubsSimpleCase = "./src/metamath/test/resources/findPossibleSubs-test-data/simple-case.mm"
 let findPossibleSubsDisjointsCase = "./src/metamath/test/resources/findPossibleSubs-test-data/disjoints-case.mm"
 let findPossibleSubsTypeCase = "./src/metamath/test/resources/findPossibleSubs-test-data/type-case.mm"

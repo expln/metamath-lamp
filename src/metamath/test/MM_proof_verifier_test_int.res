@@ -4,7 +4,7 @@ open MM_context
 open MM_proof_verifier
 open MM_int_test_utils
 
-let mmFilePath = "./src/metamath/test/resources/set.mm"
+let mmFilePath = "./src/metamath/test/resources/set._mm"
 
 describe("verifyProof", _ => {
     it("verifies all proofs in set.mm", _ => {

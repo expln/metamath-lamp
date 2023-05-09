@@ -4,7 +4,7 @@ open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
 
-let setMmPath = "./src/metamath/test/resources/set-no-proofs.mm"
+let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
 let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"
 let failOnMismatch = true
 let debug = false
