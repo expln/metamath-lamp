@@ -323,7 +323,11 @@ let loadMmFileText = (
             ~url,
             ~onUrlBecomesTrusted,
             ~onReady = text => rslv(Ok(text)),
-            ~onError = () => rslv(Error(`An error occurred while downloading from "${alias}".`)),
+            ~onError = msg => {
+                rslv(Error(
+                    `An error occurred while downloading from "${alias}": ${msg->Belt.Option.getWithDefault("")}.`
+                ))
+            },
             ~onTerminated = () => rslv(Error(`Downloading from "${alias}" was terminated.`)),
             ()
         )

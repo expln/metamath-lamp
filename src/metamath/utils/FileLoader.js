@@ -8,6 +8,8 @@ export function loadFile(url, onProgress, onReady, onError) {
         if (xhr.readyState === xhr.DONE) {
             if (xhr.status === 200) {
                 onReady(xhr.responseText)
+            } else {
+                onError(xhr.responseText??undefined)
             }
         }
     };

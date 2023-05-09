@@ -32,7 +32,8 @@ let make = (
                     ~modalRef,
                     ~showWarning=!(trustedUrls->Js_array2.includes(webSrc.url)),
                     ~progressText=`Downloading MM file from "${alias}"`,
-                    ~errorMsg=`An error occurred while downloading from "${alias}".`,
+                    ~transformErrorMsg= msg => `An error occurred while downloading from "${alias}":` 
+                                                    ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
                     ~url=webSrc.url,
                     ~onUrlBecomesTrusted,
                     ~onReady = text => onFileChange(Web(webSrc), text),

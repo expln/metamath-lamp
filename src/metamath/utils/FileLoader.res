@@ -4,20 +4,20 @@ open Expln_React_Modal
 open Expln_utils_promise
 open MM_react_common
 
-@module("./FileLoader") external loadFilePriv: (string, (int,int)=>unit, string=>unit, unit=>unit) => unit = "loadFile"
+@module("./FileLoader") external loadFilePriv: (string, (int,int)=>unit, string=>unit, option<string>=>unit) => unit = "loadFile"
 
 let loadFile = (
     ~url:string,
     ~onProgress:option<(int,int)=>unit>=?,
     ~onReady:string=>unit,
-    ~onError:option<unit=>unit>=?,
+    ~onError:option<option<string>=>unit>=?,
     ()
 ) => {
     loadFilePriv(
         url,
         onProgress->Belt_Option.getWithDefault((_,_) => ()),
         onReady,
-        onError->Belt_Option.getWithDefault(() => ()),
+        onError->Belt_Option.getWithDefault(_ => ()),
     )
 }
 
@@ -28,8 +28,8 @@ let loadFileWithProgress = (
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
-    ~onError:option<unit=>unit>=?,
-    ~errorMsg:option<string>=?,
+    ~onError:option<option<string>=>unit>=?,
+    ~transformErrorMsg:option<option<string>=>string>=?,
     ~onTerminated:option<unit=>unit>=?,
     ()
 ):unit => {
@@ -62,19 +62,19 @@ let loadFileWithProgress = (
                         () => rndProgress( ~text=progressText, ~pct, ~onTerminate=makeActTerminate(modalId), () )
                     )
                 },
-                ~onError = () => {
+                ~onError = msg => {
                     closeModal(modalRef, modalId)
                     switch onError {
-                        | Some(onError) => onError()
+                        | Some(onError) => onError(msg)
                         | None => ()
                     }
-                    switch errorMsg {
-                        | Some(errorMsg) => {
+                    switch transformErrorMsg {
+                        | Some(transformErrorMsg) => {
                             openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                                 updateModal(modalRef, modalId, () => {
                                     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                                         <Col spacing=1.>
-                                            { React.string(errorMsg) }
+                                            { React.string(transformErrorMsg(msg)) }
                                             <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
                                                 {React.string("Ok")} 
                                             </Button>
