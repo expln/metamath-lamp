@@ -2,16 +2,10 @@
 - in the bottom up prover use existing vars together with new vars
 - move some dependencies to devDependencies.
 - analyze possibility to keep editor history with URLs.
-- store last selected file source type.
 - review usages of "alias", it may be empty.
-- hide "plus" button on nodes without children in the proof tree.
 - implement a builder of statements.
 - add "About" page.
-- add "terminate" button to the file web loader.
-- add "restore defaults" buttons to Settings.
 - check if adding a cache to proveStmtBottomUp() (for getParents) improves performance.
-- move word "justification" outside the paper.
-- hide delete button for an empty justification.
 - in the "search" dialog, in the pattern text field, replace variables with their types.
 - improve performance of MM_cmp_proof_node
 - provide more info on substitution found when "Could not unify essential hypothesis #1"
@@ -64,3 +58,9 @@ DONE:
     AR: visualization is not showing
     ER: visualization is showing
 - don't re-render cmp_user_stmt when it is not necessary.
+- hide "plus" button on nodes without children in the proof tree.
+- store last selected file source type.
+- add "terminate" button to the file web loader.
+- add "restore defaults" buttons to Settings.
+- move word "justification" outside the paper.
+- hide delete button for an empty justification.

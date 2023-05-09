@@ -46,28 +46,31 @@ let validProofIcon =
         {React.string("\u2713")}
     </span>
 
+type propsInner = {
+    tree: proofTreeDto,
+    nodeIdx: int,
+    isRootStmt: int=>bool,
+    nodeIdxToLabel: int=>string,
+    exprToStr: expr=>string,
+    exprToReElem: expr=>reElem,
+    frmExprToStr: (string,expr)=>string,
+}
+
+let propsInnerAreSame = (_,_) => true
+
 module rec ProofNodeDtoCmp: {
-    @react.component
-    let make: (
-        ~tree: proofTreeDto,
-        ~nodeIdx: int,
-        ~isRootStmt: int=>bool,
-        ~nodeIdxToLabel: int=>string,
-        ~exprToStr: expr=>string,
-        ~exprToReElem: expr=>reElem,
-        ~frmExprToStr: (string,expr)=>string,
-    ) => reElem
+    let make: propsInner => reElem
 } = {
-    @react.component
-    let make = (
-        ~tree: proofTreeDto,
-        ~nodeIdx: int,
-        ~isRootStmt: int=>bool,
-        ~nodeIdxToLabel: int=>string,
-        ~exprToStr: expr=>string,
-        ~exprToReElem: expr=>reElem,
-        ~frmExprToStr: (string,expr)=>string,
-    ) => {
+    type props = propsInner
+    let make = React.memoCustomCompareProps( ({
+        tree,
+        nodeIdx,
+        isRootStmt,
+        nodeIdxToLabel,
+        exprToStr,
+        exprToReElem,
+        frmExprToStr,
+    }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
         let node = tree.nodes[nodeIdx]
@@ -332,7 +335,7 @@ module rec ProofNodeDtoCmp: {
         }
 
         rndNode()
-    }
+    }, propsInnerAreSame)
 }
 
 @react.component
