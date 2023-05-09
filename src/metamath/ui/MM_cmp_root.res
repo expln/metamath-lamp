@@ -77,6 +77,7 @@ let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](
 @react.component
 let make = () => {
     let modalRef = useModalRef()
+    @warning("-27")
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 

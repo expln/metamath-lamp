@@ -14,5 +14,9 @@
   "bs-dependencies": [
     "@rescript/react",
     "@expln/utils"
-  ]
+  ],
+  "warnings": {
+    "number": "-45-23",
+    "error": "+8"
+  }
 }

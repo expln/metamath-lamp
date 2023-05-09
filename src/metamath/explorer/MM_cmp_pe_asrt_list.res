@@ -3,7 +3,6 @@ open MM_wrk_settings
 open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
-open Expln_React_Modal
 
 let pageSize = 20
 let nonDigitPattern = %re("/\D/g")

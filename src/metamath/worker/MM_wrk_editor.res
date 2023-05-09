@@ -70,7 +70,7 @@ let strToCont = (
     ()
 ) => {
     Text(
-        getSpaceSeparatedValuesAsArray(str)->Js.Array2.mapi((sym,i) => {
+        getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
             {
                 sym,
                 color:

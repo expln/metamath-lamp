@@ -6,7 +6,6 @@ open MM_react_common
 open MM_context
 open MM_substitution
 open MM_parenCounter
-open MM_provers
 open MM_proof_tree
 open MM_proof_tree_dto
 open Expln_React_Modal

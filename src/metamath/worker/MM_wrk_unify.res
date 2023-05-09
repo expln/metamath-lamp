@@ -356,7 +356,7 @@ let proofTreeDtoToNewStmtsDto = (
     ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
     ~reservedLabels: array<string>,
 ):array<stmtsDto> => {
-    let newVarTypes = treeDto.newVars->Js_array2.map(([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
+    let newVarTypes = treeDto.newVars->Js_array2.map(@warning("-8")([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
     let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(exprToProve)) {
         | None => raise(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
         | Some(node) => node

@@ -105,7 +105,6 @@ let rndStmt = (
     ~ex:vector,
     ~stmt:array<string>,
     ~symToColor:string=>option<string>,
-    ~charWidth:float,
     ~key:string,
 ):(array<reElem>,boundaries,boundaries) => {
     let elems = []
@@ -257,7 +256,6 @@ let rndStmtAndHyp = (
                 ~ex=frmEx.contents,
                 ~stmt=[frmSym],
                 ~symToColor=frmSymToColor,
-                ~charWidth,
                 ~key="frm-" ++ i->Belt_Int.toString,
             )
             frmElems->Js_array2.pushMany(fElems)->ignore
@@ -268,7 +266,6 @@ let rndStmtAndHyp = (
                 ~ex=ctxEx.contents,
                 ~stmt=getCtxSubStmt(frmSym),
                 ~symToColor=ctxSymToColor,
-                ~charWidth,
                 ~key="ctx-" ++ i->Belt_Int.toString,
             )
             ctxElems->Js_array2.pushMany(cElems)->ignore

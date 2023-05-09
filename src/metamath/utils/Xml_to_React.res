@@ -1,4 +1,3 @@
-open Expln_React_Mui
 open Expln_React_common
 
 let validateValue = ( ~value:string, ~allowedValues:array<string>, ~valueType:string, ): result<unit,string> => {

@@ -1,7 +1,5 @@
 open MM_context
-open MM_parser
 open MM_proof_table
-open MM_provers
 open MM_proof_tree
 
 type rec syntaxTreeNode = {
@@ -158,7 +156,7 @@ let syntaxTreeIsEmpty: syntaxTreeNode => bool = node => {
     node.children->Js_array2.length == 0
 }
 
-let rec getNodeById = ( 
+let getNodeById = (
     tree:syntaxTreeNode, 
     childId:int, 
 ):option<childNode> => {
