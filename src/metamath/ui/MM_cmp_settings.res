@@ -47,9 +47,6 @@ let createDefaultWebSrcSettingState = (alias:string,url:string):webSrcSettingsSt
     }
 }
 
-let aliasUsMmOrgSetMm = "set.mm:latest"
-let urlUsMmOrgSetMm = "https://us.metamath.org/metamath/set.mm"
-
 let createDefaultSettings = () => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
@@ -92,7 +89,8 @@ let createDefaultSettings = () => {
         ],
         webSrcNextId: 1,
         webSrcSettings: [
-            createDefaultWebSrcSettingState(aliasUsMmOrgSetMm,urlUsMmOrgSetMm)
+            createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath.org/metamath/set.mm"),
+            createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm"),
         ]
     }
 }
