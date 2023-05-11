@@ -7,9 +7,12 @@ open Common
 @react.component
 let make = (
     ~jsonStr:string, 
-    ~onClose:unit=>unit
+    ~onClose:unit=>unit,
+    ~tempMode:bool,
 ) => {
-    let (appendTimestamp, setAppendTimestamp) = useStateFromLocalStorageBool("export-to-json-append-timestamp", false)
+    let (appendTimestamp, setAppendTimestamp) = useStateFromLocalStorageBool(
+        ~key="export-to-json-append-timestamp", ~default=false, ~tempMode
+    )
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
     let timestampStr = if (appendTimestamp) {

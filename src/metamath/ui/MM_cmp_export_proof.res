@@ -9,10 +9,15 @@ let make = (
     ~proofText:string, 
     ~proofTableWithTypes:string, 
     ~proofTableWithoutTypes:string,
-    ~onClose:unit=>unit
+    ~onClose:unit=>unit,
+    ~tempMode:bool,
 ) => {
-    let (showProofTable, setShowProofTable) = useStateFromLocalStorageBool("export-proof-show-proof-table", false)
-    let (essentialsOnly, setEssentialsOnly) = useStateFromLocalStorageBool("export-proof-essentials-only", false)
+    let (showProofTable, setShowProofTable) = useStateFromLocalStorageBool(
+        ~key="export-proof-show-proof-table", ~default=false, ~tempMode
+    )
+    let (essentialsOnly, setEssentialsOnly) = useStateFromLocalStorageBool(
+        ~key="export-proof-essentials-only", ~default=false, ~tempMode
+    )
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
     let getTextToCopy = () => {

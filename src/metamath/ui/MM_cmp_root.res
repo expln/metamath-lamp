@@ -60,8 +60,10 @@ let mainTheme = ThemeProvider.createTheme(
 
 @new external parseUrlQuery: string => {..} = "URLSearchParams"
 @val external window: {..} = "window"
+@val external document: {..} = "document"
 
 let location = window["location"]
+let tempMode = ref(false)
 let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Js.Nullable.toOption {
     | Some(initialStateSafeBase64) => {
         window["history"]["replaceState"](. 
@@ -69,9 +71,14 @@ let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](
             "", 
             location["origin"] ++ location["pathname"]
         )->ignore
+        tempMode := true
         Some(initialStateSafeBase64->safeBase64ToStr)
     }
     | None => Local_storage_utils.locStorReadString(MM_cmp_editor.editorStateLocStorKey)
+}
+
+if (tempMode.contents) {
+    document["title"] = "TEMP " ++ document["title"]
 }
 
 @react.component
@@ -94,7 +101,7 @@ let make = () => {
 
     let actSettingsUpdated = newSettings => {
         setState(setSettings(_,newSettings))
-        settingsSaveToLocStor(newSettings)
+        settingsSaveToLocStor(newSettings, tempMode.contents)
         actCtxUpdated(state.srcs, state.ctx, Some(newSettings))
     }
 
@@ -136,6 +143,7 @@ let make = () => {
                             preCtx=state.ctx
                             reloadCtx
                             initialStateJsonStr=editorInitialStateJsonStr
+                            tempMode=tempMode.contents
                         />
                     | ExplorerIndex => 
                         <MM_cmp_pe_index
@@ -163,6 +171,7 @@ let make = () => {
                         }}
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx, None)}
                         reloadCtx
+                        tempMode=tempMode.contents
                     />
                     {renderTabs()}
                 </Col>

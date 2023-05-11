@@ -437,7 +437,7 @@ let makeMmScopeFromSrcDtos = (
     })
 }
 
-let defaultSrcTypeStrLocStorKey = "ctx-selector-default-src-type"
+let defaultValueOfDefaultSrcTypeStr = Web->mmFileSourceTypeToStr
 
 @react.component
 let make = (
@@ -446,14 +446,12 @@ let make = (
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~tempMode:bool,
 ) => {
-    let (defaultSrcTypeStr, setDefaultSrcTypeStrPriv) = React.useState(() => {
-        locStorReadString(defaultSrcTypeStrLocStorKey)->Belt_Option.getWithDefault(Web->mmFileSourceTypeToStr)
-    })
-    let setDefaultSrcTypeStr = (defaultSrcTypeStr:string):unit => {
-        locStorWriteString(defaultSrcTypeStrLocStorKey, defaultSrcTypeStr)
-        setDefaultSrcTypeStrPriv(_ => defaultSrcTypeStr)
-    }
+    let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(
+        ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr, ~tempMode
+    )
+
     let defaultSrcType = mmFileSourceTypeFromStrOpt(defaultSrcTypeStr)->Belt_Option.getWithDefault(Web)
 
     let (state, setState) = React.useState(() => createInitialMmScope(~defaultSrcType))
@@ -510,7 +508,7 @@ let make = (
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => {
                     if (state.singleScopes->Js.Array2.length == 1) {
-                        setDefaultSrcTypeStr(srcType->mmFileSourceTypeToStr)
+                        setDefaultSrcTypeStr(_ => srcType->mmFileSourceTypeToStr)
                     }
                     setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))
                 }}

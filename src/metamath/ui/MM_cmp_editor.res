@@ -16,8 +16,10 @@ open Common
 
 let unifyAllIsRequiredCnt = ref(0)
 
-let editorSaveStateToLocStor = (state:editorState, key:string):unit => {
-    locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
+    if (!tempMode) {
+        locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+    }
 }
 
 let rndIconButton = (
@@ -37,11 +39,13 @@ let editorStateLocStorKey = "editor-state"
 
 let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
-let saveLastUsedTyp = (ctx,typInt) => {
-    switch ctx->ctxIntToSym(typInt) {
-        | None => ()
-        | Some(typStr) =>
-            Dom_storage2.localStorage->Dom_storage2.setItem(lastUsedAsrtSearchTypLocStorKey, typStr)
+let saveLastUsedTyp = (ctx:mmContext,typInt:int,tempMode:bool):unit => {
+    if (!tempMode) {
+        switch ctx->ctxIntToSym(typInt) {
+            | None => ()
+            | Some(typStr) =>
+                Dom_storage2.localStorage->Dom_storage2.setItem(lastUsedAsrtSearchTypLocStorKey, typStr)
+        }
     }
 }
 
@@ -69,11 +73,14 @@ let make = (
     ~top:int,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~initialStateJsonStr:option<string>,
+    ~tempMode:bool,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
-    let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool("editor-visualization", false)
+    let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool(
+        ~key="editor-visualization", ~default=false, ~tempMode
+    )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV, ~settings, ~srcs, ~preCtxV, ~preCtx, 
@@ -83,7 +90,7 @@ let make = (
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
             let st = updateEditorStateWithPostupdateActions(st, update)
-            editorSaveStateToLocStor(st, editorStateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
             st
         })
     }
@@ -181,7 +188,7 @@ let make = (
     let actToggleStmtChecked = id => {
         setStatePriv(st => {
             let st = toggleStmtChecked(st,id)
-            editorSaveStateToLocStor(st, editorStateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
             st
         })
     }
@@ -192,7 +199,7 @@ let make = (
         }
         setStatePriv(st => {
             let st = action(st)
-            editorSaveStateToLocStor(st, editorStateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
             st
         })
     }
@@ -528,7 +535,7 @@ let make = (
                             wrkCtx
                             frms=state.frms
                             initialTyp={getLastUsedTyp(state.preCtx)}
-                            onTypChange={saveLastUsedTyp(state.preCtx, _)}
+                            onTypChange={saveLastUsedTyp(state.preCtx, _, tempMode)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onResultsSelected={selectedResults=>{
                                 closeModal(modalRef, modalId)
@@ -618,7 +625,7 @@ let make = (
     let actUnifyAllResultsAreReady = proofTreeDto => {
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
-            editorSaveStateToLocStor(st, editorStateLocStorKey)
+            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
             st
         })
     }
@@ -767,6 +774,7 @@ let make = (
                         <MM_cmp_export_proof 
                             proofText proofTableWithTypes proofTableWithoutTypes 
                             onClose={_=>closeModal(modalRef, modalId)} 
+                            tempMode
                         />
                     })
                 })->ignore
@@ -780,6 +788,7 @@ let make = (
                 <MM_cmp_export_state_to_json 
                     jsonStr=Expln_utils_common.stringify(state->editorStateToEditorStateLocStor)
                     onClose={_=>closeModal(modalRef, modalId)}
+                    tempMode
                 />
             })
         })->ignore
