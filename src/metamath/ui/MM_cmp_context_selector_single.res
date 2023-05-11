@@ -9,7 +9,7 @@ let make = (
     ~modalRef:modalRef,
     ~availableWebSrcs:array<webSource>,
     ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~onUrlBecomesTrusted:option<string=>unit>,
     ~srcType:mmFileSourceType,
     ~onSrcTypeChange:mmFileSourceType=>unit,
     ~fileSrc: option<mmFileSource>,

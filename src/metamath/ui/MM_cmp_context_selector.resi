@@ -8,7 +8,7 @@ open Expln_utils_promise
 let make: (
     ~modalRef: modalRef,
     ~webSrcSettings:array<webSrcSettings>,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~onUrlBecomesTrusted:option<string=>unit>,
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~tempMode:bool,

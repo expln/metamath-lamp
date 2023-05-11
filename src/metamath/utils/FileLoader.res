@@ -24,7 +24,7 @@ let loadFile = (
 let loadFileWithProgress = (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:string=>unit,
+    ~onUrlBecomesTrusted:option<string=>unit>,
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,
@@ -110,20 +110,27 @@ let loadFileWithProgress = (
                         <span>
                             { React.string(url) }
                         </span>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    onChange=evt2bool(checked => dontAskAgain.contents = checked)
+                        {
+                            if (onUrlBecomesTrusted->Belt_Option.isSome) {
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            onChange=evt2bool(checked => dontAskAgain.contents = checked)
+                                        />
+                                    }
+                                    label="don't ask for this URL"
                                 />
-                            }
-                            label="don't ask for this URL"
-                        />
+                            } else {React.null}
+                        }
                         <Row>
                             <Button 
                                 variant=#contained
                                 onClick={_ => {
                                     if (dontAskAgain.contents) {
-                                        onUrlBecomesTrusted(url)
+                                        switch onUrlBecomesTrusted {
+                                            | None => ()
+                                            | Some(onUrlBecomesTrusted) => onUrlBecomesTrusted(url)
+                                        }
                                     }
                                     closeModal(modalRef, modalId)
                                     actDownloadFile()

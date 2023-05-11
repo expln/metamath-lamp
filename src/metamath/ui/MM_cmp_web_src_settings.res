@@ -22,7 +22,7 @@ let make = (
     let rndWebSrcSetting = (src:webSrcSettingsState) => {
         <Col key=src.id>
             <Row>
-                <TextField label="Alias" size=#small style=ReactDOM.Style.make(~width="150px", ()) 
+                <TextField label="Alias (optional)" size=#small style=ReactDOM.Style.make(~width="150px", ()) 
                     value=src.alias onChange=evt2str(onAliasChange(src.id,_)) />
                 <TextField label="URL" size=#small style=ReactDOM.Style.make(~width="400px", ()) 
                     value=src.url onChange=evt2str(onUrlChange(src.id,_)) />

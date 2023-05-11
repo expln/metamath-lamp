@@ -166,9 +166,13 @@ let make = () => {
                     <MM_cmp_context_selector 
                         modalRef 
                         webSrcSettings={state.settings.webSrcSettings}
-                        onUrlBecomesTrusted={url=>{
-                            state.settings->markUrlAsTrusted(url)->actSettingsUpdated
-                        }}
+                        onUrlBecomesTrusted={
+                            if (tempMode.contents) {
+                                None
+                            } else {
+                                Some(url => state.settings->markUrlAsTrusted(url)->actSettingsUpdated)
+                            }
+                        }
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx, None)}
                         reloadCtx
                         tempMode=tempMode.contents
