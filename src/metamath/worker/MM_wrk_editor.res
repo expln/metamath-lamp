@@ -683,8 +683,14 @@ let updateColorsInAllStmts = st => {
     }
 }
 
-let findSyntaxTypes = (frms: Belt_MapString.t<frmSubsData>): array<int> => {
+let findSyntaxTypes = (ctx:mmContext, frms: Belt_MapString.t<frmSubsData>): array<int> => {
     let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
+        if (hyp.typ == F) {
+            syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
+        }
+        None
+    })->ignore
     frms->Belt_MapString.forEach((_,frm) => {
         frm.frame.hyps->Js_array2.forEach(hyp => {
             if (hyp.typ == F) {
@@ -715,7 +721,7 @@ let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) =>
         preCtx, 
         frms,
         parenCnt: parenCntMake(parenInts, ()),
-        syntaxTypes: findSyntaxTypes(frms),
+        syntaxTypes: findSyntaxTypes(preCtx, frms),
         parensMap,
     }
     let st = recalcPreCtxColors(st)

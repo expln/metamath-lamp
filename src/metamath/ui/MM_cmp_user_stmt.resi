@@ -55,11 +55,11 @@ type props = {
     addStmtBelow:string=>unit,
 }
 
-// @react.component
 let make: props => React.element
 
 let rndContText: (
     ~stmtCont:stmtCont,
+    ~symRename:Belt_HashMapString.t<string>=?,
     ~onTextClick:int=>unit=?,
     ~onTreeClick:int=>unit=?,
     ~editStmtsByLeftClick:bool=?,

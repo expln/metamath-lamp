@@ -53,30 +53,6 @@ let setInfoExpanded = (st,infoExpanded):state => {
     }
 }
 
-let leftClickHnd = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
-    mouseEvt => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 
-            && !(mouseEvt->ReactEvent.Mouse.altKey)
-            && !(mouseEvt->ReactEvent.Mouse.ctrlKey)
-            && !(mouseEvt->ReactEvent.Mouse.shiftKey)
-        ) {
-            clbk()
-        }
-    }
-}
-
-let altLeftClickHnd = (clbk:unit=>unit):(ReactEvent.Mouse.t => unit) => {
-    mouseEvt => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 
-            && mouseEvt->ReactEvent.Mouse.altKey
-            && !(mouseEvt->ReactEvent.Mouse.ctrlKey)
-            && !(mouseEvt->ReactEvent.Mouse.shiftKey)
-        ) {
-            clbk()
-        }
-    }
-}
-
 let textToSyntaxTree = (
     ~wrkCtx:mmContext,
     ~syms:array<stmtSym>,
@@ -139,6 +115,7 @@ let rndSymbol = (
     ~key:string,
     ~sym:string,
     ~color:option<string>,
+    ~symRename:option<Belt_HashMapString.t<string>>=?,
     ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
@@ -168,7 +145,11 @@ let rndSymbol = (
                 | Some(color) => (color,"bold")
             }
             <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) >
-                {sym->React.string}
+                {
+                    React.string(
+                        symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
+                    )
+                }
             </span>
         }
     </React.Fragment>
@@ -176,6 +157,7 @@ let rndSymbol = (
 
 let rndContText = (
     ~stmtCont:stmtCont,
+    ~symRename:option<Belt_HashMapString.t<string>>=?,
     ~onTextClick:option<int=>unit>=?,
     ~onTreeClick:option<int=>unit>=?,
     ~editStmtsByLeftClick:bool=true,
@@ -186,9 +168,9 @@ let rndContText = (
         | Text(syms) => {
             let onClick = idx => onTextClick->Belt_Option.map(onTextClick => {
                 if (editStmtsByLeftClick) {
-                    altLeftClickHnd(() => onTextClick(idx))
+                    clickHnd(~alt=true, ~act = () => onTextClick(idx), ())
                 } else {
-                    leftClickHnd(() => onTextClick(idx))
+                    clickHnd(~act = () => onTextClick(idx), ())
                 }
             })
             let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
@@ -200,6 +182,7 @@ let rndContText = (
                     ~color=stmtSym.color,
                     ~onClick=?onClick(i),
                     ~cursor,
+                    ~symRename?,
                     ()
                 )
             })->React.array
@@ -207,9 +190,9 @@ let rndContText = (
         | Tree({exprTyp, root}) => {
             let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => {
                 if (editStmtsByLeftClick) {
-                    altLeftClickHnd(() => onTreeClick(id))
+                    clickHnd(~alt=true, ~act = () => onTreeClick(id), ())
                 } else {
-                    leftClickHnd(() => onTreeClick(id))
+                    clickHnd(~act = () => onTreeClick(id), ())
                 }
             })
             let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
@@ -222,6 +205,7 @@ let rndContText = (
                     ~sym=exprTyp,
                     ~color=None,
                     ~cursor,
+                    ~symRename?,
                     ()
                 )
             )->ignore
@@ -265,6 +249,7 @@ let rndContText = (
                                         } 
                                     },
                                     ~cursor,
+                                    ~symRename?,
                                     ()
                                 )
                             )->ignore
@@ -865,7 +850,7 @@ let make = React.memoCustomCompareProps( ({
         } else {
             <span 
                 ref=ReactDOM.Ref.domRef(labelRef)
-                onClick=leftClickHnd(onLabelEditRequested) 
+                onClick=clickHnd(~act=onLabelEditRequested, ()) 
                 title="<left-click> to change"
                 style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ())
             >
@@ -940,9 +925,9 @@ let make = React.memoCustomCompareProps( ({
                 <Paper 
                     onClick={
                         if (editStmtsByLeftClick) {
-                            leftClickHnd(onContEditRequested)
+                            clickHnd(~act=onContEditRequested, ())
                         } else {
-                            altLeftClickHnd(onContEditRequested)
+                            clickHnd(~alt=true, ~act=onContEditRequested, ())
                         }
                     }
                     style=ReactDOM.Style.make(
@@ -1009,10 +994,10 @@ let make = React.memoCustomCompareProps( ({
                 | P => "P"
             }
             <span 
-                onClick={evt=>{
-                    altLeftClickHnd(onTypEditRequested)(evt)
-                    leftClickHnd(actToggleInfoExpanded)(evt)
-                }}
+                onClick=clickHnd2(
+                    clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
+                    clickClbkMake(~act=actToggleInfoExpanded, ()),
+                )
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
                 title="Alt+<left-click> to change statement type. Left-click to show/hide the justification for provable."
             >
@@ -1045,7 +1030,7 @@ let make = React.memoCustomCompareProps( ({
             let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "3px" }
             <Row >
                 <Paper 
-                    onClick=leftClickHnd(onJstfEditRequested) 
+                    onClick=clickHnd(~act=onJstfEditRequested, ()) 
                     style=ReactDOM.Style.make( ~padding, ~marginTop="5px", () )
                     title="<left-click> to change"
                 >

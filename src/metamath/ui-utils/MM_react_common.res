@@ -88,3 +88,70 @@ let kbrdHnd = (
         })
     }
 }
+
+type mouseButton = Left | Middle | Right
+
+type clickCallback = {
+    btn:mouseButton,
+    alt:bool,
+    shift:bool,
+    ctrl:bool,
+    act:unit=>unit,
+}
+
+let mouseButtonToInt = (btn:mouseButton):int => {
+    switch btn {
+        | Left => 0
+        | Middle => 1
+        | Right => 2
+    }
+}
+
+let clickClbkMake = (
+    ~btn:mouseButton=Left,
+    ~alt:bool=false,
+    ~shift:bool=false,
+    ~ctrl:bool=false,
+    ~act:unit=>unit,
+    ()
+) => {
+    { btn, alt, shift, ctrl, act, }
+}
+
+let clickHnd = (
+    ~btn:mouseButton=Left,
+    ~alt:bool=false,
+    ~shift:bool=false,
+    ~ctrl:bool=false,
+    ~act:unit=>unit,
+    ()
+):(ReactEvent.Mouse.t => unit) => {
+    evt => {
+        if (
+            evt->ReactEvent.Mouse.button === btn->mouseButtonToInt
+            && evt->ReactEvent.Mouse.altKey === alt
+            && evt->ReactEvent.Mouse.ctrlKey === ctrl
+            && evt->ReactEvent.Mouse.shiftKey === shift
+        ) {
+            act()
+        }
+    }
+}
+
+let runCallback = (evt:ReactEvent.Mouse.t, clbk:clickCallback):unit => {
+    if (
+        evt->ReactEvent.Mouse.button === clbk.btn->mouseButtonToInt
+        && evt->ReactEvent.Mouse.altKey === clbk.alt
+        && evt->ReactEvent.Mouse.ctrlKey === clbk.ctrl
+        && evt->ReactEvent.Mouse.shiftKey === clbk.shift
+    ) {
+        clbk.act()
+    }
+}
+
+let clickHnd2 = ( clbk1:clickCallback, clbk2:clickCallback, ):(ReactEvent.Mouse.t => unit) => {
+    evt => {
+        runCallback(evt,clbk1)
+        runCallback(evt,clbk2)
+    }
+}

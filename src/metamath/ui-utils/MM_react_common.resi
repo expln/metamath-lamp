@@ -18,3 +18,26 @@ let kbrdHnd: (
 ) => unit
 
 let copyToClipboard: string => unit
+
+type mouseButton = Left | Middle | Right
+type clickCallback
+
+let clickClbkMake: (
+    ~btn:mouseButton=?,
+    ~alt:bool=?,
+    ~shift:bool=?,
+    ~ctrl:bool=?,
+    ~act:unit=>unit,
+    ()
+) => clickCallback
+
+let clickHnd: (
+    ~btn:mouseButton=?,
+    ~alt:bool=?,
+    ~shift:bool=?,
+    ~ctrl:bool=?,
+    ~act:unit=>unit,
+    ()
+) => (ReactEvent.Mouse.t => unit)
+
+let clickHnd2: ( clickCallback, clickCallback, ) => (ReactEvent.Mouse.t => unit)
