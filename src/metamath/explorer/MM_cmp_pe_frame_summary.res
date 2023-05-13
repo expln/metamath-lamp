@@ -18,6 +18,7 @@ type state = {
     symColors:Belt_HashMapString.t<string>,
     eHyps:array<expr>,
     asrt:expr,
+    symRename:option<Belt_HashMapString.t<string>>,
     descrIsExpanded:bool
 }
 
@@ -59,10 +60,10 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
 
     for frmVarInt in 0 to frame.numOfVars-1 {
         let frmVarName = frame.frameVarToSymb[frmVarInt]
-        let ctxVarInt = frmCtx->ctxSymToIntExn(frmVarName)
-        let ctxVarTypInt = frmCtx->getTypeOfVarExn(ctxVarInt)
         let ctxVarName = switch frmCtx->getTokenType(frmVarName) {
             | Some(V) => {
+                let ctxVarInt = frmCtx->ctxSymToIntExn(frmVarName)
+                let ctxVarTypInt = frmCtx->getTypeOfVarExn(ctxVarInt)
                 if (frame.varTypes[frmVarInt] == ctxVarTypInt) {
                     frmVarIntToCtxInt->Js.Array2.push(ctxVarInt)->ignore
                     frmVarName
@@ -93,6 +94,7 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
         symColors,
         eHyps:frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)->Js.Array2.map(hyp => hyp.expr->frameExprToCtxExpr),
         asrt:frame.asrt->frameExprToCtxExpr,
+        symRename:symRename.contents,
         descrIsExpanded:false
     }
 }

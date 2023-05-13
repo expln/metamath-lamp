@@ -1,0 +1,15 @@
+$c ( ) term wff $.
+
+$v a x $.
+wa $f wff a $.
+wx $f wff x $.
+
+ax0  $a ( x ) x $.
+
+${
+    $v b $.
+    tb $f term b $.
+    h1 $e ( ) a b $.
+    ax1  $a ( a b ) $.
+$}
+
