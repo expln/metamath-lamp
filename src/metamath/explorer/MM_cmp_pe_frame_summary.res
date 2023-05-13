@@ -21,19 +21,21 @@ type state = {
     descrIsExpanded:bool
 }
 
-let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMapString.t<string>) => {
+let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMapString.t<string>):state => {
     let frmCtx = createContext(~parent=preCtx, ())
     let symRename = ref(None)
     let frmVarIntToCtxInt = []
     let symColors = Belt_HashMapString.make(~hintSize=frame.numOfVars)
 
-    let createLocalCtxVar = (~frmVarName, ~ctxVarTypInt):int => {
+    let createLocalCtxVar = (~frmVarName, ~typInt):int => {
+        @warning("-8")
         let [ctxVarName] = generateNewVarNames( 
             ~ctx=frmCtx, 
-            ~types=[ctxVarTypInt], 
+            ~types=[typInt], 
             ~typeToPrefix=Belt_MapString.empty, 
             ()
         )
+        @warning("-8")
         let [ctxVarLabel] = generateNewLabels(
             ~ctx=frmCtx, 
             ~prefix="loc-var-", 
@@ -41,11 +43,12 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
             ()
         )
         frmCtx->applySingleStmt(Var({symbols:[ctxVarName]}))
-        frmCtx->applySingleStmt(Floating({label:ctxVarLabel, expr:[frmCtx->ctxIntToSymExn(ctxVarTypInt), ctxVarName]}))
+        frmCtx->applySingleStmt(Floating({label:ctxVarLabel, expr:[frmCtx->ctxIntToSymExn(typInt), ctxVarName]}))
         switch symRename.contents {
             | None => {
-                symRename := Belt_HashMapString.make(~hintSize=frame.numOfVars)
-                symRename.contents->Belt_HashMapString.set(ctxVarName, frmVarName)
+                let map = Belt_HashMapString.make(~hintSize=frame.numOfVars)
+                map->Belt_HashMapString.set(ctxVarName, frmVarName)
+                symRename := Some(map)
             }
             | Some(symRename) => {
                 symRename->Belt_HashMapString.set(ctxVarName, frmVarName)
@@ -56,50 +59,41 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
 
     for frmVarInt in 0 to frame.numOfVars-1 {
         let frmVarName = frame.frameVarToSymb[frmVarInt]
-        switch frmCtx->getTokenType(frmVarName) {
+        let ctxVarInt = frmCtx->ctxSymToIntExn(frmVarName)
+        let ctxVarTypInt = frmCtx->getTypeOfVarExn(ctxVarInt)
+        let ctxVarName = switch frmCtx->getTokenType(frmVarName) {
             | Some(V) => {
-                let ctxVarInt = frmCtx->ctxSymToIntExn(frmVarName)
-                let ctxVarTypInt = frmCtx->getTypeOfVarExn(ctxVarInt)
-                let ctxVarName = if (frame.varTypes[frmVarInt] == ctxVarTypInt) {
-                    frmVarIntToCtxInt->Js.Array2.push(ctxVarInt)
+                if (frame.varTypes[frmVarInt] == ctxVarTypInt) {
+                    frmVarIntToCtxInt->Js.Array2.push(ctxVarInt)->ignore
                     frmVarName
                 } else {
-                    let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~ctxVarTypInt)
-                    frmVarIntToCtxInt->Js.Array2.push(ctxNewVarInt)
+                    let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~typInt=frame.varTypes[frmVarInt])
+                    frmVarIntToCtxInt->Js.Array2.push(ctxNewVarInt)->ignore
                     frmCtx->ctxIntToSymExn(ctxNewVarInt)
                 }
-                let frmVarTypSym = frmCtx->ctxIntToSymExn(ctxVarTypInt)
-                typeColors->Belt_HashMapString.get(frmVarTypSym)->Belt.Option.forEach(color => {
-                    symColors->Belt_HashMapString.set()
-                })
             }
             | _ => {
-
+                let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~typInt=frame.varTypes[frmVarInt])
+                frmVarIntToCtxInt->Js.Array2.push(ctxNewVarInt)->ignore
+                frmCtx->ctxIntToSymExn(ctxNewVarInt)
             }
         }
+        let frmVarTypSym = frmCtx->ctxIntToSymExn(frame.varTypes[frmVarInt])
+        typeColors->Belt_HashMapString.get(frmVarTypSym)->Belt.Option.forEach(color => {
+            symColors->Belt_HashMapString.set(ctxVarName, color)
+        })
     }
-    {
-        cont:Text(
-            ctx->frmIntsToSymsExn(frame,stmt)->Js_array2.map(sym => {
-                {sym, color:symColors->Belt_HashMapString.get(sym)}
-            })
-        ),
-        showButtons:false,
-        permSels: [],
-    }
-}
 
-let setContent = (st,cont):state => {
-    {
-        ...st,
-        cont
+    let frameExprToCtxExpr = (frmExpr:expr):expr => {
+        frmExpr->Js_array2.map(i => if (i < 0) {i} else {frmVarIntToCtxInt[i]})
     }
-}
 
-let setShowButtons = (st,showButtons):state => {
     {
-        ...st,
-        showButtons
+        frmCtx,
+        symColors,
+        eHyps:frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)->Js.Array2.map(hyp => hyp.expr->frameExprToCtxExpr),
+        asrt:frame.asrt->frameExprToCtxExpr,
+        descrIsExpanded:false
     }
 }
 
@@ -107,74 +101,33 @@ type props = {
     modalRef:modalRef,
     settingsVer:int,
     preCtxVer:int,
-    frmCtx:mmContext,
+    preCtx:mmContext,
     frame:frame,
-    stmt:expr,
-    symColors:Belt_HashMapString.t<string>,
+    typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
     a.settingsVer == b.settingsVer
     && a.preCtxVer == b.preCtxVer
-    && a.frame === b.frame
-    && a.stmt === b.stmt
-    && a.editStmtsByLeftClick === b.editStmtsByLeftClick
 }
 
 let make = React.memoCustomCompareProps( ({
     modalRef,
     settingsVer,
     preCtxVer,
-    frmCtx,
+    preCtx,
     frame,
-    stmt,
-    symColors,
+    typeColors,
     editStmtsByLeftClick,
 }:props) =>  {
-    let (state, setState) = React.useState(_ => makeInitialState(~ctx=frmCtx, ~frame, ~stmt, ~symColors))
+    let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
 
-    let rndStmt = () => {
-        let elems = [
-            <Paper 
-                // onClick={
-                    // if (editStmtsByLeftClick) {
-                    //     leftClickHnd(onContEditRequested)
-                    // } else {
-                    //     altLeftClickHnd(onContEditRequested)
-                    // }
-                // }
-                style=ReactDOM.Style.make(
-                    ~padding="1px 10px", 
-                    ~fontFamily="monospace",
-                    ~fontSize="1.3em",
-                    ()
-                ) 
-                // title={
-                //     if (editStmtsByLeftClick) {
-                //         "<left-click> to change, Alt+<left-click> to select"
-                //     } else {
-                //         "Alt + <left-click> to change, <left-click> to select"
-                //     }
-                // }
-            >
-                {
-                    rndContText(
-                        ~stmtCont=state.cont, 
-                        // ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
-                        // ~onTreeClick=actTreeNodeClicked,
-                        ~renderSelection=true,
-                        ~editStmtsByLeftClick,
-                        ()
-                    )
-                }
-            </Paper>
-        ]
-        <Col>
-            {elems->React.array}
-        </Col>
-    }
+    React.useEffect2(() => {
+        setState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
+        None
+    }, (settingsVer, preCtxVer))
 
-    rndStmt()
+    React.null
 
 }, propsAreSame)
