@@ -1,9 +1,9 @@
 open Expln_test
 open MM_parser
 open MM_context
-open MM_cmp_pe_frame_summary
+open MM_cmp_pe_frame_summary_state
 
-describe("MM_cmp_pe_frame_summary.makeInitialState", _ => {
+describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
 
     it("creates correct symRename when an frm var does not exist in ctx", _ => {
         //given
