@@ -633,9 +633,7 @@ let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapStri
 let recalcTypeColors = (st:editorState):editorState => {
     {
         ...st,
-        typeColors: st.settings.typeSettings
-            ->Js_array2.map(ts => (ts.typ, ts.color))
-            ->Belt_HashMapString.fromArray
+        typeColors: st.settings->settingsGetTypeColors
     }
 }
 

@@ -22,3 +22,5 @@ type settings = {
 }
 
 let markUrlAsTrusted: (settings, string) => settings
+
+let settingsGetTypeColors: settings => Belt_HashMapString.t<string>

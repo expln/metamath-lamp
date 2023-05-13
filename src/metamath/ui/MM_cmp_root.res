@@ -110,7 +110,7 @@ let make = () => {
             if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, editorTabId) = st->Expln_React_UseTabs.addTab(~label="Editor", ~closable=false, ~data=Editor)
-                // let (st, _) = st->Expln_React_UseTabs.addTab(~label="Explorer", ~closable=false, ~data=ExplorerIndex)
+                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Explorer", ~closable=false, ~data=ExplorerIndex)
                 let st = st->Expln_React_UseTabs.openTab(editorTabId)
                 st
             } else {
@@ -147,6 +147,7 @@ let make = () => {
                         />
                     | ExplorerIndex => 
                         <MM_cmp_pe_index
+                            modalRef
                             settingsVer=state.settingsV
                             settings=state.settings
                             preCtxVer=state.ctxV

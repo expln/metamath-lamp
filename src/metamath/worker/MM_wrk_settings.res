@@ -49,3 +49,9 @@ let markUrlAsTrusted = (settings:settings, url:string):settings => {
         }
     }
 }
+
+let settingsGetTypeColors = (settings:settings):Belt_HashMapString.t<string> => {
+    settings.typeSettings
+        ->Js_array2.map(ts => (ts.typ, ts.color))
+        ->Belt_HashMapString.fromArray
+}

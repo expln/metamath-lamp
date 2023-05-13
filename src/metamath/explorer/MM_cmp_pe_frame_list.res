@@ -3,17 +3,20 @@ open MM_wrk_settings
 open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
+open Expln_React_Modal
 
 let pageSize = 20
 let nonDigitPattern = %re("/\D/g")
 
 type props = {
+    modalRef:modalRef,
     settingsVer:int,
     settings:settings,
     preCtxVer:int,
     preCtx:mmContext,
     labelsVer:int,
     labels:array<(int,string)>,
+    typeColors:Belt_HashMapString.t<string>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -23,12 +26,14 @@ let propsAreSame = (a:props, b:props):bool => {
 }
 
 let make = React.memoCustomCompareProps(({
+    modalRef,
     settingsVer,
     settings,
     preCtxVer,
     preCtx,
     labelsVer,
     labels,
+    typeColors,
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
@@ -80,6 +85,20 @@ let make = React.memoCustomCompareProps(({
         </Row>
     }
 
+    let rndFrameSummary = (order,label) => {
+        <MM_cmp_pe_frame_summary
+            key={`${settingsVer->Belt.Int.toString}-${preCtxVer->Belt.Int.toString}-${order->Belt.Int.toString}-${label}`}
+            modalRef
+            settingsVer
+            preCtxVer
+            preCtx
+            frame={preCtx->getFrameExn(label)}
+            order
+            typeColors
+            editStmtsByLeftClick=settings.editStmtsByLeftClick
+        />
+    }
+
     let rndFrames = () => {
         if (labels->Js.Array2.length == 0) {
             "No assertions loaded."->React.string
@@ -88,7 +107,7 @@ let make = React.memoCustomCompareProps(({
                 {rndPagination()}
                 {
                     labels->Js_array2.slice(~start=beginIdx, ~end_=endIdx+1)
-                        ->Js_array2.map(((order,label)) => `${order->Belt.Int.toString} - ${label}`->React.string)
+                        ->Js_array2.map(((order,label)) => rndFrameSummary(order,label))
                         ->React.array
                 }
             </Col>

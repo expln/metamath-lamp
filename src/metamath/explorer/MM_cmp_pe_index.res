@@ -1,7 +1,9 @@
 open MM_context
 open MM_wrk_settings
+open Expln_React_Modal
 
 type props = {
+    modalRef:modalRef,
     settingsVer:int,
     settings:settings,
     preCtxVer:int,
@@ -14,17 +16,19 @@ let propsAreSame = (a:props, b:props):bool => {
 }
 
 let make = React.memoCustomCompareProps(({
+    modalRef,
     settingsVer,
     settings,
     preCtxVer,
     preCtx,
 }:props) => {
+    let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
     let (allLabels, setAllLabels) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (filteredLabelsVer, setFilteredLabelsVer) = React.useState(() => 0)
 
     let actSettingsChanged = () => {
-        ()
+        setTypeColors(_ => settings->settingsGetTypeColors)
     }
 
     let actCtxChanged = () => {
@@ -44,9 +48,11 @@ let make = React.memoCustomCompareProps(({
         None
     }, [preCtxVer])
 
-    <MM_cmp_pe_asrt_list
+    <MM_cmp_pe_frame_list
+        modalRef
         settingsVer
         settings
+        typeColors
         preCtxVer
         preCtx
         labelsVer=filteredLabelsVer

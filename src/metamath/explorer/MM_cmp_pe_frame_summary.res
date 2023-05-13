@@ -105,6 +105,7 @@ type props = {
     preCtxVer:int,
     preCtx:mmContext,
     frame:frame,
+    order:int,
     typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
 }
@@ -120,6 +121,7 @@ let make = React.memoCustomCompareProps( ({
     preCtxVer,
     preCtx,
     frame,
+    order,
     typeColors,
     editStmtsByLeftClick,
 }:props) =>  {
@@ -130,6 +132,18 @@ let make = React.memoCustomCompareProps( ({
         None
     }, (settingsVer, preCtxVer))
 
-    React.null
+    let rndLabel = ():reElem => {
+        <span>
+            {
+                React.string(
+                    order->Belt_Int.toString ++ " " ++ frame.label
+                )
+            }
+        </span>
+    }
+
+    <Paper>
+        {rndLabel()}
+    </Paper>
 
 }, propsAreSame)
