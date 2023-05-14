@@ -1,3 +1,4 @@
+- freeze pagination in the explorer
 - fix a bug:
     when I was proving "cotval-hyp" one label became uneditable.
 - optimize re-rendering for all tabs.

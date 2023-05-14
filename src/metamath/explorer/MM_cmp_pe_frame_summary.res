@@ -55,12 +55,24 @@ let make = React.memoCustomCompareProps( ({
     }, (typeColors, editStmtsByLeftClick, preCtx, frame, order))
 
     let rndLabel = ():reElem => {
+        let asrtType = if (frame.isAxiom) {"Axiom"} else {"Theorem"}
         <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
-            { React.string( order->Belt_Int.toString ++ " " ) }
+            { React.string( order->Belt_Int.toString ++ " " ++ asrtType ++ " ") }
             <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                 { frame.label->React.string }
             </span>
         </span>
+    }
+
+    let rndDescr = () => {
+        <>
+            <Divider/>
+            <span>
+                {
+                    frame.descr->Belt.Option.getWithDefault("This assertion doesn't have any description.")->React.string
+                }
+            </span>
+        </>
     }
 
     let rndHyps = () => {
@@ -105,12 +117,13 @@ let make = React.memoCustomCompareProps( ({
         />
     }
 
-    <table style=ReactDOM.Style.make(~backgroundColor="#EEFFFA", ())>
+    <table>
         <tbody>
             <tr>
                 <td>
-                    <Paper elevation=3>
+                    <Paper elevation=3 style=ReactDOM.Style.make(~backgroundColor="rgb(255,255,235)", ())>
                         {rndLabel()}
+                        {rndDescr()}
                         {rndHyps()}
                         <Divider/>
                         {rndAsrt()}
