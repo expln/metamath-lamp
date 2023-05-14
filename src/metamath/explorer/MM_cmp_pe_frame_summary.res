@@ -18,7 +18,12 @@ type props = {
     modalRef:modalRef,
     typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+
     preCtx:mmContext,
+    syntaxTypes:array<int>,
+    frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
+
     frame:frame,
     order:int,
 }
@@ -36,6 +41,9 @@ let make = React.memoCustomCompareProps( ({
     typeColors,
     editStmtsByLeftClick,
     preCtx,
+    syntaxTypes,
+    frms,
+    parenCnt,
     frame,
     order,
 }:props) =>  {
@@ -60,6 +68,9 @@ let make = React.memoCustomCompareProps( ({
         <MM_cmp_pe_stmt
             modalRef
             ctx=state.frmCtx
+            syntaxTypes
+            frms
+            parenCnt
             stmt=state.asrt
             symColors=state.symColors
             symRename=state.symRename

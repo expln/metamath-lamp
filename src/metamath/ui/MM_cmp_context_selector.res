@@ -7,6 +7,7 @@ open Expln_React_Modal
 open MM_wrk_settings
 open MM_wrk_editor
 open Local_storage_utils
+open MM_pre_ctx_data
 
 type mmSingleScope = {
     id:string,

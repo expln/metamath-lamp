@@ -1145,6 +1145,14 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
     })->ignore
 }
 
+let frameOptimizeForProver = (frame:frame):frame => {
+    {
+        ...frame,
+        descr:None,
+        proof:None,
+    }
+}
+
 let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, mmContextContents) => {
     let removeRedundantData = ctx => {
         {
@@ -1153,11 +1161,7 @@ let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, m
             frames: ctx.frames->Belt_HashMapString.toArray->Js_array2.map(((label,frame)) => {
                 (
                     label,
-                    {
-                        ...frame,
-                        descr:None,
-                        proof:None,
-                    }
+                    frame->frameOptimizeForProver
                 )
             })->Belt_HashMapString.fromArray,
             frameLabels:[]

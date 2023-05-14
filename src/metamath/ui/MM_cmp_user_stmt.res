@@ -110,6 +110,16 @@ let textToSyntaxTree = (
     }
 }
 
+let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
+
+let getLastSyntaxType = ():option<string> => {
+    locStorReadString(lastSyntaxTypeLocStorKey)
+}
+
+let setLastSyntaxType = (lastSyntaxType:string):unit => {
+    locStorWriteString(lastSyntaxTypeLocStorKey, lastSyntaxType)
+}
+
 let rndSymbol = (
     ~isFirst:bool,
     ~key:string,
@@ -566,7 +576,6 @@ let make = React.memoCustomCompareProps( ({
     }, [newTextCursorPosition])
 
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
-        let lastSyntaxTypeLocStorKey = "editor-last-syntax-type"
         switch wrkCtx {
             | None => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because there was an error setting MM context.`))
             | Some(wrkCtx) => {
@@ -574,15 +583,15 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text(syms) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, 
-                            ~lastSyntaxType=locStorReadString(lastSyntaxTypeLocStorKey),
-                            ~onLastSyntaxTypeChange = locStorWriteString(lastSyntaxTypeLocStorKey, _),
+                            ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt,
+                            ~lastSyntaxType=getLastSyntaxType(),
+                            ~onLastSyntaxTypeChange=setLastSyntaxType,
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
                                 onSyntaxTreeUpdated(Tree({
                                     exprTyp:syms[0].sym, 
-                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors ), 
+                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
                                     expLvl:0,
                                 }))

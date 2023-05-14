@@ -1,1 +1,9 @@
 metamath.exe "read set-check-new-proofs.mm" "verify proof new-asrt" exit
+
+--- deploy-worker ------------------------------------------------------------------------------------------------------
+
+npx webpack --config webworker.webpack.config.js && copy /B /Y ".\dist\webworker-main.js" ".\public"
+
+https://ss64.com/nt/copy.html
+/B   Binary file copy - will copy extended characters.
+/Y   Suppress confirmation prompt, when overwriting files.

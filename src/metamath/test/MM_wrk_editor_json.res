@@ -2,6 +2,7 @@ open MM_context
 open MM_wrk_editor
 open MM_wrk_settings
 open MM_parenCounter
+open MM_pre_ctx_data
 
 type userStmtLocStor = {
     label: string,
@@ -98,8 +99,13 @@ let createInitialEditorState = (
 
         unifyAllIsRequiredCnt: 0,
     }
-    let st = st->setSettings(settingsV, settings)
-    let st = st->setPreCtx(st.srcs, preCtxV, preCtx)
+    let st = st->setPreCtxData(
+        preCtxDataMake(~settings)->preCtxDataUpdate(
+            ~settings,
+            ~ctx=(srcs,preCtx),
+            ()
+        )
+    )
     st
 }
 

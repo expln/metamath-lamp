@@ -3,8 +3,11 @@ open MM_context
 open MM_cmp_settings
 open MM_wrk_editor
 open MM_wrk_settings
+open MM_substitution
+open MM_parenCounter
 open Expln_React_Modal
 open Common
+open MM_pre_ctx_data
 
 type tabData =
     | Settings
@@ -13,35 +16,39 @@ type tabData =
     | ExplorerAsrt({label:string})
 
 type state = {
-    settings: settings,
-    settingsV: int,
-    srcs: array<mmCtxSrcDto>,
-    ctx: mmContext,
-    ctxV: int,
+    preCtxData:preCtxData
 }
 
 let createInitialState = (~settings) => {
-    settings,
-    settingsV: 0,
-    srcs: [],
-    ctx: createContext(()),
-    ctxV: 0,
+    preCtxData: preCtxDataMake(~settings)
 }
 
-let setCtx = (st,srcs,ctx) => {
-    {
-        ...st,
-        srcs,
-        ctx,
-        ctxV: st.ctxV + 1,
-    }
+let findSyntaxTypes = (ctx:mmContext, frms: Belt_MapString.t<frmSubsData>): array<int> => {
+    let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
+        if (hyp.typ == F) {
+            syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
+        }
+        None
+    })->ignore
+    frms->Belt_MapString.forEach((_,frm) => {
+        frm.frame.hyps->Js_array2.forEach(hyp => {
+            if (hyp.typ == F) {
+                syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
+            }
+        })
+    })
+    syntaxTypes->Belt_HashSetInt.toArray
 }
 
-let setSettings = (st,settings) => {
+let updatePreCtxData = (
+    st:state,
+    ~settings:option<settings>=?,
+    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?,
+    ()
+): state => {
     {
-        ...st,
-        settings,
-        settingsV: st.settingsV + 1
+        preCtxData: st.preCtxData->preCtxDataUpdate( ~settings?, ~ctx?, () )
     }
 }
 
@@ -90,19 +97,13 @@ let make = () => {
 
     let reloadCtx = React.useRef(Js.Nullable.null)
 
-    let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext, settingsOpt) => {
-        let settings = switch settingsOpt {
-            | Some(settings) => settings
-            | None => state.settings
-        }
-        newCtx->moveConstsToBegin(settings.parens)
-        setState(setCtx(_,srcs,newCtx))
+    let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
+        setState(updatePreCtxData(_,~ctx=(srcs,newCtx), ()))
     }
 
-    let actSettingsUpdated = newSettings => {
-        setState(setSettings(_,newSettings))
+    let actSettingsUpdated = (newSettings:settings) => {
+        setState(updatePreCtxData(_,~settings=newSettings, ()))
         settingsSaveToLocStor(newSettings, tempMode.contents)
-        actCtxUpdated(state.srcs, state.ctx, Some(newSettings))
     }
 
     React.useEffect0(()=>{
@@ -127,20 +128,16 @@ let make = () => {
                     | Settings => 
                         <MM_cmp_settings 
                             modalRef
-                            ctx=state.ctx 
-                            settingsVer=state.settingsV
-                            settings=state.settings
+                            ctx=state.preCtxData.ctxV.val
+                            settingsVer=state.preCtxData.settingsV.ver
+                            settings=state.preCtxData.settingsV.val
                             onChange=actSettingsUpdated
                         />
                     | Editor => 
                         <MM_cmp_editor
                             top
                             modalRef
-                            settings=state.settings
-                            settingsV=state.settingsV
-                            srcs=state.srcs
-                            preCtxV=state.ctxV
-                            preCtx=state.ctx
+                            preCtxData=state.preCtxData
                             reloadCtx
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
@@ -148,8 +145,7 @@ let make = () => {
                     | ExplorerIndex => 
                         <MM_cmp_pe_index
                             modalRef
-                            settings=state.settings
-                            preCtx=state.ctx
+                            preCtxData=state.preCtxData
                         />
                     | ExplorerAsrt({label}) => <MM_cmp_click_counter title=label />
                 }
@@ -164,15 +160,15 @@ let make = () => {
                 <Col>
                     <MM_cmp_context_selector 
                         modalRef 
-                        webSrcSettings={state.settings.webSrcSettings}
+                        webSrcSettings={state.preCtxData.settingsV.val.webSrcSettings}
                         onUrlBecomesTrusted={
                             if (tempMode.contents) {
                                 None
                             } else {
-                                Some(url => state.settings->markUrlAsTrusted(url)->actSettingsUpdated)
+                                Some(url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated)
                             }
                         }
-                        onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx, None)}
+                        onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
                         tempMode=tempMode.contents
                     />

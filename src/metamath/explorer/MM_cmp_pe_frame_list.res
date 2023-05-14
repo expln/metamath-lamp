@@ -4,6 +4,8 @@ open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
+open MM_substitution
+open MM_parenCounter
 
 let pageSize = 20
 let nonDigitPattern = %re("/\D/g")
@@ -12,7 +14,12 @@ type props = {
     modalRef:modalRef,
     typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+
     preCtx:mmContext,
+    frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
+    syntaxTypes:array<int>,
+
     labels:array<(int,string)>,
 }
 
@@ -28,6 +35,9 @@ let make = React.memoCustomCompareProps(({
     typeColors,
     editStmtsByLeftClick,
     preCtx,
+    syntaxTypes,
+    frms,
+    parenCnt,
     labels,
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
@@ -81,15 +91,23 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndFrameSummary = (order,label) => {
-        <MM_cmp_pe_frame_summary
-            key={`${order->Belt.Int.toString}-${label}`}
-            modalRef
-            preCtx
-            frame={preCtx->getFrameExn(label)}
-            order
-            typeColors
-            editStmtsByLeftClick
-        />
+        switch preCtx->getFrame(label) {
+            | None => React.null
+            | Some(frame) => {
+                <MM_cmp_pe_frame_summary
+                    key={`${order->Belt.Int.toString}-${label}`}
+                    modalRef
+                    preCtx
+                    syntaxTypes
+                    frms
+                    parenCnt
+                    frame
+                    order
+                    typeColors
+                    editStmtsByLeftClick
+                />
+            }
+        }
     }
 
     let rndFrames = () => {

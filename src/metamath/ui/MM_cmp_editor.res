@@ -13,6 +13,7 @@ open MM_proof_tree
 open MM_provers
 open Local_storage_utils
 open Common
+open MM_pre_ctx_data
 
 let unifyAllIsRequiredCnt = ref(0)
 
@@ -65,11 +66,7 @@ let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorSt
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~settingsV:int, 
-    ~settings:settings, 
-    ~srcs:array<mmCtxSrcDto>, 
-    ~preCtxV:int, 
-    ~preCtx:mmContext, 
+    ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~initialStateJsonStr:option<string>,
@@ -83,7 +80,11 @@ let make = (
     )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
-        ~settingsV, ~settings, ~srcs, ~preCtxV, ~preCtx, 
+        ~settingsV=preCtxData.settingsV.ver, 
+        ~settings=preCtxData.settingsV.val, 
+        ~srcs=preCtxData.srcs,
+        ~preCtxV=preCtxData.ctxV.ver, 
+        ~preCtx=preCtxData.ctxV.val, 
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
 
@@ -122,23 +123,14 @@ let make = (
     }
     let oneStatementIsChecked = state.checkedStmtIds->Js.Array2.length == 1
 
-    let actSettingsUpdated = (settingsV, settings) => {
-        setState(setSettings(_, settingsV, settings))
+    let actPreCtxDataUpdated = () => {
+        setState(setPreCtxData(_, preCtxData))
     }
 
     React.useEffect1(() => {
-        actSettingsUpdated(settingsV, settings)
+        actPreCtxDataUpdated()
         None
-    }, [settingsV])
-
-    let actPreCtxUpdated = (srcs, preCtxV, preCtx) => {
-        setState(setPreCtx(_, srcs, preCtxV, preCtx))
-    }
-
-    React.useEffect1(() => {
-        actPreCtxUpdated(srcs, preCtxV, preCtx)
-        None
-    }, [preCtxV])
+    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver])
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -305,7 +297,7 @@ let make = (
                 let contNew = newContText->strToCont(())
                 let textOld = contOld->contToStr
                 let textNew = contNew->contToStr
-                if (textOld == textNew || (textOld == "" && textNew == settings.defaultStmtType->Js.String2.trim)) {
+                if (textOld == textNew || (textOld == "" && textNew == state.settings.defaultStmtType->Js.String2.trim)) {
                     if (textOld == "") {
                         setState(deleteStmt(_,stmtId))
                     } else {
@@ -847,7 +839,12 @@ let make = (
             }
             | Ok(stateLocStor) => {
                 setState(_ => createInitialEditorState(
-                    ~settingsV, ~settings, ~srcs=stateLocStor.srcs, ~preCtxV, ~preCtx, ~stateLocStor=Some(stateLocStor)
+                    ~settingsV=preCtxData.settingsV.ver, 
+                    ~settings=preCtxData.settingsV.val, 
+                    ~srcs=stateLocStor.srcs,
+                    ~preCtxV=preCtxData.ctxV.ver, 
+                    ~preCtx=preCtxData.ctxV.val, 
+                    ~stateLocStor=Some(stateLocStor)
                 ))
                 reloadCtx.current->Js.Nullable.toOption
                     ->Belt.Option.map(reloadCtx => {
@@ -1085,8 +1082,8 @@ let make = (
             <td>
                 <MM_cmp_user_stmt
                     modalRef
-                    settingsVer=settingsV
-                    preCtxVer=preCtxV
+                    settingsVer=state.settingsV
+                    preCtxVer=state.preCtxV
                     varsText=state.varsText
                     wrkCtx=state.wrkCtx
                     frms=state.frms
@@ -1098,8 +1095,8 @@ let make = (
                     preCtxColors=state.preCtxColors
                     wrkCtxColors=state.wrkCtxColors
                     visualizationIsOn
-                    editStmtsByLeftClick=settings.editStmtsByLeftClick
-                    defaultStmtType=settings.defaultStmtType
+                    editStmtsByLeftClick=state.settings.editStmtsByLeftClick
+                    defaultStmtType=state.settings.defaultStmtType
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
                     onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}

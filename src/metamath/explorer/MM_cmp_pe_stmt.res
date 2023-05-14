@@ -33,7 +33,12 @@ let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapStrin
 
 type props = {
     modalRef:modalRef,
+
     ctx:mmContext,
+    syntaxTypes:array<int>,
+    frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
+
     stmt:expr,
     symColors:Belt_HashMapString.t<string>,
     symRename:option<Belt_HashMapString.t<string>>,
@@ -51,17 +56,66 @@ let propsAreSame = (a:props,b:props):bool => {
 let make = React.memoCustomCompareProps( ({
     modalRef,
     ctx,
+    syntaxTypes,
+    frms,
+    parenCnt,
     stmt,
     symColors,
     symRename,
     editStmtsByLeftClick,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~ctx, ~stmt, ~symColors))
+    let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
+    let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
+    let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
     React.useEffect5(() => {
         setState(_ => makeInitialState(~ctx, ~stmt, ~symColors))
         None
     }, (ctx, stmt, symColors, symRename, editStmtsByLeftClick))
+
+    let actUpdateStmt = (newCont:stmtCont):unit => {
+        setState(st => {...st, cont:newCont})
+    }
+
+    let actBuildSyntaxTree = (clickedIdx:int):unit => {
+        switch state.cont {
+            | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
+            | Text(syms) => {
+                switch textToSyntaxTree( 
+                    ~wrkCtx=ctx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, 
+                    ~lastSyntaxType=getLastSyntaxType(),
+                    ~onLastSyntaxTypeChange=setLastSyntaxType,
+                ) {
+                    | Error(msg) => setSyntaxTreeError(_ => Some(msg))
+                    | Ok(syntaxTree) => {
+                        actUpdateStmt(Tree({
+                            exprTyp:syms[0].sym, 
+                            root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
+                            clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
+                            expLvl:0,
+                        }))
+                    }
+                }
+            }
+        }
+    }
+
+    React.useEffect1(() => {
+        switch syntaxTreeWasRequested {
+            | None => ()
+            | Some(clickedIdx) => {
+                setTimeout(
+                    () => {
+                        setSyntaxTreeWasRequested(_ => None)
+                        actBuildSyntaxTree(clickedIdx)
+                    },
+                    0
+                )->ignore
+            }
+        }
+        None
+    }, [syntaxTreeWasRequested])
 
     let rndStmt = () => {
         let elems = [

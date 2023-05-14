@@ -5,6 +5,7 @@ open MM_wrk_editor
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
+open MM_pre_ctx_data
 
 let createEditorState = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
@@ -60,8 +61,13 @@ let createEditorState = (mmFile) => {
 
         unifyAllIsRequiredCnt: 0
     }
-    let st = st->setSettings(settingsV, settings)
-    let st = st->setPreCtx(st.srcs, preCtxV, preCtx)
+    let st = st->setPreCtxData(
+        preCtxDataMake(~settings)->preCtxDataUpdate(
+            ~settings,
+            ~ctx=([], preCtx),
+            ()
+        )
+    )
     st
 }
 

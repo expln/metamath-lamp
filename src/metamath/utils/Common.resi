@@ -19,3 +19,10 @@ let safeBase64ToStr: string => string
 type timeoutID
 let setTimeout: (unit => unit, int) => timeoutID
 let clearTimeout: (timeoutID) => unit
+
+type version<'a> = {
+    ver:int,
+    val:'a
+}
+let versionMake: 'a => version<'a>
+let versionSet: (version<'a>, 'a) => version<'a>

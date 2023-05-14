@@ -11,6 +11,7 @@ open MM_provers
 open MM_statements_dto
 open Common
 open MM_unification_debug
+open MM_pre_ctx_data
 
 let newLabelPrefix = ""
 
@@ -26,14 +27,6 @@ type webSource = {
 type mmFileSource =
     | Local({fileName:string})
     | Web(webSource)
-
-type mmCtxSrcDto = {
-    typ: string,
-    fileName: string,
-    url: string,
-    readInstr: string,
-    label: string,
-}
 
 type stmtSym = {
     sym: string,
@@ -681,29 +674,10 @@ let updateColorsInAllStmts = st => {
     }
 }
 
-let findSyntaxTypes = (ctx:mmContext, frms: Belt_MapString.t<frmSubsData>): array<int> => {
-    let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
-    ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        if (hyp.typ == F) {
-            syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
-        }
-        None
-    })->ignore
-    frms->Belt_MapString.forEach((_,frm) => {
-        frm.frame.hyps->Js_array2.forEach(hyp => {
-            if (hyp.typ == F) {
-                syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
-            }
-        })
-    })
-    syntaxTypes->Belt_HashSetInt.toArray
-}
-
-let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) => {
-    let preCtx = preCtx->ctxOptimizeForProver
-    preCtx->moveConstsToBegin(st.settings.parens)
-    let frms = prepareFrmSubsData(~ctx=preCtx, ~asrtsToSkip=st.settings.asrtsToSkip->Belt_HashSetString.fromArray, ())
-    let parenInts = prepareParenInts(preCtx, st.settings.parens)
+let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
+    let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver
+    let settings = preCtxData.settingsV.val
+    let parenInts = prepareParenInts(preCtx, settings.parens)
     let numOfParens = parenInts->Js_array2.length / 2
     let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
     for i in 0 to numOfParens-1 {
@@ -712,29 +686,18 @@ let setPreCtx = (st, srcs: array<mmCtxSrcDto>, preCtxV:int, preCtx:mmContext) =>
             preCtx->ctxIntToSymExn(parenInts[2*i+1])
         )
     }
-    let st = { 
+    let st = {
         ...st, 
-        srcs,
-        preCtxV, 
+        settingsV:preCtxData.settingsV.ver, 
+        settings,
+        srcs:preCtxData.srcs,
+        preCtxV:preCtxData.ctxV.ver, 
         preCtx, 
-        frms,
-        parenCnt: parenCntMake(parenInts, ()),
-        syntaxTypes: findSyntaxTypes(preCtx, frms),
+        frms:preCtxData.frms,
+        parenCnt:preCtxData.parenCnt,
+        syntaxTypes:preCtxData.syntaxTypes,
         parensMap,
     }
-    let st = recalcPreCtxColors(st)
-    let st = recalcWrkCtxColors(st)
-    let st = updateColorsInAllStmts(st)
-    st
-}
-
-let setSettings = (st, settingsV, settings) => {
-    let st = { 
-        ...st, 
-        settingsV, 
-        settings,
-    }
-    let st = setPreCtx(st, st.srcs, st.preCtxV, st.preCtx)
     let st = recalcTypeColors(st)
     let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)
@@ -1709,26 +1672,32 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
 
 let getColorForSymbol = (
     ~sym:string,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
+    ~preCtxColors:option<Belt_HashMapString.t<string>>,
+    ~wrkCtxColors:option<Belt_HashMapString.t<string>>,
 ):option<string> => {
-    switch preCtxColors->Belt_HashMapString.get(sym) {
-        | Some(color) => Some(color)
-        | None => wrkCtxColors->Belt_HashMapString.get(sym)
+    switch preCtxColors {
+        | None => wrkCtxColors->Belt_Option.flatMap(wrkCtxColors => wrkCtxColors->Belt_HashMapString.get(sym))
+        | Some(preCtxColors) => {
+            switch preCtxColors->Belt_HashMapString.get(sym) {
+                | Some(color) => Some(color)
+                | None => wrkCtxColors->Belt_Option.flatMap(wrkCtxColors => wrkCtxColors->Belt_HashMapString.get(sym))
+            }
+        }
     }
 }
 
 let rec addColorsToSyntaxTree = (
     ~tree:syntaxTreeNode,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
+    ~preCtxColors:option<Belt_HashMapString.t<string>>=?,
+    ~wrkCtxColors:option<Belt_HashMapString.t<string>>=?,
+    ()
 ):syntaxTreeNode => {
     {
         ...tree,
         children: tree.children->Js.Array2.map(child => {
             switch child {
                 | Subtree(syntaxTreeNode) => {
-                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors, ~wrkCtxColors))
+                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors?, ~wrkCtxColors?, ()))
                 }
                 | Symbol(symData) => {
                     Symbol({ ...symData, color:getColorForSymbol(~sym=symData.sym, ~preCtxColors, ~wrkCtxColors)})
@@ -1790,6 +1759,7 @@ let stmtSetSyntaxTree = (
                                 ~tree=syntaxTree, 
                                 ~preCtxColors=st.preCtxColors, 
                                 ~wrkCtxColors=st.wrkCtxColors, 
+                                ()
                             ), 
                             clickedNodeId: None,
                             expLvl:0,

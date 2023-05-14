@@ -6,6 +6,7 @@ open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
 open MM_statements_dto
+open MM_pre_ctx_data
 
 type mmFileSourceType = Local | Web
 
@@ -19,14 +20,6 @@ type webSource = {
 type mmFileSource =
     | Local({fileName:string})
     | Web(webSource)
-
-type mmCtxSrcDto = {
-    typ: string,
-    fileName: string,
-    url: string,
-    readInstr: string,
-    label: string,
-}
 
 type stmtSym = {
     sym: string,
@@ -166,8 +159,7 @@ let completeTypEditMode: (editorState, string, userStmtType) => editorState
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, string, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
-let setSettings: (editorState, int, settings) => editorState
-let setPreCtx: (editorState, array<mmCtxSrcDto>, int, mmContext) => editorState
+let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
 let prepareEditorForUnification: editorState => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
@@ -197,12 +189,13 @@ let getSelectedSymbols: stmtCont => option<array<string>>
 
 let addColorsToSyntaxTree: (
     ~tree:syntaxTreeNode,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
+    ~preCtxColors:Belt_HashMapString.t<string>=?,
+    ~wrkCtxColors:Belt_HashMapString.t<string>=?,
+    ()
 ) => syntaxTreeNode
 
 let getColorForSymbol: (
     ~sym:string,
-    ~preCtxColors:Belt_HashMapString.t<string>,
-    ~wrkCtxColors:Belt_HashMapString.t<string>,
+    ~preCtxColors:option<Belt_HashMapString.t<string>>,
+    ~wrkCtxColors:option<Belt_HashMapString.t<string>>,
 ) => option<string>
