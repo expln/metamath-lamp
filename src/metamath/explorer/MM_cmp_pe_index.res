@@ -20,6 +20,7 @@ let make = React.memoCustomCompareProps(({
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
 
+    let (preCtxVer, setPreCtxVer) = React.useState(() => preCtxData.ctxV.ver)
     let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
     let (allLabels, setAllLabels) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
@@ -29,6 +30,7 @@ let make = React.memoCustomCompareProps(({
         setTypeColors(_ => settings->settingsGetTypeColors)
 
         let preCtx = preCtxData.ctxV.val
+        setPreCtxVer(_ => preCtxData.ctxV.ver)
         let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
@@ -41,6 +43,7 @@ let make = React.memoCustomCompareProps(({
 
     <Col style=ReactDOM.Style.make(~marginLeft="15px", ~marginRight="15px", ())>
         <MM_cmp_pe_frame_list
+            key=`${preCtxVer->Belt_Int.toString}`
             modalRef
             editStmtsByLeftClick=settings.editStmtsByLeftClick
             typeColors

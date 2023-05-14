@@ -91,7 +91,12 @@ let textToSyntaxTree = (
                     ()
                 )
                 switch proofTree->ptGetSyntaxProof(expr) {
-                    | None => Error(`Could not prove this statement is of any of the types: ${wrkCtx->ctxIntsToStrExn(syntaxTypes)}`)
+                    | None => {
+                        Error(
+                            `Could not prove this statement is of any of the types: ` 
+                                ++ `${wrkCtx->ctxIntsToSymsExn(syntaxTypes)->Js.Array2.joinWith(", ")}`
+                        )
+                    }
                     | Some(node) => {
                         switch (lastSyntaxType, wrkCtx->ctxIntToSym((node->pnGetExpr)[0])) {
                             | (None, Some(provedSyntaxTypeStr)) => onLastSyntaxTypeChange(provedSyntaxTypeStr)

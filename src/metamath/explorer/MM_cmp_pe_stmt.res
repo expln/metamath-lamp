@@ -68,6 +68,17 @@ let make = React.memoCustomCompareProps( ({
         None
     }, (ctx, stmt, symColors, symRename, editStmtsByLeftClick))
 
+    React.useEffect1(() => {
+        switch syntaxTreeError {
+            | None => ()
+            | Some(msg) => {
+                setSyntaxTreeError(_ => None)
+                openInfoDialog( ~modalRef, ~text=msg, () )
+            }
+        }
+        None
+    }, [syntaxTreeError])
+
     let actUpdateStmt = (newCont:stmtCont):unit => {
         setState(st => {...st, cont:newCont})
     }

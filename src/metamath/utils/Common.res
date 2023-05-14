@@ -1,4 +1,5 @@
 let nbsp = Js_string2.fromCharCode(160)
+let circleChar = Js_string2.fromCharCode(9679)
 
 let currTimeStr = () => Js.Date.now()->Js.Date.fromFloat->Js.Date.toISOString
 

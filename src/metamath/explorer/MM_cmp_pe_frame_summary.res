@@ -55,13 +55,40 @@ let make = React.memoCustomCompareProps( ({
     }, (typeColors, editStmtsByLeftClick, preCtx, frame, order))
 
     let rndLabel = ():reElem => {
-        <span>
-            {
-                React.string(
-                    order->Belt_Int.toString ++ " " ++ frame.label
-                )
-            }
+        <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
+            { React.string( order->Belt_Int.toString ++ " " ) }
+            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                { frame.label->React.string }
+            </span>
         </span>
+    }
+
+    let rndHyps = () => {
+        if (state.eHyps->Js.Array2.length == 0) {
+            <></>
+        } else {
+            state.eHyps->Js.Array2.mapi((hyp,i) => {
+                <React.Fragment key={i->Belt.Int.toString}>
+                    <Divider/>
+                    <Row>
+                        <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
+                            {circleChar->React.string}
+                        </span>
+                        <MM_cmp_pe_stmt
+                            modalRef
+                            ctx=state.frmCtx
+                            syntaxTypes
+                            frms
+                            parenCnt
+                            stmt=hyp
+                            symColors=state.symColors
+                            symRename=state.symRename
+                            editStmtsByLeftClick
+                        />
+                    </Row>
+                </React.Fragment>
+            })->React.array
+        }
     }
 
     let rndAsrt = () => {
@@ -78,12 +105,13 @@ let make = React.memoCustomCompareProps( ({
         />
     }
 
-    <table>
+    <table style=ReactDOM.Style.make(~backgroundColor="#EEFFFA", ())>
         <tbody>
             <tr>
                 <td>
                     <Paper elevation=3>
                         {rndLabel()}
+                        {rndHyps()}
                         <Divider/>
                         {rndAsrt()}
                     </Paper>

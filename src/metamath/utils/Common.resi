@@ -1,4 +1,5 @@
 let nbsp:string
+let circleChar:string
 
 let currTimeStr: unit => string
 let floatToPctStr: float => string
