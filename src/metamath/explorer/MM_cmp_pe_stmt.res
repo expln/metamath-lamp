@@ -65,7 +65,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndStmt = () => {
         let elems = [
-            <Paper 
+            <span 
                 // onClick={
                     // if (editStmtsByLeftClick) {
                     //     leftClickHnd(onContEditRequested)
@@ -98,7 +98,7 @@ let make = React.memoCustomCompareProps( ({
                         ()
                     )
                 }
-            </Paper>
+            </span>
         ]
         <Col>
             {elems->React.array}

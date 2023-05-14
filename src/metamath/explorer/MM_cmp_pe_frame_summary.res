@@ -67,10 +67,19 @@ let make = React.memoCustomCompareProps( ({
         />
     }
 
-    <Paper>
-        {rndLabel()}
-        <Divider/>
-        {rndAsrt()}
-    </Paper>
+    <table>
+        <tbody>
+            <tr>
+                <td>
+                    <Paper elevation=3>
+                        {rndLabel()}
+                        <Divider/>
+                        {rndAsrt()}
+                    </Paper>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
 
 }, propsAreSame)
