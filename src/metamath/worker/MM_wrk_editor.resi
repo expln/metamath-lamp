@@ -186,6 +186,7 @@ let incExpLvl: stmtContTreeData => stmtContTreeData
 let decExpLvl: stmtContTreeData => stmtContTreeData
 let getNumberOfSelectedSymbols: stmtContTreeData => int
 let getSelectedSymbols: stmtCont => option<array<string>>
+let updateExpLavel: (stmtContTreeData, bool) => stmtContTreeData
 
 let addColorsToSyntaxTree: (
     ~tree:syntaxTreeNode,

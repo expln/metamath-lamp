@@ -2269,3 +2269,24 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     })
     res
 }
+
+let updateExpLavel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
+    let update = if (inc) {incExpLvl} else {decExpLvl}
+    let prevTreeData = ref(treeData)
+    let prevNum = ref(getNumberOfSelectedSymbols(prevTreeData.contents))
+    let newTreeData = ref(update(prevTreeData.contents))
+    let newNum = ref(getNumberOfSelectedSymbols(newTreeData.contents))
+    while (
+        prevNum.contents == newNum.contents
+        && (
+            inc && newTreeData.contents.expLvl < newTreeData.contents.root.height
+            || !inc && newTreeData.contents.expLvl > 0
+        )
+    ) {
+        prevTreeData := newTreeData.contents
+        prevNum := getNumberOfSelectedSymbols(prevTreeData.contents)
+        newTreeData := update(prevTreeData.contents)
+        newNum := getNumberOfSelectedSymbols(newTreeData.contents)
+    }
+    newTreeData.contents
+}

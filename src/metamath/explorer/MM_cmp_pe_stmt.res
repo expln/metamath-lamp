@@ -1,5 +1,3 @@
-open MM_syntax_tree
-open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
 open MM_react_common
@@ -15,8 +13,6 @@ open MM_cmp_user_stmt
 
 type state = {
     cont:stmtCont,
-    showButtons:bool,
-    permSels: array<(Belt_HashSetInt.t, string)>,
 }
 
 let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapString.t<string>) => {
@@ -26,8 +22,6 @@ let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapStrin
                 {sym, color:symColors->Belt_HashMapString.get(sym)}
             })
         ),
-        showButtons:false,
-        permSels: [],
     }
 }
 
@@ -78,6 +72,50 @@ let make = React.memoCustomCompareProps( ({
         setState(st => {...st, cont:newCont})
     }
 
+    let actUpdateSyntaxTree = (update:stmtContTreeData=>stmtContTreeData):unit => {
+        switch state.cont {
+            | Text(_) => ()
+            | Tree(treeData) => {
+                actUpdateStmt(Tree(treeData->update))
+            }
+        }
+    }
+
+    let actTreeNodeClicked = (nodeId) => {
+        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:Some(nodeId), expLvl:0})
+    }
+
+    let actUnselect = () => {
+        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:None})
+    }
+
+    let actExpandSelection = () => {
+        actUpdateSyntaxTree(updateExpLavel(_,true))
+    }
+
+    let actShrinkSelection = () => {
+        actUpdateSyntaxTree(updateExpLavel(_,false))
+    }
+
+    let actCopyToClipboard = () => {
+        switch getSelectedSymbols(state.cont) {
+            | None => ()
+            | Some(syms) => {
+                copyToClipboard(syms->Js_array2.joinWith(" "))
+                setCopiedToClipboard(timerId => {
+                    switch timerId {
+                        | None => ()
+                        | Some(timerId) => clearTimeout(timerId)
+                    }
+                    Some(setTimeout(
+                        () => setCopiedToClipboard(_ => None),
+                        1000
+                    ))
+                })
+            }
+        }
+    }
+
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
         switch state.cont {
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
@@ -117,35 +155,41 @@ let make = React.memoCustomCompareProps( ({
         None
     }, [syntaxTreeWasRequested])
 
+    let rndSelectionButtons = () => {
+        <Row alignItems=#center>
+            <ButtonGroup variant=#outlined size=#small >
+                <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
+                <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+            </ButtonGroup>
+            {
+                if (copiedToClipboard->Belt.Option.isSome) {
+                    React.string("Copied to the clipboard.")
+                } else {React.null}
+            }
+        </Row>
+    }
+
     let rndStmt = () => {
+        let textIsSelected = switch state.cont {
+            | Text(_) => false
+            | Tree({clickedNodeId}) => clickedNodeId->Belt.Option.isSome
+        }
         let elems = [
             <span 
-                // onClick={
-                    // if (editStmtsByLeftClick) {
-                    //     leftClickHnd(onContEditRequested)
-                    // } else {
-                    //     altLeftClickHnd(onContEditRequested)
-                    // }
-                // }
                 style=ReactDOM.Style.make(
                     ~padding="1px 10px", 
                     ~fontFamily="monospace",
                     ~fontSize="1.3em",
                     ()
-                ) 
-                // title={
-                //     if (editStmtsByLeftClick) {
-                //         "<left-click> to change, Alt+<left-click> to select"
-                //     } else {
-                //         "Alt + <left-click> to change, <left-click> to select"
-                //     }
-                // }
+                )
             >
                 {
                     rndContText(
                         ~stmtCont=state.cont, 
-                        // ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
-                        // ~onTreeClick=actTreeNodeClicked,
+                        ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
+                        ~onTreeClick=actTreeNodeClicked,
                         ~renderSelection=true,
                         ~editStmtsByLeftClick,
                         ~symRename?,
@@ -154,6 +198,16 @@ let make = React.memoCustomCompareProps( ({
                 }
             </span>
         ]
+        if (syntaxTreeWasRequested->Belt.Option.isSome) {
+            elems->Js_array2.push(
+                <span> {"Building a syntax tree..."->React.string} </span>
+            )->ignore
+        }
+        if (textIsSelected) {
+            elems->Js_array2.push(
+                rndSelectionButtons()
+            )->ignore
+        }
         <Col>
             {elems->React.array}
         </Col>

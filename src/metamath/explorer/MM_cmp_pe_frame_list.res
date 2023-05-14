@@ -114,7 +114,7 @@ let make = React.memoCustomCompareProps(({
         if (labels->Js.Array2.length == 0) {
             "No assertions loaded."->React.string
         } else {
-            <Col>
+            <Col spacing=2.>
                 {rndPagination()}
                 {
                     labels->Js_array2.slice(~start=beginIdx, ~end_=endIdx+1)

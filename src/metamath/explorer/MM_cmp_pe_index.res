@@ -1,6 +1,7 @@
 open MM_context
 open MM_wrk_settings
 open Expln_React_Modal
+open Expln_React_Mui
 open MM_pre_ctx_data
 
 type props = {
@@ -38,15 +39,17 @@ let make = React.memoCustomCompareProps(({
         None
     }, [preCtxData])
 
-    <MM_cmp_pe_frame_list
-        modalRef
-        editStmtsByLeftClick=settings.editStmtsByLeftClick
-        typeColors
-        preCtx
-        frms=preCtxData.frms
-        parenCnt=preCtxData.parenCnt
-        syntaxTypes=preCtxData.syntaxTypes
-        labels=filteredLabels
-    />
+    <Col style=ReactDOM.Style.make(~marginLeft="15px", ~marginRight="15px", ())>
+        <MM_cmp_pe_frame_list
+            modalRef
+            editStmtsByLeftClick=settings.editStmtsByLeftClick
+            typeColors
+            preCtx
+            frms=preCtxData.frms
+            parenCnt=preCtxData.parenCnt
+            syntaxTypes=preCtxData.syntaxTypes
+            labels=filteredLabels
+        />
+    </Col>
 
 }, propsAreSame)
