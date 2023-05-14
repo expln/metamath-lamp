@@ -16,36 +16,35 @@ open MM_cmp_pe_frame_summary_state
 
 type props = {
     modalRef:modalRef,
-    settingsVer:int,
-    preCtxVer:int,
+    typeColors:Belt_HashMapString.t<string>,
+    editStmtsByLeftClick:bool,
     preCtx:mmContext,
     frame:frame,
     order:int,
-    typeColors:Belt_HashMapString.t<string>,
-    editStmtsByLeftClick:bool,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
-    a.settingsVer == b.settingsVer
-    && a.preCtxVer == b.preCtxVer
+    a.typeColors === b.typeColors
+    && a.editStmtsByLeftClick === b.editStmtsByLeftClick
+    && a.preCtx === b.preCtx
+    && a.frame === b.frame
+    && a.order === b.order
 }
 
 let make = React.memoCustomCompareProps( ({
     modalRef,
-    settingsVer,
-    preCtxVer,
+    typeColors,
+    editStmtsByLeftClick,
     preCtx,
     frame,
     order,
-    typeColors,
-    editStmtsByLeftClick,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
 
-    React.useEffect2(() => {
+    React.useEffect5(() => {
         setState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
         None
-    }, (settingsVer, preCtxVer))
+    }, (typeColors, editStmtsByLeftClick, preCtx, frame, order))
 
     let rndLabel = ():reElem => {
         <span>
@@ -60,8 +59,6 @@ let make = React.memoCustomCompareProps( ({
     let rndAsrt = () => {
         <MM_cmp_pe_stmt
             modalRef
-            settingsVer
-            ctxVer=preCtxVer
             ctx=state.frmCtx
             stmt=state.asrt
             symColors=state.symColors

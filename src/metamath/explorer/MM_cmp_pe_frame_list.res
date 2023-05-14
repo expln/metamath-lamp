@@ -10,30 +10,25 @@ let nonDigitPattern = %re("/\D/g")
 
 type props = {
     modalRef:modalRef,
-    settingsVer:int,
-    settings:settings,
-    preCtxVer:int,
-    preCtx:mmContext,
-    labelsVer:int,
-    labels:array<(int,string)>,
     typeColors:Belt_HashMapString.t<string>,
+    editStmtsByLeftClick:bool,
+    preCtx:mmContext,
+    labels:array<(int,string)>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    a.settingsVer == b.settingsVer
-    && a.preCtxVer == b.preCtxVer
-    && a.labelsVer == b.labelsVer
+    a.typeColors === b.typeColors
+    && a.editStmtsByLeftClick === b.editStmtsByLeftClick
+    && a.preCtx === b.preCtx
+    && a.labels === b.labels
 }
 
 let make = React.memoCustomCompareProps(({
     modalRef,
-    settingsVer,
-    settings,
-    preCtxVer,
-    preCtx,
-    labelsVer,
-    labels,
     typeColors,
+    editStmtsByLeftClick,
+    preCtx,
+    labels,
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
@@ -51,7 +46,7 @@ let make = React.memoCustomCompareProps(({
     React.useEffect1(() => {
         actReset()
         None
-    }, [labelsVer])
+    }, [labels])
 
     let actChangePage = (newPageNum:int) => {
         if (1 <= newPageNum && newPageNum <= numOfPages) {
@@ -87,15 +82,13 @@ let make = React.memoCustomCompareProps(({
 
     let rndFrameSummary = (order,label) => {
         <MM_cmp_pe_frame_summary
-            key={`${settingsVer->Belt.Int.toString}-${preCtxVer->Belt.Int.toString}-${order->Belt.Int.toString}-${label}`}
+            key={`${order->Belt.Int.toString}-${label}`}
             modalRef
-            settingsVer
-            preCtxVer
             preCtx
             frame={preCtx->getFrameExn(label)}
             order
             typeColors
-            editStmtsByLeftClick=settings.editStmtsByLeftClick
+            editStmtsByLeftClick
         />
     }
 

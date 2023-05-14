@@ -33,8 +33,6 @@ let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapStrin
 
 type props = {
     modalRef:modalRef,
-    settingsVer:int,
-    ctxVer:int,
     ctx:mmContext,
     stmt:expr,
     symColors:Belt_HashMapString.t<string>,
@@ -43,14 +41,15 @@ type props = {
 }
 
 let propsAreSame = (a:props,b:props):bool => {
-    a.settingsVer == b.settingsVer
-    && a.ctxVer == b.ctxVer
+    a.ctx === b.ctx
+    && a.stmt === b.stmt
+    && a.symColors === b.symColors
+    && a.symRename === b.symRename
+    && a.editStmtsByLeftClick === b.editStmtsByLeftClick
 }
 
 let make = React.memoCustomCompareProps( ({
     modalRef,
-    settingsVer,
-    ctxVer,
     ctx,
     stmt,
     symColors,
@@ -59,10 +58,10 @@ let make = React.memoCustomCompareProps( ({
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~ctx, ~stmt, ~symColors))
 
-    React.useEffect2(() => {
+    React.useEffect5(() => {
         setState(_ => makeInitialState(~ctx, ~stmt, ~symColors))
         None
-    }, (settingsVer, ctxVer))
+    }, (ctx, stmt, symColors, symRename, editStmtsByLeftClick))
 
     let rndStmt = () => {
         let elems = [
