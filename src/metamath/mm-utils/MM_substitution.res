@@ -546,7 +546,7 @@ let prepareFrmSubsDataForFrame = (frame):frmSubsData => {
 
     let subs = createSubs(~numOfVars=frame.numOfVars)
     {
-        frame:frame->frameOptimizeForProver,
+        frame:frame,
         hypsE,
         numOfHypsE: hypsE->Js.Array2.length,
         frmConstParts:frmConstPartsArr,

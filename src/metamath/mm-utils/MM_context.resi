@@ -54,7 +54,6 @@ let loadContext: (
     ()
 ) => mmContext
 let ctxOptimizeForProver: mmContext => mmContext
-let frameOptimizeForProver: frame => frame
 
 let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool

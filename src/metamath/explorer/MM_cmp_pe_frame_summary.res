@@ -26,6 +26,7 @@ type props = {
 
     frame:frame,
     order:int,
+    openFrameExplorer:string=>unit,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -46,6 +47,7 @@ let make = React.memoCustomCompareProps( ({
     parenCnt,
     frame,
     order,
+    openFrameExplorer,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
 
@@ -58,7 +60,10 @@ let make = React.memoCustomCompareProps( ({
         let asrtType = if (frame.isAxiom) {"Axiom"} else {"Theorem"}
         <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
             { React.string( order->Belt_Int.toString ++ " " ++ asrtType ++ " ") }
-            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+            <span 
+                style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+                onClick=clickHnd(~act=()=>openFrameExplorer(frame.label), ())
+            >
                 { frame.label->React.string }
             </span>
         </span>

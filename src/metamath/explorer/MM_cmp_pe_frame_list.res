@@ -21,6 +21,7 @@ type props = {
     syntaxTypes:array<int>,
 
     labels:array<(int,string)>,
+    openFrameExplorer:string=>unit,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -39,6 +40,7 @@ let make = React.memoCustomCompareProps(({
     frms,
     parenCnt,
     labels,
+    openFrameExplorer,
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
@@ -105,6 +107,7 @@ let make = React.memoCustomCompareProps(({
                     order
                     typeColors
                     editStmtsByLeftClick
+                    openFrameExplorer
                 />
             }
         }

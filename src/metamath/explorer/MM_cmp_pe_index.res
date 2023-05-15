@@ -7,6 +7,7 @@ open MM_pre_ctx_data
 type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
+    openFrameExplorer:string=>unit,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -16,6 +17,7 @@ let propsAreSame = (a:props, b:props):bool => {
 let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
+    openFrameExplorer,
 }:props) => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
@@ -52,6 +54,7 @@ let make = React.memoCustomCompareProps(({
             parenCnt=preCtxData.parenCnt
             syntaxTypes=preCtxData.syntaxTypes
             labels=filteredLabels
+            openFrameExplorer
         />
     </Col>
 

@@ -8,12 +8,13 @@ open MM_parenCounter
 open Expln_React_Modal
 open Common
 open MM_pre_ctx_data
+open MM_react_common
 
 type tabData =
     | Settings
     | Editor
     | ExplorerIndex
-    | ExplorerAsrt({label:string})
+    | ExplorerFrame({label:string})
 
 type state = {
     preCtxData:preCtxData
@@ -106,6 +107,35 @@ let make = () => {
         settingsSaveToLocStor(newSettings, tempMode.contents)
     }
 
+    let isFrameExplorerTab = (tabData:tabData, label:string):bool => {
+        switch tabData {
+            | ExplorerFrame({label:lbl}) => lbl == label
+            | _ => false
+        }
+    }
+
+    let openFrameExplorer = (label:string):unit => {
+        switch state.preCtxData.ctxV.val->getFrame(label) {
+            | None => {
+                openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'`, () )
+            }
+            | Some(_) => {
+                switch tabs->Js.Array2.find(tab => isFrameExplorerTab(tab.data, label)) {
+                    | Some(tab) => openTab(tab.id)
+                    | None => {
+                        updateTabs(st => {
+                            let (st, tabId) = st->Expln_React_UseTabs.addTab( 
+                                ~label, ~closable=true, ~data=ExplorerFrame({label:label})
+                            )
+                            let st = st->Expln_React_UseTabs.openTab(tabId)
+                            st
+                        })
+                    }
+                }
+            }
+        }
+    }
+
     React.useEffect0(()=>{
         updateTabs(st => {
             if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
@@ -146,8 +176,14 @@ let make = () => {
                         <MM_cmp_pe_index
                             modalRef
                             preCtxData=state.preCtxData
+                            openFrameExplorer
                         />
-                    | ExplorerAsrt({label}) => <MM_cmp_click_counter title=label />
+                    | ExplorerFrame({label}) => 
+                        <MM_cmp_pe_frame_full
+                            modalRef
+                            preCtxData=state.preCtxData
+                            label
+                        />
                 }
             }
         </div>
