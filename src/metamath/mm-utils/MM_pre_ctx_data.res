@@ -4,6 +4,7 @@ open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
 open Common
+open MM_parser
 
 type mmCtxSrcDto = {
     typ: string,
@@ -11,6 +12,8 @@ type mmCtxSrcDto = {
     url: string,
     readInstr: string,
     label: string,
+    ast: option<mmAstNode>,
+    allLabels: array<string>,
 }
 
 type preCtxData = {

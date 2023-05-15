@@ -1,3 +1,4 @@
+- remove tabs with non-existent frames after ctx reload.
 - freeze pagination in the explorer
 - fix a bug:
     when I was proving "cotval-hyp" one label became uneditable.

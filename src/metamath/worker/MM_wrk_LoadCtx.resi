@@ -10,7 +10,13 @@ type mmScope = {
 type request
 type response
 
-let beginLoadingMmContext: ( ~scopes: array<mmScope>, ~onProgress: float => unit, ~onDone: result<MM_context.mmContext, string> => unit, ) => unit
+let beginLoadingMmContext: ( 
+    ~scopes: array<mmScope>, 
+    ~onProgress: float => unit, 
+    ~onDone: result<MM_context.mmContext, string> => unit,
+    ~dontChangeNestingLevelForLastElem:bool=?,
+    ()
+) => unit
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 

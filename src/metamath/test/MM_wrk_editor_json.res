@@ -137,6 +137,8 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     url: d->str("url", ()),
                     readInstr: d->str("readInstr", ()),
                     label: d->str("label", ()),
+                    ast: None,
+                    allLabels: [],
                 }
             }, ()), ~default=()=>[], ()),
             descr: d->str("descr", ~default=()=>"", ()),

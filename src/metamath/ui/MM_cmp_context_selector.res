@@ -302,7 +302,8 @@ let loadMmContext = (
                         }
                         rsv(ctx)
                         closeModal(modalRef, modalId)
-                    }
+                    },
+                    ()
                 )
             })->ignore
         }
@@ -564,6 +565,10 @@ let make = (
                             switch ss.fileSrc {
                                 | None => raise(MmException({msg:`ss.fileSrc is None`}))
                                 | Some(src) => {
+                                    let ast = switch ss.ast {
+                                        | Some(Ok(ast)) => Some(ast)
+                                        | _ => raise(MmException({msg:`Cannot create mmCtxSrcDto from empty ast.`}))
+                                    }
                                     switch src {
                                         | Local({fileName}) => {
                                             {
@@ -572,6 +577,8 @@ let make = (
                                                 url:"",
                                                 readInstr: ss.readInstr->readInstrToStr,
                                                 label: ss.label->Belt.Option.getWithDefault(""),
+                                                ast,
+                                                allLabels: ss.allLabels,
                                             }
                                         }
                                         | Web({ url, }) => {
@@ -581,6 +588,8 @@ let make = (
                                                 url,
                                                 readInstr: ss.readInstr->readInstrToStr,
                                                 label: ss.label->Belt.Option.getWithDefault(""),
+                                                ast,
+                                                allLabels: ss.allLabels,
                                             }
                                         }
                                     }

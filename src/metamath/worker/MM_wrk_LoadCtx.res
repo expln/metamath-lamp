@@ -12,7 +12,7 @@ type mmScope = {
 }
 
 type request = 
-    | LoadMmContext({scopes:array<mmScope>})
+    | LoadMmContext({scopes:array<mmScope>, dontChangeNestingLevelForLastElem:bool})
 
 type response =
     | MmContextLoadProgress({pct:float})
@@ -31,10 +31,16 @@ let respToStr = resp => {
     }
 }
 
-let beginLoadingMmContext = (~scopes:array<mmScope>, ~onProgress:float=>unit, ~onDone:result<mmContext,string>=>unit) => {
+let beginLoadingMmContext = (
+    ~scopes:array<mmScope>, 
+    ~onProgress:float=>unit, 
+    ~onDone:result<mmContext,string>=>unit,
+    ~dontChangeNestingLevelForLastElem:bool=false,
+    ()
+) => {
     beginWorkerInteraction(
         ~procName,
-        ~initialRequest = LoadMmContext({ scopes:scopes }),
+        ~initialRequest = LoadMmContext({ scopes:scopes, dontChangeNestingLevelForLastElem }),
         ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | MmContextLoadProgress({pct}) => onProgress(pct)
@@ -50,7 +56,7 @@ let beginLoadingMmContext = (~scopes:array<mmScope>, ~onProgress:float=>unit, ~o
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | LoadMmContext({scopes}) => {
+        | LoadMmContext({scopes, dontChangeNestingLevelForLastElem }) => {
             let totalNumOfAssertions = scopes->Js_array2.reduce((a,e) => a+e.expectedNumOfAssertions, 0)->Belt_Int.toFloat
             let weights = scopes->Js_array2.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
@@ -72,10 +78,12 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         },
                         ()
                     )->ignore
-                    while (ctx->getNestingLevel != 0) {
-                        ctx->closeChildContext
+                    if (i.contents != len - 1 || !dontChangeNestingLevelForLastElem) {
+                        while (ctx->getNestingLevel != 0) {
+                            ctx->closeChildContext
+                        }
                     }
-                    i.contents = i.contents + 1
+                    i := i.contents + 1
                 }
                 sendToClient(MmContextLoadProgress({pct: 1.}))
                 sendToClient(MmContextLoaded({ctx:Ok(ctx)}))
