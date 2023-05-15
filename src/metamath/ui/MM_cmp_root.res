@@ -115,25 +115,30 @@ let make = () => {
     }
 
     let openFrameExplorer = (label:string):unit => {
-        switch state.preCtxData.ctxV.val->getFrame(label) {
-            | None => {
-                openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'`, () )
-            }
-            | Some(_) => {
-                switch tabs->Js.Array2.find(tab => isFrameExplorerTab(tab.data, label)) {
-                    | Some(tab) => openTab(tab.id)
-                    | None => {
-                        updateTabs(st => {
-                            let (st, tabId) = st->Expln_React_UseTabs.addTab( 
-                                ~label, ~closable=true, ~data=ExplorerFrame({label:label})
-                            )
-                            let st = st->Expln_React_UseTabs.openTab(tabId)
-                            st
-                        })
-                    }
+        setState(st => {
+            switch st.preCtxData.ctxV.val->getFrame(label) {
+                | None => {
+                    openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'`, () )
+                }
+                | Some(_) => {
+                    updateTabs(tabsSt => {
+                        let tabsSt = switch tabsSt->Expln_React_UseTabs.getTabs
+                                                ->Js.Array2.find(tab => isFrameExplorerTab(tab.data, label)) {
+                            | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
+                            | None => {
+                                let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
+                                    ~label, ~closable=true, ~data=ExplorerFrame({label:label})
+                                )
+                                let tabsSt = tabsSt->Expln_React_UseTabs.openTab(tabId)
+                                tabsSt
+                            }
+                        }
+                        tabsSt
+                    })
                 }
             }
-        }
+            st
+        })
     }
 
     React.useEffect0(()=>{
