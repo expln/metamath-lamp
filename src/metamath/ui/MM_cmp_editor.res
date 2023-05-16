@@ -13,7 +13,7 @@ open MM_proof_tree
 open MM_provers
 open Local_storage_utils
 open Common
-open MM_pre_ctx_data
+open MM_wrk_pre_ctx_data
 
 let unifyAllIsRequiredCnt = ref(0)
 

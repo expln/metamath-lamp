@@ -1,3 +1,5 @@
+open MM_wrk_pre_ctx_data
+
 let procName: string
 
 type mmScope = {
@@ -22,3 +24,5 @@ let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => uni
 
 let reqToStr: request => string
 let respToStr: response => string
+
+let createMmScopesForFrame: ( ~srcs:array<mmCtxSrcDto>, ~label:string, ) => array<mmScope>

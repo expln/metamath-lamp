@@ -6,7 +6,7 @@ open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
 open MM_statements_dto
-open MM_pre_ctx_data
+open MM_wrk_pre_ctx_data
 
 type mmFileSourceType = Local | Web
 
