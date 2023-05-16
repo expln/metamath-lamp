@@ -5,12 +5,18 @@ open Expln_React_Mui
 open MM_wrk_pre_ctx_data
 open MM_wrk_editor
 open MM_wrk_LoadCtx
+open MM_wrk_ctx_data
 open MM_parser
 open MM_proof_table
+open MM_substitution
+open MM_parenCounter
 open Common
 
 type state = {
-    ctx:mmContext,
+    frmCtx:mmContext,
+    frms: Belt_MapString.t<frmSubsData>,
+    parenCnt: parenCnt,
+    syntaxTypes: array<int>,
     frame:frame,
     hyps:array<expr>,
     asrt:expr,
@@ -18,15 +24,18 @@ type state = {
     symColors:Belt_HashMapString.t<string>,
 }
 
-let createInitialState = (~preCtxData:preCtxData, ~ctx:mmContext, ~frame:frame):state => {
+let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmContext, ~frame:frame):state => {
+    frmCtx->moveConstsToBegin(settings.parens)
+    let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
+    let parenCnt = parenCntMake(prepareParenInts(frmCtx, settings.parens), ~checkParensOptimized=true, ())
+    let syntaxTypes = findSyntaxTypes(frmCtx, frms)
+
     let frmIntToCtxInt = (i:int):int => {
-        if (i < 0) {
-            i
-        } else {
-            switch ctx->ctxSymToInt(frame.frameVarToSymb[i]) {
-                | None => raise(MmException({msg:`ctx->ctxSymToInt == None in frmIntToCtxInt`}))
-                | Some(n) => n
-            }
+        switch frmCtx->ctxSymToInt(
+            if (i < 0) { preCtx->ctxIntToSymExn(i) } else { frame.frameVarToSymb[i] }
+        ) {
+            | None => raise(MmException({msg:`ctx->ctxSymToInt == None in frmIntToCtxInt`}))
+            | Some(n) => n
         }
     }
 
@@ -42,7 +51,7 @@ let createInitialState = (~preCtxData:preCtxData, ~ctx:mmContext, ~frame:frame):
                 | Uncompressed({labels:["?"]}) => None
                 | _ => {
                     let proofRoot = MM_proof_verifier.verifyProof(
-                        ~ctx,
+                        ~ctx=frmCtx,
                         ~expr=asrt,
                         ~proof,
                         ~isDisjInCtx = (_,_) => true,
@@ -52,14 +61,17 @@ let createInitialState = (~preCtxData:preCtxData, ~ctx:mmContext, ~frame:frame):
             }
         }
     }
-    let typeColors = preCtxData.settingsV.val->settingsGetTypeColors
+    let typeColors = settings->settingsGetTypeColors
     {
-        ctx,
+        frmCtx,
+        frms,
+        parenCnt,
+        syntaxTypes,
         frame,
         hyps:frame.hyps->Js.Array2.map(hyp => frmExprToCtxExpr(hyp.expr)),
         asrt,
         proofTable,
-        symColors: createSymbolColors(~ctx, ~typeColors),
+        symColors: createSymbolColors(~ctx=frmCtx, ~typeColors),
     }
 }
 
@@ -105,9 +117,14 @@ let make = React.memoCustomCompareProps(({
             ~onDone = res => {
                 switch res {
                     | Error(msg) => setLoadErr(_ => Some(msg))
-                    | Ok(ctx) => {
+                    | Ok(frmCtx) => {
                         setState(_ => {
-                            Some(createInitialState(~preCtxData, ~ctx, ~frame=preCtxData.ctxV.val->getFrameExn(label)))
+                            Some(createInitialState(
+                                ~settings=preCtxData.settingsV.val, 
+                                ~preCtx=preCtxData.ctxV.val,
+                                ~frmCtx, 
+                                ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                            ))
                         })
                     }
                 }
@@ -159,10 +176,10 @@ let make = React.memoCustomCompareProps(({
                                     <td>
                                         <MM_cmp_pe_stmt
                                             modalRef
-                                            ctx=state.ctx
-                                            syntaxTypes=preCtxData.syntaxTypes
-                                            frms=preCtxData.frms
-                                            parenCnt=preCtxData.parenCnt
+                                            ctx=state.frmCtx
+                                            syntaxTypes=state.syntaxTypes
+                                            frms=state.frms
+                                            parenCnt=state.parenCnt
                                             stmt=row.expr
                                             symColors=state.symColors
                                             symRename=None

@@ -33,3 +33,5 @@ let preCtxDataUpdate: (
   ~ctx: (array<mmCtxSrcDto>, mmContext)=?,
   unit,
 ) => preCtxData
+
+let findSyntaxTypes: (mmContext, Belt_MapString.t<frmSubsData>) => array<int>
