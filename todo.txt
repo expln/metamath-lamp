@@ -1,4 +1,3 @@
-- remove tabs with non-existent frames after ctx reload.
 - freeze pagination in the explorer
 - fix a bug:
     when I was proving "cotval-hyp" one label became uneditable.
@@ -68,3 +67,4 @@ DONE:
     1) load an MM file, apply changes;
     2) load same file in the same file selector - nothing happens.
 - prefix for new statements
+- remove tabs with non-existent frames after ctx reload.

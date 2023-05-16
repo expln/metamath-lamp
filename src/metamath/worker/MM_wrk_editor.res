@@ -630,18 +630,18 @@ let recalcTypeColors = (st:editorState):editorState => {
     }
 }
 
-let recalcPreCtxColors = (st:editorState):editorState => {
-    let preCtxColors = Belt_HashMapString.make(~hintSize=100)
-    st.preCtx->forEachHypothesisInDeclarationOrder(hyp => {
+let createSymbolColors = (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
+    let symbolColors = Belt_HashMapString.make(~hintSize=100)
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F) {
-            switch st.preCtx->ctxIntToSym(hyp.expr[0]) {
+            switch ctx->ctxIntToSym(hyp.expr[0]) {
                 | None => ()
                 | Some(typeStr) => {
-                    switch st.typeColors->Belt_HashMapString.get(typeStr) {
+                    switch typeColors->Belt_HashMapString.get(typeStr) {
                         | None => ()
                         | Some(color) => {
-                            preCtxColors->Belt_HashMapString.set(
-                                st.preCtx->ctxIntToSymExn(hyp.expr[1]),
+                            symbolColors->Belt_HashMapString.set(
+                                ctx->ctxIntToSymExn(hyp.expr[1]),
                                 color
                             )
                         }
@@ -651,9 +651,13 @@ let recalcPreCtxColors = (st:editorState):editorState => {
         }
         None
     })->ignore
+    symbolColors
+}
+
+let recalcPreCtxColors = (st:editorState):editorState => {
     {
         ...st,
-        preCtxColors
+        preCtxColors: createSymbolColors(~ctx=st.preCtx, ~typeColors=st.typeColors)
     }
 }
 

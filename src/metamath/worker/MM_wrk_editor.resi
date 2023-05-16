@@ -200,3 +200,5 @@ let getColorForSymbol: (
     ~preCtxColors:option<Belt_HashMapString.t<string>>,
     ~wrkCtxColors:option<Belt_HashMapString.t<string>>,
 ) => option<string>
+
+let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>

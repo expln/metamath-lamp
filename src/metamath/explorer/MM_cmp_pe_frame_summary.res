@@ -57,14 +57,23 @@ let make = React.memoCustomCompareProps( ({
     }, (typeColors, editStmtsByLeftClick, preCtx, frame, order))
 
     let rndLabel = ():reElem => {
-        let asrtType = if (frame.isAxiom) {"Axiom"} else {"Theorem"}
+        let asrtType = if (frame.isAxiom) {
+            <span style=ReactDOM.Style.make(~color="red", ())>
+                {"Axiom"->React.string}
+            </span>
+        } else {
+            <span style=ReactDOM.Style.make(~color="green", ())>
+                {"Theorem"->React.string}
+            </span>
+        }
         <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
-            { React.string( order->Belt_Int.toString ++ " " ++ asrtType ++ " ") }
+            { React.string( order->Belt_Int.toString ++ " ") }
+            asrtType
             <span 
                 style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
                 onClick=clickHnd(~act=()=>openFrameExplorer(frame.label), ())
             >
-                { frame.label->React.string }
+                { (" " ++ frame.label)->React.string }
             </span>
         </span>
     }
