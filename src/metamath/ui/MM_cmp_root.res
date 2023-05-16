@@ -98,20 +98,30 @@ let make = () => {
 
     let reloadCtx = React.useRef(Js.Nullable.null)
 
+    let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
+        switch tabData {
+            | ExplorerFrame({label:lbl}) => label->Belt_Option.mapWithDefault(true, label => lbl == label)
+            | _ => false
+        }
+    }
+
+    let actCloseFrmTabs = () => {
+        tabs->Js.Array2.forEach(tab => {
+            if (isFrameExplorerTab(tab.data, ())) {
+                removeTab(tab.id)
+            }
+        })
+    }
+
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
+        actCloseFrmTabs()
         setState(updatePreCtxData(_,~ctx=(srcs,newCtx), ()))
     }
 
     let actSettingsUpdated = (newSettings:settings) => {
+        actCloseFrmTabs()
         setState(updatePreCtxData(_,~settings=newSettings, ()))
         settingsSaveToLocStor(newSettings, tempMode.contents)
-    }
-
-    let isFrameExplorerTab = (tabData:tabData, label:string):bool => {
-        switch tabData {
-            | ExplorerFrame({label:lbl}) => lbl == label
-            | _ => false
-        }
     }
 
     let openFrameExplorer = (label:string):unit => {
@@ -123,7 +133,7 @@ let make = () => {
                 | Some(_) => {
                     updateTabs(tabsSt => {
                         let tabsSt = switch tabsSt->Expln_React_UseTabs.getTabs
-                                                ->Js.Array2.find(tab => isFrameExplorerTab(tab.data, label)) {
+                                                ->Js.Array2.find(tab => isFrameExplorerTab(tab.data, ~label, ())) {
                             | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                             | None => {
                                 let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 

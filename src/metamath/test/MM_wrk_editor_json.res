@@ -111,7 +111,7 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.srcs,
+        srcs: state.srcs->Js.Array2.map(src => {...src, ast:None}),
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
