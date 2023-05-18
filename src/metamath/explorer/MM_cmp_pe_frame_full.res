@@ -12,6 +12,13 @@ open MM_substitution
 open MM_parenCounter
 open Common
 
+type vDataRec = {
+    hyps:array<array<string>>,
+    asrt:array<string>,
+    subs:Belt_HashMapString.t<array<string>>,
+    frmColors:option<Belt_HashMapString.t<string>>,
+}
+
 type state = {
     frmCtx:mmContext,
     frms: Belt_MapString.t<frmSubsData>,
@@ -23,6 +30,32 @@ type state = {
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
 }
+
+// let createVDataRec = (
+//     ~ctx:mmContext,
+//     ~pRec:proofRecord,
+// ):vData => {
+//     switch pRec.proof {
+//         | Hypothesis(_) => None
+//         | Assertion({args, label:string}) => {
+
+//         }
+//     }
+//     let hyps = []
+//     let eHyps = []
+//     frame.hyps->Js.Array2.forEachi((hyp,i) => {
+//         if (hyp.typ == E) {
+//             eHyps->Js.Array2.push(i)->ignore
+//         }
+//     })
+//     {
+//         hyps:hyps->Js_array2.map(frmCtx->ctxIntsToSymsExn),
+//         eHyps,
+//         hypLabels:array<int>,
+//         asrt:frmCtx->ctxIntsToSymsExn(asrt),
+//         subs:Belt_HashMapString.t<array<string>>,
+//     }
+// }
 
 let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmContext, ~frame:frame):state => {
     frmCtx->moveConstsToBegin(settings.parens)
@@ -162,18 +195,33 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndProof = state => {
+        let tdStyle=ReactDOM.Style.make(
+            ~borderCollapse="collapse", 
+            ~border="1px solid black", 
+            ~padding="5px",
+            ~verticalAlign="verticalAlign",
+            ()
+        )
         switch state.proofTable {
             | None => "This assertion doesn't have proof."->React.string
             | Some(proofTable) => {
-                <table>
-                    <tbody>
+                <table
+                    style=ReactDOM.Style.combine(tdStyle, ReactDOM.Style.make(
+                        ~tableLayout="fixed",
+                        ~width="100%",
+                        ()
+                    ))
+                >
+                    <tbody >
                         {
                             proofTable->Js_array2.mapi((row,idx) => {
-                                <tr key={idx->Belt.Int.toString}>
-                                    <td>
+                                <tr 
+                                    key={idx->Belt.Int.toString} 
+                                >
+                                    <td style=tdStyle >
                                         {(idx+1)->Belt_Int.toString->React.string}
                                     </td>
-                                    <td>
+                                    <td style=tdStyle >
                                         <MM_cmp_pe_stmt
                                             modalRef
                                             ctx=state.frmCtx
