@@ -16,6 +16,7 @@ open ColumnWidth
 
 type vDataRec = {
     hyps:array<array<string>>,
+    eHyps:array<int>,
     asrt:array<string>,
     hypLabels:array<int>,
     subs:Belt_HashMapString.t<array<string>>,
@@ -33,6 +34,9 @@ type state = {
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
     vData:array<option<vDataRec>>,
+    showTypes:bool,
+    essIdxs: Belt_HashSetInt.t,
+    stepRenum: Belt_HashMapInt.t<int>,
 }
 
 let createVDataRec = (
@@ -45,7 +49,14 @@ let createVDataRec = (
         | Hypothesis(_) => None
         | Assertion({args, label}) => {
             let frame = ctx->getFrameExn(label)
-            let hypsStr = frame.hyps->Js_array2.map(hyp => ctx->frmIntsToSymsExn(frame, hyp.expr))
+            let hypsStr = []
+            let eHyps = []
+            frame.hyps->Js_array2.forEachi((hyp,i) => {
+                hypsStr->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                if (hyp.typ == E) {
+                    eHyps->Js_array2.push(i)->ignore
+                }
+            })
             let subs = Belt_HashMapString.make(~hintSize=frame.numOfVars)
             frame.hyps->Js.Array2.forEachi((hyp,i) => {
                 if (hyp.typ == F) {
@@ -64,6 +75,7 @@ let createVDataRec = (
             }
             Some({
                 hyps:hypsStr,
+                eHyps,
                 asrt:ctx->frmIntsToSymsExn(frame, frame.asrt),
                 hypLabels:args,
                 subs,
@@ -94,6 +106,8 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
 
     let typeColors = settings->settingsGetTypeColors
     let asrt = frame.asrt->frmExprToCtxExpr
+    let essIdxs = Belt_HashSetInt.make(~hintSize=1000)
+    let stepRenum = Belt_HashMapInt.make(~hintSize=1000)
     let (proofTable,vData) = switch frame.proof {
         | None => (None,[])
         | Some(proof) => {
@@ -111,6 +125,25 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
                     let vData = proofTable->Js.Array2.map(pRec => {
                         createVDataRec( ~ctx=frmCtx, ~pRec, ~typeColors, ~exprsStr)
                     })
+                    proofTable->Js.Array2.forEach(pRec => {
+                        switch pRec.proof {
+                            | Hypothesis(_) => ()
+                            | Assertion({args, label}) => {
+                                let frame = frmCtx->getFrameExn(label)
+                                frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                                    if (hyp.typ == E) {
+                                        essIdxs->Belt_HashSetInt.add(args[i])
+                                    }
+                                })
+                            }
+                        }
+                    })
+                    essIdxs->Belt_HashSetInt.add(proofTable->Js.Array2.length-1)
+                    proofTable->Js.Array2.forEachi((_,i) => {
+                        if (essIdxs->Belt_HashSetInt.has(i)) {
+                            stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
+                        }
+                    })
                     (Some(proofTable), vData)
                 }
             }
@@ -127,7 +160,14 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         proofTable,
         symColors: createSymbolColors(~ctx=frmCtx, ~typeColors),
         vData,
+        showTypes:false,
+        essIdxs,
+        stepRenum,
     }
+}
+
+let toggleShowTypes = (st:state):state => {
+    {...st, showTypes:!st.showTypes}
 }
 
 let loadFrameContext = (
@@ -191,6 +231,25 @@ let make = React.memoCustomCompareProps(({
         None
     })
 
+    let modifyState = (update:state=>state):unit => {
+        setState(st => {
+            switch st {
+                | None => None
+                | Some(st) => Some(update(st))
+            }
+        })
+    }
+
+    let actToggleShowTypes = () => modifyState(toggleShowTypes)
+
+    let getStepNum = (state,pRecIdx:int):int => {
+        if (state.showTypes) {
+            pRecIdx + 1
+        } else {
+            state.stepRenum->Belt_HashMapInt.get(pRecIdx)->Belt.Option.map(n => n + 1)->Belt.Option.getWithDefault(0)
+        }
+    }
+
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
             <span style=ReactDOM.Style.make(~color="red", ())>
@@ -219,11 +278,13 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
-    let rndHyp = (pRec:proofRecord):reElem => {
+    let rndHyp = (state,pRec:proofRecord):reElem => {
         switch pRec.proof {
             | Hypothesis(_) => React.null
             | Assertion({args}) => 
-                args->Js.Array2.map(i => (i + 1)->Belt_Int.toString)->Js.Array2.joinWith(", ")->React.string
+                args
+                    ->Js.Array2.filter(state.essIdxs->Belt_HashSetInt.has)
+                    ->Js.Array2.map(i => getStepNum(state,i)->Belt_Int.toString)->Js.Array2.joinWith(", ")->React.string
         }
     }
 
@@ -290,8 +351,15 @@ let make = React.memoCustomCompareProps(({
                 elems->Js_array2.push(
                     <MM_cmp_jstf_to_svg
                         key="MM_cmp_jstf_to_svg"
-                        hyps=vDataRec.hyps
-                        hypLabels={vDataRec.hypLabels->Js_array2.map(i => (i + 1)->Belt_Int.toString)}
+                        hyps={if (state.showTypes) {vDataRec.hyps} else {vDataRec.eHyps->Js_array2.map(i => vDataRec.hyps[i])}}
+                        hypLabels={
+                            let labelIdxs = if (state.showTypes) {
+                                vDataRec.hypLabels
+                            } else {
+                                vDataRec.eHyps->Js_array2.map(i => vDataRec.hypLabels[i])
+                            }
+                            labelIdxs->Js_array2.map(i => getStepNum(state,i)->Belt_Int.toString)
+                        }
                         asrt=vDataRec.asrt
                         frmColors=Some(vDataRec.frmColors)
                         ctxColors1=Some(state.symColors)
@@ -316,42 +384,48 @@ let make = React.memoCustomCompareProps(({
         switch state.proofTable {
             | None => "This assertion doesn't have proof."->React.string
             | Some(proofTable) => {
-                <table
-                    style=ReactDOM.Style.combine(tdStyle, ReactDOM.Style.make(
-                        ~tableLayout="fixed",
-                        ~width="100%",
-                        ()
-                    ))
-                >
-                    <tbody >
-                        <tr>
-                            <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} > {"Step"->React.string} </th>
-                            <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} > {"Hyp"->React.string} </th>
-                            <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} > {"Ref"->React.string} </th>
-                            <th style=tdStyle > {"Expression"->React.string} </th>
-                        </tr>
-                        {
-                            proofTable->Js_array2.mapi((pRec,idx) => {
-                                <tr 
-                                    key={idx->Belt.Int.toString} 
-                                >
-                                    <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} className=classColStep>
-                                        {(idx+1)->Belt_Int.toString->React.string}
-                                    </td>
-                                    <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} className=classColHyp >
-                                        {rndHyp(pRec)}
-                                    </td>
-                                    <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} className=classColRef >
-                                        {rndRef(pRec)}
-                                    </td>
-                                    <td style=tdStyle >
-                                        {rndExpr(~state, ~pRec, ~pRecIdx=idx)}
-                                    </td>
-                                </tr>
-                            })->React.array
-                        }
-                    </tbody>
-                </table>
+                <Col spacing=0.>
+                    <Button onClick={_=>actToggleShowTypes()}> {React.string(if(state.showTypes) {"Hide types"} else {"Show types"})} </Button>
+                    <table
+                        style=ReactDOM.Style.combine(tdStyle, ReactDOM.Style.make(
+                            ~tableLayout="fixed",
+                            ~width="100%",
+                            ()
+                        ))
+                    >
+                        <tbody >
+                            <tr>
+                                <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} > {"Step"->React.string} </th>
+                                <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} > {"Hyp"->React.string} </th>
+                                <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} > {"Ref"->React.string} </th>
+                                <th style=tdStyle > {"Expression"->React.string} </th>
+                            </tr>
+                            {
+                                proofTable->Js_array2.mapi((pRec,idx) => (pRec,idx))->Js_array2.filter(((_,idx)) => {
+                                    if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}
+                                })
+                                    ->Js_array2.map(((pRec,idx)) => {
+                                    <tr 
+                                        key={idx->Belt.Int.toString} 
+                                    >
+                                        <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} className=classColStep>
+                                            {getStepNum(state,idx)->Belt_Int.toString->React.string}
+                                        </td>
+                                        <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} className=classColHyp >
+                                            {rndHyp(state,pRec)}
+                                        </td>
+                                        <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} className=classColRef >
+                                            {rndRef(pRec)}
+                                        </td>
+                                        <td style=tdStyle >
+                                            {rndExpr(~state, ~pRec, ~pRecIdx=idx)}
+                                        </td>
+                                    </tr>
+                                })->React.array
+                            }
+                        </tbody>
+                    </table>
+                </Col>
             }
         }
     }
