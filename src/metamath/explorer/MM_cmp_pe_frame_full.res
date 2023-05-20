@@ -2,6 +2,7 @@ open MM_context
 open MM_wrk_settings
 open Expln_React_Modal
 open Expln_React_Mui
+open Expln_React_common
 open MM_wrk_pre_ctx_data
 open MM_wrk_editor
 open MM_wrk_LoadCtx
@@ -11,6 +12,7 @@ open MM_proof_table
 open MM_substitution
 open MM_parenCounter
 open Common
+open ColumnWidth
 
 type vDataRec = {
     hyps:array<array<string>>,
@@ -141,6 +143,9 @@ let make = React.memoCustomCompareProps(({
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
     let (state, setState) = React.useState(() => None)
+    let (stepWidth, setStepWidth) = React.useState(() => "100px")
+    let (hypWidth, setHypWidth) = React.useState(() => "100px")
+    let (refWidth, setRefWidth) = React.useState(() => "100px")
 
     React.useEffect0(() => {
         loadFrameContext(
@@ -194,6 +199,56 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndHyp = (pRec:proofRecord):reElem => {
+        switch pRec.proof {
+            | Hypothesis(_) => React.null
+            | Assertion({args}) => 
+                args->Js.Array2.map(i => (i + 1)->Belt_Int.toString)->Js.Array2.joinWith(", ")->React.string
+        }
+    }
+
+    let linkStyle = ReactDOM.Style.make(
+        ~cursor="pointer", 
+        ~textDecoration="underline",
+        ~color="rgb(0,0,238)",
+        ~textDecorationColor="rgb(0,0,238)",
+        ()
+    )
+    let rndRef = (pRec:proofRecord):reElem => {
+        switch pRec.proof {
+            | Hypothesis({label}) => label->React.string
+            | Assertion({label}) => {
+                <span style=linkStyle>
+                    {label->React.string}
+                </span>
+            }
+        }
+    }
+
+    let getNumberOfRowsInProofTable = (state:option<state>):int => {
+        switch state {
+            | None => 0
+            | Some(state) => {
+                switch state.proofTable {
+                    | None => 0
+                    | Some(proofTable) => proofTable->Js_array2.length
+                }
+            }
+        }
+    }
+
+    let numberOfRowsInProofTable = getNumberOfRowsInProofTable(state)
+    let classColStep = "step"
+    let classColHyp = "hyp"
+    let classColRef = "ref"
+
+    React.useEffect1(() => {
+        setStepWidth(_ => calcColumnWidth(classColStep, 30, 1000)->Belt.Int.toString ++ "px")
+        setHypWidth(_ => calcColumnWidth(classColHyp, 30, 100)->Belt.Int.toString ++ "px")
+        setRefWidth(_ => calcColumnWidth(classColRef, 30, 1000)->Belt.Int.toString ++ "px")
+        None
+    }, [numberOfRowsInProofTable])
+
     let rndProof = state => {
         let tdStyle=ReactDOM.Style.make(
             ~borderCollapse="collapse", 
@@ -213,13 +268,25 @@ let make = React.memoCustomCompareProps(({
                     ))
                 >
                     <tbody >
+                        <tr>
+                            <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} > {"Step"->React.string} </th>
+                            <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} > {"Hyp"->React.string} </th>
+                            <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} > {"Ref"->React.string} </th>
+                            <th style=tdStyle > {"Expression"->React.string} </th>
+                        </tr>
                         {
                             proofTable->Js_array2.mapi((row,idx) => {
                                 <tr 
                                     key={idx->Belt.Int.toString} 
                                 >
-                                    <td style=tdStyle >
+                                    <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} className=classColStep>
                                         {(idx+1)->Belt_Int.toString->React.string}
+                                    </td>
+                                    <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} className=classColHyp >
+                                        {rndHyp(row)}
+                                    </td>
+                                    <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} className=classColRef >
+                                        {rndRef(row)}
                                     </td>
                                     <td style=tdStyle >
                                         <MM_cmp_pe_stmt
@@ -251,7 +318,7 @@ let make = React.memoCustomCompareProps(({
             }
         }
         | Some(state) => {
-            <Col>
+            <Col style=ReactDOM.Style.make(~padding="0px 10px", ())>
                 {rndLabel(state)}
                 {rndDescr(state)}
                 {rndProof(state)}
