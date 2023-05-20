@@ -17,8 +17,9 @@ open ColumnWidth
 type vDataRec = {
     hyps:array<array<string>>,
     asrt:array<string>,
+    hypLabels:array<int>,
     subs:Belt_HashMapString.t<array<string>>,
-    frmColors:option<Belt_HashMapString.t<string>>,
+    frmColors:Belt_HashMapString.t<string>,
 }
 
 type state = {
@@ -31,33 +32,46 @@ type state = {
     asrt:expr,
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
+    vData:array<option<vDataRec>>,
 }
 
-// let createVDataRec = (
-//     ~ctx:mmContext,
-//     ~pRec:proofRecord,
-// ):vData => {
-//     switch pRec.proof {
-//         | Hypothesis(_) => None
-//         | Assertion({args, label:string}) => {
-
-//         }
-//     }
-//     let hyps = []
-//     let eHyps = []
-//     frame.hyps->Js.Array2.forEachi((hyp,i) => {
-//         if (hyp.typ == E) {
-//             eHyps->Js.Array2.push(i)->ignore
-//         }
-//     })
-//     {
-//         hyps:hyps->Js_array2.map(frmCtx->ctxIntsToSymsExn),
-//         eHyps,
-//         hypLabels:array<int>,
-//         asrt:frmCtx->ctxIntsToSymsExn(asrt),
-//         subs:Belt_HashMapString.t<array<string>>,
-//     }
-// }
+let createVDataRec = (
+    ~ctx:mmContext,
+    ~pRec:proofRecord,
+    ~typeColors:Belt_HashMapString.t<string>,
+    ~exprsStr:array<array<string>>,
+):option<vDataRec> => {
+    switch pRec.proof {
+        | Hypothesis(_) => None
+        | Assertion({args, label}) => {
+            let frame = ctx->getFrameExn(label)
+            let hypsStr = frame.hyps->Js_array2.map(hyp => ctx->frmIntsToSymsExn(frame, hyp.expr))
+            let subs = Belt_HashMapString.make(~hintSize=frame.numOfVars)
+            frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                if (hyp.typ == F) {
+                    subs->Belt_HashMapString.set(
+                        frame.frameVarToSymb[hyp.expr[1]],
+                        exprsStr[args[i]]->Js_array2.sliceFrom(1)
+                    )
+                }
+            })
+            let frmColors = Belt_HashMapString.make(~hintSize=frame.numOfVars)
+            for i in 0 to frame.numOfVars-1 {
+                switch typeColors->Belt_HashMapString.get(ctx->ctxIntToSymExn(frame.varTypes[i])) {
+                    | None => ()
+                    | Some(color) => frmColors->Belt_HashMapString.set( frame.frameVarToSymb[i], color )
+                }
+            }
+            Some({
+                hyps:hypsStr,
+                asrt:ctx->frmIntsToSymsExn(frame, frame.asrt),
+                hypLabels:args,
+                subs,
+                frmColors,
+            })
+        }
+    }
+}
 
 let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmContext, ~frame:frame):state => {
     frmCtx->moveConstsToBegin(settings.parens)
@@ -78,12 +92,13 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         expr->Js_array2.map(frmIntToCtxInt)
     }
 
+    let typeColors = settings->settingsGetTypeColors
     let asrt = frame.asrt->frmExprToCtxExpr
-    let proofTable = switch frame.proof {
-        | None => None
+    let (proofTable,vData) = switch frame.proof {
+        | None => (None,[])
         | Some(proof) => {
             switch proof {
-                | Uncompressed({labels:["?"]}) => None
+                | Uncompressed({labels:["?"]}) => (None,[])
                 | _ => {
                     let proofRoot = MM_proof_verifier.verifyProof(
                         ~ctx=frmCtx,
@@ -91,12 +106,16 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
                         ~proof,
                         ~isDisjInCtx = (_,_) => true,
                     )
-                    Some(createProofTableFromProof(proofRoot))
+                    let proofTable = createProofTableFromProof(proofRoot)
+                    let exprsStr = proofTable->Js_array2.map(r => frmCtx->ctxIntsToSymsExn(r.expr))
+                    let vData = proofTable->Js.Array2.map(pRec => {
+                        createVDataRec( ~ctx=frmCtx, ~pRec, ~typeColors, ~exprsStr)
+                    })
+                    (Some(proofTable), vData)
                 }
             }
         }
     }
-    let typeColors = settings->settingsGetTypeColors
     {
         frmCtx,
         frms,
@@ -107,6 +126,7 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         asrt,
         proofTable,
         symColors: createSymbolColors(~ctx=frmCtx, ~typeColors),
+        vData,
     }
 }
 
@@ -249,6 +269,42 @@ let make = React.memoCustomCompareProps(({
         None
     }, [numberOfRowsInProofTable])
 
+    let rndExpr = (~state:state, ~pRec:proofRecord, ~pRecIdx:int):reElem => {
+        let elems = [
+            <MM_cmp_pe_stmt
+                key="MM_cmp_pe_stmt"
+                modalRef
+                ctx=state.frmCtx
+                syntaxTypes=state.syntaxTypes
+                frms=state.frms
+                parenCnt=state.parenCnt
+                stmt=pRec.expr
+                symColors=state.symColors
+                symRename=None
+                editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+            />
+        ]
+        switch state.vData[pRecIdx] {
+            | None => ()
+            | Some(vDataRec) => {
+                elems->Js_array2.push(
+                    <MM_cmp_jstf_to_svg
+                        key="MM_cmp_jstf_to_svg"
+                        hyps=vDataRec.hyps
+                        hypLabels={vDataRec.hypLabels->Js_array2.map(i => (i + 1)->Belt_Int.toString)}
+                        asrt=vDataRec.asrt
+                        frmColors=Some(vDataRec.frmColors)
+                        ctxColors1=Some(state.symColors)
+                        ctxColors2=None
+                        subs=vDataRec.subs
+                    />
+                )->ignore
+            }
+        }
+
+        <Col> { elems->React.array } </Col>
+    }
+
     let rndProof = state => {
         let tdStyle=ReactDOM.Style.make(
             ~borderCollapse="collapse", 
@@ -275,7 +331,7 @@ let make = React.memoCustomCompareProps(({
                             <th style=tdStyle > {"Expression"->React.string} </th>
                         </tr>
                         {
-                            proofTable->Js_array2.mapi((row,idx) => {
+                            proofTable->Js_array2.mapi((pRec,idx) => {
                                 <tr 
                                     key={idx->Belt.Int.toString} 
                                 >
@@ -283,23 +339,13 @@ let make = React.memoCustomCompareProps(({
                                         {(idx+1)->Belt_Int.toString->React.string}
                                     </td>
                                     <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} className=classColHyp >
-                                        {rndHyp(row)}
+                                        {rndHyp(pRec)}
                                     </td>
                                     <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} className=classColRef >
-                                        {rndRef(row)}
+                                        {rndRef(pRec)}
                                     </td>
                                     <td style=tdStyle >
-                                        <MM_cmp_pe_stmt
-                                            modalRef
-                                            ctx=state.frmCtx
-                                            syntaxTypes=state.syntaxTypes
-                                            frms=state.frms
-                                            parenCnt=state.parenCnt
-                                            stmt=row.expr
-                                            symColors=state.symColors
-                                            symRename=None
-                                            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-                                        />
+                                        {rndExpr(~state, ~pRec, ~pRecIdx=idx)}
                                     </td>
                                 </tr>
                             })->React.array
