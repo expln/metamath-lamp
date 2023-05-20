@@ -7,7 +7,7 @@ Unlike most other Metamath proof systems
 (such as mmj2 or original metamath-exe),
 users can use this proof assistant without installing anything;
 you can simply run it directly using your web browser.
-It's written in JavaScript using the React user interface framework.
+It's written in ReScript using the React user interface library.
 It's licensed under the [MIT license](./LICENSE.txt).
 
 You can use this proof assistant *now* by going to the
