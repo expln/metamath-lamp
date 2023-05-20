@@ -8,6 +8,10 @@ Unlike most other Metamath proof systems
 users can use this proof assistant without installing anything;
 you can simply run it directly using your web browser.
 It's written in JavaScript using the React user interface framework.
+It's written in [ReScript](https://rescript-lang.org/)
+(a robustly typed programming language that compiles to JavaScript) using the
+[React user interface library](https://react.dev/) and
+[Material UI Components](https://mui.com/material-ui/getting-started/overview/).
 It's licensed under the [MIT license](./LICENSE.txt).
 
 You can use this proof assistant *now* by going to the
