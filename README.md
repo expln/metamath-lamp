@@ -7,7 +7,6 @@ Unlike most other Metamath proof systems
 (such as mmj2 or original metamath-exe),
 users can use this proof assistant without installing anything;
 you can simply run it directly using your web browser.
-It's written in JavaScript using the React user interface framework.
 It's written in [ReScript](https://rescript-lang.org/)
 (a robustly typed programming language that compiles to JavaScript) using the
 [React user interface library](https://react.dev/) and
