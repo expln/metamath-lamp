@@ -15,7 +15,7 @@ It's written in [ReScript](https://rescript-lang.org/)
 It's licensed under the [MIT license](./LICENSE.txt).
 
 You can use this proof assistant *now* by going to the
-**(Metamath-lamp web site)[https://expln.github.io/lamp/latest/index.html]**.
+**[Metamath-lamp web site](https://expln.github.io/lamp/latest/index.html)**.
 
 [Here's a short video demo](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view?usp=sharing).
 
