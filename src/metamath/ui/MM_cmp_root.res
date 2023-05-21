@@ -195,6 +195,7 @@ let make = () => {
                         />
                     | ExplorerFrame({label}) => 
                         <MM_cmp_pe_frame_full
+                            top
                             modalRef
                             preCtxData=state.preCtxData
                             label

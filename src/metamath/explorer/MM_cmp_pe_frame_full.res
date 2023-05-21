@@ -202,16 +202,18 @@ let loadFrameContext = (
 }
 
 type props = {
+    top:int,
     modalRef:modalRef,
     preCtxData:preCtxData,
     label:string,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    true
+    a.top === b.top
 }
 
 let make = React.memoCustomCompareProps(({
+    top,
     modalRef,
     preCtxData,
     label,
@@ -268,6 +270,42 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let getNumberOfRowsInProofTable = (state:option<state>):int => {
+        switch state {
+            | None => 0
+            | Some(state) => {
+                switch state.proofTable {
+                    | None => 0
+                    | Some(proofTable) => {
+                        if (state.showTypes) {
+                            proofTable->Js_array2.length
+                        } else {
+                            proofTable->Js_array2.reducei(
+                                (cnt,_,idx) => {
+                                    cnt + if (state.essIdxs->Belt_HashSetInt.has(idx)) {1} else {0}
+                                },
+                                0
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let numberOfRowsInProofTable = getNumberOfRowsInProofTable(state)
+    let proofTableId = `tbl-${label}`
+    let classColStep = "step"
+    let classColHyp = "hyp"
+    let classColRef = "ref"
+
+    React.useEffect1(() => {
+        setStepWidth(_ => calcColumnWidth(`#${proofTableId} .${classColStep}`, 30, 1000)->Belt.Int.toString ++ "px")
+        setHypWidth(_ => (calcColumnWidth(`#${proofTableId} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
+        setRefWidth(_ => calcColumnWidth(`#${proofTableId} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
+        None
+    }, [numberOfRowsInProofTable])
+
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
             <span style=ReactDOM.Style.make(~color="red", ())>
@@ -313,7 +351,7 @@ let make = React.memoCustomCompareProps(({
                             )->ignore
                         }
                         elems->Js.Array2.push(
-                            <a href={"#" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}>
+                            <a href={"#" ++ proofTableId ++ "-" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}>
                                 {React.string(getStepNum(state,argIdx)->Belt_Int.toString)}
                             </a>
                         )->ignore
@@ -341,42 +379,6 @@ let make = React.memoCustomCompareProps(({
             }
         }
     }
-
-    let getNumberOfRowsInProofTable = (state:option<state>):int => {
-        switch state {
-            | None => 0
-            | Some(state) => {
-                switch state.proofTable {
-                    | None => 0
-                    | Some(proofTable) => {
-                        if (state.showTypes) {
-                            proofTable->Js_array2.length
-                        } else {
-                            proofTable->Js_array2.reducei(
-                                (cnt,_,idx) => {
-                                    cnt + if (state.essIdxs->Belt_HashSetInt.has(idx)) {1} else {0}
-                                },
-                                0
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    let numberOfRowsInProofTable = getNumberOfRowsInProofTable(state)
-    let proofTableId = `tbl-${label}`
-    let classColStep = "step"
-    let classColHyp = "hyp"
-    let classColRef = "ref"
-
-    React.useEffect1(() => {
-        setStepWidth(_ => calcColumnWidth(`#${proofTableId} .${classColStep}`, 30, 1000)->Belt.Int.toString ++ "px")
-        setHypWidth(_ => (calcColumnWidth(`#${proofTableId} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
-        setRefWidth(_ => calcColumnWidth(`#${proofTableId} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
-        None
-    }, [numberOfRowsInProofTable])
 
     let expBtnBaseStyle = ReactDOM.Style.make(
         ~color="lightgrey", 
@@ -465,6 +467,9 @@ let make = React.memoCustomCompareProps(({
             ~verticalAlign="verticalAlign",
             ()
         )
+        let rowStyle=ReactDOM.Style.make(())
+            ->ReactDOM.Style.unsafeAddProp("scrollMarginTop", top->Belt_Int.toString ++ "px")
+        
         switch state.proofTable {
             | None => "This assertion doesn't have proof."->React.string
             | Some(proofTable) => {
@@ -494,7 +499,8 @@ let make = React.memoCustomCompareProps(({
                                     ->Js_array2.map(((pRec,idx)) => {
                                     <tr 
                                         key={idx->Belt.Int.toString} 
-                                        id={idx->Belt.Int.toString} 
+                                        id={proofTableId ++ "-" ++ idx->Belt.Int.toString} 
+                                        style=rowStyle
                                     >
                                         <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} className=classColStep>
                                             {getStepNum(state,idx)->Belt_Int.toString->React.string}
@@ -518,6 +524,12 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let rndFooter = () => {
+        Belt_Array.range(1,12)->Js.Array2.map(i => {
+            <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
+        })->React.array
+    }
+
     switch state {
         | None => {
             switch loadErr {
@@ -530,6 +542,7 @@ let make = React.memoCustomCompareProps(({
                 {rndLabel(state)}
                 {rndDescr(state)}
                 {rndProof(state)}
+                {rndFooter()}
             </Col>
         }
     }
