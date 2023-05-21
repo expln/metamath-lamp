@@ -15,8 +15,8 @@ let getTextWidth = (text:string, font:string):int => {
     metrics["width"]
 }
 
-let calcColumnWidth = (cellClassName:string,min:int,max:int):int => {
-    let cells = document["getElementsByClassName"](. cellClassName)
+let calcColumnWidth = (query:string,min:int,max:int):int => {
+    let cells = document["querySelectorAll"](. query)
     if (cells["length"] > 0) {
         let font = (window["getComputedStyle"](. cells["item"](. 0)))["getPropertyValue"](. "font")
         let maxWidth = ref(0)
