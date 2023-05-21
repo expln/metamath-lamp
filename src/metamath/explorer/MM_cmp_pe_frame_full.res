@@ -299,10 +299,28 @@ let make = React.memoCustomCompareProps(({
     let rndHyp = (state,pRec:proofRecord):reElem => {
         switch pRec.proof {
             | Hypothesis(_) => React.null
-            | Assertion({args}) => 
-                args
-                    ->Js.Array2.filter(state.essIdxs->Belt_HashSetInt.has)
-                    ->Js.Array2.map(i => getStepNum(state,i)->Belt_Int.toString)->Js.Array2.joinWith(", ")->React.string
+            | Assertion({args}) => {
+                let elems = []
+                for i in 0 to args->Js.Array2.length-1 {
+                    let argIdx = args[i]
+                    if (state.showTypes || state.essIdxs->Belt_HashSetInt.has(argIdx)) {
+                        let iStr = i->Belt_Int.toString
+                        if (elems->Js.Array2.length > 0) {
+                            elems->Js.Array2.push(
+                                <span key={"delim-" ++ iStr}>
+                                    {React.string(", ")}
+                                </span>
+                            )->ignore
+                        }
+                        elems->Js.Array2.push(
+                            <a href={"#" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}>
+                                {React.string(getStepNum(state,argIdx)->Belt_Int.toString)}
+                            </a>
+                        )->ignore
+                    }
+                }
+                elems->React.array
+            }
         }
     }
 
@@ -330,7 +348,18 @@ let make = React.memoCustomCompareProps(({
             | Some(state) => {
                 switch state.proofTable {
                     | None => 0
-                    | Some(proofTable) => proofTable->Js_array2.length
+                    | Some(proofTable) => {
+                        if (state.showTypes) {
+                            proofTable->Js_array2.length
+                        } else {
+                            proofTable->Js_array2.reducei(
+                                (cnt,_,idx) => {
+                                    cnt + if (state.essIdxs->Belt_HashSetInt.has(idx)) {1} else {0}
+                                },
+                                0
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -343,7 +372,7 @@ let make = React.memoCustomCompareProps(({
 
     React.useEffect1(() => {
         setStepWidth(_ => calcColumnWidth(classColStep, 30, 1000)->Belt.Int.toString ++ "px")
-        setHypWidth(_ => calcColumnWidth(classColHyp, 30, 100)->Belt.Int.toString ++ "px")
+        setHypWidth(_ => (calcColumnWidth(classColHyp, 30, 100)+5)->Belt.Int.toString ++ "px")
         setRefWidth(_ => calcColumnWidth(classColRef, 30, 1000)->Belt.Int.toString ++ "px")
         None
     }, [numberOfRowsInProofTable])
@@ -463,6 +492,7 @@ let make = React.memoCustomCompareProps(({
                                     ->Js_array2.map(((pRec,idx)) => {
                                     <tr 
                                         key={idx->Belt.Int.toString} 
+                                        id={idx->Belt.Int.toString} 
                                     >
                                         <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} className=classColStep>
                                             {getStepNum(state,idx)->Belt_Int.toString->React.string}
