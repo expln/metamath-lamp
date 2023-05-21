@@ -2274,7 +2274,7 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     res
 }
 
-let updateExpLavel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
+let updateExpLevel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
     let update = if (inc) {incExpLvl} else {decExpLvl}
     let prevTreeData = ref(treeData)
     let prevNum = ref(getNumberOfSelectedSymbols(prevTreeData.contents))

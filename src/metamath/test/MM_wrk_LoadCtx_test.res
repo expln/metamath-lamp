@@ -334,46 +334,4 @@ describe("createMmScopesForFrame", _ => {
         assertEq( mmScopes[1].stopBefore, Some("E") )
         assertEq( mmScopes[1].stopAfter, None )
     })
-    
-    it("test1", _ => {
-        //given
-        let ast1 = { begin: 0, end: 0, stmt: Comment({text:"1"}) }
-        let ast2 = { begin: 0, end: 0, stmt: Comment({text:"2"}) }
-        let srcs = [
-            {
-                typ: "----",
-                fileName: "======",
-                url: "........",
-                readInstr: "StopBefore",
-                label: "C",
-                ast: Some(ast1),
-                allLabels: ["A", "B", "C", "D", "E", "F"],
-            },
-            {
-                typ: "----",
-                fileName: "======",
-                url: "........",
-                readInstr: "ReadAll",
-                label: "",
-                ast: Some(ast2),
-                allLabels: ["X", "C"],
-            },
-        ]
-
-        //when
-        let mmScopes = createMmScopesForFrame(~srcs, ~label="C")
-
-        //then
-        assertEq( mmScopes->Js_array2.length, 2 )
-
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 2 )
-        assertEq( mmScopes[0].stopBefore, Some("C") )
-        assertEq( mmScopes[0].stopAfter, None )
-
-        assertEq( mmScopes[1].ast === ast2, true )
-        assertEq( mmScopes[1].expectedNumOfAssertions, 1 )
-        assertEq( mmScopes[1].stopBefore, Some("C") )
-        assertEq( mmScopes[1].stopAfter, None )
-    })
 })

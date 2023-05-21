@@ -101,11 +101,11 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actExpandSelection = () => {
-        actUpdateSyntaxTree(updateExpLavel(_,true))
+        actUpdateSyntaxTree(updateExpLevel(_,true))
     }
 
     let actShrinkSelection = () => {
-        actUpdateSyntaxTree(updateExpLavel(_,false))
+        actUpdateSyntaxTree(updateExpLevel(_,false))
     }
 
     let actCopyToClipboard = () => {
@@ -190,7 +190,6 @@ let make = React.memoCustomCompareProps( ({
         let elems = [
             <span 
                 style=ReactDOM.Style.make(
-                    ~padding="1px 10px", 
                     ~fontFamily="monospace",
                     ~fontSize="1.3em",
                     ()

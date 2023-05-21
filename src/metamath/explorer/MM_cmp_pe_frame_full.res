@@ -37,6 +37,7 @@ type state = {
     showTypes:bool,
     essIdxs: Belt_HashSetInt.t,
     stepRenum: Belt_HashMapInt.t<int>,
+    expandedIdxs: array<int>,
 }
 
 let createVDataRec = (
@@ -163,11 +164,26 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         showTypes:false,
         essIdxs,
         stepRenum,
+        expandedIdxs: [],
     }
 }
 
 let toggleShowTypes = (st:state):state => {
     {...st, showTypes:!st.showTypes}
+}
+
+let toggleIdxExpanded = (st:state, idx:int):state => {
+    if (st.expandedIdxs->Js.Array2.includes(idx)) {
+        {
+            ...st, 
+            expandedIdxs: st.expandedIdxs->Js.Array2.filter(i => i != idx)
+        }
+    } else {
+        {
+            ...st, 
+            expandedIdxs: st.expandedIdxs->Js.Array2.concat([idx])
+        }
+    }
 }
 
 let loadFrameContext = (
@@ -241,6 +257,8 @@ let make = React.memoCustomCompareProps(({
     }
 
     let actToggleShowTypes = () => modifyState(toggleShowTypes)
+
+    let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
 
     let getStepNum = (state,pRecIdx:int):int => {
         if (state.showTypes) {
@@ -330,47 +348,83 @@ let make = React.memoCustomCompareProps(({
         None
     }, [numberOfRowsInProofTable])
 
-    let rndExpr = (~state:state, ~pRec:proofRecord, ~pRecIdx:int):reElem => {
-        let elems = [
-            <MM_cmp_pe_stmt
-                key="MM_cmp_pe_stmt"
-                modalRef
-                ctx=state.frmCtx
-                syntaxTypes=state.syntaxTypes
-                frms=state.frms
-                parenCnt=state.parenCnt
-                stmt=pRec.expr
-                symColors=state.symColors
-                symRename=None
-                editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-            />
-        ]
-        switch state.vData[pRecIdx] {
-            | None => ()
-            | Some(vDataRec) => {
-                elems->Js_array2.push(
-                    <MM_cmp_jstf_to_svg
-                        key="MM_cmp_jstf_to_svg"
-                        hyps={if (state.showTypes) {vDataRec.hyps} else {vDataRec.eHyps->Js_array2.map(i => vDataRec.hyps[i])}}
-                        hypLabels={
-                            let labelIdxs = if (state.showTypes) {
-                                vDataRec.hypLabels
-                            } else {
-                                vDataRec.eHyps->Js_array2.map(i => vDataRec.hypLabels[i])
-                            }
-                            labelIdxs->Js_array2.map(i => getStepNum(state,i)->Belt_Int.toString)
-                        }
-                        asrt=vDataRec.asrt
-                        frmColors=Some(vDataRec.frmColors)
-                        ctxColors1=Some(state.symColors)
-                        ctxColors2=None
-                        subs=vDataRec.subs
-                    />
-                )->ignore
-            }
+    let expBtnBaseStyle = ReactDOM.Style.make(
+        ~color="lightgrey", 
+        ~border="1px solid",
+        ~marginRight="3px",
+        ~padding="1px 3px 0px 2px",
+        ~fontFamily="courier",
+        ~fontSize="10px",
+        ~cursor="pointer",
+        ()
+    )
+    let rndExpBtn = (~state:state, ~pRecIdx:int):reElem => {
+        let style = switch state.vData[pRecIdx] {
+            | None => expBtnBaseStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~opacity="0", ()))
+            | Some(_) => expBtnBaseStyle
         }
+        <a style onClick={_=>actToggleIdxExpanded(pRecIdx)}>
+            {React.string(if (state.expandedIdxs->Js_array2.includes(pRecIdx)) {"-"} else {"+"})}
+        </a>
+    }
 
-        <Col> { elems->React.array } </Col>
+    let rndExprText = (~state:state, ~pRec:proofRecord):reElem => {
+        <MM_cmp_pe_stmt
+            modalRef
+            ctx=state.frmCtx
+            syntaxTypes=state.syntaxTypes
+            frms=state.frms
+            parenCnt=state.parenCnt
+            stmt=pRec.expr
+            symColors=state.symColors
+            symRename=None
+            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+        />
+    }
+
+    let rndExprSvg = (~state:state, ~vDataRec:vDataRec):reElem => {
+        <MM_cmp_jstf_to_svg
+            hyps={if (state.showTypes) {vDataRec.hyps} else {vDataRec.eHyps->Js_array2.map(i => vDataRec.hyps[i])}}
+            hypLabels={
+                let labelIdxs = if (state.showTypes) {
+                    vDataRec.hypLabels
+                } else {
+                    vDataRec.eHyps->Js_array2.map(i => vDataRec.hypLabels[i])
+                }
+                labelIdxs->Js_array2.map(i => getStepNum(state,i)->Belt_Int.toString)
+            }
+            asrt=vDataRec.asrt
+            frmColors=Some(vDataRec.frmColors)
+            ctxColors1=Some(state.symColors)
+            ctxColors2=None
+            subs=vDataRec.subs
+        />
+    }
+
+    let rndExpr = (~state:state, ~pRec:proofRecord, ~pRecIdx:int):reElem => {
+        <table>
+            <tbody>
+                <tr>
+                    <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                        {rndExpBtn(~state, ~pRecIdx)}
+                    </td>
+                    <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                        {
+                            switch state.vData[pRecIdx] {
+                                | None => rndExprText(~state, ~pRec)
+                                | Some(vDataRec) => {
+                                    if (state.expandedIdxs->Js_array2.includes(pRecIdx)) {
+                                        rndExprSvg(~state, ~vDataRec)
+                                    } else {
+                                        rndExprText(~state, ~pRec)
+                                    }
+                                }
+                            }
+                        }
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     }
 
     let rndProof = state => {
@@ -393,13 +447,15 @@ let make = React.memoCustomCompareProps(({
                             ()
                         ))
                     >
-                        <tbody >
+                        <thead>
                             <tr>
                                 <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} > {"Step"->React.string} </th>
                                 <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} > {"Hyp"->React.string} </th>
                                 <th style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} > {"Ref"->React.string} </th>
                                 <th style=tdStyle > {"Expression"->React.string} </th>
                             </tr>
+                        </thead>
+                        <tbody >
                             {
                                 proofTable->Js_array2.mapi((pRec,idx) => (pRec,idx))->Js_array2.filter(((_,idx)) => {
                                     if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}

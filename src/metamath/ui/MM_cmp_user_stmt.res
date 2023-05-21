@@ -726,11 +726,11 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actExpandSelection = () => {
-        actUpdateSyntaxTree(updateExpLavel(_,true))
+        actUpdateSyntaxTree(updateExpLevel(_,true))
     }
 
     let actShrinkSelection = () => {
-        actUpdateSyntaxTree(updateExpLavel(_,false))
+        actUpdateSyntaxTree(updateExpLevel(_,false))
     }
 
     let actAddStmtAbove = () => {
