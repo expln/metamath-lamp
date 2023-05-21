@@ -14,6 +14,9 @@ open MM_parenCounter
 open Common
 open ColumnWidth
 
+@val external window: {..} = "window"
+let location = window["location"]
+
 type vDataRec = {
     hyps:array<array<string>>,
     eHyps:array<int>,
@@ -415,21 +418,22 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndExprSvg = (~state:state, ~vDataRec:vDataRec):reElem => {
+        let labelIdxs = if (state.showTypes) {
+            vDataRec.hypLabels
+        } else {
+            vDataRec.eHyps->Js_array2.map(i => vDataRec.hypLabels[i])
+        }
         <MM_cmp_jstf_to_svg
             hyps={if (state.showTypes) {vDataRec.hyps} else {vDataRec.eHyps->Js_array2.map(i => vDataRec.hyps[i])}}
-            hypLabels={
-                let labelIdxs = if (state.showTypes) {
-                    vDataRec.hypLabels
-                } else {
-                    vDataRec.eHyps->Js_array2.map(i => vDataRec.hypLabels[i])
-                }
-                labelIdxs->Js_array2.map(i => getStepNum(state,i)->Belt_Int.toString)
-            }
+            hypLabels={labelIdxs->Js_array2.map(i => getStepNum(state,i)->Belt_Int.toString)}
             asrt=vDataRec.asrt
             frmColors=Some(vDataRec.frmColors)
             ctxColors1=Some(state.symColors)
             ctxColors2=None
             subs=vDataRec.subs
+            onLabelClick = {(i,_) => {
+                location["hash"] = "#" ++ proofTableId ++ "-" ++ labelIdxs[i]->Belt_Int.toString
+            }}
         />
     }
 
