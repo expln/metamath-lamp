@@ -412,7 +412,7 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
 
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
-    let newLabel = createNewLabel(st, newLabelPrefix)
+    let newLabel = if (st.stmts->Js.Array2.length == 0) {"qed"} else {createNewLabel(st, newLabelPrefix)}
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
