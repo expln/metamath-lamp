@@ -232,26 +232,31 @@ let make = React.memoCustomCompareProps(({
     let (refWidth, setRefWidth) = React.useState(() => "100px")
 
     React.useEffect0(() => {
-        loadFrameContext(
-            ~srcs=preCtxData.srcs,
-            ~label,
-            ~onProgress = pct => setLoadPct(_ => pct),
-            ~onDone = res => {
-                switch res {
-                    | Error(msg) => setLoadErr(_ => Some(msg))
-                    | Ok(frmCtx) => {
-                        setState(_ => {
-                            Some(createInitialState(
-                                ~settings=preCtxData.settingsV.val, 
-                                ~preCtx=preCtxData.ctxV.val,
-                                ~frmCtx, 
-                                ~frame=preCtxData.ctxV.val->getFrameExn(label)
-                            ))
-                        })
-                    }
-                }
+        setTimeout(
+            () => {
+                loadFrameContext(
+                    ~srcs=preCtxData.srcs,
+                    ~label,
+                    ~onProgress = pct => setLoadPct(_ => pct),
+                    ~onDone = res => {
+                        switch res {
+                            | Error(msg) => setLoadErr(_ => Some(msg))
+                            | Ok(frmCtx) => {
+                                setState(_ => {
+                                    Some(createInitialState(
+                                        ~settings=preCtxData.settingsV.val, 
+                                        ~preCtx=preCtxData.ctxV.val,
+                                        ~frmCtx, 
+                                        ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                                    ))
+                                })
+                            }
+                        }
+                    },
+                )
             },
-        )
+            0
+        )->ignore
         None
     })
 
