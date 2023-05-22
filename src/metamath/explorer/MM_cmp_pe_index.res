@@ -2,6 +2,7 @@ open MM_context
 open MM_wrk_settings
 open Expln_React_Modal
 open Expln_React_Mui
+open Expln_React_common
 open MM_wrk_pre_ctx_data
 
 type props = {
@@ -27,6 +28,8 @@ let make = React.memoCustomCompareProps(({
     let (allLabels, setAllLabels) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
 
+    let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
+
     let actPreCtxDataChanged = () => {
         let settings = preCtxData.settingsV.val
         setTypeColors(_ => settings->settingsGetTypeColors)
@@ -36,6 +39,7 @@ let make = React.memoCustomCompareProps(({
         let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
+        setIsAxiomFilter(_ => None)
     }
 
     React.useEffect1(() => {
@@ -43,7 +47,67 @@ let make = React.memoCustomCompareProps(({
         None
     }, [preCtxData])
 
+    let isAxiomFilterToStr = typeFilter => {
+        switch typeFilter {
+            | None => "none"
+            | Some(false) => "false"
+            | Some(true) => "true"
+        }
+    }
+
+    let isAxiomFilterFromStr = str => {
+        switch str {
+            | "false" => Some(false)
+            | "true" => Some(true)
+            | _ => None
+        }
+    }
+
+    let actIsAxiomFilterUpdated = isAxiomStr => {
+        setIsAxiomFilter(_ => isAxiomStr->isAxiomFilterFromStr)
+    }
+
+    let actApplyFilters = () => {
+        setFilteredLabels(_ => {
+            allLabels->Js.Array2.filter(((i,label)) => {
+                isAxiomFilter->Belt_Option.mapWithDefault(
+                    true, 
+                    isAxiomFilter => isAxiomFilter === (preCtxData.ctxV.val->getFrameExn(label)).isAxiom
+                )
+            })
+        })
+    }
+
+    React.useEffect1(() => {
+        actApplyFilters()
+        None
+    }, [isAxiomFilter])
+
+    let rndIsAxiomFilter = () => {
+        <FormControl size=#small>
+            <InputLabel id="isAxiomFilter-label">"Assertion type"</InputLabel>
+            <Select
+                sx={"width": 130}
+                labelId="isAxiomFilter-label"
+                value={isAxiomFilter->isAxiomFilterToStr}
+                label="Assertion type"
+                onChange=evt2str(actIsAxiomFilterUpdated)
+            >
+                <MenuItem value="none">{React.string("All")}</MenuItem>
+                <MenuItem value="true">{React.string("Axiom")}</MenuItem>
+                <MenuItem value="false">{React.string("Theorem")}</MenuItem>
+            </Select>
+        </FormControl>
+    }
+
+    let rndFilters = () => {
+        <Row>
+            {rndIsAxiomFilter()}
+        </Row>
+    }
+
     <Col style=ReactDOM.Style.make(~marginLeft="15px", ~marginRight="15px", ())>
+        {rndFilters()}
         <MM_cmp_pe_frame_list
             key=`${preCtxVer->Belt_Int.toString}`
             modalRef
