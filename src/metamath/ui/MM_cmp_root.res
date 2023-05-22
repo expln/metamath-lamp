@@ -199,6 +199,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             label
+                            openFrameExplorer
                         />
                 }
             }

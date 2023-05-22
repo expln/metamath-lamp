@@ -13,6 +13,7 @@ open MM_substitution
 open MM_parenCounter
 open Common
 open ColumnWidth
+open MM_react_common
 
 @val external window: {..} = "window"
 let location = window["location"]
@@ -209,6 +210,7 @@ type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
     label:string,
+    openFrameExplorer:string=>unit,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -220,6 +222,7 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
     label,
+    openFrameExplorer,
 }:props) => {
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
@@ -376,7 +379,7 @@ let make = React.memoCustomCompareProps(({
         switch pRec.proof {
             | Hypothesis({label}) => label->React.string
             | Assertion({label}) => {
-                <span style=linkStyle>
+                <span style=linkStyle onClick={clickHnd(~act=()=>openFrameExplorer(label),())}>
                     {label->React.string}
                 </span>
             }
