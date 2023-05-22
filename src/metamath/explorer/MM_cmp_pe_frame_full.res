@@ -33,7 +33,7 @@ type state = {
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
     frame:frame,
-    hyps:array<expr>,
+    hyps:array<hypothesis>,
     asrt:expr,
     proofTable:option<proofTable>,
     symColors:Belt_HashMapString.t<string>,
@@ -160,7 +160,7 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         parenCnt,
         syntaxTypes,
         frame,
-        hyps:frame.hyps->Js.Array2.map(hyp => frmExprToCtxExpr(hyp.expr)),
+        hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
         proofTable,
         symColors: createSymbolColors(~ctx=frmCtx, ~typeColors),
@@ -330,6 +330,54 @@ let make = React.memoCustomCompareProps(({
                 { (" " ++ state.frame.label)->React.string }
             </span>
         </span>
+    }
+
+    let rndSummary = state => {
+        let style=ReactDOM.Style.make( ~borderCollapse="collapse", () )
+        <table style>
+            <tbody>
+                {
+                    state.hyps
+                        ->Js_array2.filter(hyp => hyp.typ == E)
+                        ->Js_array2.mapi((hyp,i) => {
+                            <tr key={i->Belt_Int.toString}>
+                                <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="15px", ()))}> 
+                                    {(circleChar ++ nbsp ++ hyp.label)->React.string} 
+                                </td>
+                                <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="10px", ()))}> 
+                                    <MM_cmp_pe_stmt
+                                        modalRef
+                                        ctx=state.frmCtx
+                                        syntaxTypes=state.syntaxTypes
+                                        frms=state.frms
+                                        parenCnt=state.parenCnt
+                                        stmt=hyp.expr
+                                        symColors=state.symColors
+                                        symRename=None
+                                        editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                                    /> 
+                                </td>
+                            </tr>
+                        })->React.array
+                }
+                <tr>
+                    <td style=ReactDOM.Style.make(~verticalAlign="top", ~paddingTop="10px", ())> {state.frame.label->React.string} </td>
+                    <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="10px", ~verticalAlign="top", ~paddingTop="10px", ()))}> 
+                        <MM_cmp_pe_stmt
+                            modalRef
+                            ctx=state.frmCtx
+                            syntaxTypes=state.syntaxTypes
+                            frms=state.frms
+                            parenCnt=state.parenCnt
+                            stmt=state.asrt
+                            symColors=state.symColors
+                            symRename=None
+                            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                        /> 
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     }
 
     let rndDescr = state => {
@@ -545,9 +593,10 @@ let make = React.memoCustomCompareProps(({
             }
         }
         | Some(state) => {
-            <Col style=ReactDOM.Style.make(~padding="0px 10px", ())>
+            <Col spacing=3. style=ReactDOM.Style.make(~padding="0px 10px", ())>
                 {rndLabel(state)}
                 {rndDescr(state)}
+                {rndSummary(state)}
                 {rndProof(state)}
                 {rndFooter()}
             </Col>
