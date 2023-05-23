@@ -1,5 +1,6 @@
 open MM_context
 open MM_wrk_settings
+open MM_react_common
 open Expln_React_Modal
 open Expln_React_Mui
 open Expln_React_common
@@ -29,6 +30,7 @@ let make = React.memoCustomCompareProps(({
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
+    let (labelFilter, setLabelFilter) = React.useState(() => "")
 
     let actPreCtxDataChanged = () => {
         let settings = preCtxData.settingsV.val
@@ -40,6 +42,7 @@ let make = React.memoCustomCompareProps(({
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
         setIsAxiomFilter(_ => None)
+        setLabelFilter(_ => "")
     }
 
     React.useEffect1(() => {
@@ -67,13 +70,17 @@ let make = React.memoCustomCompareProps(({
         setIsAxiomFilter(_ => isAxiomStr->isAxiomFilterFromStr)
     }
 
+    let actLabelFilterUpdated = newLabelFilter => {
+        setLabelFilter(_ => newLabelFilter)
+    }
+
     let actApplyFilters = () => {
         setFilteredLabels(_ => {
             allLabels->Js.Array2.filter(((i,label)) => {
                 isAxiomFilter->Belt_Option.mapWithDefault(
                     true, 
                     isAxiomFilter => isAxiomFilter === (preCtxData.ctxV.val->getFrameExn(label)).isAxiom
-                )
+                ) && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
             })
         })
     }
@@ -100,9 +107,22 @@ let make = React.memoCustomCompareProps(({
         </FormControl>
     }
 
+    let rndLabelFilter = () => {
+        <TextField 
+            label="Label"
+            size=#small
+            style=ReactDOM.Style.make(~width="100px", ())
+            autoFocus=true
+            value=labelFilter
+            onChange=evt2str(actLabelFilterUpdated)
+            onKeyDown=kbrdHnd(~onEnter=actApplyFilters, ())
+        />
+    }
+
     let rndFilters = () => {
         <Row>
             {rndIsAxiomFilter()}
+            {rndLabelFilter()}
         </Row>
     }
 
