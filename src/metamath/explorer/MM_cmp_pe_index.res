@@ -5,6 +5,7 @@ open Expln_React_Modal
 open Expln_React_Mui
 open Expln_React_common
 open MM_wrk_pre_ctx_data
+open Common
 
 type props = {
     modalRef:modalRef,
@@ -31,6 +32,8 @@ let make = React.memoCustomCompareProps(({
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
+    let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
+    let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
 
     let actPreCtxDataChanged = () => {
         let settings = preCtxData.settingsV.val
@@ -43,6 +46,8 @@ let make = React.memoCustomCompareProps(({
         setFilteredLabels(_ => allLabels)
         setIsAxiomFilter(_ => None)
         setLabelFilter(_ => "")
+        setPatternFilterStr(_ => "")
+        setPatternFilterErr(_ => None)
     }
 
     React.useEffect1(() => {
@@ -74,15 +79,32 @@ let make = React.memoCustomCompareProps(({
         setLabelFilter(_ => newLabelFilter)
     }
 
+    let actPatternFilterStrUpdated = newPatternFilterStr => {
+        setPatternFilterStr(_ => newPatternFilterStr)
+    }
+
     let actApplyFilters = () => {
-        setFilteredLabels(_ => {
-            allLabels->Js.Array2.filter(((i,label)) => {
-                isAxiomFilter->Belt_Option.mapWithDefault(
-                    true, 
-                    isAxiomFilter => isAxiomFilter === (preCtxData.ctxV.val->getFrameExn(label)).isAxiom
-                ) && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
-            })
-        })
+        let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
+        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => !(preCtxData.ctxV.val->isConst(sym)))
+        switch incorrectSymbol {
+            | Some(sym) => setPatternFilterErr(_ => Some(`'${sym}' - is not a constant.`))
+            | None => {
+                setPatternFilterErr(_ => None)
+                let patternFilterInts = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
+                let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesPattern(_, patternFilterInts)
+                setFilteredLabels(_ => {
+                    allLabels->Js.Array2.filter(((i,label)) => {
+                        let frame = preCtxData.ctxV.val->getFrameExn(label)
+                        isAxiomFilter->Belt_Option.mapWithDefault(
+                            true, 
+                            isAxiomFilter => isAxiomFilter === frame.isAxiom
+                        ) 
+                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
+                        && frameMatchesPattern(frame)
+                    })
+                })
+            }
+        }
     }
 
     React.useEffect1(() => {
@@ -111,7 +133,7 @@ let make = React.memoCustomCompareProps(({
         <TextField 
             label="Label"
             size=#small
-            style=ReactDOM.Style.make(~width="100px", ())
+            style=ReactDOM.Style.make(~width="200px", ())
             autoFocus=true
             value=labelFilter
             onChange=evt2str(actLabelFilterUpdated)
@@ -119,15 +141,39 @@ let make = React.memoCustomCompareProps(({
         />
     }
 
+    let rndPatternFilter = () => {
+        <TextField 
+            label="Pattern"
+            size=#small
+            style=ReactDOM.Style.make(~width="300px", ())
+            value=patternFilterStr
+            onChange=evt2str(actPatternFilterStrUpdated)
+            onKeyDown=kbrdHnd(~onEnter=actApplyFilters, ())
+        />
+    }
+
+    let rndPatternError = () => {
+        switch patternFilterErr {
+            | None => <></>
+            | Some(msg) => {
+                <pre style=ReactDOM.Style.make(~color="red", ())>
+                    {React.string("Malformed pattern text: " ++ msg)}
+                </pre>
+            }
+        }
+    }
+
     let rndFilters = () => {
         <Row>
             {rndIsAxiomFilter()}
             {rndLabelFilter()}
+            {rndPatternFilter()}
         </Row>
     }
 
     <Col style=ReactDOM.Style.make(~marginLeft="15px", ~marginRight="15px", ())>
         {rndFilters()}
+        {rndPatternError()}
         <MM_cmp_pe_frame_list
             key=`${preCtxVer->Belt_Int.toString}`
             modalRef
