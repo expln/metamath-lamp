@@ -93,3 +93,7 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
         descrIsExpanded:false
     }
 }
+
+let toggleDescrIsExpanded = st => {
+    {...st, descrIsExpanded: !st.descrIsExpanded}
+}

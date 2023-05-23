@@ -56,6 +56,16 @@ let make = React.memoCustomCompareProps( ({
         None
     }, (typeColors, editStmtsByLeftClick, preCtx, frame, order))
 
+    let actToggleDescrIsExpanded = () => {
+        setState(toggleDescrIsExpanded)
+    }
+
+    let rndExpBtn = () => {
+        <span style=ReactDOM.Style.make(~transform="rotate(90deg)", ())>
+            { React.string( ">" ) }
+        </span>
+    }
+
     let rndLabel = ():reElem => {
         let asrtType = if (frame.isAxiom) {
             <span style=ReactDOM.Style.make(~color="red", ())>
@@ -66,7 +76,10 @@ let make = React.memoCustomCompareProps( ({
                 {"Theorem"->React.string}
             </span>
         }
-        <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
+        <span 
+            style=ReactDOM.Style.make(~paddingLeft="5px", ~paddingRight="5px", ())
+            onClick=clickHnd(~act=actToggleDescrIsExpanded,())
+        >
             { React.string( order->Belt_Int.toString ++ " ") }
             asrtType
             <span 
@@ -75,18 +88,23 @@ let make = React.memoCustomCompareProps( ({
             >
                 { (" " ++ frame.label)->React.string }
             </span>
+            {rndExpBtn()}
         </span>
     }
 
     let rndDescr = () => {
-        <>
-            <Divider/>
-            <span>
-                {
-                    frame.descr->Belt.Option.getWithDefault("This assertion doesn't have any description.")->React.string
-                }
-            </span>
-        </>
+        if (state.descrIsExpanded) {
+            <>
+                <Divider/>
+                <span>
+                    {
+                        frame.descr->Belt.Option.getWithDefault("This assertion doesn't have any description.")->React.string
+                    }
+                </span>
+            </>
+        } else {
+            <></>
+        }
     }
 
     let rndHyps = () => {

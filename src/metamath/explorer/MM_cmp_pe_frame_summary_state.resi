@@ -13,3 +13,4 @@ let makeInitialState: (
     ~frame: MM_context.frame,
     ~typeColors: Belt_HashMapString.t<string>,
 ) => state
+let toggleDescrIsExpanded: state => state
