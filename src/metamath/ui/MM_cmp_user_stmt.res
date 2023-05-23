@@ -992,7 +992,7 @@ let make = React.memoCustomCompareProps( ({
                     clickClbkMake(~act=actToggleInfoExpanded, ()),
                 )
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
-                title="Alt+<left-click> to change statement type. Left-click to show/hide the justification for provable."
+                title="Alt+<left-click> to change statement type between P (provable) and H (hypothesis). Alt is sometimes labelled Opt. Left-click to show/hide the justification for provable."
             >
                 {React.string(typStr->Js_string2.toUpperCase)}
             </span>

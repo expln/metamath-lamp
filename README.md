@@ -1,5 +1,25 @@
 # Lite Assistant for [Metamath](https://us.metamath.org) Proofs
 
+This is the repository for metamath-lamp (Lite Assistant for Metamath Proofs).
+Metamath-lamp is a proof assistant for creating formal
+mathematical proofs in the [Metamath system](https://us.metamath.org/).
+Unlike most other Metamath proof systems
+(such as mmj2 or original metamath-exe),
+users can use this proof assistant without installing anything;
+you can simply run it directly using your web browser.
+It's written in [ReScript](https://rescript-lang.org/)
+(a robustly typed programming language that compiles to JavaScript) using the
+[React user interface library](https://react.dev/) and
+[Material UI Components](https://mui.com/material-ui/getting-started/overview/).
+It's licensed under the [MIT license](./LICENSE.txt).
+
+You can use this proof assistant *now* by going to the
+**[Metamath-lamp web site](https://expln.github.io/lamp/latest/index.html)**.
+
+[Here's a short video demo](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view?usp=sharing) (without sound).
+
+## Common actions
+
 ***How to run locally:***
 
 1. Clone the source code

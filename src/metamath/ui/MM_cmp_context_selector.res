@@ -97,7 +97,7 @@ let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
 
 let getSummary = st => {
     if (st.singleScopes->Js.Array2.length == 1 && st.singleScopes[0].fileSrc->Belt_Option.isNone) {
-        "Empty MM context is loaded."
+        "No Metamath database is loaded; please select a database to load."
     } else {
         let filesInfo = st.singleScopes->Js_array2.map(ss => {
             let name = getNameFromFileSrc(ss.fileSrc)->Belt_Option.getWithDefault("")
