@@ -61,8 +61,23 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndExpBtn = () => {
-        <span style=ReactDOM.Style.make(~transform="rotate(90deg)", ())>
-            { React.string( ">" ) }
+        <span>
+            {React.string(nbsp ++ nbsp)}
+            <span 
+                onClick=clickHnd(~act=actToggleDescrIsExpanded,())
+                style=ReactDOM.Style.make(
+                    ~display="inline-block", 
+                    ~transform=if(state.descrIsExpanded) {"rotate(90deg)"} else {"none"},
+                    ~fontFamily="monospace",
+                    ~fontSize="1.3em",
+                    ~color="grey",
+                    ~fontWeight="bold",
+                    ~cursor="pointer",
+                    ()
+                )
+            >
+                { React.string( ">" ) }
+            </span>
         </span>
     }
 
@@ -76,10 +91,7 @@ let make = React.memoCustomCompareProps( ({
                 {"Theorem"->React.string}
             </span>
         }
-        <span 
-            style=ReactDOM.Style.make(~paddingLeft="5px", ~paddingRight="5px", ())
-            onClick=clickHnd(~act=actToggleDescrIsExpanded,())
-        >
+        <span style=ReactDOM.Style.make(~paddingLeft="5px", ~paddingRight="5px", ()) >
             { React.string( order->Belt_Int.toString ++ " ") }
             asrtType
             <span 

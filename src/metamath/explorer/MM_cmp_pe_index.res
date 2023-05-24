@@ -34,6 +34,49 @@ let make = React.memoCustomCompareProps(({
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
+    let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
+
+    let actClearFilters = (~applyFilters:bool) => {
+        setIsAxiomFilter(_ => None)
+        setLabelFilter(_ => "")
+        setPatternFilterStr(_ => "")
+        setPatternFilterErr(_ => None)
+        if (applyFilters) {
+            setApplyFiltersRequested(_ => true)
+        }
+    }
+
+    let actApplyFilters = () => {
+        let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
+        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => !(preCtxData.ctxV.val->isConst(sym)))
+        switch incorrectSymbol {
+            | Some(sym) => setPatternFilterErr(_ => Some(`'${sym}' - is not a constant.`))
+            | None => {
+                setPatternFilterErr(_ => None)
+                let patternFilterInts = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
+                let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesPattern(_, patternFilterInts)
+                setFilteredLabels(_ => {
+                    allLabels->Js.Array2.filter(((i,label)) => {
+                        let frame = preCtxData.ctxV.val->getFrameExn(label)
+                        isAxiomFilter->Belt_Option.mapWithDefault(
+                            true, 
+                            isAxiomFilter => isAxiomFilter === frame.isAxiom
+                        ) 
+                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
+                        && frameMatchesPattern(frame)
+                    })
+                })
+            }
+        }
+    }
+
+    React.useEffect1(() => {
+        if (applyFiltersRequested) {
+            setApplyFiltersRequested(_ => false)
+            actApplyFilters()
+        }
+        None
+    }, [applyFiltersRequested])
 
     let actPreCtxDataChanged = () => {
         let settings = preCtxData.settingsV.val
@@ -44,10 +87,7 @@ let make = React.memoCustomCompareProps(({
         let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
-        setIsAxiomFilter(_ => None)
-        setLabelFilter(_ => "")
-        setPatternFilterStr(_ => "")
-        setPatternFilterErr(_ => None)
+        actClearFilters(~applyFilters=false)
     }
 
     React.useEffect1(() => {
@@ -81,30 +121,6 @@ let make = React.memoCustomCompareProps(({
 
     let actPatternFilterStrUpdated = newPatternFilterStr => {
         setPatternFilterStr(_ => newPatternFilterStr)
-    }
-
-    let actApplyFilters = () => {
-        let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
-        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => !(preCtxData.ctxV.val->isConst(sym)))
-        switch incorrectSymbol {
-            | Some(sym) => setPatternFilterErr(_ => Some(`'${sym}' - is not a constant.`))
-            | None => {
-                setPatternFilterErr(_ => None)
-                let patternFilterInts = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
-                let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesPattern(_, patternFilterInts)
-                setFilteredLabels(_ => {
-                    allLabels->Js.Array2.filter(((i,label)) => {
-                        let frame = preCtxData.ctxV.val->getFrameExn(label)
-                        isAxiomFilter->Belt_Option.mapWithDefault(
-                            true, 
-                            isAxiomFilter => isAxiomFilter === frame.isAxiom
-                        ) 
-                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
-                        && frameMatchesPattern(frame)
-                    })
-                })
-            }
-        }
     }
 
     React.useEffect1(() => {
@@ -163,11 +179,20 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let rndClearFiltersBtn = () => {
+        <span title="Clear filters">
+            <IconButton onClick={_ => actClearFilters(~applyFilters=true)} color="primary"> 
+                <MM_Icons.FilterAltOff/>
+            </IconButton>
+        </span>
+    }
+
     let rndFilters = () => {
         <Row>
             {rndIsAxiomFilter()}
             {rndLabelFilter()}
             {rndPatternFilter()}
+            {rndClearFiltersBtn()}
         </Row>
     }
 
