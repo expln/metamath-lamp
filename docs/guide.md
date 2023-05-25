@@ -155,41 +155,27 @@ insert that statement before it).
 > Metamath-lamp will succeed in finding a justification for our new statement,
 > so it will show a green checkmark next to our new statement.
 
-That looks closer, but we want to prove that 2 + 2 is four, not
-`( 2 + 1 )` plus then another 1 is equal to 4.
-Addition is associative, that is,
-you can do first or second addition first.
-More formally, `( ( 2 + 1 ) + 1 )` is equal to `( 2 + ( 1 + 1 ) )`
-presuming that 1 and 2 are complex numbers (and they are).
-The Metamath database in this context already has a proof of this
-as well, so we can just enter the claim and let metamath-lamp
-use that fact.
+We could later on connect this proof of `( 3 + 1 )` to the number 4.
+However, in a more complex proof we might forget that we were trying
+to prove an expansion of a value in the goal (4 in this case).
+So let's "clean up" now by directly proving that this term is an
+expansion of a symbol in the goal. Instead of typing it all in, we'll
+use the "duplicate" command to get us started:
 
-> Select the checkbox to the left of the "qed" statement.
-> Select "+" (add new statement). Enter the new statement
-> `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
-> and press Enter (Return).
-> Unselect the "qed" statement.
-> We can select Unify with no statement selected,
-> but in this case nothing happens.
-> The problem is that this is more than a trivial unification -
-> using associativity will require
-> adding other statements we haven't included yet.
-> So we'll instead need to use a bottom-up search.
-> Select the single new statement (using the box on its left), then
-> select Unify for a bottom-up search.
-> Click on "Prove" and metamath-lamp quick finds a match,
-> specifically the theorem `addassi` (addition is associative).
-> Select the first option, `addassi`, which will also add two new statements
-> that 1 and 2 are complex numbers.
-> Once you press "apply selected" you'll see a green checkmark next to
-> `|- ( 3 + 1 ) = ( 2 + ( 1 + 1 ) )`
-> along with two new statements, `1 e. CC` (1 is a complex number)
-> and `2 e. CC` (2 is a complex number).
+> Select the checkbox to the left of the new statement
+> `|- ( 3 + 1 ) = ( ( 2 + 1 ) + 1 )`
+> and press the "duplicate" icon (double circles behind a "=").
+> This will create a duplicate statement below the current one.
+> Click on the new statement text, and change `( 3 + 1 )` to 4; once you have
+> `|- 4 = ( ( 2 + 1 ) + 1 )`
+> press Enter (Return).
+> Press unify, which will produce a green checkmark next to all the statements
+> except our final "qed" statement.
 
-We're getting closer. The `( 1 + 1 )` in this expression is two, however,
-we need to show that in our proof. This is easy, we just need to add the
-definition of 2.
+Our goal involves showing that the symbol `2` and `4` have some kind
+of relationship. A common technique to create proofs is to expand
+the definitions of terms and then show that their expansions are equivalent.
+We've already expanded `4`, let's now expand `2`.
 
 > Select the magnifying glass (search) icon; in the "label" field
 > enter `df-2` and click on Search.
@@ -197,34 +183,80 @@ definition of 2.
 > You will now have a new statement:
 > `|- 2 = ( 1 + 1 )`
 
-Because 2 is just `( 1 + 1 )` we can now show that
-`( 2 + ( 1 + 1 ) )` is equal to `( 2 + 2 )`.
-We'll add the claim and let metamath-lamp prove that.
+This definition of `2` is similar to the value we expanded for `4`.
+Both have a `1` followed by another `1` at their end.
+We can take the definition of `2` and add `2` to both sides, at the
+beginning of each side, to produce a very similar expression.
+Let's try that.
 
-> Select the checkbox to the left of "qed".
-> Select "+" (add new statement). Enter the new statement
+> Select the checkbox to the left of the "qed" statement.
+> Then select "+" (add new statement).
+> Enter the new statement
 > `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`
 > and press Enter (Return).
-> Unselect the "qed" statement.
-> Now press unify (the multiple-connected dots symbol), and you'll
-> see a green checkmark showing it is proved.
+> Unselect the checkbox to the left of the "qed" statement.
+> Now press unify (the multiple-connected dots symbol); since there
+> was no specific statement selected, it will try to justify all statements.
+> Metamath-lamp will succeed in finding a justification for our new statement,
+> so it will show a green checkmark next to our new statement.
 
-Now let's tell metamath-lamp
-to prove `|- ( 2 + 2 ) = ( 3 + 1 )` which further combines
-what we know.
-We should move the "qed" statement to the bottom as well,
-in case the system can automatically prove it in this case.
+At this point we've shown that `4` and `( 2 + 2 )` are separately
+equal to very similar expressions. If we could prove that those expressions
+are equal to each other, we could trivially prove our goal.
+Let's try to do that.
 
-> Select the checkbox to the left of "qed".
+> Select the checkbox to the left of the "qed" statement.
 > Select "+" (add new statement). Enter the new statement
-> `|- ( 2 + 2 ) = ( 3 + 1 )`
+> `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
 > and press Enter (Return).
-> Unselect the checkbox to the left of "qed".
-> Now select "unify".
+> Unselect the "qed" statement.
+> As an experiment, select Unify with no statement selected;
+> you'll see that in this case nothing happens.
 
-At this point metamath-lamp has noticed that it can prove every statement,
-even our goal, so every statement now has a green checkmark...
-including qed!
+It's actually true that
+`( ( 2 + 1 ) + 1 )' is equal to `( 2 + ( 1 + 1 ) )`.
+That's because addition is associative
+(you can do the first or second addition first and the result is the same).
+The Metamath database in this context already has a proof that
+addition is associative, too.
+
+However, when you press "unify" without selecting any statements,
+metamath-lamp cannot automatically prove this new statement.
+The problem isn't that the database doesn't have this already proven.
+In fact, the Metamath database in this context
+*does* have a proof that addition is associative.
+However, the rule in this Metamath
+database requires some preconditions we haven't included in our proof.
+
+So we'll instead use a bottom-up search, which will try to find and
+prove other any other statements necessary to apply a relevant existing proof.
+
+> Select the checkbox next to our latest statement
+> `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
+> and press "Unify".
+> A new dialogue will display titled "Proving bottom-up".
+> These options control how metamath-lamp will search for a proof
+> of ths statement. For now, we'll just accept the defaults and press the
+> "Prove" button at the bottom of the dialogue.
+> After a moment it will present a list, and one of the first options
+> (probably the first one) should use "addassi".
+> The theorem "addassi" is a pre-existing theorem showing that
+> addition is associative.
+> This requires multiple lines, because using this associativity
+> theorem requires showing that `1 and `2` are complex numbers.
+> Use the checkbox to its
+> left to select that one, then press the "Apply Selected" button.
+
+Suddenly a lot has happened. Notice that we now have a green checkmark
+next to our new statement, because we've proven it.
+We now have new statements that have been automatically added to our proof,
+namely that `1 e. CC` (`1` is a complex number) and `2 e. CC`
+(`2` is a complex number).
+
+Most importantly, the final statement "qed" has a green checkmark, which
+means we have proven our goal. This happened because after we applied the
+new statement, metamath-lamp automatically unified all the statements,
+and was able to complete the rest of the proof.
 
 We can now show the compressed proof.
 
