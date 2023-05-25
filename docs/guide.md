@@ -11,14 +11,193 @@ More information on metamath-lamp is available at the
 [metamath-lamp source code repository](https://github.com/expln/metamath-lamp).
 
 This is a user guide for metamath-lamp.
-This guide provides a brief explanation of
-how to use metamath-lamp, focusing on the various actions you can take.
+We'll begin with how to start metamath-lamp and a "quick start"
+of the basics of using it.
+This will be followed by a brief example (proving that two plus two
+equals four).
+After that we'll cover the various parts of the user interface
+(providing a basic reference guide).
+In the future we hope to follow this information with more examples.
+
+Note that metamath-lamp changes over time, so some of this guide
+may not exactly match what you see. If you see a difference, please
+let us know so we can fix this user guide.
 
 ## Starting metamath-lamp
 
 You don't need to install anything to run metamath-lamp.
 Just use you web browser and view the
 **[Metamath-lamp web site](https://expln.github.io/lamp/latest/index.html)**.
+
+## Quickstart
+
+To use metamath-lamp, you:
+
+* Load the proof context (the databases you'll use and their scope).
+* Set the fundamental proof information (its
+  description, variables, and disjoints).
+* Add the goal ("qed") and any hypotheses to the list of statements.
+* Now create the proof.
+  To do this, you add other statements and repeatedly unify them
+  until the goal is completely proven.
+  You can do it bottom-up, top-down, middle-out, whatever makes sense to you.
+* Copy the compressed proof of the goal into the clipboard.
+  You can do this my selecting the green checkmark next to the goal
+  to show the compressed proof, then press copy.
+  You'd typically copy that compressed proof into a Metamath database
+  (text file).
+
+Throughout metamath-lamp there are various tooltips.
+So if you hover an iteractive item, in most cases the tool will provide a brief
+explanation of what that item does.
+You don't need to memorize this user guide!
+
+## Simple demo: Proving that 2 + 2 = 4
+
+Let's first show using metamath-lamp to create a simple proof, namely,
+that 2 + 2 = 4.
+
+We first need to decide on the proof context, that is, the database(s)
+of axioms and proven theorems we'll use. In this case we'll use the most
+common metamath database, `set.mm`. This database uses the very common starting
+points of classical first-order logic and ZFC set theory.
+We'll also tell it to *stop* using the database just before its
+proof of 2 + 2 = 4; if we included that existing proof, the prover
+would simply reuse the existing proof.
+
+> Select Source type "Web", Alias "set.mm:latest"; after confirmation this
+> load load the given database.
+> Now under scope select "Stop before" and enter the label "2p2e4".
+> Finally, apply changes to the context.
+
+For this example we'll leave the proof description, variables, and disjoints
+blank. We do need to tell metamath-lamp our goal.
+
+> In the Editor select "+"  (add new statement). Enter
+> `|- ( 2 + 2 ) = 4`
+> and Enter (Return) to save the result.
+> Be sure to surround each symbol by at least one space, and the
+> parentheses are not optional.
+> Finally, select the statement number (1) and change its name to "qed".
+
+Now we need to figure out how to prove this.
+Metamath-lamp can actually do a lot of this automatically, but we will
+*intentionally* avoid some of those automations to see how to
+prove something in cases where the automations can't do enough.
+
+In many cases we can prove a statement by identifying definitions of
+what we want to prove, finding their expansions, and repeatedly
+expanding and simplifying the
+results to show that what we want to prove is correct.
+
+In this case, we want to prove that something is 4, so the definition
+of 4 would probably be useful.
+We'll add a statement, and search for the definition of 4.
+
+> Select the magnifying glass (search) icon; under pattern enter
+> `4 =` and click on Search.
+> Select the statement labelled `df-4` and press "Choose Selected".
+> You will now have a new statement:
+> `|- 4 = ( 3 + 1 )`
+
+This definition of 4 depends on the definition of 3, so let's add
+the definition of 3 as well.
+Note that `df-4` is the definition of 4; this suggests a naming convention,
+so we can probably just use the naming convention to find it.
+
+> Select the magnifying glass (search) icon; in the "label" field
+> enter `df-3` and click on Search.
+> Select the statement labelled `df-3` and press "Choose Selected".
+> You will now have a new statement:
+> `|- 3 = ( 2 + 1 )`
+
+We can connect the definition of 4 using the definition 3 by simply
+adding 1 to both sides of the definition of 3.
+We can simply add this statement as claim and see if metamath-lamp
+can find a statement that proves this correct, and it can.
+
+> Select "+" (add new statement). Enter the new statement
+> `|- ( 3 + 1 ) = ( ( 2 + 1 ) + 1 )`
+> and press Return (Enter).
+> Now press unify (the multiple-connected dots symbol).
+> This will show a green checkmark next to our new statement.
+
+That looks closer, but we want to prove that 2 + 2 is four, not
+`( 2 + 1 )` plus then another 1 is equal to 4.
+Addition is associative, that is,
+you can do first or second addition first.
+More formally, `( ( 2 + 1 ) + 1 )` is equal to `( 2 + ( 1 + 1 ) )`
+presuming that 1 and 2 are complex numbers (and they are).
+The Metamath database in this context already has a proof of this
+as well, so we can just enter the claim and let metamath-lamp
+use that fact.
+
+> Select "+" (add new statement). Enter the new statement
+> `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
+> and press Return (Enter).
+> We could try to simply Unify, but this is more than a trivial unification -
+> it will require adding other statements we haven't included yet.
+> So we'll instead need to use a bottom-up search.
+> Select the single new statement (using the box on its left), then
+> select Unify for a bottom-up search.
+> Click on "Prove" and metamath-lamp quick finds a match,
+> specifically the theorem `addassi` (addition is associative).
+> Select the first option, `addassi`, which will also add two new statements
+> that 1 and 2 are complex numbers.
+> Once you press "apply selected" you'll see a green checkmark next to
+> `|- ( 3 + 1 ) = ( 2 + ( 1 + 1 ) )`
+> along with two new statements, `1 e. CC` (1 is a complex number)
+> and `2 e. CC` (2 is a complex number).
+
+We're getting closer. The `( 1 + 1 )` in this expression is two, however,
+we need to show that in our proof. This is easy, we just need to add the
+definition of 2.
+
+> Select the magnifying glass (search) icon; in the "label" field
+> enter `df-2` and click on Search.
+> Select the statement labelled `df-2` and press "Choose Selected".
+> You will now have a new statement:
+> `|- 2 = ( 1 + 1 )`
+
+Because 2 is just `( 1 + 1 )` we can now show that
+is `( 2 + ( 1 + 1 ) )` is equal to `( 2 + 2 )`.
+We'll add the claim and let metamath-lamp proof that.
+
+> Select "+" (add new statement). Enter the new statement
+> `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`
+> and press Return (Enter).
+> Make sure this statement is below the statements it depends on.
+> Now press unify (the multiple-connected dots symbol), and you'll
+> see a green checkmark showing it is proved.
+
+Now let's tell metamath-lamp
+to prove `|- ( 2 + 2 ) = ( 3 + 1 )` which further combines
+what we know.
+We should move the "qed" statement to the bottom as well,
+in case the system can automatically prove it in this case.
+
+> Select "+" (add new statement). Enter the new statement
+> `|- ( 2 + 2 ) = ( 3 + 1 )`
+> and press Return (Enter).
+> Make sure this statement is below the statements it depends on.
+> if the goal ("qed") is not the very last statement,
+> select it and press "down" repeatedly to make it
+> the very last statement.
+> Now select our new statement and select "unify". 
+> This will enable "proving bottom-up".
+> Select "prove" and let it compute for a while. Once it's done,
+> you'll see that one of the first options uses `oveeq2i` and completely
+> proves it, so select that and "apply selected".
+
+At this point metamath-lamp has noticed that it can prove every statement,
+even our goal, so every statement now has a green checkmark.
+We can now show the compressed proof.
+
+> Select the green checkmark (*not* "P") on the last ("qed") statement.
+> You can select "Copy" to copy the compressed proof into the clipboard.
+
+Now that we've seen a simple demo of metamath-lamp, let's
+walk through its entire user interface.
 
 ## Loading source Metamath databases to create the proof context
 
@@ -72,7 +251,9 @@ is hidden and you can start creating a proof with the proof editor.
 
 ## Main tabs: Settings and Editor
 
-At the top there is a tab bar with two tabs, "Settings" and "Editor".
+Once you've loaded the context,
+at the top there is a tab bar with two tabs, "Settings" and "Editor".
+
 The "Editor" tab is the main view that lets you see and edit a proof.
 The "Settings" tab lets you change the editor configuration to your liking,
 We'll cover the Settings tab later; let's focus on the Editor tab.
@@ -117,8 +298,154 @@ icons and meanings:
 * Merge: Merge the selected statements (they must be similar).
 * Magnifying glass: search for an existing statement in the current context;
   the selected one (if any) will be added as a new statement.
+  See below for more about searching.
 * A arrow: Apply a substitution to all selected statements.
 * Network: Unify. If no statements are selected, it will attempt to unify
   all statements to create a proof. If a statement is selected, it will
   open a dialogue to start a bottom-up search for a proof.
 
+Under the editor command tab bar is basic information about the proof
+(such as its description).
+
+### Basic information about the proof
+
+The basic information about the proof are the proof's description,
+variables, and disjoints. Click on the text area to the right of those
+fields to edit this infomration. Here's some about those fields:
+
+* Description: The description, which will be included in a comment
+  in the final Metamath database just before the proof.
+  If you are following the conventions of `set.mm`, the first sentence
+  should be an English description of what is proved. Surround
+  Metamath statements with backquotes (so they can be typographically formatted)
+  and precede references to another with an isolated "~".
+  Conventionally this includes, at its end, a statement like
+  "(Contributed by NAME, DD-MMM-YYYY)" where DD-MMM-YYYY is the date
+  the proof was completed and MMM is the 3-letter English name
+  of the month.
+* Variables: A list of variables.
+* Disjoints; A list of variables that are disjoint.
+
+Under the basic information about the proof
+are a list of statements in the proof.
+
+### List of statements in the proof
+
+The list of statements (aka steps) of the proof follows the basic information
+about the proof.
+
+By default, when the tool begins there will be no statements.
+Typically the first statement to be added is the statement
+to be proved (aka the *goal*).
+Use "+" in the editor command bar to add the goal.
+Usually the goal is the last statement, though metamath-lamp does
+not enforce this.
+
+Each statement is presented in the following left-to-right order:
+
+* Box (selector): Select this box to select or unselect this statement.
+  Many commands work on the "currently selected statement(s)",
+  so it's important to be able to select them al.
+  Use the box in the editor command bar to select or deselect all statements.
+* Green Checkmark (if present): If there's a green checkmark following the
+  selector box, a recent unification has
+  confirmed that this statement is proven given its context and its
+  previous statements. Any modification of a proof removes the checkmarks.
+  To regenerate the checkmarks,
+  select "unify" (without selecting any particular statement), which will
+  re-verify the statements and show checkmarks for the
+  statements that are proven.
+  Once you see a checkmark, you can see a compressed metamath proof of
+  that step by selecting its checkmark (generally you would do this on
+  the goal step). Once there, you can show or hide the proof table,
+  as well as showing only essential steps.
+  Non-essential steps are the steps showing how to create syntactic structures
+  and show that they are of the correct types.
+* Id: This is an arbitrary id for this statement.
+  By convention the goal is labelled "qed" or the name of the statement
+  to be proved, and the hypotheses are labelled "hNUMBER" where NUMBER is a
+  consecutive integer starting with 1. All other statements are
+  consecutive integers starting with 1. These conventions are not
+  enforced by the tool; you can use any sequence of alphanumerics for an id.
+  The point of the id is to provide a simple way to refer to a statement.
+* P/H: This is "P" if it's a statement to be proven, and
+  "H" if the statement is a hypothesis, Typically all hypothesis are listed
+  first. By default, left-clicking on a "P" will
+  reveal or hide the specific justification
+  for the proved step (if any). By default, using alt-left click will show a
+  dialogue to let you select if this is a "P" or "H" statement type.
+* Statement: This is the actual statement. In most cases this will start
+  with "|-" (meaning "it is true that..."), followed by a space-separated
+  sequence of symbols of the statement to be proved. An example of a statement
+  is `|- ( 2 + 2 ) = 4` (two plus two equals four).
+  You can edit the statement. By default, you can do this by clicking
+  on the text with the mouse left button or by touching it
+  using a touchscreen.
+  Once you're done, press the disk icon to use the edited statement, or
+  the cancel icon to not change the statement.
+  You can also select *parts* of a statement; by default you can do this
+  by using alt-left click ("alt" is sometimes labelled "opt").
+  For more about selecting parts of a statement, see the next section.
+
+### Selecting parts of a statement
+
+What we've shown so far is enough to create any proof.
+However, it's very common when creating a proof to want to copy
+*part* of a statement. Therefore, metamath-lamp has mechanisms to
+make selecting *parts* of a statement very easy, especially in the presence
+of parentheses-like constructs.
+
+By default, alt-left click enables selecting part of a statement
+(on some Mac keyboards "alt" is labelled "opt").
+If you'd prefer a different mechanism, use the settings tab to change this.
+
+Once you've done this, a selector dialogue will appear under the statement.
+You can easily select a part of the statement and modify the selection.
+In particular,
+you can select parentheses-like characters to select the expression
+begun or ended with them.
+
+You can the use the selector dialogue as follows:
+* Expand selection: Expand the selection to the next largest syntactic unit.
+* Shrink selection: Reduce the selection to the next smallest syntactic unit.
+* Add new statement above: Create a new statement above the current statment,
+  and make its contents the selected statement.
+* Add new statement below: Create a new statement below the current statment,
+  and make its contents the selected statement.
+* Copy to clipboard. Note that you can later create or edit statement,
+  and copy from the clipboard.
+* Edit: Start editing with the current text selected.
+* Close: Close this statement part selection dialogue box.
+
+### Searching for a statement in the current context
+
+TODO
+
+### Replacement
+
+TODO
+
+### Proving bottom-up
+
+TODO
+
+## Settings
+
+The "Settings" tab lets you configure metamath-lamp to your liking.
+
+It's important to remember that any changes you make in the
+Settings tab are *not* applied until you select
+"Apply Changes"; if you want to discard changes, select "Discard Changes".
+
+TODO
+
+## More examples
+
+In future versions of this user guide we hope to have more examples.
+
+TODO
+
+## Conclusion
+
+Metamath-lamp is intended to be an easy-to-use proof assistant.
+We'd love contributions and feedback.
