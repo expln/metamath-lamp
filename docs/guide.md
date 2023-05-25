@@ -42,7 +42,7 @@ To use metamath-lamp, you:
   until the goal is completely proven.
   You can do it bottom-up, top-down, middle-out, whatever makes sense to you.
 * Copy the compressed proof of the goal into the clipboard.
-  You can do this my selecting the green checkmark next to the goal
+  You can do this by selecting the green checkmark next to the goal
   to show the compressed proof, then press copy.
   You'd typically copy that compressed proof into a Metamath database
   (text file).
@@ -51,6 +51,14 @@ Throughout metamath-lamp there are various tooltips.
 So if you hover an iteractive item, in most cases the tool will provide a brief
 explanation of what that item does.
 You don't need to memorize this user guide!
+
+This software works on many different systems which have different conventions.
+On some Macintosh keyboards the "Enter" key is instead labelled "Return" and
+the "Alt" key is instead labelled "Opt" or "Option".
+On a touchscreen (like a smartphone), a quick touch and release on a control
+is the same as a left click.
+Metamath-lamp has some actions that are quickly accessed using Alt+left click
+(hold down the Alt aka Opt key, and while holding it use left click)..
 
 ## Simple demo: Proving that 2 + 2 = 4
 
@@ -62,11 +70,12 @@ of axioms and proven theorems we'll use. In this case we'll use the most
 common metamath database, `set.mm`. This database uses the very common starting
 points of classical first-order logic and ZFC set theory.
 We'll also tell it to *stop* using the database just before its
-proof of 2 + 2 = 4; if we included that existing proof, the prover
-would simply reuse the existing proof.
+proof of 2 + 2 = 4, which in this database is named `2p2e4`.
+If we included the existing proof, the prover
+would simply reuse that existing proof.
 
 > Select Source type "Web", Alias "set.mm:latest"; after confirmation this
-> load load the given database.
+> loads the given database.
 > Now under scope select "Stop before" and enter the label "2p2e4".
 > Finally, apply changes to the context.
 
@@ -75,15 +84,29 @@ blank. We do need to tell metamath-lamp our goal.
 
 > In the Editor select "+"  (add new statement). Enter
 > `|- ( 2 + 2 ) = 4`
-> and Enter (Return) to save the result.
+> and press Enter (Return) to save the result.
 > Be sure to surround each symbol by at least one space, and the
 > parentheses are not optional.
-> Finally, select the statement number (1) and change its name to "qed".
+
+For our purposes, we're going to rename our goal with the label "qed".
+Renaming the target statement (as well as any other statement) is 
+not required; you could just continue using the
+label metamath-lamp suggested. But renaming some of the statements 
+(especially the target one) makes them easier to distinguish for you
+and eventually this name will appear in the final proof.
+
+> Select the statement number (1) using the checkbox to the left of it.
+> Change its name to "qed" and press Enter (Return).
 
 Now we need to figure out how to prove this.
-Metamath-lamp can actually do a lot of this automatically, but we will
+Metamath-lamp can actually some things automatically, but we will
 *intentionally* avoid some of those automations to see how to
 prove something in cases where the automations can't do enough.
+
+There are many different ways to create a proof, including top-down,
+bottom-up, or even middle-out. Metamath-lamp supports them all.
+Also, note that there are often many proofs for the same true statement.
+Here we're going to show one way to do it, as an example.
 
 In many cases we can prove a statement by identifying definitions of
 what we want to prove, finding their expansions, and repeatedly
@@ -114,13 +137,23 @@ so we can probably just use the naming convention to find it.
 We can connect the definition of 4 using the definition 3 by simply
 adding 1 to both sides of the definition of 3.
 We can simply add this statement as claim and see if metamath-lamp
-can find a statement that proves this correct, and it can.
+can find a statement that proves this correct (in this case it can).
+We don't want to add this statement as the *last* statement,
+so we'll select the last statement before adding it (so we'll
+insert that statement before it).
 
-> Select "+" (add new statement). Enter the new statement
+> Select the checkbox to the left of the "qed" statement.
+> Then select "+" (add new statement).
+> Notice that because a statement was selected, the new statement will
+> be inserted before "qed".
+> Enter the new statement
 > `|- ( 3 + 1 ) = ( ( 2 + 1 ) + 1 )`
-> and press Return (Enter).
-> Now press unify (the multiple-connected dots symbol).
-> This will show a green checkmark next to our new statement.
+> and press Enter (Return).
+> Unselect the checkbox to the left of the "qed" statement.
+> Now press unify (the multiple-connected dots symbol); since there
+> was no specific statement selected, it will try to justify all statements.
+> Metamath-lamp will succeed in finding a justification for our new statement,
+> so it will show a green checkmark next to our new statement.
 
 That looks closer, but we want to prove that 2 + 2 is four, not
 `( 2 + 1 )` plus then another 1 is equal to 4.
@@ -132,11 +165,16 @@ The Metamath database in this context already has a proof of this
 as well, so we can just enter the claim and let metamath-lamp
 use that fact.
 
+> Select the checkbox to the left of the "qed" statement.
 > Select "+" (add new statement). Enter the new statement
 > `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
-> and press Return (Enter).
-> We could try to simply Unify, but this is more than a trivial unification -
-> it will require adding other statements we haven't included yet.
+> and press Enter (Return).
+> Unselect the "qed" statement.
+> We can select Unify with no statement selected,
+> but in this case nothing happens.
+> The problem is that this is more than a trivial unification -
+> using associativity will require
+> adding other statements we haven't included yet.
 > So we'll instead need to use a bottom-up search.
 > Select the single new statement (using the box on its left), then
 > select Unify for a bottom-up search.
@@ -160,13 +198,14 @@ definition of 2.
 > `|- 2 = ( 1 + 1 )`
 
 Because 2 is just `( 1 + 1 )` we can now show that
-is `( 2 + ( 1 + 1 ) )` is equal to `( 2 + 2 )`.
-We'll add the claim and let metamath-lamp proof that.
+`( 2 + ( 1 + 1 ) )` is equal to `( 2 + 2 )`.
+We'll add the claim and let metamath-lamp prove that.
 
+> Select the checkbox to the left of "qed".
 > Select "+" (add new statement). Enter the new statement
 > `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`
-> and press Return (Enter).
-> Make sure this statement is below the statements it depends on.
+> and press Enter (Return).
+> Unselect the "qed" statement.
 > Now press unify (the multiple-connected dots symbol), and you'll
 > see a green checkmark showing it is proved.
 
@@ -176,21 +215,17 @@ what we know.
 We should move the "qed" statement to the bottom as well,
 in case the system can automatically prove it in this case.
 
+> Select the checkbox to the left of "qed".
 > Select "+" (add new statement). Enter the new statement
 > `|- ( 2 + 2 ) = ( 3 + 1 )`
-> and press Return (Enter).
-> Make sure this statement is below the statements it depends on.
-> if the goal ("qed") is not the very last statement,
-> select it and press "down" repeatedly to make it
-> the very last statement.
-> Now select our new statement and select "unify". 
-> This will enable "proving bottom-up".
-> Select "prove" and let it compute for a while. Once it's done,
-> you'll see that one of the first options uses `oveeq2i` and completely
-> proves it, so select that and "apply selected".
+> and press Enter (Return).
+> Unselect the checkbox to the left of "qed".
+> Now select "unify".
 
 At this point metamath-lamp has noticed that it can prove every statement,
-even our goal, so every statement now has a green checkmark.
+even our goal, so every statement now has a green checkmark...
+including qed!
+
 We can now show the compressed proof.
 
 > Select the green checkmark (*not* "P") on the last ("qed") statement.
@@ -276,7 +311,7 @@ any special hypotheses to use. To do that:
   Click on its step number (1) if you want to rename the step name (typically
   this is named "qed").
 * If there are hypotheses, press "+" to enter each one, and select the "P"
-  using Alt-left click (or Opt-left click) to change "P" (provable assertion)
+  using Alt+left click (or Opt+left click) to change "P" (provable assertion)
   into "H" (hypothesis). Put them in the intended order by selecting them
   (the box on the left) and selecting the up and down icons.
   You generally want the goal last.
@@ -296,9 +331,9 @@ icons and meanings:
 * Trash can: Delete the selected statement(s).
 * Duplicated "+": Copy the selected statement.
 * Merge: Merge the selected statements (they must be similar).
-* Magnifying glass: search for an existing statement in the current context;
-  the selected one (if any) will be added as a new statement.
-  See below for more about searching.
+* Magnifying glass: search for a statement pattern in the current context.
+  The selected pattern one (if any) will be added as a new statement.
+  See below for more about search patterns.
 * A arrow: Apply a substitution to all selected statements.
 * Network: Unify. If no statements are selected, it will attempt to unify
   all statements to create a proof. If a statement is selected, it will
@@ -310,10 +345,22 @@ Under the editor command tab bar is basic information about the proof
 ### Basic information about the proof
 
 The basic information about the proof are the proof's description,
-variables, and disjoints. Click on the text area to the right of those
-fields to edit this infomration. Here's some about those fields:
+variables, and disjoints. Click on the *section name* to edit this
+information. You can also select the editable fields, but
+description is odd - by default, you have to use Alt+left click to edit it,
+while just left click selects part of its text.
 
-* Description: The description, which will be included in a comment
+Here's some about those fields:
+
+* Description: The description of the proof.
+  Note: This description is *not* currently generated as a comment to be
+  inserted into a database.
+* Variables: A list of variables.
+* Disjoints; A list of variables that are disjoint.
+
+<!--
+Omitted, since description is currently not generated as a comment:
+
   in the final Metamath database just before the proof.
   If you are following the conventions of `set.mm`, the first sentence
   should be an English description of what is proved. Surround
@@ -323,8 +370,7 @@ fields to edit this infomration. Here's some about those fields:
   "(Contributed by NAME, DD-MMM-YYYY)" where DD-MMM-YYYY is the date
   the proof was completed and MMM is the 3-letter English name
   of the month.
-* Variables: A list of variables.
-* Disjoints; A list of variables that are disjoint.
+-->
 
 Under the basic information about the proof
 are a list of statements in the proof.
@@ -361,18 +407,27 @@ Each statement is presented in the following left-to-right order:
   as well as showing only essential steps.
   Non-essential steps are the steps showing how to create syntactic structures
   and show that they are of the correct types.
-* Id: This is an arbitrary id for this statement.
-  By convention the goal is labelled "qed" or the name of the statement
-  to be proved, and the hypotheses are labelled "hNUMBER" where NUMBER is a
-  consecutive integer starting with 1. All other statements are
-  consecutive integers starting with 1. These conventions are not
-  enforced by the tool; you can use any sequence of alphanumerics for an id.
+* Id: This is the id for this statement.
+  You should give your proof's goal the id of what you intend to name it.
+  Consider naming your goal "qed" if you don't know what name to use.
+  Each hypothesis needs to have a unique id that isn't already in the
+  database are using.
+  If you're following the conventions of set.mm, the name of each hypothesis
+  is the goal name followed by a period and an integer (starting with 1).
+  For example, the proof of "mp3an3an" might have hypotheses
+  with ids "mp3an3an.1" and "mp3an3an.2". Note that this is different
+  from the convention of the mmj2 tool,
+   where hypotheses have id names of "h1" and so on.
+  All other statements are typically
+  consecutive integers starting with 1, though they don't need to be;
+  you can use any sequence of alphanumerics for an id as long as it's
+  not already in the database.
   The point of the id is to provide a simple way to refer to a statement.
 * P/H: This is "P" if it's a statement to be proven, and
   "H" if the statement is a hypothesis, Typically all hypothesis are listed
   first. By default, left-clicking on a "P" will
   reveal or hide the specific justification
-  for the proved step (if any). By default, using alt-left click will show a
+  for the proved step (if any). By default, using Alt+left click will show a
   dialogue to let you select if this is a "P" or "H" statement type.
 * Statement: This is the actual statement. In most cases this will start
   with "|-" (meaning "it is true that..."), followed by a space-separated
@@ -384,7 +439,7 @@ Each statement is presented in the following left-to-right order:
   Once you're done, press the disk icon to use the edited statement, or
   the cancel icon to not change the statement.
   You can also select *parts* of a statement; by default you can do this
-  by using alt-left click ("alt" is sometimes labelled "opt").
+  by using Alt+left click ("alt" is sometimes labelled "opt").
   For more about selecting parts of a statement, see the next section.
 
 ### Selecting parts of a statement
@@ -395,7 +450,7 @@ However, it's very common when creating a proof to want to copy
 make selecting *parts* of a statement very easy, especially in the presence
 of parentheses-like constructs.
 
-By default, alt-left click enables selecting part of a statement
+By default, Alt+left click enables selecting part of a statement
 (on some Mac keyboards "alt" is labelled "opt").
 If you'd prefer a different mechanism, use the settings tab to change this.
 
@@ -417,15 +472,70 @@ You can the use the selector dialogue as follows:
 * Edit: Start editing with the current text selected.
 * Close: Close this statement part selection dialogue box.
 
-### Searching for a statement in the current context
+### Search patterns
 
-TODO
+The "magnifying glass" icon enables you to search for a statement
+that matches a given pattern.
+
+The search pattern language is very simple,
+Note that search will *only* match on the conclusion part
+of an axiom or theorem (there is currently no mechanism to search hypotheses).
+A pattern should consist of a space-separated sequence of one or more constants.
+Statements will only be considered matches if their conclusion part has
+the same constants in the same order, with optionally 1 or more other
+symbols before the pattern, between the requested constants,
+and after the pattern.
+
+Therefore, a search for `0 ->` will match the conclusion
+`|- ( ( 0 <_ A /\ 0 <_ B ) -> 0 <_ ( A + B ) )`
+because the conclusion has a `0` constant which is later followed by a
+`->` constant.
 
 ### Replacement
 
 TODO
 
 ### Proving bottom-up
+
+If you select one statement and then select unify, you'll enter a
+"proving bottom-up" dialogue. This lets you search for a way to prove
+the selected statement bottom-up using the current context.
+You can change the search options then select "prove" to start the search
+(or select cancel to cancel). Proving bottom-up can take a long time,
+depending the problem and the speed of the computer.
+It essentially works backwards to find a match, first with a single level,
+then with 2 levels (a statement that depends on another that also requires
+proving), and so on.
+
+This dialogue has the following options:
+
+Root statements ("first level" and "other levels"):
+
+Label: If set, this is the sole ("root") statement to use as a starting
+point. Note that this is set if the system previously found a justification
+for this statement using this justification.
+
+Search depth: How deep the search is to go.
+A single statement is depth 1, a statement that requires 1 other
+statement to be also proved is depth 2, and so on. 
+The default search depth value is 4. Larger numbers enable more automation
+but generally take exponentially more time.
+
+Length restriction: This controls the interpretation of search depth.
+
+Checkbox Allow new disjoints:
+
+Checkbox Allow new statements:
+
+Checkbox Allow new variables:
+
+Logging level (0..2):
+If the logging level is more than 1, you may enter the maximum number
+of branches.
+
+You can speed up searches by not allowing new disjoints, new statements,
+and/or new variables, but in some cases this may mean a proof won't be
+found.
 
 TODO
 
