@@ -526,17 +526,17 @@ that will help us prove our goal.
 What should we do in this case?
 Well, the goal is going to involve the tangent of `A`, so we know
 we're going to specifically need the tangent of `A`.
-That means that we need to replace all instances of `&amp;C1`
+That means that we need to replace all instances of <tt>&amp;C1</tt>
 with the value `A`. This process of replacing values is called
 applying a substitution.
 
 > Select the icon A with an arrow under it (apply a substitution).
 > Since we didn't select any particular statements, this will apply to
-> all statements. In "Replace what" enter `&amp;C1` and in "Replace with"
+> all statements. In "Replace what" enter <tt>&amp;C1</tt> and in "Replace with"
 > enter `A` - once that's done, press "Find Substitution".
 > The system will check if this is valid; in this case, it could that
 > there was only 1 way to interpret this command and that the result is valid.
-> It will show you that you can change `&amp;C1` to `A` - press
+> It will show you that you can change <tt>&amp;C1</tt> to `A` - press
 > `Apply` to apply the change.
 
 #### Expanding the definition of cotangent
@@ -558,9 +558,9 @@ should be, so let's deal with that now.
 
 > Select the icon A with an arrow under it (apply a substitution).
 > Since we didn't select any particular statements, this will apply to
-> all statements. In "Replace what" enter `&amp;C1` and in "Replace with"
+> all statements. In "Replace what" enter <tt>&amp;C1</tt> and in "Replace with"
 > enter `A` - once that's done, press "Find Substitution".
-> It will show you that you can change `&amp;C1` to `A` - press
+> It will show you that you can change <tt>&amp;C1</tt> to `A` - press
 > `Apply` to apply the change.
 
 #### TODO for reccot
