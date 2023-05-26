@@ -95,11 +95,11 @@ label metamath-lamp suggested. But renaming some of the statements
 (especially the target one) makes them easier to distinguish for you
 and eventually this name will appear in the final proof.
 
-> Select the statement number (1) using the checkbox to the left of it.
-> Change its name to "qed" and press Enter (Return).
+> Select the statement number (1) using the left mouse button.
+> Change the name of the statement to "qed" and press Enter (Return).
 
 Now we need to figure out how to prove this.
-Metamath-lamp can actually some things automatically, but we will
+Metamath-lamp can actually do some things automatically, but we will
 *intentionally* avoid some of those automations to see how to
 prove something in cases where the automations can't do enough.
 
@@ -164,7 +164,7 @@ use the "duplicate" command to get us started:
 
 > Select the checkbox to the left of the new statement
 > `|- ( 3 + 1 ) = ( ( 2 + 1 ) + 1 )`
-> and press the "duplicate" icon (double circles behind a "=").
+> and press the "duplicate" icon (double circles behind a "+").
 > This will create a duplicate statement below the current one.
 > Click on the new statement text, and change `( 3 + 1 )` to 4; once you have
 > `|- 4 = ( ( 2 + 1 ) + 1 )`
@@ -229,14 +229,14 @@ However, the rule in this Metamath
 database requires some preconditions we haven't included in our proof.
 
 So we'll instead use a bottom-up search, which will try to find and
-prove other any other statements necessary to apply a relevant existing proof.
+prove any other statements necessary to apply a relevant existing proof.
 
 > Select the checkbox next to our latest statement
 > `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
 > and press "Unify".
 > A new dialogue will display titled "Proving bottom-up".
 > These options control how metamath-lamp will search for a proof
-> of ths statement. For now, we'll just accept the defaults and press the
+> of this statement. For now, we'll just accept the defaults and press the
 > "Prove" button at the bottom of the dialogue.
 > After a moment it will present a list, and one of the first options
 > (probably the first one) should use "addassi".
@@ -423,7 +423,7 @@ Each statement is presented in the following left-to-right order:
 
 * Box (selector): Select this box to select or unselect this statement.
   Many commands work on the "currently selected statement(s)",
-  so it's important to be able to select them al.
+  so it's important to be able to select them all.
   Use the box in the editor command bar to select or deselect all statements.
 * Green Checkmark (if present): If there's a green checkmark following the
   selector box, a recent unification has
@@ -443,18 +443,19 @@ Each statement is presented in the following left-to-right order:
   You should give your proof's goal the id of what you intend to name it.
   Consider naming your goal "qed" if you don't know what name to use.
   Each hypothesis needs to have a unique id that isn't already in the
-  database are using.
+  database(s) being used.
   If you're following the conventions of set.mm, the name of each hypothesis
   is the goal name followed by a period and an integer (starting with 1).
   For example, the proof of "mp3an3an" might have hypotheses
   with ids "mp3an3an.1" and "mp3an3an.2". Note that this is different
   from the convention of the mmj2 tool,
-   where hypotheses have id names of "h1" and so on.
+  where hypotheses have id names of "h1" and so on.
   All other statements are typically
   consecutive integers starting with 1, though they don't need to be;
-  you can use any sequence of alphanumerics for an id as long as it's
-  not already in the database.
-  The point of the id is to provide a simple way to refer to a statement.
+  an id can be any sequence of alphanumeric characters.
+  Note that if you want to add a generated proof to a Metamath database,
+  the id of every hypothesis and the id of the goal must not already be used.
+  The point of an id is to provide a simple way to refer to a statement.
 * P/H: This is "P" if it's a statement to be proven, and
   "H" if the statement is a hypothesis, Typically all hypothesis are listed
   first. By default, left-clicking on a "P" will
@@ -492,7 +493,7 @@ In particular,
 you can select parentheses-like characters to select the expression
 begun or ended with them.
 
-You can the use the selector dialogue as follows:
+You can use the selector dialogue as follows:
 
 * Expand selection: Expand the selection to the next largest syntactic unit.
 * Shrink selection: Reduce the selection to the next smallest syntactic unit.
