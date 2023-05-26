@@ -493,7 +493,7 @@ and therefore it's undefined when the cosine of A equals zero.
 > and press "Choose Selected".
 
 We have a new statement, as expected. However, it has a form we haven't
-see before:
+seen before:
 
 ~~~~metamath
 |- ( ( &C1 e. CC /\ ( cos ` &C1 ) =/= 0 ) ->
