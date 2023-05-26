@@ -1,4 +1,4 @@
-# User guide for metamath-lamp
+# Metamath-lamp Guide
 
 Metamath-lamp (Lite Assistant for Metamath Proofs) is
 a proof assistant for creating formal
@@ -10,37 +10,42 @@ you can simply run it directly using your web browser.
 More information on metamath-lamp is available at the
 [metamath-lamp source code repository](https://github.com/expln/metamath-lamp).
 
-This is a user guide for metamath-lamp.
-We'll begin with how to start metamath-lamp and a "quick start"
-of the basics of using it.
-This will be followed by a brief example (proving that two plus two
-equals four).
-After that we'll cover the various parts of the user interface
-(providing a basic reference guide).
-In the future we hope to follow this information with more examples.
+This is a guide for metamath-lamp, including both a
+user guide (tutorial) and a reference guide.
+We'll begin with a "quick start"
+(a brief introduction on how to start and use metamath-lamp).
+This will be followed by a user guide,
+basically a sequence of worked examples showing how to use the tool
+(starting wiht a proof that two plus two equals four).
+The rest of this guide is a reference guide,
+explaining the various parts of the user interface.
+We conclude with how to get or share more information.
 
 Note that metamath-lamp changes over time, so some of this guide
 may not exactly match what you see. If you see a difference, please
-let us know so we can fix this user guide.
-
-## Starting metamath-lamp
-
-You don't need to install anything to run metamath-lamp.
-Just use you web browser and view the
-**[Metamath-lamp web site](https://expln.github.io/lamp/latest/index.html)**.
+let us know so we can fix this guide. We try to make this guide
+match the tool it's describing.
 
 ## Quickstart
 
-To use metamath-lamp, you:
+You don't need to install anything to run metamath-lamp.
+To start metamath-lamp,
+just use you web browser and view the
+**[main Metamath-lamp web site](https://expln.github.io/lamp/latest/index.html)**
+or some other metamath-lamp web site.
+
+To use metamath-lamp, do the following:
 
 * Load the proof context (the databases you'll use and their scope).
-* Set the fundamental proof information (its
+* Set the fundamental proof information where desired (its
   description, variables, and disjoints).
 * Add the goal ("qed") and any hypotheses to the list of statements.
+  Set their ids to what you want them to be in the final database.
 * Now create the proof.
   To do this, you add other statements and repeatedly unify them
   until the goal is completely proven.
-  You can do it bottom-up, top-down, middle-out, whatever makes sense to you.
+  You can create the proof bottom-up, top-down, middle-out, or
+  whatever other order makes sense to you.
 * Copy the compressed proof of the goal into the clipboard.
   You can do this by selecting the green checkmark next to the goal
   to show the compressed proof, then press copy.
@@ -48,22 +53,35 @@ To use metamath-lamp, you:
   (text file).
 
 Throughout metamath-lamp there are various tooltips.
-So if you hover an iteractive item, in most cases the tool will provide a brief
+So if you hover over an iteractive item,
+in most cases the tool will provide a brief
 explanation of what that item does.
-You don't need to memorize this user guide!
+You don't need to memorize this guide!
 
 This software works on many different systems which have different conventions.
 On some Macintosh keyboards the "Enter" key is instead labelled "Return" and
 the "Alt" key is instead labelled "Opt" or "Option".
-On a touchscreen (like a smartphone), a quick touch and release on a control
-is the same as a left click.
+On a touchscreen (like a smartphone), a quick touch and release on a UI
+control is the same as a left click.
 Metamath-lamp has some actions that are quickly accessed using Alt+left click
-(hold down the Alt aka Opt key, and while holding it use left click)..
+(hold down the Alt aka Opt key, and while holding it use left click).
 
-## Simple demo: Proving that 2 + 2 = 4
+## User guide (tutorial)
+
+This is the user guide (tutorial) portion of this overall guide.
+In this section we will explain how to use metamath-lamp to create some
+proofs by creating some example proofs.
+We recommend starting the tool and apply these examples.
+
+We will start with a simple proof that 2 + 2 = 4.
+
+### Proof: 2 + 2 = 4
 
 Let's first show using metamath-lamp to create a simple proof, namely,
-that 2 + 2 = 4.
+that 2 + 2 = 4. This has already been proved in the set.mm database
+as theorem `2p2e4`.
+
+#### Selecting the proof context for 2p2e4
 
 We first need to decide on the proof context, that is, the database(s)
 of axioms and proven theorems we'll use. In this case we'll use the most
@@ -79,27 +97,74 @@ would simply reuse that existing proof.
 > Now under scope select "Stop before" and enter the label "2p2e4".
 > Finally, apply changes to the context.
 
+#### Setting the goal for 2p2e4
+
 For this example we'll leave the proof description, variables, and disjoints
 blank. We do need to tell metamath-lamp our goal.
 
 > In the Editor select "+"  (add new statement). Enter
 > `|- ( 2 + 2 ) = 4`
 > and press Enter (Return) to save the result.
-> Be sure to surround each symbol by at least one space, and the
-> parentheses are not optional.
 
-For our purposes, we're going to rename our goal with the label "qed".
+Be sure to surround each symbol by at least one space (the first
+and last symbols can start and end the statement).
+
+The set.mm database is picky about the placement of parentheses.
+For example, set.mm requires that the infix "+"
+be surrounded by parentheses; the parentheses are *not* optional.
+More generally,
+when a function that takes two classes and produces a class is applied
+as part of an infix expression, the expression is always surrounded by
+parentheses.
+For example, the use of "+" in "( 2 + 2 )".
+Similarly, predicate expressions in infix form that take two or three wffs
+(a true or false value) and produce a wff are also always
+surrounded by parentheses, such as "( ph -> ps )".  In contrast,
+a binary relation (which compares two classes and produces a wff)
+applied in an infix expression is *not* surrounded by parentheses. This
+includes set membership, for example, "1 e. RR" (1 is a member
+of the set of real numbers) has no parentheses.
+
+For our purposes, we're going to rename our goal.
 Renaming the target statement (as well as any other statement) is
-not required; you could just continue using the
+not required by metamath-lamp. You could instead just continue using the
 label metamath-lamp suggested. But renaming some of the statements
 (especially the target one) makes them easier to distinguish for you
-and eventually this name will appear in the final proof.
+and eventually this name will appear in the final generated proof.
+If you don't know what else to name the goal, we suggest using the name
+"qed" to reduce confusion.
+
+If you plan to eventually add this proof to the set.mm or iset.mm
+databases then you need to follow the set.mm database conventions,
+including its conventions for naming labels.
+In most cases, the name of a theorem is a concatentation of
+"label fragments" of the important part of its conclusion.
+Each label fragment as a meaning, e.g., "nn" for natural numbers,
+"re" for real numbers, "1" for the number 1, "gt" for "greater than",
+"le" for less than, "an" for the boolean operation "and", and so on.
+Most symbols are defined by an assertion named "df-NAME", where
+NAME is the label fragment used. Note that in set.mm, "natural number"
+means an integer that is one or larger.
+Thus, in set.mm, "nnre" represents "the natural numbers are real numbers",
+and "nnge1" represents "the natural numbers are greater than or equal
+to 1".
+You can see the [set.mm label naming conventions](https://us.metamath.org/mpeuni/conventions-labels.html)
+and
+[set.mm general conventions](https://us.metamath.org/mpeuni/conventions.html)
+for more details.
+
+In set.mm the label naming convention for
+a simple arithmetic expression is to use "p" for "plus" and "e" for "equals".
+Thus, let's rename this goal statement to "2p2e4" to follow its conventions:
 
 > Select the statement number (1) using the left mouse button.
-> Change the name of the statement to "qed" and press Enter (Return).
+> Change the name of the statement to "2p2e4" and press Enter (Return).
 
-Now we need to figure out how to prove this.
-Metamath-lamp can actually do some things automatically, but we will
+#### Deciding on a proof strategy for 2p2e4
+
+Now we need to figure out how to prove this goal.
+
+Metamath-lamp can actually do some things automatically. However, we will
 *intentionally* avoid some of those automations to see how to
 prove something in cases where the automations can't do enough.
 
@@ -113,6 +178,8 @@ what we want to prove, finding their expansions, and repeatedly
 expanding and simplifying the
 results to show that what we want to prove is correct.
 
+#### Expanding the meaning of 4
+
 In this case, we want to prove that something is 4, so the definition
 of 4 would probably be useful.
 We'll add a statement, and search for the definition of 4.
@@ -120,8 +187,19 @@ We'll add a statement, and search for the definition of 4.
 > Select the magnifying glass (search) icon; under pattern enter
 > `4 =` and click on Search.
 > Select the statement labelled `df-4` and press "Choose Selected".
-> You will now have a new statement:
+> You will now have a new statement with an id of 1:
 > `|- 4 = ( 3 + 1 )`
+
+Notice to to the right of the id and the left of the statement
+(starting with `|-`) there is a bold letter **P**
+This bold letter **P**
+means that this statement is intended to be *provable*.
+some cases you'll want a statement to be a
+*hypothesis* instead.
+You can select the **P** with Alt+left click to change it to
+to an **H** (hypothesis) or back to **P** (provable).
+We aren't going to use any hypotheses
+in this proof, so we won't do that for now.
 
 This definition of 4 depends on the definition of 3, so let's add
 the definition of 3 as well.
@@ -131,26 +209,30 @@ so we can probably just use the naming convention to find it.
 > Select the magnifying glass (search) icon; in the "label" field
 > enter `df-3` and click on Search.
 > Select the statement labelled `df-3` and press "Choose Selected".
-> You will now have a new statement:
+> You will now have a new statement with an id of 2:
 > `|- 3 = ( 2 + 1 )`
 
 We can connect the definition of 4 using the definition 3 by simply
 adding 1 to both sides of the definition of 3.
-We can simply add this statement as claim and see if metamath-lamp
-can find a statement that proves this correct (in this case it can).
+We can simply add this statement as a claim and see if metamath-lamp
+can find a statement that proves this is correct (in this case it can).
+In fact, if you take very small steps, metamath-lamp can prove a number
+of statements automatically.
+
 We don't want to add this statement as the *last* statement,
 so we'll select the last statement before adding it (so we'll
 insert that statement before it).
 
-> Select the checkbox to the left of the "qed" statement.
+> Select the checkbox to the left of the "2p2e4" goal statement.
 > Then select "+" (add new statement).
 > Notice that because a statement was selected, the new statement will
-> be inserted before "qed".
+> be inserted before "2p2e4".
 > Enter the new statement
 > `|- ( 3 + 1 ) = ( ( 2 + 1 ) + 1 )`
 > and press Enter (Return).
-> Unselect the checkbox to the left of the "qed" statement.
-> Now press unify (the multiple-connected dots symbol); since there
+> Unselect the checkbox to the left of the "2p2e4" statement.
+> Now, while no statements are selected,
+> press unify (the multiple-connected dots symbol). Since there
 > was no specific statement selected, it will try to justify all statements.
 > Metamath-lamp will succeed in finding a justification for our new statement,
 > so it will show a green checkmark next to our new statement.
@@ -170,7 +252,9 @@ use the "duplicate" command to get us started:
 > `|- 4 = ( ( 2 + 1 ) + 1 )`
 > press Enter (Return).
 > Press unify, which will produce a green checkmark next to all the statements
-> except our final "qed" statement.
+> except our final "2p2e4" statement.
+
+#### Expanding the meaning of ( 2 + 2 )
 
 Our goal involves showing that the symbol `2` and `4` have some kind
 of relationship. A common technique to create proofs is to expand
@@ -189,29 +273,33 @@ We can take the definition of `2` and add `2` to both sides, at the
 beginning of each side, to produce a very similar expression.
 Let's try that.
 
-> Select the checkbox to the left of the "qed" statement.
-> Then select "+" (add new statement).
-> Enter the new statement
+> Select the checkbox to the left of the new statement
+> `|- 2 = ( 1 + 1 )` and then press the icon showing
+> "+" with circles behind it (the duplicate statement icon).
+> Left-click on it.
+> Modify it so the new statement is
 > `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`
 > and press Enter (Return).
-> Unselect the checkbox to the left of the "qed" statement.
-> Now press unify (the multiple-connected dots symbol); since there
+> Now press unify (the multiple-connected dots symbol). Since there
 > was no specific statement selected, it will try to justify all statements.
 > Metamath-lamp will succeed in finding a justification for our new statement,
 > so it will show a green checkmark next to our new statement.
+
+#### Showing these expansions are equal
 
 At this point we've shown that `4` and `( 2 + 2 )` are separately
 equal to very similar expressions. If we could prove that those expressions
 are equal to each other, we could trivially prove our goal.
 Let's try to do that.
 
-> Select the checkbox to the left of the "qed" statement.
+> Select the checkbox to the left of the "2p2e4" goal statement.
 > Select "+" (add new statement). Enter the new statement
 > `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
 > and press Enter (Return).
-> Unselect the "qed" statement.
-> As an experiment, select Unify with no statement selected;
-> you'll see that in this case nothing happens.
+> Unselect the "2p2e4" statement.
+> As an experiment, select Unify while there's no statement selected;
+> you'll see that in this case it did *not* find a justification
+> for our new statement.
 
 It's actually true that
 `( ( 2 + 1 ) + 1 )` is equal to `( 2 + ( 1 + 1 ) )`.
@@ -221,21 +309,24 @@ The Metamath database in this context already has a proof that
 addition is associative, too.
 
 However, when you press "unify" without selecting any statements,
-metamath-lamp cannot automatically prove this new statement.
-The problem isn't that the database doesn't have this already proven.
-In fact, the Metamath database in this context
-*does* have a proof that addition is associative.
-However, the rule in this Metamath
-database requires some preconditions we haven't included in our proof.
+metamath-lamp will not automatically prove this new statement,
+even though the Metamath database in this context
+*does* have a proof of this statement.
+The reason is that the rule in this Metamath
+database requires some preconditions that are not currently
+included in our proof.
 
 So we'll instead use a bottom-up search, which will try to find and
 prove any other statements necessary to apply a relevant existing proof.
+A bottom-up search *can* add new statements.
+You enable a bottom-up search by selecting the statement to be proved
+and then selecting unify.
 
 > Select the checkbox next to our latest statement
 > `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
 > and press "Unify".
 > A new dialogue will display titled "Proving bottom-up".
-> These options control how metamath-lamp will search for a proof
+> These dialogue options control how metamath-lamp will search for a proof
 > of this statement. For now, we'll just accept the defaults and press the
 > "Prove" button at the bottom of the dialogue.
 > After a moment it will present a list, and one of the first options
@@ -247,24 +338,249 @@ prove any other statements necessary to apply a relevant existing proof.
 > Use the checkbox to its
 > left to select that one, then press the "Apply Selected" button.
 
-Suddenly a lot has happened. Notice that we now have a green checkmark
-next to our new statement, because we've proven it.
+Suddenly a lot has happened.
 We now have new statements that have been automatically added to our proof,
 namely that `1 e. CC` (`1` is a complex number) and `2 e. CC`
 (`2` is a complex number).
 
-Most importantly, the final statement "qed" has a green checkmark, which
-means we have proven our goal. This happened because after we applied the
-new statement, metamath-lamp automatically unified all the statements,
-and was able to complete the rest of the proof.
+> Now, without any statements selected, press "Unify".
+
+We now have a green checkmark next to all our statements, showing
+that all statements are have been proven.
+
+Most importantly, the final statement "2p2e4" has a green checkmark, which
+means we have proven our goal.
+Metamath-lamp automatically unified all the statements,
+and was able to complete the rest of the proof given what we had provided.
+
+#### Getting the completed proof
 
 We can now show the compressed proof.
 
-> Select the green checkmark (*not* "P") on the last ("qed") statement.
+> Select the green checkmark (*not* "P") on the "2p2e4" goal statement.
 > You can select "Copy" to copy the compressed proof into the clipboard.
 
-Now that we've seen a simple demo of metamath-lamp, let's
-walk through its entire user interface.
+### Proof: The reciprocal of the cotangent is tangent (reccot)
+
+Let's first show using metamath-lamp to create another proof, namely,
+that the reciprocal of the cotangent is tangent.
+This has already been proved in the set.mm database as theorem `reccot`.
+
+#### Selecting the proof context for reccot
+
+We first need to decide on the proof context, that is, the database(s)
+of axioms and proven theorems we'll use. In this case we'll again use the most
+common metamath database, `set.mm`. We will again be proving something
+already in the database, so we need to make sure our context does not include
+its proof (of `reccot`) or metamath-lamp will just reuse it.
+
+If you've already been using metamath-lamp to prove something else, that
+means we need to erase the proof steps we have and change the context.
+Here's how to do that:
+
+> Select the checkbox on on the editor bar above the field name "Description"
+> to select *all* statements. select the trash can with an X
+> ("delete selected statements") to delete them all.
+> At the top of the browser window, select the dropdown arrow with the
+> "Loaded:..." text that hints at the context.
+> Make sure we are loading from the web the file "set.mm:latest",
+> and change the scope to "Stop before" the label `reccot` by typing it in
+> and selecting it.
+> Then press "Apply changes" to apply this change.
+
+If, on the other hand, you're starting from scratch, just set up the
+context as usual. Here's how to do that instead:
+
+> Select Source type "Web", Alias "set.mm:latest"; after confirmation this
+> loads the given database.
+> Now under scope select "Stop before" and enter the label "reccot".
+> Finally, apply changes to the context.
+
+#### Setting the goal for reccot
+
+For this example we'll leave the proof description, variables, and disjoints
+blank. We do need to tell metamath-lamp our goal.
+
+> In the Editor select "+"  (add new statement). Enter
+>
+> ~~~~metamath
+> |- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) ->
+>     ( tan ` A ) = ( 1 / ( cot ` A ) ) )
+> ~~~~
+>
+> and press Enter (Return) to save the result.
+
+This is a more complicated goal. It says that
+if A is a member of the set of complex numbers, and
+the sine of A is not equal to zero, and
+the cosine of A is not equal to zero, then the
+tangent of A is equal to 1 divided by the cotangent of A.
+
+Be sure to surround each symbol by at least one space (the first
+and last symbols can start and end the statement), and be careful
+about where the parenthesis go.
+
+Now modify the label of this goal to `reccot`.
+
+> Select the statement number (1) using the left mouse button.
+> Change the name of the statement to "reccot" and press Enter (Return).
+
+Let's take a brief look at this goal.
+It illustrates several conventions of the set.mm database:
+
+* An uppercase letter like `A` represents a class (any set is also a class).
+  By convention we start with `A` unless there's a reason to do otherwise.
+* `CC` represents the set of all complex numbers.
+* `e.` represents "is a member of"; so `A e. B` is how we write
+  "A &isin; B".
+* `=/=` represents "not equal to".
+* `->` represents "implies".
+* `/` represents complex number division.
+* Function application to a single argument
+  has the form `( FUNCTION \` ARGUMENT )` - that is, `\`` is an infix
+  function that implements function application on its argument.
+
+#### Deciding on a proof strategy for reccot
+
+Now we need to figure out how to prove this goal.
+
+In this example our basic strategy will be to expand the tangent and
+cotangent into sines and cosines, then show that the results are equal.
+We'll again show going forwards.
+
+Note that in real proof efforts you'll often try many different approaches.
+
+#### Expanding the definition of tangent
+
+We know we're going to need more information about the tangent and
+cotangent. So let's retrieve their definitions.
+
+Let's first find the definition of the tangent.
+
+> Select the magnifying glass (search) icon.
+> In the pattern enter `( tan &#96;` and click on Search.
+
+That produces a huge number of results. We could scroll through many pages
+to find what we want and select it.
+In this case, let's instead be more specific in our search request.
+We want a statement that shows that the value of the tangent is equal
+to something using the sine and cosine.
+
+> While still in the search dialogue, modify the search pattern to say
+> `( tan &#96; = sin cos` and click on Search.
+
+Notice that this more specific search quickly finds the definition
+we want without many irrelevant results.
+In this case it finds a statemnet named `tanval` (value of the tangent).
+
+The default search pattern language is very simple.
+A pattern should consist of a space-separated sequence of one or more symbols
+(currently only constants are allowed).
+Statements will only be considered matches if their conclusion part has
+the same constants in the same order, with optionally 1 or more other
+symbols before the pattern, between the requested symbols,
+and after the pattern.
+
+This definition of the value of a tangent, named `tanval`,
+includes an implication.
+There's a good reason for this.
+The tangent of some value A is the sine of A divided by the cosine of A,
+and therefore it's undefined when the cosine of A equals zero.
+
+> While still in the search dialogue, select the box next to `tanval`.
+> and press "Choose Selected".
+
+We have a new statement, as expected. However, it has a form we haven't
+see before:
+
+~~~~metamath
+|- ( ( &C1 e. CC /\ ( cos ` &C1 ) =/= 0 ) ->
+   ( tan ` &C1 ) = ( ( sin ` &C1 ) / ( cos ` &C1 ) ) )
+~~~~
+
+The "&" symbols are what's called "work variables".
+If you've used the mmj2 tool, this is ithe same thing as mmj2's work variables.
+Work variables often show up when creating proofs, and for reasons.
+The fundamental issue is that although
+the original "tanval" showed what the results are when `A` is the argument,
+we aren't limited to using `A`, we can use any class.
+Metamath-lamp won't always know exactly what value you'll want, so it
+will create work variables that you can then replace with whatever
+you *do* want.
+
+When using set.mm or iset.mm, you'll see work variables of the form
+&amp;W1, &amp;C1, and &amp;S1
+for the first 'wff' (true/false values), 'class', and 'set variable'
+to be expressed as a work variable.
+The number will increase from 1 as needed.
+
+If you look carefully you'll see that the "Variables" field has
+new information. What's saying is that there's a work variable of type "class"
+with the name "&ampC1". This field is helpful when proofs get long, because
+it will show you in one place what variables are still not handled.
+
+We need to replace each work varisable with an expression of the correct type
+that will help us prove our goal.
+What should we do in this case?
+Well, the goal is going to involve the tangent of `A`, so we know
+we're going to specifically need the tangent of `A`.
+That means that we need to replace all instances of `&amp;C1`
+with the value `A`. This process of replacing values is called
+applying a substitution.
+
+> Select the icon A with an arrow under it (apply a substitution).
+> Since we didn't select any particular statements, this will apply to
+> all statements. In "Replace what" enter `&amp;C1` and in "Replace with"
+> enter `A` - once that's done, press "Find Substitution".
+> The system will chack if this is valid; in this case, it could that
+> there was only 1 way to interpret this command and that the result is valid.
+> It will show you that you can change `&amp;C1` to `A` - press
+> `Apply` to apply the change.
+
+#### Expanding the definition of cotangent
+
+We also need the definition of cotangent.
+You may have noticed that the definition of the value of tangent
+was named `tanval` - that suggests a naming convention that we could use
+to make searching easier. In set.mm, the definition for finding a value
+of a function is usually the function's abbreviated name followed by `val`.
+Let's exploit that.
+
+> Select the magnifying glass (search) icon.
+> In the label field (not the pattern field)
+> enter `cotval`  and click on Search.
+> Select `cotval` and click on "Choose Selected".
+
+We again have a work variable, and we already know what its value
+should be, so let's deal with that now.
+
+> Select the icon A with an arrow under it (apply a substitution).
+> Since we didn't select any particular statements, this will apply to
+> all statements. In "Replace what" enter `&amp;C1` and in "Replace with"
+> enter `A` - once that's done, press "Find Substitution".
+> It will show you that you can change `&amp;C1` to `A` - press
+> `Apply` to apply the change.
+
+#### TODO for reccot
+
+TODO: We intend for this guide to complete the example.
+
+There's more to describe here. You can see a
+[video of reccot being proved using metamath-lamp (no sound)](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view).
+
+The same exercise to prove reccot, but using the mmj2 tool, is in
+["Introduction to Metamath and mmj2" by David A. Wheeler](https://www.youtube.com/watch?v=Rst2hZpWUbU).
+
+### Creating your own examples from existing proofs
+
+An excellent way to learn how to use metamth-lamp is to select
+a database (such as set.mm and iset.mm) and pick an existing proof in it.
+Then load the database and stop reading just before that proof.
+Try to create your own proof, consulting the known proof when you get stuck.
+
+This is the end of the user guide / tutorial.
+The rest of this guide will walk through various portions of the metamath-lamp
+user interface to help you understand how to use it.
 
 ## Loading source Metamath databases to create the proof context
 
@@ -279,6 +595,7 @@ However, to create a proof, you need to start with *some* set of axioms,
 and typically you'll want to build on other proofs that use those axioms.
 So we must first tell metamath-lamp what this proof is allowed to use.
 
+The context is shown at the top of the UI.
 When metamath-lamp starts, it will tell you that no database/context is loaded.
 Select the "source type" of the database, which is:
 
@@ -300,7 +617,7 @@ will *only* let you use statements that are in scope. The scope options are:
   the given label. If you want to practice re-proving some statement, use
   this and give the label of what you want to prove yourself.
   Trying to prove something *already* proven is a great way to learn how
-  to use metamath-lamp.
+  to use metamath-lamp. for 2p2e4
 * "Stop after" (label) - use all statements up to and *including* the
   given label. If you want to use statements up to some label and not beyond,
   this is how to do that.
@@ -341,7 +658,7 @@ any special hypotheses to use. To do that:
   Typically the goal will begin with the symbol "|-" which means
   "it is true that".
   Click on its step number (1) if you want to rename the step name (typically
-  this is named "qed").
+  this is named "qed" if you don't have a better name).
 * If there are hypotheses, press "+" to enter each one, and select the "P"
   using Alt+left click (or Opt+left click) to change "P" (provable assertion)
   into "H" (hypothesis). Put them in the intended order by selecting them
@@ -589,7 +906,25 @@ In future versions of this user guide we hope to have more examples.
 
 TODO
 
-## Conclusion
+## Help, feedback, and contributions
 
 Metamath-lamp is intended to be an easy-to-use proof assistant.
-We'd love contributions and feedback.
+We hope you'll find that it meets your needs.
+
+If you need help on the tool or how to create proofs, the best place to go
+is the
+[Metamath mailing list](https://us.metamath.org/mm-mailing-list.html).
+You can find a lot of general information about Metamath at the
+{Metamath home page](https://us.metamath.org/index.html).
+
+We'd love feedback and contributions on the metamath-lamp tool.
+For tool feedback on changes you'd like to see, please file an issue at the
+[metamath-lamp source code repository](https://github.com/expln/metamath-lamp).
+If you'd like to make contributions to its code and/or documentations,
+please propose them as pull requests to the same
+[metamath-lamp source code repository](https://github.com/expln/metamath-lamp).
+Thank you for your time.
+
+### Authors
+
+This guide was written by David A. Wheeler and expln.
