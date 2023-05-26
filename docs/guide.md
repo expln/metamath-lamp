@@ -501,7 +501,7 @@ see before:
 ~~~~
 
 The "&" symbols are what's called "work variables".
-If you've used the mmj2 tool, this is ithe same thing as mmj2's work variables.
+If you've used the mmj2 tool, this is the same thing as mmj2's work variables.
 Work variables often show up when creating proofs, and for reasons.
 The fundamental issue is that although
 the original "tanval" showed what the results are when `A` is the argument,
@@ -575,7 +575,7 @@ The same exercise to prove reccot, but using the mmj2 tool, is in
 
 ### Creating your own examples from existing proofs
 
-An excellent way to learn how to use metamth-lamp is to select
+An excellent way to learn how to use metamath-lamp is to select
 a database (such as set.mm and iset.mm) and pick an existing proof in it.
 Then load the database and stop reading just before that proof.
 Try to create your own proof, consulting the known proof when you get stuck.
