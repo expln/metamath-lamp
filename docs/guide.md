@@ -89,9 +89,9 @@ blank. We do need to tell metamath-lamp our goal.
 > parentheses are not optional.
 
 For our purposes, we're going to rename our goal with the label "qed".
-Renaming the target statement (as well as any other statement) is 
+Renaming the target statement (as well as any other statement) is
 not required; you could just continue using the
-label metamath-lamp suggested. But renaming some of the statements 
+label metamath-lamp suggested. But renaming some of the statements
 (especially the target one) makes them easier to distinguish for you
 and eventually this name will appear in the final proof.
 
@@ -214,7 +214,7 @@ Let's try to do that.
 > you'll see that in this case nothing happens.
 
 It's actually true that
-`( ( 2 + 1 ) + 1 )' is equal to `( 2 + ( 1 + 1 ) )`.
+`( ( 2 + 1 ) + 1 )` is equal to `( 2 + ( 1 + 1 ) )`.
 That's because addition is associative
 (you can do the first or second addition first and the result is the same).
 The Metamath database in this context already has a proof that
@@ -243,7 +243,7 @@ prove other any other statements necessary to apply a relevant existing proof.
 > The theorem "addassi" is a pre-existing theorem showing that
 > addition is associative.
 > This requires multiple lines, because using this associativity
-> theorem requires showing that `1 and `2` are complex numbers.
+> theorem requires showing that `1` and `2` are complex numbers.
 > Use the checkbox to its
 > left to select that one, then press the "Apply Selected" button.
 
@@ -493,6 +493,7 @@ you can select parentheses-like characters to select the expression
 begun or ended with them.
 
 You can the use the selector dialogue as follows:
+
 * Expand selection: Expand the selection to the next largest syntactic unit.
 * Shrink selection: Reduce the selection to the next smallest syntactic unit.
 * Add new statement above: Create a new statement above the current statment,
@@ -549,7 +550,7 @@ for this statement using this justification.
 
 Search depth: How deep the search is to go.
 A single statement is depth 1, a statement that requires 1 other
-statement to be also proved is depth 2, and so on. 
+statement to be also proved is depth 2, and so on
 The default search depth value is 4. Larger numbers enable more automation
 but generally take exponentially more time.
 
