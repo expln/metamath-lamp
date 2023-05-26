@@ -521,7 +521,7 @@ new information. What's saying is that there's a work variable of type "class"
 with the name "&ampC1". This field is helpful when proofs get long, because
 it will show you in one place what variables are still not handled.
 
-We need to replace each work varisable with an expression of the correct type
+We need to replace each work variable with an expression of the correct type
 that will help us prove our goal.
 What should we do in this case?
 Well, the goal is going to involve the tangent of `A`, so we know
@@ -534,7 +534,7 @@ applying a substitution.
 > Since we didn't select any particular statements, this will apply to
 > all statements. In "Replace what" enter `&amp;C1` and in "Replace with"
 > enter `A` - once that's done, press "Find Substitution".
-> The system will chack if this is valid; in this case, it could that
+> The system will check if this is valid; in this case, it could that
 > there was only 1 way to interpret this command and that the result is valid.
 > It will show you that you can change `&amp;C1` to `A` - press
 > `Apply` to apply the change.
