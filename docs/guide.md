@@ -518,7 +518,7 @@ The number will increase from 1 as needed.
 
 If you look carefully you'll see that the "Variables" field has
 new information. What's saying is that there's a work variable of type "class"
-with the name "&ampC1". This field is helpful when proofs get long, because
+with the name "&amp;C1". This field is helpful when proofs get long, because
 it will show you in one place what variables are still not handled.
 
 We need to replace each work variable with an expression of the correct type
