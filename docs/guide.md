@@ -77,7 +77,7 @@ We will start with a simple proof that 2 + 2 = 4.
 
 ### Proof: 2 + 2 = 4
 
-Let's first show using metamath-lamp to create a simple proof, namely,
+Let's show how to use metamath-lamp to create a simple proof, namely,
 that 2 + 2 = 4. This has already been proved in the set.mm database
 as theorem `2p2e4`.
 
@@ -362,7 +362,7 @@ We can now show the compressed proof.
 
 ### Proof: The reciprocal of the cotangent is tangent (reccot)
 
-Let's first show using metamath-lamp to create another proof, namely,
+Let's use metamath-lamp to create another proof, namely,
 that the reciprocal of the cotangent is tangent.
 This has already been proved in the set.mm database as theorem `reccot`.
 
@@ -437,8 +437,10 @@ It illustrates several conventions of the set.mm database:
 * `->` represents "implies".
 * `/` represents complex number division.
 * Function application to a single argument
-  has the form `( FUNCTION \` ARGUMENT )` - that is, `\`` is an infix
-  function that implements function application on its argument.
+  has the form <tt>( FUNCTION &#96; ARGUMENT )</tt> - that is,
+  an isolated backquote <tt>&#96;</tt>
+  is an infix function that applies the function on the left
+  to its argument on the right.
 
 #### Deciding on a proof strategy for reccot
 
@@ -458,7 +460,7 @@ cotangent. So let's retrieve their definitions.
 Let's first find the definition of the tangent.
 
 > Select the magnifying glass (search) icon.
-> In the pattern enter `( tan &#96;` and click on Search.
+> In the pattern enter <tt>( tan &#96;</tt> and click on Search.
 
 That produces a huge number of results. We could scroll through many pages
 to find what we want and select it.
@@ -467,7 +469,7 @@ We want a statement that shows that the value of the tangent is equal
 to something using the sine and cosine.
 
 > While still in the search dialogue, modify the search pattern to say
-> `( tan &#96; = sin cos` and click on Search.
+> <tt>( tan &#96; = sin cos</tt> and click on Search.
 
 Notice that this more specific search quickly finds the definition
 we want without many irrelevant results.
