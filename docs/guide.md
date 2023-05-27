@@ -930,12 +930,6 @@ Settings tab are *not* applied until you select
 
 TODO
 
-## More examples
-
-In future versions of this user guide we hope to have more examples.
-
-TODO
-
 ## Help, feedback, and contributions
 
 Metamath-lamp is intended to be an easy-to-use proof assistant.
