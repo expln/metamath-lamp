@@ -474,7 +474,7 @@ to something using the sine and cosine.
 
 Notice that this more specific search quickly finds the definition
 we want without many irrelevant results.
-In this case it finds a statemnet named `tanval` (value of the tangent).
+In this case it finds a statement named `tanval` (value of the tangent).
 
 The default search pattern language is very simple.
 A pattern should consist of a space-separated sequence of one or more symbols
