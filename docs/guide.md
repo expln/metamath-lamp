@@ -563,9 +563,36 @@ should be, so let's deal with that now.
 > It will show you that you can change <tt>&amp;C1</tt> to `A` - press
 > `Apply` to apply the change.
 
+#### What does reciprocal do?
+
+The goal involves a reciprocal, so we need to find an existing theorem
+that proves "what a reciprocal does for me".
+What I want to find is something like `( 1 / ( A / B ) ) = ( B / A )`.
+We don't need to type that in exactly, let's just search listing some of the
+symbols that aren't variables.
+
+> Select the magnifying glass (search) icon.
+> In the pattern enter `1 / / = /` and click on Search.
+> In a moment it will show a paged list of results.
+
+There are multiple pages of results, so I have to look through some pages.
+Some of the results are really long; I can quickly ignore those.
+However, after looking at my options I find `recdiv` and that *is*
+what I want!
+
+> Select the checkbox to the left of `recdiv` - then scroll to the
+> bottom and click on "Choose Selected".
+
+Now we have two work variables, representing the numerator and
+denominator of the fraction being reciprocated.
+Notice that the "Variables" field lists these two variables.
+
 #### TODO for reccot
 
-TODO: We intend for this guide to complete the example.
+Sorry, this is as far as this example ha been written so far
+in this guide.
+We intend for this guide to eventually complete the example.
+At this point We're up to about 9:15 in my video about mmj2.
 
 There's more to describe here. You can see a
 [video of reccot being proved using metamath-lamp (no sound)](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view).
