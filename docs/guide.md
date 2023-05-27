@@ -357,9 +357,96 @@ and was able to complete the rest of the proof given what we had provided.
 #### Getting the completed proof
 
 We can now show the compressed proof.
+This is the final proof we can add to a Metamath database.
 
 > Select the green checkmark (*not* "P") on the "2p2e4" goal statement.
+>
 > You can select "Copy" to copy the compressed proof into the clipboard.
+> Press "Close"
+
+#### Looking at proof steps
+
+In Metamath, *every* step of a valid proof must be an
+application of an axiom or a previously-proven statement.
+Metamath-lamp shows when it can verify this for a statement
+(after unification) by displaying a green checkmark.
+
+Let's look at how metamath-lamp can justify some steps.
+We'll start with the claim that
+`|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`:
+
+> Left-click on the **P** next to
+> `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )` to toggle the display
+> its justification.
+
+You will show a list of ids that are being used,
+colon, and `oveq2i`. This means that this particular
+statement is justified (proven) by using the already
+accepted theorem `oveq2i` when applied to those ids.
+Advanced users can edit this to force metamath-lamp to
+try to use a different justification.
+
+But what does this justification *mean*?
+
+Metamath-lamp can provide a visualization to show what
+it means. So let's enable it.
+
+> Left-click on the "hamburger" icon
+> (3 short horizontal lines)
+> on the top right of the display and select
+> "Visualization is Off".
+> You will see that now "Visualization is On"; left-click
+> outside the region to close the hamburger menu.
+
+You should see a visualization like this:
+
+![Visualization of (2+2)=(2+(1+1))](./visual_2p1p1.png)
+
+The top new line is set of ids being used as inputs into
+the justification. In this case there's only one id;
+the id you see may be different than what's shown here.
+Under that is a copy of that statement:
+
+> `|- 2 = ( 1 + 1 )`
+
+Notice that variable parts of this statement are boxed
+and directed lines connect them to another statement below.
+The statement below is the set of required patterns
+required by `oveq2i`, in this case `|- A = B`.
+The lines show that in this use of `oveq2i`, `A` will be
+`2`, and `B` will be `( 1 + 1 )`.
+
+The result of `oveq2i` are `( C F A ) = ( C F B )`.
+Any variable in its output must have the same values as
+this application of its inputs; `C` and `F` have no
+inputs, so they can be anything syntactically valid.
+This means we can use `oveq2i` to justify the final claim,
+`|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`.
+
+We can also hide justifications (include the visualization)
+any time.
+
+> Left-click on the **P** next to
+> `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )` to toggle the
+> display of its justification; since the justification
+> is currently displayed, this will hide it.
+
+Let's do the same thing with statement that
+uses associativity,
+`|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`,
+
+> Left-click on the **P** next to
+> `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )` to toggle the
+> display of its justification, revealing it.
+
+You can now see that the justification of this statement
+is `addassi` (addition is associative).
+
+Let's end its display.
+
+> Left-click on the **P** next to
+> `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )` to toggle the
+> display of its justification, hiding it again.
 
 ### Proof: The reciprocal of the cotangent is tangent (reccot)
 
