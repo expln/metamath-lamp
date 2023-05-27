@@ -578,13 +578,12 @@ It illustrates several symbols in the set.mm database:
   the "antecedent"; the right-hand-side of an implication is called the
   consequent.
 * `/` represents complex number division.
-* The form <tt>( FUNCTION &#96; ARGUMENT )</tt> 
+* The form <tt>( FUNCTION &#96; ARGUMENT )</tt>
   applies function FUNCTION to argument, that is, it determines the
   value of the function for that argument.
   Therefore <tt>( tan &#96; A )</tt> is the tangent of `A`.
   This left apostrophe notation originated from Peano and was adopted in
-  definition *30.01 of *Principia Mathematica* (Whitehead and Russell) p. 235,
-  Quine, and others.
+  *Principia Mathematica* by Whitehead and Russell, Quine, and others.
   This notation means the same thing as
   the <tt>tan(A)</tt> notation used by others
   but without context-dependent notational ambiguity.
@@ -834,7 +833,7 @@ as long as you do the same thing on the right-hand side.
 
 So create a new statement, based on of the value of the cotangent
 that has the same antecedent as our goal, that shows the value of
-the cotangent. 
+the cotangent.
 
 > Select the checkbox on the left for the statement:
 > <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
@@ -912,10 +911,17 @@ is often used to indicate a class. Let's do it again.
 
 Now we can start simplifying the reciprical of the division.
 
-> Select the latest new (long) statement
-> <tt>|- ( ( ( ( cos ` A ) e. CC /\ ( cos ` A ) =/= 0 ) /\ ( ( sin ` A ) e. CC /\ ( sin ` A ) =/= 0 ) ) -> ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )</tt>
-> and duplicate it.
-> In the duplicate, change <tt>( cos ` A) e. CC</t> to `A e. CC`,
+> Select the latest new (long) statement, which is:
+
+~~~~ metamath
+|- ( ( ( ( cos ` A ) e. CC /\ ( cos ` A ) =/= 0 ) /\
+       ( ( sin ` A ) e. CC /\ ( sin ` A ) =/= 0 ) ) ->
+     ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) =
+       ( ( sin ` A ) / ( cos ` A ) ) )
+~~~~
+
+> Duplicate this statement.
+> In the duplicate, change <tt>( cos &#96; A) e. CC</t> to `A e. CC`,
 > Enter, and unify.
 > Select that new statement and duplicate it, in the duplicate change
 > <tt>( sin ` A) e. CC</t> to `A e. CC`, Enter, and unify.
@@ -925,9 +931,16 @@ the goal antecedent, but it's very close. It's likely the tool can
 easily complete that, so let's create a new statement based on the
 one we just created but has the *exact* same antecedent as the goal.
 
-> Select the latest new (long) statement
-> <tt>|- ( ( ( A e. CC /\ ( cos ` A ) =/= 0 ) /\ ( A e. CC /\ ( sin ` A ) =/= 0 ) ) -> ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )</tt>
-> and duplicate it.
+> Select the latest new (long) statement:
+
+~~~~metamath
+|- ( ( ( A e. CC /\ ( cos ` A ) =/= 0 ) /\
+     ( A e. CC /\ ( sin ` A ) =/= 0 ) ) ->
+     ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) =
+       ( ( sin ` A ) / ( cos ` A ) ) )
+~~~~
+
+> Duplicate it.
 > Use Alt+left-click to click on the *second* parthensis of the goal statement
 > (so we can duplicate its antecedent) and click on the "copy" icon.
 > Select the second parenthesis of our new statement,
