@@ -874,7 +874,24 @@ because the conclusion has a `0` constant which is later followed by a
 
 ### Replacement
 
-TODO
+Select the A with arrow icon (apply a substitution) to substitute
+expressions in one or more statements.
+The substitutions will be applied to the selected statements;
+if no statements are selected the replacements will be applied to
+all of them.
+
+After you select this icon
+you'll be presented with a simple dialogue box to describe the
+replacement (substitution):
+
+* In the "Replace what" field enter what you want to change,
+  (e.g., <tt>&amp;C1</tt>).
+* In the "Replace with" field enter what you want to change that to
+  (e.g., `A`).
+
+When you press "Find Substitution" the tool will determine if it
+can apply this substitution (that is, if the results are valid types
+everywhere). If it is, you may may select "Apply" to apply it.
 
 ### Proving bottom-up
 
