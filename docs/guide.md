@@ -16,7 +16,7 @@ We'll begin with a "quick start"
 (a brief introduction on how to start and use metamath-lamp).
 This will be followed by a user guide,
 basically a sequence of worked examples showing how to use the tool
-(starting wiht a proof that two plus two equals four).
+(starting with a proof that two plus two equals four).
 The rest of this guide is a reference guide,
 explaining the various parts of the user interface.
 We conclude with how to get or share more information.
