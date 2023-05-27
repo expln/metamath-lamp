@@ -116,10 +116,10 @@ More generally,
 when a function that takes two classes and produces a class is applied
 as part of an infix expression, the expression is always surrounded by
 parentheses.
-For example, the use of "+" in "( 2 + 2 )".
+For example, the use of "+" in <tt>( 2 + 2 )</tt>.
 Similarly, predicate expressions in infix form that take two or three wffs
 (a true or false value) and produce a wff are also always
-surrounded by parentheses, such as "( ph -> ps )".  In contrast,
+surrounded by parentheses, such as <tt>( ph -> ps )</tt>.  In contrast,
 a binary relation (which compares two classes and produces a wff)
 applied in an infix expression is *not* surrounded by parentheses. This
 includes set membership, for example, "1 e. RR" (1 is a member
@@ -364,6 +364,28 @@ This is the final proof we can add to a Metamath database.
 > You can select "Copy" to copy the compressed proof into the clipboard.
 > Press "Close"
 
+#### Exporting and importing your current state
+
+You can only generate a proof once you *have* a proof.
+
+Metamath-proof can export the current state of your efforts,
+whatever they are, and anyone can reload them later.
+
+> Left-click on the "hamburger" icon
+> (3 short horizontal lines)
+> on the top right of the display.
+
+This will show several ways to export and import your
+current state:
+
+* "Export to URL": Provides a URL. You or anyone else
+  can use this URL to re-open the proof assistant at
+  this current state.
+* "Export to JSON": Provides the current proof assistant
+  state as text; you can save this where you wish.
+* "Import to JSON": Allows you to load a state previously
+  exported with "Export to JSON".
+
 #### Looking at proof steps
 
 In Metamath, *every* step of a valid proof must be an
@@ -441,6 +463,8 @@ uses associativity,
 
 You can now see that the justification of this statement
 is `addassi` (addition is associative).
+This justification has multiple requirements, which
+as you can see are met.
 
 Let's end its display.
 
@@ -448,11 +472,37 @@ Let's end its display.
 > `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )` to toggle the
 > display of its justification, hiding it again.
 
+#### Reordering statements
+
+You can reorder statements.
+Sometimes you *need* to reorder statements, because
+statements can only use previously proved statements.
+
+To reorder some some statements,
+just select one or more
+using the checkboxes on the left, and use the
+"up" icon (to move them up) or "down" icon
+(to move them down).
+
+> Left-click on checkbox next to
+> `|- ( 3 + 1 ) = ( ( 2 + 1 ) + 1 )`
+> and press the "up" icon - the statement will move up.
+
+Metamath-lamp will display error messages if statements
+are moved to make them depend on statements that
+have not been proved yet.
+
 ### Proof: The reciprocal of the cotangent is tangent (reccot)
 
 Let's use metamath-lamp to create another proof, namely,
 that the reciprocal of the cotangent is tangent.
 This has already been proved in the set.mm database as theorem `reccot`.
+
+This exercise is based on the video showing how to prove the
+same theorem using the mmj2 tool
+(["Introduction to Metamath and mmj2" by David A. Wheeler](https://www.youtube.com/watch?v=Rst2hZpWUbU))
+and an earlier video of
+[reccot being proved using metamath-lamp (no sound)](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view).
 
 #### Selecting the proof context for reccot
 
@@ -514,21 +564,30 @@ Now modify the label of this goal to `reccot`.
 > Change the name of the statement to "reccot" and press Enter (Return).
 
 Let's take a brief look at this goal.
-It illustrates several conventions of the set.mm database:
+It illustrates several symbols in the set.mm database:
 
 * An uppercase letter like `A` represents a class (any set is also a class).
   By convention we start with `A` unless there's a reason to do otherwise.
 * `CC` represents the set of all complex numbers.
 * `e.` represents "is a member of"; so `A e. B` is how we write
-  "A &isin; B".
+  "A &isin; B". The expression <tt>A e. CC</tt> means "A is a complex number".
+* <tt>&#92;/</tt> represent "and". It's not used here, but
+  <tt>/&#92;</tt> represents "or".
 * `=/=` represents "not equal to".
-* `->` represents "implies".
+* `->` represents "implies". The left-hand-side of an implication is called
+  the "antecedent"; the right-hand-side of an implication is called the
+  consequent.
 * `/` represents complex number division.
-* Function application to a single argument
-  has the form <tt>( FUNCTION &#96; ARGUMENT )</tt> - that is,
-  an isolated backquote <tt>&#96;</tt>
-  is an infix function that applies the function on the left
-  to its argument on the right.
+* The form <tt>( FUNCTION &#96; ARGUMENT )</tt> 
+  applies function FUNCTION to argument, that is, it determines the
+  value of the function for that argument.
+  Therefore <tt>( tan &#96; A )</tt> is the tangent of `A`.
+  This left apostrophe notation originated from Peano and was adopted in
+  definition *30.01 of *Principia Mathematica* (Whitehead and Russell) p. 235,
+  Quine, and others.
+  This notation means the same thing as
+  the <tt>tan(A)</tt> notation used by others
+  but without context-dependent notational ambiguity.
 
 #### Deciding on a proof strategy for reccot
 
@@ -675,18 +734,218 @@ Now we have two work variables, representing the numerator and
 denominator of the fraction being reciprocated.
 Notice that the "Variables" field lists these two variables.
 
-#### TODO for reccot
+We'll come back this in a moment.
 
-Sorry, this is as far as this example ha been written so far
-in this guide.
-We intend for this guide to eventually complete the example.
-At this point We're up to about 9:15 in my video about mmj2.
+#### Matching the goal's antecedent for tangent
 
-There's more to describe here. You can see a
-[video of reccot being proved using metamath-lamp (no sound)](https://drive.google.com/file/d/1IwdHLpQreZ_1CJFZJmptRJc2unO8aNh4/view).
+The goal is an implication; the antecedent of this implication
+has 3 requirements.
+However, the definition of the tangent value and cotangent value don't
+exactly match the goal antecedent.
+We need to prove that we can use these values
+with the exact antecedents in our goal.
 
-The same exercise to prove reccot, but using the mmj2 tool, is in
-["Introduction to Metamath and mmj2" by David A. Wheeler](https://www.youtube.com/watch?v=Rst2hZpWUbU).
+This will be easier to do if we duplicate an existing statement and
+modify it.
+
+> Select the checkbox to the left of the expression using `tan`.
+> Press the icon showing "+" with multiple circles (duplicate statement);
+> this will create a copy of the selected statement below the current
+> statement.
+
+An easy way to modify the new statement is to
+use metamath-lamp's mechanisms for copying and pasting
+portions of text.
+
+> Using Alt+left click, select the *second* parenthesis of the *goal*
+> statement. This will smartly select a syntactically complete portion
+> of the statement and bring up a selector dialogue below the statement.
+
+The selector dialogue has icons to smartly expand the selection,
+shrink the selection, add a new statement above with that selection,
+add a new statement below with that selection,
+copy the selected text to the clipboard, edit that text,
+and unselect (close the selector dialogue).
+
+> To get an idea of what the selector dialogue can do,
+> click on its leftmost icon with arrows going out ("expand selection")
+> and then the next icon with arrows going in ("shrink selection").
+> Note that the tool is selecting the symbols based on the
+> syntax of the symbols.
+
+In this case, we want to make a copy of the selected
+text in the goal, then paste that into
+the relevant section of the new statement.
+
+> Press the box-on-box icon (copy to clipboard) under the goal statement.
+> Now use Alt+left click on the second parenthesis of the new statement
+> we just created, selecting its antecedent.
+> Press on the pencil icon ("edit"), then use your system's paste command
+> ("control-V" on most computers, "command-V" on Macintoshes) to overwrite
+> the selected text with the text in the clipboard.
+> Press Enter (Return) to save the modified statement.
+
+We now have a new statement, showing value of a tangent is still
+valid given the antecedent of our goal:
+
+> <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
+> <tt>( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )</tt>
+
+It turns out that metamath-lamp can immediately prove this new statement.
+
+> Press the "Unify" icon near the top. Note that the new
+> statement now has a green checkmark.
+
+You can click on any bold **P** to show the justification for each
+statement with a green checkmark; press the same bold **P** again
+to hide the justification.
+
+#### Matching the goal's antecedent for cotangent
+
+Let's do the same thing with the definition of the value of the
+cotangent, showing we can use this definition even given the
+antecedent of the goal.
+
+> Select the checkbox to the left of the expression using `cot`.
+> Press the icon showing "+" with multiple circles (duplicate statement).
+> Using Alt+left click, select the *second* parenthesis of the *goal*
+> statement to select the antecedent of the goal.
+> Press the box-on-box icon (copy to clipboard) under the goal statement.
+> Now use Alt+left click on the second parenthesis of the new statement
+> we just created, selecting its antecedent.
+> Press on the pencil icon ("edit"), then use your system's paste command
+> ("control-V" on most computers, "command-V" on Macintoshes) to overwrite
+> the selected text with the text in the clipboard.
+> Press Enter (Return) to save the modified statement.
+> Press the Unify icon to unify everything so far.
+
+We now have several statements. All the statements are proved
+(have green checkmarks) except the goal statement.
+
+#### Handling the reciprocal of the cotangent
+
+Our goal is about the reciprocal of the tangent, not the tangent itself.
+
+So let's modify the definition of the value of the cotangent to show
+the value of the reciprocal of the tanget.
+Remember, in algebra you can do what you want on the left-hand-side
+of an equality,
+as long as you do the same thing on the right-hand side.
+
+So create a new statement, based on of the value of the cotangent
+that has the same antecedent as our goal, that shows the value of
+the cotangent. 
+
+> Select the checkbox on the left for the statement:
+> <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
+> <tt>     ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) ) )</tt>
+> and duplicate the statement by pressing the icon showing a "+" with
+> circles under it (duplicate statement).
+> Use left-click to edit it, and surround the left and right
+> and sides of its equality with `( 1 / ... )` resulting in:
+> <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
+> <tt>     ( 1 / ( cot ` A ) ) = ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) )</tt>
+> ... once you're done, press unify.
+
+Clearly we're going to need to simplify the reciprocal of the cosine
+over the sine.
+We already have a statement that does this, but we need to set its
+work variables appropriately.
+
+If we were using mmj2, we could just edit one of the work variables,
+replace with its new value, and unify.
+Metamath-lamp doesn't support this; instead, metamath-lamp expects you
+to use the "replacement" icon. Let's replace the work values so that
+they will work with this expansion of the reciprocal of the cotangent.
+
+Let's replace the work variable <tt>&amp;C1</tt>:
+
+> Press on the icon "A with arrow under it" to apply a substitution.
+> In "Replace what" enter <tt>&amp;C1</tt> and
+> in "Replace with" enter <tt>( cos ` A )</tt> ... once you're done. press
+> "Find Substitution". It will determine that there is 1 valid substitution;
+> press "Apply".
+
+Let's replace the work variable <tt>&amp;C2</tt>:
+
+> Press on the icon "A with arrow under it" to apply a substitution.
+> In "Replace what" enter <tt>&amp;C2</tt> and
+> in "Replace with" enter <tt>( sin ` A )</tt> ... once you're done. press
+> "Find Substitution". It will determine that there is 1 valid substitution;
+> press "Apply".
+> Press unify.
+
+Again, all but the goal statement are proven.
+
+#### Proving the preconditions we need
+
+The statement where we replaced the work variables is at least now
+relevant, but its antecedent is not what we need - it's not the same
+as the goal's antecedent. We'll need to show that the goal's
+antecedent implies the antecedent of the statement we want to use.
+
+For example, the goal says `A e. CC` (`A` is a complex number)
+but the earlier statement's antecedent says
+<tt>( cos ` A ) e. CC</tt>.
+Now, we know that if a value is a complex number, then its
+cosine is a complex number. Is this information already in the
+set.mm database? Let's find out. Let's look for that statement
+and, if it exists, add it.
+
+> Make sure no statement is selected.
+> Select the magnifying glass, enter the pattern
+> <tt>e. CC -> cos e. CC</tt> and search.
+> You'll see a list including `coscl` - select `coscl` and press
+> "Choose Selected".
+> This has a work variable; press on the "A with arrow" (apply substitution)
+> and substitute <tt>&amp;C1</tt> with `A` (remember to select
+> "Find Substitution" and then "Apply").
+> We now have <tt>|- ( A e. CC -> ( cos ` A ) e. CC )</tt> as the
+> final statement.
+
+We've noticed another naming convention in set.mm; a name ending in "cl"
+is often used to indicate a class. Let's do it again.
+
+> Select the magnifying glass, search for *label* `sincl`, and search.
+> Select `sincl` (*not* `asincl`!).
+> Substitute <tt>&amp;C1</tt> with `A`.
+
+Now we can start simplifying the reciprical of the division.
+
+> Select the latest new (long) statement
+> <tt>|- ( ( ( ( cos ` A ) e. CC /\ ( cos ` A ) =/= 0 ) /\ ( ( sin ` A ) e. CC /\ ( sin ` A ) =/= 0 ) ) -> ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )</tt>
+> and duplicate it.
+> In the duplicate, change <tt>( cos ` A) e. CC</t> to `A e. CC`,
+> Enter, and unify.
+> Select that new statement and duplicate it, in the duplicate change
+> <tt>( sin ` A) e. CC</t> to `A e. CC`, Enter, and unify.
+
+This new statement antecendent is still not exactly the same as
+the goal antecedent, but it's very close. It's likely the tool can
+easily complete that, so let's create a new statement based on the
+one we just created but has the *exact* same antecedent as the goal.
+
+> Select the latest new (long) statement
+> <tt>|- ( ( ( A e. CC /\ ( cos ` A ) =/= 0 ) /\ ( A e. CC /\ ( sin ` A ) =/= 0 ) ) -> ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) = ( ( sin ` A ) / ( cos ` A ) ) )</tt>
+> and duplicate it.
+> Use Alt+left-click to click on the *second* parthensis of the goal statement
+> (so we can duplicate its antecedent) and click on the "copy" icon.
+> Select the second parenthesis of our new statement,
+> press Edit, and paste with control-V (or command-V).
+> Enter, then unify.
+
+The unification worked!
+
+In fact, that proved more than the new staement.
+Now id `reccot` shows a green checkmark, which means we've
+completed the proof.
+
+There are many other ways we could have proven this, and in fact,
+we could have done some of this with less manual work by more aggressively
+using backwards search.
+Many steps "simply worked", but there's no shame in creating intermediate
+steps that aren't instantly proved; you can apply the same process for
+proving intermediate statements.
 
 ### Creating your own examples from existing proofs
 
@@ -859,10 +1118,13 @@ Each statement is presented in the following left-to-right order:
   Many commands work on the "currently selected statement(s)",
   so it's important to be able to select them all.
   Use the box in the editor command bar to select or deselect all statements.
-* Green Checkmark (if present): If there's a green checkmark following the
+* Proof status (if present): If there's a green checkmark following the
   selector box, a recent unification has
   confirmed that this statement is proven given its context and its
-  previous statements. Any modification of a proof removes the checkmarks.
+  previous statements.
+  If there's a yello tilde, that means that it's *partly* but not
+  completely proved.
+  Any modification of a proof removes the checkmarks.
   To regenerate the checkmarks,
   select "unify" (without selecting any particular statement), which will
   re-verify the statements and show checkmarks for the
@@ -1031,6 +1293,12 @@ The "Settings" tab lets you configure metamath-lamp to your liking.
 It's important to remember that any changes you make in the
 Settings tab are *not* applied until you select
 "Apply Changes"; if you want to discard changes, select "Discard Changes".
+
+Most of the settings should be fairly obvious, and in most
+cases you won't want to change them. One in paritcular is one you might
+want to change: should edit statements with *left click*
+and thus select statements using *Alt + left click*, or the reverse?
+The choice is yours.
 
 TODO
 
