@@ -56,7 +56,7 @@ let make = React.memoCustomCompareProps(({
                 let patternFilterInts = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
                 let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesPattern(_, patternFilterInts)
                 setFilteredLabels(_ => {
-                    allLabels->Js.Array2.filter(((i,label)) => {
+                    allLabels->Js.Array2.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
@@ -196,7 +196,7 @@ let make = React.memoCustomCompareProps(({
         </Row>
     }
 
-    <Col style=ReactDOM.Style.make(~marginLeft="15px", ~marginRight="15px", ())>
+    <Col style=ReactDOM.Style.make(~margin="15px", ())>
         {rndFilters()}
         {rndPatternError()}
         <MM_cmp_pe_frame_list

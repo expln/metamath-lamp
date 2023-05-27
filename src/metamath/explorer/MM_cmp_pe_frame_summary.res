@@ -61,24 +61,28 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndExpBtn = () => {
-        <span>
-            {React.string(nbsp ++ nbsp)}
-            <span 
-                onClick=clickHnd(~act=actToggleDescrIsExpanded,())
-                style=ReactDOM.Style.make(
-                    ~display="inline-block", 
-                    ~transform=if(state.descrIsExpanded) {"rotate(90deg)"} else {"none"},
-                    ~fontFamily="monospace",
-                    ~fontSize="1.3em",
-                    ~color="grey",
-                    ~fontWeight="bold",
-                    ~cursor="pointer",
-                    ()
-                )
-            >
-                { React.string( ">" ) }
+        if (frame.descr->Belt.Option.isSome) {
+            <span>
+                {React.string(nbsp ++ nbsp)}
+                <span 
+                    onClick=clickHnd(~act=actToggleDescrIsExpanded,())
+                    style=ReactDOM.Style.make(
+                        ~display="inline-block", 
+                        ~transform=if(state.descrIsExpanded) {"rotate(90deg)"} else {"none"},
+                        ~fontFamily="monospace",
+                        ~fontSize="1.5em",
+                        ~color="grey",
+                        ~fontWeight="bold",
+                        ~cursor="pointer",
+                        ()
+                    )
+                >
+                    { React.string( ">" ) }
+                </span>
             </span>
-        </span>
+        } else {
+            <></>
+        }
     }
 
     let rndLabel = ():reElem => {
@@ -105,7 +109,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndDescr = () => {
-        if (state.descrIsExpanded) {
+        if (frame.descr->Belt.Option.isSome && state.descrIsExpanded) {
             <>
                 <Divider/>
                 <span>

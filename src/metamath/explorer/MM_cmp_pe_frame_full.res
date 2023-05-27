@@ -388,7 +388,9 @@ let make = React.memoCustomCompareProps(({
     let rndDescr = state => {
         <span>
             {
-                state.frame.descr->Belt.Option.getWithDefault("This assertion doesn't have any description.")->React.string
+                state.frame.descr->Belt.Option.getWithDefault(
+                    `This ${if (state.frame.isAxiom) {"axiom"} else {"theorem"}} doesn't have any description.`
+                )->React.string
             }
         </span>
     }
