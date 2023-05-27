@@ -182,7 +182,8 @@ results to show that what we want to prove is correct.
 
 In this case, we want to prove that something is 4, so the definition
 of 4 would probably be useful.
-We'll add a statement, and search for the definition of 4.
+We'll search for the definition of 4 so we can add it to our
+list of statements.
 
 > Select the magnifying glass (search) icon; under pattern enter
 > `4 =` and click on Search.
@@ -190,12 +191,12 @@ We'll add a statement, and search for the definition of 4.
 > You will now have a new statement with an id of 1:
 > `|- 4 = ( 3 + 1 )`
 
-Notice to to the right of the id and the left of the statement
-(starting with `|-`) there is a bold letter **P**
+Notice that to the right of the id, and the left of the statement
+(starting with `|-`), there is a bold letter **P**
 This bold letter **P**
 means that this statement is intended to be *provable*.
-some cases you'll want a statement to be a
-*hypothesis* instead.
+In some cases you'll want a statement to be a
+*hypothesis* instead being *provable*.
 You can select the **P** with Alt+left click to change it to
 to an **H** (hypothesis) or back to **P** (provable).
 We aren't going to use any hypotheses
