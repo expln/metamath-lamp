@@ -1154,6 +1154,85 @@ The Editor tab lets you edit a proof; it starts empty.
 You will create a list of statements in the editor that will eventually
 result in a proof.
 
+### Fundamental proof information
+
+At the top is fundamental proof information,
+specifically fields for its description, variables, and disjoints.
+You don't *need* to fill in a description or variable list to begin a proof.
+In many cases you won't need to specify disjoints for a proof, but sometimes
+you do. Here is information on these fields.
+
+#### Description
+
+This field can't be edited with a simple left-click;
+you must use alt+left click.
+
+*Warning*: At this time the desciption is *not* copied into
+the generated final (compressed) proof. That is an idea that is
+being considered.
+
+#### Variables
+
+This section shows a list of work variables and local variables,
+one variable per line.
+By default any variables no longer in use are removed.
+
+Whenever a new work variable is created it will be shown in this list.
+Whenver a work variable is removed (e.g., by substituting it), it's
+removed from the list.
+
+If you'd like to give a variable a "local" name in the proof to make the proof
+clearer, you can do that by editing this field.
+You simply add a line with this format:
+
+~~~~metamath
+.NEW_LABEL TYPE VARIABLE_NAME
+~~~~
+
+The "type" depends on the database, e.g., in set.mm it could be
+`class`, `wff`, or `setvar`.
+An example would be:
+
+~~~~metamath
+.loc1 class width
+~~~~
+
+Notice the ".". The period suppresses automatic deletion of 
+the line; without it, if the variable is unused then then entry will disappear.
+
+Once local variable is defined, you can use its name instead of the
+global name.
+
+If you generate a proof that uses the local variable name, the local variable
+is exported as part of the proof.
+If you don't want to export the local variable, you can replace the
+local variables with global variables before generating a proof.
+
+#### Disjoints
+
+The disjoints field
+presents a list of disjoint variables, one disjoint expression per line.
+A disjoint expression (a text line) must be a list of two or more
+variables separated by commas.
+Disjoint variables are also called *distinct* variables.
+
+An example of a disjoint field's contents might be this list, representing
+three disjoint expressions:
+
+~~~~metamath
+x,y,F
+x,y,u,v
+~~~~
+
+The disjoint expression `x,y` simply means that
+`x` and `y` must be disjoint variables (aka distinct variables).
+This means that they may not be simultaneously
+substituted with the same variable.
+The disjoint expression `x,ph` means
+variable `x` must not occur in the in wff `ph`.
+
+For more information, see the Metamath book.
+
 ### How to state the goal and hypotheses
 
 To prove something, you must first tell the system what to prove and
