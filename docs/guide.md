@@ -899,8 +899,8 @@ and, if it exists, add it.
 > This has a work variable; press on the "A with arrow" (apply substitution)
 > and substitute <tt>&amp;C1</tt> with `A` (remember to select
 > "Find Substitution" and then "Apply").
-> We now have <tt>|- ( A e. CC -> ( cos ` A ) e. CC )</tt> as the
-> final statement.
+> We now have <tt>|- ( A e. CC -> ( cos ` A ) e. CC )</tt> as a
+> statement.
 
 We've noticed another naming convention in set.mm; a name ending in "cl"
 is often used to indicate a class. Let's do it again.
@@ -908,10 +908,12 @@ is often used to indicate a class. Let's do it again.
 > Select the magnifying glass, search for *label* `sincl`, and search.
 > Select `sincl` (*not* `asincl`!).
 > Substitute <tt>&amp;C1</tt> with `A`.
+> We now have <tt>|- ( A e. CC -> ( sin ` A ) e. CC )</tt> as a
+> statement.
 
-Now we can start simplifying the reciprical of the division.
+Now we can start simplifying the reciprocal of the division.
 
-> Select the latest new (long) statement, which is:
+> Select the long statement involving the reciprocal which reads:
 
 ~~~~ metamath
 |- ( ( ( ( cos ` A ) e. CC /\ ( cos ` A ) =/= 0 ) /\
@@ -926,7 +928,7 @@ Now we can start simplifying the reciprical of the division.
 > Select that new statement and duplicate it, in the duplicate change
 > <tt>( sin ` A) e. CC</t> to `A e. CC`, Enter, and unify.
 
-This new statement antecendent is still not exactly the same as
+This new statement antecedent is still not exactly the same as
 the goal antecedent, but it's very close. It's likely the tool can
 easily complete that, so let's create a new statement based on the
 one we just created but has the *exact* same antecedent as the goal.
@@ -941,7 +943,7 @@ one we just created but has the *exact* same antecedent as the goal.
 ~~~~
 
 > Duplicate it.
-> Use Alt+left-click to click on the *second* parthensis of the goal statement
+> Use Alt+left-click to click on the *second* parentheses of the goal statement
 > (so we can duplicate its antecedent) and click on the "copy" icon.
 > Select the second parenthesis of our new statement,
 > press Edit, and paste with control-V (or command-V).
@@ -949,7 +951,7 @@ one we just created but has the *exact* same antecedent as the goal.
 
 The unification worked!
 
-In fact, that proved more than the new staement.
+In fact, that proved more than the new statement.
 Now id `reccot` shows a green checkmark, which means we've
 completed the proof.
 
