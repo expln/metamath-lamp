@@ -1359,11 +1359,14 @@ It's important to remember that any changes you make in the
 Settings tab are *not* applied until you select
 "Apply Changes"; if you want to discard changes, select "Discard Changes".
 
-Most of the settings should be fairly obvious, and in most
-cases you won't want to change them. One in paritcular is one you might
-want to change: should edit statements with *left click*
-and thus select statements using *Alt + left click*, or the reverse?
+One setting in particular that you might want to change involves
+how to interpret left click.
+Should you edit statements with *left click* -
+and thus select statements using *Alt + left click*? Or the reverse?
 The choice is yours.
+
+Most of the other settings should be fairly obvious, and in most
+cases you won't want to change them.
 
 TODO
 
