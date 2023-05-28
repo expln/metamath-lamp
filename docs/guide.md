@@ -928,12 +928,12 @@ Now we can start simplifying the reciprocal of the division.
 ~~~~
 
 > Duplicate this statement.
-> In the duplicate, change <tt>( cos &#96; A) e. CC</t> to `A e. CC`,
-> Enter, and unify.
-> Select that new statement and duplicate it, in the duplicate change
-> <tt>( sin ` A) e. CC</t> to `A e. CC`, Enter, and unify.
+> In the duplicate, change <tt>( cos &#96; A) e. CC</tt> to `A e. CC`,
+> Press Enter, and unify.
+> Select that new statement and duplicate it. In the duplicate change
+> <tt>( sin &#96; A ) e. CC</tt> to `A e. CC`, Press Enter, and unify.
 
-This new statement antecedent is still not exactly the same as
+This antecedent of this latest new statement is still not exactly the same as
 the goal antecedent, but it's very close. It's likely the tool can
 easily complete that, so let's create a new statement based on the
 one we just created but has the *exact* same antecedent as the goal.
@@ -963,9 +963,12 @@ completed the proof.
 There are many other ways we could have proven this, and in fact,
 we could have done some of this with less manual work by more aggressively
 using backwards search.
-Many steps "simply worked", but there's no shame in creating intermediate
-steps that aren't instantly proved; you can apply the same process for
-proving intermediate statements.
+Many steps "simply worked" in this example,
+but there's no shame in creating intermediate
+steps that aren't instantly proved.
+If there are intermediate statements you need to prove to lead to the goal,
+just apply the same process - repeatedly work to prove those
+intermediate statements.
 
 ### Creating your own examples from existing proofs
 
@@ -1013,7 +1016,7 @@ will *only* let you use statements that are in scope. The scope options are:
   the given label. If you want to practice re-proving some statement, use
   this and give the label of what you want to prove yourself.
   Trying to prove something *already* proven is a great way to learn how
-  to use metamath-lamp. for 2p2e4
+  to use metamath-lamp.
 * "Stop after" (label) - use all statements up to and *including* the
   given label. If you want to use statements up to some label and not beyond,
   this is how to do that.
