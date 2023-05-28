@@ -572,7 +572,7 @@ It illustrates several symbols in the set.mm database:
   consequent.
 * `/` represents complex number division.
 * The form <tt>( FUNCTION &#96; ARGUMENT )</tt>
-  applies function FUNCTION to argument, that is, it determines the
+  applies function FUNCTION to ARGUMENT, that is, it determines the
   value of the function for that argument.
   Therefore <tt>( tan &#96; A )</tt> is the tangent of `A`.
   This left apostrophe notation originated from Peano and was adopted in
