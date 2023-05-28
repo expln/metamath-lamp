@@ -22,6 +22,15 @@ The rest of this guide is a reference guide,
 explaining the various parts of the user interface.
 We conclude with how to get or share more information.
 
+Metamath-lamp is a new proof assistant for creating Metamath proofs.
+As a result, it currently lacks some functionality, such as
+undo/redo and some of the automation rules included in other tools
+like mmj2. There are also no doubt some inconsistencies in its UI due
+to its newness.
+That said, metamath-lamp already provides useful functionality,
+including some automation support.
+We hope you'll find it useful.
+
 Note that metamath-lamp changes over time, so some of this guide
 may not exactly match what you see. If you see a difference, please
 let us know so we can fix this guide. We try to make this guide
