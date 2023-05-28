@@ -3,10 +3,10 @@
 Metamath-lamp (Lite Assistant for Metamath Proofs) is
 a proof assistant for creating formal
 mathematical proofs in the [Metamath system](https://us.metamath.org/).
-Unlike most other Metamath proof systems
-(such as mmj2 or original metamath-exe),
-users can use this proof assistant without installing anything;
-you can simply run it directly using your web browser.
+Unlike most other Metamath proof systems,
+such as mmj2 or metamath-exe (the first Metamath proof assistant),
+users can use this proof assistant without installing anything.
+You can instead simply run it directly using your web browser!
 More information on metamath-lamp is available at the
 [metamath-lamp source code repository](https://github.com/expln/metamath-lamp).
 
@@ -14,8 +14,9 @@ This is a guide for metamath-lamp, including both a
 user guide (tutorial) and a reference guide.
 We'll begin with a "quick start"
 (a brief introduction on how to start and use metamath-lamp).
-This will be followed by a user guide,
-basically a sequence of worked examples showing how to use the tool
+This will be followed by a user guide / tutorial,
+which is primarily a sequence of worked examples showing how to use
+the metamath-lamp tool
 (starting with a proof that two plus two equals four).
 The rest of this guide is a reference guide,
 explaining the various parts of the user interface.
@@ -114,7 +115,8 @@ must be used and where they must not be used.
 For example, set.mm requires that infix functions like "+"
 be surrounded by parentheses.
 This is very easy to understand once you have 
-some experience with Metamath proofs in set.mm and eliminates ambiguity.
+some experience with Metamath proofs in set.mm,
+and it eliminates ambiguity.
 We will explain the rules in more detail later.
 For now, if you encounter an error while repeating
 the first example, please re-check if you typed in all the
@@ -358,6 +360,7 @@ You can only generate a proof once you *have* a proof.
 
 Metamath-proof can export the current state of your efforts,
 whatever they are, and anyone can reload them later.
+This lets you share details of a proof, even one that isn't complete.
 
 > Left-click on the "hamburger" icon
 > (3 short horizontal lines)
@@ -395,10 +398,13 @@ statement is justified (proven) by using the already
 accepted theorem `oveq2i` when applied to those ids.
 Advanced users can edit this to force metamath-lamp to
 try to use a different justification.
+You can also press the "trash can" icon next to the justification
+to delete it (e.g., because it uses a statement no longer in
+your proof, or because you want to prove it some other way).
 
 But what does this justification *mean*?
 
-Metamath-lamp can provide a visualization to show what
+Metamath-lamp can provide a visualization to show you what
 it means. So let's enable it.
 
 > Left-click on the "hamburger" icon
@@ -1005,6 +1011,14 @@ a database (such as set.mm and iset.mm) and pick an existing proof in it.
 Then load the database and stop reading just before that proof.
 Try to create your own proof, consulting the known proof when you get stuck.
 
+### Loading existing metamath-lamp proofs
+
+You can use "import to JSON" to load worked examples of metamath-lamp.
+
+For example, we have completed examples of:
+* [2p2e4](https://raw.githubusercontent.com/expln/metamath-lamp/master/docs/2p2e4.lamp.json)
+* [reccot](https://raw.githubusercontent.com/expln/metamath-lamp/master/docs/reccot.lamp.json).
+
 ### Notes about Metamath databases
 
 As noted earlier, a Metamath database is a sequence of axioms
@@ -1058,8 +1072,20 @@ Thus, in set.mm, `nnre` represents "the natural numbers are real numbers",
 `nnge1` represents "the natural numbers are greater than or equal
 to 1", and `2p2e4` represents "two plus two equals four".
 
-This is the end of the user guide / tutorial.
-The rest of this guide will walk through various portions of the metamath-lamp
+### Conclusion of this user guide
+
+This is the end of the user guide / tutorial portion of this guide.
+We hope you've found it helpful.
+
+If you need more help on using the metamath-lamp tool
+or how to create proofs, the best place to go is probably the
+[Metamath mailing list](https://us.metamath.org/mm-mailing-list.html).
+We'd love to see more people creating proofs and getting them
+into metamath databases! There's a lot to learn, but we would be
+delighted to help.
+
+The rest of this guide is a reference guide,
+where we will walk through various portions of the metamath-lamp
 user interface to help you understand how to use it.
 
 ## Loading source Metamath databases to create the proof context
@@ -1420,7 +1446,7 @@ If you need help on the tool or how to create proofs, the best place to go
 is the
 [Metamath mailing list](https://us.metamath.org/mm-mailing-list.html).
 You can find a lot of general information about Metamath at the
-{Metamath home page](https://us.metamath.org/index.html).
+[Metamath home page](https://us.metamath.org/index.html).
 
 We'd love feedback and contributions on the metamath-lamp tool.
 For tool feedback on changes you'd like to see, please file an issue at the
