@@ -498,6 +498,11 @@ Let's use metamath-lamp to create another proof, namely,
 that the reciprocal of the cotangent is tangent.
 This has already been proved in the set.mm database as theorem `reccot`.
 
+This proof will show some capabilities we didn't see in the previous
+example. This includes work variables (and how to substitute them) and
+metamath-lamp's syntax-aware mechanisms for copying and pasting
+portions of text (aka "selectors").
+
 This exercise is based on the video showing how to prove the
 same theorem using the mmj2 tool
 (["Introduction to Metamath and mmj2" by David A. Wheeler](https://www.youtube.com/watch?v=Rst2hZpWUbU))
@@ -754,7 +759,7 @@ modify it.
 
 An easy way to modify the new statement is to
 use metamath-lamp's mechanisms for copying and pasting
-portions of text.
+portions of text (aka "selectors").
 
 > Using Alt+left click, select the *second* parenthesis of the *goal*
 > statement. This will smartly select a syntactically complete portion
