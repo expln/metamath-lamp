@@ -1311,7 +1311,7 @@ everywhere). If it is, you may may select "Apply" to apply it.
 
 If you select one statement and then select unify, you'll enter a
 "proving bottom-up" dialogue. This lets you search for a way to prove
-the selected statement bottom-up using the current context.
+the selected statement backwards (bottom-up) using the current context.
 You can change the search options then select "prove" to start the search
 (or select cancel to cancel). Proving bottom-up can take a long time,
 depending the problem and the speed of the computer.
@@ -1322,10 +1322,25 @@ proving), and so on.
 This dialogue has the following options:
 
 Root statements ("first level" and "other levels"):
+These let you select which statements (if any) *must* be used by the
+resulting proof. "First level" selects the statements that must be
+used to directly prove this statement, "other levels" selects the
+other statements that must eventually be used.
+"None" means that no statements are required.
+If it shows an expression like "1/8", the first number is the number of
+statements that are required, and the second number is the number of
+statements that *could* be required at this point.
+Click on the current value to select the statements to require.
+If the statement to be proved is not currently proved,
+they are both "None" by default.
+If this statement is already proved, the "first level" will be set
+to the statements that were used.
 
 Label: If set, this is the sole ("root") statement to use as a starting
 point. Note that this is set if the system previously found a justification
 for this statement using this justification.
+If blank, any label may be used as the justification (and the system
+will try them all in the process of searching).
 
 Search depth: How deep the search is to go.
 A single statement is depth 1, a statement that requires 1 other
@@ -1334,22 +1349,36 @@ The default search depth value is 4. Larger numbers enable more automation
 but generally take exponentially more time.
 
 Length restriction: This controls the interpretation of search depth.
+A value of "LessEq" means that the search depth must be less than or equal
+to the given search depth, while "Less" means that the search depth must be
+less than the given search depth. A value of "No" means there is no
+limit to the search depth.
 
 Checkbox Allow new disjoints:
+Allow the addition of new disjoints.
 
 Checkbox Allow new statements:
+Allow the addition of new statements.
 
 Checkbox Allow new variables:
+Allow the addition of new variables.
 
 Logging level (0..2):
-If the logging level is more than 1, you may enter the maximum number
+The logging level (aka debug level) enables logging of certain kinds
+of errors.
+If the logging level is 1 or more, you may enter the maximum number
 of branches.
+This logs additional information, and is intended to help debugging
+or performance improvements by tool developers.
 
 You can speed up searches by not allowing new disjoints, new statements,
 and/or new variables, but in some cases this may mean a proof won't be
 found.
 
-TODO
+When you press "Prove" it will repeatedly attempt various options in
+an attempt to prove the statement, showing the depth of the current search
+(e.g., "1/4" means it's doing depth 1 searches out of a maximum of 4)
+and how many attempts it's made so far.
 
 ## Settings
 
