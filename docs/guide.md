@@ -30,7 +30,7 @@ match the tool it's describing.
 
 You don't need to install anything to run metamath-lamp.
 To start metamath-lamp,
-just use you web browser and view the
+just use your web browser and view the
 **[main Metamath-lamp web site](https://expln.github.io/lamp/latest/index.html)**
 or some other metamath-lamp web site.
 
@@ -44,8 +44,8 @@ To use metamath-lamp, do the following:
 * Now create the proof.
   To do this, you add other statements and repeatedly unify them
   until the goal is completely proven.
-  You can create the proof bottom-up, top-down, middle-out, or
-  whatever other order makes sense to you.
+  You can create the proof backwards from the goal,
+  forwards towards the goal, or in whatever other order makes sense to you.
 * Copy the compressed proof of the goal into the clipboard.
   You can do this by selecting the green checkmark next to the goal
   to show the compressed proof, then press copy.
@@ -109,21 +109,16 @@ blank. We do need to tell metamath-lamp our goal.
 Be sure to surround each symbol by at least one space (the first
 and last symbols can start and end the statement).
 
-The set.mm database is picky about the placement of parentheses.
-For example, set.mm requires that the infix "+"
-be surrounded by parentheses; the parentheses are *not* optional.
-More generally,
-when a function that takes two classes and produces a class is applied
-as part of an infix expression, the expression is always surrounded by
-parentheses.
-For example, the use of "+" in <tt>( 2 + 2 )</tt>.
-Similarly, predicate expressions in infix form that take two or three wffs
-(a true or false value) and produce a wff are also always
-surrounded by parentheses, such as <tt>( ph -> ps )</tt>.  In contrast,
-a binary relation (which compares two classes and produces a wff)
-applied in an infix expression is *not* surrounded by parentheses. This
-includes set membership, for example, "1 e. RR" (1 is a member
-of the set of real numbers) has no parentheses.
+The set.mm database has strict definitions where parenthesis
+must be used and where they must not be used.
+For example, set.mm requires that infix functions like "+"
+be surrounded by parentheses.
+This is very easy to understand once you have 
+some experience with Metamath proofs in set.mm and eliminates ambiguity.
+We will explain the rules in more detail later.
+For now, if you encounter an error while repeating
+the first example, please re-check if you typed in all the
+statements exactly as per the example.
 
 For our purposes, we're going to rename our goal.
 Renaming the target statement (as well as any other statement) is
@@ -134,31 +129,20 @@ and eventually this name will appear in the final generated proof.
 If you don't know what else to name the goal, we suggest using the name
 "qed" to reduce confusion.
 
-If you plan to eventually add this proof to the set.mm or iset.mm
-databases then you need to follow the set.mm database conventions,
-including its conventions for naming labels.
-In most cases, the name of a theorem is a concatentation of
-"label fragments" of the important part of its conclusion.
-Each label fragment as a meaning, e.g., "nn" for natural numbers,
-"re" for real numbers, "1" for the number 1, "gt" for "greater than",
-"le" for less than, "an" for the boolean operation "and", and so on.
-Most symbols are defined by an assertion named "df-NAME", where
-NAME is the label fragment used. Note that in set.mm, "natural number"
-means an integer that is one or larger.
-Thus, in set.mm, "nnre" represents "the natural numbers are real numbers",
-and "nnge1" represents "the natural numbers are greater than or equal
-to 1".
-You can see the [set.mm label naming conventions](https://us.metamath.org/mpeuni/conventions-labels.html)
-and
-[set.mm general conventions](https://us.metamath.org/mpeuni/conventions.html)
-for more details.
+In general, if you plan to eventually add this proof to the set.mm or iset.mm
+databases, then you need to follow the
+[set.mm database conventions](https://us.metamath.org/mpeuni/conventions.html),
+including the
+[set.mm label naming conventions](https://us.metamath.org/mpeuni/conventions-labels.html).
+In this case, the conventional name for this goal would be
+`2p2e4`.
 
-In set.mm the label naming convention for
-a simple arithmetic expression is to use "p" for "plus" and "e" for "equals".
-Thus, let's rename this goal statement to "2p2e4" to follow its conventions:
+So let's rename this goal statement to `2p2e4`:
 
-> Select the statement number (1) using the left mouse button.
-> Change the name of the statement to "2p2e4" and press Enter (Return).
+> Left click the label of the first statement 
+> (you have to click directly on the number "1"
+> to the left of the first statement).
+> Change the name of the statement from "1" to "2p2e4" and press Enter (Return).
 
 #### Deciding on a proof strategy for 2p2e4
 
@@ -168,8 +152,9 @@ Metamath-lamp can actually do some things automatically. However, we will
 *intentionally* avoid some of those automations to see how to
 prove something in cases where the automations can't do enough.
 
-There are many different ways to create a proof, including top-down,
-bottom-up, or even middle-out. Metamath-lamp supports them all.
+There are many different ways to create a proof, including backwards
+from the goal, forwards toward the goal, or any other order.
+Metamath-lamp supports them all.
 Also, note that there are often many proofs for the same true statement.
 Here we're going to show one way to do it, as an example.
 
@@ -327,6 +312,9 @@ and then selecting unify.
 > `|- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )`
 > and press "Unify".
 > A new dialogue will display titled "Proving bottom-up".
+> This will enable up to search for a solution backwards from our
+> currently-selected statement to other statements that will help us prove
+> the selected statement.
 > These dialogue options control how metamath-lamp will search for a proof
 > of this statement. For now, we'll just accept the defaults and press the
 > "Prove" button at the bottom of the dialogue.
@@ -713,9 +701,8 @@ That means that we need to replace all instances of <tt>&amp;C1</tt>
 with the value `A`. This process of replacing values is called
 applying a substitution.
 
-> Select the icon A with an arrow under it (apply a substitution).
-> Since we didn't select any particular statements, this will apply to
-> all statements. In "Replace what" enter <tt>&amp;C1</tt> and in "Replace with"
+> Select the icon "A with an arrow under it" (apply a substitution).
+> In "Replace what" enter <tt>&amp;C1</tt> and in "Replace with"
 > enter `A` - once that's done, press "Find Substitution".
 > The system will check if this is valid; in this case, it could that
 > there was only 1 way to interpret this command and that the result is valid.
@@ -739,9 +726,8 @@ Let's exploit that.
 We again have a work variable, and we already know what its value
 should be, so let's deal with that now.
 
-> Select the icon A with an arrow under it (apply a substitution).
-> Since we didn't select any particular statements, this will apply to
-> all statements. In "Replace what" enter <tt>&amp;C1</tt> and in "Replace with"
+> Select the icon "A with an arrow under it" (apply a substitution).
+> In "Replace what" enter <tt>&amp;C1</tt> and in "Replace with"
 > enter `A` - once that's done, press "Find Substitution".
 > It will show you that you can change <tt>&amp;C1</tt> to `A` - press
 > `Apply` to apply the change.
@@ -1019,6 +1005,59 @@ a database (such as set.mm and iset.mm) and pick an existing proof in it.
 Then load the database and stop reading just before that proof.
 Try to create your own proof, consulting the known proof when you get stuck.
 
+### Notes about Metamath databases
+
+As noted earlier, a Metamath database is a sequence of axioms
+and their associated proven theorems.
+The most widely supported Metamath database today is set.mm
+(classical logic with ZFC set theory), followed by iset.mm
+(intuitionistic logic witih intuitionistic set theory),
+and others are available.
+Each database has its own conventions and notations.
+The set.mm and iset.mm databases share many conventions and notations, so we'll
+focus on those.
+
+The
+[set.mm general conventions](https://us.metamath.org/mpeuni/conventions.html)
+and
+[set.mm label naming conventions](https://us.metamath.org/mpeuni/conventions-labels.html)
+document its various conventions to encourage consistency.
+
+Let's discuss a few specifics.
+
+We mentioned earlier that set.mm is picky about the placement
+of parentheses. Let's explain the rules in more detail:
+
+* When a function that takes two classes and produces a class is applied
+  as part of an infix expression, the expression is always surrounded by
+  parentheses.
+  For example, the use of "+" in <tt>( 2 + 2 )</tt>.
+* Predicate expressions in infix form that take two or three wffs
+  (a true or false value) and produce a wff are also always
+  surrounded by parentheses, such as <tt>( ph -> ps )</tt>.
+* In contrast, a binary relation
+  (which compares two classes and produces a wff)
+  applied in an infix expression is *not* surrounded by parentheses. This
+  includes set membership, for example, "1 e. RR" (1 is a member
+  of the set of real numbers) has no parentheses.
+
+The [set.mm label naming conventions](https://us.metamath.org/mpeuni/conventions-labels.html)
+page discusses those conventions in more detail.
+In most cases, the name of a theorem is a concatentation of
+"label fragments" of the important part of its conclusion.
+Each label fragment as a meaning, e.g., "nn" for natural numbers,
+"re" for real numbers, "1" for the number 1, "gt" for "greater than",
+"le" for less than, "an" for the boolean operation "and", and so on.
+The label naming convention for
+a simple arithmetic expression is to use "p" for "plus" and "e" for "equals".
+Most symbols are defined by an assertion named "df-NAME", where
+NAME is the label fragment used. Note that in set.mm, "natural number"
+means an integer that is one or larger.
+
+Thus, in set.mm, `nnre` represents "the natural numbers are real numbers",
+`nnge1` represents "the natural numbers are greater than or equal
+to 1", and `2p2e4` represents "two plus two equals four".
+
 This is the end of the user guide / tutorial.
 The rest of this guide will walk through various portions of the metamath-lamp
 user interface to help you understand how to use it.
@@ -1288,11 +1327,10 @@ because the conclusion has a `0` constant which is later followed by a
 
 ### Replacement
 
-Select the A with arrow icon (apply a substitution) to substitute
+Select the icon "A with arrow icon under it"
+(apply a substitution) to substitute
 expressions in one or more statements.
-The substitutions will be applied to the selected statements;
-if no statements are selected the replacements will be applied to
-all of them.
+The substitutions will be applied to all statements.
 
 After you select this icon
 you'll be presented with a simple dialogue box to describe the
@@ -1303,9 +1341,12 @@ replacement (substitution):
 * In the "Replace with" field enter what you want to change that to
   (e.g., `A`).
 
+If you select statement(s) before pressing the icons, a copy
+of the statements will be places in the "Replace what" field.
+
 When you press "Find Substitution" the tool will determine if it
 can apply this substitution (that is, if the results are valid types
-everywhere). If it is, you may may select "Apply" to apply it.
+everywhere). If it is, you may select "Apply" to apply it.
 
 ### Proving bottom-up
 
@@ -1389,6 +1430,7 @@ please propose them as pull requests to the same
 [metamath-lamp source code repository](https://github.com/expln/metamath-lamp).
 Thank you for your time.
 
-### Authors
+### Authors and Reviewers
 
-This guide was written by David A. Wheeler and expln.
+This guide was written by David A. Wheeler (@david-a-wheeler)
+and reviewed by Igor Ieskov (@expln).
