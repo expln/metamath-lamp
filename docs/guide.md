@@ -680,8 +680,8 @@ In work variables the number will increase from 1 as needed to keep
 different work variables distinct..
 
 If you look carefully you'll see that the "Variables" field in the
-proof display has
-new information. What's saying is that there's a work variable of type "class"
+proof display has new information.
+What it's saying is that there's a work variable of type "class"
 with the name "&amp;C1". This field is helpful when proofs get long, because
 it will show you in one place what variables are still not handled.
 
