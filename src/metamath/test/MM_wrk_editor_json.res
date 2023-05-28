@@ -111,7 +111,7 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.srcs->Js.Array2.map(src => {...src, ast:None}),
+        srcs: state.srcs->Js.Array2.map(src => {...src, ast:None, allLabels:[]}),
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
@@ -137,6 +137,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     url: d->str("url", ()),
                     readInstr: d->str("readInstr", ()),
                     label: d->str("label", ()),
+                    resetNestingLevel: d->bool("resetNestingLevel", ~default=()=>true, ()),
                     ast: None,
                     allLabels: [],
                 }

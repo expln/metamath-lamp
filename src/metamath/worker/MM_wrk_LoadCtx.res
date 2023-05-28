@@ -11,10 +11,11 @@ type mmScope = {
     expectedNumOfAssertions:int,
     stopBefore: option<string>,
     stopAfter: option<string>,
+    resetNestingLevel:bool,
 }
 
 type request = 
-    | LoadMmContext({scopes:array<mmScope>, dontChangeNestingLevelForLastElem:bool})
+    | LoadMmContext({scopes:array<mmScope>})
 
 type response =
     | MmContextLoadProgress({pct:float})
@@ -37,12 +38,11 @@ let beginLoadingMmContext = (
     ~scopes:array<mmScope>, 
     ~onProgress:float=>unit, 
     ~onDone:result<mmContext,string>=>unit,
-    ~dontChangeNestingLevelForLastElem:bool=false,
     ()
 ) => {
     beginWorkerInteraction(
         ~procName,
-        ~initialRequest = LoadMmContext({ scopes:scopes, dontChangeNestingLevelForLastElem }),
+        ~initialRequest = LoadMmContext({ scopes:scopes }),
         ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | MmContextLoadProgress({pct}) => onProgress(pct)
@@ -58,19 +58,17 @@ let beginLoadingMmContext = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | LoadMmContext({scopes, dontChangeNestingLevelForLastElem }) => {
+        | LoadMmContext({scopes}) => {
             let totalNumOfAssertions = scopes->Js_array2.reduce((a,e) => a+e.expectedNumOfAssertions, 0)->Belt_Int.toFloat
             let weights = scopes->Js_array2.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
-                let i = ref(0)
-                let len = scopes->Js_array2.length
                 let ctx = createContext(())
-                while (i.contents < len) {
-                    let scope = scopes[i.contents]
-                    let basePct = weights->Js_array2.reducei((a,w,idx) => if idx < i.contents {a +. w} else {a}, 0.)
-                    let weight = weights[i.contents]
+                for i in 0 to scopes->Js_array2.length-1 {
+                    let scope = scopes[i]
+                    let basePct = weights->Js_array2.reducei((a,w,idx) => if idx < i {a +. w} else {a}, 0.)
+                    let weight = weights[i]
                     loadContext(
-                        scopes[i.contents].ast,
+                        scopes[i].ast,
                         ~initialContext=ctx,
                         ~stopBefore=?scope.stopBefore,
                         ~stopAfter=?scope.stopAfter,
@@ -80,12 +78,11 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         },
                         ()
                     )->ignore
-                    if (i.contents != len - 1 || !dontChangeNestingLevelForLastElem) {
+                    if (scope.resetNestingLevel) {
                         while (ctx->getNestingLevel != 0) {
                             ctx->closeChildContext
                         }
                     }
-                    i := i.contents + 1
                 }
                 sendToClient(MmContextLoadProgress({pct: 1.}))
                 sendToClient(MmContextLoaded({ctx:Ok(ctx)}))
@@ -121,18 +118,20 @@ let getAllLabelsAfterReading = (src:mmCtxSrcDto):(option<string>, option<string>
 
 let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmScope>):bool => {
     let (stopBeforeOrig, stopAfterOrig, allLabels) = getAllLabelsAfterReading(src)
-    let (stopBefore, stopAfter, expectedNumOfAssertions) =
+    let (stopBefore, stopAfter, expectedNumOfAssertions, resetNestingLevel) =
         if (allLabels->Js_array2.includes(label)) {
             (
                 Some(label),
                 None,
-                allLabels->Js_array2.indexOf(label)
+                allLabels->Js_array2.indexOf(label),
+                false
             )
         } else {
             (
                 stopBeforeOrig,
                 stopAfterOrig,
-                allLabels->Js_array2.length
+                allLabels->Js_array2.length,
+                true
             )
         }
     let ast = switch src.ast {
@@ -144,6 +143,7 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
         expectedNumOfAssertions,
         stopBefore,
         stopAfter,
+        resetNestingLevel,
     }
     res->Js_array2.push(mmScope)->ignore
     allLabels->Js_array2.length != expectedNumOfAssertions

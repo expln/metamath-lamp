@@ -820,6 +820,48 @@ let make = (
         </Col>
     }
 
+    let loadEditorState = (stateLocStor:editorStateLocStor):unit => {
+        setState(_ => createInitialEditorState(
+            ~settingsV=preCtxData.settingsV.ver, 
+            ~settings=preCtxData.settingsV.val, 
+            ~srcs=stateLocStor.srcs,
+            ~preCtxV=preCtxData.ctxV.ver, 
+            ~preCtx=preCtxData.ctxV.val, 
+            ~stateLocStor=Some(stateLocStor)
+        ))
+        reloadCtx.current->Js.Nullable.toOption
+            ->Belt.Option.map(reloadCtx => {
+                reloadCtx(stateLocStor.srcs)->promiseMap(res => {
+                    switch res {
+                        | Ok(_) => ()
+                        | Error(msg) => {
+                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                updateModal(modalRef, modalId, () => {
+                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                        <Col spacing=1.>
+                                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                                                { React.string(`Could not realod the context because of the error:`) }
+                                            </span>
+                                            <span style=ReactDOM.Style.make(~color="red", ())>
+                                                { React.string(msg) }
+                                            </span>
+                                            <span>
+                                                { React.string(`This error happened when loading the context:`) }
+                                            </span>
+                                            {rndSrcDtos(stateLocStor.srcs)}
+                                            <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                                {React.string("Ok")} 
+                                            </Button>
+                                        </Col>
+                                    </Paper>
+                                })
+                            })->ignore
+                        }
+                    }
+                })
+            })->ignore
+    }
+
     let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
             | Error(errorMsg) => {
@@ -838,45 +880,7 @@ let make = (
                 false
             }
             | Ok(stateLocStor) => {
-                setState(_ => createInitialEditorState(
-                    ~settingsV=preCtxData.settingsV.ver, 
-                    ~settings=preCtxData.settingsV.val, 
-                    ~srcs=stateLocStor.srcs,
-                    ~preCtxV=preCtxData.ctxV.ver, 
-                    ~preCtx=preCtxData.ctxV.val, 
-                    ~stateLocStor=Some(stateLocStor)
-                ))
-                reloadCtx.current->Js.Nullable.toOption
-                    ->Belt.Option.map(reloadCtx => {
-                        reloadCtx(stateLocStor.srcs)->promiseMap(res => {
-                            switch res {
-                                | Ok(_) => ()
-                                | Error(msg) => {
-                                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                        updateModal(modalRef, modalId, () => {
-                                            <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                                <Col spacing=1.>
-                                                    <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                                                        { React.string(`Could not realod the context because of the error:`) }
-                                                    </span>
-                                                    <span style=ReactDOM.Style.make(~color="red", ())>
-                                                        { React.string(msg) }
-                                                    </span>
-                                                    <span>
-                                                        { React.string(`This error happened when loading the context:`) }
-                                                    </span>
-                                                    {rndSrcDtos(stateLocStor.srcs)}
-                                                    <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
-                                                        {React.string("Ok")} 
-                                                    </Button>
-                                                </Col>
-                                            </Paper>
-                                        })
-                                    })->ignore
-                                }
-                            }
-                        })
-                    })->ignore
+                loadEditorState(stateLocStor)
                 true
             }
         }

@@ -7,6 +7,7 @@ type mmScope = {
   expectedNumOfAssertions: int,
   stopBefore: option<string>,
   stopAfter: option<string>,
+  resetNestingLevel:bool,
 }
 
 type request
@@ -16,7 +17,6 @@ let beginLoadingMmContext: (
     ~scopes: array<mmScope>, 
     ~onProgress: float => unit, 
     ~onDone: result<MM_context.mmContext, string> => unit,
-    ~dontChangeNestingLevelForLastElem:bool=?,
     ()
 ) => unit
 

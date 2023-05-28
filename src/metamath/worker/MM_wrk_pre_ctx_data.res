@@ -12,6 +12,7 @@ type mmCtxSrcDto = {
     url: string,
     readInstr: string,
     label: string,
+    resetNestingLevel:bool,
     ast: option<mmAstNode>,
     allLabels: array<string>,
 }

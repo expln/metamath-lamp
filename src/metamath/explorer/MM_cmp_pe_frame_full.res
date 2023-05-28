@@ -200,7 +200,6 @@ let loadFrameContext = (
         ~scopes = createMmScopesForFrame( ~srcs, ~label, ),
         ~onProgress,
         ~onDone,
-        ~dontChangeNestingLevelForLastElem=true,
         ()
     )
 }
@@ -316,6 +315,10 @@ let make = React.memoCustomCompareProps(({
         setRefWidth(_ => calcColumnWidth(`#${proofTableId} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
         None
     }, [numberOfRowsInProofTable])
+
+    let rndLoadIntoEditorBtn = () => {
+        <Button onClick={_=>()}> {React.string("load into editor")} </Button>
+    }
 
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
