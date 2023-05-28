@@ -824,8 +824,10 @@ the relevant section of the new statement.
 We now have a new statement, showing value of a tangent is still
 valid given the antecedent of our goal:
 
-> <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
-> <tt>( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )</tt>
+~~~~metamath
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) ->
+     ( tan ` A ) = ( ( sin ` A ) / ( cos ` A ) ) )
+~~~~
 
 It turns out that metamath-lamp can immediately prove this new statement.
 
@@ -873,14 +875,21 @@ that has the same antecedent as our goal, that shows the value of
 the cotangent.
 
 > Select the checkbox on the left for the statement:
-> <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
-> <tt>     ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) ) )</tt>
-> and duplicate the statement by pressing the icon showing a "+" with
+
+~~~~metamath
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) ->
+     ( cot ` A ) = ( ( cos ` A ) / ( sin ` A ) ) )
+~~~~
+
+> Now duplicate the statement by pressing the icon showing a "+" with
 > circles under it (duplicate statement).
 > Use left-click to edit it, and surround the left and right
 > and sides of its equality with `( 1 / ... )` resulting in:
-> <tt>|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -></tt>
-> <tt>     ( 1 / ( cot ` A ) ) = ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) )</tt>
+
+~~~~metamath
+|- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) ->
+     ( 1 / ( cot ` A ) ) = ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) )
+
 > ... once you're done, press unify.
 
 Clearly we're going to need to simplify the reciprocal of the cosine
