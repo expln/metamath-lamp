@@ -889,6 +889,7 @@ the cotangent.
 ~~~~metamath
 |- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) ->
      ( 1 / ( cot ` A ) ) = ( 1 / ( ( cos ` A ) / ( sin ` A ) ) ) )
+~~~~
 
 > ... once you're done, press unify.
 
