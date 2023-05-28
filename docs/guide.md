@@ -603,7 +603,7 @@ We'll again show going forwards.
 
 Note that in real proof efforts you'll often try many different approaches.
 
-#### Expanding the definition of tangent
+#### Beginning to expand the definition of tangent
 
 We know we're going to need more information about the tangent and
 cotangent. So let's retrieve their definitions.
@@ -643,6 +643,8 @@ and therefore it's undefined when the cosine of A equals zero.
 > While still in the search dialogue, select the box next to `tanval`.
 > and press "Choose Selected".
 
+#### Interlude: Work variables
+
 We have a new statement, as expected. However, it has a form we haven't
 seen before:
 
@@ -651,26 +653,56 @@ seen before:
    ( tan ` &C1 ) = ( ( sin ` &C1 ) / ( cos ` &C1 ) ) )
 ~~~~
 
-The "&" symbols are what's called "work variables".
+The symbols beginning with "&amp;" are what's called "work variables".
 If you've used the mmj2 tool, this is the same thing as mmj2's work variables.
-Work variables often show up when creating proofs, and for reasons.
-The fundamental issue is that although
+Work variables often show up when creating proofs.
+The fundamental issue is that although a theorem or axiom may use a variable
+(such as `A`), those variables can be replaced with other expressions
+when they are used.
+In this case,
 the original "tanval" showed what the results are when `A` is the argument,
-we aren't limited to using `A`, we can use any class.
-Metamath-lamp won't always know exactly what value you'll want, so it
-will create work variables that you can then replace with whatever
-you *do* want.
+but we aren't limited to using `A`; we can use any expression that
+produces a class.
+In cases where metamath-lamp cannot be certain of exactly what you want, it
+will create work variables that you can then replace (substitute)
+with whatever you *do* want.
 
-When using set.mm or iset.mm, you'll see work variables of the form
-&amp;W1, &amp;C1, and &amp;S1
-for the first 'wff' (true/false values), 'class', and 'set variable'
-to be expressed as a work variable.
-The number will increase from 1 as needed.
+When using set.mm or iset.mm, you'll see work variables of certain forms:
 
-If you look carefully you'll see that the "Variables" field has
+* &amp;W<i>number</i> : an expression that is a well-formed formula (wff),
+  in short, some value that is true or false.
+  This could be a variable that is a wff, such as
+  `ph` (the ASCII representation for "&#x1D711;"),
+  `ps` (for "&#x1D713;"),
+  `ch` (for "&#x1D712;"), or
+  `th` (for "&#x1D703;").
+  But it could be any other wff expression, such as `ph /\ ps`.
+* &amp;C<i>number</i> : an expression that is a class.
+  Any set is a class (though not all classes are sets).
+  This could be a variable that is a class, such as
+  `A`, `B`, `C`, and so on. It could also be an expression that is a class,
+  such as <tt>( sin &#96; A )</tt>.
+* &amp;S<i>number</i> : a set variable.
+  This represents a variable that represents a set, such as `x`, `y`, or `z`.
+  This can't be an expression (class variables are used in this case).
+  Set variables can show up immediately after quantifiers; requiring them
+  to be a variable ensures that they are syntactically valid.
+  
+In work variables the number will increase from 1 as needed to keep
+different work variables distinct..
+
+If you look carefully you'll see that the "Variables" field in the
+proof display has
 new information. What's saying is that there's a work variable of type "class"
 with the name "&amp;C1". This field is helpful when proofs get long, because
 it will show you in one place what variables are still not handled.
+
+As we'll see in a moment, we'll use the
+icon "A with an arrow under it" (apply a substitution) to replace
+the work variables with symbols or expressions so we can complete
+the proof.
+
+#### Completing the work to expand the definition of tangent
 
 We need to replace each work variable with an expression of the correct type
 that will help us prove our goal.
