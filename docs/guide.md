@@ -1310,49 +1310,98 @@ everywhere). If it is, you may may select "Apply" to apply it.
 ### Proving bottom-up
 
 If you select one statement and then select unify, you'll enter a
-"proving bottom-up" dialogue. This lets you search for a way to prove
-the selected statement backwards (bottom-up) using the current context.
-You can change the search options then select "prove" to start the search
-(or select cancel to cancel). Proving bottom-up can take a long time,
-depending the problem and the speed of the computer.
+"proving bottom-up" dialogue.
+
+The bottom-up prover does a breadth-first search to find a proof of
+the selected statement backwards (bottom-up) using the current context
+and the options set in this "proving bottom-up" dialogue.
 It essentially works backwards to find a match, first with a single level,
 then with 2 levels (a statement that depends on another that also requires
 proving), and so on.
+It will stop once it finds a proof.
+In this version it uses no heuristics, and simply tries all allowed
+options as specified in the dialogue.
+
+Typically you would modify the search options shown in this
+dialogue box and press "Prove" (or "Cancel" if you don't want to search).
+When you press "Prove" it will repeatedly attempt various options in
+an attempt to prove the statement, showing the depth of the current search
+(e.g., "1/4" means it's doing depth 1 searches out of a maximum of 4)
+and how many attempts it's made so far. Press the circled "X" to
+stop its attempts to find a proof.
+
+Proving bottom-up can take a long time,
+depending the problem and the speed of the computer.
+The options selected here will affect whether or not it *can* find a proof,
+and the time it takes to do it,
+Therefore, selecting the *right* options for your circumstance
+in the proving bottom-up dialogue box can be very important.
+
+### Proving bottom-up dialogue box options
 
 This dialogue has the following options:
 
 Root statements ("first level" and "other levels"):
-These let you select which statements (if any) *must* be used by the
-resulting proof. "First level" selects the statements that must be
-used to directly prove this statement, "other levels" selects the
-other statements that must eventually be used.
-"None" means that no statements are required.
-If it shows an expression like "1/8", the first number is the number of
-statements that are required, and the second number is the number of
-statements that *could* be required at this point.
-Click on the current value to select the statements to require.
+These let you select which statements (if any) currently
+in the proof may be used (that is, derived from).
+If a statement isn't selected it will *not* be considered when
+creating the proof.
+The "First level" option selects the statements that may be
+used to directly prove this statement, while "other levels" selects the
+statements that may be used beyond this level.
+We can select "all" (all statements may be used),
+"none" (no statements may be used),
+or select a specific set of statements that may be used.
+If it shows an expression like "1/8", that means a specific set of
+statements have been selected; the first number is the number of
+statements that are permitted, and the second number is the number of
+statements that *could* be permitted at this point.
+Click on the current value to select the statements to permit.
 If the statement to be proved is not currently proved,
-they are both "None" by default.
+the "first level" is set to "All" (all statements are considered)
+and the "other levels" is set to "None" (no statements are considered
+after the first level).
 If this statement is already proved, the "first level" will be set
 to the statements that were used.
+Adding statements that can be used will increase what the
+bottom-up prover can prove, but this will also increase the time it
+takes to find a proof.
 
 Label: If set, this is the sole ("root") statement to use as a starting
 point. Note that this is set if the system previously found a justification
 for this statement using this justification.
 If blank, any label may be used as the justification (and the system
 will try them all in the process of searching).
+This setting does not affect other levels (depths) of the proof.
 
 Search depth: How deep the search is to go.
-A single statement is depth 1, a statement that requires 1 other
-statement to be also proved is depth 2, and so on
+Use of a single axiom or theorem is depth 1,
+a statement that uses requires a depth 1 search on a depth 1 search
+is depth 2, and so on.
 The default search depth value is 4. Larger numbers enable more automation
 but generally take exponentially more time.
 
-Length restriction: This controls the interpretation of search depth.
-A value of "LessEq" means that the search depth must be less than or equal
-to the given search depth, while "Less" means that the search depth must be
-less than the given search depth. A value of "No" means there is no
-limit to the search depth.
+Length restriction: This setting restricts what justifications
+are considered based on their length.
+This is a simple heuristic that, when used, can significantly speed up search.
+This setting is not applied to the first depth of the search, only to
+deeper levels, so it has no affect on searches with search depth 1.
+This setting can limit justifications to be considered based on whether
+or not they are less than the length (or less than or equal to the length)
+of the statement being justified.
+In many cases longer statements shouldn't be considered at deeper depths,
+since that often implies *increasing* instead of *decreasing* complexity.
+Let's imagine that the system is searching and has to search more than
+depth 1.
+It is currently searching to see if it can use jA,
+and is in turn working to determine if it will try to prove justification
+jB to support jA (that is, jA might depend on jB).
+A value of "Less" means that the system will only consider justification jB if
+its length is less than justification jA.
+A value of "LessEq" means that the system will only consider jB if
+its length is less than or equal to jA.
+A value of "No" means the system will not restrict anything; this is
+the most flexible (it can find more proofs) but may take much longer.
 
 Checkbox Allow new disjoints:
 Allow the addition of new disjoints.
@@ -1364,21 +1413,42 @@ Checkbox Allow new variables:
 Allow the addition of new variables.
 
 Logging level (0..2):
-The logging level (aka debug level) enables logging of certain kinds
-of errors.
+If you select a log level beyond 0, then
+information will be recorded, which can be helpful for debugging.
+You may find this information helpful in modifying the search options
+further.
+If such information is recorded, a
+"show proof tree" button appears in the results of the bottom-up prover
+once it's stopped.
+You can then explore the proof tree and see what the prover found.
+In particular,  you may find that prover found a statement that
+"almost" worked, and then modify the search criteria further.
 If the logging level is 1 or more, you may enter the maximum number
-of branches.
-This logs additional information, and is intended to help debugging
-or performance improvements by tool developers.
+of branches, which will limit the number of branches checked.
+In many cases you will want to enter the maximum number of branches
+to prevent the logging from becoming overwhelming.
+*Warning*: Enabling logging (beyond log level 0) consumes significant
+memory and slows the search, especially for logging level 2.
+If you set logging level 2, you should restrict it such as by
+setting the label or setting the maximum number of branches.
 
 You can speed up searches by not allowing new disjoints, new statements,
 and/or new variables, but in some cases this may mean a proof won't be
 found.
 
-When you press "Prove" it will repeatedly attempt various options in
-an attempt to prove the statement, showing the depth of the current search
-(e.g., "1/4" means it's doing depth 1 searches out of a maximum of 4)
-and how many attempts it's made so far.
+This dialogue can be used to implement functions similar to
+certain functions of the mmj2 tool:
+
+* In mmj2 you can select a specific set of steps
+  that must be used in a justification of a given statement.
+  You can do something similar by doing a bottom-up
+  proof of that given statement, and selecting just those statements to be
+  used as root statements at the "first level".
+  This can quite similar to mmj2 if you also uncheck "allow new statements",
+  which will prevent the use of any other statements in the database.
+* In mmj2 you can state that a specific axiom or theorem
+  must be used as the justification. You can do the same by
+  selecting it as the "Label".
 
 ## Settings
 
