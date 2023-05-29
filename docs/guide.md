@@ -651,7 +651,7 @@ In this case it finds a statement named `tanval` (value of the tangent).
 
 The default search pattern language is very simple.
 A pattern should consist of a space-separated sequence of one or more symbols
-(currently only constants are allowed).
+(currently only constants and typecodes are allowed).
 Statements will only be considered matches if their conclusion part has
 the same constants in the same order, with optionally 1 or more other
 symbols before the pattern, between the requested symbols,
@@ -776,17 +776,34 @@ should be, so let's deal with that now.
 
 The goal involves a reciprocal, so we need to find an existing theorem
 that proves "what a reciprocal does for me".
-What I want to find is something like `( 1 / ( A / B ) ) = ( B / A )`.
-We don't need to type that in exactly, let's just search listing some of the
-symbols that aren't variables.
+What I want to find is something like `( 1 / ( A / B ) ) = ( B / A )`,
+which presumably will only be acceptable if `A` isn't zero and `B` isn't zero.
 
 > Select the magnifying glass (search) icon.
-> In the pattern enter `1 / / = /` and click on Search.
-> In a moment it will show a paged list of results.
+> In the pattern enter:
 
-There are multiple pages of results, so I have to look through some pages.
-Some of the results are really long; I can quickly ignore those.
-However, after looking at my options I find `recdiv` and that *is*
+~~~~
+class =/= 0 /\ class =/= 0 -> 1 /
+~~~~
+
+> Once done entered, click on Search.
+
+Searching produces a paged list of results.
+However, by giving a very specific
+search pattern we've narrowed the results to a short list to consider.
+
+Notice the word `class` in the search. You can use a typecode in a
+search, which will then match any variable with the same typecode.
+In the set.mm database, `class` represents a class variable.
+
+We could have found exactly what we wanted by being more specific, such as
+by using this pattern, but of course specific patterns are longer:
+
+~~~~
+class =/= 0 /\ class =/= 0 -> ( 1 / ( class / class ) ) = ( class / class )
+~~~~
+
+After looking at my options I find `recdiv` and that *is*
 what I want!
 
 > Select the checkbox to the left of `recdiv` - then scroll to the
@@ -1380,11 +1397,22 @@ that matches a given pattern.
 The search pattern language is very simple,
 Note that search will *only* match on the conclusion part
 of an axiom or theorem (there is currently no mechanism to search hypotheses).
-A pattern should consist of a space-separated sequence of one or more constants.
+
+A pattern must be a space-separated sequence of one or more items.
+Each item must be a constant or a typecode that is valid in the database:
+
+* A constant pattern only matches the same constant.
+* A typecode pattern matches any variable with that typecode.
+  For example, in the `set.mm` database, the valid typecodes you can use
+  in a pattern are `wff` (which will match variables like `ph` and `ps`),
+  `class` (which will match variables like `A` and `B`), or `setvar`
+  (which will match variables like `x` and `y`)..
+
 Statements will only be considered matches if their conclusion part has
-the same constants in the same order, with optionally 1 or more other
-symbols before the pattern, between the requested constants,
-and after the pattern.
+the same matching symbols in the same order.
+There may be 1 or more other
+symbols before the pattern, 1 or more symbols between the requested items,
+and 1 or more symbols after the last matched item.
 
 Therefore, a search for `0 ->` will match the conclusion
 `|- ( ( 0 <_ A /\ 0 <_ B ) -> 0 <_ ( A + B ) )`
