@@ -1249,7 +1249,7 @@ An example would be:
 ~~~~
 
 Notice the ".". The period suppresses automatic deletion of 
-the line; without it, if the variable is unused then then entry will disappear.
+the line; without it, if the variable is unused then entry will disappear.
 
 Once local variable is defined, you can use its name instead of the
 global name.
@@ -1280,7 +1280,7 @@ The disjoint expression `x,y` simply means that
 This means that they may not be simultaneously
 substituted with the same variable.
 The disjoint expression `x,ph` means
-variable `x` must not occur in the in wff `ph`.
+variable `x` must not occur in the wff `ph`.
 
 For more information, see the Metamath book.
 
