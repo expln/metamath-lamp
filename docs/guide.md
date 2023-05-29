@@ -277,6 +277,15 @@ Let's try that.
 > Modify it so the new statement is
 > `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`
 > and press Enter (Return).
+
+While editing this statement you may find some parenthesis appear
+automatically in unwanted places.
+This is actually intended to be a handy feature
+when writing new statements.
+But when editing existing ones it might be redundant.
+Please remove unwanted parentheses and make sure the statement
+looks exactly as in the example.
+
 > Now press unify (the multiple-connected dots symbol). Since there
 > was no specific statement selected, it will try to justify all statements.
 > Metamath-lamp will succeed in finding a justification for our new statement,
@@ -353,6 +362,17 @@ means we have proven our goal.
 Metamath-lamp automatically unified all the statements,
 and was able to complete the rest of the proof given what we had provided.
 
+If you are new to Metamath and not familiar with formal systems, 
+you may probably not understand how the program knows when to
+mark a statement with a green checkmark meaning it is proved.
+The short answer is that the green checkmark means that
+metamath-lamp is able to find, for that step,
+a specific statement that justifies the claim (as well as recursively all
+of its justifications).
+In a moment we will be looking at the proof steps (in more detail) to
+gain a better understanding.
+Before we do, let's briefly talk about how to generate and import information.
+
 #### Getting the completed proof
 
 We can now show the compressed proof.
@@ -367,7 +387,7 @@ This is the final proof we can add to a Metamath database.
 
 You can only generate a proof once you *have* a proof.
 
-Metamath-proof can export the current state of your efforts,
+Metamath-lamp can export the current state of your efforts,
 whatever they are, and anyone can reload them later.
 This lets you share details of a proof, even one that isn't complete.
 
@@ -383,7 +403,7 @@ current state:
   this current state.
 * "Export to JSON": Provides the current proof assistant
   state as text; you can save this where you wish.
-* "Import to JSON": Allows you to load a state previously
+* "Import from JSON": Allows you to load a state previously
   exported with "Export to JSON".
 
 #### Looking at proof steps
@@ -448,7 +468,7 @@ inputs, so they can be anything syntactically valid.
 This means we can use `oveq2i` to justify the final claim,
 `|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )`.
 
-We can also hide justifications (include the visualization)
+We can also hide justifications (including the visualization)
 any time.
 
 > Left-click on the **P** next to
@@ -481,7 +501,7 @@ You can reorder statements.
 Sometimes you *need* to reorder statements, because
 statements can only use previously proved statements.
 
-To reorder some some statements,
+To reorder some statements,
 just select one or more
 using the checkboxes on the left, and use the
 "up" icon (to move them up) or "down" icon
@@ -524,7 +544,7 @@ If you've already been using metamath-lamp to prove something else, that
 means we need to erase the proof steps we have and change the context.
 Here's how to do that:
 
-> Select the checkbox on on the editor bar above the field name "Description"
+> Select the checkbox on the editor bar above the field name "Description"
 > to select *all* statements. select the trash can with an X
 > ("delete selected statements") to delete them all.
 > At the top of the browser window, select the dropdown arrow with the
@@ -657,7 +677,6 @@ seen before:
 ~~~~
 
 The symbols beginning with "&amp;" are what's called "work variables".
-If you've used the mmj2 tool, this is the same thing as mmj2's work variables.
 Work variables often show up when creating proofs.
 The fundamental issue is that although a theorem or axiom may use a variable
 (such as `A`), those variables can be replaced with other expressions
@@ -698,7 +717,13 @@ If you look carefully you'll see that the "Variables" field in the
 proof display has new information.
 What it's saying is that there's a work variable of type "class"
 with the name "&amp;C1". This field is helpful when proofs get long, because
-it will show you in one place what variables are still not handled.
+it will show you in one place what work variables are not handled.
+
+Metamath-lamp can export proofs with work variables
+(they will be treated like local variables and defined in the generated proof).
+However, many in the Metamath community would not accept this
+into a Metamath database, so in most cases you should change work variables
+to something else before exporting a proof.
 
 As we'll see in a moment, we'll use the
 icon "A with an arrow under it" (apply a substitution) to replace
@@ -1261,7 +1286,7 @@ Each statement is presented in the following left-to-right order:
   selector box, a recent unification has
   confirmed that this statement is proven given its context and its
   previous statements.
-  If there's a yello tilde, that means that it's *partly* but not
+  If there's a yellow tilde, that means that it's *partly* but not
   completely proved.
   Any modification of a proof removes the checkmarks.
   To regenerate the checkmarks,
@@ -1274,6 +1299,12 @@ Each statement is presented in the following left-to-right order:
   as well as showing only essential steps.
   Non-essential steps are the steps showing how to create syntactic structures
   and show that they are of the correct types.
+  Metamath-lamp can *export* proofs with work variables
+  (they will be treated like local variables and defined
+  in the generated proof).
+  However, many in the Metamath community would not accept work variables
+  into a Metamath database, so in most cases you should change work variables
+  to something else before exporting a proof.
 * Id: This is the id for this statement.
   You should give your proof's goal the id of what you intend to name it.
   Consider naming your goal "qed" if you don't know what name to use.
