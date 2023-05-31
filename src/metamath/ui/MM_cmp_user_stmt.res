@@ -996,6 +996,13 @@ let make = React.memoCustomCompareProps( ({
             >
                 {React.string(typStr->Js_string2.toUpperCase)}
             </span>
+
+            // <LongClickSpan
+            //     onShortClick=actToggleInfoExpanded
+            //     onLongClick=onTypEditRequested
+            // >
+            //     {React.string(typStr->Js_string2.toUpperCase)}
+            // </LongClickSpan>
         }
     }
 

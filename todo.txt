@@ -1,3 +1,4 @@
+- if long click is unstable then make it optional
 - Specify in the guide the version of mm-lamp which it was written for
 - freeze pagination in the explorer
 - fix a bug:
