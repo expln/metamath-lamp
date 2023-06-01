@@ -1,4 +1,6 @@
-- remove selector from the url added by the explorer
+- remove selector from the url added by the explorer. Steps to reproduce:
+    load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console: 
+        DOMException: Failed to execute 'querySelectorAll' on 'Document': '#tbl-r19.12 .step' is not a valid selector.
 - fix a bug: not possible to select ( ph -> ps ) part in the statement below (in the explorer):
     |- ( ( ph -> ps ) -> ( ph -> ch ) )
 - add vertical-align=top to proof tables in the explorer
