@@ -1,3 +1,7 @@
+- remove selector from the url added by the explorer
+- fix a bug: not possible to select ( ph -> ps ) part in the statement below (in the explorer):
+    |- ( ( ph -> ps ) -> ( ph -> ch ) )
+- add vertical-align=top to proof tables in the explorer
 - if long click is unstable then make it optional
 - Specify in the guide the version of mm-lamp which it was written for
 - freeze pagination in the explorer
