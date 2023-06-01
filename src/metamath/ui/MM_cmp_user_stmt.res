@@ -132,6 +132,8 @@ let rndSymbol = (
     ~color:option<string>,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
     ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
+    ~onShortClick:option<unit=>unit>=?,
+    ~onLongClick:option<unit=>unit>=?,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~cursor:string="auto",
@@ -142,8 +144,20 @@ let rndSymbol = (
             if (isFirst) {
                 React.null
             } else {
-                <span 
-                    ?onClick 
+                // <span 
+                //     ?onClick 
+                //     style=ReactDOM.Style.make(
+                //         ~backgroundColor=?spaceBackgroundColor,
+                //         ~cursor,
+                //         ()
+                //     )
+                // > 
+                //     {" "->React.string} 
+                // </span>
+
+                <LongClickSpan 
+                    ?onShortClick
+                    ?onLongClick
                     style=ReactDOM.Style.make(
                         ~backgroundColor=?spaceBackgroundColor,
                         ~cursor,
@@ -151,7 +165,7 @@ let rndSymbol = (
                     )
                 > 
                     {" "->React.string} 
-                </span>
+                </LongClickSpan>
             }
         }
         {
@@ -159,13 +173,25 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) >
+            // <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) >
+            //     {
+            //         React.string(
+            //             symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
+            //         )
+            //     }
+            // </span>
+
+            <LongClickSpan 
+                ?onShortClick
+                ?onLongClick
+                style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
+            >
                 {
                     React.string(
                         symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
                     )
                 }
-            </span>
+            </LongClickSpan>
         }
     </React.Fragment>
 }
@@ -196,6 +222,11 @@ let rndContText = (
                     ~sym=stmtSym.sym,
                     ~color=stmtSym.color,
                     ~onClick=?onClick(i),
+                    ~onLongClick=()=>{
+                        onTextClick->Belt_Option.map(onTextClick => {
+                            onTextClick(i)
+                        })->ignore
+                    },
                     ~cursor,
                     ~symRename?,
                     ()
@@ -1000,6 +1031,13 @@ let make = React.memoCustomCompareProps( ({
             <LongClickSpan
                 onShortClick=actToggleInfoExpanded
                 onLongClick=onTypEditRequested
+                style=ReactDOM.Style.make(
+                    ~cursor="pointer", 
+                    ~fontWeight="bold", 
+                    // ~display="inline-block", 
+                    ~margin="20px", 
+                    ()
+                )
             >
                 {React.string(typStr->Js_string2.toUpperCase)}
             </LongClickSpan>

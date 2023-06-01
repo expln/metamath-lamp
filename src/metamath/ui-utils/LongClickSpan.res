@@ -5,9 +5,10 @@ let longClickDelay = 1500
 
 @react.component
 let make = (
-    ~onShortClick:unit=>unit,
-    ~onLongClick:unit=>unit,
+    ~onShortClick:unit=>unit=?,
+    ~onLongClick:unit=>unit=?,
     ~children:reElem,
+    ~style:reStyle=?,
 ) => {
     let (timerId, setTimerId) = React.useState(() => None)
     let (doShortClick, setDoShortClick) = React.useState(() => false)
@@ -29,7 +30,7 @@ let make = (
     React.useEffect1(() => {
         if (doShortClick) {
             actReset()
-            onShortClick()
+            onShortClick->Belt_Option.forEach(act => act())
         }
         None
     }, [doShortClick])
@@ -42,7 +43,7 @@ let make = (
                     | None => ()
                     | Some(timerIdExpected) => {
                         actReset()
-                        onLongClick()
+                        onLongClick->Belt_Option.forEach(act => act())
                     }
                 }
             }
@@ -115,13 +116,7 @@ let make = (
             evt->JsxEvent.Touch.stopPropagation
             actClickEnd()
         }}
-        style=ReactDOM.Style.make(
-            ~cursor="pointer", 
-            ~fontWeight="bold", 
-            // ~display="inline-block", 
-            ~margin="20px", 
-            ()
-        )
+        ?style
     >
         children
     </span>
