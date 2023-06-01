@@ -20,6 +20,7 @@ let safeBase64ToStr: string => string
 type timeoutID
 let setTimeout: (unit => unit, int) => timeoutID
 let clearTimeout: (timeoutID) => unit
+let stubTimeoutId: timeoutID
 
 type version<'a> = {
     ver:int,
