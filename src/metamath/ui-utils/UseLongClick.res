@@ -85,7 +85,12 @@ let useLongClick = (
 
     }
 
-    let actClickEnd = () => {
+    let actClickEnd = (mEvt:option<ReactEvent.Mouse.t>, tEvt:option<ReactEvent.Touch.t>) => {
+        if (longClickEnabled) {
+            mEvt->Belt_Option.forEach(ReactEvent.Mouse.stopPropagation)
+            mEvt->Belt_Option.forEach(ReactEvent.Mouse.preventDefault)
+            tEvt->Belt_Option.forEach(ReactEvent.Touch.stopPropagation)
+        }
         if (Js.Date.now() -. lastClickEndTime > repeatDelayMs) {
             setLastClickEndTime(_ => Js.Date.now())
             setTimerId(timerId => {
@@ -105,35 +110,27 @@ let useLongClick = (
     {
         onClick: evt => {
             if (!longClickEnabled && onClick->Belt_Option.isSome) {
-                // evt->ReactEvent.Mouse.preventDefault
-                // evt->ReactEvent.Mouse.stopPropagation
                 onClick->Belt_Option.getExn(evt)
             }
         },
-        onMouseDown: evt => {
+        onMouseDown: _ => {
             if (longClickEnabled) {
-                // evt->ReactEvent.Mouse.preventDefault
-                // evt->ReactEvent.Mouse.stopPropagation
                 actClickBegin()
             }
         },
         onMouseUp: evt => {
             if (longClickEnabled) {
-                // evt->ReactEvent.Mouse.preventDefault
-                // evt->ReactEvent.Mouse.stopPropagation
-                actClickEnd()
+                actClickEnd(Some(evt), None)
             }
         },
-        onTouchStart: evt => {
+        onTouchStart: _ => {
             if (longClickEnabled) {
-                // evt->ReactEvent.Touch.stopPropagation
                 actClickBegin()
             }
         },
         onTouchEnd: evt => {
             if (longClickEnabled) {
-                // evt->ReactEvent.Touch.stopPropagation
-                actClickEnd()
+                actClickEnd(None, Some(evt))
             }
         },
     }
