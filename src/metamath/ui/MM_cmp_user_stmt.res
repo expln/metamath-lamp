@@ -144,18 +144,9 @@ let rndSymbol = (
             if (isFirst) {
                 React.null
             } else {
-                // <span 
-                //     ?onClick 
-                //     style=ReactDOM.Style.make(
-                //         ~backgroundColor=?spaceBackgroundColor,
-                //         ~cursor,
-                //         ()
-                //     )
-                // > 
-                //     {" "->React.string} 
-                // </span>
-
                 <LongClickSpan 
+                    ?onClick 
+                    longClickEnabled=true
                     ?onShortClick
                     ?onLongClick
                     style=ReactDOM.Style.make(
@@ -173,15 +164,9 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            // <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) >
-            //     {
-            //         React.string(
-            //             symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
-            //         )
-            //     }
-            // </span>
-
             <LongClickSpan 
+                ?onClick 
+                longClickEnabled=true
                 ?onShortClick
                 ?onLongClick
                 style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
@@ -205,15 +190,27 @@ let rndContText = (
     ~renderSelection:bool=false,
     ()
 ) => {
+    let selectStmtsByAltLeftClick = editStmtsByLeftClick
+    let selectStmtsByLeftClick = !editStmtsByLeftClick
     switch stmtCont {
         | Text(syms) => {
             let onClick = idx => onTextClick->Belt_Option.map(onTextClick => {
-                if (editStmtsByLeftClick) {
-                    clickHnd(~alt=true, ~act = () => onTextClick(idx), ())
-                } else {
+                if (selectStmtsByLeftClick) {
                     clickHnd(~act = () => onTextClick(idx), ())
+                } else {
+                    clickHnd(~alt=true, ~act = () => onTextClick(idx), ())
                 }
             })
+            let onShortClick = idx => {
+                if (selectStmtsByLeftClick && onTextClick->Belt_Option.isSome) {
+                    onTextClick->Belt_Option.getExn(idx)
+                }
+            }
+            let onLongClick = idx => {
+                if (selectStmtsByAltLeftClick && onTextClick->Belt_Option.isSome) {
+                    onTextClick->Belt_Option.getExn(idx)
+                }
+            }
             let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
@@ -222,11 +219,8 @@ let rndContText = (
                     ~sym=stmtSym.sym,
                     ~color=stmtSym.color,
                     ~onClick=?onClick(i),
-                    ~onLongClick=()=>{
-                        onTextClick->Belt_Option.map(onTextClick => {
-                            onTextClick(i)
-                        })->ignore
-                    },
+                    ~onShortClick=()=>onShortClick(i),
+                    ~onLongClick=()=>onLongClick(i),
                     ~cursor,
                     ~symRename?,
                     ()
@@ -235,12 +229,22 @@ let rndContText = (
         }
         | Tree({exprTyp, root}) => {
             let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => {
-                if (editStmtsByLeftClick) {
-                    clickHnd(~alt=true, ~act = () => onTreeClick(id), ())
-                } else {
+                if (selectStmtsByLeftClick) {
                     clickHnd(~act = () => onTreeClick(id), ())
+                } else {
+                    clickHnd(~alt=true, ~act = () => onTreeClick(id), ())
                 }
             })
+            let onShortClick = id => {
+                if (selectStmtsByLeftClick && onTreeClick->Belt_Option.isSome) {
+                    onTreeClick->Belt_Option.getExn(id)
+                }
+            }
+            let onLongClick = id => {
+                if (selectStmtsByAltLeftClick && onTreeClick->Belt_Option.isSome) {
+                    onTreeClick->Belt_Option.getExn(id)
+                }
+            }
             let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
@@ -276,6 +280,8 @@ let rndContText = (
                                     ~sym,
                                     ~color,
                                     ~onClick=?onClick(id),
+                                    ~onShortClick=()=>onShortClick(id),
+                                    ~onLongClick=()=>onLongClick(id),
                                     ~spaceBackgroundColor=?{
                                         if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
                                             Some("#ADD6FF")
@@ -1017,27 +1023,16 @@ let make = React.memoCustomCompareProps( ({
                 | E => "H"
                 | P => "P"
             }
-            // <span 
-            //     onClick=clickHnd2(
-            //         clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
-            //         clickClbkMake(~act=actToggleInfoExpanded, ()),
-            //     )
-            //     style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
-            //     title="Alt+<left-click> to change statement type between P (provable) and H (hypothesis). Alt is sometimes labelled Opt. Left-click to show/hide the justification for provable."
-            // >
-            //     {React.string(typStr->Js_string2.toUpperCase)}
-            // </span>
-
             <LongClickSpan
+                onClick=clickHnd2(
+                    clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
+                    clickClbkMake(~act=actToggleInfoExpanded, ()),
+                )
+                longClickEnabled=true
                 onShortClick=actToggleInfoExpanded
                 onLongClick=onTypEditRequested
-                style=ReactDOM.Style.make(
-                    ~cursor="pointer", 
-                    ~fontWeight="bold", 
-                    // ~display="inline-block", 
-                    ~margin="20px", 
-                    ()
-                )
+                style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
+                title="Alt+<left-click> to change statement type between P (provable) and H (hypothesis). Alt is sometimes labelled Opt. Left-click to show/hide the justification for provable."
             >
                 {React.string(typStr->Js_string2.toUpperCase)}
             </LongClickSpan>
