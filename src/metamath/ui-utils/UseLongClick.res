@@ -10,6 +10,96 @@ type useLongClick = {
 
 let repeatDelayMs = 500.
 
+type state = {
+    lastClickBeginTime: float,
+    lastClickEndTime: float,
+    timerId:option<timeoutID>,
+    doShortClick: option<ReactEvent.Mouse.t>,
+    doLongClick: option<timeoutID>,
+    longClickDelayMs:int,
+}
+
+let makeInitialState = (longClickDelayMs:int) => {
+    {
+        lastClickBeginTime: 0.,
+        lastClickEndTime: 0.,
+        timerId:None,
+        doShortClick: false,
+        doLongClick: None,
+        longClickDelayMs,
+    }
+}
+
+let resetState = (st:state):state => {
+    {
+        ...st,
+        timerId: {
+            switch st.timerId {
+                | None => ()
+                | Some(timerId) => clearTimeout(timerId)
+            }
+            None
+        },
+        doShortClick: false,
+        doLongClick: None,
+    }
+}
+
+let markShortClickIsRequested = (st:state):state => {
+    {
+        ...st,
+        doShortClick: true,
+        doLongClick: None,
+    }
+}
+
+let markLongClickIsRequested = (st:state, timerId:timeoutID):state => {
+    {
+        ...st,
+        doShortClick: false,
+        doLongClick: Some(timerId),
+    }
+}
+
+let updateStateOnClickBegin = (st:state, updateState: (state=>state)=>unit):state => {
+    if (Js.Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
+        {
+            ...resetState(st),
+            lastClickBeginTime: Js.Date.now(),
+            timerId: {
+                let timerIdLocal = ref(stubTimeoutId)
+                timerIdLocal := setTimeout( 
+                    () => updateState(markLongClickIsRequested(_, Some(timerIdLocal.contents))), 
+                    st.longClickDelayMs 
+                )
+                Some(timerIdLocal.contents)
+            }
+        }
+    } else {
+        st
+    }
+}
+
+let updateStateOnClickEnd = (st:state, updateState: (state=>state)=>unit):state => {
+    if (Js.Date.now() -. lastClickEndTime > repeatDelayMs) {
+        {
+            ...st,
+            lastClickEndTime: Js.Date.now(),
+            timerId: {
+                switch st.timerId {
+                    | None => ()
+                    | Some(timerId) => clearTimeout(timerId)
+                }
+                None
+            },
+            doShortClick: st.timerId->Belt_Option.isSome,
+            doLongClick: None,
+        }
+    } else {
+        st
+    }
+}
+
 let useLongClick = (
     ~onClick:option<ReactEvent.Mouse.t=>unit>,
     ~longClickEnabled:bool,
@@ -111,6 +201,10 @@ let useLongClick = (
         onClick: evt => {
             if (!longClickEnabled && onClick->Belt_Option.isSome) {
                 onClick->Belt_Option.getExn(evt)
+            }
+            if (longClickEnabled) {
+                evt->ReactEvent.Mouse.stopPropagation
+                evt->ReactEvent.Mouse.preventDefault
             }
         },
         onMouseDown: _ => {
