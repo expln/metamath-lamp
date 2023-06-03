@@ -8,7 +8,7 @@ let longClickDelay = 1500
 let make = (
     ~onClick:ReactEvent.Mouse.t=>unit=?,
     ~longClickEnabled:bool,
-    ~longClickDelayMs:int=1000,
+    ~longClickDelayMs:int=500,
     ~onShortClick:option<clickAttrs>=>unit=?,
     ~onLongClick:unit=>unit=?,
     ~children:reElem,

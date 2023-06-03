@@ -980,13 +980,6 @@ let make = React.memoCustomCompareProps( ({
             }
             let elems = [
                 <Paper 
-                    onClick={
-                        if (editStmtsByLeftClick) {
-                            clickHnd(~act=onContEditRequested, ())
-                        } else {
-                            clickHnd(~alt=true, ~act=onContEditRequested, ())
-                        }
-                    }
                     style=ReactDOM.Style.make(
                         ~padding="1px 10px", 
                         ~backgroundColor=

@@ -198,10 +198,13 @@ let make = React.memoCustomCompareProps( ({
                 {
                     rndContText(
                         ~stmtCont=state.cont, 
-                        ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
-                        ~onTreeClick=actTreeNodeClicked,
+                        ~onTextLeftClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
+                        ~onTextAltLeftClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
+                        ~onTreeLeftClick=actTreeNodeClicked,
+                        ~onTreeAltLeftClick=actTreeNodeClicked,
+                        ~longClickEnabled=false,
+                        ~cursor="pointer",
                         ~renderSelection=true,
-                        ~editStmtsByLeftClick,
                         ~symRename?,
                         ()
                     )

@@ -57,7 +57,7 @@ let markLongClickIsRequested = (st:state, timerId:timeoutID):state => {
     }
 }
 
-let repeatDelayMs = 500.
+let repeatDelayMs = 300.
 
 let updateStateOnClickBegin = (st:state, updateState: (state=>state)=>unit):state => {
     if (Js.Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
@@ -148,17 +148,12 @@ let useLongClick = (
         setState(updateStateOnClickBegin(_, setState))
     }
 
-    let actClickEnd = (mEvt:option<ReactEvent.Mouse.t>, tEvt:option<ReactEvent.Touch.t>) => {
-        mEvt->Belt_Option.forEach(ReactEvent.Mouse.stopPropagation)
-        mEvt->Belt_Option.forEach(ReactEvent.Mouse.preventDefault)
-        tEvt->Belt_Option.forEach(ReactEvent.Touch.stopPropagation)
+    let actClickEnd = (mEvt:option<ReactEvent.Mouse.t>) => {
         setState(updateStateOnClickEnd(_, mEvt))
     }
 
     {
         onClick: evt => {
-            evt->ReactEvent.Mouse.stopPropagation
-            evt->ReactEvent.Mouse.preventDefault
             if (!longClickEnabled && onClick->Belt_Option.isSome) {
                 onClick->Belt_Option.getExn(evt)
             }
@@ -170,7 +165,7 @@ let useLongClick = (
         },
         onMouseUp: evt => {
             if (longClickEnabled) {
-                actClickEnd(Some(evt), None)
+                actClickEnd(Some(evt))
             }
         },
         onTouchStart: _ => {
@@ -180,7 +175,7 @@ let useLongClick = (
         },
         onTouchEnd: evt => {
             if (longClickEnabled) {
-                actClickEnd(None, Some(evt))
+                actClickEnd(None)
             }
         },
     }
