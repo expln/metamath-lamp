@@ -1,5 +1,6 @@
 open Expln_React_common
 open Common
+open UseLongClick
 
 let longClickDelay = 1500
 
@@ -8,13 +9,13 @@ let make = (
     ~onClick:ReactEvent.Mouse.t=>unit=?,
     ~longClickEnabled:bool,
     ~longClickDelayMs:int=1000,
-    ~onShortClick:unit=>unit=?,
+    ~onShortClick:option<clickAttrs>=>unit=?,
     ~onLongClick:unit=>unit=?,
     ~children:reElem,
     ~style:reStyle=?,
     ~title:string=?,
 ) => {
-    let { onClick, onMouseDown, onMouseUp, onTouchStart, onTouchEnd, } = UseLongClick.useLongClick(
+    let { onClick, onMouseDown, onMouseUp, onTouchStart, onTouchEnd, } = useLongClick(
         ~onClick,
         ~longClickEnabled,
         ~longClickDelayMs,

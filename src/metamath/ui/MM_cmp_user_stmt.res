@@ -132,7 +132,7 @@ let rndSymbol = (
     ~color:option<string>,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
     ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
-    ~onShortClick:option<unit=>unit>=?,
+    ~onShortClick:option<option<UseLongClick.clickAttrs>=>unit>=?,
     ~onLongClick:option<unit=>unit>=?,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
@@ -219,7 +219,7 @@ let rndContText = (
                     ~sym=stmtSym.sym,
                     ~color=stmtSym.color,
                     ~onClick=?onClick(i),
-                    ~onShortClick=()=>onShortClick(i),
+                    ~onShortClick=_=>onShortClick(i),
                     ~onLongClick=()=>onLongClick(i),
                     ~cursor,
                     ~symRename?,
@@ -280,7 +280,7 @@ let rndContText = (
                                     ~sym,
                                     ~color,
                                     ~onClick=?onClick(id),
-                                    ~onShortClick=()=>onShortClick(id),
+                                    ~onShortClick=_=>onShortClick(id),
                                     ~onLongClick=()=>onLongClick(id),
                                     ~spaceBackgroundColor=?{
                                         if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
@@ -1029,7 +1029,7 @@ let make = React.memoCustomCompareProps( ({
                     clickClbkMake(~act=actToggleInfoExpanded, ()),
                 )
                 longClickEnabled=true
-                onShortClick=actToggleInfoExpanded
+                onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onTypEditRequested
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
                 title="Alt+<left-click> to change statement type between P (provable) and H (hypothesis). Alt is sometimes labelled Opt. Left-click to show/hide the justification for provable."

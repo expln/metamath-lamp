@@ -1,3 +1,9 @@
+type clickAttrs = {
+    alt:bool,
+    shift:bool,
+    ctrl:bool,
+}
+
 type useLongClick = {
     onClick: ReactEvent.Mouse.t => unit,
     onMouseDown: ReactEvent.Mouse.t => unit,
@@ -9,6 +15,6 @@ let useLongClick: (
     ~onClick:option<ReactEvent.Mouse.t=>unit>,
     ~longClickEnabled:bool,
     ~longClickDelayMs:int,
-    ~onShortClick:option<unit=>unit>,
+    ~onShortClick:option<option<clickAttrs>=>unit>,
     ~onLongClick:option<unit=>unit>,
 ) => useLongClick
