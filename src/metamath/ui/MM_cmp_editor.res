@@ -1100,6 +1100,7 @@ let make = (
                     wrkCtxColors=state.wrkCtxColors
                     visualizationIsOn
                     editStmtsByLeftClick=state.settings.editStmtsByLeftClick
+                    longClickEnabled=true
                     defaultStmtType=state.settings.defaultStmtType
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}

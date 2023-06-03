@@ -125,15 +125,19 @@ let setLastSyntaxType = (lastSyntaxType:string):unit => {
     locStorWriteString(lastSyntaxTypeLocStorKey, lastSyntaxType)
 }
 
+let callbackOpt = (clbkOpt:option<'a=>unit>):('a=>unit) => {
+    a => clbkOpt->Belt_Option.forEach(clbk => clbk(a))
+}
+
 let rndSymbol = (
     ~isFirst:bool,
     ~key:string,
     ~sym:string,
     ~color:option<string>,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
-    ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
-    ~onShortClick:option<option<UseLongClick.clickAttrs>=>unit>=?,
-    ~onLongClick:option<unit=>unit>=?,
+    ~onLeftClick:option<unit=>unit>=?,
+    ~onAltLeftClick:option<unit=>unit>=?,
+    ~longClickEnabled:bool=false,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~cursor:string="auto",
@@ -142,13 +146,38 @@ let rndSymbol = (
     <React.Fragment key>
         {
             if (isFirst) {
-                React.null
+                <></>
             } else {
-                <LongClickSpan 
-                    ?onClick 
-                    longClickEnabled=true
-                    ?onShortClick
-                    ?onLongClick
+                <LongClickSpan
+                    onClick=?{
+                        if (
+                            !longClickEnabled 
+                                && (onLeftClick->Belt.Option.isSome || onAltLeftClick->Belt.Option.isSome)
+                        ) {
+                            Some(clickHnd2(
+                                clickClbkMake(~act = callbackOpt(onLeftClick), ()),
+                                clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
+                            ))
+                        } else {
+                            None
+                        }
+                    }
+                    longClickEnabled
+                    onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
+                        (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                            switch clickAttrs {
+                                | None => onLeftClick()
+                                | Some({alt}) => {
+                                    if (alt) {
+                                        callbackOpt(onAltLeftClick)()
+                                    } else {
+                                        onLeftClick()
+                                    }
+                                }
+                            }
+                        }
+                    })}
+                    onLongClick=?onAltLeftClick
                     style=ReactDOM.Style.make(
                         ~backgroundColor=?spaceBackgroundColor,
                         ~cursor,
@@ -165,10 +194,35 @@ let rndSymbol = (
                 | Some(color) => (color,"bold")
             }
             <LongClickSpan 
-                ?onClick 
-                longClickEnabled=true
-                ?onShortClick
-                ?onLongClick
+                onClick=?{
+                    if (
+                        !longClickEnabled 
+                            && (onLeftClick->Belt.Option.isSome || onAltLeftClick->Belt.Option.isSome)
+                    ) {
+                        Some(clickHnd2(
+                            clickClbkMake(~act = callbackOpt(onLeftClick), ()),
+                            clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
+                        ))
+                    } else {
+                        None
+                    }
+                }
+                longClickEnabled
+                onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
+                    (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                        switch clickAttrs {
+                            | None => onLeftClick()
+                            | Some({alt}) => {
+                                if (alt) {
+                                    callbackOpt(onAltLeftClick)()
+                                } else {
+                                    onLeftClick()
+                                }
+                            }
+                        }
+                    }
+                })}
+                onLongClick=?onAltLeftClick
                 style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
             >
                 {
@@ -184,43 +238,28 @@ let rndSymbol = (
 let rndContText = (
     ~stmtCont:stmtCont,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
-    ~onTextClick:option<int=>unit>=?,
-    ~onTreeClick:option<int=>unit>=?,
-    ~editStmtsByLeftClick:bool=true,
+    ~onTextLeftClick:option<int=>unit>=?,
+    ~onTextAltLeftClick:option<int=>unit>=?,
+    ~onTreeLeftClick:option<int=>unit>=?,
+    ~onTreeAltLeftClick:option<int=>unit>=?,
+    ~longClickEnabled:bool=false,
+    ~cursor:string="auto",
     ~renderSelection:bool=false,
     ()
 ) => {
-    let selectStmtsByAltLeftClick = editStmtsByLeftClick
-    let selectStmtsByLeftClick = !editStmtsByLeftClick
     switch stmtCont {
         | Text(syms) => {
-            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => {
-                if (selectStmtsByLeftClick) {
-                    clickHnd(~act = () => onTextClick(idx), ())
-                } else {
-                    clickHnd(~alt=true, ~act = () => onTextClick(idx), ())
-                }
-            })
-            let onShortClick = idx => {
-                if (selectStmtsByLeftClick && onTextClick->Belt_Option.isSome) {
-                    onTextClick->Belt_Option.getExn(idx)
-                }
-            }
-            let onLongClick = idx => {
-                if (selectStmtsByAltLeftClick && onTextClick->Belt_Option.isSome) {
-                    onTextClick->Belt_Option.getExn(idx)
-                }
-            }
-            let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
                     ~key=i->Belt.Int.toString,
                     ~sym=stmtSym.sym,
                     ~color=stmtSym.color,
-                    ~onClick=?onClick(i),
-                    ~onShortClick=_=>onShortClick(i),
-                    ~onLongClick=()=>onLongClick(i),
+                    ~onLeftClick = ?{onTextLeftClick->Belt_Option.map( onTextLeftClick => () => onTextLeftClick(i) )},
+                    ~onAltLeftClick = ?{onTextAltLeftClick->Belt_Option.map( onTextAltLeftClick => 
+                        () => onTextAltLeftClick(i)
+                    )},
+                    ~longClickEnabled,
                     ~cursor,
                     ~symRename?,
                     ()
@@ -228,24 +267,6 @@ let rndContText = (
             })->React.array
         }
         | Tree({exprTyp, root}) => {
-            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => {
-                if (selectStmtsByLeftClick) {
-                    clickHnd(~act = () => onTreeClick(id), ())
-                } else {
-                    clickHnd(~alt=true, ~act = () => onTreeClick(id), ())
-                }
-            })
-            let onShortClick = id => {
-                if (selectStmtsByLeftClick && onTreeClick->Belt_Option.isSome) {
-                    onTreeClick->Belt_Option.getExn(id)
-                }
-            }
-            let onLongClick = id => {
-                if (selectStmtsByAltLeftClick && onTreeClick->Belt_Option.isSome) {
-                    onTreeClick->Belt_Option.getExn(id)
-                }
-            }
-            let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
@@ -279,9 +300,13 @@ let rndContText = (
                                     ~key=id->Belt.Int.toString,
                                     ~sym,
                                     ~color,
-                                    ~onClick=?onClick(id),
-                                    ~onShortClick=_=>onShortClick(id),
-                                    ~onLongClick=()=>onLongClick(id),
+                                    ~onLeftClick = ?{onTreeLeftClick->Belt_Option.map( onTreeLeftClick => 
+                                        () => onTreeLeftClick(id) 
+                                    )},
+                                    ~onAltLeftClick = ?{onTreeAltLeftClick->Belt_Option.map( onTreeAltLeftClick => 
+                                        () => onTreeAltLeftClick(id)
+                                    )},
+                                    ~longClickEnabled,
                                     ~spaceBackgroundColor=?{
                                         if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
                                             Some("#ADD6FF")
@@ -468,6 +493,7 @@ type props = {
     preCtxColors:Belt_HashMapString.t<string>,
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+    longClickEnabled:bool,
     defaultStmtType:string,
 
     visualizationIsOn:bool,
@@ -538,6 +564,7 @@ let make = React.memoCustomCompareProps( ({
     wrkCtxColors,
     visualizationIsOn,
     editStmtsByLeftClick,
+    longClickEnabled,
     defaultStmtType,
     addStmtAbove,
     addStmtBelow,
@@ -979,12 +1006,35 @@ let make = React.memoCustomCompareProps( ({
                     }
                 >
                     {
+                        let onTextLeftClick = if (editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            idx => setSyntaxTreeWasRequested(_ => Some(idx))
+                        }
+                        let onTextAltLeftClick = if (!editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            idx => setSyntaxTreeWasRequested(_ => Some(idx))
+                        }
+                        let onTreeLeftClick = if (editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            actTreeNodeClicked
+                        }
+                        let onTreeAltLeftClick = if (!editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            actTreeNodeClicked
+                        }
                         rndContText(
                             ~stmtCont=stmt.cont, 
-                            ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
-                            ~onTreeClick=actTreeNodeClicked,
+                            ~onTextLeftClick,
+                            ~onTextAltLeftClick,
+                            ~onTreeLeftClick,
+                            ~onTreeAltLeftClick,
+                            ~longClickEnabled,
                             ~renderSelection=true,
-                            ~editStmtsByLeftClick,
+                            ~cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"},
                             ()
                         )
                     }
