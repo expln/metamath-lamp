@@ -2,10 +2,17 @@ open Common
 
 type useLongClick = {
     onClick:ReactEvent.Mouse.t=>unit,
+
     onMouseDown:ReactEvent.Mouse.t=>unit,
     onMouseUp:ReactEvent.Mouse.t=>unit,
+    onMouseMove:ReactEvent.Mouse.t=>unit,
+    onMouseLeave:ReactEvent.Mouse.t=>unit,
+    onMouseOut:ReactEvent.Mouse.t=>unit,
+
     onTouchStart:ReactEvent.Touch.t=>unit,
     onTouchEnd:ReactEvent.Touch.t=>unit,
+    onTouchMove:ReactEvent.Touch.t=>unit,
+    onTouchCancel:ReactEvent.Touch.t=>unit,
 }
 
 type clickAttrs = {
@@ -152,6 +159,10 @@ let useLongClick = (
         setState(updateStateOnClickEnd(_, mEvt))
     }
 
+    let actClickCancel = () => {
+        setState(resetState)
+    }
+
     {
         onClick: evt => {
             if (!longClickEnabled && onClick->Belt_Option.isSome) {
@@ -168,14 +179,39 @@ let useLongClick = (
                 actClickEnd(Some(evt))
             }
         },
+        onMouseMove: _ => {
+            if (longClickEnabled) {
+                actClickCancel()
+            }
+        },
+        onMouseLeave: _ => {
+            if (longClickEnabled) {
+                actClickCancel()
+            }
+        },
+        onMouseOut: _ => {
+            if (longClickEnabled) {
+                actClickCancel()
+            }
+        },
         onTouchStart: _ => {
             if (longClickEnabled) {
                 actClickBegin()
             }
         },
-        onTouchEnd: evt => {
+        onTouchEnd: _ => {
             if (longClickEnabled) {
                 actClickEnd(None)
+            }
+        },
+        onTouchMove: _ => {
+            if (longClickEnabled) {
+                actClickCancel()
+            }
+        },
+        onTouchCancel: _ => {
+            if (longClickEnabled) {
+                actClickCancel()
             }
         },
     }

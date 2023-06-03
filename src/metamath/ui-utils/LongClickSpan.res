@@ -2,8 +2,6 @@ open Expln_React_common
 open Common
 open UseLongClick
 
-let longClickDelay = 1500
-
 @react.component
 let make = (
     ~onClick:ReactEvent.Mouse.t=>unit=?,
@@ -15,7 +13,11 @@ let make = (
     ~style:reStyle=?,
     ~title:string=?,
 ) => {
-    let { onClick, onMouseDown, onMouseUp, onTouchStart, onTouchEnd, } = useLongClick(
+    let { 
+        onClick, 
+        onMouseDown, onMouseUp, onMouseMove, onMouseLeave, onMouseOut,
+        onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, 
+    } = useLongClick(
         ~onClick,
         ~longClickEnabled,
         ~longClickDelayMs,
@@ -23,7 +25,12 @@ let make = (
         ~onLongClick,
     )
 
-    <span onClick onMouseDown onMouseUp onTouchStart onTouchEnd ?style ?title >
+    <span 
+        onClick 
+        onMouseDown onMouseUp onMouseMove onMouseLeave onMouseOut
+        onTouchStart onTouchEnd onTouchMove onTouchCancel
+        ?style ?title 
+    >
         children
     </span>
 }
