@@ -43,7 +43,7 @@ let make = (
     ~onEditCancel:string=>unit,
     ~editByAltClick:bool=false,
     ~longClickEnabled:bool=false,
-    ~longClickDelayMs:int=500,
+    ~longClickDelayMs:int=0,
     ~renderer:option<string=>reElem>=?,
     ~width:int=600,
     ~fullWidth:bool=false,
@@ -52,7 +52,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
-    let { 
+    let {
         onClick, 
         onMouseDown, onMouseUp, onMouseMove, onMouseLeave, onMouseOut,
         onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, 
@@ -156,13 +156,13 @@ let make = (
             } else {
                 "<left-click> to change"
             }
-            <Paper 
+            <Paper
                 variant=#outlined 
                 onClick
                 onMouseDown onMouseUp onMouseMove onMouseLeave onMouseOut
                 onTouchStart onTouchEnd onTouchMove onTouchCancel 
                 style 
-                title={if (editByAltClick) {"Alt + <left-click> to change"} else {"<left-click> to change"}}
+                title
             >
                 {
                     if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {

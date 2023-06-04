@@ -29,10 +29,9 @@ type state = {
     clickBeginScreenY:int,
     doShortClick: option<option<clickAttrs>>,
     doLongClick: option<timeoutID>,
-    longClickDelayMs:int,
 }
 
-let makeInitialState = (longClickDelayMs:int) => {
+let makeInitialState = () => {
     {
         lastClickBeginTime: 0.,
         lastClickEndTime: 0.,
@@ -41,7 +40,6 @@ let makeInitialState = (longClickDelayMs:int) => {
         clickBeginScreenY:0,
         doShortClick: None,
         doLongClick: None,
-        longClickDelayMs,
     }
 }
 
@@ -70,7 +68,13 @@ let markLongClickIsRequested = (st:state, timerId:timeoutID):state => {
 
 let repeatDelayMs = 300.
 
-let updateStateOnClickBegin = (st:state, screenX:int, screenY:int, updateState: (state=>state)=>unit):state => {
+let updateStateOnClickBegin = (
+    st:state, 
+    screenX:int, 
+    screenY:int, 
+    longClickDelayMs:int,
+    updateState: (state=>state)=>unit
+):state => {
     if (Js.Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
         {
             ...resetState(st),
@@ -81,7 +85,7 @@ let updateStateOnClickBegin = (st:state, screenX:int, screenY:int, updateState: 
                 let timerIdLocal = ref(stubTimeoutId)
                 timerIdLocal := setTimeout( 
                     () => updateState(markLongClickIsRequested(_, timerIdLocal.contents)), 
-                    st.longClickDelayMs 
+                    longClickDelayMs 
                 )
                 Some(timerIdLocal.contents)
             }
@@ -136,7 +140,7 @@ let useLongClick = (
     ~onShortClick:option<option<clickAttrs>=>unit>,
     ~onLongClick:option<unit=>unit>,
 ):useLongClick => {
-    let (state, setState) = React.useState(() => makeInitialState(longClickDelayMs))
+    let (state, setState) = React.useState(() => makeInitialState())
 
     React.useEffect1(() => {
         switch state.doShortClick {
@@ -158,7 +162,7 @@ let useLongClick = (
     }, [state.doLongClick])
 
     let actClickBegin = (screenX:int, screenY:int) => {
-        setState(updateStateOnClickBegin(_, screenX, screenY, setState))
+        setState(updateStateOnClickBegin(_, screenX, screenY, longClickDelayMs, setState))
     }
 
     let actClickEnd = (mEvt:option<ReactEvent.Mouse.t>) => {

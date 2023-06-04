@@ -33,6 +33,7 @@ type props = {
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
     longClickEnabled:bool,
+    longClickDelayMs:int,
     defaultStmtType:string,
 
     visualizationIsOn:bool,
@@ -67,6 +68,7 @@ let rndContText: (
     ~onTreeLeftClick:int=>unit=?,
     ~onTreeAltLeftClick:int=>unit=?,
     ~longClickEnabled:bool=?,
+    ~longClickDelayMs:int=?,
     ~cursor:string=?,
     ~renderSelection:bool=?,
     ()

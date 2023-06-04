@@ -134,10 +134,11 @@ let rndSymbol = (
     ~key:string,
     ~sym:string,
     ~color:option<string>,
+    ~longClickEnabled:bool,
+    ~longClickDelayMs:int,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
     ~onLeftClick:option<unit=>unit>=?,
     ~onAltLeftClick:option<unit=>unit>=?,
-    ~longClickEnabled:bool=false,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~cursor:string="auto",
@@ -152,6 +153,7 @@ let rndSymbol = (
                 if (longClickEnabled) {
                     <LongClickSpan
                         longClickEnabled
+                        longClickDelayMs
                         onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
                             (clickAttrs:option<UseLongClick.clickAttrs>) => {
                                 switch clickAttrs {
@@ -196,6 +198,7 @@ let rndSymbol = (
             if (longClickEnabled) {
                 <LongClickSpan 
                     longClickEnabled
+                    longClickDelayMs
                     onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
                         (clickAttrs:option<UseLongClick.clickAttrs>) => {
                             switch clickAttrs {
@@ -249,6 +252,7 @@ let rndContText = (
     ~onTreeLeftClick:option<int=>unit>=?,
     ~onTreeAltLeftClick:option<int=>unit>=?,
     ~longClickEnabled:bool=false,
+    ~longClickDelayMs:int=0,
     ~cursor:string="auto",
     ~renderSelection:bool=false,
     ()
@@ -266,6 +270,7 @@ let rndContText = (
                         () => onTextAltLeftClick(i)
                     )},
                     ~longClickEnabled,
+                    ~longClickDelayMs,
                     ~cursor,
                     ~symRename?,
                     ()
@@ -283,6 +288,8 @@ let rndContText = (
                     ~color=None,
                     ~cursor,
                     ~symRename?,
+                    ~longClickEnabled=false,
+                    ~longClickDelayMs=0,
                     ()
                 )
             )->ignore
@@ -313,6 +320,7 @@ let rndContText = (
                                         () => onTreeAltLeftClick(id)
                                     )},
                                     ~longClickEnabled,
+                                    ~longClickDelayMs,
                                     ~spaceBackgroundColor=?{
                                         if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
                                             Some("#ADD6FF")
@@ -500,6 +508,7 @@ type props = {
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
     longClickEnabled:bool,
+    longClickDelayMs:int,
     defaultStmtType:string,
 
     visualizationIsOn:bool,
@@ -571,6 +580,7 @@ let make = React.memoCustomCompareProps( ({
     visualizationIsOn,
     editStmtsByLeftClick,
     longClickEnabled,
+    longClickDelayMs,
     defaultStmtType,
     addStmtAbove,
     addStmtBelow,
@@ -1040,6 +1050,7 @@ let make = React.memoCustomCompareProps( ({
                             ~onTreeLeftClick,
                             ~onTreeAltLeftClick,
                             ~longClickEnabled,
+                            ~longClickDelayMs,
                             ~renderSelection=true,
                             ~cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"},
                             ()
@@ -1085,7 +1096,8 @@ let make = React.memoCustomCompareProps( ({
                     clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
                     clickClbkMake(~act=actToggleInfoExpanded, ()),
                 )
-                longClickEnabled=true
+                longClickEnabled
+                longClickDelayMs
                 onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onTypEditRequested
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())

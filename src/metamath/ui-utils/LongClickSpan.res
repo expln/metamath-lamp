@@ -6,7 +6,7 @@ open UseLongClick
 let make = (
     ~onClick:ReactEvent.Mouse.t=>unit=?,
     ~longClickEnabled:bool,
-    ~longClickDelayMs:int=500,
+    ~longClickDelayMs:int,
     ~onShortClick:option<clickAttrs>=>unit=?,
     ~onLongClick:unit=>unit=?,
     ~children:reElem,
