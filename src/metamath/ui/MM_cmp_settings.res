@@ -22,6 +22,7 @@ type settingsState = {
     defaultStmtLabel:string,
     defaultStmtType:string,
     checkSyntax: bool,
+    stickGoalToBottom:bool,
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
@@ -67,6 +68,7 @@ let createDefaultSettings = () => {
         defaultStmtLabel:"qed",
         defaultStmtType:"|-",
         checkSyntax: true,
+        stickGoalToBottom:true,
         typeNextId: 4,
         typeSettings: [
             {
@@ -295,6 +297,7 @@ let stateToSettings = (st:settingsState):settings => {
         defaultStmtLabel:st.defaultStmtLabel,
         defaultStmtType:st.defaultStmtType,
         checkSyntax:st.checkSyntax,
+        stickGoalToBottom:st.stickGoalToBottom,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -322,6 +325,7 @@ let settingsToState = (ls:settings):settingsState => {
         defaultStmtLabel:ls.defaultStmtLabel,
         defaultStmtType:ls.defaultStmtType,
         checkSyntax:ls.checkSyntax,
+        stickGoalToBottom:ls.stickGoalToBottom,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -378,6 +382,7 @@ let readStateFromLocStor = ():settingsState => {
                     ),
                     defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
+                    stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -441,6 +446,7 @@ let eqState = (st1, st2) => {
         && st1.defaultStmtLabel == st2.defaultStmtLabel
         && st1.defaultStmtType == st2.defaultStmtType
         && st1.checkSyntax == st2.checkSyntax
+        && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -465,6 +471,7 @@ let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
 let updateDefaultStmtLabel = (st, defaultStmtLabel) => {...st, defaultStmtLabel}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
+let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -621,6 +628,10 @@ let make = (
 
     let actCheckSyntaxChange = checkSyntax => {
         setState(updateCheckSyntax(_, checkSyntax))
+    }
+
+    let actStickGoalToBottomChange = stickGoalToBottom => {
+        setState(updateStickGoalToBottom(_, stickGoalToBottom))
     }
 
     let actLongClickEnabledChange = (longClickEnabled) => {
@@ -907,6 +918,15 @@ let make = (
                 />
             }
             label="Mark initial statement as a goal"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.stickGoalToBottom
+                    onChange=evt2bool(actStickGoalToBottomChange)
+                />
+            }
+            label="Stick the goal statement to the bottom"
         />
         <TextField 
             size=#small

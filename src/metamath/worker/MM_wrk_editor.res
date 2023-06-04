@@ -767,7 +767,13 @@ let sortStmtsByType = st => {
     let stmtToInt = stmt => {
         switch stmt.typ {
             | E => 1
-            | P => 2
+            | P => {
+                if (st.settings.stickGoalToBottom) {
+                    if (stmt.isGoal) {3} else {2}
+                } else {
+                    2
+                }
+            }
         }
     }
     st->stableSortStmts((a,b) => stmtToInt(a) - stmtToInt(b))

@@ -23,6 +23,7 @@ let createEditorState = (mmFile) => {
         defaultStmtLabel: "",
         defaultStmtType: "",
         checkSyntax: true,
+        stickGoalToBottom: true,
         typeSettings: [ ],
         webSrcSettings: [ ],
         longClickEnabled: true,

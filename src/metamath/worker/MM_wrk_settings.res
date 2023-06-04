@@ -19,6 +19,7 @@ type settings = {
     defaultStmtLabel:string,
     initStmtIsGoal:bool,
     checkSyntax:bool,
+    stickGoalToBottom:bool,
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
     longClickEnabled:bool,
