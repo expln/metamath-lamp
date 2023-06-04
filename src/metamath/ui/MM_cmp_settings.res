@@ -19,6 +19,7 @@ type settingsState = {
 
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
+    defaultStmtLabel:string,
     checkSyntax: bool,
 
     typeNextId: int,
@@ -62,6 +63,7 @@ let createDefaultSettings = () => {
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
         editStmtsByLeftClick: true,
         defaultStmtType:"|-",
+        defaultStmtLabel:"qed",
         checkSyntax: true,
         typeNextId: 4,
         typeSettings: [
@@ -123,6 +125,17 @@ let validateAndCorrectDefaultStmtType = (st:settingsState):settingsState => {
     {
         ...st,
         defaultStmtType: st.defaultStmtType->Js_string2.trim,
+    }
+}
+
+let validateDefaultStmtLabel = (label:string):string => {
+    label->Js.String2.replaceByRe(%re("/[^A-Za-z0-9._-]/g"), "")
+}
+
+let validateAndCorrectDefaultStmtLabel = (st:settingsState):settingsState => {
+    {
+        ...st,
+        defaultStmtLabel: st.defaultStmtLabel->validateDefaultStmtLabel,
     }
 }
 
@@ -266,6 +279,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectWebSrcSettings(st)
     let st = validateAndCorrectLongClickSettings(st)
+    let st = validateAndCorrectDefaultStmtLabel(st)
     st
 }
 
@@ -276,6 +290,7 @@ let stateToSettings = (st:settingsState):settings => {
         asrtsToSkipRegex: st.asrtsToSkipRegex,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
         defaultStmtType:st.defaultStmtType,
+        defaultStmtLabel:st.defaultStmtLabel,
         checkSyntax:st.checkSyntax,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
@@ -301,6 +316,7 @@ let settingsToState = (ls:settings):settingsState => {
         asrtsToSkipRegex: ls.asrtsToSkipRegex,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         defaultStmtType:ls.defaultStmtType,
+        defaultStmtLabel:ls.defaultStmtLabel,
         checkSyntax:ls.checkSyntax,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
@@ -351,6 +367,11 @@ let readStateFromLocStor = ():settingsState => {
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
                     defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
+                    defaultStmtLabel: d->str("defaultStmtLabel", 
+                        ~default=()=>defaultSettings.defaultStmtLabel, 
+                        ~validator = str => Ok(validateDefaultStmtLabel(str)),
+                        ()
+                    ),
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
@@ -412,6 +433,7 @@ let eqState = (st1, st2) => {
         && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.defaultStmtType == st2.defaultStmtType
+        && st1.defaultStmtLabel == st2.defaultStmtLabel
         && st1.checkSyntax == st2.checkSyntax
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
@@ -434,6 +456,7 @@ let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
+let updateDefaultStmtLabel = (st, defaultStmtLabel) => {...st, defaultStmtLabel}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
@@ -575,6 +598,10 @@ let make = (
 
     let actDefaultStmtTypeChange = defaultStmtType => {
         setState(updateDefaultStmtType(_, defaultStmtType))
+    }
+
+    let actDefaultStmtLabelChange = defaultStmtLabel => {
+        setState(updateDefaultStmtLabel(_, defaultStmtLabel))
     }
 
     let actLongClickDelayMsStrChange = longClickDelayMsStr => {
@@ -861,6 +888,14 @@ let make = (
             label="Check syntax"
         />
         {rndAsrtsToSkip()}
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="200px", ())
+            label="Initial statement label" 
+            value=state.defaultStmtLabel
+            onChange=evt2str(actDefaultStmtLabelChange)
+            title="This text is used as a label for the initial statement. If empty - a label will be generated automatically."
+        />
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())

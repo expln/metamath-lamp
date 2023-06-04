@@ -16,6 +16,7 @@ type settings = {
     asrtsToSkipRegex: string,
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
+    defaultStmtLabel:string,
     checkSyntax:bool,
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
