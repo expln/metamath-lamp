@@ -45,7 +45,7 @@ let createEditorState = (
         asrtsToSkipRegex: "",
         editStmtsByLeftClick:true,
         initStmtIsGoal: false,
-        defaultStmtLabel: "",
+        defaultStmtLabel: "qed",
         defaultStmtType: "",
         checkSyntax: true,
         stickGoalToBottom: true,
