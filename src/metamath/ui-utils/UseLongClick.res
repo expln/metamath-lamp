@@ -25,6 +25,8 @@ type state = {
     lastClickBeginTime: float,
     lastClickEndTime: float,
     timerId:option<timeoutID>,
+    clickBeginScreenX:int,
+    clickBeginScreenY:int,
     doShortClick: option<option<clickAttrs>>,
     doLongClick: option<timeoutID>,
     longClickDelayMs:int,
@@ -35,6 +37,8 @@ let makeInitialState = (longClickDelayMs:int) => {
         lastClickBeginTime: 0.,
         lastClickEndTime: 0.,
         timerId:None,
+        clickBeginScreenX:0,
+        clickBeginScreenY:0,
         doShortClick: None,
         doLongClick: None,
         longClickDelayMs,
@@ -66,11 +70,13 @@ let markLongClickIsRequested = (st:state, timerId:timeoutID):state => {
 
 let repeatDelayMs = 300.
 
-let updateStateOnClickBegin = (st:state, updateState: (state=>state)=>unit):state => {
+let updateStateOnClickBegin = (st:state, screenX:int, screenY:int, updateState: (state=>state)=>unit):state => {
     if (Js.Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
         {
             ...resetState(st),
             lastClickBeginTime: Js.Date.now(),
+            clickBeginScreenX:screenX,
+            clickBeginScreenY:screenY,
             timerId: {
                 let timerIdLocal = ref(stubTimeoutId)
                 timerIdLocal := setTimeout( 
@@ -151,16 +157,54 @@ let useLongClick = (
         None
     }, [state.doLongClick])
 
-    let actClickBegin = () => {
-        setState(updateStateOnClickBegin(_, setState))
+    let actClickBegin = (screenX:int, screenY:int) => {
+        setState(updateStateOnClickBegin(_, screenX, screenY, setState))
     }
 
     let actClickEnd = (mEvt:option<ReactEvent.Mouse.t>) => {
         setState(updateStateOnClickEnd(_, mEvt))
     }
 
-    let actClickCancel = () => {
-        setState(resetState)
+    let actClickMove = (screenX:int, screenY:int) => {
+        if (
+            state.timerId->Belt_Option.isSome
+            && (
+                (state.clickBeginScreenX - screenX)->Js_math.abs_int > 3
+                || (state.clickBeginScreenY - screenY)->Js_math.abs_int > 3
+            )
+        ) {
+            setState(resetState)
+        }
+    }
+
+    let actMouseMove = (evt:ReactEvent.Mouse.t) => {
+        if (longClickEnabled) {
+            actClickMove( evt->ReactEvent.Mouse.screenX, evt->ReactEvent.Mouse.screenY )
+        }
+    }
+
+    let getScreenCoordsFromTouchList = (touchList:{..}):option<(int,int)> => {
+        if (touchList["length"] > 0) {
+            let touch = touchList["item"](. 0)
+            Some(( touch["screenX"], touch["screenY"] ))
+        } else {
+            None
+        }
+    }
+
+    let actTouchMove = (evt:ReactEvent.Touch.t) => {
+        if (longClickEnabled) {
+            switch getScreenCoordsFromTouchList(evt->ReactEvent.Touch.touches) {
+                | Some((screenX, screenY)) => actClickMove(screenX, screenY)
+                | _ => ()
+            }
+        }
+    }
+
+    let actTouchCancel = (_:ReactEvent.Touch.t) => {
+        if (longClickEnabled) {
+            setState(resetState)
+        }
     }
 
     {
@@ -169,9 +213,10 @@ let useLongClick = (
                 onClick->Belt_Option.getExn(evt)
             }
         },
-        onMouseDown: _ => {
+
+        onMouseDown: evt => {
             if (longClickEnabled) {
-                actClickBegin()
+                actClickBegin(evt->ReactEvent.Mouse.screenX, evt->ReactEvent.Mouse.screenY)
             }
         },
         onMouseUp: evt => {
@@ -179,24 +224,16 @@ let useLongClick = (
                 actClickEnd(Some(evt))
             }
         },
-        onMouseMove: _ => {
+        onMouseMove: actMouseMove,
+        onMouseLeave: actMouseMove,
+        onMouseOut: actMouseMove,
+
+        onTouchStart: evt => {
             if (longClickEnabled) {
-                actClickCancel()
-            }
-        },
-        onMouseLeave: _ => {
-            if (longClickEnabled) {
-                actClickCancel()
-            }
-        },
-        onMouseOut: _ => {
-            if (longClickEnabled) {
-                actClickCancel()
-            }
-        },
-        onTouchStart: _ => {
-            if (longClickEnabled) {
-                actClickBegin()
+                switch getScreenCoordsFromTouchList(evt->ReactEvent.Touch.touches) {
+                    | Some((screenX, screenY)) => actClickBegin(screenX, screenY)
+                    | _ => ()
+                }
             }
         },
         onTouchEnd: _ => {
@@ -204,15 +241,7 @@ let useLongClick = (
                 actClickEnd(None)
             }
         },
-        onTouchMove: _ => {
-            if (longClickEnabled) {
-                actClickCancel()
-            }
-        },
-        onTouchCancel: _ => {
-            if (longClickEnabled) {
-                actClickCancel()
-            }
-        },
+        onTouchMove: actTouchMove,
+        onTouchCancel: actTouchCancel,
     }
 }
