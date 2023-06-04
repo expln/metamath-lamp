@@ -19,6 +19,8 @@ type settings = {
     checkSyntax:bool,
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,
+    longClickEnabled:bool,
+    longClickDelayMs:int,
 }
 
 let markUrlAsTrusted: (settings, string) => settings

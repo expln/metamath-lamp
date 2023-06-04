@@ -25,3 +25,5 @@ let useLongClick: (
     ~onShortClick:option<option<clickAttrs>=>unit>,
     ~onLongClick:option<unit=>unit>,
 ) => useLongClick
+
+let repeatDelayMs: float

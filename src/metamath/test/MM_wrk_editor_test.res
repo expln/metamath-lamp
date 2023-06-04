@@ -23,6 +23,8 @@ let createEditorState = (mmFile) => {
         checkSyntax: true,
         typeSettings: [ ],
         webSrcSettings: [ ],
+        longClickEnabled: true,
+        longClickDelayMs: 500,
     }
     let preCtxV = 1
     let preCtx = ctx

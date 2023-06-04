@@ -148,20 +148,53 @@ let rndSymbol = (
             if (isFirst) {
                 <></>
             } else {
-                <LongClickSpan
-                    onClick=?{
-                        if (
-                            !longClickEnabled 
-                                && (onLeftClick->Belt.Option.isSome || onAltLeftClick->Belt.Option.isSome)
-                        ) {
-                            Some(clickHnd2(
+                let style = ReactDOM.Style.make( ~backgroundColor=?spaceBackgroundColor, ~cursor, () )
+                if (longClickEnabled) {
+                    <LongClickSpan
+                        longClickEnabled
+                        onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
+                            (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                                switch clickAttrs {
+                                    | None => onLeftClick()
+                                    | Some({alt}) => {
+                                        if (alt) {
+                                            callbackOpt(onAltLeftClick)()
+                                        } else {
+                                            onLeftClick()
+                                        }
+                                    }
+                                }
+                            }
+                        })}
+                        onLongClick=?onAltLeftClick
+                        style
+                    > 
+                        {" "->React.string} 
+                    </LongClickSpan>
+                } else {
+                    <span
+                        onClick={
+                            clickHnd2(
                                 clickClbkMake(~act = callbackOpt(onLeftClick), ()),
                                 clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
-                            ))
-                        } else {
-                            None
+                            )
                         }
-                    }
+                        style
+                    > 
+                        {" "->React.string} 
+                    </span>
+                }
+                
+            }
+        }
+        {
+            let (color,fontWeight) = switch color {
+                | None => ("black","normal")
+                | Some(color) => (color,"bold")
+            }
+            let style = ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
+            if (longClickEnabled) {
+                <LongClickSpan 
                     longClickEnabled
                     onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
                         (clickAttrs:option<UseLongClick.clickAttrs>) => {
@@ -178,59 +211,32 @@ let rndSymbol = (
                         }
                     })}
                     onLongClick=?onAltLeftClick
-                    style=ReactDOM.Style.make(
-                        ~backgroundColor=?spaceBackgroundColor,
-                        ~cursor,
-                        ()
-                    )
-                > 
-                    {" "->React.string} 
+                    style
+                >
+                    {
+                        React.string(
+                            symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
+                        )
+                    }
                 </LongClickSpan>
-            }
-        }
-        {
-            let (color,fontWeight) = switch color {
-                | None => ("black","normal")
-                | Some(color) => (color,"bold")
-            }
-            <LongClickSpan 
-                onClick=?{
-                    if (
-                        !longClickEnabled 
-                            && (onLeftClick->Belt.Option.isSome || onAltLeftClick->Belt.Option.isSome)
-                    ) {
-                        Some(clickHnd2(
+            } else {
+                <span 
+                    onClick={
+                        clickHnd2(
                             clickClbkMake(~act = callbackOpt(onLeftClick), ()),
                             clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
-                        ))
-                    } else {
-                        None
+                        )
                     }
-                }
-                longClickEnabled
-                onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
-                    (clickAttrs:option<UseLongClick.clickAttrs>) => {
-                        switch clickAttrs {
-                            | None => onLeftClick()
-                            | Some({alt}) => {
-                                if (alt) {
-                                    callbackOpt(onAltLeftClick)()
-                                } else {
-                                    onLeftClick()
-                                }
-                            }
-                        }
+                    style
+                >
+                    {
+                        React.string(
+                            symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
+                        )
                     }
-                })}
-                onLongClick=?onAltLeftClick
-                style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
-            >
-                {
-                    React.string(
-                        symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
-                    )
-                }
-            </LongClickSpan>
+                </span>
+            }
+            
         }
     </React.Fragment>
 }
