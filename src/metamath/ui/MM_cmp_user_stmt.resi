@@ -71,6 +71,7 @@ let rndContText: (
     ~longClickDelayMs:int=?,
     ~cursor:string=?,
     ~renderSelection:bool=?,
+    ~title:string=?,
     ()
 ) => React.element
 

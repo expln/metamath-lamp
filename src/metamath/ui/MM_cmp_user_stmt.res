@@ -142,6 +142,7 @@ let rndSymbol = (
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~cursor:string="auto",
+    ~title:option<string>=?,
     ()
 ):reElem => {
     <React.Fragment key>
@@ -170,6 +171,7 @@ let rndSymbol = (
                         })}
                         onLongClick=?onAltLeftClick
                         style
+                        ?title
                     > 
                         {" "->React.string} 
                     </LongClickSpan>
@@ -182,6 +184,7 @@ let rndSymbol = (
                             )
                         }
                         style
+                        ?title
                     > 
                         {" "->React.string} 
                     </span>
@@ -215,6 +218,7 @@ let rndSymbol = (
                     })}
                     onLongClick=?onAltLeftClick
                     style
+                    ?title
                 >
                     {
                         React.string(
@@ -231,6 +235,7 @@ let rndSymbol = (
                         )
                     }
                     style
+                    ?title
                 >
                     {
                         React.string(
@@ -255,6 +260,7 @@ let rndContText = (
     ~longClickDelayMs:int=0,
     ~cursor:string="auto",
     ~renderSelection:bool=false,
+    ~title:option<string>=?,
     ()
 ) => {
     switch stmtCont {
@@ -273,6 +279,7 @@ let rndContText = (
                     ~longClickDelayMs,
                     ~cursor,
                     ~symRename?,
+                    ~title?,
                     ()
                 )
             })->React.array
@@ -290,6 +297,7 @@ let rndContText = (
                     ~symRename?,
                     ~longClickEnabled=false,
                     ~longClickDelayMs=0,
+                    ~title?,
                     ()
                 )
             )->ignore
@@ -341,6 +349,7 @@ let rndContText = (
                                     },
                                     ~cursor,
                                     ~symRename?,
+                                    ~title?,
                                     ()
                                 )
                             )->ignore
@@ -994,6 +1003,20 @@ let make = React.memoCustomCompareProps( ({
                 | Text(_) => false
                 | Tree({clickedNodeId}) => clickedNodeId->Belt.Option.isSome
             }
+            let title =
+                if (editStmtsByLeftClick) {
+                    if (longClickEnabled) {
+                        "<short-click> to change, <long-click> (Alt+<left-click>) to select"
+                    } else {
+                        "<left-click> to change, Alt+<left-click> to select"
+                    }
+                } else {
+                    if (longClickEnabled) {
+                        "<long-click> (Alt+<left-click>) to change, <short-click> to select"
+                    } else {
+                        "Alt+<left-click> to change, <left-click> to select"
+                    }
+                }
             let elems = [
                 <Paper 
                     style=ReactDOM.Style.make(
@@ -1006,21 +1029,6 @@ let make = React.memoCustomCompareProps( ({
                         ~fontSize="1.3em",
                         ()
                     ) 
-                    title={
-                        if (editStmtsByLeftClick) {
-                            if (longClickEnabled) {
-                                "<left-click> to change, <long-click> (Alt+<left-click>) to select"
-                            } else {
-                                "<left-click> to change, Alt+<left-click> to select"
-                            }
-                        } else {
-                            if (longClickEnabled) {
-                                "<long-click> (Alt+<left-click>) to change, <left-click> to select"
-                            } else {
-                                "Alt+<left-click> to change, <left-click> to select"
-                            }
-                        }
-                    }
                 >
                     {
                         let onTextLeftClick = if (editStmtsByLeftClick) {
@@ -1053,6 +1061,7 @@ let make = React.memoCustomCompareProps( ({
                             ~longClickDelayMs,
                             ~renderSelection=true,
                             ~cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"},
+                            ~title,
                             ()
                         )
                     }
