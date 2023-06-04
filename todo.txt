@@ -1,3 +1,4 @@
+- fix a bug: goal is re-defined but the statement is not marked with red background.
 - fix a bug: pressing Enter in the explorer filters on mobile doesn't apply filters.
 - remove selector from the url added by the explorer. Steps to reproduce:
     load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console: 
