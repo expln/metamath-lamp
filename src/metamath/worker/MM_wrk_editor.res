@@ -1004,6 +1004,28 @@ let validateStmtExpr = (
     }
 }
 
+let validateStmtIsGoal = (
+    stmt:userStmt, 
+    goalLabel:ref<option<string>>,
+):userStmt => {
+    if (userStmtHasErrors(stmt)) {
+        stmt
+    } else {
+        switch goalLabel.contents {
+            | None => stmt
+            | Some(goalLabel) => {
+                if (stmt.isGoal) {
+                    {...stmt, stmtErr:Some(`Cannot re-defined the goal. ` 
+                                    ++ `Previously defined goal is the statement labeled` 
+                                    ++ ` '${goalLabel}'`)}
+                } else {
+                    stmt
+                }
+            }
+        }
+    }
+}
+
 let prepareUserStmtsForUnification = (st:editorState):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot prepareUserStmtsForUnification without wrkCtx.`}))
@@ -1011,10 +1033,12 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
             let stmtsLen = st.stmts->Js_array2.length
             let definedUserLabels = Belt_HashSetString.make(~hintSize=stmtsLen)
             let definedUserExprs = Belt_HashMap.make(~hintSize=stmtsLen, ~id=module(ExprHash))
+            let goalLabel = ref(None)
             let actions = [
                 validateStmtLabel(_, wrkCtx, definedUserLabels),
                 setStmtExpr(_, wrkCtx),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
+                validateStmtIsGoal(_, goalLabel),
                 setStmtJstf,
                 validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip, st.frms),
             ]
@@ -1039,6 +1063,9 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                             switch stmt.expr {
                                 | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
                                 | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
+                            }
+                            if (stmt.isGoal) {
+                                goalLabel := Some(stmt.label)
                             }
                         }
                         st->updateStmt(stmt.id, _ => stmt)
