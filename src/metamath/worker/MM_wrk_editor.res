@@ -149,6 +149,7 @@ type userStmt = {
     labelEditMode: bool,
     typ: userStmtType,
     typEditMode: bool,
+    isGoal: bool,
     cont: stmtCont,
     contEditMode: bool,
     
@@ -213,11 +214,12 @@ type wrkSubs = {
     mutable err: option<wrkSubsErr>,
 }
 
-let createEmptyUserStmt = (id, typ, label):userStmt => {
+let createEmptyUserStmt = (id, typ, label, isGoal):userStmt => {
     { 
         id, 
         label, labelEditMode:false, 
         typ, typEditMode:false, 
+        isGoal,
         cont:Text([]), contEditMode:true,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
@@ -413,6 +415,7 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let newLabel = if (st.stmts->Js.Array2.length == 0) {"qed"} else {createNewLabel(st, newLabelPrefix)}
+    let isGoal = false
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
@@ -423,13 +426,13 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
                     | Some(idToAddBefore) => {
                         st.stmts->Js_array2.map(stmt => {
                             if (stmt.id == idToAddBefore) {
-                                [createEmptyUserStmt(newId,P,newLabel), stmt]
+                                [createEmptyUserStmt(newId,P,newLabel,isGoal), stmt]
                             } else {
                                 [stmt]
                             }
                         })->Belt_Array.concatMany
                     }
-                    | None => st.stmts->Js_array2.concat([createEmptyUserStmt(newId, P, newLabel)])
+                    | None => st.stmts->Js_array2.concat([createEmptyUserStmt(newId, P, newLabel, isGoal)])
                 }
         },
         newId
@@ -570,11 +573,12 @@ let setTypEditMode = (st, stmtId) => {
     }
 }
 
-let completeTypEditMode = (st, stmtId, newTyp) => {
+let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
     updateStmt(st, stmtId, stmt => {
         {
             ...stmt,
             typ:newTyp,
+            isGoal:newIsGoal,
             typEditMode: false
         }
     })

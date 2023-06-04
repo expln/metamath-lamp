@@ -7,6 +7,7 @@ open MM_wrk_pre_ctx_data
 type userStmtLocStor = {
     label: string,
     typ: string,
+    isGoal: bool,
     cont: string,
     jstfText: string,
 }   
@@ -27,6 +28,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         labelEditMode: false,
         typ: userStmtTypeFromStr(userStmtLocStor.typ),
         typEditMode: false,
+        isGoal: userStmtLocStor.isGoal,
         cont: strToCont(userStmtLocStor.cont, ()),
         contEditMode: false,
 
@@ -119,6 +121,7 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
             {
                 label: stmt.label,
                 typ: (stmt.typ->userStmtTypeToStr),
+                isGoal: stmt.isGoal,
                 cont: contToStr(stmt.cont),
                 jstfText: stmt.jstfText,
             }
@@ -149,6 +152,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                 {
                     label: d->str("label", ()),
                     typ: d->str("typ", ()),
+                    isGoal: d->bool("isGoal", ~default=()=>false, ()),
                     cont: d->str("cont", ()),
                     jstfText: d->str("jstfText", ())
                 }

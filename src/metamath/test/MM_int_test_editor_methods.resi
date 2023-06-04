@@ -20,6 +20,7 @@ let addStmt: (
     editorState,
     ~before:stmtId=?,
     ~typ: userStmtType=?,
+    ~isGoal:bool=?,
     ~label: string=?,
     ~stmt: string,
     unit,

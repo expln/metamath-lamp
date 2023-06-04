@@ -62,6 +62,7 @@ type userStmt = {
     labelEditMode: bool,
     typ: userStmtType,
     typEditMode: bool,
+    isGoal: bool,
     cont: stmtCont,
     contEditMode: bool,
     
@@ -126,7 +127,7 @@ type wrkSubs = {
     mutable err: option<wrkSubsErr>,
 }
 
-let createEmptyUserStmt: (string, userStmtType, string) => userStmt
+let createEmptyUserStmt: (string, userStmtType, string, bool) => userStmt
 let userStmtToRootStmt: userStmt => rootStmt
 
 let updateStmt: (editorState, string, userStmt => userStmt) => editorState
@@ -155,7 +156,7 @@ let setContEditMode: (editorState, string) => editorState
 let completeContEditMode: (editorState, string, string) => editorState
 let setStmtCont: (editorState, stmtId, stmtCont) => editorState
 let setTypEditMode: (editorState, string) => editorState
-let completeTypEditMode: (editorState, string, userStmtType) => editorState
+let completeTypEditMode: (editorState, string, userStmtType, bool) => editorState
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, string, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState

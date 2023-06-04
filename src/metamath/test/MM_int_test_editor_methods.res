@@ -74,6 +74,7 @@ let addStmt = (
     st:editorState, 
     ~before:option<stmtId>=?,
     ~typ:option<userStmtType>=?, 
+    ~isGoal:bool=false,
     ~label:option<string>=?, 
     ~stmt:string, 
     ()
@@ -92,7 +93,7 @@ let addStmt = (
         | None => st
     }
     let st = switch typ {
-        | Some(typ) => st->completeTypEditMode(stmtId, typ)
+        | Some(typ) => st->completeTypEditMode(stmtId, typ, isGoal)
         | None => st
     }
     let st = st->uncheckAllStmts

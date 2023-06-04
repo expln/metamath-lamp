@@ -6,6 +6,7 @@ open MM_wrk_pre_ctx_data
 type userStmtLocStor = {
     label: string, 
     typ: string, 
+    isGoal: bool,
     cont: string, 
     jstfText: string
 }
