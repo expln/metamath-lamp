@@ -27,6 +27,9 @@ type settingsState = {
     webSrcNextId: int,
     webSrcSettings: array<webSrcSettingsState>,
 
+    longClickEnabled:bool,
+    longClickDelayMsStr:string,
+
 }
 
 let allColors = [
@@ -46,6 +49,10 @@ let createDefaultWebSrcSettingState = (alias:string,url:string):webSrcSettingsSt
         err: None
     }
 }
+
+let longClickDelayMsDefault = 500
+let longClickDelayMsMin = UseLongClick.repeatDelayMs->Belt_Float.toInt + 100
+let longClickDelayMsMax = 3000
 
 let createDefaultSettings = () => {
     {
@@ -91,7 +98,9 @@ let createDefaultSettings = () => {
         webSrcSettings: [
             createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath.org/metamath/set.mm"),
             createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm"),
-        ]
+        ],
+        longClickEnabled:true,
+        longClickDelayMsStr:longClickDelayMsDefault->Belt.Int.toString,
     }
 }
 
@@ -225,11 +234,38 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
     }
 }
 
+let validateLongClickDelayMs = (ms:int):result<int,string> => {
+    if (ms < longClickDelayMsMin) {
+        Ok(longClickDelayMsMin)
+    } else if (longClickDelayMsMax < ms) {
+        Ok(longClickDelayMsMax)
+    } else {
+        Ok(ms)
+    }
+}
+
+let validateAndCorrectLongClickSettings = (st:settingsState):settingsState => {
+    {
+        ...st,
+        longClickDelayMsStr:
+            switch st.longClickDelayMsStr->Belt_Int.fromString {
+                | None => longClickDelayMsDefault->Belt.Int.toString
+                | Some(ms) => {
+                    switch validateLongClickDelayMs(ms) {
+                        | Ok(ms) => ms->Belt.Int.toString
+                        | Error(_) => longClickDelayMsDefault->Belt.Int.toString
+                    }
+                }
+            }
+    }
+}
+
 let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
     let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectWebSrcSettings(st)
+    let st = validateAndCorrectLongClickSettings(st)
     st
 }
 
@@ -251,6 +287,9 @@ let stateToSettings = (st:settingsState):settings => {
             url: s.url,
             trusted: s.trusted,
         }),
+        longClickEnabled: st.longClickEnabled,
+        longClickDelayMs: 
+            st.longClickDelayMsStr->Belt_Int.fromString->Belt.Option.getWithDefault(longClickDelayMsDefault),
     }
 }
 
@@ -279,6 +318,8 @@ let settingsToState = (ls:settings):settingsState => {
             trusted: s.trusted,
             err: None,
         }),
+        longClickEnabled: ls.longClickEnabled,
+        longClickDelayMsStr: ls.longClickDelayMs->Belt.Int.toString,
     }
     validateAndCorrectState(res)
 }
@@ -327,6 +368,12 @@ let readStateFromLocStor = ():settingsState => {
                         trusted: d->bool("trusted", ()),
                         err: None,
                     }, ()), ~default=()=>defaultSettings.webSrcSettings, ()),
+                    longClickEnabled: d->bool( "longClickEnabled", ~default=()=>defaultSettings.longClickEnabled, () ),
+                    longClickDelayMsStr: d->int( "longClickDelayMs", 
+                        ~default = () => longClickDelayMsDefault,
+                        ~validator = validateLongClickDelayMs,
+                        () 
+                    )->Belt_Int.toString,
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -370,6 +417,8 @@ let eqState = (st1, st2) => {
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
         && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings[i]))
+        && st1.longClickEnabled == st2.longClickEnabled
+        && st1.longClickDelayMsStr == st2.longClickDelayMsStr
 }
 
 let updateParens = (st,parens) => {
@@ -469,6 +518,14 @@ let deleteWebSrcSetting = (st, id) => {
     }
 }
 
+let updateLongClickEnabled = (st, longClickEnabled) => {
+    { ...st, longClickEnabled: longClickEnabled }
+}
+
+let updateLongClickDelayMsStr = (st, longClickDelayMsStr) => {
+    { ...st, longClickDelayMsStr: longClickDelayMsStr }
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -520,8 +577,16 @@ let make = (
         setState(updateDefaultStmtType(_, defaultStmtType))
     }
 
+    let actLongClickDelayMsStrChange = longClickDelayMsStr => {
+        setState(updateLongClickDelayMsStr(_, longClickDelayMsStr))
+    }
+
     let actCheckSyntaxChange = checkSyntax => {
         setState(updateCheckSyntax(_, checkSyntax))
+    }
+
+    let actLongClickEnabledChange = (longClickEnabled) => {
+        setState(updateLongClickEnabled(_, longClickEnabled))
     }
 
     let actTypeSettingAdd = () => {
@@ -747,6 +812,29 @@ let make = (
         </Row>
     }
 
+    let rndLongClickSettings = () => {
+        <Row>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.longClickEnabled
+                        onChange=evt2bool(actLongClickEnabledChange)
+                    />
+                }
+                label="Enable long-click"
+            />
+            <TextField 
+                size=#small
+                style=ReactDOM.Style.make(~width="150px", ())
+                label="Long click delay, ms" 
+                value={state.longClickDelayMsStr} 
+                onChange=evt2str(actLongClickDelayMsStrChange)
+                title="How many milliseconds to wait for a click to become \"long\""
+                disabled={!state.longClickEnabled}
+            />
+        </Row>
+    }
+
     let rndApplyChangesBtn = () => {
         let disabled = !isValid(state) || eqState(prevState, state) 
         <Row spacing=3. >
@@ -784,7 +872,9 @@ let make = (
         <MM_cmp_edit_stmts_setting
             editStmtsByLeftClick=state.editStmtsByLeftClick
             onChange=actEditStmtsByLeftClickChange
+            longClickEnabled=state.longClickEnabled
         />
+        {rndLongClickSettings()}
         <Divider/>
         <MM_cmp_type_settings
             typeSettings=state.typeSettings

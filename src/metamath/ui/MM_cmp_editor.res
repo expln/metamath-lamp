@@ -1100,6 +1100,8 @@ let make = (
                     wrkCtxColors=state.wrkCtxColors
                     visualizationIsOn
                     editStmtsByLeftClick=state.settings.editStmtsByLeftClick
+                    longClickEnabled=state.settings.longClickEnabled
+                    longClickDelayMs=state.settings.longClickDelayMs
                     defaultStmtType=state.settings.defaultStmtType
 
                     onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
@@ -1152,11 +1154,13 @@ let make = (
                     text=state.descr
                     editMode=state.descrEditMode
                     editByAltClick=true
+                    longClickEnabled=state.settings.longClickEnabled
+                    longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDescrEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDescr(newText)}
                     renderer={str => {
-                        <Static_XML_to_HTML xmlStr=state.descr />
+                        <Static_XML_to_HTML xmlStr=str />
                     }}
                     fullWidth=true
                     buttonDirHor=false

@@ -42,6 +42,8 @@ let make = (
     ~onEditDone:string=>unit,
     ~onEditCancel:string=>unit,
     ~editByAltClick:bool=false,
+    ~longClickEnabled:bool=false,
+    ~longClickDelayMs:int=0,
     ~renderer:option<string=>reElem>=?,
     ~width:int=600,
     ~fullWidth:bool=false,
@@ -49,6 +51,29 @@ let make = (
     ~onHelp:option<unit=>unit>=?,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
+
+    let {
+        onClick, 
+        onMouseDown, onMouseUp, onMouseMove, onMouseLeave, onMouseOut,
+        onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, 
+    } = UseLongClick.useLongClick(
+        ~onClick = Some(
+            if (editByAltClick) {
+                MM_react_common.clickHnd(~alt=true, ~act=onEditRequested, ())
+            } else {
+                MM_react_common.clickHnd(~act=onEditRequested, ())
+            }
+        ),
+        ~longClickEnabled,
+        ~longClickDelayMs,
+        ~onShortClick=Some(clickAttrs => {
+            switch clickAttrs {
+                | Some({alt:true}) => onEditRequested()
+                | _ => ()
+            }
+        }),
+        ~onLongClick=Some(onEditRequested),
+    )
 
     React.useEffect1(() => {
         if (editMode) {
@@ -71,12 +96,6 @@ let make = (
 
     let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
         if (mouseEvt->ReactEvent.Mouse.button == 0) {
-            clbk()
-        }
-    }
-
-    let altLeftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0 && mouseEvt->ReactEvent.Mouse.altKey) {
             clbk()
         }
     }
@@ -128,17 +147,22 @@ let make = (
             } else {
                 ReactDOM.Style.make(~padding="0px", ())
             }
-            <Paper 
+            let title = if (editByAltClick) {
+                if (longClickEnabled) {
+                    "<long-click> (Alt + <left-click>) to change"
+                } else {
+                    "Alt + <left-click> to change"
+                }
+            } else {
+                "<left-click> to change"
+            }
+            <Paper
                 variant=#outlined 
-                onClick={
-                    if (editByAltClick) {
-                        altLeftClickHnd(_, onEditRequested)
-                    } else {
-                        leftClickHnd(_, onEditRequested)
-                    }
-                } 
+                onClick
+                onMouseDown onMouseUp onMouseMove onMouseLeave onMouseOut
+                onTouchStart onTouchEnd onTouchMove onTouchCancel 
                 style 
-                title={if (editByAltClick) {"Alt + <left-click> to change"} else {"<left-click> to change"}}
+                title
             >
                 {
                     if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {

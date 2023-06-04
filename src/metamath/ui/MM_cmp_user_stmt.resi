@@ -32,6 +32,8 @@ type props = {
     preCtxColors:Belt_HashMapString.t<string>,
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+    longClickEnabled:bool,
+    longClickDelayMs:int,
     defaultStmtType:string,
 
     visualizationIsOn:bool,
@@ -61,10 +63,15 @@ let make: props => React.element
 let rndContText: (
     ~stmtCont:stmtCont,
     ~symRename:Belt_HashMapString.t<string>=?,
-    ~onTextClick:int=>unit=?,
-    ~onTreeClick:int=>unit=?,
-    ~editStmtsByLeftClick:bool=?,
+    ~onTextLeftClick:int=>unit=?,
+    ~onTextAltLeftClick:int=>unit=?,
+    ~onTreeLeftClick:int=>unit=?,
+    ~onTreeAltLeftClick:int=>unit=?,
+    ~longClickEnabled:bool=?,
+    ~longClickDelayMs:int=?,
+    ~cursor:string=?,
     ~renderSelection:bool=?,
+    ~title:string=?,
     ()
 ) => React.element
 

@@ -125,33 +125,71 @@ let setLastSyntaxType = (lastSyntaxType:string):unit => {
     locStorWriteString(lastSyntaxTypeLocStorKey, lastSyntaxType)
 }
 
+let callbackOpt = (clbkOpt:option<'a=>unit>):('a=>unit) => {
+    a => clbkOpt->Belt_Option.forEach(clbk => clbk(a))
+}
+
 let rndSymbol = (
     ~isFirst:bool,
     ~key:string,
     ~sym:string,
     ~color:option<string>,
+    ~longClickEnabled:bool,
+    ~longClickDelayMs:int,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
-    ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
+    ~onLeftClick:option<unit=>unit>=?,
+    ~onAltLeftClick:option<unit=>unit>=?,
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~cursor:string="auto",
+    ~title:option<string>=?,
     ()
 ):reElem => {
     <React.Fragment key>
         {
             if (isFirst) {
-                React.null
+                <></>
             } else {
-                <span 
-                    ?onClick 
-                    style=ReactDOM.Style.make(
-                        ~backgroundColor=?spaceBackgroundColor,
-                        ~cursor,
-                        ()
-                    )
-                > 
-                    {" "->React.string} 
-                </span>
+                let style = ReactDOM.Style.make( ~backgroundColor=?spaceBackgroundColor, ~cursor, () )
+                if (longClickEnabled) {
+                    <LongClickSpan
+                        longClickEnabled
+                        longClickDelayMs
+                        onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
+                            (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                                switch clickAttrs {
+                                    | None => onLeftClick()
+                                    | Some({alt}) => {
+                                        if (alt) {
+                                            callbackOpt(onAltLeftClick)()
+                                        } else {
+                                            onLeftClick()
+                                        }
+                                    }
+                                }
+                            }
+                        })}
+                        onLongClick=?onAltLeftClick
+                        style
+                        ?title
+                    > 
+                        {" "->React.string} 
+                    </LongClickSpan>
+                } else {
+                    <span
+                        onClick={
+                            clickHnd2(
+                                clickClbkMake(~act = callbackOpt(onLeftClick), ()),
+                                clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
+                            )
+                        }
+                        style
+                        ?title
+                    > 
+                        {" "->React.string} 
+                    </span>
+                }
+                
             }
         }
         {
@@ -159,13 +197,54 @@ let rndSymbol = (
                 | None => ("black","normal")
                 | Some(color) => (color,"bold")
             }
-            <span ?onClick style=ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) >
-                {
-                    React.string(
-                        symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
-                    )
-                }
-            </span>
+            let style = ReactDOM.Style.make( ~color, ~fontWeight, ~backgroundColor=?symbolBackgroundColor, ~cursor, () ) 
+            if (longClickEnabled) {
+                <LongClickSpan 
+                    longClickEnabled
+                    longClickDelayMs
+                    onShortClick=?{onLeftClick->Belt.Option.map(onLeftClick => {
+                        (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                            switch clickAttrs {
+                                | None => onLeftClick()
+                                | Some({alt}) => {
+                                    if (alt) {
+                                        callbackOpt(onAltLeftClick)()
+                                    } else {
+                                        onLeftClick()
+                                    }
+                                }
+                            }
+                        }
+                    })}
+                    onLongClick=?onAltLeftClick
+                    style
+                    ?title
+                >
+                    {
+                        React.string(
+                            symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
+                        )
+                    }
+                </LongClickSpan>
+            } else {
+                <span 
+                    onClick={
+                        clickHnd2(
+                            clickClbkMake(~act = callbackOpt(onLeftClick), ()),
+                            clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
+                        )
+                    }
+                    style
+                    ?title
+                >
+                    {
+                        React.string(
+                            symRename->Belt_Option.flatMap(Belt_HashMapString.get(_, sym))->Belt.Option.getWithDefault(sym)
+                        )
+                    }
+                </span>
+            }
+            
         }
     </React.Fragment>
 }
@@ -173,44 +252,39 @@ let rndSymbol = (
 let rndContText = (
     ~stmtCont:stmtCont,
     ~symRename:option<Belt_HashMapString.t<string>>=?,
-    ~onTextClick:option<int=>unit>=?,
-    ~onTreeClick:option<int=>unit>=?,
-    ~editStmtsByLeftClick:bool=true,
+    ~onTextLeftClick:option<int=>unit>=?,
+    ~onTextAltLeftClick:option<int=>unit>=?,
+    ~onTreeLeftClick:option<int=>unit>=?,
+    ~onTreeAltLeftClick:option<int=>unit>=?,
+    ~longClickEnabled:bool=false,
+    ~longClickDelayMs:int=0,
+    ~cursor:string="auto",
     ~renderSelection:bool=false,
+    ~title:option<string>=?,
     ()
 ) => {
     switch stmtCont {
         | Text(syms) => {
-            let onClick = idx => onTextClick->Belt_Option.map(onTextClick => {
-                if (editStmtsByLeftClick) {
-                    clickHnd(~alt=true, ~act = () => onTextClick(idx), ())
-                } else {
-                    clickHnd(~act = () => onTextClick(idx), ())
-                }
-            })
-            let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
                     ~key=i->Belt.Int.toString,
                     ~sym=stmtSym.sym,
                     ~color=stmtSym.color,
-                    ~onClick=?onClick(i),
+                    ~onLeftClick = ?{onTextLeftClick->Belt_Option.map( onTextLeftClick => () => onTextLeftClick(i) )},
+                    ~onAltLeftClick = ?{onTextAltLeftClick->Belt_Option.map( onTextAltLeftClick => 
+                        () => onTextAltLeftClick(i)
+                    )},
+                    ~longClickEnabled,
+                    ~longClickDelayMs,
                     ~cursor,
                     ~symRename?,
+                    ~title?,
                     ()
                 )
             })->React.array
         }
         | Tree({exprTyp, root}) => {
-            let onClick = id => onTreeClick->Belt_Option.map(onTreeClick => {
-                if (editStmtsByLeftClick) {
-                    clickHnd(~alt=true, ~act = () => onTreeClick(id), ())
-                } else {
-                    clickHnd(~act = () => onTreeClick(id), ())
-                }
-            })
-            let cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"}
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
             elems->Js.Array2.push(
@@ -221,6 +295,9 @@ let rndContText = (
                     ~color=None,
                     ~cursor,
                     ~symRename?,
+                    ~longClickEnabled=false,
+                    ~longClickDelayMs=0,
+                    ~title?,
                     ()
                 )
             )->ignore
@@ -244,7 +321,14 @@ let rndContText = (
                                     ~key=id->Belt.Int.toString,
                                     ~sym,
                                     ~color,
-                                    ~onClick=?onClick(id),
+                                    ~onLeftClick = ?{onTreeLeftClick->Belt_Option.map( onTreeLeftClick => 
+                                        () => onTreeLeftClick(id) 
+                                    )},
+                                    ~onAltLeftClick = ?{onTreeAltLeftClick->Belt_Option.map( onTreeAltLeftClick => 
+                                        () => onTreeAltLeftClick(id)
+                                    )},
+                                    ~longClickEnabled,
+                                    ~longClickDelayMs,
                                     ~spaceBackgroundColor=?{
                                         if (renderSelection && symbolIsHighlighted && selectionIsOn.contents) {
                                             Some("#ADD6FF")
@@ -265,6 +349,7 @@ let rndContText = (
                                     },
                                     ~cursor,
                                     ~symRename?,
+                                    ~title?,
                                     ()
                                 )
                             )->ignore
@@ -431,6 +516,8 @@ type props = {
     preCtxColors:Belt_HashMapString.t<string>,
     wrkCtxColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+    longClickEnabled:bool,
+    longClickDelayMs:int,
     defaultStmtType:string,
 
     visualizationIsOn:bool,
@@ -501,6 +588,8 @@ let make = React.memoCustomCompareProps( ({
     wrkCtxColors,
     visualizationIsOn,
     editStmtsByLeftClick,
+    longClickEnabled,
+    longClickDelayMs,
     defaultStmtType,
     addStmtAbove,
     addStmtBelow,
@@ -914,15 +1003,22 @@ let make = React.memoCustomCompareProps( ({
                 | Text(_) => false
                 | Tree({clickedNodeId}) => clickedNodeId->Belt.Option.isSome
             }
+            let title =
+                if (editStmtsByLeftClick) {
+                    if (longClickEnabled) {
+                        "<short-click> to change, <long-click> (Alt+<left-click>) to select"
+                    } else {
+                        "<left-click> to change, Alt+<left-click> to select"
+                    }
+                } else {
+                    if (longClickEnabled) {
+                        "<long-click> (Alt+<left-click>) to change, <short-click> to select"
+                    } else {
+                        "Alt+<left-click> to change, <left-click> to select"
+                    }
+                }
             let elems = [
                 <Paper 
-                    onClick={
-                        if (editStmtsByLeftClick) {
-                            clickHnd(~act=onContEditRequested, ())
-                        } else {
-                            clickHnd(~alt=true, ~act=onContEditRequested, ())
-                        }
-                    }
                     style=ReactDOM.Style.make(
                         ~padding="1px 10px", 
                         ~backgroundColor=
@@ -933,21 +1029,39 @@ let make = React.memoCustomCompareProps( ({
                         ~fontSize="1.3em",
                         ()
                     ) 
-                    title={
-                        if (editStmtsByLeftClick) {
-                            "<left-click> to change, Alt+<left-click> to select"
-                        } else {
-                            "Alt + <left-click> to change, <left-click> to select"
-                        }
-                    }
                 >
                     {
+                        let onTextLeftClick = if (editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            idx => setSyntaxTreeWasRequested(_ => Some(idx))
+                        }
+                        let onTextAltLeftClick = if (!editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            idx => setSyntaxTreeWasRequested(_ => Some(idx))
+                        }
+                        let onTreeLeftClick = if (editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            actTreeNodeClicked
+                        }
+                        let onTreeAltLeftClick = if (!editStmtsByLeftClick) {
+                            _ => onContEditRequested()
+                        } else {
+                            actTreeNodeClicked
+                        }
                         rndContText(
                             ~stmtCont=stmt.cont, 
-                            ~onTextClick=idx=>setSyntaxTreeWasRequested(_ => Some(idx)),
-                            ~onTreeClick=actTreeNodeClicked,
+                            ~onTextLeftClick,
+                            ~onTextAltLeftClick,
+                            ~onTreeLeftClick,
+                            ~onTreeAltLeftClick,
+                            ~longClickEnabled,
+                            ~longClickDelayMs,
                             ~renderSelection=true,
-                            ~editStmtsByLeftClick,
+                            ~cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"},
+                            ~title,
                             ()
                         )
                     }
@@ -986,23 +1100,20 @@ let make = React.memoCustomCompareProps( ({
                 | E => "H"
                 | P => "P"
             }
-            <span 
+            <LongClickSpan
                 onClick=clickHnd2(
                     clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
                     clickClbkMake(~act=actToggleInfoExpanded, ()),
                 )
+                longClickEnabled
+                longClickDelayMs
+                onShortClick = {_ => actToggleInfoExpanded()}
+                onLongClick=onTypEditRequested
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
                 title="Alt+<left-click> to change statement type between P (provable) and H (hypothesis). Alt is sometimes labelled Opt. Left-click to show/hide the justification for provable."
             >
                 {React.string(typStr->Js_string2.toUpperCase)}
-            </span>
-
-            // <LongClickSpan
-            //     onShortClick=actToggleInfoExpanded
-            //     onLongClick=onTypEditRequested
-            // >
-            //     {React.string(typStr->Js_string2.toUpperCase)}
-            // </LongClickSpan>
+            </LongClickSpan>
         }
     }
 
