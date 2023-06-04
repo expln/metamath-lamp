@@ -17,6 +17,7 @@ type settings = {
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
     defaultStmtLabel:string,
+    initStmtIsGoal:bool,
     checkSyntax:bool,
     typeSettings: array<typeSettings>,
     webSrcSettings: array<webSrcSettings>,

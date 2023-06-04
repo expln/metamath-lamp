@@ -419,7 +419,7 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
     } else {
         createNewLabel(st, newLabelPrefix)
     }
-    let isGoal = false
+    let isGoal = st.stmts->Js.Array2.length == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
