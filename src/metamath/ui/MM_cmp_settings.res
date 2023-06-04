@@ -18,8 +18,11 @@ type settingsState = {
     asrtsToSkipRegex: string,
 
     editStmtsByLeftClick:bool,
+    initStmtIsGoal:bool,
+    defaultStmtLabel:string,
     defaultStmtType:string,
     checkSyntax: bool,
+    stickGoalToBottom:bool,
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
@@ -61,8 +64,11 @@ let createDefaultSettings = () => {
         asrtsToSkip: [],
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
         editStmtsByLeftClick: true,
+        initStmtIsGoal:true,
+        defaultStmtLabel:"qed",
         defaultStmtType:"|-",
         checkSyntax: true,
+        stickGoalToBottom:true,
         typeNextId: 4,
         typeSettings: [
             {
@@ -119,10 +125,21 @@ let validateAndCorrectParens = (st:settingsState):settingsState => {
     }
 }
 
+let validateDefaultStmtLabel = (label:string):string => {
+    label->Js.String2.replaceByRe(%re("/[^A-Za-z0-9._-]/g"), "")
+}
+
 let validateAndCorrectDefaultStmtType = (st:settingsState):settingsState => {
     {
         ...st,
         defaultStmtType: st.defaultStmtType->Js_string2.trim,
+    }
+}
+
+let validateAndCorrectDefaultStmtLabel = (st:settingsState):settingsState => {
+    {
+        ...st,
+        defaultStmtLabel: st.defaultStmtLabel->validateDefaultStmtLabel,
     }
 }
 
@@ -266,6 +283,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectWebSrcSettings(st)
     let st = validateAndCorrectLongClickSettings(st)
+    let st = validateAndCorrectDefaultStmtLabel(st)
     st
 }
 
@@ -275,8 +293,11 @@ let stateToSettings = (st:settingsState):settings => {
         asrtsToSkip: st.asrtsToSkip,
         asrtsToSkipRegex: st.asrtsToSkipRegex,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
+        initStmtIsGoal:st.initStmtIsGoal,
+        defaultStmtLabel:st.defaultStmtLabel,
         defaultStmtType:st.defaultStmtType,
         checkSyntax:st.checkSyntax,
+        stickGoalToBottom:st.stickGoalToBottom,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -300,8 +321,11 @@ let settingsToState = (ls:settings):settingsState => {
         asrtsToSkip: ls.asrtsToSkip,
         asrtsToSkipRegex: ls.asrtsToSkipRegex,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
+        initStmtIsGoal:ls.initStmtIsGoal,
+        defaultStmtLabel:ls.defaultStmtLabel,
         defaultStmtType:ls.defaultStmtType,
         checkSyntax:ls.checkSyntax,
+        stickGoalToBottom:ls.stickGoalToBottom,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -350,8 +374,15 @@ let readStateFromLocStor = ():settingsState => {
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
+                    initStmtIsGoal: d->bool( "initStmtIsGoal", ~default=()=>defaultSettings.initStmtIsGoal, () ),
+                    defaultStmtLabel: d->str("defaultStmtLabel", 
+                        ~default=()=>defaultSettings.defaultStmtLabel, 
+                        ~validator = str => Ok(validateDefaultStmtLabel(str)),
+                        ()
+                    ),
                     defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
+                    stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -411,8 +442,11 @@ let eqState = (st1, st2) => {
         && st1.asrtsToSkip == st2.asrtsToSkip
         && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
+        && st1.initStmtIsGoal == st2.initStmtIsGoal
+        && st1.defaultStmtLabel == st2.defaultStmtLabel
         && st1.defaultStmtType == st2.defaultStmtType
         && st1.checkSyntax == st2.checkSyntax
+        && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -433,8 +467,11 @@ let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
 let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
+let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
+let updateDefaultStmtLabel = (st, defaultStmtLabel) => {...st, defaultStmtLabel}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
+let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -573,6 +610,14 @@ let make = (
         setState(updateEditStmtsByLeftClick(_, editStmtsByLeftClick))
     }
 
+    let actInitStmtIsGoalChange = initStmtIsGoal => {
+        setState(updateInitStmtIsGoal(_, initStmtIsGoal))
+    }
+
+    let actDefaultStmtLabelChange = defaultStmtLabel => {
+        setState(updateDefaultStmtLabel(_, defaultStmtLabel))
+    }
+
     let actDefaultStmtTypeChange = defaultStmtType => {
         setState(updateDefaultStmtType(_, defaultStmtType))
     }
@@ -583,6 +628,10 @@ let make = (
 
     let actCheckSyntaxChange = checkSyntax => {
         setState(updateCheckSyntax(_, checkSyntax))
+    }
+
+    let actStickGoalToBottomChange = stickGoalToBottom => {
+        setState(updateStickGoalToBottom(_, stickGoalToBottom))
     }
 
     let actLongClickEnabledChange = (longClickEnabled) => {
@@ -861,6 +910,32 @@ let make = (
             label="Check syntax"
         />
         {rndAsrtsToSkip()}
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.initStmtIsGoal
+                    onChange=evt2bool(actInitStmtIsGoalChange)
+                />
+            }
+            label="Mark initial statement as a goal"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.stickGoalToBottom
+                    onChange=evt2bool(actStickGoalToBottomChange)
+                />
+            }
+            label="Stick the goal statement to the bottom"
+        />
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="200px", ())
+            label="Initial statement label" 
+            value=state.defaultStmtLabel
+            onChange=evt2str(actDefaultStmtLabelChange)
+            title="This text is used as a label for the initial statement. If empty - a label will be generated automatically."
+        />
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())

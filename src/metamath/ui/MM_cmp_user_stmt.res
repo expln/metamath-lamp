@@ -8,6 +8,7 @@ open MM_substitution
 open MM_parenCounter
 open MM_proof_tree
 open MM_proof_tree_dto
+open MM_parser
 open Expln_React_Modal
 open Local_storage_utils
 open Common
@@ -501,6 +502,22 @@ module VisualizedJstf = {
     }, (_,_) => true )
 }
 
+let userStmtTypeAndIsGoalFromStr = (stmtTypeStr:string):(userStmtType,bool) => {
+    switch stmtTypeStr {
+        | "e" => (E,false)
+        | "p" => (P,false)
+        | "g" => (P,true)
+        | _ => raise(MmException({msg:`Cannot convert '${stmtTypeStr}' to userStmtType and isGoal.`}))
+    }
+}
+
+let userStmtTypeAndIsGoalToStr = (stmtType:userStmtType, isGoal:bool):string => {
+    switch stmtType {
+        | E => "e"
+        | P => if (isGoal) {"g"} else {"p"}
+    }
+}
+
 type props = {
     modalRef:modalRef,
 
@@ -527,7 +544,7 @@ type props = {
     onLabelEditDone:string=>unit, 
     onLabelEditCancel:string=>unit,
     onTypEditRequested:unit=>unit, 
-    onTypEditDone:userStmtType=>unit,
+    onTypEditDone:(userStmtType,bool)=>unit,
     onContEditRequested:unit=>unit, 
     onContEditDone:string=>unit, 
     onContEditCancel:string=>unit,
@@ -773,7 +790,8 @@ let make = React.memoCustomCompareProps( ({
     }
     
     let actTypEditDone = newTypStr => {
-        onTypEditDone(userStmtTypeFromStr(newTypStr))
+        let (newTyp,newIsGoal) = userStmtTypeAndIsGoalFromStr(newTypStr)
+        onTypEditDone(newTyp,newIsGoal)
     }
     
     let actContEditDone = () => {
@@ -1093,13 +1111,13 @@ let make = React.memoCustomCompareProps( ({
                 >
                     <MenuItem value="e">{React.string("H")}</MenuItem>
                     <MenuItem value="p">{React.string("P")}</MenuItem>
+                    <MenuItem value="g">{React.string("G")}</MenuItem>
                 </Select>
             </FormControl>
         } else {
-            let typStr = switch stmt.typ {
-                | E => "H"
-                | P => "P"
-            }
+            let typStr = userStmtTypeAndIsGoalToStr(stmt.typ, stmt.isGoal)
+            let chgTypShortcutName = if (longClickEnabled) {"Long click (Alt + Left-click)"} else {"Alt + Left-click"}
+            let showJstfShortcutName = if (longClickEnabled) {"Short click (Left-click)"} else {"Left-click"}
             <LongClickSpan
                 onClick=clickHnd2(
                     clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
@@ -1110,7 +1128,11 @@ let make = React.memoCustomCompareProps( ({
                 onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onTypEditRequested
                 style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
-                title="Alt+<left-click> to change statement type between P (provable) and H (hypothesis). Alt is sometimes labelled Opt. Left-click to show/hide the justification for provable."
+                title={
+                    chgTypShortcutName ++ " to change statement type between P (provable), G (goal) and H (hypothesis). " 
+                        ++ "Alt is sometimes labelled Opt. " 
+                        ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                }
             >
                 {React.string(typStr->Js_string2.toUpperCase)}
             </LongClickSpan>

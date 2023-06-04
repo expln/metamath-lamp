@@ -1109,7 +1109,9 @@ let make = (
                     onLabelEditCancel={newLabel => actCancelEditLabel(stmt.id,newLabel)}
 
                     onTypEditRequested={() => actBeginEdit(setTypEditMode,stmt.id)}
-                    onTypEditDone={newTyp => actCompleteEdit(completeTypEditMode(_,stmt.id,newTyp))}
+                    onTypEditDone={(newTyp,newIsGoal) => actCompleteEdit(
+                        completeTypEditMode(_,stmt.id,newTyp,newIsGoal)
+                    )}
 
                     onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
                     onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
