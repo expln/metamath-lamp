@@ -1115,7 +1115,10 @@ let make = React.memoCustomCompareProps( ({
                 </Select>
             </FormControl>
         } else {
-            let typStr = userStmtTypeAndIsGoalToStr(stmt.typ, stmt.isGoal)
+            let typStr = switch stmt.typ {
+                | E => "H"
+                | P => if (stmt.isGoal) {"G"} else {"P"}
+            }
             let chgTypShortcutName = if (longClickEnabled) {"Long click (Alt + Left-click)"} else {"Alt + Left-click"}
             let showJstfShortcutName = if (longClickEnabled) {"Short click (Left-click)"} else {"Left-click"}
             <LongClickSpan
@@ -1134,7 +1137,7 @@ let make = React.memoCustomCompareProps( ({
                         ++ showJstfShortcutName ++ " to show/hide the justification for provable."
                 }
             >
-                {React.string(typStr->Js_string2.toUpperCase)}
+                {React.string(typStr)}
             </LongClickSpan>
         }
     }
