@@ -137,7 +137,7 @@ let useLongClick = (
             | None => ()
             | Some(clickAttrsOpt) => {
                 setState(resetState)
-                onShortClick->Belt_Option.getExn(clickAttrsOpt)
+                onShortClick->Belt_Option.forEach(onShortClick => onShortClick(clickAttrsOpt))
             }
         }
         None
@@ -146,7 +146,7 @@ let useLongClick = (
     React.useEffect1(() => {
         if (state->shouldDoLongClick) {
             setState(resetState)
-            onLongClick->Belt_Option.getExn()
+            onLongClick->Belt_Option.forEach(onLongClick => onLongClick())
         }
         None
     }, [state.doLongClick])

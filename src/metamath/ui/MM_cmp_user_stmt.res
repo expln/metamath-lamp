@@ -992,9 +992,17 @@ let make = React.memoCustomCompareProps( ({
                     ) 
                     title={
                         if (editStmtsByLeftClick) {
-                            "<left-click> to change, Alt+<left-click> to select"
+                            if (longClickEnabled) {
+                                "<left-click> to change, <long-click> (Alt+<left-click>) to select"
+                            } else {
+                                "<left-click> to change, Alt+<left-click> to select"
+                            }
                         } else {
-                            "Alt + <left-click> to change, <left-click> to select"
+                            if (longClickEnabled) {
+                                "<long-click> (Alt+<left-click>) to change, <left-click> to select"
+                            } else {
+                                "Alt+<left-click> to change, <left-click> to select"
+                            }
                         }
                     }
                 >

@@ -1153,11 +1153,12 @@ let make = (
                     text=state.descr
                     editMode=state.descrEditMode
                     editByAltClick=true
+                    longClickEnabled=true
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDescrEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDescr(newText)}
                     renderer={str => {
-                        <Static_XML_to_HTML xmlStr=state.descr />
+                        <Static_XML_to_HTML xmlStr=str />
                     }}
                     fullWidth=true
                     buttonDirHor=false
