@@ -17,11 +17,13 @@ type tabData =
     | ExplorerFrame({label:string})
 
 type state = {
-    preCtxData:preCtxData
+    preCtxData:preCtxData,
+    ctxSelectorIsExpanded:bool,
 }
 
 let createInitialState = (~settings) => {
-    preCtxData: preCtxDataMake(~settings)
+    preCtxData: preCtxDataMake(~settings),
+    ctxSelectorIsExpanded:true,
 }
 
 let findSyntaxTypes = (ctx:mmContext, frms: Belt_MapString.t<frmSubsData>): array<int> => {
@@ -49,8 +51,13 @@ let updatePreCtxData = (
     ()
 ): state => {
     {
+        ...st,
         preCtxData: st.preCtxData->preCtxDataUpdate( ~settings?, ~ctx?, () )
     }
+}
+
+let updateCtxSelectorIsExpanded = (st:state,ctxSelectorIsExpanded:bool):state => {
+    {...st, ctxSelectorIsExpanded}
 }
 
 @get external getClientHeight: Dom.element => int = "clientHeight"
@@ -122,6 +129,10 @@ let make = () => {
         actCloseFrmTabs()
         setState(updatePreCtxData(_,~settings=newSettings, ()))
         settingsSaveToLocStor(newSettings, tempMode.contents)
+    }
+
+    let actCtxSelectorExpandedChange = (expanded) => {
+        setState(updateCtxSelectorIsExpanded(_,expanded))
     }
 
     let openFrameExplorer = (label:string):unit => {
@@ -225,6 +236,15 @@ let make = () => {
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
                         tempMode=tempMode.contents
+                        style=ReactDOM.Style.make(
+                            ~display=
+                                ?if(state.preCtxData.settingsV.val.hideContextSelector 
+                                        && !state.ctxSelectorIsExpanded) {
+                                    Some("none")
+                                } else {None}, 
+                            ()
+                        )
+                        onExpandedChange=actCtxSelectorExpandedChange
                     />
                     {renderTabs()}
                 </Col>

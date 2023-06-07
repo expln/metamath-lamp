@@ -14,4 +14,5 @@ let make: (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style:reStyle=?,
     ~tempMode:bool,
+    ~onExpandedChange:bool=>unit,
 ) => React.element

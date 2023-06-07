@@ -486,6 +486,7 @@ let make = (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style:reStyle=?,
     ~tempMode:bool,
+    ~onExpandedChange:bool=>unit,
 ) => {
     let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(
         ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr, ~tempMode
@@ -525,6 +526,11 @@ let make = (
     let closeAccordion = () => {
         setState(setExpanded(_, false))
     }
+
+    React.useEffect1(() => {
+        onExpandedChange(state.expanded)
+        None
+    }, [state.expanded])
 
     let rndSingleScopeSelectors = () => {
         let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || state.singleScopes[0].fileSrc->Belt_Option.isSome
