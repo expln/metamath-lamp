@@ -11,6 +11,7 @@ type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
+    openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -21,6 +22,7 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
     openFrameExplorer,
+    openCtxSelector,
 }:props) => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
@@ -35,6 +37,9 @@ let make = React.memoCustomCompareProps(({
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
+
+    let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
+    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
     let actClearFilters = (~applyFilters:bool) => {
         setIsAxiomFilter(_ => None)
@@ -128,6 +133,14 @@ let make = React.memoCustomCompareProps(({
         None
     }, [isAxiomFilter])
 
+    let actOpenMainMenu = () => {
+        setMainMenuIsOpened(_ => true)
+    }
+
+    let actCloseMainMenu = () => {
+        setMainMenuIsOpened(_ => false)
+    }
+
     let rndIsAxiomFilter = () => {
         <FormControl size=#small>
             <InputLabel id="isAxiomFilter-label">"Assertion type"</InputLabel>
@@ -195,6 +208,14 @@ let make = React.memoCustomCompareProps(({
         </span>
     }
 
+    let rndMainMenuBtn = () => {
+        <span title="Additional actions" ref=ReactDOM.Ref.domRef(mainMenuButtonRef)>
+            <IconButton onClick={_ => actOpenMainMenu()} color="primary"> 
+                <MM_Icons.Menu/>
+            </IconButton>
+        </span>
+    }
+
     let rndFilters = () => {
         <Row>
             {rndIsAxiomFilter()}
@@ -202,12 +223,41 @@ let make = React.memoCustomCompareProps(({
             {rndPatternFilter()}
             {rndApplyFiltersBtn()}
             {rndClearFiltersBtn()}
+            {rndMainMenuBtn()}
         </Row>
+    }
+
+    let rndMainMenu = () => {
+        if (mainMenuIsOpened) {
+            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+                | None => <></>
+                | Some(mainMenuButtonRef) => {
+                    <Menu
+                        opn=true
+                        anchorEl=mainMenuButtonRef
+                        onClose=actCloseMainMenu
+                    >
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                openCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
+                            }}
+                        >
+                            {React.string("Show context")}
+                        </MenuItem>
+                    </Menu>
+                }
+            }
+        } else {
+            <></>
+        }
     }
 
     <Col style=ReactDOM.Style.make(~margin="15px", ())>
         {rndFilters()}
         {rndPatternError()}
+        {rndMainMenu()}
         <MM_cmp_pe_frame_list
             key=`${preCtxVer->Belt_Int.toString}`
             modalRef

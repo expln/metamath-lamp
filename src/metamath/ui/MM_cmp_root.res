@@ -206,6 +206,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             openFrameExplorer
+                            openCtxSelector
                         />
                     | ExplorerFrame({label}) => 
                         <MM_cmp_pe_frame_full
