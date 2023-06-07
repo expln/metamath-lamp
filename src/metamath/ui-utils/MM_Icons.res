@@ -11,6 +11,7 @@ module Delete = { @module("@mui/icons-material/Delete") @react.component externa
 module Edit = { @module("@mui/icons-material/Edit") @react.component external make: () => React.element = "default" }
 module ExpandMore = { @module("@mui/icons-material/ExpandMore") @react.component external make: () => React.element = "default" }
 module FilterNone = { @module("@mui/icons-material/FilterNone") @react.component external make: () => React.element = "default" }
+module FilterAlt = { @module("@mui/icons-material/FilterAlt") @react.component external make: () => React.element = "default" }
 module FilterAltOff = { @module("@mui/icons-material/FilterAltOff") @react.component external make: () => React.element = "default" }
 module Hub = { @module("@mui/icons-material/Hub") @react.component external make: () => React.element = "default" }
 module HelpOutline = { @module("@mui/icons-material/HelpOutline") @react.component external make: () => React.element = "default" }

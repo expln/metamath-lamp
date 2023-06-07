@@ -179,6 +179,14 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let rndApplyFiltersBtn = () => {
+        <span title="Apply filters">
+            <IconButton onClick={_ => actApplyFilters()} color="primary"> 
+                <MM_Icons.FilterAlt/>
+            </IconButton>
+        </span>
+    }
+
     let rndClearFiltersBtn = () => {
         <span title="Clear filters">
             <IconButton onClick={_ => actClearFilters(~applyFilters=true)} color="primary"> 
@@ -192,6 +200,7 @@ let make = React.memoCustomCompareProps(({
             {rndIsAxiomFilter()}
             {rndLabelFilter()}
             {rndPatternFilter()}
+            {rndApplyFiltersBtn()}
             {rndClearFiltersBtn()}
         </Row>
     }
