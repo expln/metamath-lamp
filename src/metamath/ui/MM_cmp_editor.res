@@ -71,6 +71,7 @@ let make = (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
+    ~openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
@@ -829,37 +830,36 @@ let make = (
             ~preCtx=preCtxData.ctxV.val, 
             ~stateLocStor=Some(stateLocStor)
         ))
-        reloadCtx.current->Js.Nullable.toOption
-            ->Belt.Option.map(reloadCtx => {
-                reloadCtx(stateLocStor.srcs)->promiseMap(res => {
-                    switch res {
-                        | Ok(_) => ()
-                        | Error(msg) => {
-                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                updateModal(modalRef, modalId, () => {
-                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                        <Col spacing=1.>
-                                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                                                { React.string(`Could not realod the context because of the error:`) }
-                                            </span>
-                                            <span style=ReactDOM.Style.make(~color="red", ())>
-                                                { React.string(msg) }
-                                            </span>
-                                            <span>
-                                                { React.string(`This error happened when loading the context:`) }
-                                            </span>
-                                            {rndSrcDtos(stateLocStor.srcs)}
-                                            <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
-                                                {React.string("Ok")} 
-                                            </Button>
-                                        </Col>
-                                    </Paper>
-                                })
-                            })->ignore
-                        }
+        reloadCtx.current->Js.Nullable.toOption ->Belt.Option.forEach(reloadCtx => {
+            reloadCtx(stateLocStor.srcs)->promiseMap(res => {
+                switch res {
+                    | Ok(_) => ()
+                    | Error(msg) => {
+                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                    <Col spacing=1.>
+                                        <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                                            { React.string(`Could not realod the context because of the error:`) }
+                                        </span>
+                                        <span style=ReactDOM.Style.make(~color="red", ())>
+                                            { React.string(msg) }
+                                        </span>
+                                        <span>
+                                            { React.string(`This error happened when loading the context:`) }
+                                        </span>
+                                        {rndSrcDtos(stateLocStor.srcs)}
+                                        <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                            {React.string("Ok")} 
+                                        </Button>
+                                    </Col>
+                                </Paper>
+                            })
+                        })->ignore
                     }
-                })
+                }
             })->ignore
+        })
     }
 
     let actImportFromJson = (jsonStr:string):bool => {
@@ -1009,6 +1009,15 @@ let make = (
                             }}
                         >
                             {React.string(if (visualizationIsOn) {"Visualization is On"} else {"Visualization is Off"})}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                openCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
+                            }}
+                        >
+                            {React.string("Show context")}
                         </MenuItem>
                     </Menu>
                 }

@@ -15,4 +15,5 @@ let make: (
     ~style:reStyle=?,
     ~tempMode:bool,
     ~onExpandedChange:bool=>unit,
+    ~doExpand: React.ref<Js.Nullable.t<unit=>unit>>,
 ) => React.element

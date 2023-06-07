@@ -104,6 +104,7 @@ let make = () => {
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
 
     let reloadCtx = React.useRef(Js.Nullable.null)
+    let openCtxSelector = React.useRef(Js.Nullable.null)
 
     let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
         switch tabData {
@@ -198,6 +199,7 @@ let make = () => {
                             reloadCtx
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
+                            openCtxSelector
                         />
                     | ExplorerIndex => 
                         <MM_cmp_pe_index
@@ -245,6 +247,7 @@ let make = () => {
                             ()
                         )
                         onExpandedChange=actCtxSelectorExpandedChange
+                        doExpand=openCtxSelector
                     />
                     {renderTabs()}
                 </Col>

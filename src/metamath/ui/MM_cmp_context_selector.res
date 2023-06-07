@@ -487,6 +487,7 @@ let make = (
     ~style:reStyle=?,
     ~tempMode:bool,
     ~onExpandedChange:bool=>unit,
+    ~doExpand: React.ref<Js.Nullable.t<unit=>unit>>,
 ) => {
     let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(
         ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr, ~tempMode
@@ -519,12 +520,16 @@ let make = (
         st->parseMmFileForSingleScope(~singleScopeId=id, ~modalRef)->promiseMap(st => setState(_ => st))->ignore
     }
 
-    let toggleAccordion = () => {
+    let actToggleAccordion = () => {
         setState(prev => prev->setExpanded(!prev.expanded))
     }
     
-    let closeAccordion = () => {
+    let actCloseAccordion = () => {
         setState(setExpanded(_, false))
+    }
+    
+    let actOpenAccordion = () => {
+        setState(setExpanded(_, true))
     }
 
     React.useEffect1(() => {
@@ -686,6 +691,8 @@ let make = (
         }
     )
 
+    doExpand.current = Js.Nullable.return(actOpenAccordion)
+
     let rndSaveButtons = () => {
         let thereAreNoChanges = (scopeIsEmpty(state.singleScopes) && scopeIsEmpty(prevState.singleScopes)) 
                                     || state.singleScopes == prevState.singleScopes
@@ -717,7 +724,7 @@ let make = (
                                 | Error(_) => ()
                                 | Ok(_) => {
                                     if (!scopeIsEmpty) {
-                                        closeAccordion()
+                                        actCloseAccordion()
                                     }
                                 }
                             }
@@ -732,7 +739,7 @@ let make = (
 
 
     <Accordion expanded=state.expanded >
-        <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} onClick=toggleAccordion >
+        <AccordionSummaryStyled expandIcon={<MM_Icons.ExpandMore/>} onClick=actToggleAccordion >
             {state.loadedContextSummary->React.string}
         </AccordionSummaryStyled>
         <AccordionDetails>
