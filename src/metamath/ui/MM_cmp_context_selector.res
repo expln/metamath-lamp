@@ -1,4 +1,5 @@
 open Expln_React_Mui
+open Expln_React_common
 open Expln_utils_promise
 open MM_parser
 open MM_react_common
@@ -483,6 +484,7 @@ let make = (
     ~onUrlBecomesTrusted:option<string=>unit>,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~style:reStyle=?,
     ~tempMode:bool,
 ) => {
     let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(

@@ -1021,6 +1021,7 @@ let make = (
     let rndButtons = () => {
         <Paper>
             <Row
+                spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
                         | 10 => Some(Js.Json.string("auto"))
@@ -1147,7 +1148,7 @@ let make = (
     }
 
     let rndDescr = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="12px", ())>
             <span onClick={_=>actBeginEdit0(setDescrEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Description")}
             </span>
@@ -1179,7 +1180,7 @@ let make = (
     }
 
     let rndVars = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="3px", ())>
             <span onClick={_=>actBeginEdit0(setVarsEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Variables")}
             </span>
@@ -1197,7 +1198,7 @@ let make = (
     }
 
     let rndDisj = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ())>
             <span onClick={_=>actBeginEdit0(setDisjEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Disjoints")}
             </span>
@@ -1226,7 +1227,7 @@ let make = (
         top
         header={rndButtons()}
         content={_ => {
-            <Col>
+            <Col spacing=0.>
                 {rndMainMenu()}
                 {rndDescr()}
                 {rndVars()}
