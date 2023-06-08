@@ -628,6 +628,7 @@ let make = React.memoCustomCompareProps( ({
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
+    let jstfRef = React.useRef(Js.Nullable.null)
     let stmtTextFieldRef = React.useRef(Js.Nullable.null)
 
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
@@ -1000,16 +1001,30 @@ let make = React.memoCustomCompareProps( ({
     let rndCont = () => {
         if (stmt.contEditMode) {
             let windowWidth = window["innerWidth"]
-            let labelWidth = switch labelRef.current->Js.Nullable.toOption {
-                | None => 0
-                | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"]
+            let textFieldWidth = if (viewOptions.inlineMode) {
+                windowWidth - 40
+            } else {
+                let checkBoxWidth = if (!viewOptions.showCheckbox) {0} else { 48 } 
+                let labelWidth = if (!viewOptions.showLabel) {0} else { switch labelRef.current->Js.Nullable.toOption {
+                    | None => 0
+                    | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
+                } } 
+                let typWidth = if (!viewOptions.showCheckbox) {0} else { 28 } 
+                let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Js.Nullable.toOption {
+                    | None => 0
+                    | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
+                } }
+                Js.Math.max_int(
+                    200,
+                    windowWidth - checkBoxWidth - labelWidth - typWidth - jstfWidth - 40
+                )
             }
-            <Row>
+            <Col spacing=0.>
                 <TextField
                     inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
                     style=ReactDOM.Style.make(
-                        ~width = (windowWidth - 215 - labelWidth)->Belt_Int.toString ++ "px", 
+                        ~width = (textFieldWidth)->Belt_Int.toString ++ "px", 
                         ()
                     )
                     inputProps={
@@ -1026,11 +1041,13 @@ let make = React.memoCustomCompareProps( ({
                     onKeyDown=kbrdHnd(~onEnter=actContEditDone, ~onEsc=actContEditCancel, ())
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                    ~onClick=actContEditDone, ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
-                    ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
-            </Row>
+                <Row>
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                        ~onClick=actContEditDone, ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
+                        ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                </Row>
+            </Col>
         } else {
             let textIsSelected = switch stmt.cont {
                 | Text(_) => false
@@ -1164,7 +1181,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string, ~addMargin:bool):reElem => {
         if (stmt.jstfEditMode) {
-            <Row>
+            <Col spacing=0.>
                 <TextField
                     size=#small
                     label="Justification"
@@ -1176,16 +1193,19 @@ let make = React.memoCustomCompareProps( ({
                     onKeyDown=kbrdHnd(~onEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
                     title="Enter to save, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
-                    ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
-                    ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
-            </Row>
+                <Row>
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
+                        ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
+                        ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                </Row>
+            </Col>
         } else {
             let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
             let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "1px" }
             <Row >
-                <Paper 
+                <Paper
+                    ref=ReactDOM.Ref.domRef(jstfRef) 
                     onClick=clickHnd(~act=onJstfEditRequested, ()) 
                     style=ReactDOM.Style.make( 
                         ~padding, 
@@ -1361,7 +1381,7 @@ let make = React.memoCustomCompareProps( ({
         <table 
             style=ReactDOM.Style.make(
                 ~margin="-2px 0px -2px", 
-                ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""}, 
+                ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""},
                 ()
             )>
             <tbody>
