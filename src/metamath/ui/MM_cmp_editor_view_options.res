@@ -22,6 +22,21 @@ let make = (
         None
     }, [showCheckbox])
 
+    React.useEffect1(() => {
+        onShowLabelChange(showLabel)
+        None
+    }, [showLabel])
+
+    React.useEffect1(() => {
+        onShowTypeChange(showType)
+        None
+    }, [showType])
+
+    React.useEffect1(() => {
+        onShowJstfChange(showJstf)
+        None
+    }, [showJstf])
+
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col>
             <span style=ReactDOM.Style.make(~fontWeight="bold", ~fontSize="1.1em", ())>
@@ -35,6 +50,33 @@ let make = (
                     />
                 }
                 label="Checkbox"
+            />
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=showLabel
+                        onChange=evt2bool(b => setShowLabel(_ => b))
+                    />
+                }
+                label="Label"
+            />
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=showType
+                        onChange=evt2bool(b => setShowType(_ => b))
+                    />
+                }
+                label="H/P/G"
+            />
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=showJstf
+                        onChange=evt2bool(b => setShowJstf(_ => b))
+                    />
+                }
+                label="Justification"
             />
             <Button onClick={_=>onClose()}> {React.string("Close")} </Button>
         </Col>
