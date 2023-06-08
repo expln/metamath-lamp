@@ -79,6 +79,18 @@ let make = (
     let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool(
         ~key="editor-visualization", ~default=false, ~tempMode
     )
+    let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
+        ~key="editor-showCheckbox", ~default=true, ~tempMode
+    )
+    let (showLabel, setShowLabel) = useStateFromLocalStorageBool(
+        ~key="editor-showLabel", ~default=true, ~tempMode
+    )
+    let (showType, setShowType) = useStateFromLocalStorageBool(
+        ~key="editor-showType", ~default=true, ~tempMode
+    )
+    let (showJstf, setShowJstf) = useStateFromLocalStorageBool(
+        ~key="editor-showJstf", ~default=true, ~tempMode
+    )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV=preCtxData.settingsV.ver, 
@@ -962,6 +974,20 @@ let make = (
         }
     }
 
+    let actOpenViewOptionsDialog = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_editor_view_options
+                    onClose={()=>closeModal(modalRef, modalId)}
+                    showCheckbox onShowCheckboxChange = {b => setShowCheckbox(_ => b) }
+                    showLabel onShowLabelChange = {b => setShowLabel(_ => b) }
+                    showType onShowTypeChange = {b => setShowType(_ => b) }
+                    showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
+                />
+            })
+        })->ignore
+    }
+
     let rndError = (msgOpt,color) => {
         switch msgOpt {
             | None => React.null
@@ -979,6 +1005,23 @@ let make = (
                         anchorEl=mainMenuButtonRef
                         onClose=actCloseMainMenu
                     >
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenViewOptionsDialog()
+                            }}
+                        >
+                            {React.string("View options")}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                openCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
+                            }}
+                        >
+                            {React.string("Show context")}
+                        </MenuItem>
                         <MenuItem 
                             onClick={() => {
                                 actCloseMainMenu()
@@ -1009,15 +1052,6 @@ let make = (
                             }}
                         >
                             {React.string(if (visualizationIsOn) {"Visualization is On"} else {"Visualization is Off"})}
-                        </MenuItem>
-                        <MenuItem
-                            onClick={() => {
-                                actCloseMainMenu()
-                                openCtxSelector.current->Js.Nullable.toOption
-                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
-                            }}
-                        >
-                            {React.string("Show context")}
                         </MenuItem>
                     </Menu>
                 }
@@ -1083,16 +1117,23 @@ let make = (
         </Paper>
     }
 
+    let viewOptions = { MM_cmp_user_stmt.showCheckbox:showCheckbox, showLabel, showType, showJstf, }
     let rndStmt = (stmt:userStmt) => {
         <tr key=stmt.id >
-            <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                <Checkbox
-                    style=ReactDOM.Style.make(~margin="-7px 0px", ())
-                    disabled=editIsActive
-                    checked={state->isStmtChecked(stmt.id)}
-                    onChange={_ => actToggleStmtChecked(stmt.id)}
-                />
-            </td>
+            {
+                if (showCheckbox) {
+                    <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                        <Checkbox
+                            style=ReactDOM.Style.make(~margin="-7px 0px", ())
+                            disabled=editIsActive
+                            checked={state->isStmtChecked(stmt.id)}
+                            onChange={_ => actToggleStmtChecked(stmt.id)}
+                        />
+                    </td>
+                } else {
+                    <></>
+                }
+            }
             <td>
                 <MM_cmp_user_stmt
                     modalRef
@@ -1109,6 +1150,7 @@ let make = (
                     preCtxColors=state.preCtxColors
                     wrkCtxColors=state.wrkCtxColors
                     visualizationIsOn
+                    viewOptions
                     editStmtsByLeftClick=state.settings.editStmtsByLeftClick
                     longClickEnabled=state.settings.longClickEnabled
                     longClickDelayMs=state.settings.longClickDelayMs

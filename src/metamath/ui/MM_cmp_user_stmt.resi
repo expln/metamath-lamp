@@ -17,6 +17,13 @@ let rndProofStatus: (
     ()
 ) => React.element
 
+type viewOptions = {
+    showCheckbox:bool,
+    showLabel:bool,
+    showType:bool,
+    showJstf:bool,
+}
+
 type props = {
     modalRef:modalRef,
 
@@ -37,6 +44,7 @@ type props = {
     defaultStmtType:string,
 
     visualizationIsOn:bool,
+    viewOptions:viewOptions,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 

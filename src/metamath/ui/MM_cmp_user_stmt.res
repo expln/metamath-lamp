@@ -33,6 +33,13 @@ type state = {
     infoExpanded: bool,
 }
 
+type viewOptions = {
+    showCheckbox:bool,
+    showLabel:bool,
+    showType:bool,
+    showJstf:bool,
+}
+
 let makeInitialState = () => {
     {
         newText: "",
@@ -538,6 +545,7 @@ type props = {
     defaultStmtType:string,
 
     visualizationIsOn:bool,
+    viewOptions:viewOptions,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 
@@ -564,6 +572,10 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
     && a.visualizationIsOn == b.visualizationIsOn
+    && a.viewOptions.showCheckbox == b.viewOptions.showCheckbox
+    && a.viewOptions.showLabel == b.viewOptions.showLabel
+    && a.viewOptions.showType == b.viewOptions.showType
+    && a.viewOptions.showJstf == b.viewOptions.showJstf
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
@@ -604,6 +616,7 @@ let make = React.memoCustomCompareProps( ({
     preCtxColors,
     wrkCtxColors,
     visualizationIsOn,
+    viewOptions,
     editStmtsByLeftClick,
     longClickEnabled,
     longClickDelayMs,
@@ -1245,29 +1258,39 @@ let make = React.memoCustomCompareProps( ({
                         )
                     }
                 </td>
-                <td>
-                    {rndLabel()}
-                </td>
-                <td>
-                    {rndTyp()}
-                </td>
-                <td>
-                    {rndCont()}
-                </td>
+                {
+                    if (viewOptions.showLabel) {
+                        <td> {rndLabel()} </td>
+                    } else {
+                        <></>
+                    }
+                }
+                {
+                    if (viewOptions.showType) {
+                        <td> {rndTyp()} </td>
+                    } else {
+                        <></>
+                    }
+                }
+                <td> {rndCont()} </td>
             </tr>
             <tr>
-                <td>
-                    {React.null}
-                </td>
-                <td>
-                    {React.null}
-                </td>
-                <td>
-                    {React.null}
-                </td>
-                <td>
-                    {rndInfoBody()}
-                </td>
+                <td> {React.null} </td>
+                {
+                    if (viewOptions.showLabel) {
+                        <td> {React.null} </td>
+                    } else {
+                        <></>
+                    }
+                }
+                {
+                    if (viewOptions.showType) {
+                        <td> {React.null} </td>
+                    } else {
+                        <></>
+                    }
+                }
+                <td> {rndInfoBody()} </td>
             </tr>
         </tbody>
     </table>
