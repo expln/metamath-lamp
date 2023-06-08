@@ -1155,13 +1155,13 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndJstf = () => {
+    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string, ~addMargin:bool) => {
         if (stmt.jstfEditMode) {
             <Row>
                 <TextField
                     size=#small
                     label="Justification"
-                    style=ReactDOM.Style.make(~width="600px", ())
+                    style=ReactDOM.Style.make(~width=textFieldWidth, ())
                     autoFocus=true
                     multiline=true
                     value=state.newText
@@ -1171,23 +1171,27 @@ let make = React.memoCustomCompareProps( ({
                 />
                 {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
                     ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
+                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                     ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
             </Row>
         } else {
             let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
-            let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "3px" }
+            let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "1px" }
             <Row >
                 <Paper 
                     onClick=clickHnd(~act=onJstfEditRequested, ()) 
-                    style=ReactDOM.Style.make( ~padding, ~marginTop="5px", () )
+                    style=ReactDOM.Style.make( 
+                        ~padding, 
+                        ~marginTop=?(if (addMargin) {Some("5px")} else {None}), 
+                        ()
+                    )
                     title="<left-click> to change"
                 >
                     {React.string(jstfText)}
                 </Paper>
                 {
-                    if (jstfText->Js_string2.trim == "") {
-                        React.null
+                    if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
+                        <></>
                     } else {
                         <span>
                             {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
@@ -1224,7 +1228,13 @@ let make = React.memoCustomCompareProps( ({
         if (stmt.typ == P) {
             if (state.infoExpanded || stmt.jstfEditMode) {
                 <Col>
-                    {rndJstf()}
+                    {
+                        if (viewOptions.showJstf) {
+                            <></>
+                        } else {
+                            rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px", ~addMargin=true)
+                        }
+                    }
                     {rndJstfVisualization()}
                 </Col>
             } else {
@@ -1243,21 +1253,27 @@ let make = React.memoCustomCompareProps( ({
         )>
         <tbody>
             <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                <td>
-                    {
-                        rndProofStatus(
-                            ~proofStatus=stmt.proofStatus, 
-                            ~readyTooltip="Proof is ready, left-click to generate compressed proof",
-                            ~waitingTooltip="Justification for this statement is correct",
-                            ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
-                            ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
-                            ~onReadyIconClicked=onGenerateProof,
-                            ~onErrorIconClicked=onDebug,
-                            ~onNoJstfIconClicked=onDebug,
-                            ()
-                        )
+                {
+                    if (stmt.proofStatus->Belt.Option.isSome) {
+                        <td> 
+                            {
+                                rndProofStatus(
+                                    ~proofStatus=stmt.proofStatus, 
+                                    ~readyTooltip="Proof is ready, left-click to generate compressed proof",
+                                    ~waitingTooltip="Justification for this statement is correct",
+                                    ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
+                                    ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
+                                    ~onReadyIconClicked=onGenerateProof,
+                                    ~onErrorIconClicked=onDebug,
+                                    ~onNoJstfIconClicked=onDebug,
+                                    ()
+                                )
+                            }
+                        </td>
+                    } else {
+                        <></>
                     }
-                </td>
+                }
                 {
                     if (viewOptions.showLabel) {
                         <td> {rndLabel()} </td>
@@ -1272,20 +1288,40 @@ let make = React.memoCustomCompareProps( ({
                         <></>
                     }
                 }
+                {
+                    if (viewOptions.showJstf) {
+                        <td> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px", ~addMargin=false)} </td>
+                    } else {
+                        <></>
+                    }
+                }
                 <td> {rndCont()} </td>
             </tr>
             <tr>
-                <td> {React.null} </td>
+                {
+                    if (stmt.proofStatus->Belt.Option.isSome) {
+                        <td></td>
+                    } else {
+                        <></>
+                    }
+                }
                 {
                     if (viewOptions.showLabel) {
-                        <td> {React.null} </td>
+                        <td></td>
                     } else {
                         <></>
                     }
                 }
                 {
                     if (viewOptions.showType) {
-                        <td> {React.null} </td>
+                        <td></td>
+                    } else {
+                        <></>
+                    }
+                }
+                {
+                    if (viewOptions.showJstf) {
+                        <td></td>
                     } else {
                         <></>
                     }
