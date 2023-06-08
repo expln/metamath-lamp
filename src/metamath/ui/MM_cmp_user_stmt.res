@@ -377,6 +377,9 @@ let rndContText = (
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
+let stmtPartMarginLeft = "10px"
+let stmtPartMarginTop = "5px"
+
 let rndProofStatus = (
     ~proofStatus:option<proofStatus>,
     ~readyTooltip:option<string>=?,
@@ -389,7 +392,11 @@ let rndProofStatus = (
     ()
 ):React.element => {
     let commonStyle = ReactDOM.Style.make(
-        ~fontWeight="bold", ~width="13px", ~display="inline-block",
+        ~fontWeight="bold", 
+        ~width="13px", 
+        ~display="inline-block",
+        ~marginLeft=stmtPartMarginLeft, 
+        ~marginTop=stmtPartMarginTop, 
         ()
     )
     switch proofStatus {
@@ -959,27 +966,42 @@ let make = React.memoCustomCompareProps( ({
 
     let rndLabel = () => {
         if (stmt.labelEditMode) {
-            <Row>
+            <Col spacing=0.>
                 <TextField
                     size=#small
-                    style=ReactDOM.Style.make(~width="100px", ())
+                    style=ReactDOM.Style.make(~width="150px", ())
                     autoFocus=true
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
                     onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
                     title="Enter to save, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                    ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
-                    ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
-            </Row>
+                <Row 
+                    style=ReactDOM.Style.make(
+                        ~marginLeft=stmtPartMarginLeft, 
+                        ~marginTop=stmtPartMarginTop, 
+                        ()
+                    )
+                >
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                        ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
+                        ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                </Row>
+            </Col>
         } else {
             <span 
                 ref=ReactDOM.Ref.domRef(labelRef)
                 onClick=clickHnd(~act=onLabelEditRequested, ()) 
                 title="<left-click> to change"
-                style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ~margin="0px 5px", ())
+                style=ReactDOM.Style.make(
+                    ~overflowWrap="normal", 
+                    ~whiteSpace="nowrap", 
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ~display="inline-block",
+                    ()
+                )
             >
                 {React.string(stmt.label)}
             </span>
@@ -1020,7 +1042,7 @@ let make = React.memoCustomCompareProps( ({
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
                 } } 
-                let typWidth = if (!viewOptions.showCheckbox) {0} else { 28 } 
+                let typWidth = if (!viewOptions.showType) {0} else { 28 } 
                 let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Js.Nullable.toOption {
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
@@ -1030,7 +1052,14 @@ let make = React.memoCustomCompareProps( ({
                     windowWidth - checkBoxWidth - labelWidth - typWidth - jstfWidth - 40
                 )
             }
-            <Col spacing=0.>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <TextField
                     inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
@@ -1139,7 +1168,14 @@ let make = React.memoCustomCompareProps( ({
                 )->ignore
             }
 
-            <Col>
+            <Col 
+                spacing=0.5
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 {elems->React.array}
             </Col>
         }
@@ -1147,7 +1183,14 @@ let make = React.memoCustomCompareProps( ({
 
     let rndTyp = () => {
         if (stmt.typEditMode) {
-            <FormControl size=#small >
+            <FormControl 
+                size=#small 
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <Select
                     value=""
                     onChange=evt2str(actTypEditDone)
@@ -1176,7 +1219,9 @@ let make = React.memoCustomCompareProps( ({
                 style=ReactDOM.Style.make(
                     ~cursor="pointer", 
                     ~fontWeight="bold", 
-                    ~padding="1px 5px",
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ~display="inline-block",
                     ()
                 )
                 title={
@@ -1190,9 +1235,16 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string, ~addMargin:bool):reElem => {
+    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string):reElem => {
         if (stmt.jstfEditMode) {
-            <Col spacing=0.>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <TextField
                     size=#small
                     label="Justification"
@@ -1214,13 +1266,21 @@ let make = React.memoCustomCompareProps( ({
         } else {
             let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
             let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "1px" }
-            <Row >
+            <Row
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+                alignItems=#center
+            >
                 <Paper
                     ref=ReactDOM.Ref.domRef(jstfRef) 
                     onClick=clickHnd(~act=onJstfEditRequested, ()) 
                     style=ReactDOM.Style.make( 
                         ~padding, 
-                        ~marginTop=?(if (addMargin) {Some("5px")} else {None}), 
+                        ~overflowWrap="normal", 
+                        ~whiteSpace="nowrap", 
                         ()
                     )
                     title="<left-click> to change"
@@ -1270,14 +1330,14 @@ let make = React.memoCustomCompareProps( ({
                 let jstf = if (viewOptions.showJstf) {
                     None
                 } else {
-                    Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px", ~addMargin=true))
+                    Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
                 }
                 let jstfVisualization = rndJstfVisualization()
                 if (jstf->Belt_Option.isNone && jstfVisualization->Belt_Option.isNone) {
                     None
                 } else {
                     Some(
-                        <Col>
+                        <Col spacing=0.>
                             {jstf->Belt_Option.getWithDefault(<></>)}
                             {jstfVisualization->Belt_Option.getWithDefault(<></>)}
                         </Col>
@@ -1295,7 +1355,7 @@ let make = React.memoCustomCompareProps( ({
         switch rndInfoBody() {
             | None => rndCont()
             | Some(infoBody) => {
-                <Col>
+                <Col spacing=0.>
                     {rndCont()}
                     infoBody
                 </Col>
@@ -1335,7 +1395,10 @@ let make = React.memoCustomCompareProps( ({
 
     let rndCheckbox = () => {
         <Checkbox
-            style=ReactDOM.Style.make(~margin="-7px 0px", ())
+            style=ReactDOM.Style.make(
+                ~marginTop="-5px", 
+                ()
+            )
             disabled=checkboxDisabled
             checked=checkboxChecked
             onChange=evt2bool(checkboxOnChange)
@@ -1392,7 +1455,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndJstfTd = () => {
         if (viewOptions.showJstf) {
-            <td> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px", ~addMargin=false)} </td>
+            <td> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")} </td>
         } else {
             <></>
         }
@@ -1400,7 +1463,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndJstfRow = () => {
         if (viewOptions.showJstf) {
-            rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px", ~addMargin=false)
+            rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")
         } else {
             <></>
         }
@@ -1418,8 +1481,8 @@ let make = React.memoCustomCompareProps( ({
     } else {
         <table 
             style=ReactDOM.Style.make(
-                ~margin="-2px 0px -2px", 
                 ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""},
+                ~marginTop=?{if (viewOptions.showCheckbox) {Some("-5px")} else {None}},
                 ()
             )>
             <tbody>

@@ -1125,7 +1125,7 @@ let make = (
         if (stmt.stmtErr->Belt_Option.isSome 
             || stmt.syntaxErr->Belt_Option.isSome 
             || stmt.unifErr->Belt_Option.isSome) {
-            <Col>
+            <Col style=ReactDOM.Style.make(~marginLeft="10px", ())>
                 {rndError(stmt.stmtErr,"red")}
                 {
                     rndError(

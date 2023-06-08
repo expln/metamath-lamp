@@ -92,7 +92,7 @@ let make = (
                         onChange=evt2bool(b => setInlineMode(_ => b))
                     />
                 }
-                label="Inline Mode"
+                label="Compact Mode"
             />
             <Button onClick={_=>onClose()}> {React.string("Close")} </Button>
         </Col>
