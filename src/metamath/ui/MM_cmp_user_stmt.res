@@ -1143,7 +1143,12 @@ let make = React.memoCustomCompareProps( ({
                 longClickDelayMs
                 onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onTypEditRequested
-                style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
+                style=ReactDOM.Style.make(
+                    ~cursor="pointer", 
+                    ~fontWeight="bold", 
+                    ~padding="1px 5px",
+                    ()
+                )
                 title={
                     chgTypShortcutName ++ " to change statement type between P (provable), G (goal) and H (hypothesis). " 
                         ++ "Alt is sometimes labelled Opt. " 
