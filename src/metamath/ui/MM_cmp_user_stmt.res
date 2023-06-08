@@ -1261,6 +1261,8 @@ let make = React.memoCustomCompareProps( ({
                         ~title="Save, Enter", ())}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                         ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                    {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
+                                ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
                 </Row>
             </Col>
         } else {
