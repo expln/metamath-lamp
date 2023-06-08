@@ -22,6 +22,7 @@ type viewOptions = {
     showLabel:bool,
     showType:bool,
     showJstf:bool,
+    inlineMode:bool,
 }
 
 type props = {

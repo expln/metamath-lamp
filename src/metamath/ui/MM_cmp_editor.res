@@ -91,6 +91,9 @@ let make = (
     let (showJstf, setShowJstf) = useStateFromLocalStorageBool(
         ~key="editor-showJstf", ~default=true, ~tempMode
     )
+    let (inlineMode, setInlineMode) = useStateFromLocalStorageBool(
+        ~key="editor-inlineMode", ~default=false, ~tempMode
+    )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV=preCtxData.settingsV.ver, 
@@ -983,6 +986,7 @@ let make = (
                     showLabel onShowLabelChange = {b => setShowLabel(_ => b) }
                     showType onShowTypeChange = {b => setShowType(_ => b) }
                     showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
+                    inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
                 />
             })
         })->ignore
@@ -1117,7 +1121,7 @@ let make = (
         </Paper>
     }
 
-    let viewOptions = { MM_cmp_user_stmt.showCheckbox:showCheckbox, showLabel, showType, showJstf, }
+    let viewOptions = { MM_cmp_user_stmt.showCheckbox:showCheckbox, showLabel, showType, showJstf, inlineMode, }
     let rndStmt = (stmt:userStmt) => {
         <tr key=stmt.id >
             {

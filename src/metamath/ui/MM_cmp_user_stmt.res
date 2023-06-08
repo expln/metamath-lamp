@@ -38,6 +38,7 @@ type viewOptions = {
     showLabel:bool,
     showType:bool,
     showJstf:bool,
+    inlineMode:bool,
 }
 
 let makeInitialState = () => {
@@ -576,6 +577,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.viewOptions.showLabel == b.viewOptions.showLabel
     && a.viewOptions.showType == b.viewOptions.showType
     && a.viewOptions.showJstf == b.viewOptions.showJstf
+    && a.viewOptions.inlineMode == b.viewOptions.inlineMode
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
@@ -1160,7 +1162,7 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string, ~addMargin:bool) => {
+    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string, ~addMargin:bool):reElem => {
         if (stmt.jstfEditMode) {
             <Row>
                 <TextField
@@ -1208,13 +1210,14 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndJstfVisualization = () => {
+    let rndJstfVisualization = ():option<reElem> => {
         if (
             visualizationIsOn 
             && wrkCtx->Belt.Option.isSome
             && stmt.proofTreeDto->Belt.Option.isSome
             && stmt.src->Belt.Option.isSome
         ) {
+            Some(
                 <VisualizedJstf
                     wrkCtx={wrkCtx->Belt_Option.getExn}
                     proofTreeDto={stmt.proofTreeDto->Belt_Option.getExn}
@@ -1224,115 +1227,163 @@ let make = React.memoCustomCompareProps( ({
                     preCtxColors
                     wrkCtxColors
                 />
+            )
         } else {
-            React.null
+            None
         }
     }
 
-    let rndInfoBody = () => {
+    let rndInfoBody = ():option<reElem> => {
         if (stmt.typ == P) {
             if (state.infoExpanded || stmt.jstfEditMode) {
-                <Col>
-                    {
-                        if (viewOptions.showJstf) {
-                            <></>
-                        } else {
-                            rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px", ~addMargin=true)
-                        }
-                    }
-                    {rndJstfVisualization()}
-                </Col>
+                let jstf = if (viewOptions.showJstf) {
+                    None
+                } else {
+                    Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px", ~addMargin=true))
+                }
+                let jstfVisualization = rndJstfVisualization()
+                if (jstf->Belt_Option.isNone && jstfVisualization->Belt_Option.isNone) {
+                    None
+                } else {
+                    Some(
+                        <Col>
+                            {jstf->Belt_Option.getWithDefault(<></>)}
+                            {jstfVisualization->Belt_Option.getWithDefault(<></>)}
+                        </Col>
+                    )
+                }
             } else {
-                React.null
+                None
             }
         } else {
-            React.null
+            None
         }
     }
 
-    <table 
-        style=ReactDOM.Style.make(
-            ~margin="-2px", 
-            ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""}, 
+    let rndProofStatusInner = () => {
+        rndProofStatus(
+            ~proofStatus=stmt.proofStatus, 
+            ~readyTooltip="Proof is ready, left-click to generate compressed proof",
+            ~waitingTooltip="Justification for this statement is correct",
+            ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
+            ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
+            ~onReadyIconClicked=onGenerateProof,
+            ~onErrorIconClicked=onDebug,
+            ~onNoJstfIconClicked=onDebug,
             ()
-        )>
-        <tbody>
-            <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
+        )
+    }
+
+    let rndProofStatusTd = () => {
+        if (stmt.proofStatus->Belt.Option.isSome) {
+            <td> { rndProofStatusInner() } </td>
+        } else {
+            <></>
+        }
+    }
+
+    let rndProofStatusRow = () => {
+        if (stmt.proofStatus->Belt.Option.isSome) {
+            rndProofStatusInner()
+        } else {
+            <></>
+        }
+    }
+
+    let rndLabelTd = () => {
+        if (viewOptions.showLabel) {
+            <td> {rndLabel()} </td>
+        } else {
+            <></>
+        }
+    }
+
+    let rndLabelRow = () => {
+        if (viewOptions.showLabel) {
+            rndLabel()
+        } else {
+            <></>
+        }
+    }
+
+    let rndTypTd = () => {
+        if (viewOptions.showType) {
+            <td> {rndTyp()} </td>
+        } else {
+            <></>
+        }
+    }
+
+    let rndTypRow = () => {
+        if (viewOptions.showType) {
+            rndTyp()
+        } else {
+            <></>
+        }
+    }
+
+    let rndJstfTd = () => {
+        if (viewOptions.showJstf) {
+            <td> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px", ~addMargin=false)} </td>
+        } else {
+            <></>
+        }
+    }
+
+    let rndJstfRow = () => {
+        if (viewOptions.showJstf) {
+            rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px", ~addMargin=false)
+        } else {
+            <></>
+        }
+    }
+
+    let rndTdOpt = condition => {
+        if (condition) {
+            <td></td>
+        } else {
+            <></>
+        }
+    }
+
+    if (viewOptions.inlineMode) {
+        <Col spacing=0.5>
+            <Row spacing=0.3>
+                { rndProofStatusRow() }
+                { rndLabelRow() }
+                { rndTypRow() }
+                { rndJstfRow() }
+                { rndCont() }
+            </Row>
+            { rndInfoBody()->Belt.Option.getWithDefault(<></>) }
+        </Col>
+    } else {
+        <table 
+            style=ReactDOM.Style.make(
+                ~margin="-2px 0px -2px", 
+                ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""}, 
+                ()
+            )>
+            <tbody>
+                <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                    { rndProofStatusTd() }
+                    { rndLabelTd() }
+                    { rndTypTd() }
+                    { rndJstfTd() }
+                    <td> {rndCont()} </td>
+                </tr>
                 {
-                    if (stmt.proofStatus->Belt.Option.isSome) {
-                        <td> 
-                            {
-                                rndProofStatus(
-                                    ~proofStatus=stmt.proofStatus, 
-                                    ~readyTooltip="Proof is ready, left-click to generate compressed proof",
-                                    ~waitingTooltip="Justification for this statement is correct",
-                                    ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
-                                    ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
-                                    ~onReadyIconClicked=onGenerateProof,
-                                    ~onErrorIconClicked=onDebug,
-                                    ~onNoJstfIconClicked=onDebug,
-                                    ()
-                                )
-                            }
-                        </td>
-                    } else {
-                        <></>
-                    }
+                    rndInfoBody()->Belt.Option.map(infoBody => {
+                        <tr>
+                            { rndTdOpt(stmt.proofStatus->Belt.Option.isSome) }
+                            { rndTdOpt(viewOptions.showLabel) }
+                            { rndTdOpt(viewOptions.showType) }
+                            { rndTdOpt(viewOptions.showJstf) }
+                            <td> infoBody </td>
+                        </tr>
+                    })->Belt.Option.getWithDefault(<></>)
                 }
-                {
-                    if (viewOptions.showLabel) {
-                        <td> {rndLabel()} </td>
-                    } else {
-                        <></>
-                    }
-                }
-                {
-                    if (viewOptions.showType) {
-                        <td> {rndTyp()} </td>
-                    } else {
-                        <></>
-                    }
-                }
-                {
-                    if (viewOptions.showJstf) {
-                        <td> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px", ~addMargin=false)} </td>
-                    } else {
-                        <></>
-                    }
-                }
-                <td> {rndCont()} </td>
-            </tr>
-            <tr>
-                {
-                    if (stmt.proofStatus->Belt.Option.isSome) {
-                        <td></td>
-                    } else {
-                        <></>
-                    }
-                }
-                {
-                    if (viewOptions.showLabel) {
-                        <td></td>
-                    } else {
-                        <></>
-                    }
-                }
-                {
-                    if (viewOptions.showType) {
-                        <td></td>
-                    } else {
-                        <></>
-                    }
-                }
-                {
-                    if (viewOptions.showJstf) {
-                        <td></td>
-                    } else {
-                        <></>
-                    }
-                }
-                <td> {rndInfoBody()} </td>
-            </tr>
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    }
 }, propsAreSame)

@@ -10,12 +10,14 @@ let make = (
     ~showLabel:bool, ~onShowLabelChange:bool=>unit, 
     ~showType:bool, ~onShowTypeChange:bool=>unit, 
     ~showJstf:bool, ~onShowJstfChange:bool=>unit, 
+    ~inlineMode:bool, ~onInlineModeChange:bool=>unit, 
     ~onClose:unit=>unit,
 ) => {
     let (showCheckbox, setShowCheckbox) = React.useState(() => showCheckbox)
     let (showLabel, setShowLabel) = React.useState(() => showLabel)
     let (showType, setShowType) = React.useState(() => showType)
     let (showJstf, setShowJstf) = React.useState(() => showJstf)
+    let (inlineMode, setInlineMode) = React.useState(() => inlineMode)
 
     React.useEffect1(() => {
         onShowCheckboxChange(showCheckbox)
@@ -36,6 +38,11 @@ let make = (
         onShowJstfChange(showJstf)
         None
     }, [showJstf])
+
+    React.useEffect1(() => {
+        onInlineModeChange(inlineMode)
+        None
+    }, [inlineMode])
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col>
@@ -77,6 +84,15 @@ let make = (
                     />
                 }
                 label="Justification"
+            />
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=inlineMode
+                        onChange=evt2bool(b => setInlineMode(_ => b))
+                    />
+                }
+                label="Inline Mode"
             />
             <Button onClick={_=>onClose()}> {React.string("Close")} </Button>
         </Col>
