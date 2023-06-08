@@ -204,6 +204,8 @@ let loadFrameContext = (
     )
 }
 
+let dotPattern = %re("/\./g")
+
 type props = {
     top:int,
     modalRef:modalRef,
@@ -310,9 +312,10 @@ let make = React.memoCustomCompareProps(({
     let classColRef = "ref"
 
     React.useEffect1(() => {
-        setStepWidth(_ => calcColumnWidth(`#${proofTableId} .${classColStep}`, 30, 1000)->Belt.Int.toString ++ "px")
-        setHypWidth(_ => (calcColumnWidth(`#${proofTableId} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
-        setRefWidth(_ => calcColumnWidth(`#${proofTableId} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
+        let proofTableIdCssSelector = proofTableId->Js_string2.replaceByRe(dotPattern, "\\.")
+        setStepWidth(_ => calcColumnWidth(`#${proofTableIdCssSelector} .${classColStep}`, 30, 1000)->Belt.Int.toString ++ "px")
+        setHypWidth(_ => (calcColumnWidth(`#${proofTableIdCssSelector} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
+        setRefWidth(_ => calcColumnWidth(`#${proofTableIdCssSelector} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
         None
     }, [numberOfRowsInProofTable])
 
@@ -536,7 +539,7 @@ let make = React.memoCustomCompareProps(({
             ->ReactDOM.Style.unsafeAddProp("scrollMarginTop", top->Belt_Int.toString ++ "px")
         
         switch state.proofTable {
-            | None => "This assertion doesn't have proof."->React.string
+            | None => "This assertion doesn't have a proof."->React.string
             | Some(proofTable) => {
                 <Col spacing=0.>
                     <Button onClick={_=>actToggleShowTypes()}> {React.string(if(state.showTypes) {"Hide types"} else {"Show types"})} </Button>
