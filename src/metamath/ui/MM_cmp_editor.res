@@ -994,7 +994,7 @@ let make = (
 
     let rndError = (msgOpt,color) => {
         switch msgOpt {
-            | None => React.null
+            | None => <></>
             | Some(msg) => <pre style=ReactDOM.Style.make(~color, ())>{React.string(msg)}</pre>
         }
     }
@@ -1121,69 +1121,11 @@ let make = (
         </Paper>
     }
 
-    let viewOptions = { MM_cmp_user_stmt.showCheckbox:showCheckbox, showLabel, showType, showJstf, inlineMode, }
-    let rndStmt = (stmt:userStmt) => {
-        <tr key=stmt.id >
-            {
-                if (showCheckbox) {
-                    <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                        <Checkbox
-                            style=ReactDOM.Style.make(~margin="-7px 0px", ())
-                            disabled=editIsActive
-                            checked={state->isStmtChecked(stmt.id)}
-                            onChange={_ => actToggleStmtChecked(stmt.id)}
-                        />
-                    </td>
-                } else {
-                    <></>
-                }
-            }
-            <td>
-                <MM_cmp_user_stmt
-                    modalRef
-                    settingsVer=state.settingsV
-                    preCtxVer=state.preCtxV
-                    varsText=state.varsText
-                    wrkCtx=state.wrkCtx
-                    frms=state.frms
-                    parenCnt=state.parenCnt
-                    syntaxTypes=state.syntaxTypes
-                    parensMap=state.parensMap
-                    stmt
-                    typeColors=state.typeColors
-                    preCtxColors=state.preCtxColors
-                    wrkCtxColors=state.wrkCtxColors
-                    visualizationIsOn
-                    viewOptions
-                    editStmtsByLeftClick=state.settings.editStmtsByLeftClick
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
-                    defaultStmtType=state.settings.defaultStmtType
-
-                    onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
-                    onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
-                    onLabelEditCancel={newLabel => actCancelEditLabel(stmt.id,newLabel)}
-
-                    onTypEditRequested={() => actBeginEdit(setTypEditMode,stmt.id)}
-                    onTypEditDone={(newTyp,newIsGoal) => actCompleteEdit(
-                        completeTypEditMode(_,stmt.id,newTyp,newIsGoal)
-                    )}
-
-                    onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
-                    onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
-                    onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
-                    onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
-                    
-                    onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
-                    onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}
-                    onJstfEditCancel={newJstf => actCancelEditJstf(stmt.id,newJstf)}
-
-                    onGenerateProof={()=>actExportProof(stmt.id)}
-                    onDebug={()=>actDebugUnifyAll(stmt.id)}
-
-                    addStmtAbove=actAddStmtAbove(stmt.id)
-                    addStmtBelow=actAddStmtBelow(stmt.id)
-                />
+    let rndErrors = (stmt:userStmt):reElem => {
+        if (stmt.stmtErr->Belt_Option.isSome 
+            || stmt.syntaxErr->Belt_Option.isSome 
+            || stmt.unifErr->Belt_Option.isSome) {
+            <Col>
                 {rndError(stmt.stmtErr,"red")}
                 {
                     rndError(
@@ -1198,8 +1140,71 @@ let make = (
                     )
                 }
                 {rndError(stmt.unifErr,"darkgrey")}
-            </td>
-        </tr>
+            </Col>
+        } else {
+            <></>
+        }
+    }
+
+    let viewOptions = { MM_cmp_user_stmt.showCheckbox:showCheckbox, showLabel, showType, showJstf, inlineMode, }
+
+    let rndStmt = (stmt:userStmt):reElem => {
+        <MM_cmp_user_stmt
+            modalRef
+            settingsVer=state.settingsV
+            preCtxVer=state.preCtxV
+            varsText=state.varsText
+            wrkCtx=state.wrkCtx
+            frms=state.frms
+            parenCnt=state.parenCnt
+            syntaxTypes=state.syntaxTypes
+            parensMap=state.parensMap
+            stmt
+            typeColors=state.typeColors
+            preCtxColors=state.preCtxColors
+            wrkCtxColors=state.wrkCtxColors
+            visualizationIsOn
+            viewOptions
+            editStmtsByLeftClick=state.settings.editStmtsByLeftClick
+            longClickEnabled=state.settings.longClickEnabled
+            longClickDelayMs=state.settings.longClickDelayMs
+            defaultStmtType=state.settings.defaultStmtType
+
+            onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
+            onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
+            onLabelEditCancel={newLabel => actCancelEditLabel(stmt.id,newLabel)}
+
+            onTypEditRequested={() => actBeginEdit(setTypEditMode,stmt.id)}
+            onTypEditDone={(newTyp,newIsGoal) => actCompleteEdit(
+                completeTypEditMode(_,stmt.id,newTyp,newIsGoal)
+            )}
+
+            onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
+            onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
+            onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
+            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
+            
+            onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
+            onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}
+            onJstfEditCancel={newJstf => actCancelEditJstf(stmt.id,newJstf)}
+
+            checkboxDisabled=editIsActive
+            checkboxChecked={state->isStmtChecked(stmt.id)}
+            checkboxOnChange={_ => actToggleStmtChecked(stmt.id)}
+
+            onGenerateProof={()=>actExportProof(stmt.id)}
+            onDebug={()=>actDebugUnifyAll(stmt.id)}
+
+            addStmtAbove=actAddStmtAbove(stmt.id)
+            addStmtBelow=actAddStmtBelow(stmt.id)
+        />
+    }
+
+    let rndStmtAndErrors = (stmt:userStmt) => {
+        <Col key=stmt.id spacing=0.>
+            {rndStmt(stmt)}
+            {rndErrors(stmt)}
+        </Col>
     }
 
     let rndDescr = () => {
@@ -1271,11 +1276,9 @@ let make = (
     }
 
     let rndStmts = () => {
-        <table>
-            <tbody>
-                { state.stmts->Js_array2.map(rndStmt)->React.array }
-            </tbody>
-        </table>
+        <Col spacing=0.>
+            { state.stmts->Js_array2.map(rndStmtAndErrors)->React.array }
+        </Col>
     }
 
     <Expln_React_ContentWithStickyHeader

@@ -61,6 +61,10 @@ type props = {
     onJstfEditDone:string=>unit, 
     onJstfEditCancel:string=>unit,
 
+    checkboxDisabled:bool,
+    checkboxChecked:bool,
+    checkboxOnChange:bool=>unit,
+
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
     addStmtAbove:string=>unit,

@@ -562,6 +562,10 @@ type props = {
     onJstfEditDone:string=>unit, 
     onJstfEditCancel:string=>unit,
 
+    checkboxDisabled:bool,
+    checkboxChecked:bool,
+    checkboxOnChange:bool=>unit,
+
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
     addStmtAbove:string=>unit,
@@ -587,6 +591,10 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.stmt.contEditMode == b.stmt.contEditMode
     && a.stmt.jstfText == b.stmt.jstfText
     && a.stmt.jstfEditMode == b.stmt.jstfEditMode
+
+    && a.checkboxDisabled == b.checkboxDisabled
+    && a.checkboxChecked == b.checkboxChecked
+
 
     && a.stmt.src == b.stmt.src
     && a.stmt.proofStatus === b.stmt.proofStatus
@@ -614,6 +622,9 @@ let make = React.memoCustomCompareProps( ({
     onJstfEditCancel,
     onGenerateProof,
     onDebug,
+    checkboxDisabled,
+    checkboxChecked,
+    checkboxOnChange,
     typeColors,
     preCtxColors,
     wrkCtxColors,
@@ -968,7 +979,7 @@ let make = React.memoCustomCompareProps( ({
                 ref=ReactDOM.Ref.domRef(labelRef)
                 onClick=clickHnd(~act=onLabelEditRequested, ()) 
                 title="<left-click> to change"
-                style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ())
+                style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ~margin="0px 5px", ())
             >
                 {React.string(stmt.label)}
             </span>
@@ -998,7 +1009,7 @@ let make = React.memoCustomCompareProps( ({
         </Row>
     }
 
-    let rndCont = () => {
+    let rndCont = ():reElem => {
         if (stmt.contEditMode) {
             let windowWidth = window["innerWidth"]
             let textFieldWidth = if (viewOptions.inlineMode) {
@@ -1280,6 +1291,18 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    let rndContAndInfoBody = () => {
+        switch rndInfoBody() {
+            | None => rndCont()
+            | Some(infoBody) => {
+                <Col>
+                    {rndCont()}
+                    infoBody
+                </Col>
+            }
+        }
+    }
+
     let rndProofStatusInner = () => {
         rndProofStatus(
             ~proofStatus=stmt.proofStatus, 
@@ -1305,6 +1328,31 @@ let make = React.memoCustomCompareProps( ({
     let rndProofStatusRow = () => {
         if (stmt.proofStatus->Belt.Option.isSome) {
             rndProofStatusInner()
+        } else {
+            <></>
+        }
+    }
+
+    let rndCheckbox = () => {
+        <Checkbox
+            style=ReactDOM.Style.make(~margin="-7px 0px", ())
+            disabled=checkboxDisabled
+            checked=checkboxChecked
+            onChange=evt2bool(checkboxOnChange)
+        />
+    }
+
+    let rndCheckboxTd = () => {
+        if (viewOptions.showCheckbox) {
+            <td> {rndCheckbox()} </td>
+        } else {
+            <></>
+        }
+    }
+
+    let rndCheckboxRow = () => {
+        if (viewOptions.showCheckbox) {
+            rndCheckbox()
         } else {
             <></>
         }
@@ -1358,25 +1406,15 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndTdOpt = condition => {
-        if (condition) {
-            <td></td>
-        } else {
-            <></>
-        }
-    }
-
     if (viewOptions.inlineMode) {
-        <Col spacing=0.5>
-            <Row spacing=0.3>
-                { rndProofStatusRow() }
-                { rndLabelRow() }
-                { rndTypRow() }
-                { rndJstfRow() }
-                { rndCont() }
-            </Row>
-            { rndInfoBody()->Belt.Option.getWithDefault(<></>) }
-        </Col>
+        <Row spacing=0. alignItems=#"flex-start">
+            { rndCheckboxRow() }
+            { rndProofStatusRow() }
+            { rndLabelRow() }
+            { rndTypRow() }
+            { rndJstfRow() }
+            { rndContAndInfoBody() }
+        </Row>
     } else {
         <table 
             style=ReactDOM.Style.make(
@@ -1386,23 +1424,13 @@ let make = React.memoCustomCompareProps( ({
             )>
             <tbody>
                 <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                    { rndCheckboxTd() }
                     { rndProofStatusTd() }
                     { rndLabelTd() }
                     { rndTypTd() }
                     { rndJstfTd() }
-                    <td> {rndCont()} </td>
+                    <td> {rndContAndInfoBody()} </td>
                 </tr>
-                {
-                    rndInfoBody()->Belt.Option.map(infoBody => {
-                        <tr>
-                            { rndTdOpt(stmt.proofStatus->Belt.Option.isSome) }
-                            { rndTdOpt(viewOptions.showLabel) }
-                            { rndTdOpt(viewOptions.showType) }
-                            { rndTdOpt(viewOptions.showJstf) }
-                            <td> infoBody </td>
-                        </tr>
-                    })->Belt.Option.getWithDefault(<></>)
-                }
             </tbody>
         </table>
     }
