@@ -131,30 +131,53 @@ let useTabs = ():tabMethods<'a> => {
         if (tabs->Js_array2.length == 0) {
             React.null
         } else {
-            <Col>
-                <Tabs key=activeTabId value=activeTabId variant=#scrollable onChange={(_,id)=>openTab(id)} >
-                    {React.array(
-                        tabs->Js_array2.map(tab => {
-                            <Tab key=tab.id value=tab.id label={
+            <Tabs
+                value=activeTabId 
+                variant=#scrollable 
+                onChange={(_,id)=>openTab(id)} 
+                style=ReactDOM.Style.make(
+                    ~minHeight="20px", 
+                    ()
+                )
+            >
+                {React.array(
+                    tabs->Js_array2.map(tab => {
+                        <Tab 
+                            key=tab.id 
+                            value=tab.id 
+                            label={
                                 if (tab.closable) {
                                     <span style=ReactDOM.Style.make(~textTransform="none", ())>
-                                        {React.string(tab.label)}
-                                        <IconButton component="div" 
-                                                    onClick={evt => {
-                                                        ReactEvent.Synthetic.stopPropagation(evt)
-                                                        removeTab(tab.id)
-                                                    }} >
+                                        <span style=ReactDOM.Style.make(~marginRight="10px", ())>
+                                            {React.string(tab.label)}
+                                        </span>
+                                        <IconButton 
+                                            component="div" 
+                                            onClick={evt => {
+                                                ReactEvent.Synthetic.stopPropagation(evt)
+                                                removeTab(tab.id)
+                                            }} 
+                                            style=ReactDOM.Style.make(
+                                                ~padding="0px",
+                                                ()
+                                            )
+                                        >
                                             <Icons.Clear fontSize="small"  />
                                         </IconButton>
                                     </span>
                                 } else {
                                     React.string(tab.label)
                                 }
-                            }/>
-                        })
-                    )}
-                </Tabs>
-            </Col>
+                            }
+                            style=ReactDOM.Style.make(
+                                ~minHeight="20px",
+                                ~padding="3px",
+                                ()
+                            )
+                        />
+                    })
+                )}
+            </Tabs>
         }
     }
 
