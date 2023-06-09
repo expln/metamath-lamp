@@ -378,7 +378,8 @@ let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
 let stmtPartMarginLeft = "10px"
-let stmtPartMarginTop = "5px"
+let stmtPartMarginInt = 5
+let stmtPartMarginTop = stmtPartMarginInt->Belt.Int.toString ++ "px"
 
 let rndProofStatus = (
     ~proofStatus:option<proofStatus>,
@@ -1283,7 +1284,7 @@ let make = React.memoCustomCompareProps( ({
             <Row
                 style=ReactDOM.Style.make(
                     ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
+                    ~marginTop={(stmtPartMarginInt-4)->Belt.Int.toString ++ "px"}, 
                     ()
                 )
                 alignItems=#center
