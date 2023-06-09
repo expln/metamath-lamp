@@ -971,7 +971,7 @@ let make = (
                     onChange=evt2bool(actHideContextSelectorChange)
                 />
             }
-            label="Hide Metamath context header"
+            label="Hide context header"
         />
         <Divider/>
         <MM_cmp_type_settings

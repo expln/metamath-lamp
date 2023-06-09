@@ -102,6 +102,7 @@ let make = () => {
     @warning("-27")
     let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
+    let (showTabs, setShowTabs) = React.useState(() => true)
 
     let reloadCtx = React.useRef(Js.Nullable.null)
     let openCtxSelector = React.useRef(Js.Nullable.null)
@@ -200,6 +201,8 @@ let make = () => {
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
                             openCtxSelector
+                            showTabs
+                            setShowTabs={b=>setShowTabs(_ => b)}
                         />
                     | ExplorerIndex => 
                         <MM_cmp_pe_index
@@ -250,7 +253,13 @@ let make = () => {
                         onExpandedChange=actCtxSelectorExpandedChange
                         doExpand=openCtxSelector
                     />
-                    {renderTabs()}
+                    {
+                        if (showTabs) {
+                            renderTabs()
+                        } else {
+                            <div style=ReactDOM.Style.make(~display="none", ()) />
+                        }
+                    }
                 </Col>
             }
             content={contentTop => {

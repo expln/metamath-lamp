@@ -15,6 +15,8 @@ open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
 
+@val external window: {..} = "window"
+
 let unifyAllIsRequiredCnt = ref(0)
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
@@ -29,10 +31,20 @@ let rndIconButton = (
     ~active:bool, 
     ~ref:option<ReactDOM.domRef>=?,
     ~title:option<string>=?, 
+    ~smallBtns:bool=false,
     ()
 ) => {
     <span ?ref ?title>
-        <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
+        <IconButton 
+            disabled={!active} 
+            onClick={_ => onClick()} 
+            color="primary"
+            style=?{
+                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+            }
+        > 
+            icon 
+        </IconButton>
     </span>
 }
 
@@ -72,6 +84,8 @@ let make = (
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
     ~openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ~showTabs:bool,
+    ~setShowTabs:bool=>unit,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
@@ -93,6 +107,12 @@ let make = (
     )
     let (inlineMode, setInlineMode) = useStateFromLocalStorageBool(
         ~key="editor-inlineMode", ~default=false, ~tempMode
+    )
+    let (scrollToolbar, setScrollToolbar) = useStateFromLocalStorageBool(
+        ~key="editor-scrollToolbar", ~default=false, ~tempMode
+    )
+    let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
+        ~key="editor-smallBtns", ~default=false, ~tempMode
     )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
@@ -987,6 +1007,9 @@ let make = (
                     showType onShowTypeChange = {b => setShowType(_ => b) }
                     showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
                     inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
+                    scrollToolbar onScrollToolbarChange = {b => setScrollToolbar(_ => b) }
+                    smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
+                    hideTabs={!showTabs} onHideTabsChange = {b => setShowTabs(!b) }
                 />
             })
         })->ignore
@@ -1065,60 +1088,86 @@ let make = (
         }
     }
 
+    let rndButtonsFragment = () => {
+        <>
+            <Checkbox
+                disabled=editIsActive
+                indeterminate={ mainCheckboxState->Belt_Option.isNone }
+                checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
+                onChange={_ => actToggleMainCheckbox()}
+                style=?{
+                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+            }
+            />
+            {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
+                ~title="Move selected statements down", ~smallBtns, ())}
+            {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
+                ~title="Move selected statements up", ~smallBtns, ())}
+            {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
+                ~title="Add new statement (and place before selected statements if any)", ~smallBtns, ())}
+            {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
+                ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ~smallBtns, ()
+            )}
+            {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
+                ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", 
+                ~smallBtns, ())}
+            {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
+                ~onClick=actMergeTwoStmts,
+                ~active=oneStatementIsChecked, ~title="Merge two similar statements", ~smallBtns, ())}
+            { 
+                rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
+                    ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
+                    ~title="Add new statements from existing assertions (and place before selected statements if any)", 
+                    ~smallBtns, ()
+                ) 
+            }
+            { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
+                ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
+                ~title="Apply a substitution to all statements", ~smallBtns,() ) }
+            { 
+                rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
+                    ~active=generalModificationActionIsEnabled 
+                                && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
+                                && state.stmts->Js_array2.length > 0, 
+                    ~title="Unify all statements or unify selected provable bottom-up", ~smallBtns, () )
+            }
+            { 
+                rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
+                    ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
+                    ~title="Additional actions", ~smallBtns, () )
+            }
+        </>
+    }
+
     let rndButtons = () => {
-        <Paper>
-            <Row
-                spacing = 0.
-                childXsOffset = {idx => {
-                    switch idx {
-                        | 10 => Some(Js.Json.string("auto"))
-                        | _ => None
-                    }
-                }}
+        if (scrollToolbar) {
+            let windowWidth = window["innerWidth"]
+            <Paper
+                style=ReactDOM.Style.make(
+                    ~whiteSpace="nowrap",
+                    ~overflowX="scroll",
+                    ~overflowY="hidden",
+                    ~width={(windowWidth-5)->Belt_Int.toString ++ "px"},
+                    ()
+                )
             >
-                <Checkbox
-                    disabled=editIsActive
-                    indeterminate={ mainCheckboxState->Belt_Option.isNone }
-                    checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
-                    onChange={_ => actToggleMainCheckbox()}
-                />
-                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected statements down", ())}
-                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected statements up", ())}
-                {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                    ~title="Add new statement (and place before selected statements if any)", ())}
-                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
-                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ()
-                )}
-                {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
-                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", ())}
-                {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
-                    ~onClick=actMergeTwoStmts,
-                    ~active=oneStatementIsChecked, ~title="Merge two similar statements", ())}
-                { 
-                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
-                        ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
-                        ~title="Add new statements from existing assertions (and place before selected statements if any)", ()
-                    ) 
-                }
-                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
-                    ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
-                    ~title="Apply a substitution to all statements", () ) }
-                { 
-                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
-                        ~active=generalModificationActionIsEnabled 
-                                    && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
-                                    && state.stmts->Js_array2.length > 0, 
-                        ~title="Unify all statements or unify selected provable bottom-up", () )
-                }
-                { 
-                    rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
-                        ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
-                        ~title="Additional actions", () )
-                }
-            </Row>
-        </Paper>
+                {rndButtonsFragment()}
+            </Paper>
+        } else {
+            <Paper>
+                <Row
+                    spacing = 0.
+                    // childXsOffset = {idx => {
+                    //     switch idx {
+                    //         | 10 => Some(Js.Json.string("auto"))
+                    //         | _ => None
+                    //     }
+                    // }}
+                >
+                    {rndButtonsFragment()}
+                </Row>
+            </Paper>
+        }
     }
 
     let rndErrors = (stmt:userStmt):reElem => {
@@ -1146,7 +1195,11 @@ let make = (
         }
     }
 
-    let viewOptions = { MM_cmp_user_stmt.showCheckbox:showCheckbox, showLabel, showType, showJstf, inlineMode, }
+    let viewOptions = { 
+        MM_cmp_user_stmt.showCheckbox:showCheckbox, 
+        showLabel, showType, showJstf, inlineMode, 
+        scrollToolbar, smallBtns, hideTabs:!showTabs
+    }
 
     let rndStmt = (stmt:userStmt):reElem => {
         <MM_cmp_user_stmt

@@ -136,7 +136,7 @@ let useTabs = ():tabMethods<'a> => {
                 variant=#scrollable 
                 onChange={(_,id)=>openTab(id)} 
                 style=ReactDOM.Style.make(
-                    ~minHeight="20px", 
+                    ~minHeight="25px", 
                     ()
                 )
             >
@@ -170,7 +170,7 @@ let useTabs = ():tabMethods<'a> => {
                                 }
                             }
                             style=ReactDOM.Style.make(
-                                ~minHeight="20px",
+                                ~minHeight="25px",
                                 ~padding="3px",
                                 ()
                             )

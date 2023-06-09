@@ -39,6 +39,9 @@ type viewOptions = {
     showType:bool,
     showJstf:bool,
     inlineMode:bool,
+    scrollToolbar:bool,
+    smallBtns:bool,
+    hideTabs:bool,
 }
 
 let makeInitialState = () => {
@@ -584,12 +587,16 @@ let propsAreSame = (a:props,b:props):bool => {
     a.settingsVer == b.settingsVer
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
+
     && a.visualizationIsOn == b.visualizationIsOn
     && a.viewOptions.showCheckbox == b.viewOptions.showCheckbox
     && a.viewOptions.showLabel == b.viewOptions.showLabel
     && a.viewOptions.showType == b.viewOptions.showType
     && a.viewOptions.showJstf == b.viewOptions.showJstf
     && a.viewOptions.inlineMode == b.viewOptions.inlineMode
+    && a.viewOptions.scrollToolbar == b.viewOptions.scrollToolbar
+    && a.viewOptions.smallBtns == b.viewOptions.smallBtns
+    && a.viewOptions.hideTabs == b.viewOptions.hideTabs
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
@@ -1022,19 +1029,24 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndSelectionButtons = () => {
+        let style = if (viewOptions.smallBtns) {
+            Some(ReactDOM.Style.make(~padding="0px", ~minWidth="30px", ~minHeight="26px", ()))
+        } else {
+            None
+        }
         <Row alignItems=#center>
             <ButtonGroup variant=#outlined size=#small >
-                <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
-                <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
-                <Button title="Add new statement above" onClick={_=>actAddStmtAbove()}> 
+                <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
+                <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Add new statement above" onClick={_=>actAddStmtAbove()} ?style> 
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
                 </Button>
-                <Button title="Add new statement below" onClick={_=>actAddStmtBelow()}> 
+                <Button title="Add new statement below" onClick={_=>actAddStmtBelow()} ?style> 
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </Button>
-                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
-                <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
-                <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
+                <Button title="Unselect" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {
                 if (copiedToClipboard->Belt.Option.isSome) {
