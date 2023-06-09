@@ -966,7 +966,14 @@ let make = React.memoCustomCompareProps( ({
 
     let rndLabel = () => {
         if (stmt.labelEditMode) {
-            <Col spacing=0.>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <TextField
                     size=#small
                     style=ReactDOM.Style.make(~width="150px", ())
@@ -976,13 +983,7 @@ let make = React.memoCustomCompareProps( ({
                     onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
                     title="Enter to save, Esc to cancel"
                 />
-                <Row 
-                    style=ReactDOM.Style.make(
-                        ~marginLeft=stmtPartMarginLeft, 
-                        ~marginTop=stmtPartMarginTop, 
-                        ()
-                    )
-                >
+                <Row>
                     {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
                         ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
@@ -990,21 +991,32 @@ let make = React.memoCustomCompareProps( ({
                 </Row>
             </Col>
         } else {
-            <span 
-                ref=ReactDOM.Ref.domRef(labelRef)
-                onClick=clickHnd(~act=onLabelEditRequested, ()) 
-                title="<left-click> to change"
+            let chgLabelShortcutName = if (longClickEnabled) {"Long click (Alt + Left-click)"} else {"Alt + Left-click"}
+            let showJstfShortcutName = if (longClickEnabled) {"Short click (Left-click)"} else {"Left-click"}
+            <LongClickSpan
+                onClick=clickHnd2(
+                    clickClbkMake(~alt=true, ~act=onLabelEditRequested, ()),
+                    clickClbkMake(~act=actToggleInfoExpanded, ()),
+                )
+                longClickEnabled
+                longClickDelayMs
+                onShortClick = {_ => actToggleInfoExpanded()}
+                onLongClick=onLabelEditRequested
                 style=ReactDOM.Style.make(
-                    ~overflowWrap="normal", 
-                    ~whiteSpace="nowrap", 
+                    ~cursor="pointer", 
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
                     ~display="inline-block",
                     ()
                 )
+                title={
+                    chgLabelShortcutName ++ " to change. " 
+                        ++ "Alt is sometimes labelled Opt. " 
+                        ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                }
             >
                 {React.string(stmt.label)}
-            </span>
+            </LongClickSpan>
         }
     }
 
