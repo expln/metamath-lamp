@@ -1093,86 +1093,65 @@ let make = (
         }
     }
 
-    let rndButtonsFragment = () => {
-        <>
-            <Checkbox
-                disabled=editIsActive
-                indeterminate={ mainCheckboxState->Belt_Option.isNone }
-                checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
-                onChange={_ => actToggleMainCheckbox()}
-                style=?{
-                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
-            }
-            />
-            {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
-                ~title="Move selected statements down", ~smallBtns, ())}
-            {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
-                ~title="Move selected statements up", ~smallBtns, ())}
-            {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                ~title="Add new statement (and place before selected statements if any)", ~smallBtns, ())}
-            {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
-                ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ~smallBtns, ()
-            )}
-            {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
-                ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", 
-                ~smallBtns, ())}
-            {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
-                ~onClick=actMergeTwoStmts,
-                ~active=oneStatementIsChecked, ~title="Merge two similar statements", ~smallBtns, ())}
-            { 
-                rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
-                    ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
-                    ~title="Add new statements from existing assertions (and place before selected statements if any)", 
-                    ~smallBtns, ()
-                ) 
-            }
-            { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
-                ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
-                ~title="Apply a substitution to all statements", ~smallBtns,() ) }
-            { 
-                rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
-                    ~active=generalModificationActionIsEnabled 
-                                && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
-                                && state.stmts->Js_array2.length > 0, 
-                    ~title="Unify all statements or unify selected provable bottom-up", ~smallBtns, () )
-            }
-            { 
-                rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
-                    ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
-                    ~title="Additional actions", ~smallBtns, () )
-            }
-        </>
-    }
-
     let rndButtons = () => {
-        if (scrollToolbar) {
-            <Paper
-                style=ReactDOM.Style.make(
-                    ~whiteSpace="nowrap",
-                    ~overflowX="scroll",
-                    ~overflowY="hidden",
-                    ~width={getAvailWidth()->Belt_Int.toString ++ "px"},
-                    ()
-                )
+        <Paper>
+            <Row
+                spacing = 0.
+                childXsOffset = {idx => {
+                    switch idx {
+                        | 10 => Some(Js.Json.string("auto"))
+                        | _ => None
+                    }
+                }}
             >
-                {rndButtonsFragment()}
-            </Paper>
-        } else {
-            <Paper>
-                <Row
-                    spacing = 0.
-                    // childXsOffset = {idx => {
-                    //     switch idx {
-                    //         | 10 => Some(Js.Json.string("auto"))
-                    //         | _ => None
-                    //     }
-                    // }}
-                    style=ReactDOM.Style.make( ~width="100%vw", () )
-                >
-                    {rndButtonsFragment()}
-                </Row>
-            </Paper>
-        }
+                <Checkbox
+                    disabled=editIsActive
+                    indeterminate={ mainCheckboxState->Belt_Option.isNone }
+                    checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
+                    onChange={_ => actToggleMainCheckbox()}
+                    style=?{
+                    if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+                }
+                />
+                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
+                    ~title="Move selected statements down", ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
+                    ~title="Move selected statements up", ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
+                    ~title="Add new statement (and place before selected statements if any)", ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
+                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ~smallBtns, ()
+                )}
+                {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
+                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", 
+                    ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
+                    ~onClick=actMergeTwoStmts,
+                    ~active=oneStatementIsChecked, ~title="Merge two similar statements", ~smallBtns, ())}
+                { 
+                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
+                        ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
+                        ~title="Add new statements from existing assertions (and place before selected statements if any)", 
+                        ~smallBtns, ()
+                    ) 
+                }
+                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
+                    ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
+                    ~title="Apply a substitution to all statements", ~smallBtns,() ) }
+                { 
+                    rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
+                        ~active=generalModificationActionIsEnabled 
+                                    && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
+                                    && state.stmts->Js_array2.length > 0, 
+                        ~title="Unify all statements or unify selected provable bottom-up", ~smallBtns, () )
+                }
+                { 
+                    rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
+                        ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
+                        ~title="Additional actions", ~smallBtns, () )
+                }
+            </Row>
+        </Paper>
     }
 
     let rndErrors = (stmt:userStmt):reElem => {
@@ -1343,13 +1322,7 @@ let make = (
         top
         header={rndButtons()}
         content={_ => {
-            <Col 
-                spacing=0.
-                style=ReactDOM.Style.make(
-                    ~width="100%vw",
-                    ()
-                )
-            >
+            <Col spacing=0. >
                 {rndMainMenu()}
                 {rndDescr()}
                 {rndVars()}

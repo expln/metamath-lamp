@@ -110,6 +110,7 @@ let make = (
                 label="Compact mode"
             />
             <FormControlLabel
+                style=ReactDOM.Style.make(~display="none", ())
                 control={
                     <Checkbox
                         checked=scrollToolbar

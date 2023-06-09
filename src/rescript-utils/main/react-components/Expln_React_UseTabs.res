@@ -138,8 +138,6 @@ let useTabs = ():tabMethods<'a> => {
                 onChange={(_,id)=>openTab(id)} 
                 style=ReactDOM.Style.make(
                     ~minHeight="25px", 
-                    ~maxWidth={getAvailWidth()->Belt_Int.toString ++ "px"},
-                    // ~maxWidth="100%vw",
                     ()
                 )
             >
