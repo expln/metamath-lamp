@@ -13,7 +13,6 @@ let make = (
     ~inlineMode:bool, ~onInlineModeChange:bool=>unit, 
     ~scrollToolbar:bool, ~onScrollToolbarChange:bool=>unit, 
     ~smallBtns:bool, ~onSmallBtnsChange:bool=>unit, 
-    ~hideTabs:bool, ~onHideTabsChange:bool=>unit, 
     ~onClose:unit=>unit,
 ) => {
     let (showCheckbox, setShowCheckbox) = React.useState(() => showCheckbox)
@@ -23,7 +22,6 @@ let make = (
     let (inlineMode, setInlineMode) = React.useState(() => inlineMode)
     let (scrollToolbar, setScrollToolbar) = React.useState(() => scrollToolbar)
     let (smallBtns, setSmallBtns) = React.useState(() => smallBtns)
-    let (hideTabs, setHideTabs) = React.useState(() => hideTabs)
 
     React.useEffect1(() => {
         onShowCheckboxChange(showCheckbox)
@@ -60,26 +58,12 @@ let make = (
         None
     }, [smallBtns])
 
-    React.useEffect1(() => {
-        onHideTabsChange(hideTabs)
-        None
-    }, [hideTabs])
-
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col>
             <span style=ReactDOM.Style.make(~fontWeight="bold", ~fontSize="1.1em", ())>
                 { React.string("View Options") }
             </span>
             <Button onClick={_=>onClose()}> {React.string("Close")} </Button>
-            <FormControlLabel
-                control={
-                    <Checkbox
-                        checked=hideTabs
-                        onChange=evt2bool(b => setHideTabs(_ => b))
-                    />
-                }
-                label="Hide tabs"
-            />
             <FormControlLabel
                 control={
                     <Checkbox

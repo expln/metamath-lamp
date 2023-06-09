@@ -25,7 +25,6 @@ type viewOptions = {
     inlineMode:bool,
     scrollToolbar:bool,
     smallBtns:bool,
-    hideTabs:bool,
 }
 
 type props = {

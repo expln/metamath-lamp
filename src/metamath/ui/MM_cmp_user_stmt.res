@@ -41,7 +41,6 @@ type viewOptions = {
     inlineMode:bool,
     scrollToolbar:bool,
     smallBtns:bool,
-    hideTabs:bool,
 }
 
 let makeInitialState = () => {
@@ -596,7 +595,6 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.viewOptions.inlineMode == b.viewOptions.inlineMode
     && a.viewOptions.scrollToolbar == b.viewOptions.scrollToolbar
     && a.viewOptions.smallBtns == b.viewOptions.smallBtns
-    && a.viewOptions.hideTabs == b.viewOptions.hideTabs
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode

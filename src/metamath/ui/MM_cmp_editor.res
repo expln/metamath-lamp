@@ -1007,7 +1007,6 @@ let make = (
                     inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
                     scrollToolbar onScrollToolbarChange = {b => setScrollToolbar(_ => b) }
                     smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
-                    hideTabs={!showTabs} onHideTabsChange = {b => setShowTabs(!b) }
                 />
             })
         })->ignore
@@ -1030,6 +1029,14 @@ let make = (
                         anchorEl=mainMenuButtonRef
                         onClose=actCloseMainMenu
                     >
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                setShowTabs(!showTabs)
+                            }}
+                        >
+                            {React.string(if (showTabs) {"Hide tabs"} else {"Show tabs"})}
+                        </MenuItem>
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
@@ -1196,7 +1203,7 @@ let make = (
     let viewOptions = { 
         MM_cmp_user_stmt.showCheckbox:showCheckbox, 
         showLabel, showType, showJstf, inlineMode, 
-        scrollToolbar, smallBtns, hideTabs:!showTabs
+        scrollToolbar, smallBtns, 
     }
 
     let rndStmt = (stmt:userStmt):reElem => {
