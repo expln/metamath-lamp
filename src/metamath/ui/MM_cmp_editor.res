@@ -15,8 +15,6 @@ open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
 
-@val external window: {..} = "window"
-
 let unifyAllIsRequiredCnt = ref(0)
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
@@ -1141,13 +1139,12 @@ let make = (
 
     let rndButtons = () => {
         if (scrollToolbar) {
-            let windowWidth = window["innerWidth"]
             <Paper
                 style=ReactDOM.Style.make(
                     ~whiteSpace="nowrap",
                     ~overflowX="scroll",
                     ~overflowY="hidden",
-                    ~width={(windowWidth-5)->Belt_Int.toString ++ "px"},
+                    ~width={getAvailWidth()->Belt_Int.toString ++ "px"},
                     ()
                 )
             >
@@ -1163,6 +1160,7 @@ let make = (
                     //         | _ => None
                     //     }
                     // }}
+                    style=ReactDOM.Style.make( ~width="100%vw", () )
                 >
                     {rndButtonsFragment()}
                 </Row>
@@ -1338,7 +1336,13 @@ let make = (
         top
         header={rndButtons()}
         content={_ => {
-            <Col spacing=0.>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~width="100%vw",
+                    ()
+                )
+            >
                 {rndMainMenu()}
                 {rndDescr()}
                 {rndVars()}
