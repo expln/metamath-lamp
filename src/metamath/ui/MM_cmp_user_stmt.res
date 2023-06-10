@@ -1055,10 +1055,10 @@ let make = React.memoCustomCompareProps( ({
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
-                <Button title="Add new statement above" onClick={_=>actAddStmtAbove()} ?style> 
+                <Button title="Add new step above" onClick={_=>actAddStmtAbove()} ?style> 
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
                 </Button>
-                <Button title="Add new statement below" onClick={_=>actAddStmtBelow()} ?style> 
+                <Button title="Add new step below" onClick={_=>actAddStmtBelow()} ?style> 
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
@@ -1267,7 +1267,7 @@ let make = React.memoCustomCompareProps( ({
                     ()
                 )
                 title={
-                    chgTypShortcutName ++ " to change statement type between P (provable), G (goal) and H (hypothesis). " 
+                    chgTypShortcutName ++ " to change step type between P (provable), G (goal) and H (hypothesis). " 
                         ++ "Alt is sometimes labelled Opt. " 
                         ++ showJstfShortcutName ++ " to show/hide the justification for provable."
                 }
@@ -1430,7 +1430,7 @@ let make = React.memoCustomCompareProps( ({
         rndProofStatus(
             ~proofStatus=stmt.proofStatus, 
             ~readyTooltip="Proof is ready, left-click to generate compressed proof",
-            ~waitingTooltip="Justification for this statement is correct",
+            ~waitingTooltip="Justification for this step is correct",
             ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
             ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
             ~onReadyIconClicked=onGenerateProof,

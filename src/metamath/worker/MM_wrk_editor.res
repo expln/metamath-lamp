@@ -261,7 +261,7 @@ let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == i
 
 let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
     switch editorGetStmtById(st,id) {
-        | None => raise(MmException({msg:`editorGetStmtByIdExn: Cannot find a statement by statement id.`}))
+        | None => raise(MmException({msg:`editorGetStmtByIdExn: Cannot find a step by step label.`}))
         | Some(stmt) => stmt
     }
 }
@@ -986,13 +986,13 @@ let validateStmtExpr = (
             | Some(expr) => {
                 switch wrkCtx->getHypByExpr(expr) {
                     | Some(hyp) => {
-                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
+                        {...stmt, stmtErr:Some(`This step is the same as the previously defined` 
                             ++ ` hypothesis - '${hyp.label}'`)}
                     }
                     | _ => {
                         switch definedUserExprs->Belt_HashMap.get(expr) {
                             | Some(prevStmtLabel) => {
-                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
+                                {...stmt, stmtErr:Some(`This step is the same as the previous` 
                                     ++ ` one - '${prevStmtLabel}'`)}
                             }
                             | None => stmt
@@ -1016,7 +1016,7 @@ let validateStmtIsGoal = (
             | Some(goalLabel) => {
                 if (stmt.isGoal) {
                     {...stmt, stmtErr:Some(`Cannot re-defined the goal. ` 
-                                    ++ `Previously defined goal is the statement labeled` 
+                                    ++ `Previously defined goal is the step labeled` 
                                     ++ ` '${goalLabel}'`)}
                 } else {
                     stmt
@@ -1171,7 +1171,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
 
 let stmtsHaveSameExpr = ( stmt:userStmt, stmtDto:stmtDto ):bool => {
     switch stmt.expr {
-        | None => raise(MmException({msg:`Cannot compare statements without expr.`}))
+        | None => raise(MmException({msg:`Cannot compare steps without expr.`}))
         | Some(expr) => expr->exprEq(stmtDto.expr)
     }
 }
@@ -2044,7 +2044,7 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
                 | Ok(st) => {
                     switch parseJstf(stmt.jstfText) {
                         | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' ` 
-                                                ++ `for the statement '${stmt.label}'`)
+                                                ++ `for the step '${stmt.label}'`)
                         | Ok(None) => Ok(st)
                         | Ok(Some(jstf)) => {
                             if (jstf.args->Js.Array2.includes(replaceWhat)) {
@@ -2075,13 +2075,13 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
 
 let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,string> => {
     switch st->editorGetStmtById(id1) {
-        | None => Error(`Cannot find a statement with id = '${id1}'`)
+        | None => Error(`Cannot find a step with label = '${id1}'`)
         | Some(stmt1) => {
             switch st->editorGetStmtById(id2) {
-                | None => Error(`Cannot find a statement with id = '${id2}'`)
+                | None => Error(`Cannot find a step with label = '${id2}'`)
                 | Some(stmt2) => {
                     if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
-                        Error(`Statements to merge must have identical expressions.`)
+                        Error(`Steps to merge must have identical expressions.`)
                     } else {
                         switch replaceRef(st, ~replaceWhat=stmt2.label, ~replaceWith=stmt1.label) {
                             | Error(msg) => Error(msg)
@@ -2106,7 +2106,7 @@ let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorS
         Error(`label must not be empty.`)
     } else {
         switch st.stmts->Js_array2.find(stmt => stmt.id != stmtId && stmt.label == newLabel) {
-            | Some(_) => Error(`label '${newLabel}' is used by another statement.`)
+            | Some(_) => Error(`label '${newLabel}' is used by another step.`)
             | None => {
                 switch st->editorGetStmtById(stmtId) {
                     | None => Ok(st)
@@ -2131,17 +2131,17 @@ let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorS
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     if (st.checkedStmtIds->Js.Array2.length == 1) {
         switch st->editorGetStmtById(st.checkedStmtIds[0]) {
-            | None => Error("One statement should be selected [1].")
+            | None => Error("One step should be selected [1].")
             | Some(stmt1) => {
                 let contStr = stmt1.cont->contToStr
                 switch st.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
-                    | None => Error("Cannot find another statement to merge with.")
+                    | None => Error("Cannot find another step to merge with.")
                     | Some(stmt2) => Ok((stmt1, stmt2))
                 }
             }
         }
     } else {
-        Error("One statement should be selected [2].")
+        Error("One step should be selected [2].")
     }
 }
 

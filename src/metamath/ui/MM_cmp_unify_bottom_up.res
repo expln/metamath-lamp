@@ -695,7 +695,7 @@ let make = (
                             label="Sort results by"
                             onChange=evt2str(str => actSortByChange(sortByFromStr(str)))
                         >
-                            <MenuItem value="UnprovedStmtsNum">{React.string("Number of unproved statements")}</MenuItem>
+                            <MenuItem value="UnprovedStmtsNum">{React.string("Number of unproved steps")}</MenuItem>
                             <MenuItem value="NumOfNewVars">{React.string("Number of new variables")}</MenuItem>
                             <MenuItem value="AsrtLabel">{React.string("Assertion label")}</MenuItem>
                         </Select>
@@ -770,7 +770,7 @@ let make = (
                                 onChange={_ => actToggleAllowNewStmts()}
                             />
                         }
-                        label="Allow new statements"
+                        label="Allow new steps"
                         style=ReactDOM.Style.make(
                             ~border="solid 1px lightgrey", 
                             ~borderRadius="7px", 
@@ -992,7 +992,7 @@ let make = (
                 {
                     rndRootStmtsForLevelShort(
                         ~title = "first level", 
-                        ~dialogTitle = "Select statements to derive from on level 0", 
+                        ~dialogTitle = "Select steps to derive from on level 0", 
                         ~getFlags = state => state.args0,
                         ~setFlags = newFlags => setState(updateArgs0(_, newFlags)),
                     )
@@ -1000,7 +1000,7 @@ let make = (
                 {
                     rndRootStmtsForLevelShort(
                         ~title = "other levels", 
-                        ~dialogTitle = "Select statements to derive from on other levels", 
+                        ~dialogTitle = "Select steps to derive from on other levels", 
                         ~getFlags = state => state.args1,
                         ~setFlags = newFlags => setState(updateArgs1(_, newFlags)),
                     )

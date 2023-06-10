@@ -945,7 +945,7 @@ let make = (
                     onChange=evt2bool(actInitStmtIsGoalChange)
                 />
             }
-            label="Mark initial statement as a goal"
+            label="Mark initial step as a goal"
         />
         <FormControlLabel
             control={
@@ -954,23 +954,23 @@ let make = (
                     onChange=evt2bool(actStickGoalToBottomChange)
                 />
             }
-            label="Stick the goal statement to the bottom"
+            label="Stick the goal step to the bottom"
         />
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())
-            label="Initial statement label" 
+            label="Initial step label" 
             value=state.defaultStmtLabel
             onChange=evt2str(actDefaultStmtLabelChange)
-            title="This text is used as a label for the initial statement. If empty - a label will be generated automatically."
+            title="This text is used as a label for the initial step. If empty - a label will be generated automatically."
         />
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())
-            label="Default statement type" 
+            label="Default step type" 
             value=state.defaultStmtType 
             onChange=evt2str(actDefaultStmtTypeChange)
-            title="This text is used as initial content for new statements"
+            title="This text is used as initial content for new steps"
         />
         <MM_cmp_edit_stmts_setting
             editStmtsByLeftClick=state.editStmtsByLeftClick
