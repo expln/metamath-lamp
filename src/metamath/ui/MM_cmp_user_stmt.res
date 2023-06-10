@@ -564,7 +564,6 @@ type props = {
     longClickDelayMs:int,
     defaultStmtType:string,
 
-    visualizationIsOn:bool,
     viewOptions:viewOptions,
 
     stmt:userStmt, 
@@ -596,7 +595,6 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
 
-    && a.visualizationIsOn == b.visualizationIsOn
     && a.viewOptions.showCheckbox == b.viewOptions.showCheckbox
     && a.viewOptions.showLabel == b.viewOptions.showLabel
     && a.viewOptions.showType == b.viewOptions.showType
@@ -650,7 +648,6 @@ let make = React.memoCustomCompareProps( ({
     typeColors,
     preCtxColors,
     wrkCtxColors,
-    visualizationIsOn,
     viewOptions,
     editStmtsByLeftClick,
     longClickEnabled,
@@ -1275,6 +1272,10 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    let visualizationIsAvailable = wrkCtx->Belt.Option.isSome
+        && stmt.proofTreeDto->Belt.Option.isSome
+        && stmt.src->Belt.Option.isSome
+
     let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string):reElem => {
         if (stmt.jstfEditMode) {
             <Col 
@@ -1334,7 +1335,7 @@ let make = React.memoCustomCompareProps( ({
                     if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
-                        <Row>
+                        <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
                             {
                                 rndIconButton(~icon=<MM_Icons.DeleteForever/>, 
                                     ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()
@@ -1346,10 +1347,14 @@ let make = React.memoCustomCompareProps( ({
                                 )
                             }
                             {
-                                rndIconButton(
-                                    ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
-                                    ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
-                                )
+                                if (visualizationIsAvailable) {
+                                    rndIconButton(
+                                        ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                        ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
+                                    )
+                                } else {
+                                    React.null
+                                }
                             }
                         </Row>
                     }
@@ -1359,11 +1364,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndJstfVisualization = ():option<reElem> => {
-        if (
-            wrkCtx->Belt.Option.isSome
-            && stmt.proofTreeDto->Belt.Option.isSome
-            && stmt.src->Belt.Option.isSome
-        ) {
+        if (visualizationIsAvailable) {
             Some(
                 <VisualizedJstf
                     wrkCtx={wrkCtx->Belt_Option.getExn}

@@ -46,7 +46,6 @@ type props = {
     longClickDelayMs:int,
     defaultStmtType:string,
 
-    visualizationIsOn:bool,
     viewOptions:viewOptions,
 
     stmt:userStmt, 
