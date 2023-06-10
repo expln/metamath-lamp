@@ -967,10 +967,10 @@ let make = (
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())
-            label="Default step type" 
+            label="Default statement type" 
             value=state.defaultStmtType 
             onChange=evt2str(actDefaultStmtTypeChange)
-            title="This text is used as initial content for new steps"
+            title="This text is used as the initial statement type for new statements"
         />
         <MM_cmp_edit_stmts_setting
             editStmtsByLeftClick=state.editStmtsByLeftClick

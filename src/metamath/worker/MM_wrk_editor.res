@@ -261,7 +261,7 @@ let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == i
 
 let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
     switch editorGetStmtById(st,id) {
-        | None => raise(MmException({msg:`editorGetStmtByIdExn: Cannot find a step by step label.`}))
+        | None => raise(MmException({msg:`editorGetStmtByIdExn: Cannot find a step by id.`}))
         | Some(stmt) => stmt
     }
 }
@@ -986,13 +986,13 @@ let validateStmtExpr = (
             | Some(expr) => {
                 switch wrkCtx->getHypByExpr(expr) {
                     | Some(hyp) => {
-                        {...stmt, stmtErr:Some(`This step is the same as the previously defined` 
+                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
                             ++ ` hypothesis - '${hyp.label}'`)}
                     }
                     | _ => {
                         switch definedUserExprs->Belt_HashMap.get(expr) {
                             | Some(prevStmtLabel) => {
-                                {...stmt, stmtErr:Some(`This step is the same as the previous` 
+                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
                                     ++ ` one - '${prevStmtLabel}'`)}
                             }
                             | None => stmt
@@ -2075,10 +2075,10 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
 
 let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,string> => {
     switch st->editorGetStmtById(id1) {
-        | None => Error(`Cannot find a step with label = '${id1}'`)
+        | None => Error(`Cannot find a step with id = '${id1}'`)
         | Some(stmt1) => {
             switch st->editorGetStmtById(id2) {
-                | None => Error(`Cannot find a step with label = '${id2}'`)
+                | None => Error(`Cannot find a step with id = '${id2}'`)
                 | Some(stmt2) => {
                     if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
                         Error(`Steps to merge must have identical expressions.`)
