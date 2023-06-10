@@ -31,6 +31,7 @@ let rndIconButton = (
 type state = {
     newText: string,
     infoExpanded: bool,
+    visExpanded: bool,
 }
 
 type viewOptions = {
@@ -46,7 +47,8 @@ type viewOptions = {
 let makeInitialState = () => {
     {
         newText: "",
-        infoExpanded: false
+        infoExpanded: false,
+        visExpanded: false,
     }
 }
 
@@ -61,6 +63,13 @@ let setInfoExpanded = (st,infoExpanded):state => {
     {
         ...st,
         infoExpanded
+    }
+}
+
+let setVisExpanded = (st,visExpanded):state => {
+    {
+        ...st,
+        visExpanded
     }
 }
 
@@ -774,6 +783,14 @@ let make = React.memoCustomCompareProps( ({
         setState(st => setInfoExpanded(st, !st.infoExpanded))
     }
 
+    let actToggleVisExpanded = () => {
+        setState(st => setVisExpanded(st, !st.visExpanded))
+    }
+
+    let actCloseVisualization = () => {
+        setState(st => setVisExpanded(st, false))
+    }
+
     let actExpandProof = expanded => {
         setState(st => setInfoExpanded(st, expanded))
     }
@@ -1317,10 +1334,24 @@ let make = React.memoCustomCompareProps( ({
                     if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
-                        <span>
-                            {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
-                                ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
-                        </span>
+                        <Row>
+                            {
+                                rndIconButton(~icon=<MM_Icons.DeleteForever/>, 
+                                    ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()
+                                )
+                            }
+                            {
+                                rndIconButton(~icon=<MM_Icons.VisibilityOff/>, 
+                                    ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None, ()
+                                )
+                            }
+                            {
+                                rndIconButton(
+                                    ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                    ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
+                                )
+                            }
+                        </Row>
                     }
                 }
             </Row>
@@ -1329,8 +1360,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndJstfVisualization = ():option<reElem> => {
         if (
-            visualizationIsOn 
-            && wrkCtx->Belt.Option.isSome
+            wrkCtx->Belt.Option.isSome
             && stmt.proofTreeDto->Belt.Option.isSome
             && stmt.src->Belt.Option.isSome
         ) {
@@ -1351,29 +1381,30 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndInfoBody = ():option<reElem> => {
-        if (stmt.typ == P) {
-            if (state.infoExpanded || stmt.jstfEditMode) {
-                let jstf = if (viewOptions.showJstf) {
-                    None
-                } else {
-                    Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
-                }
-                let jstfVisualization = rndJstfVisualization()
-                if (jstf->Belt_Option.isNone && jstfVisualization->Belt_Option.isNone) {
-                    None
-                } else {
-                    Some(
-                        <Col spacing=0.>
-                            {jstf->Belt_Option.getWithDefault(React.null)}
-                            {jstfVisualization->Belt_Option.getWithDefault(React.null)}
-                        </Col>
-                    )
-                }
+        if (stmt.typ != P) {
+            None
+        } else {
+            let jstf = if (!viewOptions.showJstf && (state.infoExpanded || stmt.jstfEditMode)) {
+                Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
             } else {
                 None
             }
-        } else {
-            None
+            let jstfVis = if (state.infoExpanded && (state.visExpanded || viewOptions.showJstf)) {
+                rndJstfVisualization()
+            } else {
+                None
+            }
+
+            if (jstf->Belt_Option.isNone && jstfVis->Belt_Option.isNone) {
+                None
+            } else {
+                Some(
+                    <Col spacing=0.>
+                        {jstf->Belt_Option.getWithDefault(React.null)}
+                        {jstfVis->Belt_Option.getWithDefault(React.null)}
+                    </Col>
+                )
+            }
         }
     }
 

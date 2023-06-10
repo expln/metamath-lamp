@@ -3,6 +3,7 @@ open Expln_React_common
 module Add = { @module("@mui/icons-material/Add") @react.component external make: () => React.element = "default" }
 module ArrowDownward = { @module("@mui/icons-material/ArrowDownward") @react.component external make: () => React.element = "default" }
 module ArrowUpward = { @module("@mui/icons-material/ArrowUpward") @react.component external make: () => React.element = "default" }
+module AccountTree = { @module("@mui/icons-material/AccountTree") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module CancelOutlined = { @module("@mui/icons-material/CancelOutlined") @react.component external make: () => React.element = "default" }
 module ControlPointDuplicate = { @module("@mui/icons-material/ControlPointDuplicate") @react.component external make: () => React.element = "default" }
 module ContentCopy = { @module("@mui/icons-material/ContentCopy") @react.component external make: () => React.element = "default" }
@@ -24,6 +25,7 @@ module Search = { @module("@mui/icons-material/Search") @react.component externa
 module Settings = { @module("@mui/icons-material/Settings") @react.component external make: () => React.element = "default" }
 module Sync = { @module("@mui/icons-material/Sync") @react.component external make: () => React.element = "default" }
 module SwapVert = { @module("@mui/icons-material/SwapVert") @react.component external make: () => React.element = "default" }
+module VisibilityOff = { @module("@mui/icons-material/VisibilityOff") @react.component external make: () => React.element = "default" }
 module TextRotationNone = { @module("@mui/icons-material/TextRotationNone") @react.component external make: () => React.element = "default" }
 module ZoomInMap = { @module("@mui/icons-material/ZoomInMap") @react.component external make: () => React.element = "default" }
 module ZoomOutMap = { @module("@mui/icons-material/ZoomOutMap") @react.component external make: () => React.element = "default" }
