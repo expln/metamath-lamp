@@ -88,9 +88,6 @@ let make = (
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
-    let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool(
-        ~key="editor-visualization", ~default=false, ~tempMode
-    )
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true, ~tempMode
     )
@@ -1040,19 +1037,19 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actOpenViewOptionsDialog()
-                            }}
-                        >
-                            {React.string("View options")}
-                        </MenuItem>
-                        <MenuItem
-                            onClick={() => {
-                                actCloseMainMenu()
                                 openCtxSelector.current->Js.Nullable.toOption
                                     ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
                             }}
                         >
                             {React.string("Show context")}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenViewOptionsDialog()
+                            }}
+                        >
+                            {React.string("View options")}
                         </MenuItem>
                         <MenuItem 
                             onClick={() => {
@@ -1077,13 +1074,6 @@ let make = (
                             }}
                         >
                             {"Import from JSON ..."->React.string}
-                        </MenuItem>
-                        <MenuItem
-                            onClick={() => {
-                                setVisualizationIsOn(prev => !prev)
-                            }}
-                        >
-                            {React.string(if (visualizationIsOn) {"Visualization is On"} else {"Visualization is Off"})}
                         </MenuItem>
                     </Menu>
                 }
@@ -1200,12 +1190,12 @@ let make = (
             typeColors=state.typeColors
             preCtxColors=state.preCtxColors
             wrkCtxColors=state.wrkCtxColors
-            visualizationIsOn
             viewOptions
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs
             defaultStmtType=state.settings.defaultStmtType
+            showVisByDefault=state.settings.showVisByDefault
 
             onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
             onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}

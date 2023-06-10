@@ -31,6 +31,7 @@ let rndIconButton = (
 type state = {
     newText: string,
     infoExpanded: bool,
+    visExpanded: bool,
 }
 
 type viewOptions = {
@@ -46,7 +47,8 @@ type viewOptions = {
 let makeInitialState = () => {
     {
         newText: "",
-        infoExpanded: false
+        infoExpanded: false,
+        visExpanded: false,
     }
 }
 
@@ -61,6 +63,13 @@ let setInfoExpanded = (st,infoExpanded):state => {
     {
         ...st,
         infoExpanded
+    }
+}
+
+let setVisExpanded = (st,visExpanded):state => {
+    {
+        ...st,
+        visExpanded
     }
 }
 
@@ -554,8 +563,8 @@ type props = {
     longClickEnabled:bool,
     longClickDelayMs:int,
     defaultStmtType:string,
+    showVisByDefault:bool,
 
-    visualizationIsOn:bool,
     viewOptions:viewOptions,
 
     stmt:userStmt, 
@@ -587,7 +596,6 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
 
-    && a.visualizationIsOn == b.visualizationIsOn
     && a.viewOptions.showCheckbox == b.viewOptions.showCheckbox
     && a.viewOptions.showLabel == b.viewOptions.showLabel
     && a.viewOptions.showType == b.viewOptions.showType
@@ -641,12 +649,12 @@ let make = React.memoCustomCompareProps( ({
     typeColors,
     preCtxColors,
     wrkCtxColors,
-    visualizationIsOn,
     viewOptions,
     editStmtsByLeftClick,
     longClickEnabled,
     longClickDelayMs,
     defaultStmtType,
+    showVisByDefault,
     addStmtAbove,
     addStmtBelow,
 }:props) =>  {
@@ -771,7 +779,18 @@ let make = React.memoCustomCompareProps( ({
     }, [syntaxTreeWasRequested])
 
     let actToggleInfoExpanded = () => {
-        setState(st => setInfoExpanded(st, !st.infoExpanded))
+        setState(st => {
+            let st = if (st.infoExpanded) {
+                setVisExpanded(st, false)
+            } else {
+                setVisExpanded(st, showVisByDefault)
+            }
+            setInfoExpanded(st, !st.infoExpanded)
+        })
+    }
+
+    let actToggleVisExpanded = () => {
+        setState(st => setVisExpanded(st, !st.visExpanded))
     }
 
     let actExpandProof = expanded => {
@@ -1258,6 +1277,10 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    let visualizationIsAvailable = wrkCtx->Belt.Option.isSome
+        && stmt.proofTreeDto->Belt.Option.isSome
+        && stmt.src->Belt.Option.isSome
+
     let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string):reElem => {
         if (stmt.jstfEditMode) {
             <Col 
@@ -1317,10 +1340,28 @@ let make = React.memoCustomCompareProps( ({
                     if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
-                        <span>
-                            {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
-                                ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
-                        </span>
+                        <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
+                            {
+                                rndIconButton(~icon=<MM_Icons.DeleteForever/>, 
+                                    ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()
+                                )
+                            }
+                            {
+                                rndIconButton(~icon=<MM_Icons.VisibilityOff/>, 
+                                    ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None, ()
+                                )
+                            }
+                            {
+                                if (visualizationIsAvailable) {
+                                    rndIconButton(
+                                        ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                        ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
+                                    )
+                                } else {
+                                    React.null
+                                }
+                            }
+                        </Row>
                     }
                 }
             </Row>
@@ -1328,12 +1369,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndJstfVisualization = ():option<reElem> => {
-        if (
-            visualizationIsOn 
-            && wrkCtx->Belt.Option.isSome
-            && stmt.proofTreeDto->Belt.Option.isSome
-            && stmt.src->Belt.Option.isSome
-        ) {
+        if (visualizationIsAvailable) {
             Some(
                 <VisualizedJstf
                     wrkCtx={wrkCtx->Belt_Option.getExn}
@@ -1351,29 +1387,30 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndInfoBody = ():option<reElem> => {
-        if (stmt.typ == P) {
-            if (state.infoExpanded || stmt.jstfEditMode) {
-                let jstf = if (viewOptions.showJstf) {
-                    None
-                } else {
-                    Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
-                }
-                let jstfVisualization = rndJstfVisualization()
-                if (jstf->Belt_Option.isNone && jstfVisualization->Belt_Option.isNone) {
-                    None
-                } else {
-                    Some(
-                        <Col spacing=0.>
-                            {jstf->Belt_Option.getWithDefault(React.null)}
-                            {jstfVisualization->Belt_Option.getWithDefault(React.null)}
-                        </Col>
-                    )
-                }
+        if (stmt.typ != P) {
+            None
+        } else {
+            let jstf = if (!viewOptions.showJstf && (state.infoExpanded || stmt.jstfEditMode)) {
+                Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
             } else {
                 None
             }
-        } else {
-            None
+            let jstfVis = if (state.infoExpanded && (state.visExpanded || viewOptions.showJstf)) {
+                rndJstfVisualization()
+            } else {
+                None
+            }
+
+            if (jstf->Belt_Option.isNone && jstfVis->Belt_Option.isNone) {
+                None
+            } else {
+                Some(
+                    <Col spacing=0.>
+                        {jstf->Belt_Option.getWithDefault(React.null)}
+                        {jstfVis->Belt_Option.getWithDefault(React.null)}
+                    </Col>
+                )
+            }
         }
     }
 

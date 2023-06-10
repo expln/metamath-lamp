@@ -34,6 +34,7 @@ type settingsState = {
     longClickDelayMsStr:string,
 
     hideContextSelector:bool,
+    showVisByDefault:bool,
 }
 
 let allColors = [
@@ -109,6 +110,7 @@ let createDefaultSettings = () => {
         longClickEnabled:true,
         longClickDelayMsStr:longClickDelayMsDefault->Belt.Int.toString,
         hideContextSelector:false,
+        showVisByDefault:false,
     }
 }
 
@@ -314,6 +316,7 @@ let stateToSettings = (st:settingsState):settings => {
         longClickDelayMs: 
             st.longClickDelayMsStr->Belt_Int.fromString->Belt.Option.getWithDefault(longClickDelayMsDefault),
         hideContextSelector: st.hideContextSelector,
+        showVisByDefault: st.showVisByDefault,
     }
 }
 
@@ -348,6 +351,7 @@ let settingsToState = (ls:settings):settingsState => {
         longClickEnabled: ls.longClickEnabled,
         longClickDelayMsStr: ls.longClickDelayMs->Belt.Int.toString,
         hideContextSelector: ls.hideContextSelector,
+        showVisByDefault: ls.showVisByDefault,
     }
     validateAndCorrectState(res)
 }
@@ -413,6 +417,10 @@ let readStateFromLocStor = ():settingsState => {
                         ~default=()=>defaultSettings.hideContextSelector, 
                         () 
                     ),
+                    showVisByDefault: d->bool( "showVisByDefault", 
+                        ~default=()=>defaultSettings.showVisByDefault, 
+                        () 
+                    ),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -462,6 +470,7 @@ let eqState = (st1, st2) => {
         && st1.longClickEnabled == st2.longClickEnabled
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector
+        && st1.showVisByDefault == st2.showVisByDefault
 }
 
 let updateParens = (st,parens) => {
@@ -482,6 +491,7 @@ let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
+let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -642,6 +652,10 @@ let make = (
 
     let actHideContextSelectorChange = hideContextSelector => {
         setState(updateHideContextSelector(_, hideContextSelector))
+    }
+
+    let actShowVisByDefaultChange = showVisByDefault => {
+        setState(updateShowVisByDefault(_, showVisByDefault))
     }
 
     let actStickGoalToBottomChange = stickGoalToBottom => {
@@ -972,6 +986,15 @@ let make = (
                 />
             }
             label="Hide context header"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.showVisByDefault
+                    onChange=evt2bool(actShowVisByDefaultChange)
+                />
+            }
+            label="Show visualizations by default"
         />
         <Divider/>
         <MM_cmp_type_settings
