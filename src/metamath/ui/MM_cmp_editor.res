@@ -1037,19 +1037,19 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actOpenViewOptionsDialog()
-                            }}
-                        >
-                            {React.string("View options")}
-                        </MenuItem>
-                        <MenuItem
-                            onClick={() => {
-                                actCloseMainMenu()
                                 openCtxSelector.current->Js.Nullable.toOption
                                     ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
                             }}
                         >
                             {React.string("Show context")}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenViewOptionsDialog()
+                            }}
+                        >
+                            {React.string("View options")}
                         </MenuItem>
                         <MenuItem 
                             onClick={() => {
@@ -1195,6 +1195,7 @@ let make = (
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs
             defaultStmtType=state.settings.defaultStmtType
+            showVisByDefault=state.settings.showVisByDefault
 
             onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
             onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}

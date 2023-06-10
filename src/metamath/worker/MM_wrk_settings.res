@@ -25,6 +25,7 @@ type settings = {
     longClickEnabled:bool,
     longClickDelayMs:int,
     hideContextSelector:bool,
+    showVisByDefault:bool,
 }
 
 let markUrlAsTrusted = (settings:settings, url:string):settings => {

@@ -563,6 +563,7 @@ type props = {
     longClickEnabled:bool,
     longClickDelayMs:int,
     defaultStmtType:string,
+    showVisByDefault:bool,
 
     viewOptions:viewOptions,
 
@@ -653,6 +654,7 @@ let make = React.memoCustomCompareProps( ({
     longClickEnabled,
     longClickDelayMs,
     defaultStmtType,
+    showVisByDefault,
     addStmtAbove,
     addStmtBelow,
 }:props) =>  {
@@ -777,15 +779,18 @@ let make = React.memoCustomCompareProps( ({
     }, [syntaxTreeWasRequested])
 
     let actToggleInfoExpanded = () => {
-        setState(st => setInfoExpanded(st, !st.infoExpanded))
+        setState(st => {
+            let st = if (st.infoExpanded) {
+                setVisExpanded(st, false)
+            } else {
+                setVisExpanded(st, showVisByDefault)
+            }
+            setInfoExpanded(st, !st.infoExpanded)
+        })
     }
 
     let actToggleVisExpanded = () => {
         setState(st => setVisExpanded(st, !st.visExpanded))
-    }
-
-    let actCloseVisualization = () => {
-        setState(st => setVisExpanded(st, false))
     }
 
     let actExpandProof = expanded => {
