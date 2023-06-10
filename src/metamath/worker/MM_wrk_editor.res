@@ -1635,7 +1635,7 @@ let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserS
 }
 
 let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
-    switch proofNode.proof {
+    let stmt = switch proofNode.proof {
         | None => stmt
         | Some(proofSrc) => {
             switch srcToJstf(wrkCtx, proofTree, proofSrc, exprToUserStmt) {
@@ -1666,6 +1666,7 @@ let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNo
             }
         }
     }
+    {...stmt, proofTreeDto: Some(proofTree)}
 }
 
 let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
