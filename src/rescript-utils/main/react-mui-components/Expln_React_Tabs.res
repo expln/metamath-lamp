@@ -7,5 +7,6 @@ external make: (
     ~value:string=?,
     ~onChange:(ReactEvent.Mouse.t,string)=>unit=?,
     ~variant:variant=?,
+    ~style:reStyle=?,
     ~children: reElem,
 ) => reElem = "default"

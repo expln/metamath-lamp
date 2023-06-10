@@ -4,6 +4,7 @@ type variant = [ #elevation | #outlined ]
 
 @module("@mui/material/Paper") @react.component
 external make: (
+    ~ref:ReactDOM.Ref.t=?,
     ~elevation:int=?,
     ~style: reStyle=?,
     ~variant:variant=?,

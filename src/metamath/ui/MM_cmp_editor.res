@@ -29,10 +29,20 @@ let rndIconButton = (
     ~active:bool, 
     ~ref:option<ReactDOM.domRef>=?,
     ~title:option<string>=?, 
+    ~smallBtns:bool=false,
     ()
 ) => {
     <span ?ref ?title>
-        <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
+        <IconButton 
+            disabled={!active} 
+            onClick={_ => onClick()} 
+            color="primary"
+            style=?{
+                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+            }
+        > 
+            icon 
+        </IconButton>
     </span>
 }
 
@@ -71,12 +81,36 @@ let make = (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
+    ~openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ~showTabs:bool,
+    ~setShowTabs:bool=>unit,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
     let (visualizationIsOn, setVisualizationIsOn) = useStateFromLocalStorageBool(
         ~key="editor-visualization", ~default=false, ~tempMode
+    )
+    let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
+        ~key="editor-showCheckbox", ~default=true, ~tempMode
+    )
+    let (showLabel, setShowLabel) = useStateFromLocalStorageBool(
+        ~key="editor-showLabel", ~default=true, ~tempMode
+    )
+    let (showType, setShowType) = useStateFromLocalStorageBool(
+        ~key="editor-showType", ~default=true, ~tempMode
+    )
+    let (showJstf, setShowJstf) = useStateFromLocalStorageBool(
+        ~key="editor-showJstf", ~default=true, ~tempMode
+    )
+    let (inlineMode, setInlineMode) = useStateFromLocalStorageBool(
+        ~key="editor-inlineMode", ~default=false, ~tempMode
+    )
+    let (scrollToolbar, setScrollToolbar) = useStateFromLocalStorageBool(
+        ~key="editor-scrollToolbar", ~default=false, ~tempMode
+    )
+    let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
+        ~key="editor-smallBtns", ~default=false, ~tempMode
     )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
@@ -829,37 +863,36 @@ let make = (
             ~preCtx=preCtxData.ctxV.val, 
             ~stateLocStor=Some(stateLocStor)
         ))
-        reloadCtx.current->Js.Nullable.toOption
-            ->Belt.Option.map(reloadCtx => {
-                reloadCtx(stateLocStor.srcs)->promiseMap(res => {
-                    switch res {
-                        | Ok(_) => ()
-                        | Error(msg) => {
-                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                updateModal(modalRef, modalId, () => {
-                                    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                        <Col spacing=1.>
-                                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                                                { React.string(`Could not realod the context because of the error:`) }
-                                            </span>
-                                            <span style=ReactDOM.Style.make(~color="red", ())>
-                                                { React.string(msg) }
-                                            </span>
-                                            <span>
-                                                { React.string(`This error happened when loading the context:`) }
-                                            </span>
-                                            {rndSrcDtos(stateLocStor.srcs)}
-                                            <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
-                                                {React.string("Ok")} 
-                                            </Button>
-                                        </Col>
-                                    </Paper>
-                                })
-                            })->ignore
-                        }
+        reloadCtx.current->Js.Nullable.toOption ->Belt.Option.forEach(reloadCtx => {
+            reloadCtx(stateLocStor.srcs)->promiseMap(res => {
+                switch res {
+                    | Ok(_) => ()
+                    | Error(msg) => {
+                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                                    <Col spacing=1.>
+                                        <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                                            { React.string(`Could not realod the context because of the error:`) }
+                                        </span>
+                                        <span style=ReactDOM.Style.make(~color="red", ())>
+                                            { React.string(msg) }
+                                        </span>
+                                        <span>
+                                            { React.string(`This error happened when loading the context:`) }
+                                        </span>
+                                        {rndSrcDtos(stateLocStor.srcs)}
+                                        <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
+                                            {React.string("Ok")} 
+                                        </Button>
+                                    </Col>
+                                </Paper>
+                            })
+                        })->ignore
                     }
-                })
+                }
             })->ignore
+        })
     }
 
     let actImportFromJson = (jsonStr:string):bool => {
@@ -962,9 +995,26 @@ let make = (
         }
     }
 
+    let actOpenViewOptionsDialog = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_editor_view_options
+                    onClose={()=>closeModal(modalRef, modalId)}
+                    showCheckbox onShowCheckboxChange = {b => setShowCheckbox(_ => b) }
+                    showLabel onShowLabelChange = {b => setShowLabel(_ => b) }
+                    showType onShowTypeChange = {b => setShowType(_ => b) }
+                    showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
+                    inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
+                    scrollToolbar onScrollToolbarChange = {b => setScrollToolbar(_ => b) }
+                    smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
+                />
+            })
+        })->ignore
+    }
+
     let rndError = (msgOpt,color) => {
         switch msgOpt {
-            | None => React.null
+            | None => <></>
             | Some(msg) => <pre style=ReactDOM.Style.make(~color, ())>{React.string(msg)}</pre>
         }
     }
@@ -979,6 +1029,31 @@ let make = (
                         anchorEl=mainMenuButtonRef
                         onClose=actCloseMainMenu
                     >
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                setShowTabs(!showTabs)
+                            }}
+                        >
+                            {React.string(if (showTabs) {"Hide tabs"} else {"Show tabs"})}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenViewOptionsDialog()
+                            }}
+                        >
+                            {React.string("View options")}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                openCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
+                            }}
+                        >
+                            {React.string("Show context")}
+                        </MenuItem>
                         <MenuItem 
                             onClick={() => {
                                 actCloseMainMenu()
@@ -1021,6 +1096,7 @@ let make = (
     let rndButtons = () => {
         <Paper>
             <Row
+                spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
                         | 10 => Some(Js.Json.string("auto"))
@@ -1033,101 +1109,56 @@ let make = (
                     indeterminate={ mainCheckboxState->Belt_Option.isNone }
                     checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
                     onChange={_ => actToggleMainCheckbox()}
+                    style=?{
+                    if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+                }
                 />
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected statements down", ())}
+                    ~title="Move selected statements down", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected statements up", ())}
+                    ~title="Move selected statements up", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                    ~title="Add new statement (and place before selected statements if any)", ())}
+                    ~title="Add new statement (and place before selected statements if any)", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
-                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ()
+                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ~smallBtns, ()
                 )}
                 {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
-                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", ())}
+                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", 
+                    ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts,
-                    ~active=oneStatementIsChecked, ~title="Merge two similar statements", ())}
+                    ~active=oneStatementIsChecked, ~title="Merge two similar statements", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
-                        ~title="Add new statements from existing assertions (and place before selected statements if any)", ()
+                        ~title="Add new statements from existing assertions (and place before selected statements if any)", 
+                        ~smallBtns, ()
                     ) 
                 }
                 { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
                     ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
-                    ~title="Apply a substitution to all statements", () ) }
+                    ~title="Apply a substitution to all statements", ~smallBtns,() ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
                                     && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 
-                        ~title="Unify all statements or unify selected provable bottom-up", () )
+                        ~title="Unify all statements or unify selected provable bottom-up", ~smallBtns, () )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
                         ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
-                        ~title="Additional actions", () )
+                        ~title="Additional actions", ~smallBtns, () )
                 }
             </Row>
         </Paper>
     }
 
-    let rndStmt = (stmt:userStmt) => {
-        <tr key=stmt.id >
-            <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                <Checkbox
-                    style=ReactDOM.Style.make(~margin="-7px 0px", ())
-                    disabled=editIsActive
-                    checked={state->isStmtChecked(stmt.id)}
-                    onChange={_ => actToggleStmtChecked(stmt.id)}
-                />
-            </td>
-            <td>
-                <MM_cmp_user_stmt
-                    modalRef
-                    settingsVer=state.settingsV
-                    preCtxVer=state.preCtxV
-                    varsText=state.varsText
-                    wrkCtx=state.wrkCtx
-                    frms=state.frms
-                    parenCnt=state.parenCnt
-                    syntaxTypes=state.syntaxTypes
-                    parensMap=state.parensMap
-                    stmt
-                    typeColors=state.typeColors
-                    preCtxColors=state.preCtxColors
-                    wrkCtxColors=state.wrkCtxColors
-                    visualizationIsOn
-                    editStmtsByLeftClick=state.settings.editStmtsByLeftClick
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
-                    defaultStmtType=state.settings.defaultStmtType
-
-                    onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
-                    onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
-                    onLabelEditCancel={newLabel => actCancelEditLabel(stmt.id,newLabel)}
-
-                    onTypEditRequested={() => actBeginEdit(setTypEditMode,stmt.id)}
-                    onTypEditDone={(newTyp,newIsGoal) => actCompleteEdit(
-                        completeTypEditMode(_,stmt.id,newTyp,newIsGoal)
-                    )}
-
-                    onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
-                    onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
-                    onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
-                    onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
-                    
-                    onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
-                    onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}
-                    onJstfEditCancel={newJstf => actCancelEditJstf(stmt.id,newJstf)}
-
-                    onGenerateProof={()=>actExportProof(stmt.id)}
-                    onDebug={()=>actDebugUnifyAll(stmt.id)}
-
-                    addStmtAbove=actAddStmtAbove(stmt.id)
-                    addStmtBelow=actAddStmtBelow(stmt.id)
-                />
+    let rndErrors = (stmt:userStmt):reElem => {
+        if (stmt.stmtErr->Belt_Option.isSome 
+            || stmt.syntaxErr->Belt_Option.isSome 
+            || stmt.unifErr->Belt_Option.isSome) {
+            <Col style=ReactDOM.Style.make(~marginLeft="10px", ())>
                 {rndError(stmt.stmtErr,"red")}
                 {
                     rndError(
@@ -1142,12 +1173,79 @@ let make = (
                     )
                 }
                 {rndError(stmt.unifErr,"darkgrey")}
-            </td>
-        </tr>
+            </Col>
+        } else {
+            <></>
+        }
+    }
+
+    let viewOptions = { 
+        MM_cmp_user_stmt.showCheckbox:showCheckbox, 
+        showLabel, showType, showJstf, inlineMode, 
+        scrollToolbar, smallBtns, 
+    }
+
+    let rndStmt = (stmt:userStmt):reElem => {
+        <MM_cmp_user_stmt
+            modalRef
+            settingsVer=state.settingsV
+            preCtxVer=state.preCtxV
+            varsText=state.varsText
+            wrkCtx=state.wrkCtx
+            frms=state.frms
+            parenCnt=state.parenCnt
+            syntaxTypes=state.syntaxTypes
+            parensMap=state.parensMap
+            stmt
+            typeColors=state.typeColors
+            preCtxColors=state.preCtxColors
+            wrkCtxColors=state.wrkCtxColors
+            visualizationIsOn
+            viewOptions
+            editStmtsByLeftClick=state.settings.editStmtsByLeftClick
+            longClickEnabled=state.settings.longClickEnabled
+            longClickDelayMs=state.settings.longClickDelayMs
+            defaultStmtType=state.settings.defaultStmtType
+
+            onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
+            onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
+            onLabelEditCancel={newLabel => actCancelEditLabel(stmt.id,newLabel)}
+
+            onTypEditRequested={() => actBeginEdit(setTypEditMode,stmt.id)}
+            onTypEditDone={(newTyp,newIsGoal) => actCompleteEdit(
+                completeTypEditMode(_,stmt.id,newTyp,newIsGoal)
+            )}
+
+            onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
+            onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
+            onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
+            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
+            
+            onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
+            onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}
+            onJstfEditCancel={newJstf => actCancelEditJstf(stmt.id,newJstf)}
+
+            checkboxDisabled=editIsActive
+            checkboxChecked={state->isStmtChecked(stmt.id)}
+            checkboxOnChange={_ => actToggleStmtChecked(stmt.id)}
+
+            onGenerateProof={()=>actExportProof(stmt.id)}
+            onDebug={()=>actDebugUnifyAll(stmt.id)}
+
+            addStmtAbove=actAddStmtAbove(stmt.id)
+            addStmtBelow=actAddStmtBelow(stmt.id)
+        />
+    }
+
+    let rndStmtAndErrors = (stmt:userStmt) => {
+        <Col key=stmt.id spacing=0.>
+            {rndStmt(stmt)}
+            {rndErrors(stmt)}
+        </Col>
     }
 
     let rndDescr = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="12px", ())>
             <span onClick={_=>actBeginEdit0(setDescrEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Description")}
             </span>
@@ -1179,7 +1277,7 @@ let make = (
     }
 
     let rndVars = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="3px", ())>
             <span onClick={_=>actBeginEdit0(setVarsEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Variables")}
             </span>
@@ -1197,7 +1295,7 @@ let make = (
     }
 
     let rndDisj = () => {
-        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ~marginTop="7px", ())>
+        <Row alignItems=#"flex-start" spacing=1. style=ReactDOM.Style.make(~marginLeft="7px", ())>
             <span onClick={_=>actBeginEdit0(setDisjEditMode)} style=ReactDOM.Style.make(~cursor="pointer", ())>
                 {React.string("Disjoints")}
             </span>
@@ -1215,18 +1313,16 @@ let make = (
     }
 
     let rndStmts = () => {
-        <table>
-            <tbody>
-                { state.stmts->Js_array2.map(rndStmt)->React.array }
-            </tbody>
-        </table>
+        <Col spacing=0.>
+            { state.stmts->Js_array2.map(rndStmtAndErrors)->React.array }
+        </Col>
     }
 
     <Expln_React_ContentWithStickyHeader
         top
         header={rndButtons()}
         content={_ => {
-            <Col>
+            <Col spacing=0. >
                 {rndMainMenu()}
                 {rndDescr()}
                 {rndVars()}

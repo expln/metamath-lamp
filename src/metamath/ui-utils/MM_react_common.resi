@@ -18,6 +18,7 @@ let kbrdHnd: (
 ) => unit
 
 let copyToClipboard: string => unit
+let getAvailWidth: () => int
 
 type mouseButton = Left | Middle | Right
 type clickCallback

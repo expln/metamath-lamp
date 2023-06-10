@@ -606,7 +606,7 @@ let make = React.memoCustomCompareProps(({
             }
         }
         | Some(state) => {
-            <Col spacing=3. style=ReactDOM.Style.make(~padding="0px 10px", ())>
+            <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
                 {rndLabel(state)}
                 {rndDescr(state)}
                 {rndSummary(state)}

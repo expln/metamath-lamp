@@ -33,6 +33,7 @@ type settingsState = {
     longClickEnabled:bool,
     longClickDelayMsStr:string,
 
+    hideContextSelector:bool,
 }
 
 let allColors = [
@@ -107,6 +108,7 @@ let createDefaultSettings = () => {
         ],
         longClickEnabled:true,
         longClickDelayMsStr:longClickDelayMsDefault->Belt.Int.toString,
+        hideContextSelector:false,
     }
 }
 
@@ -311,6 +313,7 @@ let stateToSettings = (st:settingsState):settings => {
         longClickEnabled: st.longClickEnabled,
         longClickDelayMs: 
             st.longClickDelayMsStr->Belt_Int.fromString->Belt.Option.getWithDefault(longClickDelayMsDefault),
+        hideContextSelector: st.hideContextSelector,
     }
 }
 
@@ -344,6 +347,7 @@ let settingsToState = (ls:settings):settingsState => {
         }),
         longClickEnabled: ls.longClickEnabled,
         longClickDelayMsStr: ls.longClickDelayMs->Belt.Int.toString,
+        hideContextSelector: ls.hideContextSelector,
     }
     validateAndCorrectState(res)
 }
@@ -405,6 +409,10 @@ let readStateFromLocStor = ():settingsState => {
                         ~validator = validateLongClickDelayMs,
                         () 
                     )->Belt_Int.toString,
+                    hideContextSelector: d->bool( "hideContextSelector", 
+                        ~default=()=>defaultSettings.hideContextSelector, 
+                        () 
+                    ),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -453,6 +461,7 @@ let eqState = (st1, st2) => {
         && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings[i]))
         && st1.longClickEnabled == st2.longClickEnabled
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
+        && st1.hideContextSelector == st2.hideContextSelector
 }
 
 let updateParens = (st,parens) => {
@@ -472,6 +481,7 @@ let updateDefaultStmtLabel = (st, defaultStmtLabel) => {...st, defaultStmtLabel}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
+let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -628,6 +638,10 @@ let make = (
 
     let actCheckSyntaxChange = checkSyntax => {
         setState(updateCheckSyntax(_, checkSyntax))
+    }
+
+    let actHideContextSelectorChange = hideContextSelector => {
+        setState(updateHideContextSelector(_, hideContextSelector))
     }
 
     let actStickGoalToBottomChange = stickGoalToBottom => {
@@ -950,6 +964,15 @@ let make = (
             longClickEnabled=state.longClickEnabled
         />
         {rndLongClickSettings()}
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.hideContextSelector
+                    onChange=evt2bool(actHideContextSelectorChange)
+                />
+            }
+            label="Hide context header"
+        />
         <Divider/>
         <MM_cmp_type_settings
             typeSettings=state.typeSettings

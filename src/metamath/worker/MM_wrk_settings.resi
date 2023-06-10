@@ -24,6 +24,7 @@ type settings = {
     webSrcSettings: array<webSrcSettings>,
     longClickEnabled:bool,
     longClickDelayMs:int,
+    hideContextSelector:bool,
 }
 
 let markUrlAsTrusted: (settings, string) => settings

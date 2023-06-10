@@ -17,6 +17,16 @@ let rndProofStatus: (
     ()
 ) => React.element
 
+type viewOptions = {
+    showCheckbox:bool,
+    showLabel:bool,
+    showType:bool,
+    showJstf:bool,
+    inlineMode:bool,
+    scrollToolbar:bool,
+    smallBtns:bool,
+}
+
 type props = {
     modalRef:modalRef,
 
@@ -37,6 +47,7 @@ type props = {
     defaultStmtType:string,
 
     visualizationIsOn:bool,
+    viewOptions:viewOptions,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 
@@ -51,6 +62,10 @@ type props = {
     onJstfEditRequested:unit=>unit, 
     onJstfEditDone:string=>unit, 
     onJstfEditCancel:string=>unit,
+
+    checkboxDisabled:bool,
+    checkboxChecked:bool,
+    checkboxOnChange:bool=>unit,
 
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,

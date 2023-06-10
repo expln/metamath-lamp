@@ -6,5 +6,6 @@ type size = [#small | #medium]
 external make: (
     ~disabled:bool=?,
     ~size:size=?,
+    ~style:reStyle=?,
     ~children:reElem=?
 ) => reElem = "default"

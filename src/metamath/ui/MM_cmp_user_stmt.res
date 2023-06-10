@@ -33,6 +33,16 @@ type state = {
     infoExpanded: bool,
 }
 
+type viewOptions = {
+    showCheckbox:bool,
+    showLabel:bool,
+    showType:bool,
+    showJstf:bool,
+    inlineMode:bool,
+    scrollToolbar:bool,
+    smallBtns:bool,
+}
+
 let makeInitialState = () => {
     {
         newText: "",
@@ -369,6 +379,10 @@ let rndContText = (
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
+let stmtPartMarginLeft = "10px"
+let stmtPartMarginTopInt = 5
+let stmtPartMarginTop = stmtPartMarginTopInt->Belt.Int.toString ++ "px"
+
 let rndProofStatus = (
     ~proofStatus:option<proofStatus>,
     ~readyTooltip:option<string>=?,
@@ -381,7 +395,11 @@ let rndProofStatus = (
     ()
 ):React.element => {
     let commonStyle = ReactDOM.Style.make(
-        ~fontWeight="bold", ~width="13px", ~display="inline-block",
+        ~fontWeight="bold", 
+        ~width="13px", 
+        ~display="inline-block",
+        ~marginLeft=stmtPartMarginLeft, 
+        ~marginTop=stmtPartMarginTop, 
         ()
     )
     switch proofStatus {
@@ -538,6 +556,7 @@ type props = {
     defaultStmtType:string,
 
     visualizationIsOn:bool,
+    viewOptions:viewOptions,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 
@@ -553,6 +572,10 @@ type props = {
     onJstfEditDone:string=>unit, 
     onJstfEditCancel:string=>unit,
 
+    checkboxDisabled:bool,
+    checkboxChecked:bool,
+    checkboxOnChange:bool=>unit,
+
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
     addStmtAbove:string=>unit,
@@ -563,7 +586,15 @@ let propsAreSame = (a:props,b:props):bool => {
     a.settingsVer == b.settingsVer
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
+
     && a.visualizationIsOn == b.visualizationIsOn
+    && a.viewOptions.showCheckbox == b.viewOptions.showCheckbox
+    && a.viewOptions.showLabel == b.viewOptions.showLabel
+    && a.viewOptions.showType == b.viewOptions.showType
+    && a.viewOptions.showJstf == b.viewOptions.showJstf
+    && a.viewOptions.inlineMode == b.viewOptions.inlineMode
+    && a.viewOptions.scrollToolbar == b.viewOptions.scrollToolbar
+    && a.viewOptions.smallBtns == b.viewOptions.smallBtns
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
@@ -573,6 +604,10 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.stmt.contEditMode == b.stmt.contEditMode
     && a.stmt.jstfText == b.stmt.jstfText
     && a.stmt.jstfEditMode == b.stmt.jstfEditMode
+
+    && a.checkboxDisabled == b.checkboxDisabled
+    && a.checkboxChecked == b.checkboxChecked
+
 
     && a.stmt.src == b.stmt.src
     && a.stmt.proofStatus === b.stmt.proofStatus
@@ -600,10 +635,14 @@ let make = React.memoCustomCompareProps( ({
     onJstfEditCancel,
     onGenerateProof,
     onDebug,
+    checkboxDisabled,
+    checkboxChecked,
+    checkboxOnChange,
     typeColors,
     preCtxColors,
     wrkCtxColors,
     visualizationIsOn,
+    viewOptions,
     editStmtsByLeftClick,
     longClickEnabled,
     longClickDelayMs,
@@ -613,6 +652,7 @@ let make = React.memoCustomCompareProps( ({
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
+    let jstfRef = React.useRef(Js.Nullable.null)
     let stmtTextFieldRef = React.useRef(Js.Nullable.null)
 
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
@@ -932,47 +972,79 @@ let make = React.memoCustomCompareProps( ({
 
     let rndLabel = () => {
         if (stmt.labelEditMode) {
-            <Row>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <TextField
                     size=#small
-                    style=ReactDOM.Style.make(~width="100px", ())
+                    style=ReactDOM.Style.make(~width="150px", ())
                     autoFocus=true
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
                     onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
                     title="Enter to save, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                    ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
-                    ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
-            </Row>
+                <Row>
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                        ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
+                        ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                </Row>
+            </Col>
         } else {
-            <span 
-                ref=ReactDOM.Ref.domRef(labelRef)
-                onClick=clickHnd(~act=onLabelEditRequested, ()) 
-                title="<left-click> to change"
-                style=ReactDOM.Style.make(~overflowWrap="normal", ~whiteSpace="nowrap", ())
+            let chgLabelShortcutName = if (longClickEnabled) {"Long click (Alt + Left-click)"} else {"Alt + Left-click"}
+            let showJstfShortcutName = if (longClickEnabled) {"Short click (Left-click)"} else {"Left-click"}
+            <LongClickSpan
+                onClick=clickHnd2(
+                    clickClbkMake(~alt=true, ~act=onLabelEditRequested, ()),
+                    clickClbkMake(~act=actToggleInfoExpanded, ()),
+                )
+                longClickEnabled
+                longClickDelayMs
+                onShortClick = {_ => actToggleInfoExpanded()}
+                onLongClick=onLabelEditRequested
+                style=ReactDOM.Style.make(
+                    ~cursor="pointer", 
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ~display="inline-block",
+                    ()
+                )
+                title={
+                    chgLabelShortcutName ++ " to change. " 
+                        ++ "Alt is sometimes labelled Opt. " 
+                        ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                }
             >
                 {React.string(stmt.label)}
-            </span>
+            </LongClickSpan>
         }
     }
 
     let rndSelectionButtons = () => {
-        <Row alignItems=#center>
+        let style = if (viewOptions.smallBtns) {
+            Some(ReactDOM.Style.make(~padding="0px", ~minWidth="30px", ~minHeight="26px", ()))
+        } else {
+            None
+        }
+        <Row alignItems=#center spacing=0. style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
-                <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
-                <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
-                <Button title="Add new statement above" onClick={_=>actAddStmtAbove()}> 
+                <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
+                <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Add new statement above" onClick={_=>actAddStmtAbove()} ?style> 
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
                 </Button>
-                <Button title="Add new statement below" onClick={_=>actAddStmtBelow()}> 
+                <Button title="Add new statement below" onClick={_=>actAddStmtBelow()} ?style> 
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </Button>
-                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
-                <Button title="Edit" onClick={_=>actEditSelection()}> <MM_Icons.Edit/> </Button>
-                <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
+                <Button title="Unselect" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {
                 if (copiedToClipboard->Belt.Option.isSome) {
@@ -982,19 +1054,40 @@ let make = React.memoCustomCompareProps( ({
         </Row>
     }
 
-    let rndCont = () => {
+    let rndCont = ():reElem => {
         if (stmt.contEditMode) {
             let windowWidth = window["innerWidth"]
-            let labelWidth = switch labelRef.current->Js.Nullable.toOption {
-                | None => 0
-                | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"]
+            let textFieldWidth = if (viewOptions.inlineMode) {
+                windowWidth - 40
+            } else {
+                let checkBoxWidth = if (!viewOptions.showCheckbox) {0} else { 48 } 
+                let labelWidth = if (!viewOptions.showLabel) {0} else { switch labelRef.current->Js.Nullable.toOption {
+                    | None => 0
+                    | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
+                } } 
+                let typWidth = if (!viewOptions.showType) {0} else { 28 } 
+                let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Js.Nullable.toOption {
+                    | None => 0
+                    | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
+                } }
+                Js.Math.max_int(
+                    200,
+                    windowWidth - checkBoxWidth - labelWidth - typWidth - jstfWidth - 40
+                )
             }
-            <Row>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <TextField
                     inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
                     style=ReactDOM.Style.make(
-                        ~width = (windowWidth - 215 - labelWidth)->Belt_Int.toString ++ "px", 
+                        ~width = (textFieldWidth)->Belt_Int.toString ++ "px", 
                         ()
                     )
                     inputProps={
@@ -1011,11 +1104,13 @@ let make = React.memoCustomCompareProps( ({
                     onKeyDown=kbrdHnd(~onEnter=actContEditDone, ~onEsc=actContEditCancel, ())
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                    ~onClick=actContEditDone, ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
-                    ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
-            </Row>
+                <Row>
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                        ~onClick=actContEditDone, ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
+                        ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                </Row>
+            </Col>
         } else {
             let textIsSelected = switch stmt.cont {
                 | Text(_) => false
@@ -1096,7 +1191,14 @@ let make = React.memoCustomCompareProps( ({
                 )->ignore
             }
 
-            <Col>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 {elems->React.array}
             </Col>
         }
@@ -1104,7 +1206,14 @@ let make = React.memoCustomCompareProps( ({
 
     let rndTyp = () => {
         if (stmt.typEditMode) {
-            <FormControl size=#small >
+            <FormControl 
+                size=#small 
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <Select
                     value=""
                     onChange=evt2str(actTypEditDone)
@@ -1130,7 +1239,14 @@ let make = React.memoCustomCompareProps( ({
                 longClickDelayMs
                 onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onTypEditRequested
-                style=ReactDOM.Style.make(~cursor="pointer", ~fontWeight="bold", ())
+                style=ReactDOM.Style.make(
+                    ~cursor="pointer", 
+                    ~fontWeight="bold", 
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ~display="inline-block",
+                    ()
+                )
                 title={
                     chgTypShortcutName ++ " to change statement type between P (provable), G (goal) and H (hypothesis). " 
                         ++ "Alt is sometimes labelled Opt. " 
@@ -1142,13 +1258,20 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndJstf = () => {
+    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string):reElem => {
         if (stmt.jstfEditMode) {
-            <Row>
+            <Col 
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop=stmtPartMarginTop, 
+                    ()
+                )
+            >
                 <TextField
                     size=#small
                     label="Justification"
-                    style=ReactDOM.Style.make(~width="600px", ())
+                    style=ReactDOM.Style.make(~width=textFieldWidth, ())
                     autoFocus=true
                     multiline=true
                     value=state.newText
@@ -1156,25 +1279,43 @@ let make = React.memoCustomCompareProps( ({
                     onKeyDown=kbrdHnd(~onEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
                     title="Enter to save, Esc to cancel"
                 />
-                {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
-                    ~title="Save, Enter", ())}
-                {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
-                    ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
-            </Row>
+                <Row>
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
+                        ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
+                        ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                    {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
+                                ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
+                </Row>
+            </Col>
         } else {
             let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
-            let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "3px" }
-            <Row >
-                <Paper 
+            let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "1px" }
+            <Row
+                spacing=0.
+                style=ReactDOM.Style.make(
+                    ~marginLeft=stmtPartMarginLeft, 
+                    ~marginTop={stmtPartMarginTopInt->Belt.Int.toString ++ "px"}, 
+                    ()
+                )
+                alignItems=#center
+            >
+                <Paper
+                    ref=ReactDOM.Ref.domRef(jstfRef) 
                     onClick=clickHnd(~act=onJstfEditRequested, ()) 
-                    style=ReactDOM.Style.make( ~padding, ~marginTop="5px", () )
+                    style=ReactDOM.Style.make( 
+                        ~padding, 
+                        ~overflowWrap="normal", 
+                        ~whiteSpace="nowrap", 
+                        ()
+                    )
                     title="<left-click> to change"
                 >
                     {React.string(jstfText)}
                 </Paper>
                 {
-                    if (jstfText->Js_string2.trim == "") {
-                        React.null
+                    if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
+                        <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
                         <span>
                             {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
@@ -1186,13 +1327,14 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndJstfVisualization = () => {
+    let rndJstfVisualization = ():option<reElem> => {
         if (
             visualizationIsOn 
             && wrkCtx->Belt.Option.isSome
             && stmt.proofTreeDto->Belt.Option.isSome
             && stmt.src->Belt.Option.isSome
         ) {
+            Some(
                 <VisualizedJstf
                     wrkCtx={wrkCtx->Belt_Option.getExn}
                     proofTreeDto={stmt.proofTreeDto->Belt_Option.getExn}
@@ -1202,73 +1344,187 @@ let make = React.memoCustomCompareProps( ({
                     preCtxColors
                     wrkCtxColors
                 />
+            )
         } else {
-            React.null
+            None
         }
     }
 
-    let rndInfoBody = () => {
+    let rndInfoBody = ():option<reElem> => {
         if (stmt.typ == P) {
             if (state.infoExpanded || stmt.jstfEditMode) {
-                <Col>
-                    {rndJstf()}
-                    {rndJstfVisualization()}
-                </Col>
+                let jstf = if (viewOptions.showJstf) {
+                    None
+                } else {
+                    Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
+                }
+                let jstfVisualization = rndJstfVisualization()
+                if (jstf->Belt_Option.isNone && jstfVisualization->Belt_Option.isNone) {
+                    None
+                } else {
+                    Some(
+                        <Col spacing=0.>
+                            {jstf->Belt_Option.getWithDefault(React.null)}
+                            {jstfVisualization->Belt_Option.getWithDefault(React.null)}
+                        </Col>
+                    )
+                }
             } else {
-                React.null
+                None
             }
+        } else {
+            None
+        }
+    }
+
+    let rndContAndInfoBody = () => {
+        switch rndInfoBody() {
+            | None => rndCont()
+            | Some(infoBody) => {
+                <Col spacing=0.>
+                    {rndCont()}
+                    infoBody
+                </Col>
+            }
+        }
+    }
+
+    let rndProofStatusInner = () => {
+        rndProofStatus(
+            ~proofStatus=stmt.proofStatus, 
+            ~readyTooltip="Proof is ready, left-click to generate compressed proof",
+            ~waitingTooltip="Justification for this statement is correct",
+            ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
+            ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
+            ~onReadyIconClicked=onGenerateProof,
+            ~onErrorIconClicked=onDebug,
+            ~onNoJstfIconClicked=onDebug,
+            ()
+        )
+    }
+
+    let rndProofStatusTd = (tdStyle) => {
+        if (stmt.proofStatus->Belt.Option.isSome) {
+            <td style=tdStyle> { rndProofStatusInner() } </td>
         } else {
             React.null
         }
     }
 
-    <table 
-        style=ReactDOM.Style.make(
-            ~margin="-2px", 
-            ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""}, 
-            ()
-        )>
-        <tbody>
-            <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                <td>
-                    {
-                        rndProofStatus(
-                            ~proofStatus=stmt.proofStatus, 
-                            ~readyTooltip="Proof is ready, left-click to generate compressed proof",
-                            ~waitingTooltip="Justification for this statement is correct",
-                            ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
-                            ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
-                            ~onReadyIconClicked=onGenerateProof,
-                            ~onErrorIconClicked=onDebug,
-                            ~onNoJstfIconClicked=onDebug,
-                            ()
-                        )
-                    }
-                </td>
-                <td>
-                    {rndLabel()}
-                </td>
-                <td>
-                    {rndTyp()}
-                </td>
-                <td>
-                    {rndCont()}
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    {React.null}
-                </td>
-                <td>
-                    {React.null}
-                </td>
-                <td>
-                    {React.null}
-                </td>
-                <td>
-                    {rndInfoBody()}
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    let rndProofStatusRow = () => {
+        if (stmt.proofStatus->Belt.Option.isSome) {
+            rndProofStatusInner()
+        } else {
+            <span style=ReactDOM.Style.make(~display="none", ())/>
+        }
+    }
+
+    let rndCheckbox = () => {
+        <Checkbox
+            style=ReactDOM.Style.make(
+                ~marginLeft=stmtPartMarginLeft,
+                ~marginTop=stmtPartMarginTop,
+                ~padding="0px",
+                ()
+            )
+            disabled=checkboxDisabled
+            checked=checkboxChecked
+            onChange=evt2bool(checkboxOnChange)
+        />
+    }
+
+    let rndCheckboxTd = (tdStyle) => {
+        if (viewOptions.showCheckbox) {
+            <td style=tdStyle> {rndCheckbox()} </td>
+        } else {
+            React.null
+        }
+    }
+
+    let rndCheckboxRow = () => {
+        if (viewOptions.showCheckbox) {
+            rndCheckbox()
+        } else {
+            <span style=ReactDOM.Style.make(~display="none", ())/>
+        }
+    }
+
+    let rndLabelTd = (tdStyle) => {
+        if (viewOptions.showLabel) {
+            <td style=tdStyle> {rndLabel()} </td>
+        } else {
+            React.null
+        }
+    }
+
+    let rndLabelRow = () => {
+        if (viewOptions.showLabel) {
+            rndLabel()
+        } else {
+            <span style=ReactDOM.Style.make(~display="none", ())/>
+        }
+    }
+
+    let rndTypTd = (tdStyle) => {
+        if (viewOptions.showType) {
+            <td style=tdStyle> {rndTyp()} </td>
+        } else {
+            React.null
+        }
+    }
+
+    let rndTypRow = () => {
+        if (viewOptions.showType) {
+            rndTyp()
+        } else {
+            <span style=ReactDOM.Style.make(~display="none", ())/>
+        }
+    }
+
+    let rndJstfTd = (tdStyle) => {
+        if (viewOptions.showJstf) {
+            <td style=tdStyle> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")} </td>
+        } else {
+            React.null
+        }
+    }
+
+    let rndJstfRow = () => {
+        if (viewOptions.showJstf) {
+            rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")
+        } else {
+            <span style=ReactDOM.Style.make(~display="none", ())/>
+        }
+    }
+
+    if (viewOptions.inlineMode) {
+        <Row spacing=0. alignItems=#"flex-start">
+            { rndCheckboxRow() }
+            { rndProofStatusRow() }
+            { rndLabelRow() }
+            { rndTypRow() }
+            { rndJstfRow() }
+            { rndContAndInfoBody() }
+        </Row>
+    } else {
+        let tdStyle = ReactDOM.Style.make(~padding="0px", ~borderCollapse="collapse", ())
+        <table 
+            style=ReactDOM.Style.make(
+                ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""},
+                ~padding="0px",
+                ~borderCollapse="collapse",
+                ()
+            )>
+            <tbody>
+                <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                    { rndCheckboxTd(tdStyle) }
+                    { rndProofStatusTd(tdStyle) }
+                    { rndLabelTd(tdStyle) }
+                    { rndTypTd(tdStyle) }
+                    { rndJstfTd(tdStyle) }
+                    <td style=tdStyle> {rndContAndInfoBody()} </td>
+                </tr>
+            </tbody>
+        </table>
+    }
 }, propsAreSame)

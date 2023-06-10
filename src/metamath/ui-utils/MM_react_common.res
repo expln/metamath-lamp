@@ -3,6 +3,11 @@ open Expln_React_Modal
 open Expln_utils_promise
 
 @val external navigator: {..} = "navigator"
+@val external window: {..} = "window"
+
+let getAvailWidth = ():int => {
+    window["screen"]["availWidth"]
+}
 
 let copyToClipboard = (text:string) => {
     navigator["clipboard"]["writeText"](. text)
