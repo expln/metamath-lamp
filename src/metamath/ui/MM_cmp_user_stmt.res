@@ -1032,7 +1032,7 @@ let make = React.memoCustomCompareProps( ({
         } else {
             None
         }
-        <Row alignItems=#center>
+        <Row alignItems=#center spacing=0. style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
@@ -1192,7 +1192,7 @@ let make = React.memoCustomCompareProps( ({
             }
 
             <Col 
-                spacing=0.5
+                spacing=0.
                 style=ReactDOM.Style.make(
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
@@ -1292,9 +1292,10 @@ let make = React.memoCustomCompareProps( ({
             let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
             let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "1px" }
             <Row
+                spacing=0.
                 style=ReactDOM.Style.make(
                     ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop={(stmtPartMarginTopInt-4)->Belt.Int.toString ++ "px"}, 
+                    ~marginTop={stmtPartMarginTopInt->Belt.Int.toString ++ "px"}, 
                     ()
                 )
                 alignItems=#center
@@ -1314,7 +1315,7 @@ let make = React.memoCustomCompareProps( ({
                 </Paper>
                 {
                     if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
-                        <></>
+                        <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
                         <span>
                             {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
@@ -1363,8 +1364,8 @@ let make = React.memoCustomCompareProps( ({
                 } else {
                     Some(
                         <Col spacing=0.>
-                            {jstf->Belt_Option.getWithDefault(<></>)}
-                            {jstfVisualization->Belt_Option.getWithDefault(<></>)}
+                            {jstf->Belt_Option.getWithDefault(React.null)}
+                            {jstfVisualization->Belt_Option.getWithDefault(React.null)}
                         </Col>
                     )
                 }
@@ -1402,11 +1403,11 @@ let make = React.memoCustomCompareProps( ({
         )
     }
 
-    let rndProofStatusTd = () => {
+    let rndProofStatusTd = (tdStyle) => {
         if (stmt.proofStatus->Belt.Option.isSome) {
-            <td> { rndProofStatusInner() } </td>
+            <td style=tdStyle> { rndProofStatusInner() } </td>
         } else {
-            <></>
+            React.null
         }
     }
 
@@ -1414,7 +1415,7 @@ let make = React.memoCustomCompareProps( ({
         if (stmt.proofStatus->Belt.Option.isSome) {
             rndProofStatusInner()
         } else {
-            <></>
+            <span style=ReactDOM.Style.make(~display="none", ())/>
         }
     }
 
@@ -1432,11 +1433,11 @@ let make = React.memoCustomCompareProps( ({
         />
     }
 
-    let rndCheckboxTd = () => {
+    let rndCheckboxTd = (tdStyle) => {
         if (viewOptions.showCheckbox) {
-            <td> {rndCheckbox()} </td>
+            <td style=tdStyle> {rndCheckbox()} </td>
         } else {
-            <></>
+            React.null
         }
     }
 
@@ -1444,15 +1445,15 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showCheckbox) {
             rndCheckbox()
         } else {
-            <></>
+            <span style=ReactDOM.Style.make(~display="none", ())/>
         }
     }
 
-    let rndLabelTd = () => {
+    let rndLabelTd = (tdStyle) => {
         if (viewOptions.showLabel) {
-            <td> {rndLabel()} </td>
+            <td style=tdStyle> {rndLabel()} </td>
         } else {
-            <></>
+            React.null
         }
     }
 
@@ -1460,15 +1461,15 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showLabel) {
             rndLabel()
         } else {
-            <></>
+            <span style=ReactDOM.Style.make(~display="none", ())/>
         }
     }
 
-    let rndTypTd = () => {
+    let rndTypTd = (tdStyle) => {
         if (viewOptions.showType) {
-            <td> {rndTyp()} </td>
+            <td style=tdStyle> {rndTyp()} </td>
         } else {
-            <></>
+            React.null
         }
     }
 
@@ -1476,15 +1477,15 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showType) {
             rndTyp()
         } else {
-            <></>
+            <span style=ReactDOM.Style.make(~display="none", ())/>
         }
     }
 
-    let rndJstfTd = () => {
+    let rndJstfTd = (tdStyle) => {
         if (viewOptions.showJstf) {
-            <td> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")} </td>
+            <td style=tdStyle> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")} </td>
         } else {
-            <></>
+            React.null
         }
     }
 
@@ -1492,7 +1493,7 @@ let make = React.memoCustomCompareProps( ({
         if (viewOptions.showJstf) {
             rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")
         } else {
-            <></>
+            <span style=ReactDOM.Style.make(~display="none", ())/>
         }
     }
 
@@ -1506,20 +1507,22 @@ let make = React.memoCustomCompareProps( ({
             { rndContAndInfoBody() }
         </Row>
     } else {
+        let tdStyle = ReactDOM.Style.make(~padding="0px", ~borderCollapse="collapse", ())
         <table 
             style=ReactDOM.Style.make(
                 ~cursor=if (syntaxTreeWasRequested->Belt.Option.isSome) {"wait"} else {""},
-                ~marginTop=?{if (viewOptions.showCheckbox) {Some("-5px")} else {None}},
+                ~padding="0px",
+                ~borderCollapse="collapse",
                 ()
             )>
             <tbody>
                 <tr style=ReactDOM.Style.make(~verticalAlign="top", ())>
-                    { rndCheckboxTd() }
-                    { rndProofStatusTd() }
-                    { rndLabelTd() }
-                    { rndTypTd() }
-                    { rndJstfTd() }
-                    <td> {rndContAndInfoBody()} </td>
+                    { rndCheckboxTd(tdStyle) }
+                    { rndProofStatusTd(tdStyle) }
+                    { rndLabelTd(tdStyle) }
+                    { rndTypTd(tdStyle) }
+                    { rndJstfTd(tdStyle) }
+                    <td style=tdStyle> {rndContAndInfoBody()} </td>
                 </tr>
             </tbody>
         </table>
