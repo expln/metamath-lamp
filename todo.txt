@@ -1,3 +1,4 @@
+- make "compact mode" and "small buttons" default on mobile.
 - fix: copy to clipboard doesn't work on mobile.
 - show visualization for statements marked with '~'.
 - fix a bug: goal is re-defined but the statement is not marked with red background.
