@@ -453,7 +453,7 @@ let iterateSubstitutions = (
     ~consumer: subs => contunieInstruction
 ):contunieInstruction => {
     if (subs.size == 0) {
-        if (frmExpr == expr) {
+        if (frmExpr->exprEq(expr)) {
             consumer(subs)
         } else {
             Continue
@@ -461,34 +461,44 @@ let iterateSubstitutions = (
     } else {
         let exprLen = expr->Js_array2.length
         let frmExprLen = frmExpr->Js_array2.length
-        if (exprLen < frmExprLen) {
+        if (exprLen < frmExprLen || exprLen == 0 || frmExprLen == 0) {
             Continue
         } else {
-            iterateConstParts(
-                ~frmExpr, 
-                ~expr, 
-                ~frmConstParts, 
-                ~constParts, 
-                ~idxToMatch=0,
-                ~parenCnt,
-                ~consumer = constParts => {
-                    if (varGroups->Js.Array2.length > 0) {
-                        initVarGroups(~varGroups, ~constParts, ~expr)
-                        iterateVarGroups(
-                            ~expr,
-                            ~subs,
-                            ~varGroups,
-                            ~curGrpIdx = 0,
-                            ~curVarIdx = 0,
-                            ~subExprBeginIdx = varGroups[0].exprBeginIdx,
-                            ~parenCnt,
-                            ~consumer
-                        )
-                    } else {
-                        consumer(subs)
-                    }
+            let frmExprBegin = frmExpr->Js_array2.unsafe_get(0)
+            if (frmExprBegin < 0 && frmExprBegin != expr->Js_array2.unsafe_get(0)) {
+                Continue
+            } else {
+                let frmExprEnd = frmExpr->Js_array2.unsafe_get(frmExprLen-1)
+                if (frmExprEnd < 0 && frmExprEnd != expr->Js_array2.unsafe_get(exprLen-1)) {
+                    Continue
+                } else {
+                    iterateConstParts(
+                        ~frmExpr, 
+                        ~expr, 
+                        ~frmConstParts, 
+                        ~constParts, 
+                        ~idxToMatch=0,
+                        ~parenCnt,
+                        ~consumer = constParts => {
+                            if (varGroups->Js.Array2.length > 0) {
+                                initVarGroups(~varGroups, ~constParts, ~expr)
+                                iterateVarGroups(
+                                    ~expr,
+                                    ~subs,
+                                    ~varGroups,
+                                    ~curGrpIdx = 0,
+                                    ~curVarIdx = 0,
+                                    ~subExprBeginIdx = varGroups[0].exprBeginIdx,
+                                    ~parenCnt,
+                                    ~consumer
+                                )
+                            } else {
+                                consumer(subs)
+                            }
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 }
