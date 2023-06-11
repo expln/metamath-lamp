@@ -1181,7 +1181,7 @@ let make = React.memoCustomCompareProps( ({
             let elems = [
                 <Paper 
                     style=ReactDOM.Style.make(
-                        ~padding="1px 1px",
+                        ~padding="1px 3px",
                         ~backgroundColor=
                             if (stmt.stmtErr->Belt_Option.isSome || stmt.syntaxErr->Belt_Option.isSome) {
                                 "rgb(255,230,230)"
