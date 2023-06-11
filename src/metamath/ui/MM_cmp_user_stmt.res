@@ -73,7 +73,7 @@ let setVisExpanded = (st,visExpanded):state => {
     }
 }
 
-let textToSyntaxTree = (
+let textToSyntaxProofTable = (
     ~wrkCtx:mmContext,
     ~syms:array<stmtSym>,
     ~syntaxTypes:array<int>,
@@ -81,7 +81,7 @@ let textToSyntaxTree = (
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
-):result<syntaxTreeNode,string> => {
+):result<MM_proof_table.proofTable,string> => {
     if (syntaxTypes->Js_array2.length == 0) {
         Error(`Could not determine syntax types.`)
     } else {
@@ -127,11 +127,40 @@ let textToSyntaxTree = (
                             }
                             | _ => ()
                         }
-                        buildSyntaxTreeFromProofTree( ~ctx=wrkCtx, ~proofTree, ~typeStmt=node->pnGetExpr, )
+                        let typeStmt = node->pnGetExpr
+                        buildSyntaxProofTableFromProofTreeDto( 
+                            ~ctx=wrkCtx, 
+                            ~proofTreeDto=proofTree->MM_proof_tree_dto.proofTreeToDto([typeStmt]),
+                            ~typeStmt, 
+                        )
                     }
                 }
             }
         }
+    }
+}
+
+let textToSyntaxTree = (
+    ~wrkCtx:mmContext,
+    ~syms:array<stmtSym>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+):result<syntaxTreeNode,string> => {
+    let syntaxProofTable = textToSyntaxProofTable(
+        ~wrkCtx,
+        ~syms,
+        ~syntaxTypes,
+        ~frms,
+        ~parenCnt,
+        ~lastSyntaxType,
+        ~onLastSyntaxTypeChange,
+    )
+    switch syntaxProofTable {
+        | Error(msg) => Error(msg)
+        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1)
     }
 }
 
@@ -771,7 +800,7 @@ let make = React.memoCustomCompareProps( ({
                         setSyntaxTreeWasRequested(_ => None)
                         actBuildSyntaxTree(clickedIdx)
                     },
-                    0
+                    10
                 )->ignore
             }
         }

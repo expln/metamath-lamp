@@ -28,11 +28,13 @@ type vDataRec = {
 }
 
 type state = {
+    settings:settings,
     frmCtx:mmContext,
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
     frame:frame,
+    disj: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
     proofTable:option<proofTable>,
@@ -42,6 +44,8 @@ type state = {
     essIdxs: Belt_HashSetInt.t,
     stepRenum: Belt_HashMapInt.t<int>,
     expandedIdxs: array<int>,
+    syntaxProofTableWasRequested: bool,
+    syntaxProofTableError: option<string>,
 }
 
 let createVDataRec = (
@@ -90,6 +94,46 @@ let createVDataRec = (
     }
 }
 
+let setProofTable = (st:state, proofTable:proofTable):state => {
+    let frmCtx = st.frmCtx
+    let settings = st.settings
+    let typeColors = settings->settingsGetTypeColors
+    let exprsStr = proofTable->Js_array2.map(r => frmCtx->ctxIntsToSymsExn(r.expr))
+    let vData = proofTable->Js.Array2.map(pRec => {
+        createVDataRec( ~ctx=frmCtx, ~pRec, ~typeColors, ~exprsStr)
+    })
+    let essIdxs = Belt_HashSetInt.make(~hintSize=1000)
+    let stepRenum = Belt_HashMapInt.make(~hintSize=1000)
+    proofTable->Js.Array2.forEach(pRec => {
+        switch pRec.proof {
+            | Hypothesis(_) => ()
+            | Assertion({args, label}) => {
+                let frame = frmCtx->getFrameExn(label)
+                frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                    if (hyp.typ == E) {
+                        essIdxs->Belt_HashSetInt.add(args[i])
+                    }
+                })
+            }
+        }
+    })
+    essIdxs->Belt_HashSetInt.add(proofTable->Js.Array2.length-1)
+    proofTable->Js.Array2.forEachi((_,i) => {
+        if (essIdxs->Belt_HashSetInt.has(i)) {
+            stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
+        }
+    })
+    {
+        ...st,
+        proofTable: Some(proofTable),
+        vData,
+        showTypes:false,
+        essIdxs,
+        stepRenum,
+        expandedIdxs: [],
+    }
+}
+
 let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmContext, ~frame:frame):state => {
     frmCtx->moveConstsToBegin(settings.parens)
     let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
@@ -110,14 +154,51 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
     }
 
     let typeColors = settings->settingsGetTypeColors
+    let symColors = createSymbolColors(~ctx=frmCtx, ~typeColors)
     let asrt = frame.asrt->frmExprToCtxExpr
-    let essIdxs = Belt_HashSetInt.make(~hintSize=1000)
-    let stepRenum = Belt_HashMapInt.make(~hintSize=1000)
-    let (proofTable,vData) = switch frame.proof {
-        | None => (None,[])
+
+    let disj = if (frame.disj->Belt_MapInt.size > 0) {
+        Some(
+            MM_cmp_pe_frame_summary_state.createDisjGroups(
+                ~disj = frame.disj,
+                ~intToSym = i => {
+                    let sym = frmCtx->frmIntToSymExn(frame, i)
+                    (
+                        sym,
+                        symColors->Belt_HashMapString.get(sym)
+                    )
+                },
+            )
+        )
+    } else {
+        None
+    }
+
+    let st = {
+        settings,
+        frmCtx,
+        frms,
+        parenCnt,
+        syntaxTypes,
+        frame,
+        disj,
+        hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
+        asrt,
+        proofTable: None,
+        symColors,
+        vData: [],
+        showTypes:false,
+        essIdxs: Belt_HashSetInt.make(~hintSize=0),
+        stepRenum: Belt_HashMapInt.make(~hintSize=0),
+        expandedIdxs: [],
+        syntaxProofTableWasRequested: false,
+        syntaxProofTableError: None,
+    }
+    switch frame.proof {
+        | None => st
         | Some(proof) => {
             switch proof {
-                | Uncompressed({labels:["?"]}) => (None,[])
+                | Uncompressed({labels:["?"]}) => st
                 | _ => {
                     let proofRoot = MM_proof_verifier.verifyProof(
                         ~ctx=frmCtx,
@@ -125,55 +206,19 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
                         ~proof,
                         ~isDisjInCtx = (_,_) => true,
                     )
-                    let proofTable = createProofTableFromProof(proofRoot)
-                    let exprsStr = proofTable->Js_array2.map(r => frmCtx->ctxIntsToSymsExn(r.expr))
-                    let vData = proofTable->Js.Array2.map(pRec => {
-                        createVDataRec( ~ctx=frmCtx, ~pRec, ~typeColors, ~exprsStr)
-                    })
-                    proofTable->Js.Array2.forEach(pRec => {
-                        switch pRec.proof {
-                            | Hypothesis(_) => ()
-                            | Assertion({args, label}) => {
-                                let frame = frmCtx->getFrameExn(label)
-                                frame.hyps->Js.Array2.forEachi((hyp,i) => {
-                                    if (hyp.typ == E) {
-                                        essIdxs->Belt_HashSetInt.add(args[i])
-                                    }
-                                })
-                            }
-                        }
-                    })
-                    essIdxs->Belt_HashSetInt.add(proofTable->Js.Array2.length-1)
-                    proofTable->Js.Array2.forEachi((_,i) => {
-                        if (essIdxs->Belt_HashSetInt.has(i)) {
-                            stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
-                        }
-                    })
-                    (Some(proofTable), vData)
+                    st->setProofTable(createProofTableFromProof(proofRoot))
                 }
             }
         }
     }
-    {
-        frmCtx,
-        frms,
-        parenCnt,
-        syntaxTypes,
-        frame,
-        hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
-        asrt,
-        proofTable,
-        symColors: createSymbolColors(~ctx=frmCtx, ~typeColors),
-        vData,
-        showTypes:false,
-        essIdxs,
-        stepRenum,
-        expandedIdxs: [],
-    }
+}
+
+let setShowTypes = (st:state,showTypes:bool):state => {
+    {...st, showTypes}
 }
 
 let toggleShowTypes = (st:state):state => {
-    {...st, showTypes:!st.showTypes}
+    st->setShowTypes(!st.showTypes)
 }
 
 let toggleIdxExpanded = (st:state, idx:int):state => {
@@ -188,6 +233,14 @@ let toggleIdxExpanded = (st:state, idx:int):state => {
             expandedIdxs: st.expandedIdxs->Js.Array2.concat([idx])
         }
     }
+}
+
+let setSyntaxProofTableWasRequested = (st:state,syntaxProofTableWasRequested:bool):state => {
+    {...st, syntaxProofTableWasRequested}
+}
+
+let setSyntaxProofTableError = (st:state,syntaxProofTableError:option<string>):state => {
+    {...st, syntaxProofTableError}
 }
 
 let loadFrameContext = (
@@ -256,7 +309,7 @@ let make = React.memoCustomCompareProps(({
                     },
                 )
             },
-            0
+            10
         )->ignore
         None
     })
@@ -269,6 +322,47 @@ let make = React.memoCustomCompareProps(({
             }
         })
     }
+
+    let actBuildSyntaxProofTable = ():unit => {
+        modifyState(st => {
+            let ctx = st.frmCtx
+            switch MM_cmp_user_stmt.textToSyntaxProofTable( 
+                ~wrkCtx=ctx, 
+                ~syms = st.asrt->Js_array2.map(i => {sym:ctx->ctxIntToSymExn(i), color:None}),
+                ~syntaxTypes = st.syntaxTypes, 
+                ~frms = st.frms, 
+                ~parenCnt = st.parenCnt, 
+                ~lastSyntaxType=MM_cmp_user_stmt.getLastSyntaxType(),
+                ~onLastSyntaxTypeChange=MM_cmp_user_stmt.setLastSyntaxType,
+            ) {
+                | Error(msg) => st->setSyntaxProofTableError(Some(msg))
+                | Ok(proofTable) => {
+                    let st = st->setProofTable(proofTable)
+                    let st = st->setShowTypes(true)
+                    st
+                }
+            }
+        })
+    }
+
+    let actSyntaxProofTableWasRequested = () => {
+        modifyState(setSyntaxProofTableWasRequested(_, true))
+    }
+
+    let syntaxProofTableWasRequested = 
+        state->Belt_Option.map(st => st.syntaxProofTableWasRequested)->Belt.Option.getWithDefault(false)
+    React.useEffect1(() => {
+        if (syntaxProofTableWasRequested) {
+            setTimeout(
+                () => {
+                    modifyState(setSyntaxProofTableWasRequested(_,false))
+                    actBuildSyntaxProofTable()
+                },
+                10
+            )->ignore
+        }
+        None
+    }, [syntaxProofTableWasRequested])
 
     let actToggleShowTypes = () => modifyState(toggleShowTypes)
 
@@ -319,10 +413,6 @@ let make = React.memoCustomCompareProps(({
         None
     }, [numberOfRowsInProofTable])
 
-    let rndLoadIntoEditorBtn = () => {
-        <Button onClick={_=>()}> {React.string("load into editor")} </Button>
-    }
-
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
             <span style=ReactDOM.Style.make(~color="red", ())>
@@ -339,6 +429,11 @@ let make = React.memoCustomCompareProps(({
                 style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
             >
                 { (" " ++ state.frame.label)->React.string }
+            </span>
+            <span 
+                style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
+            >
+                { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
             </span>
         </span>
     }
@@ -399,6 +494,18 @@ let make = React.memoCustomCompareProps(({
                 )->React.string
             }
         </span>
+    }
+
+    let rndDisj = state => {
+        switch state.disj {
+            | None => <div style=ReactDOM.Style.make(~display="none", ()) />
+            | Some(disj) => {
+                <div>
+                    { (`Distinct variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
+                    {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
+                </div>
+            }
+        }
     }
 
     let rndHyp = (state,pRec:proofRecord):reElem => {
@@ -539,10 +646,42 @@ let make = React.memoCustomCompareProps(({
             ->ReactDOM.Style.unsafeAddProp("scrollMarginTop", top->Belt_Int.toString ++ "px")
         
         switch state.proofTable {
-            | None => "This assertion doesn't have a proof."->React.string
+            | None => {
+                if (state.frame.isAxiom) {
+                    if (state.syntaxProofTableWasRequested) {
+                        "Building a syntax breakdown..."->React.string
+                    } else {
+                        switch state.syntaxProofTableError {
+                            | Some(msg) => {
+                                <pre style=ReactDOM.Style.make(~color="red", ())>
+                                    {React.string(`Could not build a syntax breakdown: ${msg}`)}
+                                </pre>
+                            }
+                            | None => {
+                                <Button 
+                                    onClick={_=>actSyntaxProofTableWasRequested()}
+                                > 
+                                    {React.string("Show syntax breakdown")} </Button>
+                            }
+                        }
+                    }
+                } else {
+                    "This assertion doesn't have a proof."->React.string
+                }
+            }
             | Some(proofTable) => {
                 <Col spacing=0.>
-                    <Button onClick={_=>actToggleShowTypes()}> {React.string(if(state.showTypes) {"Hide types"} else {"Show types"})} </Button>
+                    {
+                        if (state.frame.isAxiom) {
+                            <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
+                                {"Syntax breakdown"->React.string}
+                            </span>
+                        } else {
+                            <Button onClick={_=>actToggleShowTypes()}> 
+                                {React.string(if(state.showTypes) {"Hide types"} else {"Show types"})} 
+                            </Button>
+                        }
+                    }
                     <table
                         id=proofTableId
                         style=ReactDOM.Style.combine(tdStyle, ReactDOM.Style.make(
@@ -609,6 +748,7 @@ let make = React.memoCustomCompareProps(({
             <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
                 {rndLabel(state)}
                 {rndDescr(state)}
+                {rndDisj(state)}
                 {rndSummary(state)}
                 {rndProof(state)}
                 {rndFooter()}

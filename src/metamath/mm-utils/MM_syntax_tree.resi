@@ -14,15 +14,15 @@ and childNode =
 
 let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 
-let buildSyntaxTreeFromProofTreeDto: (
+let buildSyntaxProofTableFromProofTreeDto: (
     ~ctx:mmContext,
     ~proofTreeDto:MM_proof_tree_dto.proofTreeDto,
     ~typeStmt:expr,
-) => result<syntaxTreeNode,string>
+) => result<proofTable,string>
 
-let buildSyntaxTreeFromProofTree: (
+let buildSyntaxTreeFromProofTreeDto: (
     ~ctx:mmContext,
-    ~proofTree:MM_proof_tree.proofTree,
+    ~proofTreeDto:MM_proof_tree_dto.proofTreeDto,
     ~typeStmt:expr,
 ) => result<syntaxTreeNode,string>
 

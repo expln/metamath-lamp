@@ -14,6 +14,9 @@ open Common
 open MM_cmp_user_stmt
 open MM_cmp_pe_frame_summary_state
 
+let paddingLeft = "5px"
+let paddingRight = paddingLeft
+
 type props = {
     modalRef:modalRef,
     typeColors:Belt_HashMapString.t<string>,
@@ -95,14 +98,18 @@ let make = React.memoCustomCompareProps( ({
                 {"Theorem"->React.string}
             </span>
         }
-        <span style=ReactDOM.Style.make(~paddingLeft="5px", ~paddingRight="5px", ()) >
-            { React.string( order->Belt_Int.toString ++ " ") }
-            asrtType
-            <span 
-                style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+        <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ()) >
+            <span
+                style=ReactDOM.Style.make(~cursor="pointer", ())
                 onClick=clickHnd(~act=()=>openFrameExplorer(frame.label), ())
             >
-                { (" " ++ frame.label)->React.string }
+                { React.string( order->Belt_Int.toString ++ " ") }
+                asrtType
+                <span 
+                    style=ReactDOM.Style.make(~fontWeight="bold", ())
+                >
+                    { (" " ++ frame.label)->React.string }
+                </span>
             </span>
             {rndExpBtn()}
         </span>
@@ -112,14 +119,29 @@ let make = React.memoCustomCompareProps( ({
         if (frame.descr->Belt.Option.isSome && state.descrIsExpanded) {
             <>
                 <Divider/>
-                <span>
+                <div style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
                     {
                         frame.descr->Belt.Option.getWithDefault("This assertion doesn't have any description.")->React.string
                     }
-                </span>
+                </div>
             </>
         } else {
             <></>
+        }
+    }
+
+    let rndDisj = () => {
+        switch state.disj {
+            | None => <span style=ReactDOM.Style.make(~display="none", ()) />
+            | Some(disj) => {
+                <>
+                    <Divider/>
+                    <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                        { (`Disj:` ++ disjGrpDelim)->React.string }
+                        {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
+                    </span>
+                </>
+            }
         }
     }
 
@@ -130,39 +152,49 @@ let make = React.memoCustomCompareProps( ({
             state.eHyps->Js.Array2.mapi((hyp,i) => {
                 <React.Fragment key={i->Belt.Int.toString}>
                     <Divider/>
-                    <Row>
-                        <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
-                            {circleChar->React.string}
-                        </span>
-                        <MM_cmp_pe_stmt
-                            modalRef
-                            ctx=state.frmCtx
-                            syntaxTypes
-                            frms
-                            parenCnt
-                            stmt=hyp
-                            symColors=state.symColors
-                            symRename=state.symRename
-                            editStmtsByLeftClick
-                        />
-                    </Row>
+                    <table style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+                        <tbody>
+                            <tr>
+                                <td style=ReactDOM.Style.make(~verticalAlign="top", ())>
+                                    <span style=ReactDOM.Style.make(~marginLeft="10px", ())>
+                                        {circleChar->React.string}
+                                    </span>
+                                </td>
+                                <td>
+                                    <MM_cmp_pe_stmt
+                                        modalRef
+                                        ctx=state.frmCtx
+                                        syntaxTypes
+                                        frms
+                                        parenCnt
+                                        stmt=hyp
+                                        symColors=state.symColors
+                                        symRename=state.symRename
+                                        editStmtsByLeftClick
+                                    />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </React.Fragment>
             })->React.array
         }
     }
 
     let rndAsrt = () => {
-        <MM_cmp_pe_stmt
-            modalRef
-            ctx=state.frmCtx
-            syntaxTypes
-            frms
-            parenCnt
-            stmt=state.asrt
-            symColors=state.symColors
-            symRename=state.symRename
-            editStmtsByLeftClick
-        />
+        <div style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
+            <MM_cmp_pe_stmt
+                modalRef
+                ctx=state.frmCtx
+                syntaxTypes
+                frms
+                parenCnt
+                stmt=state.asrt
+                symColors=state.symColors
+                symRename=state.symRename
+                editStmtsByLeftClick
+            />
+        </div>
     }
 
     <table>
@@ -172,6 +204,7 @@ let make = React.memoCustomCompareProps( ({
                     <Paper elevation=3 style=ReactDOM.Style.make(~backgroundColor="rgb(255,255,235)", ())>
                         {rndLabel()}
                         {rndDescr()}
+                        {rndDisj()}
                         {rndHyps()}
                         <Divider/>
                         {rndAsrt()}
