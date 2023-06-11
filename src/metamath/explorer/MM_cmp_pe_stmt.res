@@ -159,7 +159,7 @@ let make = React.memoCustomCompareProps( ({
                         setSyntaxTreeWasRequested(_ => None)
                         actBuildSyntaxTree(clickedIdx)
                     },
-                    0
+                    10
                 )->ignore
             }
         }

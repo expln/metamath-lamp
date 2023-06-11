@@ -183,12 +183,12 @@ let make = (
                         {
                             let numOfSelectedStmts = state.checkedStmtIds->Js.Array2.length
                             if (numOfSelectedStmts == state.stmts->Js.Array2.length) {
-                                React.string("Delete all statements?")
+                                React.string("Delete all steps?")
                             } else if (numOfSelectedStmts == 1) {
-                                React.string("Delete the selected statement?")
+                                React.string("Delete the selected step?")
                             } else {
                                 React.string(`Delete ${state.checkedStmtIds->Js.Array2.length->Belt.Int.toString}` 
-                                                ++ ` selected statements?`)
+                                                ++ ` selected steps?`)
                             }
                         }
                         <Row>

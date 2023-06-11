@@ -185,28 +185,24 @@ let getNodeById = (
     found
 }
 
+let buildSyntaxProofTableFromProofTreeDto = (
+    ~ctx:mmContext,
+    ~proofTreeDto:MM_proof_tree_dto.proofTreeDto,
+    ~typeStmt:expr,
+):result<proofTable,string> => {
+    switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(typeStmt)) {
+        | None => Error(`buildSyntaxProofTableFromProofTreeDto: could not find a proof for: ${ctx->ctxIntsToStrExn(typeStmt)}`)
+        | Some(proofNode) => Ok(MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode, ()))
+    }
+}
+
 let buildSyntaxTreeFromProofTreeDto = (
     ~ctx:mmContext,
     ~proofTreeDto:MM_proof_tree_dto.proofTreeDto,
     ~typeStmt:expr,
 ):result<syntaxTreeNode,string> => {
-    switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(typeStmt)) {
-        | None => Error(`buildSyntaxTreeFromProofTree: could not find proof for: ${ctx->ctxIntsToStrExn(typeStmt)}`)
-        | Some(proofNode) => {
-            let proofTable = MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
-            buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
-        }
+    switch buildSyntaxProofTableFromProofTreeDto( ~ctx, ~proofTreeDto, ~typeStmt, ) {
+        | Error(msg) => Error(msg)
+        | Ok(proofTable) => buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
     }
-}
-
-let buildSyntaxTreeFromProofTree = (
-    ~ctx:mmContext,
-    ~proofTree:proofTree,
-    ~typeStmt:expr,
-):result<syntaxTreeNode,string> => {
-    buildSyntaxTreeFromProofTreeDto(
-        ~ctx,
-        ~proofTreeDto=proofTree->MM_proof_tree_dto.proofTreeToDto([typeStmt]),
-        ~typeStmt,
-    )
 }

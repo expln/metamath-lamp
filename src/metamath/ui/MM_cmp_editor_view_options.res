@@ -89,7 +89,7 @@ let make = (
                         onChange=evt2bool(b => setShowType(_ => b))
                     />
                 }
-                label="H/P/G"
+                label="Step type"
             />
             <FormControlLabel
                 control={
