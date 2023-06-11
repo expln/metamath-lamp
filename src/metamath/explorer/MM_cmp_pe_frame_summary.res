@@ -99,13 +99,17 @@ let make = React.memoCustomCompareProps( ({
             </span>
         }
         <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ()) >
-            { React.string( order->Belt_Int.toString ++ " ") }
-            asrtType
-            <span 
-                style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+            <span
+                style=ReactDOM.Style.make(~cursor="pointer", ())
                 onClick=clickHnd(~act=()=>openFrameExplorer(frame.label), ())
             >
-                { (" " ++ frame.label)->React.string }
+                { React.string( order->Belt_Int.toString ++ " ") }
+                asrtType
+                <span 
+                    style=ReactDOM.Style.make(~fontWeight="bold", ())
+                >
+                    { (" " ++ frame.label)->React.string }
+                </span>
             </span>
             {rndExpBtn()}
         </span>
