@@ -34,6 +34,7 @@ type state = {
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
     frame:frame,
+    disj: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
     proofTable:option<proofTable>,
@@ -153,7 +154,26 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
     }
 
     let typeColors = settings->settingsGetTypeColors
+    let symColors = createSymbolColors(~ctx=frmCtx, ~typeColors)
     let asrt = frame.asrt->frmExprToCtxExpr
+
+    let disj = if (frame.disj->Belt_MapInt.size > 0) {
+        Some(
+            MM_cmp_pe_frame_summary_state.createDisjGroups(
+                ~disj = frame.disj,
+                ~intToSym = i => {
+                    let sym = frmCtx->frmIntToSymExn(frame, i)
+                    (
+                        sym,
+                        symColors->Belt_HashMapString.get(sym)
+                    )
+                },
+            )
+        )
+    } else {
+        None
+    }
+
     let st = {
         settings,
         frmCtx,
@@ -161,10 +181,11 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         parenCnt,
         syntaxTypes,
         frame,
+        disj,
         hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
         proofTable: None,
-        symColors: createSymbolColors(~ctx=frmCtx, ~typeColors),
+        symColors,
         vData: [],
         showTypes:false,
         essIdxs: Belt_HashSetInt.make(~hintSize=0),
@@ -409,6 +430,11 @@ let make = React.memoCustomCompareProps(({
             >
                 { (" " ++ state.frame.label)->React.string }
             </span>
+            <span 
+                style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
+            >
+                { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
+            </span>
         </span>
     }
 
@@ -468,6 +494,18 @@ let make = React.memoCustomCompareProps(({
                 )->React.string
             }
         </span>
+    }
+
+    let rndDisj = state => {
+        switch state.disj {
+            | None => <div style=ReactDOM.Style.make(~display="none", ()) />
+            | Some(disj) => {
+                <div>
+                    { (`Distinct variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
+                    {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
+                </div>
+            }
+        }
     }
 
     let rndHyp = (state,pRec:proofRecord):reElem => {
@@ -710,6 +748,7 @@ let make = React.memoCustomCompareProps(({
             <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
                 {rndLabel(state)}
                 {rndDescr(state)}
+                {rndDisj(state)}
                 {rndSummary(state)}
                 {rndProof(state)}
                 {rndFooter()}

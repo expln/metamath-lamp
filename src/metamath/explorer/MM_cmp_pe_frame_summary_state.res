@@ -18,6 +18,23 @@ type state = {
     disj: option<array<array<(string,option<string>)>>>,
 }
 
+let createDisjGroups = (
+    ~disj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~intToSym: int => (string,option<string>),
+):array<array<(string,option<string>)>> => {
+    let disjMut = disjMake()
+    disj->Belt_MapInt.forEach((n,ms) => {
+        ms->Belt_SetInt.forEach(m => {
+            disjMut->disjAddPair(n,m)
+        })
+    })
+    let resArr = []
+    disjMut->disjForEachArr(grp => {
+        resArr->Js.Array2.push( grp->Js_array2.map(intToSym) )->ignore
+    })
+    resArr
+}
+
 let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMapString.t<string>):state => {
     let frmCtx = createContext(~parent=preCtx, ())
     let symRename = ref(None)
@@ -81,30 +98,25 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
         })
     }
 
+    let frameIntToCtxInt = i => if (i < 0) {i} else {frmVarIntToCtxInt[i]}
+
     let frameExprToCtxExpr = (frmExpr:expr):expr => {
-        frmExpr->Js_array2.map(i => if (i < 0) {i} else {frmVarIntToCtxInt[i]})
+        frmExpr->Js_array2.map(frameIntToCtxInt)
     }
 
     let disj = if (frame.disj->Belt_MapInt.size > 0) {
-        let disjMut = disjMake()
-        frame.disj->Belt_MapInt.forEach((n,ms) => {
-            ms->Belt_SetInt.forEach(m => {
-                disjMut->disjAddPair(n,m)
-            })
-        })
-        let resArr = []
-        disjMut->disjForEachArr(grp => {
-            resArr->Js.Array2.push(
-                grp->frameExprToCtxExpr->Js_array2.map(i => {
-                    let sym = frmCtx->ctxIntToSymExn(i)
+        Some(
+            createDisjGroups(
+                ~disj = frame.disj,
+                ~intToSym = i => {
+                    let sym = frmCtx->ctxIntToSymExn(frameIntToCtxInt(i))
                     (
                         sym,
                         symColors->Belt_HashMapString.get(sym)
                     )
-                })
-            )->ignore
-        })
-        Some(resArr)
+                },
+            )
+        )
     } else {
         None
     }
@@ -122,4 +134,64 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
 
 let toggleDescrIsExpanded = st => {
     {...st, descrIsExpanded: !st.descrIsExpanded}
+}
+
+let rndDisjGrp = (grp:array<(string,option<string>)>):React.element => {
+    let res = []
+    for i in 0 to grp->Js.Array2.length-1 {
+        if (i > 0) {
+            res->Js.Array2.push(
+                <span
+                    key={"s-" ++ i->Belt_Int.toString}
+                    style=ReactDOM.Style.make(
+                        ~color="black",
+                        ~fontFamily="monospace",
+                        ~fontSize="1.3em",
+                        ~fontWeight="normal",
+                        ()
+                    )
+                >
+                    {","->React.string}
+                </span>
+            )->ignore
+        }
+        let (sym,colorOpt) = grp[i]
+        res->Js.Array2.push(
+            <span
+                key={"v-" ++ i->Belt_Int.toString}
+                style=ReactDOM.Style.make(
+                    ~color=?colorOpt,
+                    ~fontFamily="monospace",
+                    ~fontSize="1.3em",
+                    ~fontWeight="bold",
+                    ()
+                )
+            >
+                {sym->React.string}
+            </span>
+        )->ignore
+    }
+    res->React.array
+}
+
+let disjGrpDelim = nbsp ++ nbsp ++ nbsp ++ nbsp
+
+let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
+    let disjGrpArr = []
+    for i in 0 to disj->Js.Array2.length-1 {
+        let grp = disj[i]
+        if (i > 0) {
+            disjGrpArr->Js.Array2.push(
+                <span key={"s-" ++ i->Belt_Int.toString} >
+                    {disjGrpDelim->React.string}
+                </span>
+            )->ignore
+        }
+        disjGrpArr->Js.Array2.push(
+            <span key={"g-" ++ i->Belt_Int.toString} >
+                {rndDisjGrp(grp)}
+            </span>
+        )->ignore
+    }
+    disjGrpArr->React.array
 }

@@ -17,8 +17,6 @@ open MM_cmp_pe_frame_summary_state
 let paddingLeft = "5px"
 let paddingRight = paddingLeft
 
-let disjGrpDelim = nbsp ++ nbsp ++ nbsp ++ nbsp
-
 type props = {
     modalRef:modalRef,
     typeColors:Belt_HashMapString.t<string>,
@@ -128,69 +126,15 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let rndDisjGrp = (grp:array<(string,option<string>)>):reElem => {
-        let res = []
-        for i in 0 to grp->Js.Array2.length-1 {
-            if (i > 0) {
-                res->Js.Array2.push(
-                    <span
-                        key={"s-" ++ i->Belt_Int.toString}
-                        style=ReactDOM.Style.make(
-                            ~color="black",
-                            ~fontFamily="monospace",
-                            ~fontSize="1.3em",
-                            ~fontWeight="normal",
-                            ()
-                        )
-                    >
-                        {","->React.string}
-                    </span>
-                )->ignore
-            }
-            let (sym,colorOpt) = grp[i]
-            res->Js.Array2.push(
-                <span
-                    key={"v-" ++ i->Belt_Int.toString}
-                    style=ReactDOM.Style.make(
-                        ~color=?colorOpt,
-                        ~fontFamily="monospace",
-                        ~fontSize="1.3em",
-                        ~fontWeight="bold",
-                        ()
-                    )
-                >
-                    {sym->React.string}
-                </span>
-            )->ignore
-        }
-        res->React.array
-    }
-
     let rndDisj = () => {
         switch state.disj {
             | None => <span style=ReactDOM.Style.make(~display="none", ()) />
             | Some(disj) => {
-                let disjGrpArr = []
-                for i in 0 to disj->Js.Array2.length-1 {
-                    let grp = disj[i]
-                    if (i > 0) {
-                        disjGrpArr->Js.Array2.push(
-                            <span key={"s-" ++ i->Belt_Int.toString} >
-                                {disjGrpDelim->React.string}
-                            </span>
-                        )->ignore
-                    }
-                    disjGrpArr->Js.Array2.push(
-                        <span key={"g-" ++ i->Belt_Int.toString} >
-                            {rndDisjGrp(grp)}
-                        </span>
-                    )->ignore
-                }
                 <>
                     <Divider/>
                     <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>
                         { (`Disj:` ++ disjGrpDelim)->React.string }
-                        {disjGrpArr->React.array}
+                        {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
                     </span>
                 </>
             }

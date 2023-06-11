@@ -15,3 +15,11 @@ let makeInitialState: (
     ~typeColors: Belt_HashMapString.t<string>,
 ) => state
 let toggleDescrIsExpanded: state => state
+
+let createDisjGroups: (
+    ~disj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~intToSym: int => (string,option<string>),
+) => array<array<(string,option<string>)>>
+
+let disjGrpDelim: string
+let rndDisj: array<array<(string,option<string>)>> => React.element
