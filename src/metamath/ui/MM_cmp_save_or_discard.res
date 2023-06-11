@@ -24,7 +24,7 @@ let make = (
                             <Button onClick={_=>onDiscard()}>
                                 {React.string(
                                     if (removeStmt) {
-                                        "Discard, remove statement"
+                                        "Discard, remove step"
                                     } else {
                                         "Discard, use this \u2192"
                                     }

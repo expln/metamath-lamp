@@ -1104,36 +1104,36 @@ let make = (
                 }
                 />
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected statements down", ~smallBtns, ())}
+                    ~title="Move selected steps down", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected statements up", ~smallBtns, ())}
+                    ~title="Move selected steps up", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                    ~title="Add new statement (and place before selected statements if any)", ~smallBtns, ())}
+                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
-                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected statements", ~smallBtns, ()
+                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns, ()
                 )}
                 {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
-                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected statement", 
+                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step", 
                     ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts,
-                    ~active=oneStatementIsChecked, ~title="Merge two similar statements", ~smallBtns, ())}
+                    ~active=oneStatementIsChecked, ~title="Merge two similar steps", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
-                        ~title="Add new statements from existing assertions (and place before selected statements if any)", 
+                        ~title="Add new steps from existing assertions (and place before selected steps if any)", 
                         ~smallBtns, ()
                     ) 
                 }
                 { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
                     ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
-                    ~title="Apply a substitution to all statements", ~smallBtns,() ) }
+                    ~title="Apply a substitution to all steps", ~smallBtns,() ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
                                     && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 
-                        ~title="Unify all statements or unify selected provable bottom-up", ~smallBtns, () )
+                        ~title="Unify all steps or unify selected provable bottom-up", ~smallBtns, () )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
