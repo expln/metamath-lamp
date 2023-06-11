@@ -870,7 +870,7 @@ let make = (
                                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                                     <Col spacing=1.>
                                         <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                                            { React.string(`Could not realod the context because of the error:`) }
+                                            { React.string(`Could not reload the context because of the error:`) }
                                         </span>
                                         <span style=ReactDOM.Style.make(~color="red", ())>
                                             { React.string(msg) }
