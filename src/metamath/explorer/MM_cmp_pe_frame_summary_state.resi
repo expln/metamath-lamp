@@ -7,6 +7,7 @@ type state = {
     asrt: MM_context.expr,
     symRename: option<Belt_HashMapString.t<string>>,
     descrIsExpanded: bool,
+    disj: option<array<array<(string,option<string>)>>>,
 }
 let makeInitialState: (
     ~preCtx: MM_context.mmContext,

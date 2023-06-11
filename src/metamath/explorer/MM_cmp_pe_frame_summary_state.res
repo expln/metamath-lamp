@@ -14,7 +14,8 @@ type state = {
     eHyps:array<expr>,
     asrt:expr,
     symRename:option<Belt_HashMapString.t<string>>,
-    descrIsExpanded:bool
+    descrIsExpanded:bool,
+    disj: option<array<array<(string,option<string>)>>>,
 }
 
 let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMapString.t<string>):state => {
@@ -84,12 +85,37 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
         frmExpr->Js_array2.map(i => if (i < 0) {i} else {frmVarIntToCtxInt[i]})
     }
 
+    let disj = if (frame.disj->Belt_MapInt.size > 0) {
+        let disjMut = disjMake()
+        frame.disj->Belt_MapInt.forEach((n,ms) => {
+            ms->Belt_SetInt.forEach(m => {
+                disjMut->disjAddPair(n,m)
+            })
+        })
+        let resArr = []
+        disjMut->disjForEachArr(grp => {
+            resArr->Js.Array2.push(
+                grp->frameExprToCtxExpr->Js_array2.map(i => {
+                    let sym = frmCtx->ctxIntToSymExn(i)
+                    (
+                        sym,
+                        symColors->Belt_HashMapString.get(sym)
+                    )
+                })
+            )->ignore
+        })
+        Some(resArr)
+    } else {
+        None
+    }
+
     {
         frmCtx,
         symColors,
         eHyps:frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)->Js.Array2.map(hyp => hyp.expr->frameExprToCtxExpr),
         asrt:frame.asrt->frameExprToCtxExpr,
         symRename:symRename.contents,
+        disj,
         descrIsExpanded:false
     }
 }
