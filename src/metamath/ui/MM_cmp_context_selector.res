@@ -111,12 +111,12 @@ let getSummary = st => {
             let name = getNameFromFileSrc(ss.fileSrc)->Belt_Option.getWithDefault("")
             let readInstr = switch ss.readInstr {
                 | ReadAll => ""
-                | StopBefore => `, stopped before '${ss.label->Belt_Option.getWithDefault("")}'`
-                | StopAfter => `, stopped after '${ss.label->Belt_Option.getWithDefault("")}'`
+                | StopBefore => `, before '${ss.label->Belt_Option.getWithDefault("")}'`
+                | StopAfter => `, after '${ss.label->Belt_Option.getWithDefault("")}'`
             }
             name ++ readInstr
         })
-        "Loaded: " ++ filesInfo->Js_array2.joinWith("; ")
+        "Loaded " ++ filesInfo->Js_array2.joinWith("; ")
     }
 }
 
