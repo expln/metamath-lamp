@@ -21,10 +21,11 @@ let rndIconButton = (
     ~active:bool=true, 
     ~title:option<string>=?, 
     ~color:option<string>=Some("primary"),
+    ~key:option<string>=?,
     ()
 ) => {
     <span ?title>
-        <IconButton disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
+        <IconButton ?key disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
     </span>
 }
 
@@ -830,6 +831,12 @@ let make = React.memoCustomCompareProps( ({
         setState(setNewText(_, newText))
     }
 
+    let actJstfEditRequested = () => {
+        if (stmt.typ == P) {
+            onJstfEditRequested()
+        }
+    }
+
     let before = (str:string, pos:int):string => str->Js.String2.substring(~from=0,~to_=pos)
     let after = (str:string, pos:int):string => str->Js.String2.substringToEnd(~from=pos+1)
 
@@ -1310,8 +1317,8 @@ let make = React.memoCustomCompareProps( ({
         && stmt.proofTreeDto->Belt.Option.isSome
         && stmt.src->Belt.Option.isSome
 
-    let rndJstf = (~rndDeleteButton:bool, ~textFieldWidth:string):reElem => {
-        if (stmt.jstfEditMode) {
+    let rndJstf = (~isInline:bool, ~textFieldWidth:string):reElem => {
+        if (stmt.jstfEditMode && stmt.typ == P) {
             <Col 
                 spacing=0.
                 style=ReactDOM.Style.make(
@@ -1341,20 +1348,20 @@ let make = React.memoCustomCompareProps( ({
                 </Row>
             </Col>
         } else {
-            let jstfText = if (stmt.jstfText == "") { " " } else { stmt.jstfText }
-            let padding = if (jstfText->Js_string2.trim == "") { "10px 30px" } else { "1px" }
+            let jstfText = if (stmt.typ == E) { "HYP" } else { stmt.jstfText }
+            let padding = if (jstfText->Js_string2.trim == "") { "11px 15px" } else { "1px" }
             <Row
                 spacing=0.
                 style=ReactDOM.Style.make(
                     ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop={stmtPartMarginTopInt->Belt.Int.toString ++ "px"}, 
+                    ~marginTop=stmtPartMarginTop, 
                     ()
                 )
                 alignItems=#center
             >
                 <Paper
                     ref=ReactDOM.Ref.domRef(jstfRef) 
-                    onClick=clickHnd(~act=onJstfEditRequested, ()) 
+                    onClick=clickHnd(~act=actJstfEditRequested, ()) 
                     style=ReactDOM.Style.make( 
                         ~padding, 
                         ~overflowWrap="normal", 
@@ -1366,30 +1373,33 @@ let make = React.memoCustomCompareProps( ({
                     {React.string(jstfText)}
                 </Paper>
                 {
-                    if (jstfText->Js_string2.trim == "" || !rndDeleteButton) {
+                    if (isInline) {
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
-                        <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
-                            {
-                                rndIconButton(~icon=<MM_Icons.DeleteForever/>, 
+                        let btns = []
+                        if (jstfText->Js_string2.trim != "") {
+                            btns->Js.Array2.push(
+                                rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~key="d",
                                     ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()
                                 )
-                            }
-                            {
-                                rndIconButton(~icon=<MM_Icons.VisibilityOff/>, 
-                                    ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None, ()
+                            )->ignore
+                        }
+                        btns->Js.Array2.push(
+                            rndIconButton(~icon=<MM_Icons.VisibilityOff/>, ~key="h",
+                                ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None, ()
+                            )
+                        )->ignore
+                        if (visualizationIsAvailable) {
+                            btns->Js.Array2.push(
+                                rndIconButton(
+                                    ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                    ~key="v",
+                                    ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
                                 )
-                            }
-                            {
-                                if (visualizationIsAvailable) {
-                                    rndIconButton(
-                                        ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
-                                        ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
-                                    )
-                                } else {
-                                    React.null
-                                }
-                            }
+                            )->ignore
+                        }
+                        <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
+                            { btns->React.array }
                         </Row>
                     }
                 }
@@ -1420,7 +1430,7 @@ let make = React.memoCustomCompareProps( ({
             None
         } else {
             let jstf = if (!viewOptions.showJstf && (state.infoExpanded || stmt.jstfEditMode)) {
-                Some(rndJstf(~rndDeleteButton=true, ~textFieldWidth="600px"))
+                Some(rndJstf(~isInline=false, ~textFieldWidth="600px"))
             } else {
                 None
             }
@@ -1549,7 +1559,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndJstfTd = (tdStyle) => {
         if (viewOptions.showJstf) {
-            <td style=tdStyle> {rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")} </td>
+            <td style=tdStyle> {rndJstf(~isInline=true, ~textFieldWidth="150px")} </td>
         } else {
             React.null
         }
@@ -1557,7 +1567,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndJstfRow = () => {
         if (viewOptions.showJstf) {
-            rndJstf(~rndDeleteButton=false, ~textFieldWidth="150px")
+            rndJstf(~isInline=true, ~textFieldWidth="150px")
         } else {
             <span style=ReactDOM.Style.make(~display="none", ())/>
         }
