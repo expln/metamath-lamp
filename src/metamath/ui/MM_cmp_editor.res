@@ -817,6 +817,50 @@ let make = (
         })->ignore
     }
 
+    let renumberable = (label) => { // True iff label is only digits
+        let characters = Js.String2.split(label, "")
+        Belt.Array.every(characters, c => (c >= "0" && c <= "9"))
+    }
+
+    let updated_hyps = (hyps, updatedLabels) => {
+        Js.String2.split(hyps, " ")->Js.Array2.map(
+            hyp => updatedLabels->Belt_HashMapString.get(hyp)
+        )->Js.Array2.joinWith(" ")
+    }
+
+    let updated_justification = (jstfText, updatedLabels) => {
+        if (jstfText == "" || jstfText->Js.String2.get(0) == ":" ||
+            !(jstfText->Js.String2.includes(":"))) {
+            jstfText
+        } else {
+            switch Js.String2.splitAtMost(jstfText, ":", ~limit = 2) {
+            | [hyps, ref] => updated_hyps(hyps, updatedLabels) ++ ":" ++ ref
+            | _ => jstfText
+            }
+        }
+    }
+
+    let actRenumberSteps = () => {
+        let updatedLabels = Belt_HashMapString.make(~hintSize=128)
+        let stepNumber = ref(0) // Increases on assigning new number label
+        state.stmts->Js.Array2.forEach(stmt => {
+            let oldLabel = stmt.label
+            let newLabel = if renumberable(oldLabel) {
+                stepNumber := stepNumber.contents + 1
+                Belt.Int.toString(stepNumber.contents)
+            } else {
+                oldLabel
+            }
+            let oldJstf = stmt.jstfText
+            let newJstf = updated_justification(oldJstf, updatedLabels)
+            if newJstf != oldJstf {
+                setState(completeJstfEditMode(_, stmt.id, newJstf))
+            }
+            updatedLabels->Belt_HashMapString.set(oldLabel, newLabel)
+            setState(st => completeLabelEditMode(st, stmt.id, newLabel))
+        })
+    }
+
     let actExportToUrl = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
@@ -1050,6 +1094,14 @@ let make = (
                             }}
                         >
                             {React.string("View options")}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenumberSteps()
+                            }}
+                        >
+                            {"Renumber numbered steps"->React.string}
                         </MenuItem>
                         <MenuItem 
                             onClick={() => {
