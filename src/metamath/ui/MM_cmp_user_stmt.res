@@ -832,9 +832,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actJstfEditRequested = () => {
-        if (stmt.typ == P) {
-            onJstfEditRequested()
-        }
+        onJstfEditRequested()
     }
 
     let before = (str:string, pos:int):string => str->Js.String2.substring(~from=0,~to_=pos)
@@ -1318,7 +1316,7 @@ let make = React.memoCustomCompareProps( ({
         && stmt.src->Belt.Option.isSome
 
     let rndJstf = (~isInline:bool, ~textFieldWidth:string):reElem => {
-        if (stmt.jstfEditMode && stmt.typ == P) {
+        if (stmt.jstfEditMode) {
             <Col 
                 spacing=0.
                 style=ReactDOM.Style.make(
@@ -1349,7 +1347,7 @@ let make = React.memoCustomCompareProps( ({
             </Col>
         } else {
             let jstfText = if (stmt.typ == E) { "HYP" } else { stmt.jstfText }
-            let padding = if (jstfText->Js_string2.trim == "") { "11px 15px" } else { "1px" }
+            let padding = if (jstfText->Js_string2.trim == "") { "11px 16px" } else { "1px" }
             <Row
                 spacing=0.
                 style=ReactDOM.Style.make(

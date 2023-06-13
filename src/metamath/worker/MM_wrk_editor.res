@@ -414,12 +414,16 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
 
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
-    let newLabel = if (st.stmts->Js.Array2.length == 0 && st.settings.defaultStmtLabel->Js.String2.length > 0) {
+    let pCnt = st.stmts->Js.Array2.reduce(
+        (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
+        0
+    )
+    let newLabel = if (pCnt == 0 && st.settings.defaultStmtLabel->Js.String2.length > 0) {
         st.settings.defaultStmtLabel
     } else {
         createNewLabel(st, newLabelPrefix)
     }
-    let isGoal = st.stmts->Js.Array2.length == 0 && st.settings.initStmtIsGoal
+    let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
@@ -598,10 +602,21 @@ let setJstfEditMode = (st, stmtId) => {
 
 let completeJstfEditMode = (st, stmtId, newJstf) => {
     updateStmt(st, stmtId, stmt => {
+        let jstfTrimUpperCase = newJstf->Js.String2.trim->Js.String2.toLocaleUpperCase
+        let (typ,isGoal,newJstf) = 
+            if (jstfTrimUpperCase == "HYP") {
+                (E,false,"")
+            } else if (jstfTrimUpperCase == "") {
+                (P, if (stmt.typ == E) {false} else {stmt.isGoal}, "")
+            } else {
+                (stmt.typ,stmt.isGoal,newJstf)
+            }
         {
             ...stmt,
+            typ,
+            isGoal,
             jstfText:newJstf,
-            jstfEditMode: false
+            jstfEditMode: false,
         }
     })
 }
@@ -2042,27 +2057,31 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
             switch res {
                 | Error(_) => res
                 | Ok(st) => {
-                    switch parseJstf(stmt.jstfText) {
-                        | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' ` 
-                                                ++ `for the step '${stmt.label}'`)
-                        | Ok(None) => Ok(st)
-                        | Ok(Some(jstf)) => {
-                            if (jstf.args->Js.Array2.includes(replaceWhat)) {
-                                let newJstf = {
-                                    ...jstf,
-                                    args: jstf.args
-                                        ->Js_array2.map(ref => if (ref == replaceWhat) {replaceWith} else {ref})
+                    if (stmt.typ == E) {
+                        Ok(st)
+                    } else {
+                        switch parseJstf(stmt.jstfText) {
+                            | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' ` 
+                                                    ++ `for the step '${stmt.label}'`)
+                            | Ok(None) => Ok(st)
+                            | Ok(Some(jstf)) => {
+                                if (jstf.args->Js.Array2.includes(replaceWhat)) {
+                                    let newJstf = {
+                                        ...jstf,
+                                        args: jstf.args
+                                            ->Js_array2.map(ref => if (ref == replaceWhat) {replaceWith} else {ref})
+                                    }
+                                    Ok(
+                                        st->updateStmt(stmt.id, stmt => {
+                                            {
+                                                ...stmt,
+                                                jstfText: jstfToStr(newJstf)
+                                            }
+                                        })
+                                    )
+                                } else {
+                                    Ok(st)
                                 }
-                                Ok(
-                                    st->updateStmt(stmt.id, stmt => {
-                                        {
-                                            ...stmt,
-                                            jstfText: jstfToStr(newJstf)
-                                        }
-                                    })
-                                )
-                            } else {
-                                Ok(st)
                             }
                         }
                     }
@@ -2100,7 +2119,7 @@ let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,strin
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
-let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorState,string> => {
+let renameStmt = (st:editorState, stmtId:stmtId, newLabel:string):result<editorState,string> => {
     let newLabel = newLabel->removeSymbolsNotAllowedInLabel
     if (newLabel == "") {
         Error(`label must not be empty.`)

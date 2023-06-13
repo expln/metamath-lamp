@@ -282,7 +282,7 @@ let make = (
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
         let newLabel = newLabel->Js_string2.trim
         switch state->renameStmt(stmtId, newLabel) {
-            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this statement: ${msg}`, () )
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this step: ${msg}`, () )
             | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabel))
         }
     }

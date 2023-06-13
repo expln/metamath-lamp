@@ -762,3 +762,68 @@ describe("removeUnusedVars", _ => {
         assertEq( st.stmts[1].cont->contToStr, "|- r = c" )
     })
 })
+
+describe("automatic convertion E<->P depending on jstfText", _ => {
+    it("review all the changes in the previous commit and add missing tests", _ => {
+        //given
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let pr1Id = st.stmts[0].id
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a", ())})
+
+        //when
+        let st = prepareEditorForUnification(st)
+
+        //then
+        assertEq( st.stmts[0].cont->contToStr, "|- t + a" )
+    })
+    
+    it("+s1 -> s1.typ=P, s1.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp -> s1.typ=E, s1.isGoal=F", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2 -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3 -> s1.typ=E, s1.isGoal=F, s2.typ=E, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2.typ=E, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s2.jstf=hhyp, s3.typ=P, s3.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_, s1.jstf=_ -> s1.typ=P, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, s1.jstf=abc, s1.jstf=_ -> s1.typ=P, s1.isGoal=T", _ => {
+        ()
+    })
+    
+    it("+s1, +s2 -> s1.typ=P, s1.isGoal=T, s2.typ=P, s2.isGoal=F", _ => {
+        ()
+    })
+    
+    it("+s1, +s2, s1.jstf=hyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F", _ => {
+        ()
+    })
+})

@@ -945,7 +945,7 @@ let make = (
                     onChange=evt2bool(actInitStmtIsGoalChange)
                 />
             }
-            label="Mark initial step as a goal"
+            label="Mark the first provable step as a goal"
         />
         <FormControlLabel
             control={
