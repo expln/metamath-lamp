@@ -1127,7 +1127,7 @@ let make = (
                 }
                 { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, 
                     ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
-                    ~title="Apply a substitution to all steps", ~smallBtns,() ) }
+                    ~title="Apply a replacement to all steps", ~smallBtns,() ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 

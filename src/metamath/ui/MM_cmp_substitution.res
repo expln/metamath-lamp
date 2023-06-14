@@ -201,7 +201,7 @@ let make = (
             {rndError(state.expr2Err)}
             <Row>
                 <Button onClick={_=>actDetermineSubs()} variant=#contained color="grey" >
-                    {React.string("Find substitution")}
+                    {React.string("Find replacement")}
                 </Button>
                 <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
             </Row>
@@ -358,7 +358,7 @@ let make = (
                     <>
                         {
                             React.string(
-                                `Found substitutions: `
+                                `Found replacements: `
                                     ++ `${getNumberOfResults(state.results)->Belt_Int.toString} valid, `
                             )
                         }
