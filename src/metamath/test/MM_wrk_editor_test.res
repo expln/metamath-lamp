@@ -7,7 +7,11 @@ open MM_substitution
 open MM_parenCounter
 open MM_wrk_pre_ctx_data
 
-let createEditorState = (mmFile) => {
+let createEditorState = (
+    mmFile:string, 
+    ~initStmtIsGoal:bool=false, 
+    ()
+) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
     let ctx = loadContext(ast, ())
@@ -19,7 +23,7 @@ let createEditorState = (mmFile) => {
         asrtsToSkip: [],
         asrtsToSkipRegex: "",
         editStmtsByLeftClick:true,
-        initStmtIsGoal: false,
+        initStmtIsGoal,
         defaultStmtLabel: "",
         defaultStmtType: "",
         checkSyntax: true,
@@ -133,7 +137,7 @@ let findPossibleSubsTypeCase = "./src/metamath/test/resources/findPossibleSubs-t
 describe("prepareEditorForUnification", _ => {
     it("detects an error in variable declaration", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let st = completeVarsEditMode(st, "hyp_v1 term v1 \n hyp_v2 term- v2")
 
         //when
@@ -146,7 +150,7 @@ describe("prepareEditorForUnification", _ => {
     
     it("creates wrkCtx when only additional variables are defined and there are no errors", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let st = completeVarsEditMode(st, "hyp_v1 term v1 \n hyp_v2 wff v2")
 
         //when
@@ -166,7 +170,7 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error in disjoints declaration", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let st = completeDisjEditMode(st, "t, r \n r, s-")
 
         //when
@@ -180,7 +184,7 @@ describe("prepareEditorForUnification", _ => {
     
     it("creates wrkCtx when only additional disjoints are defined and there are no errors", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let st = completeDisjEditMode(st, "t, r \n r, s")
 
         //when
@@ -205,7 +209,7 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error in a hypothesis", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let prId = st.stmts[0].id
@@ -228,7 +232,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects an error in a provable expression", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -254,7 +258,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a syntax error in a provable's justification", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -282,7 +286,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a ref error in a provable's justification when asrt label refers to a hypothesis", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -310,7 +314,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a ref error in a provable's justification when asrt label refers to another provable", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -338,7 +342,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a ref error in a provable's justification when argument label is undefined", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -366,7 +370,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a label duplication when a provable uses label of a predefined hypothesis", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -394,7 +398,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a label duplication when a provable uses label of a previously defined hypothesis", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -422,7 +426,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a label duplication when a provable uses label of a previously defined another provable", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -450,7 +454,7 @@ describe("prepareEditorForUnification", _ => {
 
     it("sets expr and jstf for each provable when there are no errors", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
@@ -485,7 +489,7 @@ describe("prepareEditorForUnification", _ => {
 describe("findPossibleSubs", _ => {
     it("finds all possible substitutions", _ => {
         //given
-        let st = createEditorState(findPossibleSubsSimpleCase)->prepareEditorForUnification
+        let st = createEditorState(findPossibleSubsSimpleCase, ())->prepareEditorForUnification
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         let t = ctx->ctxSymToIntExn("t")
@@ -519,7 +523,7 @@ describe("findPossibleSubs", _ => {
 
     it("returns new disjoints if any", _ => {
         //given
-        let st = createEditorState(findPossibleSubsDisjointsCase)
+        let st = createEditorState(findPossibleSubsDisjointsCase, ())
         let st = completeDisjEditMode(st, "x, y")
         let st = prepareEditorForUnification(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
@@ -559,7 +563,7 @@ describe("findPossibleSubs", _ => {
 
     it("doesn't return substitutions which don't satisfy disjoints", _ => {
         //given
-        let st = createEditorState(findPossibleSubsDisjointsCase)
+        let st = createEditorState(findPossibleSubsDisjointsCase, ())
         let st = prepareEditorForUnification(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -626,7 +630,7 @@ describe("findPossibleSubs", _ => {
 
     it("doesn't return substitutions which don't satisfy types", _ => {
         //given
-        let st = createEditorState(findPossibleSubsTypeCase)
+        let st = createEditorState(findPossibleSubsTypeCase, ())
         let st = prepareEditorForUnification(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -689,7 +693,7 @@ describe("findPossibleSubs", _ => {
 
     it("returns substitutions which satisfy disjoints", _ => {
         //given
-        let st = createEditorState(findPossibleSubsDisjointsCase)
+        let st = createEditorState(findPossibleSubsDisjointsCase, ())
         let st = prepareEditorForUnification(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -708,7 +712,7 @@ describe("findPossibleSubs", _ => {
 describe("applySubstitutionForEditor", _ => {
     it("applies substitutions correctly", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st)
         let (st, _) = addNewStmt(st)
         let pr1Id = st.stmts[0].id
@@ -741,7 +745,7 @@ describe("applySubstitutionForEditor", _ => {
 describe("removeUnusedVars", _ => {
     it("removes unused variables", _ => {
         //given
-        let st = createEditorState(demo0)
+        let st = createEditorState(demo0, ())
         let st = completeVarsEditMode(st,"v1 term a \n v2 term b \n v3 term c \n v4 term d")
         let st = completeDisjEditMode(st,"a,b,c \n d,c")
         let (st, _) = addNewStmt(st)
@@ -764,66 +768,137 @@ describe("removeUnusedVars", _ => {
 })
 
 describe("automatic convertion E<->P depending on jstfText", _ => {
-    it("review all the changes in the previous commit and add missing tests", _ => {
-        //given
-        let st = createEditorState(demo0)
-        let (st, _) = addNewStmt(st)
-        let (st, _) = addNewStmt(st)
-        let pr1Id = st.stmts[0].id
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a", ())})
-
-        //when
-        let st = prepareEditorForUnification(st)
-
-        //then
-        assertEq( st.stmts[0].cont->contToStr, "|- t + a" )
+    it("review all the changes in the branch and add missing tests", _ => {
+        failMsg("not implemented")
     })
     
     it("+s1 -> s1.typ=P, s1.isGoal=T", _ => {
-        ()
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true, "isGoal")
     })
     
-    it("+s1, s1.jstf=hyp -> s1.typ=E, s1.isGoal=F", _ => {
-        ()
+    it("+s1, s1.jstf=hYp -> s1.typ=E, s1.isGoal=F", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+
+        //when
+        let st = st->completeJstfEditMode(s1, "hYp")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
     })
     
     it("+s1, s1.jstf=hyp, +s2 -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
-        ()
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hYp")
+
+        //when
+        let (st, s2) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, true, "isGoal")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3 -> s1.typ=E, s1.isGoal=F, s2.typ=E, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
-        ()
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hyp")
+        let (st, s2) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "HYP")
+
+        //when
+        let (st, s3) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, E , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s3).typ, P , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s3).isGoal, true, "isGoal")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
-        ()
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hyp")
+        let (st, s2) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "hyp")
+        let (st, s3) = addNewStmt(st)
+
+        //when
+        let st = st->completeJstfEditMode(s2, "")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s3).typ, P , "typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s3).isGoal, true, "isGoal")
     })
     
-    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2.typ=E, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
-        ()
+    it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2{typ=P,jstf=hhyp}, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hyp")
+        let (st, s2) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "hyp")
+        let (st, s3) = addNewStmt(st)
+
+        //when
+        let st = st->completeJstfEditMode(s2, "hhyp")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).jstfText, "hhyp", "s2.jstfText")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s3).typ, P , "s3.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s3).isGoal, true, "s3.isGoal")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s2.jstf=hhyp, s3.typ=P, s3.isGoal=T", _ => {
-        ()
+        failMsg("not implemented")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
-        ()
+        failMsg("not implemented")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_, s1.jstf=_ -> s1.typ=P, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
-        ()
+        failMsg("not implemented")
     })
     
     it("+s1, s1.jstf=abc, s1.jstf=_ -> s1.typ=P, s1.isGoal=T", _ => {
-        ()
+        failMsg("not implemented")
     })
     
     it("+s1, +s2 -> s1.typ=P, s1.isGoal=T, s2.typ=P, s2.isGoal=F", _ => {
-        ()
+        failMsg("not implemented")
     })
     
     it("+s1, +s2, s1.jstf=hyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F", _ => {
-        ()
+        failMsg("not implemented")
     })
 })

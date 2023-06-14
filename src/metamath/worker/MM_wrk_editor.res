@@ -600,21 +600,16 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
-let completeJstfEditMode = (st, stmtId, newJstf) => {
+let completeJstfEditMode = (st, stmtId, newJstfInp) => {
     updateStmt(st, stmtId, stmt => {
-        let jstfTrimUpperCase = newJstf->Js.String2.trim->Js.String2.toLocaleUpperCase
-        let (typ,isGoal,newJstf) = 
-            if (jstfTrimUpperCase == "HYP") {
-                (E,false,"")
-            } else if (jstfTrimUpperCase == "") {
-                (P, if (stmt.typ == E) {false} else {stmt.isGoal}, "")
-            } else {
-                (stmt.typ,stmt.isGoal,newJstf)
-            }
+        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
+        let newTyp = if (jstfTrimUpperCase == "HYP") {E} else {P}
+        let newIsGoal = if (newTyp == E) {false} else {stmt.isGoal}
+        let newJstf = if (jstfTrimUpperCase == "HYP") {""} else {newJstfInp->Js.String2.trim}
         {
             ...stmt,
-            typ,
-            isGoal,
+            typ: newTyp,
+            isGoal: newIsGoal,
             jstfText:newJstf,
             jstfEditMode: false,
         }
