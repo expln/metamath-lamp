@@ -879,26 +879,112 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s2.jstf=hhyp, s3.typ=P, s3.isGoal=T", _ => {
-        failMsg("not implemented")
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hyp")
+        let (st, s2) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "hyp")
+        let (st, s3) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "")
+
+        //when
+        let st = st->completeJstfEditMode(s2, "hhyp")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).jstfText, "hhyp", "s2.jstfText")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s3).typ, P , "s3.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s3).isGoal, true, "s3.isGoal")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
-        failMsg("not implemented")
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hyp")
+        let (st, s2) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "hyp")
+
+        //when
+        let st = st->completeJstfEditMode(s2, "")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, true, "s2.isGoal")
     })
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_, s1.jstf=_ -> s1.typ=P, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
-        failMsg("not implemented")
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s1, "hyp")
+        let (st, s2) = addNewStmt(st)
+        let st = st->completeJstfEditMode(s2, "hyp")
+        let st = st->completeJstfEditMode(s2, "")
+
+        //when
+        let st = st->completeJstfEditMode(s1, "")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, true, "s2.isGoal")
     })
     
     it("+s1, s1.jstf=abc, s1.jstf=_ -> s1.typ=P, s1.isGoal=T", _ => {
-        failMsg("not implemented")
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+
+        //when
+        let st = st->completeJstfEditMode(s1, "")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true, "s1.isGoal")
     })
     
     it("+s1, +s2 -> s1.typ=P, s1.isGoal=T, s2.typ=P, s2.isGoal=F", _ => {
-        failMsg("not implemented")
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+
+        //when
+        let (st, s2) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
     })
     
     it("+s1, +s2, s1.jstf=hyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F", _ => {
-        failMsg("not implemented")
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let (st, s2) = addNewStmt(st)
+
+        //when
+        let st = st->completeJstfEditMode(s1, "hyp")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
     })
 })
