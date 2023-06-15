@@ -817,24 +817,30 @@ let make = (
         })->ignore
     }
 
+    let onlyDigitsRe = %re("/^\d+$/") // String of only 1+ digits
+
     let renumberable = (label) => { // True iff label is only digits
-        let characters = Js.String2.split(label, "")
-        Belt.Array.every(characters, c => (c >= "0" && c <= "9"))
+        switch (label->Js.String2.match_(onlyDigitsRe)) {
+        | None => false
+        | Some(_) => true
+        }
     }
 
-    let updated_hyps = (hyps, updatedLabels) => {
-        Js.String2.split(hyps, " ")->Js.Array2.map(
-            hyp => updatedLabels->Belt_HashMapString.get(hyp)
+    let updatedHyps = (hyps, updatedLabels) => {
+        let hyps = hyps->Js.String2.trim
+        Js.String2.splitByRe(hyps, %re("/\s+/"))->Js.Array2.map(
+            hyp => updatedLabels->Belt_HashMapString.get(
+                       hyp->Belt.Option.getWithDefault(""))
         )->Js.Array2.joinWith(" ")
     }
 
-    let updated_justification = (jstfText, updatedLabels) => {
+    let updatedJustification = (jstfText, updatedLabels) => {
         if (jstfText == "" || jstfText->Js.String2.get(0) == ":" ||
             !(jstfText->Js.String2.includes(":"))) {
             jstfText
         } else {
             switch Js.String2.splitAtMost(jstfText, ":", ~limit = 2) {
-            | [hyps, ref] => updated_hyps(hyps, updatedLabels) ++ ":" ++ ref
+            | [hyps, ref] => updatedHyps(hyps, updatedLabels) ++ ":" ++ ref
             | _ => jstfText
             }
         }
@@ -852,9 +858,9 @@ let make = (
                 oldLabel
             }
             let oldJstf = stmt.jstfText
-            let newJstf = updated_justification(oldJstf, updatedLabels)
+            let newJstf = updatedJustification(oldJstf, updatedLabels)
             if newJstf != oldJstf {
-                setState(completeJstfEditMode(_, stmt.id, newJstf))
+                setState(st => completeJstfEditMode(st, stmt.id, newJstf))
             }
             updatedLabels->Belt_HashMapString.set(oldLabel, newLabel)
             setState(st => completeLabelEditMode(st, stmt.id, newLabel))
