@@ -31,6 +31,8 @@ type stmtCont =
     | Text(array<stmtSym>)
     | Tree(stmtContTreeData)
 
+let defaultJstfForHyp:string
+
 let contIsEmpty: stmtCont => bool
 let contToArrStr: stmtCont => array<string>
 let contToStr: stmtCont => string

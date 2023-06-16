@@ -714,7 +714,14 @@ let make = React.memoCustomCompareProps( ({
                 }
             setState(setNewText(_,contStr))
         } else if (stmt.jstfEditMode) {
-            setState(setNewText(_,stmt.jstfText))
+            setState(st => {
+                st->setNewText(
+                    switch stmt.typ {
+                        | E => defaultJstfForHyp
+                        | P => stmt.jstfText
+                    }
+                )
+            })
         }
         None
     }, [stmt.labelEditMode, stmt.typEditMode, stmt.contEditMode, stmt.jstfEditMode])
