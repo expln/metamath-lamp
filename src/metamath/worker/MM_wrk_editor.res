@@ -606,11 +606,13 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
+let defaultJstfForHyp = "HYP"
+
 let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     updateStmt(st, stmtId, stmt => {
         let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
-        let newTyp = if (jstfTrimUpperCase == "HYP") {E} else {P}
-        let newJstf = if (jstfTrimUpperCase == "HYP") {""} else {newJstfInp->Js.String2.trim}
+        let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
+        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
 
         let pCnt = st.stmts->Js.Array2.reduce(
             (cnt,stmt) => {

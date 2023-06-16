@@ -769,9 +769,6 @@ describe("removeUnusedVars", _ => {
 })
 
 describe("automatic convertion E<->P depending on jstfText", _ => {
-    it("review all the changes in the branch and add missing tests", _ => {
-        failMsg("not implemented")
-    })
     
     it("+s1 -> s1.typ=P, s1.isGoal=T", _ => {
         //given
@@ -795,6 +792,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
     })
     
@@ -809,6 +807,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "typ")
         assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, true, "isGoal")
@@ -827,8 +826,10 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, E , "typ")
+        assertEq( editorGetStmtByIdExn(st,s2).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "isGoal")
         assertEqMsg( editorGetStmtByIdExn(st,s3).typ, P , "typ")
         assertEqMsg( editorGetStmtByIdExn(st,s3).isGoal, true, "isGoal")
@@ -848,6 +849,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "isGoal")
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "typ")
         assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "isGoal")
@@ -869,6 +871,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
 
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
@@ -894,6 +897,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
 
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
@@ -917,6 +921,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
 
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
@@ -983,6 +988,7 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "s1.typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, "")
         assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
 
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
