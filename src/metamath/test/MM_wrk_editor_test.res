@@ -10,6 +10,7 @@ open MM_wrk_pre_ctx_data
 let createEditorState = (
     mmFile:string, 
     ~initStmtIsGoal:bool=false, 
+    ~defaultStmtLabel:string="", 
     ()
 ) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
@@ -24,7 +25,7 @@ let createEditorState = (
         asrtsToSkipRegex: "",
         editStmtsByLeftClick:true,
         initStmtIsGoal,
-        defaultStmtLabel: "",
+        defaultStmtLabel,
         defaultStmtType: "",
         checkSyntax: true,
         stickGoalToBottom: true,
@@ -986,5 +987,147 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
         assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
+    })
+})
+
+
+
+describe("defaults for G steps", _ => {
+    it("the very first step is not marked G when the setting is false", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ())
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+    })
+
+    it("the very first step is marked G when the setting is true", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true, "s1.isGoal")
+    })
+
+    it("the very first step is not labeled qed when the setting is empty", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="", ())
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).label, "1", "s1.label")
+    })
+
+    it("the very first step is labeled qed when the setting is _qed_", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel=" qed ", ())
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).label, "qed", "s1.label")
+    })
+    
+    it("if there is a hyp step then the newly added step is not marked G when the setting is false", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ())
+        let (st, h1) = addNewStmt(st)
+        let st = st->completeTypEditMode(h1,E,false)
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.isGoal")
+    })
+
+    it("if there is a hyp step then the newly added step is marked G when the setting is true", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, h1) = addNewStmt(st)
+        let st = st->completeTypEditMode(h1,E,false)
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true, "s1.isGoal")
+    })
+
+    it("if there is a hyp step then the newly added step is not labeled qed when the setting is empty", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="  ", ())
+        let (st, h1) = addNewStmt(st)
+        let st = st->completeTypEditMode(h1,E,false)
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).label, "2", "s1.label")
+    })
+
+    it("if there is a hyp step then the newly added step is labeled qed when the setting is qed", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="qed", ())
+        let (st, h1) = addNewStmt(st)
+        let st = st->completeTypEditMode(h1,E,false)
+        let st = st->completeLabelEditMode(h1,"hyp.1")
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).label, "qed", "s1.label")
+    })
+
+    it("if there is another P step then the newly added step is not marked G when the setting is true", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, p1) = addNewStmt(st)
+        let st = st->completeLabelEditMode(p1,"p1")
+        assertEq( editorGetStmtByIdExn(st,p1).typ, P)
+        assertEq( editorGetStmtByIdExn(st,p1).isGoal, true)
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, false, "s1.label")
+    })
+
+    it("if there is another P step then the newly added step is not labeled qed when the setting is qed", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
+        let (st, p1) = addNewStmt(st)
+        assertEq( editorGetStmtByIdExn(st,p1).typ, P)
+        assertEq( editorGetStmtByIdExn(st,p1).label, "qed")
+        let st = st->completeLabelEditMode(p1,"p1")
+        assertEq( editorGetStmtByIdExn(st,p1).label, "p1")
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).label, "1", "s1.label")
     })
 })

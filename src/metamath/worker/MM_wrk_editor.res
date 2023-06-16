@@ -418,11 +418,13 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
         0
     )
-    let newLabel = if (pCnt == 0 && st.settings.defaultStmtLabel->Js.String2.length > 0) {
-        st.settings.defaultStmtLabel
-    } else {
-        createNewLabel(st, newLabelPrefix)
-    }
+    let newLabel = 
+        if (pCnt == 0 
+                && st.settings.defaultStmtLabel->Js.String2.trim->Js.String2.length > 0) {
+            st.settings.defaultStmtLabel->Js.String2.trim
+        } else {
+            createNewLabel(st, newLabelPrefix)
+        }
     let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
@@ -586,7 +588,11 @@ let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
         {
             ...stmt,
             typ:newTyp,
-            isGoal:newIsGoal,
+            isGoal: 
+                switch newTyp {
+                    | E => false
+                    | P => newIsGoal
+                },
             typEditMode: false
         }
     })
