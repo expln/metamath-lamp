@@ -884,7 +884,9 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
     } else {
         let argsAndAsrt = jstfText->Js_string2.split(":")
         if (argsAndAsrt->Js_array2.length != 2) {
-            Error(`Cannot parse justification: '${jstfText}' [1].`)
+            Error(`Cannot parse justification: '${jstfText}'. A justification must contain exactly one colon symbol.`)
+        } else if (argsAndAsrt[1]->Js_string2.trim == "") {
+            Error(`Cannot parse justification: '${jstfText}'. Reference must not be empty.`)
         } else {
             Ok(Some({
                 args: argsAndAsrt[0]->getSpaceSeparatedValuesAsArray,
@@ -2373,4 +2375,52 @@ let updateExpLevel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
         newNum := getNumberOfSelectedSymbols(newTreeData.contents)
     }
     newTreeData.contents
+}
+
+let onlyDigitsPattern = %re("/^\d+$/")
+
+let containsOnlyDigits = label => label->Js_string2.match_(onlyDigitsPattern)->Belt_Option.isSome
+
+let renumberSteps = (state:editorState):result<editorState, string> => {
+    let state = state->prepareEditorForUnification
+    if (state->editorStateHasErrors) {
+        Error(
+            `Cannot perform renumbering because there is an error in the editor content.`
+                ++ ` Please fix the error before renumbering.`
+        )
+    } else {
+        let prefix = "###tmp###"
+        let idsToRenumberArr = state.stmts
+            ->Js.Array2.filter(stmt => stmt.typ == P && stmt.label->containsOnlyDigits)
+            ->Js.Array2.map(stmt => stmt.id)
+        let idsToRenumberSet = idsToRenumberArr->Belt_HashSetString.fromArray
+
+        //step 1: assign temporary labels to all the renumberable statements in order to make all numeric labels not used
+        let res = state.stmts->Js.Array2.reduce(
+            (res,stmt) => {
+                switch res {
+                    | Ok(st) => {
+                        if (idsToRenumberSet->Belt_HashSetString.has(stmt.id)) {
+                            st->renameStmt(stmt.id, prefix ++ stmt.label)
+                        } else {
+                            Ok(st)
+                        }
+                    }
+                    | err => err
+                }
+            },
+            Ok(state)
+        )
+
+        //step 2: assign final labels to each renumberable statement
+        idsToRenumberArr->Js.Array2.reduce(
+            (res,stmtId) => {
+                switch res {
+                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(""))
+                    | err => err
+                }
+            },
+            res
+        )
+    }
 }

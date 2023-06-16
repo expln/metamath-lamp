@@ -282,7 +282,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot parse justification: 'pr1 hyp1' [1].")
+        assertEq(
+            st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), 
+            "Cannot parse justification: 'pr1 hyp1'. A justification must contain exactly one colon symbol."
+        )
     })
 
     it("detects a ref error in a provable's justification when asrt label refers to a hypothesis", _ => {

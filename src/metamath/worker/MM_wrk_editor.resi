@@ -206,3 +206,5 @@ let getColorForSymbol: (
 ) => option<string>
 
 let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>
+
+let renumberSteps: editorState => result<editorState, string>
