@@ -945,7 +945,7 @@ let make = (
                     onChange=evt2bool(actInitStmtIsGoalChange)
                 />
             }
-            label="Mark initial step as a goal"
+            label="Mark the first provable step as a goal"
         />
         <FormControlLabel
             control={
@@ -962,7 +962,7 @@ let make = (
             label="Initial step label" 
             value=state.defaultStmtLabel
             onChange=evt2str(actDefaultStmtLabelChange)
-            title="This text is used as a label for the initial step. If empty - a label will be generated automatically."
+            title="This text is used as a label for the first provable step. If empty - a label will be generated automatically."
         />
         <TextField 
             size=#small

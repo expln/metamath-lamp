@@ -282,7 +282,7 @@ let make = (
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
         let newLabel = newLabel->Js_string2.trim
         switch state->renameStmt(stmtId, newLabel) {
-            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this statement: ${msg}`, () )
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this step: ${msg}`, () )
             | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabel))
         }
     }
@@ -372,9 +372,23 @@ let make = (
         switch state->editorGetStmtById(stmtId) {
             | None => ()
             | Some(stmt) => {
-                let textOld = stmt.jstfText->Js_string2.trim
-                let textNew = newJstfText->Js_string2.trim
-                if (textOld == textNew || textNew == "") {
+                let textOld = switch stmt.typ {
+                    | E => defaultJstfForHyp
+                    | P => stmt.jstfText->Js_string2.trim
+                }
+                let newJstfTextTrim = newJstfText->Js_string2.trim
+                let textNew = switch stmt.typ {
+                    | P => newJstfTextTrim
+                    | E => {
+                        if (defaultJstfForHyp == newJstfTextTrim->Js.String2.toUpperCase) {
+                            defaultJstfForHyp
+                        } else {
+                            newJstfTextTrim
+                        }
+                    }
+                }
+                let nothingChanged = textOld == textNew
+                if (nothingChanged) {
                     setState(completeJstfEditMode(_,stmtId,textOld))
                 } else {
                     openModal(modalRef, _ => React.null)->promiseMap(modalId => {

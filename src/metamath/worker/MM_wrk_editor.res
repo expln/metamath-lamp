@@ -414,12 +414,18 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
 
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
-    let newLabel = if (st.stmts->Js.Array2.length == 0 && st.settings.defaultStmtLabel->Js.String2.length > 0) {
-        st.settings.defaultStmtLabel
-    } else {
-        createNewLabel(st, newLabelPrefix)
-    }
-    let isGoal = st.stmts->Js.Array2.length == 0 && st.settings.initStmtIsGoal
+    let pCnt = st.stmts->Js.Array2.reduce(
+        (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
+        0
+    )
+    let newLabel = 
+        if (pCnt == 0 
+                && st.settings.defaultStmtLabel->Js.String2.trim->Js.String2.length > 0) {
+            st.settings.defaultStmtLabel->Js.String2.trim
+        } else {
+            createNewLabel(st, newLabelPrefix)
+        }
+    let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
@@ -582,7 +588,11 @@ let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
         {
             ...stmt,
             typ:newTyp,
-            isGoal:newIsGoal,
+            isGoal: 
+                switch newTyp {
+                    | E => false
+                    | P => newIsGoal
+                },
             typEditMode: false
         }
     })
@@ -596,12 +606,36 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
-let completeJstfEditMode = (st, stmtId, newJstf) => {
+let defaultJstfForHyp = "HYP"
+
+let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     updateStmt(st, stmtId, stmt => {
+        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
+        let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
+        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
+
+        let pCnt = st.stmts->Js.Array2.reduce(
+            (cnt,stmt) => {
+                let typ = if (stmt.id == stmtId) {newTyp} else {stmt.typ}
+                if (stmt.id != stmtId && typ == P) {cnt + 1} else {cnt}
+            },
+            0
+        )
+        
+        let newIsGoal = if (newTyp == E) { false } else { pCnt == 0 }
+        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
+            st.settings.defaultStmtLabel
+        } else { 
+            stmt.label
+        }
+        
         {
             ...stmt,
+            typ: newTyp,
+            isGoal: newIsGoal,
+            label:newLabel,
             jstfText:newJstf,
-            jstfEditMode: false
+            jstfEditMode: false,
         }
     })
 }
@@ -2042,27 +2076,31 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
             switch res {
                 | Error(_) => res
                 | Ok(st) => {
-                    switch parseJstf(stmt.jstfText) {
-                        | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' ` 
-                                                ++ `for the step '${stmt.label}'`)
-                        | Ok(None) => Ok(st)
-                        | Ok(Some(jstf)) => {
-                            if (jstf.args->Js.Array2.includes(replaceWhat)) {
-                                let newJstf = {
-                                    ...jstf,
-                                    args: jstf.args
-                                        ->Js_array2.map(ref => if (ref == replaceWhat) {replaceWith} else {ref})
+                    if (stmt.typ == E) {
+                        Ok(st)
+                    } else {
+                        switch parseJstf(stmt.jstfText) {
+                            | Error(_) => Error(`Cannot parse justification '${stmt.jstfText}' ` 
+                                                    ++ `for the step '${stmt.label}'`)
+                            | Ok(None) => Ok(st)
+                            | Ok(Some(jstf)) => {
+                                if (jstf.args->Js.Array2.includes(replaceWhat)) {
+                                    let newJstf = {
+                                        ...jstf,
+                                        args: jstf.args
+                                            ->Js_array2.map(ref => if (ref == replaceWhat) {replaceWith} else {ref})
+                                    }
+                                    Ok(
+                                        st->updateStmt(stmt.id, stmt => {
+                                            {
+                                                ...stmt,
+                                                jstfText: jstfToStr(newJstf)
+                                            }
+                                        })
+                                    )
+                                } else {
+                                    Ok(st)
                                 }
-                                Ok(
-                                    st->updateStmt(stmt.id, stmt => {
-                                        {
-                                            ...stmt,
-                                            jstfText: jstfToStr(newJstf)
-                                        }
-                                    })
-                                )
-                            } else {
-                                Ok(st)
                             }
                         }
                     }
@@ -2100,7 +2138,7 @@ let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,strin
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
-let renameStmt = (st:editorState, stmtId:string, newLabel:string):result<editorState,string> => {
+let renameStmt = (st:editorState, stmtId:stmtId, newLabel:string):result<editorState,string> => {
     let newLabel = newLabel->removeSymbolsNotAllowedInLabel
     if (newLabel == "") {
         Error(`label must not be empty.`)
