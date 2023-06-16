@@ -817,55 +817,9 @@ let make = (
         })->ignore
     }
 
-    let onlyDigitsRe = %re("/^\d+$/") // String of only 1+ digits
-
-    let renumberable = (label) => { // True iff label is only digits
-        switch (label->Js.String2.match_(onlyDigitsRe)) {
-        | None => false
-        | Some(_) => true
-        }
-    }
-
-    let updatedHyps = (hyps, updatedLabels) => {
-        let hyps = hyps->Js.String2.trim
-        Js.String2.splitByRe(hyps, %re("/\s+/"))->Js.Array2.map(
-            hyp => updatedLabels->Belt_HashMapString.get(
-                       hyp->Belt.Option.getWithDefault(""))
-        )->Js.Array2.joinWith(" ")
-    }
-
-    let updatedJustification = (jstfText, updatedLabels) => {
-        if (jstfText == "" || jstfText->Js.String2.get(0) == ":" ||
-            !(jstfText->Js.String2.includes(":"))) {
-            jstfText
-        } else {
-            switch Js.String2.splitAtMost(jstfText, ":", ~limit = 2) {
-            | [hyps, ref] => updatedHyps(hyps, updatedLabels) ++ ":" ++ ref
-            | _ => jstfText
-            }
-        }
-    }
-
-    let actRenumberSteps = () => {
-        let updatedLabels = Belt_HashMapString.make(~hintSize=128)
-        let stepNumber = ref(0) // Increases on assigning new number label
-        state.stmts->Js.Array2.forEach(stmt => {
-            let oldLabel = stmt.label
-            let newLabel = if renumberable(oldLabel) {
-                stepNumber := stepNumber.contents + 1
-                Belt.Int.toString(stepNumber.contents)
-            } else {
-                oldLabel
-            }
-            let oldJstf = stmt.jstfText
-            let newJstf = updatedJustification(oldJstf, updatedLabels)
-            if newJstf != oldJstf {
-                setState(st => completeJstfEditMode(st, stmt.id, newJstf))
-            }
-            updatedLabels->Belt_HashMapString.set(oldLabel, newLabel)
-            setState(st => completeLabelEditMode(st, stmt.id, newLabel))
-        })
-    }
+    // let actRenumberSteps = (state) => {
+    //     // TODO: state->renumberSteps
+    // }
 
     let actExportToUrl = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
@@ -1104,7 +1058,7 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actRenumberSteps()
+                                // actRenumberSteps()
                             }}
                         >
                             {"Renumber numbered steps"->React.string}

@@ -2336,3 +2336,74 @@ let updateExpLevel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
     }
     newTreeData.contents
 }
+
+let onlyDigitsRe = %re("/^\d+$/") // String of only 1+ digits
+
+let renumberable = (label):bool => { // True iff label is only digits
+    switch (label->Js.String2.match_(onlyDigitsRe)) {
+    | None => false
+    | Some(_) => true
+    }
+}
+
+let updatedHyps = (hyps:array<string>, label:string, updatedLabels):result<string,string> => {
+    try {
+        let newHyps = hyps->Js.Array2.map(hyp =>
+            switch updatedLabels->Belt_HashMapString.get(hyp) {
+            | None => raise(MmException({msg: `Unknown hypothesis ${hyp} at step '${label}'`}))
+            | Some(newHyp) => newHyp
+            }
+        )
+        Ok(newHyps->Js.Array2.joinWith(" "))
+    } catch {
+    | MmException({msg}) => Error(msg)
+    }
+}
+
+let updatedJustification = (jstfText:string, updatedLabels):result<string,string> => { // For renumbering
+    switch parseJstf(jstfText) {
+    | Ok(None) => Ok("")
+    | Error(msg) => Error(msg)
+    | Ok(Some({args, label})) => {
+        switch updatedHyps(args, label, updatedLabels) {
+        | Ok(newhyps) => Ok(newhyps ++ ":" ++ label)
+        | Error(msg) => Error(msg)
+        }
+    }}
+}
+
+let renumberSteps = (state:editorState):result<editorState, string> => {
+    // updatedLabels.get(oldLabel) returns newLabel
+    let updatedLabels = Belt_HashMapString.make(~hintSize=128)
+    let stepNumber = ref(0) // Increases on assigning a new number label
+    try {
+        let newStmts:array<userStmt> = state.stmts->Js.Array2.map(stmt => {
+            let oldLabel = stmt.label
+            if (userStmtHasErrors(stmt)) {
+                raise(MmException({msg: `Error in step '${oldLabel}'`}))
+            }
+            if (stmt.typ == E) {
+                raise(MmException({msg: `Cannot renumber - error present'`}))
+            }
+            let newLabel = if renumberable(oldLabel) {
+                // if stmt.typ == H {
+                //     raise(MmException({msg: `Cannot renumber hypothesis '${oldlabel}'`}))
+                // }
+                stepNumber := stepNumber.contents + 1
+                Belt.Int.toString(stepNumber.contents)
+            } else {
+                oldLabel
+            }
+            let oldJstf = stmt.jstfText
+            let newJstf = switch updatedJustification(oldJstf, updatedLabels) {
+            | Ok(result) => result
+            | Error(msg) => raise(MmException({msg: msg}))
+            }
+            updatedLabels->Belt_HashMapString.set(oldLabel, newLabel)
+            {...stmt, jstfText: newJstf, label: newLabel}
+        })
+        Ok({...state, stmts: newStmts}) // Return updated state
+    } catch {
+    | MmException({msg}) => Error(msg)
+    }
+}
