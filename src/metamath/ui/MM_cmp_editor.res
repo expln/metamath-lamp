@@ -1257,6 +1257,7 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.descr
                     editMode=state.descrEditMode
+                    editByClick=false
                     editByAltClick=true
                     longClickEnabled=state.settings.longClickEnabled
                     longClickDelayMs=state.settings.longClickDelayMs
@@ -1289,6 +1290,10 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.varsText
                     editMode=state.varsEditMode
+                    editByClick=true
+                    editByAltClick=true
+                    longClickEnabled=state.settings.longClickEnabled
+                    longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setVarsEditMode)}
                     onEditDone={newText => actCompleteEdit(completeVarsEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditVars(newText)}
@@ -1307,6 +1312,10 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.disjText
                     editMode=state.disjEditMode
+                    editByClick=true
+                    editByAltClick=true
+                    longClickEnabled=state.settings.longClickEnabled
+                    longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDisjEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDisjEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDisj(newText)}
