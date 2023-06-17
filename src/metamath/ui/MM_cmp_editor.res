@@ -953,6 +953,30 @@ let make = (
         })->ignore
     }
 
+    let actShowInfoAboutGettingCompressedProof = () => {
+        openInfoDialog( 
+            ~modalRef, 
+            ~text=`In order to show a compressed proof please do the following: ` 
+                ++ `1) Make sure the step you want to show a compressed proof for is marked with a green chekmark. ` 
+                ++ `If it is not, try to "unify all"; 2) Select the step you want to show a compressed proof for; ` 
+                ++ `3) Select "Show compressed proof" menu item.`, 
+            () 
+        )
+    }
+
+    let actShowCompressedProof = () => {
+        switch state->getTheOnlyCheckedStmt {
+            | Some(stmt) if stmt.typ == P => {
+                switch stmt.proofStatus {
+                    | Some(Ready) => actExportProof(stmt.id)
+                    | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
+                        actShowInfoAboutGettingCompressedProof()
+                }
+            }
+            | _ => actShowInfoAboutGettingCompressedProof()
+        }
+    }
+
     let actDebugUnifyAll = (stmtId) => {
         let st = state
         let st = st->uncheckAllStmts
@@ -1088,6 +1112,14 @@ let make = (
                             }}
                         >
                             {"Import from JSON ..."->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actShowCompressedProof()
+                            }}
+                        >
+                            {"Show compressed proof"->React.string}
                         </MenuItem>
                     </Menu>
                 }
