@@ -68,6 +68,9 @@ let mainTheme = ThemeProvider.createTheme(
         "palette": {
             "grey": {
                 "main": "#e0e0e0",
+            },
+            "red": {
+                "main": "#FF0000",
             }
         }
     }

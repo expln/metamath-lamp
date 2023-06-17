@@ -41,9 +41,10 @@ let make = (
     ~onEditRequested:unit=>unit, 
     ~onEditDone:string=>unit,
     ~onEditCancel:string=>unit,
+    ~editByClick:bool=true,
     ~editByAltClick:bool=false,
     ~longClickEnabled:bool=false,
-    ~longClickDelayMs:int=0,
+    ~longClickDelayMs:int=10_000,
     ~renderer:option<string=>reElem>=?,
     ~width:int=600,
     ~fullWidth:bool=false,
@@ -58,17 +59,30 @@ let make = (
         onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, 
     } = UseLongClick.useLongClick(
         ~onClick = Some(
-            if (editByAltClick) {
-                MM_react_common.clickHnd(~alt=true, ~act=onEditRequested, ())
+            if (editByClick) {
+                if (editByAltClick) {
+                    clickHnd2(
+                        clickClbkMake(~act=onEditRequested, ()),
+                        clickClbkMake(~alt=true, ~act=onEditRequested, ()),
+                    )
+                } else {
+                    clickHnd(~act=onEditRequested, ())
+                }
+            } else if (editByAltClick) {
+                clickHnd(~alt=true, ~act=onEditRequested, ())
             } else {
-                MM_react_common.clickHnd(~act=onEditRequested, ())
+                _ => ()
             }
         ),
-        ~longClickEnabled,
+        ~longClickEnabled = longClickEnabled && editByAltClick,
         ~longClickDelayMs,
         ~onShortClick=Some(clickAttrs => {
             switch clickAttrs {
-                | Some({alt:true}) => onEditRequested()
+                | Some({alt}) => {
+                    if (editByClick && !alt || editByAltClick && alt) {
+                        onEditRequested()
+                    }
+                }
                 | _ => ()
             }
         }),

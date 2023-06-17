@@ -953,6 +953,30 @@ let make = (
         })->ignore
     }
 
+    let actShowInfoAboutGettingCompressedProof = () => {
+        openInfoDialog( 
+            ~modalRef, 
+            ~text=`In order to show a completed proof please do the following: ` 
+                ++ `1) Make sure the step you want to show a compressed proof for is marked with a green chekmark. ` 
+                ++ `If it is not, try to "unify all"; 2) Select the step you want to show a compressed proof for; ` 
+                ++ `3) Select "Show compressed proof" menu item.`, 
+            () 
+        )
+    }
+
+    let actShowCompletedProof = () => {
+        switch state->getTheOnlyCheckedStmt {
+            | Some(stmt) if stmt.typ == P => {
+                switch stmt.proofStatus {
+                    | Some(Ready) => actExportProof(stmt.id)
+                    | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
+                        actShowInfoAboutGettingCompressedProof()
+                }
+            }
+            | _ => actShowInfoAboutGettingCompressedProof()
+        }
+    }
+
     let actDebugUnifyAll = (stmtId) => {
         let st = state
         let st = st->uncheckAllStmts
@@ -1088,6 +1112,14 @@ let make = (
                             }}
                         >
                             {"Import from JSON ..."->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actShowCompletedProof()
+                            }}
+                        >
+                            {"Show completed proof"->React.string}
                         </MenuItem>
                     </Menu>
                 }
@@ -1257,6 +1289,7 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.descr
                     editMode=state.descrEditMode
+                    editByClick=false
                     editByAltClick=true
                     longClickEnabled=state.settings.longClickEnabled
                     longClickDelayMs=state.settings.longClickDelayMs
@@ -1289,6 +1322,10 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.varsText
                     editMode=state.varsEditMode
+                    editByClick=true
+                    editByAltClick=true
+                    longClickEnabled=state.settings.longClickEnabled
+                    longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setVarsEditMode)}
                     onEditDone={newText => actCompleteEdit(completeVarsEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditVars(newText)}
@@ -1307,6 +1344,10 @@ let make = (
                 <MM_cmp_multiline_text
                     text=state.disjText
                     editMode=state.disjEditMode
+                    editByClick=true
+                    editByAltClick=true
+                    longClickEnabled=state.settings.longClickEnabled
+                    longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDisjEditMode)}
                     onEditDone={newText => actCompleteEdit(completeDisjEditMode(_,newText))}
                     onEditCancel={newText => actCancelEditDisj(newText)}

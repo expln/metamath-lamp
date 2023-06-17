@@ -422,13 +422,18 @@ let stmtPartMarginLeft = "10px"
 let stmtPartMarginTopInt = 5
 let stmtPartMarginTop = stmtPartMarginTopInt->Belt.Int.toString ++ "px"
 
+let checkMarkSymbol = "\u2713"
+
 let rndProofStatus = (
     ~proofStatus:option<proofStatus>,
+    ~longClickEnabled:bool,
+    ~longClickDelayMs:int,
     ~readyTooltip:option<string>=?,
     ~waitingTooltip:option<string>=?,
     ~noJstfTooltip:option<string>=?,
     ~jstfIsIncorrectTooltip:option<string>=?,
     ~onReadyIconClicked:option<unit=>unit>=?,
+    ~onReadyIconAltClicked:option<unit=>unit>=?,
     ~onErrorIconClicked:option<unit=>unit>=?,
     ~onNoJstfIconClicked:option<unit=>unit>=?,
     ()
@@ -449,15 +454,55 @@ let rndProofStatus = (
         | Some(status) => {
             switch status {
                 | Ready =>
-                    <span 
-                        title=?readyTooltip
-                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                            ~color="green",
-                            ~cursor=if (onReadyIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
-                            ()
-                        ))}
-                        onClick={_=>onReadyIconClicked->Belt_Option.forEach(clbk => clbk())}
-                    >{React.string("\u2713")}</span>
+                    let style = commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                        ~color="green",
+                        ~cursor=
+                            if (onReadyIconClicked->Belt_Option.isSome || onReadyIconAltClicked->Belt_Option.isSome) {
+                                "pointer"
+                            } else {
+                                "default"
+                            }, 
+                        ()
+                    ))
+                    switch onReadyIconAltClicked {
+                        | None => {
+                            <span 
+                                title=?readyTooltip
+                                style
+                                onClick={_=>callbackOpt(onReadyIconClicked)()}
+                            >{React.string(checkMarkSymbol)}</span>
+                        }
+                        | Some(onReadyIconAltClicked) => {
+                            <LongClickSpan
+                                onClick={
+                                    clickHnd2(
+                                        clickClbkMake(~act = callbackOpt(onReadyIconClicked), ()),
+                                        clickClbkMake(~alt=true, ~act=onReadyIconAltClicked, ()),
+                                    )
+                                }
+                                longClickEnabled
+                                longClickDelayMs
+                                onShortClick={
+                                    (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                                        switch clickAttrs {
+                                            | None => callbackOpt(onReadyIconClicked)()
+                                            | Some({alt}) => {
+                                                if (alt) {
+                                                    onReadyIconAltClicked()
+                                                } else {
+                                                    callbackOpt(onReadyIconClicked)()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                onLongClick=onReadyIconAltClicked
+
+                                title=?readyTooltip
+                                style
+                            >{React.string(checkMarkSymbol)}</LongClickSpan>
+                        }
+                    }
                 | Waiting =>
                     <span 
                         title=?waitingTooltip
@@ -1349,12 +1394,18 @@ let make = React.memoCustomCompareProps( ({
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                         ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
                     {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
-                                ~onClick=actJstfDeleted, ~title="Clear", ~color=None, ())}
+                                ~onClick=actJstfDeleted, ~title="Clear", ~color=Some("red"), ())}
                 </Row>
             </Col>
         } else {
             let jstfText = if (stmt.typ == E) { "HYP" } else { stmt.jstfText }
             let padding = if (jstfText->Js_string2.trim == "") { "11px 16px" } else { "1px" }
+            let title =
+                if (longClickEnabled) {
+                    "<long-click> (Alt+<left-click>) to change"
+                } else {
+                    "Alt+<left-click> to change"
+                }
             <Row
                 spacing=0.
                 style=ReactDOM.Style.make(
@@ -1364,19 +1415,30 @@ let make = React.memoCustomCompareProps( ({
                 )
                 alignItems=#center
             >
-                <Paper
-                    ref=ReactDOM.Ref.domRef(jstfRef) 
-                    onClick=clickHnd(~act=actJstfEditRequested, ()) 
+                <LongClickPaper
+                    longClickEnabled
+                    longClickDelayMs
+                    onShortClick={
+                        (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                            switch clickAttrs {
+                                | Some({alt:true}) => actJstfEditRequested()
+                                | _ => ()
+                            }
+                        }
+                    }
+                    onLongClick=actJstfEditRequested
+                    ref_=ReactDOM.Ref.domRef(jstfRef) 
+                    onClick=clickHnd(~alt=true, ~act=actJstfEditRequested, ())
                     style=ReactDOM.Style.make( 
                         ~padding, 
                         ~overflowWrap="normal", 
                         ~whiteSpace="nowrap", 
                         ()
                     )
-                    title="<left-click> to change"
+                    title
                 >
                     {React.string(jstfText)}
-                </Paper>
+                </LongClickPaper>
                 {
                     if (isInline) {
                         <span style=ReactDOM.Style.make(~display="none", ())/>
@@ -1471,13 +1533,22 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndProofStatusInner = () => {
+        let readyTooltip =
+            if (longClickEnabled) {
+                "A proof is ready, <long-click> (Alt+<left-click>) to show a completed proof"
+            } else {
+                "A proof is ready, Alt+<left-click> to show a completed proof"
+            }
         rndProofStatus(
             ~proofStatus=stmt.proofStatus, 
-            ~readyTooltip="Proof is ready, left-click to generate compressed proof",
+            ~longClickEnabled,
+            ~longClickDelayMs,
+            ~readyTooltip,
             ~waitingTooltip="Justification for this step is correct",
             ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
             ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
-            ~onReadyIconClicked=onGenerateProof,
+            ~onReadyIconClicked=actToggleInfoExpanded,
+            ~onReadyIconAltClicked=onGenerateProof,
             ~onErrorIconClicked=onDebug,
             ~onNoJstfIconClicked=onDebug,
             ()

@@ -119,7 +119,12 @@ let make = (
                             <td style=ReactDOM.Style.make(~paddingTop, ())>
                                 { 
                                     if (proofStatusesAreAvailable) {
-                                        rndProofStatus(~proofStatus=getProofStatus(stmt), ())
+                                        rndProofStatus(
+                                            ~proofStatus=getProofStatus(stmt), 
+                                            ~longClickEnabled=false,
+                                            ~longClickDelayMs=0,
+                                            ()
+                                        )
                                     } else {
                                         React.null
                                     }
