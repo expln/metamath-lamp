@@ -422,13 +422,18 @@ let stmtPartMarginLeft = "10px"
 let stmtPartMarginTopInt = 5
 let stmtPartMarginTop = stmtPartMarginTopInt->Belt.Int.toString ++ "px"
 
+let checkMarkSymbol = "\u2713"
+
 let rndProofStatus = (
     ~proofStatus:option<proofStatus>,
+    ~longClickEnabled:bool,
+    ~longClickDelayMs:int,
     ~readyTooltip:option<string>=?,
     ~waitingTooltip:option<string>=?,
     ~noJstfTooltip:option<string>=?,
     ~jstfIsIncorrectTooltip:option<string>=?,
     ~onReadyIconClicked:option<unit=>unit>=?,
+    ~onReadyIconAltClicked:option<unit=>unit>=?,
     ~onErrorIconClicked:option<unit=>unit>=?,
     ~onNoJstfIconClicked:option<unit=>unit>=?,
     ()
@@ -449,15 +454,55 @@ let rndProofStatus = (
         | Some(status) => {
             switch status {
                 | Ready =>
-                    <span 
-                        title=?readyTooltip
-                        style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
-                            ~color="green",
-                            ~cursor=if (onReadyIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
-                            ()
-                        ))}
-                        onClick={_=>onReadyIconClicked->Belt_Option.forEach(clbk => clbk())}
-                    >{React.string("\u2713")}</span>
+                    let style = commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                        ~color="green",
+                        ~cursor=
+                            if (onReadyIconClicked->Belt_Option.isSome || onReadyIconAltClicked->Belt_Option.isSome) {
+                                "pointer"
+                            } else {
+                                "default"
+                            }, 
+                        ()
+                    ))
+                    switch onReadyIconAltClicked {
+                        | None => {
+                            <span 
+                                title=?readyTooltip
+                                style
+                                onClick={_=>callbackOpt(onReadyIconClicked)()}
+                            >{React.string(checkMarkSymbol)}</span>
+                        }
+                        | Some(onReadyIconAltClicked) => {
+                            <LongClickSpan
+                                onClick={
+                                    clickHnd2(
+                                        clickClbkMake(~act = callbackOpt(onReadyIconClicked), ()),
+                                        clickClbkMake(~alt=true, ~act=onReadyIconAltClicked, ()),
+                                    )
+                                }
+                                longClickEnabled
+                                longClickDelayMs
+                                onShortClick={
+                                    (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                                        switch clickAttrs {
+                                            | None => callbackOpt(onReadyIconClicked)()
+                                            | Some({alt}) => {
+                                                if (alt) {
+                                                    onReadyIconAltClicked()
+                                                } else {
+                                                    callbackOpt(onReadyIconClicked)()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                onLongClick=onReadyIconAltClicked
+
+                                title=?readyTooltip
+                                style
+                            >{React.string(checkMarkSymbol)}</LongClickSpan>
+                        }
+                    }
                 | Waiting =>
                     <span 
                         title=?waitingTooltip
@@ -1473,11 +1518,14 @@ let make = React.memoCustomCompareProps( ({
     let rndProofStatusInner = () => {
         rndProofStatus(
             ~proofStatus=stmt.proofStatus, 
+            ~longClickEnabled,
+            ~longClickDelayMs,
             ~readyTooltip="Proof is ready, left-click to generate compressed proof",
             ~waitingTooltip="Justification for this step is correct",
             ~noJstfTooltip="Justification cannot be determined automatically. Click to debug.",
             ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
-            ~onReadyIconClicked=onGenerateProof,
+            ~onReadyIconClicked=actToggleInfoExpanded,
+            ~onReadyIconAltClicked=onGenerateProof,
             ~onErrorIconClicked=onDebug,
             ~onNoJstfIconClicked=onDebug,
             ()

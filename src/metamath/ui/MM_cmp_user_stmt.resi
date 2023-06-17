@@ -7,11 +7,14 @@ open MM_syntax_tree
 
 let rndProofStatus: (
     ~proofStatus:option<proofStatus>,
+    ~longClickEnabled:bool,
+    ~longClickDelayMs:int,
     ~readyTooltip:string=?,
     ~waitingTooltip:string=?,
     ~noJstfTooltip:string=?,
     ~jstfIsIncorrectTooltip:string=?,
     ~onReadyIconClicked:unit=>unit =?,
+    ~onReadyIconAltClicked:unit=>unit=?,
     ~onErrorIconClicked:unit=>unit =?,
     ~onNoJstfIconClicked:unit=>unit =?,
     ()
