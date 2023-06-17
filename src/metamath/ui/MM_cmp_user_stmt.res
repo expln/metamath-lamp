@@ -1535,9 +1535,9 @@ let make = React.memoCustomCompareProps( ({
     let rndProofStatusInner = () => {
         let readyTooltip =
             if (longClickEnabled) {
-                "Proof is ready, <long-click> (Alt+<left-click>) to generate a compressed proof"
+                "A proof is ready, <long-click> (Alt+<left-click>) to show a completed proof"
             } else {
-                "Proof is ready, Alt+<left-click> to generate a compressed proof"
+                "A proof is ready, Alt+<left-click> to show a completed proof"
             }
         rndProofStatus(
             ~proofStatus=stmt.proofStatus, 

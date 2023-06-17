@@ -956,7 +956,7 @@ let make = (
     let actShowInfoAboutGettingCompressedProof = () => {
         openInfoDialog( 
             ~modalRef, 
-            ~text=`In order to show a compressed proof please do the following: ` 
+            ~text=`In order to show a completed proof please do the following: ` 
                 ++ `1) Make sure the step you want to show a compressed proof for is marked with a green chekmark. ` 
                 ++ `If it is not, try to "unify all"; 2) Select the step you want to show a compressed proof for; ` 
                 ++ `3) Select "Show compressed proof" menu item.`, 
@@ -964,7 +964,7 @@ let make = (
         )
     }
 
-    let actShowCompressedProof = () => {
+    let actShowCompletedProof = () => {
         switch state->getTheOnlyCheckedStmt {
             | Some(stmt) if stmt.typ == P => {
                 switch stmt.proofStatus {
@@ -1116,10 +1116,10 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actShowCompressedProof()
+                                actShowCompletedProof()
                             }}
                         >
-                            {"Show compressed proof"->React.string}
+                            {"Show completed proof"->React.string}
                         </MenuItem>
                     </Menu>
                 }
