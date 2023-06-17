@@ -65,7 +65,7 @@ let createDefaultSettings = () => {
         parensErr: None,
         asrtsToSkip: [],
         asrtsToSkipRegex: asrtsToSkipRegexDefault,
-        editStmtsByLeftClick: true,
+        editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
         defaultStmtType:"|-",
