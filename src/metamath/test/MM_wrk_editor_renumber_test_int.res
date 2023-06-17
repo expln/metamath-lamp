@@ -2,7 +2,7 @@ open Expln_test
 open MM_int_test_utils
 open MM_int_test_editor_methods
 
-describe("renumbering", _ => {
+describe("MM_wrk_editor integration tests: step renumbering", _ => {
     it("simple case", _ => {
         //given
 

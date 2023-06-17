@@ -4,7 +4,7 @@ open MM_int_test_editor_methods
 
 module Ed = MM_int_test_editor_methods
 
-describe("MM_wrk_editor integration tests", _ => {
+describe("MM_wrk_editor integration tests: proofs", _ => {
     it("prove reccot", _ => {
         setTestDataDir("prove-reccot")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="reccsc", ~debug, ())
