@@ -1,3 +1,4 @@
+- improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
 - make "compact mode" and "small buttons" default on mobile.
 - fix: copy to clipboard doesn't work on mobile.
 - show visualization for statements marked with '~'.
