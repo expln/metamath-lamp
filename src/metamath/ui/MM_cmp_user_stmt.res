@@ -686,6 +686,10 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.stmt.jstfText == b.stmt.jstfText
     && a.stmt.jstfEditMode == b.stmt.jstfEditMode
 
+    && a.stmt.stmtErr == b.stmt.stmtErr
+    && a.stmt.syntaxErr == b.stmt.syntaxErr
+    && a.stmt.unifErr == b.stmt.unifErr
+
     && a.checkboxDisabled == b.checkboxDisabled
     && a.checkboxChecked == b.checkboxChecked
 
