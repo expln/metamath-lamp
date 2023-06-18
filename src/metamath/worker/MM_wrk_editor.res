@@ -2386,7 +2386,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
     if (state->editorStateHasErrors) {
         Error(
             `Cannot perform renumbering because there is an error in the editor content.`
-                ++ ` Please fix the error before renumbering.`
+                ++ ` Please resolve the error before renumbering.`
         )
     } else {
         let prefix = "###tmp###"
@@ -2413,7 +2413,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
         )
 
         //step 2: assign final labels to each renumberable statement
-        idsToRenumberArr->Js.Array2.reduce(
+        let res = idsToRenumberArr->Js.Array2.reduce(
             (res,stmtId) => {
                 switch res {
                     | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(""))
@@ -2422,5 +2422,17 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
             },
             res
         )
+
+        switch res {
+            | Error(_) => res
+            | Ok(state) => {
+                let state = state->prepareEditorForUnification
+                if (state->editorStateHasErrors) {
+                    Error( `Cannot renumber steps: there was an internal error during renumbering.` )
+                } else {
+                    Ok(state)
+                }
+            }
+        }
     }
 }
