@@ -709,13 +709,31 @@ let make = React.memoCustomCompareProps(({
                                         id={proofTableId ++ "-" ++ idx->Belt.Int.toString} 
                                         style=rowStyle
                                     >
-                                        <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=stepWidth, ()))} className=classColStep>
+                                        <td 
+                                            style={tdStyle->ReactDOM.Style.combine( ReactDOM.Style.make(
+                                                ~width=stepWidth, ~verticalAlign="top", 
+                                                ()) )
+                                            } 
+                                            className=classColStep
+                                        >
                                             {getStepNum(state,idx)->Belt_Int.toString->React.string}
                                         </td>
-                                        <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=hypWidth, ()))} className=classColHyp >
+                                        <td 
+                                            style={tdStyle->ReactDOM.Style.combine( ReactDOM.Style.make(
+                                                ~width=hypWidth, ~verticalAlign="top", 
+                                                ()) )
+                                            } 
+                                            className=classColHyp 
+                                        >
                                             {rndHyp(state,pRec)}
                                         </td>
-                                        <td style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(~width=refWidth, ()))} className=classColRef >
+                                        <td 
+                                            style={tdStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
+                                                ~width=refWidth, ~verticalAlign="top", 
+                                                ()))
+                                            } 
+                                            className=classColRef 
+                                        >
                                             {rndRef(pRec)}
                                         </td>
                                         <td style=tdStyle >
