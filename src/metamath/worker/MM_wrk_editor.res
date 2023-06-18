@@ -1051,7 +1051,7 @@ let validateStmtIsGoal = (
             | None => stmt
             | Some(goalLabel) => {
                 if (stmt.isGoal) {
-                    {...stmt, stmtErr:Some(`Cannot re-defined the goal. ` 
+                    {...stmt, stmtErr:Some(`Cannot re-define the goal. ` 
                                     ++ `Previously defined goal is the step labeled` 
                                     ++ ` '${goalLabel}'`)}
                 } else {
