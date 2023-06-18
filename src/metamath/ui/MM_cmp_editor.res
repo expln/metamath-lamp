@@ -103,9 +103,6 @@ let make = (
     let (inlineMode, setInlineMode) = useStateFromLocalStorageBool(
         ~key="editor-inlineMode", ~default=false, ~tempMode
     )
-    let (scrollToolbar, setScrollToolbar) = useStateFromLocalStorageBool(
-        ~key="editor-scrollToolbar", ~default=false, ~tempMode
-    )
     let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
         ~key="editor-smallBtns", ~default=false, ~tempMode
     )
@@ -1047,7 +1044,6 @@ let make = (
                     showType onShowTypeChange = {b => setShowType(_ => b) }
                     showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
                     inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
-                    scrollToolbar onScrollToolbarChange = {b => setScrollToolbar(_ => b) }
                     smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
                 />
             })
@@ -1233,7 +1229,7 @@ let make = (
     let viewOptions = { 
         MM_cmp_user_stmt.showCheckbox:showCheckbox, 
         showLabel, showType, showJstf, inlineMode, 
-        scrollToolbar, smallBtns, 
+        smallBtns, 
     }
 
     let rndStmt = (stmt:userStmt):reElem => {

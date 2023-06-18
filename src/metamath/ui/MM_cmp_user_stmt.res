@@ -41,7 +41,6 @@ type viewOptions = {
     showType:bool,
     showJstf:bool,
     inlineMode:bool,
-    scrollToolbar:bool,
     smallBtns:bool,
 }
 
@@ -676,7 +675,6 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.viewOptions.showType == b.viewOptions.showType
     && a.viewOptions.showJstf == b.viewOptions.showJstf
     && a.viewOptions.inlineMode == b.viewOptions.inlineMode
-    && a.viewOptions.scrollToolbar == b.viewOptions.scrollToolbar
     && a.viewOptions.smallBtns == b.viewOptions.smallBtns
 
     && a.stmt.label == b.stmt.label
