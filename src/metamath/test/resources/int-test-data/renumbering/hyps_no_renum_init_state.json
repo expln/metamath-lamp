@@ -1,0 +1,30 @@
+{
+  "varsText": "",
+  "disjText": "",
+  "stmts": [
+    {
+      "label": "3",
+      "typ": "e",
+      "cont": "|- T",
+      "jstfText": ""
+    },
+    {
+      "label": "101",
+      "typ": "p",
+      "cont": "|- T T",
+      "jstfText": "3 : asrt1"
+    },
+    {
+      "label": "92",
+      "typ": "p",
+      "cont": "|- T T T",
+      "jstfText": "101 3 : asrt2"
+    },
+    {
+      "label": "def",
+      "typ": "p",
+      "cont": "|- T T T T",
+      "jstfText": "92 3 101 : asrt3"
+    }
+  ]
+}

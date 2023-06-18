@@ -32,6 +32,23 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         }
     })
 
+    it("hypotheses are not renumbered", _ => {
+        //given
+        setTestDataDir("renumbering")
+        let st = createEditorState( 
+            ~mmFilePath="./src/metamath/test/resources/int-test-data/renumbering/hyps_no_renum._mm", 
+            ~editorState="hyps_no_renum_init_state",
+            ()
+        )
+        assertEditorState(st, "hyps_no_renum_given")
+
+        //when/then
+        switch MM_wrk_editor.renumberSteps(st) {
+            | Error(msg) => failMsg(msg)
+            | Ok(st) => assertEditorState(st, "hyps_no_renum_then")
+        }
+    })
+
     it_skip("bad prefix", _ => {
         //given
         setTestDataDir("renumbering")

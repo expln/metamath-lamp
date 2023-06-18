@@ -11,7 +11,6 @@ let make = (
     ~showType:bool, ~onShowTypeChange:bool=>unit, 
     ~showJstf:bool, ~onShowJstfChange:bool=>unit, 
     ~inlineMode:bool, ~onInlineModeChange:bool=>unit, 
-    ~scrollToolbar:bool, ~onScrollToolbarChange:bool=>unit, 
     ~smallBtns:bool, ~onSmallBtnsChange:bool=>unit, 
     ~onClose:unit=>unit,
 ) => {
@@ -20,7 +19,6 @@ let make = (
     let (showType, setShowType) = React.useState(() => showType)
     let (showJstf, setShowJstf) = React.useState(() => showJstf)
     let (inlineMode, setInlineMode) = React.useState(() => inlineMode)
-    let (scrollToolbar, setScrollToolbar) = React.useState(() => scrollToolbar)
     let (smallBtns, setSmallBtns) = React.useState(() => smallBtns)
 
     React.useEffect1(() => {
@@ -47,11 +45,6 @@ let make = (
         onInlineModeChange(inlineMode)
         None
     }, [inlineMode])
-
-    React.useEffect1(() => {
-        onScrollToolbarChange(scrollToolbar)
-        None
-    }, [scrollToolbar])
 
     React.useEffect1(() => {
         onSmallBtnsChange(smallBtns)
@@ -108,16 +101,6 @@ let make = (
                     />
                 }
                 label="Compact mode"
-            />
-            <FormControlLabel
-                style=ReactDOM.Style.make(~display="none", ())
-                control={
-                    <Checkbox
-                        checked=scrollToolbar
-                        onChange=evt2bool(b => setScrollToolbar(_ => b))
-                    />
-                }
-                label="Scroll toolbar"
             />
             <FormControlLabel
                 control={

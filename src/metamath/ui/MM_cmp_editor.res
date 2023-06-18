@@ -103,9 +103,6 @@ let make = (
     let (inlineMode, setInlineMode) = useStateFromLocalStorageBool(
         ~key="editor-inlineMode", ~default=false, ~tempMode
     )
-    let (scrollToolbar, setScrollToolbar) = useStateFromLocalStorageBool(
-        ~key="editor-scrollToolbar", ~default=false, ~tempMode
-    )
     let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
         ~key="editor-smallBtns", ~default=false, ~tempMode
     )
@@ -953,13 +950,13 @@ let make = (
         })->ignore
     }
 
-    let actShowInfoAboutGettingCompressedProof = () => {
+    let actShowInfoAboutGettingCompletedProof = () => {
         openInfoDialog( 
             ~modalRef, 
             ~text=`In order to show a completed proof please do the following: ` 
-                ++ `1) Make sure the step you want to show a compressed proof for is marked with a green chekmark. ` 
-                ++ `If it is not, try to "unify all"; 2) Select the step you want to show a compressed proof for; ` 
-                ++ `3) Select "Show compressed proof" menu item.`, 
+                ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
+                ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
+                ++ `3) Select "Show completed proof" menu item.`, 
             () 
         )
     }
@@ -970,10 +967,17 @@ let make = (
                 switch stmt.proofStatus {
                     | Some(Ready) => actExportProof(stmt.id)
                     | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
-                        actShowInfoAboutGettingCompressedProof()
+                        actShowInfoAboutGettingCompletedProof()
                 }
             }
-            | _ => actShowInfoAboutGettingCompressedProof()
+            | _ => actShowInfoAboutGettingCompletedProof()
+        }
+    }
+
+    let actRenumberSteps = () => {
+        switch state->renumberSteps {
+            | Ok(state) => setState(_ => state)
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
         }
     }
 
@@ -1040,7 +1044,6 @@ let make = (
                     showType onShowTypeChange = {b => setShowType(_ => b) }
                     showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
                     inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
-                    scrollToolbar onScrollToolbarChange = {b => setScrollToolbar(_ => b) }
                     smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
                 />
             })
@@ -1120,6 +1123,14 @@ let make = (
                             }}
                         >
                             {"Show completed proof"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenumberSteps()
+                            }}
+                        >
+                            {"Renumber steps"->React.string}
                         </MenuItem>
                     </Menu>
                 }
@@ -1218,7 +1229,7 @@ let make = (
     let viewOptions = { 
         MM_cmp_user_stmt.showCheckbox:showCheckbox, 
         showLabel, showType, showJstf, inlineMode, 
-        scrollToolbar, smallBtns, 
+        smallBtns, 
     }
 
     let rndStmt = (stmt:userStmt):reElem => {
