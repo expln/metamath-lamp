@@ -477,7 +477,7 @@ let duplicateCheckedStmt = st => {
             stmts: 
                 st.stmts->Js_array2.map(stmt => {
                     if (stmt.id == idToAddAfter) {
-                        [stmt, {...stmt, id:newId, label:newLabel, jstfText:""}]
+                        [stmt, {...stmt, id:newId, label:newLabel, isGoal:false, jstfText:""}]
                     } else {
                         [stmt]
                     }

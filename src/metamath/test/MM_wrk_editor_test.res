@@ -1139,4 +1139,28 @@ describe("defaults for G steps", _ => {
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
         assertEqMsg( editorGetStmtByIdExn(st,s1).label, "1", "s1.label")
     })
+
+    it("duplication of G step produces P step", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
+        let (st, s1) = addNewStmt(st)
+        assertEq( st.stmts[0].typ, P)
+        assertEq( st.stmts[0].isGoal, true)
+        assertEq( st.stmts[0].label, "qed")
+
+        //when
+        let st = st->toggleStmtChecked(s1)
+        let st = st->duplicateCheckedStmt
+        let st = st->prepareEditorForUnification
+
+        //then
+        let s1 = st.stmts[0]
+        let s2 = st.stmts[1]
+        assertEqMsg( st.stmts[0].typ, P , "st.stmts[0].typ")
+        assertEqMsg( st.stmts[0].isGoal, false , "st.stmts[0].isGoal")
+        assertEqMsg( st.stmts[0].label, "1" , "st.stmts[0].label")
+        assertEqMsg( st.stmts[1].typ, P , "st.stmts[1].typ")
+        assertEqMsg( st.stmts[1].isGoal, true , "st.stmts[1].isGoal")
+        assertEqMsg( st.stmts[1].label, "qed" , "st.stmts[1].label")
+    })
 })
