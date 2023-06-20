@@ -72,3 +72,5 @@ let pnSetInvalidFloating: proofNode => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode,int) => unit
 let pnGetDbg: proofNode => option<proofNodeDbg>
+
+let jstfEqSrc: (array<expr>, string, exprSrc) => bool

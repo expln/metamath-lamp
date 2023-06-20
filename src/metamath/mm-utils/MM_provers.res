@@ -399,7 +399,7 @@ let proveWithJustification = (
     }
 
     let node = tree->ptGetNode(expr)
-    if (/* node->pnGetProof->Belt.Option.isNone */ !(node->pnProofEq(jstf))) {
+    if (node->pnGetProof->Belt.Option.isNone /* !(node->pnProofEq(jstf)) */) {
         switch getStatementsFromJustification( ~tree, ~jstf, ) {
             | None => ()
             | Some(args) => {
