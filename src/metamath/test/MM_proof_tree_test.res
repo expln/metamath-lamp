@@ -65,4 +65,52 @@ describe("jstfEqSrc", _ => {
         //then
         assertEq( actual , false )
     })
+
+    it("labels are not equal => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("jstf has more args then number of hyps in the src frame => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("jstf has at least 1 arg but src frame has only floating hyps => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("number of hyps in src frame is greater than number of jstf args, but number of E hyps is less than number of jstf args, and the last is F hyp => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("number of hyps in src frame is greater than number of jstf args, but number of E hyps is less than number of jstf args, and the last is E hyp => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("number of hyps in src frame is greater than number of jstf args, but number of E hyps is also greater than number of jstf args, and the last is F hyp => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("number of hyps in src frame is greater than number of jstf args, but number of E hyps is also greater than number of jstf args, and the last is E hyp => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("number of hyps in src frame is greater than number of jstf args, but number of E hyps is equal to number of jstf args, and the last is F hyp => true", _ => {
+        failMsg("not implemented")
+    })
+
+    it("number of hyps in src frame is greater than number of jstf args, but number of E hyps is equal to number of jstf args, and the last is E hyp => true", _ => {
+        failMsg("not implemented")
+    })
+
+    it("one of E hyps doesn't match the corresponding jstf arg => false", _ => {
+        failMsg("not implemented")
+    })
+
+    it("all F hyps are located at the end => true", _ => {
+        failMsg("not implemented")
+    })
+
+    it("all F hyps are located at the beginning => true", _ => {
+        failMsg("not implemented")
+    })
 })
