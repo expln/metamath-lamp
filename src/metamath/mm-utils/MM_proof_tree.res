@@ -246,8 +246,8 @@ let pnAddChild = (node, child): unit => {
     }
 }
 
-let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, /* forceAdd:bool */):unit => {
-    if (node.proof->Belt.Option.isNone /* || forceAdd */) {
+let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bool):unit => {
+    if (node.proof->Belt.Option.isNone || forceAdd) {
         let newParentWasAdded = ref(false)
         let parents = if (isEssential) {
             node.eParents
@@ -284,6 +284,9 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, /* forceAdd
             }
             if (exprSrcIsProved(parent)) {
                 pnMarkProved(node)
+                if (forceAdd) {
+                    node.proof = Some(parent)
+                }
             }
         }
     }

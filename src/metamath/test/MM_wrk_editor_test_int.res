@@ -577,13 +577,25 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step3")
     })
 
-    it("unify all is able to prove a simple wff from the first attempt", _ => {
-        setTestDataDir("simple-wff-1st-attempt")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
+    it("unify all finds required justification if more than one correct justification exist", _ => {
+        setTestDataDir("two-valid-proofs")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ())
+
+        let (st, stmtId) = st->addStmt( ~jstf=": wi", ~stmt="wff ( ( ph -> ps ) -> ( ph -> ch ) )", () )
+        let st = st->unifyAll
         assertEditorState(st, "step1")
 
+        let st = st->updateStmt(stmtId, ~jstf=": bj-0", () )
         let st = st->unifyAll
         assertEditorState(st, "step2")
+
+        let st = st->updateStmt(stmtId, ~jstf=": wi", () )
+        let st = st->unifyAll
+        assertEditorState(st, "step3")
+
+        let st = st->updateStmt(stmtId, ~jstf=": bj-0", () )
+        let st = st->unifyAll
+        assertEditorState(st, "step4")
     })
 
     it("actExportProof does not export redundant elements", _ => {

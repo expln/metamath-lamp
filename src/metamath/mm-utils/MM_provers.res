@@ -169,12 +169,12 @@ let proveFloating = (
                     | None => {
                         let curExpr = curNode->pnGetExpr
                         switch findNonAsrtParent(~tree, ~expr=curExpr) {
-                            | Some(parent) => curNode->pnAddParent(parent, false)
+                            | Some(parent) => curNode->pnAddParent(parent, false, false)
                             | None => {
                                 findAsrtParentsWithoutNewVars(
                                     ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
                                 )->Js.Array2.forEach(parent => {
-                                    curNode->pnAddParent(parent, false)
+                                    curNode->pnAddParent(parent, false, false)
                                     saveArgs(parent)
                                 })
                             }
@@ -345,7 +345,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
             () 
         )
         parents->Expln_utils_common.arrForEach(parent => {
-            node->pnAddParent(parent, true)
+            node->pnAddParent(parent, true, false)
             node->pnGetProof
         })->ignore
     }
@@ -383,7 +383,7 @@ let proveWithJustification = (
     ~expr:expr, 
     ~jstf: jstf,
 ):proofNode => {
-    let findAsrtParentsWithNewVars = (args,debugLevel) => {
+    let findAsrtParents = (args,debugLevel) => {
         findAsrtParentsWithNewVars(
             ~tree,
             ~expr,
@@ -399,18 +399,24 @@ let proveWithJustification = (
     }
 
     let node = tree->ptGetNode(expr)
-    if (node->pnGetProof->Belt.Option.isNone /* !(node->pnProofEq(jstf)) */) {
-        switch getStatementsFromJustification( ~tree, ~jstf, ) {
-            | None => ()
-            | Some(args) => {
-                findAsrtParentsWithNewVars(args,0)->Expln_utils_common.arrForEach(parent => {
-                    node->pnAddParent(parent, true)
-                    node->pnGetProof
+    switch getStatementsFromJustification( ~tree, ~jstf, ) {
+        | None => ()
+        | Some(args) => {
+            if (
+                node->pnGetProof
+                    ->Belt.Option.map(src => !jstfEqSrc(args,jstf.label,src))
+                    ->Belt_Option.getWithDefault(true)
+            ) {
+                findAsrtParents(args,0)->Expln_utils_common.arrForEach(parent => {
+                    let requiredJstfIsFound = jstfEqSrc(args,jstf.label,parent)
+                    node->pnAddParent(parent, true, requiredJstfIsFound)
+                    if (requiredJstfIsFound) {Some(())} else {None}
                 })->ignore
                 if (node->pnGetProof->Belt.Option.isNone) {
-                    findAsrtParentsWithNewVars(args,2)->Expln_utils_common.arrForEach(parent => {
-                        node->pnAddParent(parent, true)
-                        node->pnGetProof
+                    findAsrtParents(args,2)->Expln_utils_common.arrForEach(parent => {
+                        let requiredJstfIsFound = jstfEqSrc(args,jstf.label,parent)
+                        node->pnAddParent(parent, true, requiredJstfIsFound)
+                        if (requiredJstfIsFound) {Some(())} else {None}
                     })->ignore
                 }
             }
@@ -482,13 +488,13 @@ let proveBottomUp = (
 
             let curExpr = curNode->pnGetExpr
             switch findNonAsrtParent(~tree, ~expr=curExpr) {
-                | Some(parent) => curNode->pnAddParent(parent, true)
+                | Some(parent) => curNode->pnAddParent(parent, true, false)
                 | None => {
                     let newDist = curDist + 1
                     if (newDist <= maxSearchDepth) {
                         getParents(curExpr, curDist, onProgressP.contents)->Js.Array2.forEach(src => {
                             if (!srcIsBackRef(curExpr, src)) {
-                                curNode->pnAddParent(src, true)
+                                curNode->pnAddParent(src, true, false)
                                 switch src {
                                     | Assertion({args}) => 
                                         args->Js_array2.forEach(arg => {
@@ -624,7 +630,7 @@ let createProofTree = (
     hyps->Belt_MapString.forEach((label,hyp) => {
         if (hyp.typ == E) {
             let node = tree->ptGetNode(hyp.expr)
-            node->pnAddParent(Hypothesis({label:label}), true)
+            node->pnAddParent(Hypothesis({label:label}), true, false)
             tree->ptAddRootStmt({
                 isHyp: true,
                 label,
