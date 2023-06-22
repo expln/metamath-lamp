@@ -17,15 +17,20 @@ let make = (
     ~onUrlChange: (string,string) => unit, 
     ~onTrustedChange: (string,bool) => unit,
     ~onDelete: string => unit,
-    ~onRestoreDefaults: unit=>unit,
+    ~defaultIds:array<string>,
 ) => {
     let rndWebSrcSetting = (src:webSrcSettingsState) => {
+        let isDefault = defaultIds->Js_array2.includes(src.id)
         <Col key=src.id>
             <Row>
                 <TextField label="Alias (optional)" size=#small style=ReactDOM.Style.make(~width="150px", ()) 
-                    value=src.alias onChange=evt2str(onAliasChange(src.id,_)) />
+                    value=src.alias onChange=evt2str(onAliasChange(src.id,_)) 
+                    disabled=isDefault
+                />
                 <TextField label="URL" size=#small style=ReactDOM.Style.make(~width="400px", ()) 
-                    value=src.url onChange=evt2str(onUrlChange(src.id,_)) />
+                    value=src.url onChange=evt2str(onUrlChange(src.id,_)) 
+                    disabled=isDefault
+                />
                 <FormControlLabel
                     control={
                         <Checkbox
@@ -43,7 +48,7 @@ let make = (
                         ()
                     )
                 />
-                <IconButton key="delete-button" onClick={_ => onDelete(src.id)}>
+                <IconButton key="delete-button" onClick={_ => onDelete(src.id)} disabled=isDefault>
                     <MM_Icons.Delete/>
                 </IconButton>
             </Row>
@@ -62,12 +67,6 @@ let make = (
             <IconButton key="add-button" onClick={_ => onAdd()}>
                 <MM_Icons.Add/>
             </IconButton>
-            <span
-                onClick={_=> onRestoreDefaults() }
-                style=ReactDOM.Style.make(~cursor="pointer", ~color="grey", ~fontSize="0.7em", ())
-            >
-                {React.string("Restore default URLs")}
-            </span>
         </Row>
     </Col>
 }

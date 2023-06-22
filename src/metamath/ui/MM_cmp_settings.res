@@ -59,6 +59,10 @@ let longClickDelayMsDefault = 500
 let longClickDelayMsMin = UseLongClick.repeatDelayMs->Belt_Float.toInt + 100
 let longClickDelayMsMax = 3000
 
+let setmm = createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath.org/metamath/set.mm")
+let isetmm = createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm")
+let defaultAliases = [setmm.alias, isetmm.alias]
+
 let createDefaultSettings = () => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
@@ -103,14 +107,26 @@ let createDefaultSettings = () => {
             },
         ],
         webSrcNextId: 1,
-        webSrcSettings: [
-            createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath.org/metamath/set.mm"),
-            createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm"),
-        ],
+        webSrcSettings: [ setmm, isetmm ],
         longClickEnabled:true,
         longClickDelayMsStr:longClickDelayMsDefault->Belt.Int.toString,
         hideContextSelector:false,
         showVisByDefault:false,
+    }
+}
+
+let addWebSrcSetting = st => {
+    let newId = st.webSrcNextId->Belt_Int.toString
+    {
+        ...st,
+        webSrcNextId: st.webSrcNextId + 1,
+        webSrcSettings: st.webSrcSettings->Js_array2.concat([{
+            id: newId,
+            alias: "",
+            url: "",
+            trusted: false,
+            err: None,
+        }]),
     }
 }
 
@@ -208,6 +224,57 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
         typeSettings: validatedTypeSettings,
     }
 }
+    
+let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string):settingsState => {
+    let state = if (state.webSrcSettings->Js.Array2.find(ws => ws.alias == alias)->Belt.Option.isSome) {
+        state
+    } else {
+        let newId = state.webSrcNextId->Belt_Int.toString
+        let state = state->addWebSrcSetting
+        {
+            ...state,
+            webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+                if (ws.id == newId) {
+                    {
+                        ...ws,
+                        alias,
+                    }
+                } else {
+                    ws
+                }
+            })
+        }
+    }
+    let state = {
+        ...state,
+        webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+            if (ws.alias == alias) {
+                {
+                    ...ws,
+                    url,
+                }
+            } else {
+                ws
+            }
+        })
+    }
+    {
+        ...state,
+        webSrcSettings: state.webSrcSettings->Js.Array2.sortInPlaceWith((s1,s2) => {
+            let i1 = if defaultAliases->Js.Array2.includes(s1.alias) {0} else {1}
+            let i2 = if defaultAliases->Js.Array2.includes(s2.alias) {0} else {1}
+            i1 - i2
+        })
+    }
+}
+
+let restoreDefaultWebSrcSettings = (state: settingsState):settingsState => {
+    let defaultSettings = createDefaultSettings()
+    defaultSettings.webSrcSettings->Js.Array2.reduce(
+        (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url),
+        state
+    )
+}
 
 let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
     let validateAndCorrectWebSrcSetting = (src:webSrcSettingsState):webSrcSettingsState => {
@@ -248,11 +315,12 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
     )
     let newNextId = if (maxId < st.webSrcNextId) {st.webSrcNextId} else {maxId + 1}
 
-    {
+    let st = {
         ...st,
         webSrcNextId: newNextId,
         webSrcSettings: validatedWebSrcSettings,
     }
+    st->restoreDefaultWebSrcSettings
 }
 
 let validateLongClickDelayMs = (ms:int):result<int,string> => {
@@ -553,21 +621,6 @@ let updateTrusted = (st,id,trusted) => {
     updateWebSrcSetting(st, id, s => {...s, trusted, err:None})
 }
 
-let addWebSrcSetting = st => {
-    let newId = st.webSrcNextId->Belt_Int.toString
-    {
-        ...st,
-        webSrcNextId: st.webSrcNextId + 1,
-        webSrcSettings: st.webSrcSettings->Js_array2.concat([{
-            id: newId,
-            alias: "",
-            url: "",
-            trusted: false,
-            err: None,
-        }]),
-    }
-}
-
 let deleteWebSrcSetting = (st, id) => {
     {
         ...st,
@@ -747,52 +800,6 @@ let make = (
             let defaultSettings = createDefaultSettings()
             defaultSettings.typeSettings->Js.Array2.reduce(
                 (state, default) => restoreDefaultsForType(state, default.typ, default.color, default.prefix),
-                state
-            )
-        })
-    }
-    
-    let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string, trusted: bool):settingsState => {
-        let state = if (state.webSrcSettings->Js.Array2.find(ws => ws.alias == alias)->Belt.Option.isSome) {
-            state
-        } else {
-            let newId = state.webSrcNextId->Belt_Int.toString
-            let state = state->addWebSrcSetting
-            {
-                ...state,
-                webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
-                    if (ws.id == newId) {
-                        {
-                            ...ws,
-                            alias,
-                        }
-                    } else {
-                        ws
-                    }
-                })
-            }
-        }
-        {
-            ...state,
-            webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
-                if (ws.alias == alias) {
-                    {
-                        ...ws,
-                        url,
-                        trusted,
-                    }
-                } else {
-                    ws
-                }
-            })
-        }
-    }
-
-    let actRestoreDefaultWebSrcSettings = () => {
-        setState(state => {
-            let defaultSettings = createDefaultSettings()
-            defaultSettings.webSrcSettings->Js.Array2.reduce(
-                (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url, default.trusted),
                 state
             )
         })
@@ -1015,7 +1022,14 @@ let make = (
             onUrlChange=actUrlChange
             onTrustedChange=actTrustedChange
             onDelete=actWebSrcSettingDelete
-            onRestoreDefaults=actRestoreDefaultWebSrcSettings
+            defaultIds={
+                defaultAliases
+                    ->Js.Array2.map(defaultAlias => 
+                        state.webSrcSettings->Js.Array2.find(webSrc => webSrc.alias == defaultAlias)
+                    )
+                    ->Js_array2.filter(Belt_Option.isSome)
+                    ->Js.Array2.map(webSrcOpt => (webSrcOpt->Belt_Option.getExn).id)
+            }
         />
         <Divider/>
         {rndApplyChangesBtn()}
