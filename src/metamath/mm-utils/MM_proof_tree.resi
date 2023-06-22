@@ -66,9 +66,11 @@ let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSrc>
 let pnGetFParents: proofNode => option<array<exprSrc>>
 let pnGetEParents: proofNode => array<exprSrc>
-let pnAddParent: (proofNode, exprSrc, bool) => unit
+let pnAddParent: (proofNode, exprSrc, bool, bool) => unit
 let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: proofNode => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode,int) => unit
 let pnGetDbg: proofNode => option<proofNodeDbg>
+
+let jstfEqSrc: (array<expr>, string, exprSrc) => bool

@@ -246,8 +246,8 @@ let pnAddChild = (node, child): unit => {
     }
 }
 
-let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool):unit => {
-    if (node.proof->Belt.Option.isNone) {
+let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bool):unit => {
+    if (node.proof->Belt.Option.isNone || forceAdd) {
         let newParentWasAdded = ref(false)
         let parents = if (isEssential) {
             node.eParents
@@ -284,6 +284,9 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool):unit => {
             }
             if (exprSrcIsProved(parent)) {
                 pnMarkProved(node)
+                if (forceAdd) {
+                    node.proof = Some(parent)
+                }
             }
         }
     }
@@ -308,3 +311,41 @@ let ptAddDisjPair = (tree, n, m) => {
     }
 }
 
+let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
+    switch src {
+        | VarType | Hypothesis(_) | AssertionWithErr(_) => false
+        | Assertion({args:srcArgs, frame}) => {
+            if (jstfLabel != frame.label) {
+                false
+            } else {
+                let jLen = jstfArgs->Js.Array2.length
+                let hLen = frame.hyps->Js.Array2.length
+                if (jLen > hLen) {
+                    false
+                } else {
+                    let ji = ref(0)
+                    let hi = ref(0)
+                    let eq = ref(true)
+                    while (eq.contents && ji.contents < jLen && hi.contents < hLen) {
+                        let hyp = frame.hyps[hi.contents]
+                        if (hyp.typ == F) {
+                            hi := hi.contents + 1
+                        } else {
+                            eq := jstfArgs[ji.contents]->exprEq(srcArgs[hi.contents]->pnGetExpr)
+                            ji := ji.contents + 1
+                            hi := hi.contents + 1
+                        }
+                    }
+                    while (eq.contents && hi.contents < hLen) {
+                        if (frame.hyps[hi.contents].typ == F) {
+                            hi := hi.contents + 1
+                        } else {
+                            eq := false
+                        }
+                    }
+                    eq.contents && ji.contents == jLen && hi.contents == hLen
+                }
+            }
+        }
+    }
+}

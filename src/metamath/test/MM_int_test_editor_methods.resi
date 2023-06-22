@@ -22,6 +22,7 @@ let addStmt: (
     ~typ: userStmtType=?,
     ~isGoal:bool=?,
     ~label: string=?,
+    ~jstf:string=?, 
     ~stmt: string,
     unit,
 ) => (editorState, stmtId)
