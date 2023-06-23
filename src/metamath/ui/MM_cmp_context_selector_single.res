@@ -92,7 +92,7 @@ let make = (
     }
 
     let rndLabelSelector = () => {
-        <AutocompleteVirtualized value=label options=allLabels size=#small onChange=onLabelChange />
+        <AutocompleteVirtualized value=label options=allLabels size=#small onChange=onLabelChange label="Label" />
     }
 
     let rndAliasSelector = (alias: option<string>) => {

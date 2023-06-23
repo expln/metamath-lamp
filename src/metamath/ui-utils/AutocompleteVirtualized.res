@@ -9,4 +9,5 @@ external make: (
     ~onChange: option<string>=>unit,
     ~size:size=?,
     ~width:int=?,
+    ~label:string,
 ) => reElem = "default"

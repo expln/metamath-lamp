@@ -665,15 +665,15 @@ let make = (
 
     let rndLengthRestrictSelector = (value:lengthRestrict) => {
         <FormControl size=#small>
-            <InputLabel id="length-restrict-select-label">"Length restriction"</InputLabel>
+            <InputLabel id="length-restrict-select-label">"Statement length restriction"</InputLabel>
             <Select
-                sx={"width": 130}
+                sx={"width": 190}
                 labelId="length-restrict-select-label"
                 value={lengthRestrictToStr(value)}
-                label="Length restriction"
+                label="Statement length restriction"
                 onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStr(str)))
             >
-                <MenuItem value="No">{React.string("No")}</MenuItem>
+                <MenuItem value="No">{React.string("Unrestricted")}</MenuItem>
                 <MenuItem value="LessEq">{React.string("LessEq")}</MenuItem>
                 <MenuItem value="Less">{React.string("Less")}</MenuItem>
             </Select>
@@ -734,6 +734,7 @@ let make = (
                 <Row>
                     <AutocompleteVirtualized value=state.label options=state.availableLabels size=#small width=200
                         onChange=actLabelUpdated
+                        label="Label of root justification"
                     />
                     <TextField 
                         label="Search depth"
@@ -988,7 +989,7 @@ let make = (
             React.null
         } else {
             <Row alignItems=#center>
-                {React.string("Root statements: ")}
+                {React.string("Allowed statements: ")}
                 {
                     rndRootStmtsForLevelShort(
                         ~title = "first level", 
