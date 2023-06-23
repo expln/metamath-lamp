@@ -1941,6 +1941,7 @@ let proofToText = (
     ~wrkCtx:mmContext,
     ~newHyps:array<hypothesis>,
     ~newDisj:disjMutable,
+    ~descr:string,
     ~stmt:userStmt,
     ~proof:proof
 ):string => {
@@ -1948,7 +1949,8 @@ let proofToText = (
         | Compressed({labels, compressedProofBlock}) => {
             let blk = splitIntoChunks(compressedProofBlock, 50)->Js_array2.joinWith(" ")
             let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Js_array2.joinWith(" ")} ) ${blk} $.`
-            let blockIsRequired = newHyps->Js.Array2.length > 0 || !(newDisj->disjIsEmpty)
+            let descrIsEmpty = descr->Js_string2.trim->Js_string2.length == 0
+            let blockIsRequired = newHyps->Js.Array2.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
             if (blockIsRequired) {
                 result->Js.Array2.push("${")->ignore
@@ -1971,6 +1973,9 @@ let proofToText = (
                     result->Js.Array2.push(hyp.label ++ " $e " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
                 }
             })
+            if (!descrIsEmpty) {
+                result->Js.Array2.push("$( " ++ descr ++ " $)")->ignore
+            }
             result->Js.Array2.push(asrt)->ignore
             if (blockIsRequired) {
                 result->Js.Array2.push("$}")->ignore
@@ -2058,7 +2063,9 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                     )->ignore
                                     
                                     Some((
-                                        proofToText( ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~stmt, ~proof ),
+                                        proofToText( 
+                                            ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~descr=st.descr, ~stmt, ~proof 
+                                        ),
                                         MM_proof_table.proofTableToStr(wrkCtx, proofTableWithTypes, stmt.label),
                                         MM_proof_table.proofTableToStr(wrkCtx, proofTableWithoutTypes, stmt.label),
                                     ))
