@@ -73,6 +73,20 @@ let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorSt
     })
 }
 
+let previousEditingIsNotCompletedTitle = "Previous editing is not completed"
+let previousEditingIsNotCompletedText = 
+    `You've attempted to edit something in the editor while the previous edit is not complete.`
+        ++ ` Please complete the previous edit before starting a new one.`
+
+let editingInTempModeTitle = "Editing in TEMP mode"
+let editingInTempModeText = 
+    `You are about to edit in TEMP mode.`
+        ++ ` All changes you do in TEMP mode will be erased upon closing current browser tab.`
+        ++ ` If you want to continue editing in NORMAL mode, please do the following actions:`
+        ++ ` 1) use "Export to JSON" to copy current editor state to the clipboard;`
+        ++ ` 2) open a new tab (or switch to an already opened tab) with metamath-lamp in NORMAL mode;`
+        ++ ` 3) use "Import from JSON" to load the copied editor state from the clipboard.`
+
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -87,6 +101,7 @@ let make = (
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+    let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true, ~tempMode
@@ -261,12 +276,52 @@ let make = (
     }
     let actBeginEdit0 = (setter:editorState=>editorState) => {
         if (!editIsActive) {
-            setState(setter)
+            if (tempMode && !warnedAboutTempMode) {
+                openInfoDialog(
+                    ~modalRef, 
+                    ~title=editingInTempModeTitle,
+                    ~text=editingInTempModeText,
+                    ~onOk = () => {
+                        setWarnedAboutTempMode(_ => true)
+                        setState(setter)
+                    },
+                    ()
+                )
+            } else {
+                setState(setter)
+            }
+        } else {
+            openInfoDialog(
+                ~modalRef, 
+                ~title=previousEditingIsNotCompletedTitle,
+                ~text=previousEditingIsNotCompletedText,
+                ()
+            )
         }
     }
-    let actBeginEdit = (setter:(editorState,string)=>editorState, stmtId:string) => {
+    let actBeginEdit = (setter:(editorState,stmtId)=>editorState, stmtId:string) => {
         if (!editIsActive) {
-            setState(setter(_,stmtId))
+            if (tempMode && !warnedAboutTempMode) {
+                openInfoDialog(
+                    ~modalRef, 
+                    ~title=editingInTempModeTitle,
+                    ~text=editingInTempModeText,
+                    ~onOk = () => {
+                        setWarnedAboutTempMode(_ => true)
+                        setState(setter(_,stmtId))
+                    },
+                    ()
+                )
+            } else {
+                setState(setter(_,stmtId))
+            }
+        } else {
+            openInfoDialog(
+                ~modalRef, 
+                ~title=previousEditingIsNotCompletedTitle,
+                ~text=previousEditingIsNotCompletedText,
+                ()
+            )
         }
     }
     let actCompleteEdit = (setter:editorState=>editorState) => {
@@ -950,9 +1005,10 @@ let make = (
         })->ignore
     }
 
-    let actShowInfoAboutGettingCompletedProof = () => {
+    let actShowInfoAboutGettingCompletedProof = (title:string) => {
         openInfoDialog( 
             ~modalRef, 
+            ~title,
             ~text=`In order to show a completed proof please do the following: ` 
                 ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
                 ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
@@ -967,10 +1023,10 @@ let make = (
                 switch stmt.proofStatus {
                     | Some(Ready) => actExportProof(stmt.id)
                     | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
-                        actShowInfoAboutGettingCompletedProof()
+                        actShowInfoAboutGettingCompletedProof(`A proof is not available`)
                 }
             }
-            | _ => actShowInfoAboutGettingCompletedProof()
+            | _ => actShowInfoAboutGettingCompletedProof(`A single provable step should be selected`)
         }
     }
 

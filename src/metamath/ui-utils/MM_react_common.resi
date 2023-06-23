@@ -6,6 +6,7 @@ let openInfoDialog: (
     ~modalRef: Expln_React_Modal.modalRef,
     ~text: string,
     ~onOk: unit => unit =?,
+    ~title:string=?,
     unit,
 ) => unit
 

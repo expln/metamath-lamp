@@ -38,9 +38,18 @@ let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=
     </Paper>
 }
 
-let rndInfoDialog = (~text:string, ~onOk:unit=>unit) => {
+let rndInfoDialog = (~text:string, ~onOk:unit=>unit, ~title:option<string>=?, ()) => {
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
+            <span 
+                style=ReactDOM.Style.make(
+                    ~fontWeight="bold", 
+                    ~display=?{if (title->Belt_Option.isNone) {Some("none")} else {None}}, 
+                    ()
+                )
+            >
+                {title->Belt_Option.getWithDefault("")->React.string}
+            </span>
             <span>
                 {text->React.string}
             </span>
@@ -51,13 +60,18 @@ let rndInfoDialog = (~text:string, ~onOk:unit=>unit) => {
     </Paper>
 }
 
-let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>=?, ()) => {
+let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>=?, ~title:option<string>=?, ()) => {
     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
         updateModal(modalRef, modalId, () => {
-            rndInfoDialog(~text, ~onOk = () => {
-                closeModal(modalRef, modalId)
-                onOk->Belt_Option.forEach(clbk => clbk())
-            })
+            rndInfoDialog(
+                ~text, 
+                ~onOk = () => {
+                    closeModal(modalRef, modalId)
+                    onOk->Belt_Option.forEach(clbk => clbk())
+                },
+                ~title?,
+                ()
+            )
         })
     })->ignore
 }
