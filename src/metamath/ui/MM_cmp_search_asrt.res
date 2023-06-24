@@ -180,7 +180,10 @@ let make = (
         onTypChange(state.typ)
         let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Js_array2.find(sym => !(wrkCtx->isConst(sym)))
         switch incorrectSymbol {
-            | Some(sym) => setState(setPatternErr(_, Some(`'${sym}' - is not a constant.`)))
+            | Some(sym) => {
+                setState(setPatternErr(_, Some(`'${sym}' - is not a constant.`)))
+                actResultsRetrieved([])
+            }
             | None => {
                 setState(setPatternErr(_, None))
                 openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. , ()))->promiseMap(modalId => {
@@ -257,6 +260,10 @@ let make = (
             autoFocus=true
             value=state.patternStr
             onChange=evt2str(actPatternChange)
+            onKeyDown=kbrdHnd2(
+                kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actSearch, ()),
+                kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCanceled, ()),
+            )
         />
     }
     
@@ -267,6 +274,10 @@ let make = (
             style=ReactDOM.Style.make(~width="100px", ())
             value=state.label
             onChange=evt2str(actLabelChange)
+            onKeyDown=kbrdHnd2(
+                kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actSearch, ()),
+                kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCanceled, ()),
+            )
         />
     }
     
