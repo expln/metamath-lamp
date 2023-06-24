@@ -99,7 +99,9 @@ let doSearchAssertions = (
     let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
 
     let results = []
-    frms->Belt_MapString.forEach((_,frm) => {
+    let framesInDeclarationOrder = frms->Belt_MapString.valuesToArray
+        ->Js.Array2.sortInPlaceWith((a,b) => a.frame.ord - b.frame.ord)
+    framesInDeclarationOrder->Js.Array2.forEach(frm => {
         let frame = frm.frame
         if (
             frame.label->Js.String2.toLowerCase->Js_string2.includes(label)

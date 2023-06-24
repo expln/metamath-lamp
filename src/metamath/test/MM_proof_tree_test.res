@@ -15,6 +15,7 @@ let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string)
     Assertion({
         args: args->Js_array2.map(proofTree->ptGetNode),
         frame: {
+            ord:0,
             isAxiom:false,
             disj: Belt.Map.Int.empty,
             hyps: hypTypes->Js_array2.map(hypTyp => { typ: hypTyp, label: "", expr: [] }),

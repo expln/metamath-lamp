@@ -65,6 +65,7 @@ type frameDbg = {
 }
 
 type frame = {
+    ord:int,
     isAxiom:bool,
     disj: Belt_MapInt.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
@@ -855,6 +856,7 @@ let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMuta
 
 let createFrame = (
     ~ctx:mmContext,
+    ~ord:int,
     ~isAxiom:bool, 
     ~label:string, 
     ~exprStr:array<string>,
@@ -882,6 +884,7 @@ let createFrame = (
                                         ->Js_array2.mapi((cv,fv) => (cv,fv))
                                         ->Belt_HashMapInt.fromArray
                 let frame = {
+                    ord,
                     isAxiom,
                     disj: ctxToFrameRenum->renumberVarsInDisj(mandatoryDisj),
                     hyps: mandatoryHypotheses->Js_array2.map(ctxToFrameRenum->renumberVarsInHypothesis),
@@ -911,15 +914,18 @@ let createFrame = (
 }
 
 let addAssertion = ( ctx:mmContext, ~isAxiom:bool, ~label:string, ~exprStr:array<string>, ~proof:option<proof> ):unit => {
+    let frameLabels = (ctx.contents.root->Belt_Option.getExn).frameLabels
     ctx.contents.frames->Belt_HashMapString.set(
         label, 
         createFrame(
-            ~ctx, ~isAxiom, ~label, ~exprStr, ~proof, 
+            ~ctx, 
+            ~ord=frameLabels->Js_array2.length,
+            ~isAxiom, ~label, ~exprStr, ~proof, 
             ~tokenType = if (proof->Belt_Option.isNone) {"an axiom"} else {"a theorem"}, 
             ()
         )
     )
-    (ctx.contents.root->Belt_Option.getExn).frameLabels->Js_array2.push(label)->ignore
+    frameLabels->Js_array2.push(label)->ignore
 }
 
 let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
