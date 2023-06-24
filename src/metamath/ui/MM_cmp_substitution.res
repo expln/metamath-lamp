@@ -5,6 +5,7 @@ open MM_context
 open Expln_utils_promise
 open Expln_React_Modal
 open Common
+open MM_react_common
 
 type state = {
     expr1Str: string,
@@ -37,6 +38,15 @@ let setResults = (st,results):state => {
         results:Some(results->Js_array2.filter(res => res.err->Belt_Option.isNone)),
         checkedResultIdx: if (results->Js_array2.length == 1) {Some(0)} else {None},
         invalidResults:Some(results->Js_array2.filter(res => res.err->Belt_Option.isSome)),
+    }
+}
+
+let clearResults = (st):state => {
+    {
+        ...st,
+        results: None,
+        checkedResultIdx: None,
+        invalidResults: None,
     }
 }
 
@@ -95,9 +105,15 @@ let make = (
     ~onSubstitutionSelected:wrkSubs=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(~expr1Init, ~expr2Init))
+    let expr1TextFieldRef = React.useRef(Js.Nullable.null)
+    let expr2TextFieldRef = React.useRef(Js.Nullable.null)
 
     let actSaveResults = results => {
         setState(setResults(_, results))
+    }
+
+    let actClearResults = () => {
+        setState(clearResults)
     }
 
     let actDetermineSubs = () => {
@@ -117,7 +133,10 @@ let make = (
             }
             st
         })
-        if (incorrectSymbol1->Belt.Option.isNone && incorrectSymbol2->Belt.Option.isNone) {
+        if (
+            incorrectSymbol1->Belt.Option.isNone && incorrectSymbol2->Belt.Option.isNone
+            && syms1->Js.Array2.length > 0 && syms2->Js.Array2.length > 0
+        ) {
             actSaveResults(
                 findPossibleSubs(
                     editorState, 
@@ -125,6 +144,8 @@ let make = (
                     wrkCtx->ctxSymsToIntsExn(syms2),
                 )
             )
+        } else {
+            actClearResults()
         }
     }
 
@@ -148,6 +169,35 @@ let make = (
         }
     }
 
+    let actFocus = (ref:React.ref<Js.Nullable.t<Dom.element>>) => {
+        switch ref.current->Js.Nullable.toOption {
+            | None => ()
+            | Some(domElem) => {
+                let input = ReactDOM.domElementToObj(domElem)
+                switch input["focus"] {
+                    | None => ()
+                    | Some(_) => input["focus"](.)
+                }
+            }
+        }
+    }
+
+    let actExpr1OnEnter = () => {
+        if (state.expr2Str->Js_string2.trim == "") {
+            actFocus(expr2TextFieldRef)
+        } else {
+            actDetermineSubs()
+        }
+    }
+
+    let actExpr2OnEnter = () => {
+        if (state.expr1Str->Js_string2.trim == "") {
+            actFocus(expr1TextFieldRef)
+        } else {
+            actDetermineSubs()
+        }
+    }
+
     let actExpr1Change = str => {
         setState(setExpr1Str(_,str))
     }
@@ -167,8 +217,10 @@ let make = (
         }
     }
     
-    let rndExpr = (~label, ~value, ~autoFocus, ~onChange, ~tabIndex:int) => {
+    let rndExpr = (~label, ~value, ~autoFocus, ~onChange, ~tabIndex:int, 
+        ~onEnter:unit=>unit, ~ref:React.ref<Js.Nullable.t<Dom.element>>) => {
         <TextField 
+            inputRef=ReactDOM.Ref.domRef(ref)
             label
             size=#small
             style=ReactDOM.Style.make(~width="700px", ())
@@ -176,6 +228,10 @@ let make = (
             value
             onChange=evt2str(onChange)
             inputProps={"tabIndex":tabIndex}
+            onKeyDown=kbrdHnd2(
+                kbrdClbkMake(~keyCode=keyCodeEnter, ~act=onEnter, ()),
+                kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCanceled, ()),
+            )
         />
     }
     
@@ -186,7 +242,8 @@ let make = (
                     <tr>
                         <td>
                             {rndExpr(~label="Replace what", ~value=state.expr1Str, ~autoFocus=true, 
-                                ~onChange=actExpr1Change, ~tabIndex=1)}
+                                ~onChange=actExpr1Change, ~tabIndex=1, ~onEnter=actExpr1OnEnter, 
+                                ~ref=expr1TextFieldRef)}
                         </td>
                         <td>
                             {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
@@ -197,7 +254,8 @@ let make = (
             </table>
             {rndError(state.expr1Err)}
             {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false,
-                ~onChange=actExpr2Change, ~tabIndex=2)}
+                ~onChange=actExpr2Change, ~tabIndex=2, ~onEnter=actExpr2OnEnter,
+                ~ref=expr2TextFieldRef )}
             {rndError(state.expr2Err)}
             <Row>
                 <Button onClick={_=>actDetermineSubs()} variant=#contained color="grey" >
