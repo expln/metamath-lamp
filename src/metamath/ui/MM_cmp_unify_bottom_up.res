@@ -743,6 +743,10 @@ let make = (
                         autoFocus=true
                         value=state.depthStr
                         onChange=evt2str(actDepthUpdated)
+                        onKeyDown=kbrdHnd2(
+                            kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actProve, ()),
+                            kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCancel, ()),
+                        )
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
                 </Row>
@@ -808,6 +812,10 @@ let make = (
                         style=ReactDOM.Style.make(~width="200px", ())
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
+                        onKeyDown=kbrdHnd2(
+                            kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actProve, ()),
+                            kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCancel, ()),
+                        )
                     />
                 </Row>
                 <Row>
