@@ -10,14 +10,6 @@ let openInfoDialog: (
     unit,
 ) => unit
 
-let kbrdHnd: (
-    ~onCtrlEnter: unit => unit=?,
-    ~onEnter: unit => unit=?,
-    ~onEsc: unit => unit=?,
-    unit,
-    ReactEvent.Keyboard.t,
-) => unit
-
 let copyToClipboard: string => unit
 let getAvailWidth: () => int
 
@@ -43,3 +35,28 @@ let clickHnd: (
 ) => (ReactEvent.Mouse.t => unit)
 
 let clickHnd2: ( clickCallback, clickCallback, ) => (ReactEvent.Mouse.t => unit)
+
+let keyCodeEnter: int
+let keyCodeEsc: int
+
+type kbrdCallback
+
+let kbrdClbkMake: (
+    ~keyCode:int,
+    ~alt:bool=?,
+    ~shift:bool=?,
+    ~ctrl:bool=?,
+    ~act:unit=>unit,
+    ()
+) => kbrdCallback
+
+let kbrdHnd: (
+    ~keyCode:int,
+    ~alt:bool=?,
+    ~shift:bool=?,
+    ~ctrl:bool=?,
+    ~act:unit=>unit,
+    ()
+) => (ReactEvent.Keyboard.t => unit)
+
+let kbrdHnd2: ( kbrdCallback, kbrdCallback ) => (ReactEvent.Keyboard.t => unit)

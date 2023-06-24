@@ -149,7 +149,10 @@ let make = (
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=kbrdHnd(~onEnter=actEditDone, ~onEsc=actEditCancel, ())
+                    onKeyDown=kbrdHnd2(
+                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actEditDone, ()),
+                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actEditCancel, ()),
+                    )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                     minRows={if (buttonDirHor) {1} else if (onHelp->Belt.Option.isNone) {3} else {5} }
                 />

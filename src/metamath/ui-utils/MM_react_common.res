@@ -76,38 +76,6 @@ let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>
     })->ignore
 }
 
-let kbrdHnd = (
-    ~onCtrlEnter: option<() => unit>=?,
-    ~onEnter: option<() => unit>=?,
-    ~onEsc: option<() => unit>=?,
-    ()
-):(ReactEvent.Keyboard.t => unit) => {
-    (kbrdEvt:ReactEvent.Keyboard.t) => {
-        let isAlt = kbrdEvt->ReactEvent.Keyboard.altKey
-        let isCtrl = kbrdEvt->ReactEvent.Keyboard.ctrlKey
-        let isShift = kbrdEvt->ReactEvent.Keyboard.shiftKey
-        let keyCode = kbrdEvt->ReactEvent.Keyboard.keyCode
-
-        onCtrlEnter->Belt.Option.forEach(onCtrlEnter => {
-            if (!isAlt && isCtrl && !isShift && keyCode == 13) {
-                onCtrlEnter()
-            }
-        })
-        
-        onEnter->Belt.Option.forEach(onEnter => {
-            if (!isAlt && !isCtrl && !isShift && keyCode == 13) {
-                onEnter()
-            }
-        })
-        
-        onEsc->Belt.Option.forEach(onEsc => {
-            if (!isAlt && !isCtrl && !isShift && keyCode == 27) {
-                onEsc()
-            }
-        })
-    }
-}
-
 type mouseButton = Left | Middle | Right
 
 type clickCallback = {
@@ -157,7 +125,7 @@ let clickHnd = (
     }
 }
 
-let runCallback = (evt:ReactEvent.Mouse.t, clbk:clickCallback):unit => {
+let runClickCallback = (evt:ReactEvent.Mouse.t, clbk:clickCallback):unit => {
     if (
         evt->ReactEvent.Mouse.button === clbk.btn->mouseButtonToInt
         && evt->ReactEvent.Mouse.altKey === clbk.alt
@@ -170,7 +138,67 @@ let runCallback = (evt:ReactEvent.Mouse.t, clbk:clickCallback):unit => {
 
 let clickHnd2 = ( clbk1:clickCallback, clbk2:clickCallback, ):(ReactEvent.Mouse.t => unit) => {
     evt => {
-        runCallback(evt,clbk1)
-        runCallback(evt,clbk2)
+        runClickCallback(evt,clbk1)
+        runClickCallback(evt,clbk2)
+    }
+}
+
+let keyCodeEnter = 13
+let keyCodeEsc = 27
+
+type kbrdCallback = {
+    keyCode:int,
+    alt:bool,
+    shift:bool,
+    ctrl:bool,
+    act:unit=>unit,
+}
+
+let kbrdClbkMake = (
+    ~keyCode:int,
+    ~alt:bool=false,
+    ~shift:bool=false,
+    ~ctrl:bool=false,
+    ~act:unit=>unit,
+    ()
+) => {
+    { keyCode, alt, shift, ctrl, act, }
+}
+
+let kbrdHnd = (
+    ~keyCode:int,
+    ~alt:bool=false,
+    ~shift:bool=false,
+    ~ctrl:bool=false,
+    ~act:unit=>unit,
+    ()
+):(ReactEvent.Keyboard.t => unit) => {
+    evt => {
+        if (
+            evt->ReactEvent.Keyboard.keyCode === keyCode
+            && evt->ReactEvent.Keyboard.altKey === alt
+            && evt->ReactEvent.Keyboard.ctrlKey === ctrl
+            && evt->ReactEvent.Keyboard.shiftKey === shift
+        ) {
+            act()
+        }
+    }
+}
+
+let runKbrdCallback = (evt:ReactEvent.Keyboard.t, clbk:kbrdCallback):unit => {
+    if (
+        evt->ReactEvent.Keyboard.keyCode === clbk.keyCode
+        && evt->ReactEvent.Keyboard.altKey === clbk.alt
+        && evt->ReactEvent.Keyboard.ctrlKey === clbk.ctrl
+        && evt->ReactEvent.Keyboard.shiftKey === clbk.shift
+    ) {
+        clbk.act()
+    }
+}
+
+let kbrdHnd2 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, ):(ReactEvent.Keyboard.t => unit) => {
+    evt => {
+        runKbrdCallback(evt,clbk1)
+        runKbrdCallback(evt,clbk2)
     }
 }

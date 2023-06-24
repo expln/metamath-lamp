@@ -1093,7 +1093,10 @@ let make = React.memoCustomCompareProps( ({
                     autoFocus=true
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
-                    onKeyDown=kbrdHnd(~onEnter=actLabelEditDone, ~onEsc=actLabelEditCancel, ())
+                    onKeyDown=kbrdHnd2(
+                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actLabelEditDone, ()),
+                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actLabelEditCancel, ()),
+                    )
                     title="Enter to save, Esc to cancel"
                 />
                 <Row>
@@ -1208,7 +1211,10 @@ let make = React.memoCustomCompareProps( ({
                         let value = (evt->ReactEvent.Form.target)["value"]
                         actStmtContentUpdated(value, selectionStart)
                     }}
-                    onKeyDown=kbrdHnd(~onEnter=actContEditDone, ~onEsc=actContEditCancel, ())
+                    onKeyDown=kbrdHnd2(
+                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actContEditDone, ()),
+                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actContEditCancel, ()),
+                    )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
                 <Row>
@@ -1387,7 +1393,10 @@ let make = React.memoCustomCompareProps( ({
                     multiline=true
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
-                    onKeyDown=kbrdHnd(~onEnter=actJstfEditDone, ~onEsc=actJstfEditCancel, ())
+                    onKeyDown=kbrdHnd2(
+                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actJstfEditDone, ()),
+                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actJstfEditCancel, ()),
+                    )
                     title="Enter to save, Esc to cancel"
                 />
                 <Row>
