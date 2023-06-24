@@ -172,7 +172,9 @@ let make = () => {
             if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings, ())
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, ()
+                    ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, 
+                    ~color=?(if (tempMode.contents) {Some("orange")} else {None}), 
+                    ()
                 )
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Explorer", ~closable=false, ~data=ExplorerIndex, ())
                 st
