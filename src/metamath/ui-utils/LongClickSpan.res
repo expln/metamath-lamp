@@ -3,14 +3,14 @@ open UseLongClick
 
 @react.component
 let make = (
-    ~onClick:ReactEvent.Mouse.t=>unit=?,
+    ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
     ~longClickEnabled:bool,
     ~longClickDelayMs:int,
-    ~onShortClick:option<clickAttrs>=>unit=?,
-    ~onLongClick:unit=>unit=?,
+    ~onShortClick:option<option<clickAttrs>=>unit>=?,
+    ~onLongClick:option<unit=>unit>=?,
     ~children:reElem,
-    ~style:reStyle=?,
-    ~title:string=?,
+    ~style:option<reStyle>=?,
+    ~title:option<string>=?,
 ) => {
     let { 
         onClick, 

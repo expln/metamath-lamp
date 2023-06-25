@@ -1,5 +1,4 @@
 open Expln_test
-open Common
 open Compiler_output_parser
 
 describe_skip("parseCompilerOutput", _ => {

@@ -484,7 +484,7 @@ let make = (
     ~onUrlBecomesTrusted:option<string=>unit>,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
-    ~style:reStyle=?,
+    ~style as _ :option<reStyle>=?,
     ~tempMode:bool,
     ~onExpandedChange:bool=>unit,
     ~doExpand: React.ref<Js.Nullable.t<unit=>unit>>,

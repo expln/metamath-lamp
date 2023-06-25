@@ -95,7 +95,7 @@ let printToStr = (groups:Belt_HashMapInt.t<array<warning>>):string => {
         ->Js.Array2.sortInPlaceWith(((code1,_),(code2,_)) => code1 - code2)
         ->Js.Array2.forEach(((code,arr)) => {
             res->Js.Array2.push("")->ignore
-            res->Js.Array2.push(`Warning ${code->Belt_Int.toString}: ${getWarningDescr(code)}`)->ignore
+            res->Js.Array2.push(`Warning number ${code->Belt_Int.toString}: ${getWarningDescr(code)}`)->ignore
             arr->Js.Array2.sortInPlaceWith((a,b) => a.ord - b.ord)->Js.Array2.forEach(warning => {
                 res->Js.Array2.push(warning.path)->ignore
             })
