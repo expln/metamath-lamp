@@ -19,32 +19,37 @@ let make = (
 ) => {
     let leftClickDescrStr = if (longClickEnabled) {"Short click (Left click)"} else {"Left click"}
     let altLeftClickDescrStr = if (longClickEnabled) {"Long click (Alt + Left click)"} else {"Alt + Left click"}
-    <Row alignItems=#center>
-        <FormControl size=#small >
-            <InputLabel id="label-for-edit-statements-by">"Edit statements by"</InputLabel>
-            <Select 
-                sx={"width": 250}
-                labelId="label-for-edit-statements-by"
-                label="Edit statements by"
-                value=boolToStr(editStmtsByLeftClick)
-                onChange=evt2str(boolStr => boolStr->strToBool->onChange)
-            >
-                <MenuItem value="true"> {React.string(leftClickDescrStr)} </MenuItem>
-                <MenuItem value="false"> {React.string(altLeftClickDescrStr)} </MenuItem>
-            </Select>
-        </FormControl>
-        <FormControl size=#small >
-            <InputLabel id="label-for-select-statements-by">"Select statements by"</InputLabel>
-            <Select 
-                sx={"width": 250}
-                labelId="label-for-select-statements-by"
-                label="Select statements by"
-                value=boolToStr(!editStmtsByLeftClick)
-                onChange=evt2str(boolStr => (!(boolStr->strToBool))->onChange)
-            >
-                <MenuItem value="true"> {React.string(leftClickDescrStr)} </MenuItem>
-                <MenuItem value="false"> {React.string(altLeftClickDescrStr)} </MenuItem>
-            </Select>
-        </FormControl>
-    </Row>
+    <Col spacing=0.>
+        <Row alignItems=#center>
+            <FormControl size=#small >
+                <InputLabel id="label-for-edit-statements-by">"Edit statements by"</InputLabel>
+                <Select 
+                    sx={"width": 250}
+                    labelId="label-for-edit-statements-by"
+                    label="Edit statements by"
+                    value=boolToStr(editStmtsByLeftClick)
+                    onChange=evt2str(boolStr => boolStr->strToBool->onChange)
+                >
+                    <MenuItem value="true"> {React.string(leftClickDescrStr)} </MenuItem>
+                    <MenuItem value="false"> {React.string(altLeftClickDescrStr)} </MenuItem>
+                </Select>
+            </FormControl>
+            <FormControl size=#small >
+                <InputLabel id="label-for-select-statements-by">"Select statements by"</InputLabel>
+                <Select 
+                    sx={"width": 250}
+                    labelId="label-for-select-statements-by"
+                    label="Select statements by"
+                    value=boolToStr(!editStmtsByLeftClick)
+                    onChange=evt2str(boolStr => (!(boolStr->strToBool))->onChange)
+                >
+                    <MenuItem value="true"> {React.string(leftClickDescrStr)} </MenuItem>
+                    <MenuItem value="false"> {React.string(altLeftClickDescrStr)} </MenuItem>
+                </Select>
+            </FormControl>
+        </Row>
+        <span style=ReactDOM.Style.make(~color="grey", ~fontSize="12px", ())>
+            {"On some keyboards 'Alt' is labelled as 'Opt'"->React.string}
+        </span>
+    </Col>
 }
