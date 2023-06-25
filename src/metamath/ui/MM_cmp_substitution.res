@@ -234,6 +234,9 @@ let make = (
             )
         />
     }
+
+    let expr1Label = "Match what"
+    let expr2Label = "Match with"
     
     let rndInput = () => {
         <Col>
@@ -241,19 +244,19 @@ let make = (
                 <tbody>
                     <tr>
                         <td>
-                            {rndExpr(~label="Replace what", ~value=state.expr1Str, ~autoFocus=true, 
+                            {rndExpr(~label=expr1Label, ~value=state.expr1Str, ~autoFocus=true, 
                                 ~onChange=actExpr1Change, ~tabIndex=1, ~onEnter=actExpr1OnEnter, 
                                 ~ref=expr1TextFieldRef)}
                         </td>
                         <td>
                             {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
-                                ~title="Swap \"Replace what\" and \"Replace with\"", ())}
+                                ~title=`Swap "${expr1Label}" and "${expr2Label}"`, ())}
                         </td>
                     </tr>
                 </tbody>
             </table>
             {rndError(state.expr1Err)}
-            {rndExpr(~label="Replace with", ~value=state.expr2Str, ~autoFocus=false,
+            {rndExpr(~label=expr2Label, ~value=state.expr2Str, ~autoFocus=false,
                 ~onChange=actExpr2Change, ~tabIndex=2, ~onEnter=actExpr2OnEnter,
                 ~ref=expr2TextFieldRef )}
             {rndError(state.expr2Err)}
