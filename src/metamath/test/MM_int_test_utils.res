@@ -114,7 +114,7 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     }
     if (actualStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
-        Expln_utils_files.writeStringToFile(fileWithActualResult, actualStr)
+        Expln_utils_files.writeStringToFile(actualStr, fileWithActualResult)
         if (failOnMismatch) {
             assertEq( fileWithActualResult, fileWithExpectedResult )
         }
@@ -124,7 +124,7 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
 let assertNoErrors = (st) => {
     if (st->editorStateHasErrors) {
         let filePath = curTestDataDir.contents ++ "/" ++ "editor-state-error.txt"
-        Expln_utils_files.writeStringToFile( filePath, st->editorStateToStr )
+        Expln_utils_files.writeStringToFile( st->editorStateToStr, filePath )
         raise(MmException({msg:`Editor state has errors: ${filePath}`}))
     }
 }
@@ -150,12 +150,12 @@ let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
 let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:string):unit => {
     if (text1 != text2) {
         Expln_utils_files.writeStringToFile(
-            curTestDataDir.contents ++ "/" ++ fileName1 ++ ".txt", 
-            text1
+            text1,
+            curTestDataDir.contents ++ "/" ++ fileName1 ++ ".txt"
         )
         Expln_utils_files.writeStringToFile(
-            curTestDataDir.contents ++ "/" ++ fileName2 ++ ".txt", 
-            text2
+            text2,
+            curTestDataDir.contents ++ "/" ++ fileName2 ++ ".txt"
         )
         assertEq( text1, text2 )
     }
@@ -175,7 +175,7 @@ let generateReducedMmFile = (
     let fullMmFileText = Expln_utils_files.readStringFromFile(pathToFullMmFile)
     let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs, ())
     let reducedContent = astToStr(ast)
-    Expln_utils_files.writeStringToFile( pathToSaveTo, reducedContent )
+    Expln_utils_files.writeStringToFile( reducedContent, pathToSaveTo )
 }
 
 let countFrames = (

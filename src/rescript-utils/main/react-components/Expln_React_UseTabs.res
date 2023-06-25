@@ -1,7 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
 open Expln_utils_promise
-open MM_react_common
 
 type tabId = string
 

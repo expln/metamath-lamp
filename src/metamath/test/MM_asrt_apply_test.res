@@ -297,7 +297,7 @@ let testApplyAssertions = (
         ->Js.String2.replaceByRe(%re("/\r/g"), "")
     if (actualResultsStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
-        Expln_utils_files.writeStringToFile(fileWithActualResult, actualResultsStr)
+        Expln_utils_files.writeStringToFile(actualResultsStr, fileWithActualResult)
         assertEq( fileWithActualResult, fileWithExpectedResult )
     }
 }

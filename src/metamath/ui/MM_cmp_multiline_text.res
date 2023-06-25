@@ -108,12 +108,6 @@ let make = (
         onEditCancel(state.newText->Js_string2.trim)
     }
 
-    let leftClickHnd = (mouseEvt:ReactEvent.Mouse.t, clbk) => {
-        if (mouseEvt->ReactEvent.Mouse.button == 0) {
-            clbk()
-        }
-    }
-
     let rndButtons = () => {
         let saveBtn = rndIconButton(
             ~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter", ())

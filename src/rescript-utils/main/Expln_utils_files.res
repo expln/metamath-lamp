@@ -5,4 +5,4 @@ external readFileSync: string => {..} = "readFileSync"
 external writeFileSync: (string,string) => unit = "writeFileSync"
 
 let readStringFromFile = path => readFileSync(path)["toString"](.)
-let writeStringToFile = (path, text) => writeFileSync(path, text)
+let writeStringToFile = (text, path) => writeFileSync(path, text)

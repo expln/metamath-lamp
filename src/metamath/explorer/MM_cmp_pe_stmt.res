@@ -4,10 +4,7 @@ open MM_react_common
 open MM_context
 open MM_substitution
 open MM_parenCounter
-open MM_proof_tree
-open MM_proof_tree_dto
 open Expln_React_Modal
-open Local_storage_utils
 open Common
 open MM_cmp_user_stmt
 

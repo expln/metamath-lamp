@@ -1154,8 +1154,6 @@ describe("defaults for G steps", _ => {
         let st = st->prepareEditorForUnification
 
         //then
-        let s1 = st.stmts[0]
-        let s2 = st.stmts[1]
         assertEqMsg( st.stmts[0].typ, P , "st.stmts[0].typ")
         assertEqMsg( st.stmts[0].isGoal, false , "st.stmts[0].isGoal")
         assertEqMsg( st.stmts[0].label, "1" , "st.stmts[0].label")

@@ -612,13 +612,6 @@ let userStmtTypeAndIsGoalFromStr = (stmtTypeStr:string):(userStmtType,bool) => {
     }
 }
 
-let userStmtTypeAndIsGoalToStr = (stmtType:userStmtType, isGoal:bool):string => {
-    switch stmtType {
-        | E => "e"
-        | P => if (isGoal) {"g"} else {"p"}
-    }
-}
-
 type props = {
     modalRef:modalRef,
 
