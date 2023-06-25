@@ -15,6 +15,7 @@ let rndProofStatus: (
     ~jstfIsIncorrectTooltip:string=?,
     ~onReadyIconClicked:unit=>unit =?,
     ~onReadyIconAltClicked:unit=>unit=?,
+    ~onWaitingIconClicked:unit=>unit=?,
     ~onErrorIconClicked:unit=>unit =?,
     ~onNoJstfIconClicked:unit=>unit =?,
     ()

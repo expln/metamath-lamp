@@ -433,6 +433,7 @@ let rndProofStatus = (
     ~jstfIsIncorrectTooltip:option<string>=?,
     ~onReadyIconClicked:option<unit=>unit>=?,
     ~onReadyIconAltClicked:option<unit=>unit>=?,
+    ~onWaitingIconClicked:option<unit=>unit>=?,
     ~onErrorIconClicked:option<unit=>unit>=?,
     ~onNoJstfIconClicked:option<unit=>unit>=?,
     ()
@@ -507,8 +508,10 @@ let rndProofStatus = (
                         title=?waitingTooltip
                         style={commonStyle->ReactDOM.Style.combine(ReactDOM.Style.make(
                             ~color="orange",
+                            ~cursor=if (onWaitingIconClicked->Belt_Option.isSome) {"pointer"} else {"default"}, 
                             ()
                         ))}
+                        onClick={_=>onWaitingIconClicked->Belt_Option.forEach(clbk => clbk())}
                     >{React.string("\u223F")}</span>
                 | NoJstf =>
                     <span 
@@ -1553,6 +1556,7 @@ let make = React.memoCustomCompareProps( ({
             ~jstfIsIncorrectTooltip="Justification is incorrect. Click to debug.",
             ~onReadyIconClicked=actToggleInfoExpanded,
             ~onReadyIconAltClicked=onGenerateProof,
+            ~onWaitingIconClicked=actToggleInfoExpanded,
             ~onErrorIconClicked=onDebug,
             ~onNoJstfIconClicked=onDebug,
             ()
