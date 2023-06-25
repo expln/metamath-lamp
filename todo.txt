@@ -1,25 +1,15 @@
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
 - improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
 - make "compact mode" and "small buttons" default on mobile.
-- fix: copy to clipboard doesn't work on mobile.
-- show visualization for statements marked with '~'.
-- fix a bug: goal is re-defined but the statement is not marked with red background.
-- fix a bug: pressing Enter in the explorer filters on mobile doesn't apply filters.
 - remove selector from the url added by the explorer. Steps to reproduce:
     load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console: 
         DOMException: Failed to execute 'querySelectorAll' on 'Document': '#tbl-r19.12 .step' is not a valid selector.
-- fix a bug: not possible to select ( ph -> ps ) part in the statement below (in the explorer):
-    |- ( ( ph -> ps ) -> ( ph -> ch ) )
-- add vertical-align=top to proof tables in the explorer
-- if long click is unstable then make it optional
-- Specify in the guide the version of mm-lamp which it was written for
 - freeze pagination in the explorer
 - fix a bug:
     when I was proving "cotval-hyp" one label became uneditable.
 - optimize re-rendering for all tabs.
 - in the bottom up prover use existing vars together with new vars
 - move some dependencies to devDependencies.
-- analyze possibility to keep editor history with URLs.
 - review usages of "alias", it may be empty.
 - implement a builder of statements.
 - add "About" page.
@@ -34,10 +24,7 @@
     - filter by asrt, min number of srcs
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 - write tests for collecting debug info
-
 - Automatically create correct labels for hypotheses.
-- implement table view in the editor.
-- add onEnter and onEscape wherever possible.
 - before merging of statements check if some statements should be moved up because they are referenced by above statements and don't merge in that case.
 - autofocus label selector after scope is set to StopBefore or StopAfter
 - in cmp_search use array2.slice and store idx in the rendered elem the same way as in cmp_bottom_up
@@ -83,3 +70,12 @@ DONE:
     2) load same file in the same file selector - nothing happens.
 - prefix for new statements
 - remove tabs with non-existent frames after ctx reload.
+- show visualization for statements marked with '~'.
+- fix a bug: goal is re-defined but the statement is not marked with red background.
+- fix a bug: pressing Enter in the explorer filters on mobile doesn't apply filters.
+- fix a bug: not possible to select ( ph -> ps ) part in the statement below (in the explorer):
+    |- ( ( ph -> ps ) -> ( ph -> ch ) )
+- add vertical-align=top to proof tables in the explorer
+- Specify in the guide the version of mm-lamp which it was written for
+- implement table view in the editor.
+- add onEnter and onEscape wherever possible.
