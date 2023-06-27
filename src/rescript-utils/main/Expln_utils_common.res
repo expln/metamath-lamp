@@ -1,7 +1,7 @@
 let exn = str => Js.Exn.raiseError(str)
 
 @new external createArray: int => array<'a> = "Array"
-let clearArray = %raw(`arr => arr.length = 0`)
+let clearArray:array<'a> => unit = %raw(`arr => arr.length = 0`)
 let arrFlatMap = (arr,func) => arr -> Belt.Array.map(func)->Belt.Array.concatMany
 let arrStrDistinct = arr => arr->Belt_Set.String.fromArray->Belt_Set.String.toArray
 let arrIntDistinct = arr => arr->Belt_Set.Int.fromArray->Belt_Set.Int.toArray

@@ -30,7 +30,7 @@ type rec proofNode = {
     mutable proof: option<exprSrc>,
     mutable isInvalidFloating: bool,
     mutable dist: option<int>,
-    dbg: option<proofNodeDbg>,
+    pnDbg: option<proofNodeDbg>,
 }
 
 and exprSrc =
@@ -51,7 +51,7 @@ and proofTree = {
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     rootStmts:array<rootStmt>,
     syntaxProofs: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
-    dbg: option<proofTreeDbg>,
+    ptDbg: option<proofTreeDbg>,
 }
 
 let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
@@ -98,7 +98,7 @@ let pnIsInvalidFloating = node => node.isInvalidFloating
 let pnSetInvalidFloating = node => node.isInvalidFloating = true
 let pnGetDist = node => node.dist
 let pnSetDist = (node,dist) => node.dist = Some(dist)
-let pnGetDbg = node => node.dbg
+let pnGetDbg = node => node.pnDbg
 
 let ptGetFrms = tree => tree.frms
 let ptGetParenCnt = tree => tree.parenCnt
@@ -110,7 +110,7 @@ let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> =>
 let ptGetMaxVar = tree => tree.maxVar
 let ptGetCtxMaxVar = tree => tree.ctxMaxVar
 let ptGetRootStmts = tree => tree.rootStmts
-let ptGetDbg = (tree:proofTree) => tree.dbg
+let ptGetDbg = (tree:proofTree) => tree.ptDbg
 let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
 let ptGetDisj = tree => tree.disj
 
@@ -137,7 +137,7 @@ let ptMake = (
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
         rootStmts: [],
         syntaxProofs: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=16),
-        dbg: exprToStr->Belt_Option.map(exprToStr => {
+        ptDbg: exprToStr->Belt_Option.map(exprToStr => {
             {
                 newVars: [],
                 disj: [],
@@ -148,7 +148,7 @@ let ptMake = (
 }
 
 let pnGetExprStr = (node:proofNode):string => {
-    switch node.dbg {
+    switch node.pnDbg {
         | Some({exprStr}) => exprStr
         | None => node.expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ")
     }
@@ -166,7 +166,7 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
                 children: [],
                 isInvalidFloating: false,
                 dist: None,
-                dbg: tree.dbg->Belt_Option.map(dbg => {
+                pnDbg: tree.ptDbg->Belt_Option.map(dbg => {
                     {
                         exprStr: dbg.exprToStr(expr),
                     }
@@ -296,7 +296,7 @@ let ptAddNewVar = (tree, typ):int => {
     tree.maxVar = tree.maxVar + 1
     let newVar = tree.maxVar
     tree.newVars->Belt_HashSet.add([typ, newVar])
-    switch tree.dbg {
+    switch tree.ptDbg {
         | None => ()
         | Some({exprToStr, newVars}) => newVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
     }
@@ -305,7 +305,7 @@ let ptAddNewVar = (tree, typ):int => {
 
 let ptAddDisjPair = (tree, n, m) => {
     tree.disj->disjAddPair( n,m )
-    switch tree.dbg {
+    switch tree.ptDbg {
         | None => ()
         | Some({exprToStr, disj}) => disj->Js.Array2.push(exprToStr([n,m]))->ignore
     }
