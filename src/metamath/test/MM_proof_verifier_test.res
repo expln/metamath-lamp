@@ -93,7 +93,7 @@ describe("compressedProofBlockToArray", _ => {
 })
 
 describe("compressedProofStrToInt", _ => {
-    it("converts compressed proof numbers to intigers", _ => {
+    it("converts compressed proof numbers to integers", _ => {
         assertEq(compressedProofStrToInt("A"), 1)
         assertEq(compressedProofStrToInt("B"), 2)
         assertEq(compressedProofStrToInt("T"), 20)
