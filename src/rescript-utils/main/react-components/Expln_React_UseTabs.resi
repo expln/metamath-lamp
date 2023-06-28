@@ -1,5 +1,4 @@
 open Expln_React_common
-open Expln_utils_promise
 
 type tabId = string
 
