@@ -664,41 +664,49 @@ describe("applyAssertionResultHash", _ => {
 
 describe("getNextHypIdxToMatch", _ => {
     it("all types: returns idx of the first non blank hyp in the beginning of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(-1, [1, -1, 2, -1]), 0)
+        assertEq(getNextHypIdxToMatch(-1, [-1, -1, 2, -1, 3]), 2)
     })
     it("all types: returns 0 in the beginning of matching if comb is empty", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(-1, []), 0)
     })
     it("all types: returns idx of the next non blank hyp in the middle of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(0, [1, -1, 2, -1, 3]), 2)
+        assertEq(getNextHypIdxToMatch(2, [1, -1, 2, -1, 3]), 4)
+        assertEq(getNextHypIdxToMatch(2, [-1, -1, 2, -1, 3]), 4)
     })
     it("all types: returns idx of the first blank hyp in the middle of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(4, [1, -1, 2, -1, 3]), 1)
+        assertEq(getNextHypIdxToMatch(4, [-1, -1, 2, -1, 3]), 0)
     })
     it("all types: returns idx of the next blank hyp in the middle of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(1, [1, -1, 2, -1, 3]), 3)
+        assertEq(getNextHypIdxToMatch(0, [-1, -1, 2, -1, 3]), 1)
     })
     it("all types: returns comb.length in the end of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(3, [1, -1, 2, -1, 3]), 5)
+        assertEq(getNextHypIdxToMatch(3, [-1, -1, 2, -1, 3]), 5)
     })
 
     it("non-blanks only: returns idx of the first non blank hyp in the beginning of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(-1, [1, 2, 3]), 0)
     })
     it("non-blanks only: returns idx of the next non blank hyp in the middle of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(0, [1, 2, 3]), 1)
+        assertEq(getNextHypIdxToMatch(1, [1, 2, 3]), 2)
     })
     it("non-blanks only: returns comb.length in the end of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(2, [1, 2, 3]), 3)
     })
     
     it("blanks only: returns idx of the first blank hyp in the beginning of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(-1, [-1, -1, -1]), 0)
     })
     it("blanks only: returns idx of the next blank hyp in the middle of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(0, [-1, -1, -1]), 1)
+        assertEq(getNextHypIdxToMatch(1, [-1, -1, -1]), 2)
     })
     it("blanks only: returns comb.length in the end of matching", _ => {
-        failMsg("Not implemented")
+        assertEq(getNextHypIdxToMatch(2, [-1, -1, -1]), 3)
     })
 })
