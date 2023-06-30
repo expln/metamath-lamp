@@ -52,3 +52,5 @@ let iterateCombinations: (
     ~combinationConsumer:array<int>=>contunieInstruction,
     ~errConsumer:unifErr=>contunieInstruction,
 ) => contunieInstruction
+
+let getNextHypIdxToMatch: (int, array<int>) => int

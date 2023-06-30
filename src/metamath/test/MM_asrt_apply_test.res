@@ -661,3 +661,44 @@ describe("applyAssertionResultHash", _ => {
         )
     })
 })
+
+describe("getNextHypIdxToMatch", _ => {
+    it("all types: returns idx of the first non blank hyp in the beginning of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("all types: returns 0 in the beginning of matching if comb is empty", _ => {
+        failMsg("Not implemented")
+    })
+    it("all types: returns idx of the next non blank hyp in the middle of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("all types: returns idx of the first blank hyp in the middle of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("all types: returns idx of the next blank hyp in the middle of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("all types: returns comb.length in the end of matching", _ => {
+        failMsg("Not implemented")
+    })
+
+    it("non-blanks only: returns idx of the first non blank hyp in the beginning of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("non-blanks only: returns idx of the next non blank hyp in the middle of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("non-blanks only: returns comb.length in the end of matching", _ => {
+        failMsg("Not implemented")
+    })
+    
+    it("blanks only: returns idx of the first blank hyp in the beginning of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("blanks only: returns idx of the next blank hyp in the middle of matching", _ => {
+        failMsg("Not implemented")
+    })
+    it("blanks only: returns comb.length in the end of matching", _ => {
+        failMsg("Not implemented")
+    })
+})
