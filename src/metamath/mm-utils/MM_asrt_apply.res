@@ -3,6 +3,7 @@ open MM_context
 open MM_parenCounter
 open MM_progress_tracker
 open MM_unification_debug
+open MM_parser
 
 type applyAssertionResult = {
     newVars: array<int>,
@@ -214,6 +215,51 @@ let iterateSubstitutionsWithWorkVars = (
     res
 }
 
+let getNextNonBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
+    let idx = ref(hypIdx+1)
+    while (idx.contents < comb->Js_array2.length && comb[idx.contents] < 0) {
+        idx := idx.contents + 1
+    }
+    if (idx.contents < comb->Js_array2.length && comb[idx.contents] >= 0) {
+        Some(idx.contents)
+    } else {
+        None
+    }
+}
+
+let getNextBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
+    let idx = ref(hypIdx+1)
+    while (idx.contents < comb->Js_array2.length && comb[idx.contents] >= 0) {
+        idx := idx.contents + 1
+    }
+    if (idx.contents < comb->Js_array2.length && comb[idx.contents] < 0) {
+        Some(idx.contents)
+    } else {
+        None
+    }
+}
+
+let getNextHypIdxToMatch = (hypIdx:int, comb:array<int>):int => {
+    if (hypIdx >= comb->Js_array2.length) {
+        raise(MmException({msg:`getNextHypIdxToMatch: hypIdx >= comb->Js_array2.length`}))
+    } else if (hypIdx < 0 || comb[hypIdx] >= 0) {
+        switch getNextNonBlankIdx(hypIdx, comb) {
+            | Some(idx) => idx
+            | None => {
+                switch getNextBlankIdx(-1, comb) {
+                    | Some(idx) => idx
+                    | None => comb->Js_array2.length
+                }
+            }
+        }
+    } else {
+        switch getNextBlankIdx(hypIdx, comb) {
+            | Some(idx) => idx
+            | None => comb->Js_array2.length
+        }
+    }
+}
+
 let rec iterateSubstitutionsForHyps = (
     ~workVars:workVars,
     ~frm:frmSubsData,
@@ -272,7 +318,7 @@ let rec iterateSubstitutionsForHyps = (
                     ~statements,
                     ~allowNewVars,
                     ~comb,
-                    ~hypIdx = hypIdx+1,
+                    ~hypIdx = hypIdx->getNextHypIdxToMatch(comb),
                     ~debugLevel,
                     ~onMatchFound,
                     ~onErrFound,
@@ -300,7 +346,7 @@ let rec iterateSubstitutionsForHyps = (
                     ~statements,
                     ~allowNewVars,
                     ~comb,
-                    ~hypIdx = hypIdx+1,
+                    ~hypIdx = hypIdx->getNextHypIdxToMatch(comb),
                     ~debugLevel,
                     ~onMatchFound,
                     ~onErrFound,
@@ -466,7 +512,7 @@ let applyAssertions = (
                                     ~statements,
                                     ~allowNewVars,
                                     ~comb,
-                                    ~hypIdx=0,
+                                    ~hypIdx=getNextHypIdxToMatch(-1, comb),
                                     ~debugLevel,
                                     ~onErrFound = err => {
                                         onMatchFound(

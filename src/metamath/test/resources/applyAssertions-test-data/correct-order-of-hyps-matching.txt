@@ -1,0 +1,90 @@
+------------------------
+Work variables:
+    workVar1 class class1
+    workVar2 class class2
+Disjoints:
+
+Arguments:
+    provable1: |- class1 = class2
+    provable2: |- 4 = class1
+    provable3: |- ( 2 + 2 ) = class2
+Proof:
+    :provable1,provable2,provable3:3eqtr4i
+Result:
+    |- ( 2 + 2 ) = 4
+
+
+------------------------
+Work variables:
+    workVar1 class class1
+Disjoints:
+
+Arguments:
+    provable1: |- class1 = ( 2 + ( 1 + 1 ) )
+    provable2: |- 4 = class1
+    [4]
+Proof:
+    :provable1,provable2,4:3eqtr4i
+Result:
+    |- ( 2 + 2 ) = 4
+
+
+------------------------
+Work variables:
+    workVar1 class class1
+Disjoints:
+
+Arguments:
+    provable1: |- ( ( 2 + 1 ) + 1 ) = class1
+    [8]
+    provable2: |- ( 2 + 2 ) = class1
+Proof:
+    :provable1,8,provable2:3eqtr4i
+Result:
+    |- ( 2 + 2 ) = 4
+
+
+------------------------
+Work variables:
+
+Disjoints:
+
+Arguments:
+    provable1: |- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )
+    [8]
+    [4]
+Proof:
+    :provable1,8,4:3eqtr4i
+Result:
+    |- ( 2 + 2 ) = 4
+
+
+------------------------
+Work variables:
+
+Disjoints:
+
+Arguments:
+    [8]
+    provable1: |- 4 = 4
+    provable2: |- ( 2 + 2 ) = ( ( 2 + 1 ) + 1 )
+Proof:
+    :8,provable1,provable2:3eqtr4i
+Result:
+    |- ( 2 + 2 ) = 4
+
+
+------------------------
+Work variables:
+
+Disjoints:
+
+Arguments:
+    [4]
+    provable1: |- 4 = ( 2 + 2 )
+    [4]
+Proof:
+    :4,provable1,4:3eqtr4i
+Result:
+    |- ( 2 + 2 ) = 4
+

@@ -1,0 +1,13 @@
+$c |- = + ( ) { } [ ] 1 2 4 class $.
+$v A B C D $.
+ca $f class A $.
+cb $f class B $.
+cc $f class C $.
+cd $f class D $.
+
+${
+   3eqtr4i.1 $e |- A = B $.
+   3eqtr4i.2 $e |- C = A $.
+   3eqtr4i.3 $e |- D = B $.
+   3eqtr4i  $a |- D = C $.
+$}

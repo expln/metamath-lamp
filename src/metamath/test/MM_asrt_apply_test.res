@@ -152,7 +152,7 @@ let testApplyAssertions = (
     ~mmFilePath:string,
     ~stopBefore:string="",
     ~stopAfter:string="",
-    ~additionalStatements:array<stmt>,
+    ~additionalStatements:array<stmt>=[],
     ~statements:array<(string,string)>,
     ~frameFilter:frame=>bool=_=>true,
     ~result:option<string>=?,
@@ -363,6 +363,18 @@ describe("applyAssertions", _ => {
             ~frameFilter = frame => frame.label == "asrt-without-vars",
             ~result="|- T.",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt",
+            ()
+        )
+    })
+    it("matches all non-blank hyps before blank ones to maximize number of bound variables", _ => {
+        testApplyAssertions(
+            ~mmFilePath = "./src/metamath/test/resources/applAsrt-correct-order-of-hyps-matching._mm",
+            ~statements = [
+                ("8", "|- 4 = ( ( 2 + 1 ) + 1 )"),
+                ("4", "|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )"),
+            ],
+            ~result="|- ( 2 + 2 ) = 4",
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt",
             ()
         )
     })
@@ -659,5 +671,54 @@ describe("applyAssertionResultHash", _ => {
             ),
             93508380
         )
+    })
+})
+
+describe("getNextHypIdxToMatch", _ => {
+    it("all types: returns idx of the first non blank hyp in the beginning of matching", _ => {
+        assertEq(getNextHypIdxToMatch(-1, [1, -1, 2, -1]), 0)
+        assertEq(getNextHypIdxToMatch(-1, [-1, -1, 2, -1, 3]), 2)
+    })
+    it("all types: returns 0 in the beginning of matching if comb is empty", _ => {
+        assertEq(getNextHypIdxToMatch(-1, []), 0)
+    })
+    it("all types: returns idx of the next non blank hyp in the middle of matching", _ => {
+        assertEq(getNextHypIdxToMatch(0, [1, -1, 2, -1, 3]), 2)
+        assertEq(getNextHypIdxToMatch(2, [1, -1, 2, -1, 3]), 4)
+        assertEq(getNextHypIdxToMatch(2, [-1, -1, 2, -1, 3]), 4)
+    })
+    it("all types: returns idx of the first blank hyp in the middle of matching", _ => {
+        assertEq(getNextHypIdxToMatch(4, [1, -1, 2, -1, 3]), 1)
+        assertEq(getNextHypIdxToMatch(4, [-1, -1, 2, -1, 3]), 0)
+    })
+    it("all types: returns idx of the next blank hyp in the middle of matching", _ => {
+        assertEq(getNextHypIdxToMatch(1, [1, -1, 2, -1, 3]), 3)
+        assertEq(getNextHypIdxToMatch(0, [-1, -1, 2, -1, 3]), 1)
+    })
+    it("all types: returns comb.length in the end of matching", _ => {
+        assertEq(getNextHypIdxToMatch(3, [1, -1, 2, -1, 3]), 5)
+        assertEq(getNextHypIdxToMatch(3, [-1, -1, 2, -1, 3]), 5)
+    })
+
+    it("non-blanks only: returns idx of the first non blank hyp in the beginning of matching", _ => {
+        assertEq(getNextHypIdxToMatch(-1, [1, 2, 3]), 0)
+    })
+    it("non-blanks only: returns idx of the next non blank hyp in the middle of matching", _ => {
+        assertEq(getNextHypIdxToMatch(0, [1, 2, 3]), 1)
+        assertEq(getNextHypIdxToMatch(1, [1, 2, 3]), 2)
+    })
+    it("non-blanks only: returns comb.length in the end of matching", _ => {
+        assertEq(getNextHypIdxToMatch(2, [1, 2, 3]), 3)
+    })
+    
+    it("blanks only: returns idx of the first blank hyp in the beginning of matching", _ => {
+        assertEq(getNextHypIdxToMatch(-1, [-1, -1, -1]), 0)
+    })
+    it("blanks only: returns idx of the next blank hyp in the middle of matching", _ => {
+        assertEq(getNextHypIdxToMatch(0, [-1, -1, -1]), 1)
+        assertEq(getNextHypIdxToMatch(1, [-1, -1, -1]), 2)
+    })
+    it("blanks only: returns comb.length in the end of matching", _ => {
+        assertEq(getNextHypIdxToMatch(2, [-1, -1, -1]), 3)
     })
 })
