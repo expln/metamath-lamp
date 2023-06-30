@@ -152,7 +152,7 @@ let testApplyAssertions = (
     ~mmFilePath:string,
     ~stopBefore:string="",
     ~stopAfter:string="",
-    ~additionalStatements:array<stmt>,
+    ~additionalStatements:array<stmt>=[],
     ~statements:array<(string,string)>,
     ~frameFilter:frame=>bool=_=>true,
     ~result:option<string>=?,
@@ -363,6 +363,18 @@ describe("applyAssertions", _ => {
             ~frameFilter = frame => frame.label == "asrt-without-vars",
             ~result="|- T.",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt",
+            ()
+        )
+    })
+    it("matches all non-blank hyps before blank ones to maximize number of bound variables", _ => {
+        testApplyAssertions(
+            ~mmFilePath = "./src/metamath/test/resources/applAsrt-correct-order-of-hyps-matching._mm",
+            ~statements = [
+                ("8", "|- 4 = ( ( 2 + 1 ) + 1 )"),
+                ("4", "|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )"),
+            ],
+            ~result="|- ( 2 + 2 ) = 4",
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt",
             ()
         )
     })
