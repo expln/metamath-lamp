@@ -22,14 +22,14 @@ type editorDiff =
     | Descr(string)
     | Vars(string)
     | Disj(string)
-    | StmtAdd({idx:int, stmt:stmtSnapshot})
-    | StmtRemove({stmtId:stmtId})
-    | StmtMove({stmtId:stmtId, idx:int})
-    | StmtLabel({stmtId:stmtId, label:string})
-    | StmtTyp({stmtId:stmtId, typ: userStmtType, isGoal: bool})
-    | StmtJstf({stmtId:stmtId, jstfText: string})
-    | StmtCont({stmtId:stmtId, cont: string})
-    | StmtStatus({stmtId:stmtId, proofStatus: option<proofStatus>})
+    | StmtLabel({stmtId: stmtId, label: string})
+    | StmtTyp({stmtId: stmtId, typ: userStmtType, isGoal: bool})
+    | StmtJstf({stmtId: stmtId, jstfText: string})
+    | StmtCont({stmtId: stmtId, cont: string})
+    | StmtStatus({stmtId: stmtId, proofStatus: option<proofStatus>})
+    | StmtAdd({idx: int, stmt: stmtSnapshot})
+    | StmtRemove({stmtId: stmtId})
+    | StmtMove({stmtId: stmtId, idx: int})
     | Snapshot(editorSnapshot)
 
 let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
@@ -288,9 +288,6 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     }
 }
 
-/*
-If findDiff(a,b)==diff then applyDiff(a,diff)==b
-*/
 let applyDiff = (a:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
     raise(MmException({msg:`not implemented`}))
 }
