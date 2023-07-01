@@ -104,9 +104,10 @@ let getStmtB = (
 let findSmallDiffStmt = (
     a:array<stmtSnapshot>, 
     b:array<stmtSnapshot>, 
-    ~idxSwap:option<int>,
-    ~idxRemove:option<int>,
-    ~idxAdd:option<int>,
+    ~idxSwap:option<int>=?,
+    ~idxRemove:option<int>=?,
+    ~idxAdd:option<int>=?,
+    ()
 ):array<editorDiff> => {
     let modCnt = ref(if (idxSwap->Belt_Option.isNone) {0} else {1})
     modCnt := modCnt.contents + if (idxRemove->Belt_Option.isNone) {0} else {1}
@@ -167,6 +168,38 @@ let findSmallDiffStmt = (
     diffs
 }
 
+let findIdxAdd = (a:array<stmtSnapshot>, b:array<stmtSnapshot>):option<int> => {
+    let aLen = a->Js_array2.length
+    let bLen = b->Js_array2.length
+    if (aLen + 1 == bLen) {
+        let idxAdd = ref(None)
+        let match = ref(true)
+        let i = ref(0)
+        while (match.contents && i.contents < aLen) {
+            if (a[i.contents].id != b[i.contents].id) {
+                switch idxAdd.contents {
+                    | None => {
+                        if (a[i.contents].id == b[i.contents+1].id) {
+                            idxAdd := Some(i.contents)
+                        } else {
+                            match := false
+                        }
+                    }
+                    | Some(idxAdd) => match := a[i.contents].id == b[i.contents+1].id
+                }
+            }
+            i := i.contents + 1
+        }
+        if (!match.contents) {
+            None
+        } else {
+            idxAdd.contents->Belt_Option.orElse(Some(aLen))
+        }
+    } else {
+        None
+    }
+}
+
 /* 
 Ok(None): a and b are same;
 Ok(Some): some diff is found;
@@ -210,15 +243,25 @@ let findDiffStmt = (a:array<stmtSnapshot>, b:array<stmtSnapshot>):result<option<
             if (!match.contents) {
                 Error(())
             } else {
-                let diffs = findSmallDiffStmt( a, b, ~idxSwap=idxSwap.contents, ~idxRemove=None, ~idxAdd=None)
+                let diffs = findSmallDiffStmt( a, b, ~idxSwap=?(idxSwap.contents), ())
                 if (diffs->Js.Array2.length == 0) {
                     Ok(None)
                 } else {
                     Ok(Some(diffs))
                 }
             }
+        } else if (aLen + 1 == bLen) {
+            switch findIdxAdd(a, b) {
+                | None => Error(())
+                | Some(idxAdd) => Ok(Some(findSmallDiffStmt( a, b, ~idxAdd, ())))
+            }
+        } else if (aLen - 1 == bLen) {
+            switch findIdxAdd(b, a) {
+                | None => Error(())
+                | Some(idxRemove) => Ok(Some(findSmallDiffStmt( a, b, ~idxRemove, ())))
+            }
         } else {
-            raise(MmException({msg:`not implemented`}))
+            Error(())
         }
     }
 }
