@@ -19,7 +19,6 @@ type editorSnapshot = {
 }
 
 type editorDiff =
-    | Snapshot(editorSnapshot)
     | Descr(string)
     | Vars(string)
     | Disj(string)
@@ -31,6 +30,7 @@ type editorDiff =
     | StmtJstf({stmtId:stmtId, jstfText: string})
     | StmtCont({stmtId:stmtId, cont: string})
     | StmtStatus({stmtId:stmtId, proofStatus: option<proofStatus>})
+    | Snapshot(editorSnapshot)
 
 let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
     switch a {
@@ -267,7 +267,25 @@ let findDiffStmt = (a:array<stmtSnapshot>, b:array<stmtSnapshot>):result<option<
 }
 
 let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
-    raise(MmException({msg:`not implemented`}))
+    switch findDiffStmt(a.stmts, b.stmts) {
+        | Error(_) => [Snapshot(b)]
+        | Ok(diffsOpt) => {
+            let diffs = switch diffsOpt {
+                | None => []
+                | Some(diffs) => diffs
+            }
+            if (a.descr != b.descr) {
+                diffs->Js.Array2.push(Descr(b.descr))->ignore
+            }
+            if (a.varsText != b.varsText) {
+                diffs->Js.Array2.push(Vars(b.varsText))->ignore
+            }
+            if (a.disjText != b.disjText) {
+                diffs->Js.Array2.push(Disj(b.disjText))->ignore
+            }
+            diffs
+        }
+    }
 }
 
 /*
