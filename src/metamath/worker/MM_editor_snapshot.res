@@ -600,6 +600,12 @@ type editorDiffLocStor = {
     sn?:editorSnapshotLocStor,
 }
 
+type editorHistoryLocStor = {
+    maxLength: int,
+    head: editorSnapshotLocStor,
+    prev: array<array<editorDiffLocStor>>
+}
+
 let proofStatusToStr = (status:proofStatus):string => {
     switch status {
         | Ready => "r"
@@ -690,19 +696,19 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
     }
 }
 
-let optGetEdls = (opt:option<'a>, attrName:string):'a => {
+let optGetEdls = (opt:option<'a>, typ:string, attrName:string):'a => {
     switch opt {
         | None => raise(MmException({msg:`'${attrName}' is not set in an editorDiffLocStor.`}))
         | Some(str) => str
     }
 }
 
-let edlsGetId = (d:editorDiffLocStor):string => optGetEdls(d.id, "id")
-let edlsGetBool = (d:editorDiffLocStor):bool => optGetEdls(d.bool, "bool")
-let edlsGetInt = (d:editorDiffLocStor):int => optGetEdls(d.int, "int")
-let edlsGetStr = (d:editorDiffLocStor):string => optGetEdls(d.str, "str")
-let edlsGetStmt = (d:editorDiffLocStor):stmtSnapshotLocStor => optGetEdls(d.stmt, "stmt")
-let edlsGetSn = (d:editorDiffLocStor):editorSnapshotLocStor => optGetEdls(d.sn, "sn")
+let edlsGetId = (d:editorDiffLocStor):string => optGetEdls(d.id, d.typ, "id")
+let edlsGetBool = (d:editorDiffLocStor):bool => optGetEdls(d.bool, d.typ, "bool")
+let edlsGetInt = (d:editorDiffLocStor):int => optGetEdls(d.int, d.typ, "int")
+let edlsGetStr = (d:editorDiffLocStor):string => optGetEdls(d.str, d.typ, "str")
+let edlsGetStmt = (d:editorDiffLocStor):stmtSnapshotLocStor => optGetEdls(d.stmt, d.typ, "stmt")
+let edlsGetSn = (d:editorDiffLocStor):editorSnapshotLocStor => optGetEdls(d.sn, d.typ, "sn")
 
 let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
     switch diff.typ {
@@ -721,3 +727,40 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | _ => raise(MmException({msg:`Cannot convert editorDiffLocStor to editorDiff for diff.typ='${diff.typ}'.`}))
     }
 }
+
+let editorHistoryToLocStor = (ht:editorHistory):editorHistoryLocStor => {
+    let prev = Belt.Array.makeUninitializedUnsafe(ht->editorHistLength)
+    let idx = ref(0)
+    let nodeRef = ref(ht.prev)
+    while (nodeRef.contents->Belt_Option.isSome) {
+        let node = nodeRef.contents->Belt_Option.getExn
+        prev[idx.contents] = node.diff->Js_array2.map(editorDiffToLocStor)
+        nodeRef := node.prev
+        idx := idx.contents + 1
+    }
+    {
+        maxLength: ht.maxLength,
+        head: ht.head->editorSnapshotToLocStor,
+        prev,
+    }
+}
+
+// let editorHistoryFromLocStor = (ht:editorHistoryLocStor):editorHistory => {
+//     if (ht.prev->Js.Array2.length == 0) {
+//         {
+//             maxLength: ht.maxLength,
+//             head: ht.head->editorSnapshotFromLocStor,
+//             prev: None,
+//         }
+//     } else {
+//         let curPrev = {
+//             prev: None,
+//             diff: ht.prev[0]->Js_array2.map(editorDiffFromLocStor),
+//         }
+//         {
+//             maxLength: ht.maxLength,
+//             head: ht.head->editorSnapshotFromLocStor,
+//             prev: None,
+//         }
+//     }
+// }
