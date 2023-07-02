@@ -2,55 +2,55 @@ open Expln_test
 open MM_editor_snapshot
 open MM_wrk_editor
 
+let a = {
+    {
+        descr: "descr",
+        varsText: "varsText",
+        disjText: "disjText",
+        stmts: [
+            { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
+            { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
+            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
+        ],
+    }
+}
+
+let updateStmt = (a:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
+    {
+        ...a,
+        stmts:a.stmts->Js_array2.map(stmt => if (stmt.id == stmtId) {stmt->update} else {stmt})
+    }
+}
+
+let addStmt = (a:editorSnapshot, atIdx:int, stmt:stmtSnapshot):editorSnapshot => {
+    let newStmts = a.stmts->Js_array2.copy
+    newStmts->Js.Array2.spliceInPlace(~pos=atIdx, ~remove=0, ~add=[stmt])->ignore
+    {
+        ...a,
+        stmts:newStmts
+    }
+}
+
+let removeStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
+    {
+        ...a,
+        stmts:a.stmts->Js.Array2.filter(stmt => stmt.id != stmtId)
+    }
+}
+
+let moveStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
+    let newStmts = a.stmts->Js_array2.copy
+    let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
+    let tmp = newStmts[idx]
+    newStmts[idx] = newStmts[idx+1]
+    newStmts[idx+1] = tmp
+    {
+        ...a,
+        stmts:newStmts
+    }
+}
+
 describe("findDiff", _ => {
-    let a = {
-        {
-            descr: "descr",
-            varsText: "varsText",
-            disjText: "disjText",
-            stmts: [
-                { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
-                { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
-                { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
-            ],
-        }
-    }
-
-    let updateStmt = (a:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
-        {
-            ...a,
-            stmts:a.stmts->Js_array2.map(stmt => if (stmt.id == stmtId) {stmt->update} else {stmt})
-        }
-    }
-
-    let addStmt = (a:editorSnapshot, atIdx:int, stmt:stmtSnapshot):editorSnapshot => {
-        let newStmts = a.stmts->Js_array2.copy
-        newStmts->Js.Array2.spliceInPlace(~pos=atIdx, ~remove=0, ~add=[stmt])->ignore
-        {
-            ...a,
-            stmts:newStmts
-        }
-    }
-
-    let removeStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
-        {
-            ...a,
-            stmts:a.stmts->Js.Array2.filter(stmt => stmt.id != stmtId)
-        }
-    }
-
-    let moveStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
-        let newStmts = a.stmts->Js_array2.copy
-        let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
-        let tmp = newStmts[idx]
-        newStmts[idx] = newStmts[idx+1]
-        newStmts[idx+1] = tmp
-        {
-            ...a,
-            stmts:newStmts
-        }
-    }
-
     it("finds diffs", _ => {
         assertEq( findDiff(a, {...a, descr: "descr-new"}), [Descr("descr-new")] )
         assertEq( findDiff(a, {...a, varsText: "varsText-new"}), [Vars("varsText-new")] )
@@ -235,5 +235,35 @@ describe("findDiff", _ => {
                 )
             ] 
         )
+    })
+})
+
+describe("mergeDiff", _ => {
+    it("merges consecutive moves of same step", _ => {
+        //given
+        let b = a->moveStmt("1")
+        let diff1 = findDiff(a,b)
+        let c = b->moveStmt("1")
+        let diff2 = findDiff(b,c)
+
+        //when
+        let mergeResult = mergeDiff(diff1,diff2)
+
+        //then
+        assertEq(mergeResult, Some([StmtMove({stmtId: "1", idx: 2})]))
+    })
+    
+    it("does not merge consecutive moves of different steps", _ => {
+        //given
+        let b = a->moveStmt("1")
+        let diff1 = findDiff(a,b)
+        let c = b->moveStmt("2")
+        let diff2 = findDiff(b,c)
+
+        //when
+        let mergeResult = mergeDiff(diff1,diff2)
+
+        //then
+        assertEq(mergeResult, None)
     })
 })

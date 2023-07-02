@@ -291,3 +291,38 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
 let applyDiff = (a:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
     raise(MmException({msg:`not implemented`}))
 }
+
+let isStmtMove = (diff:editorDiff):bool => {
+    switch diff {
+        | StmtMove(_) => true
+        | _ => false
+    }
+}
+
+let mergeDiff = (a:array<editorDiff>, b:array<editorDiff>):option<array<editorDiff>> => {
+    let aLen = a->Js_array2.length
+    let bLen = b->Js_array2.length
+    if (aLen == bLen) {
+        if (aLen == 1 && isStmtMove(a[0])) {
+            switch a[0] {
+                | StmtMove({stmtId: stmtIdA}) => {
+                    switch b[0] {
+                        | StmtMove({stmtId: stmtIdB}) => {
+                            if (stmtIdA == stmtIdB) {
+                                Some(b)
+                            } else {
+                                None
+                            }
+                        }
+                        | _ => None
+                    }
+                }
+                | _ => None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}

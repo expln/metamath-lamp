@@ -37,3 +37,5 @@ let findDiff: (editorSnapshot, editorSnapshot) => array<editorDiff>
 If findDiff(a,b)==diff then applyDiff(a,diff)==b
 */
 let applyDiff: (editorSnapshot, array<editorDiff>) => editorSnapshot
+
+let mergeDiff: (array<editorDiff>, array<editorDiff>) => option<array<editorDiff>>
