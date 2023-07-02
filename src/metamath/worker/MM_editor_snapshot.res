@@ -32,14 +32,9 @@ type editorDiff =
     | StmtMove({stmtId: stmtId, idx: int})
     | Snapshot(editorSnapshot)
 
-type rec editorHistoryNode = {
-    mutable prev:option<editorHistoryNode>,
-    diff:array<editorDiff>,
-}
-
 type editorHistory = {
     head: editorSnapshot,
-    prev: option<editorHistoryNode>,
+    prev: array<array<editorDiff>>,
     maxLength: int,
 }
 
@@ -450,46 +445,9 @@ let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
 
 let editorHistMake = (~initState:editorState, maxLength:int):editorHistory => {
     {
-        maxLength: Js_math.max_int(1, Js_math.min_int(200, maxLength)),
+        maxLength: Js_math.max_int(0, Js_math.min_int(200, maxLength)),
         head: initState->editorSnapshotMake,
-        prev: None
-    }
-}
-
-let editorHistTruncate = (ht:editorHistory):editorHistory => {
-    if (ht.maxLength <= 1) {
-        switch ht.prev {
-            | None => ht
-            | Some(_) => {
-                {
-                    ...ht,
-                    prev: None
-                }
-            }
-        }
-    } else {
-        let nodeRef = ref(ht.prev)
-        let len = ref(2)
-        let modified = ref(false)
-        while (nodeRef.contents->Belt_Option.isSome) {
-            let node = nodeRef.contents->Belt_Option.getExn
-            if (len.contents < ht.maxLength) {
-                nodeRef := node.prev
-                len := len.contents + 1
-            } else {
-                node.prev = None
-                modified := true
-                nodeRef := None
-            }
-        }
-        if (modified.contents) {
-            {
-                ...ht,
-                prev: ht.prev,
-            }
-        } else {
-            ht
-        }
+        prev: []
     }
 }
 
@@ -499,34 +457,23 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
     if (diff->Js.Array2.length == 0) {
         ht
     } else {
-        let ht = switch ht.prev {
-            | None => {
-                {
-                    ...ht,
-                    head: newHead,
-                    prev: Some({ prev:None, diff, }),
-                }
-            }
-            | Some(prev) => {
-                switch diff->mergeDiff(prev.diff) {
-                    | None => {
-                        {
-                            ...ht,
-                            head: newHead,
-                            prev: Some({ prev:ht.prev, diff, }),
+        {
+            ...ht,
+            head: newHead,
+            prev: 
+                if (ht.prev->Js_array2.length == 0) {
+                    [diff]
+                } else {
+                    switch diff->mergeDiff(ht.prev[0]) {
+                        | None => {
+                            [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
                         }
-                    }
-                    | Some(mergedDiff) => {
-                        {
-                            ...ht,
-                            head: newHead,
-                            prev: Some({ prev:prev.prev, diff: mergedDiff, }),
+                        | Some(mergedDiff) => {
+                            [mergedDiff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=1, ~end_=ht.maxLength))
                         }
                     }
                 }
-            }
         }
-        ht->editorHistTruncate
     }
 }
 
@@ -536,40 +483,30 @@ let editorHistSetMaxLength = (ht:editorHistory, maxLength:int):editorHistory => 
     } else {
         {
             ...ht,
-            maxLength
-        }->editorHistTruncate
+            maxLength,
+            prev:ht.prev->Js_array2.slice(~start=0,~end_=maxLength)
+        }
     }
 }
 
 let editorHistIsEmpty = (ht:editorHistory):bool => {
-    ht.prev->Belt_Option.isNone
+    ht.prev->Js_array2.length == 0
 }
 
 let editorHistLength = (ht:editorHistory):int => {
-    let len = ref(0)
-    let node = ref(ht.prev)
-    while (node.contents->Belt_Option.isSome) {
-        len := len.contents + 1
-        node := (node.contents->Belt_Option.getExn).prev
-    }
-    len.contents
+    ht.prev->Js_array2.length
 }
 
 let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): option<editorState> => {
-    if (ht->editorHistIsEmpty) {
+    let histLen = ht->editorHistLength
+    if (histLen == 0 || histLen <= idx) {
         None
     } else {
-        let curIdx = ref(0)
-        let curNode = ref(ht.prev)
-        let curSn = ref(curNode.contents->Belt_Option.map(curNode => ht.head->applyDiff(curNode.diff)))
-        while (curSn.contents->Belt_Option.isSome && curIdx.contents < idx) {
-            curIdx := curIdx.contents + 1
-            curNode := curNode.contents->Belt_Option.flatMap(curNode => curNode.prev)
-            curSn := curNode.contents->Belt_Option.flatMap(
-                curNode => curSn.contents->Belt_Option.map(applyDiff(_, curNode.diff))
-            )
+        let curSn = ref(ht.head)
+        for i in 0 to idx {
+            curSn := curSn.contents->applyDiff(ht.prev[i])
         }
-        curSn.contents->Belt_Option.map(st->updateEditorStateFromSnapshot)
+        Some(st->updateEditorStateFromSnapshot(curSn.contents))
     }
 }
 
@@ -601,9 +538,9 @@ type editorDiffLocStor = {
 }
 
 type editorHistoryLocStor = {
-    maxLength: int,
     head: editorSnapshotLocStor,
-    prev: array<array<editorDiffLocStor>>
+    prev: array<array<editorDiffLocStor>>,
+    maxLength: int,
 }
 
 let proofStatusToStr = (status:proofStatus):string => {
@@ -729,38 +666,17 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
 }
 
 let editorHistoryToLocStor = (ht:editorHistory):editorHistoryLocStor => {
-    let prev = Belt.Array.makeUninitializedUnsafe(ht->editorHistLength)
-    let idx = ref(0)
-    let nodeRef = ref(ht.prev)
-    while (nodeRef.contents->Belt_Option.isSome) {
-        let node = nodeRef.contents->Belt_Option.getExn
-        prev[idx.contents] = node.diff->Js_array2.map(editorDiffToLocStor)
-        nodeRef := node.prev
-        idx := idx.contents + 1
-    }
     {
-        maxLength: ht.maxLength,
         head: ht.head->editorSnapshotToLocStor,
-        prev,
+        prev: ht.prev->Js_array2.map(diff => diff->Js_array2.map(editorDiffToLocStor)),
+        maxLength: ht.maxLength,
     }
 }
 
-// let editorHistoryFromLocStor = (ht:editorHistoryLocStor):editorHistory => {
-//     if (ht.prev->Js.Array2.length == 0) {
-//         {
-//             maxLength: ht.maxLength,
-//             head: ht.head->editorSnapshotFromLocStor,
-//             prev: None,
-//         }
-//     } else {
-//         let curPrev = {
-//             prev: None,
-//             diff: ht.prev[0]->Js_array2.map(editorDiffFromLocStor),
-//         }
-//         {
-//             maxLength: ht.maxLength,
-//             head: ht.head->editorSnapshotFromLocStor,
-//             prev: None,
-//         }
-//     }
-// }
+let editorHistoryFromLocStor = (ht:editorHistoryLocStor):editorHistory => {
+    {
+        head: ht.head->editorSnapshotFromLocStor,
+        prev: ht.prev->Js_array2.map(diff => diff->Js_array2.map(editorDiffFromLocStor)),
+        maxLength: ht.maxLength,
+    }
+}
