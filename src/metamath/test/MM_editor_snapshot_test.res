@@ -108,5 +108,64 @@ describe("findDiff", _ => {
 
         assertEq( findDiff(a, a->moveStmt("1")), [StmtMove({stmtId: "1", idx: 1})] )
         assertEq( findDiff(a, a->moveStmt("2")), [StmtMove({stmtId: "2", idx: 2})] )
+
+        assertEq( 
+            findDiff(a, a->removeStmt("1")->removeStmt("2")), 
+            [
+                Snapshot(
+                    {
+                        descr: "descr",
+                        varsText: "varsText",
+                        disjText: "disjText",
+                        stmts: [
+                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
+                        ],
+                    }
+                )
+            ] 
+        )
+
+        assertEq( 
+            findDiff(
+                a, 
+                a
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
+            ), 
+            [
+                Snapshot(
+                    {
+                        descr: "descr",
+                        varsText: "varsText",
+                        disjText: "disjText",
+                        stmts: [
+                            { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) },
+                            { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
+                            { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) },
+                            { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
+                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
+                        ],
+                    }
+                )
+            ] 
+        )
+
+        assertEq( 
+            findDiff( a, a->moveStmt("1")->moveStmt("1") ), 
+            [
+                Snapshot(
+                    {
+                        descr: "descr",
+                        varsText: "varsText",
+                        disjText: "disjText",
+                        stmts: [
+                            { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
+                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
+                            { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
+                        ],
+                    }
+                )
+            ] 
+        )
     })
 })
