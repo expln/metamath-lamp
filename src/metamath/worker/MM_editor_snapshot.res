@@ -49,7 +49,7 @@ let editorSnapshotMake = (st:editorState):editorSnapshot => {
         varsText: st.varsText,
         disjText: st.disjText,
         stmts: st.stmts->Js.Array2.map(stmt => {
-            {
+            let res:stmtSnapshot = {
                 id: stmt.id,
                 label: stmt.label,
                 typ: stmt.typ,
@@ -58,6 +58,7 @@ let editorSnapshotMake = (st:editorState):editorSnapshot => {
                 cont: stmt.cont->contToStr,
                 proofStatus: stmt.proofStatus,
             }
+            res
         })
     }
 }
@@ -569,5 +570,154 @@ let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int)
             )
         }
         curSn.contents->Belt_Option.map(st->updateEditorStateFromSnapshot)
+    }
+}
+
+type stmtSnapshotLocStor = {
+    id: string,
+    label: string,
+    typ: string,
+    isGoal: bool,
+    jstfText: string,
+    cont: string,
+    proofStatus: option<string>,
+}
+
+type editorSnapshotLocStor = {
+    descr: string,
+    varsText: string,
+    disjText: string,
+    stmts: array<stmtSnapshotLocStor>,
+}
+
+type editorDiffLocStor = {
+    typ: string,
+    id?:string,
+    bool?:bool,
+    int?:int,
+    str?:string,
+    stmt?:stmtSnapshotLocStor,
+    sn?:editorSnapshotLocStor,
+}
+
+let proofStatusToStr = (status:proofStatus):string => {
+    switch status {
+        | Ready => "r"
+        | Waiting => "w"
+        | NoJstf => "n"
+        | JstfIsIncorrect => "i"
+    }
+}
+
+let proofStatusFromStr = (str:string):proofStatus => {
+    switch str {
+        | "r"  => Ready
+        | "w"  => Waiting
+        | "n"  => NoJstf
+        | "i"  => JstfIsIncorrect
+        | _ => raise(MmException({msg:`Cannot convert '${str}' to proofStatus.`}))
+    }
+}
+
+let stmtSnapshotToLocStor = (stmt:stmtSnapshot):stmtSnapshotLocStor => {
+    {
+        id: stmt.id,
+        label: stmt.label,
+        typ: stmt.typ->userStmtTypeToStr,
+        isGoal: stmt.isGoal,
+        jstfText: stmt.jstfText,
+        cont: stmt.cont,
+        proofStatus: stmt.proofStatus->Belt_Option.map(proofStatusToStr)
+    }
+}
+
+let stmtSnapshotFromLocStor = (stmt:stmtSnapshotLocStor):stmtSnapshot => {
+    {
+        id: stmt.id,
+        label: stmt.label,
+        typ: stmt.typ->userStmtTypeFromStr,
+        isGoal: stmt.isGoal,
+        jstfText: stmt.jstfText,
+        cont: stmt.cont,
+        proofStatus: stmt.proofStatus->Belt_Option.map(proofStatusFromStr)
+    }
+}
+
+let editorSnapshotToLocStor = (sn:editorSnapshot):editorSnapshotLocStor => {
+    {
+        descr: sn.descr,
+        varsText: sn.varsText,
+        disjText: sn.disjText,
+        stmts: sn.stmts->Js.Array2.map(stmtSnapshotToLocStor)
+    }
+}
+
+let editorSnapshotFromLocStor = (sn:editorSnapshotLocStor):editorSnapshot => {
+    {
+        descr: sn.descr,
+        varsText: sn.varsText,
+        disjText: sn.disjText,
+        stmts: sn.stmts->Js.Array2.map(stmtSnapshotFromLocStor)
+    }
+}
+
+let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
+    switch diff {
+        | Descr(descr) => 
+            { typ:"D", str:descr }
+        | Vars(varsText) => 
+            { typ:"V", str:varsText }
+        | Disj(disjText) => 
+            { typ:"J", str:disjText }
+        | StmtLabel({stmtId, label}) => 
+            { typ:"SL", id:stmtId, str:label }
+        | StmtTyp({stmtId, typ, isGoal}) => 
+            { typ:"ST", id:stmtId, str:typ->userStmtTypeToStr, bool:isGoal }
+        | StmtJstf({stmtId, jstfText}) => 
+            { typ:"SJ", id:stmtId, str:jstfText }
+        | StmtCont({stmtId, cont}) => 
+            { typ:"SC", id:stmtId, str:cont }
+        | StmtStatus({stmtId, proofStatus}) => 
+            { typ:"SS", id:stmtId, str:?(proofStatus->Belt_Option.map(proofStatusToStr)) }
+        | StmtAdd({idx, stmt}) => 
+            { typ:"SA", int:idx, stmt:stmt->stmtSnapshotToLocStor }
+        | StmtRemove({stmtId}) => 
+            { typ:"SR", id:stmtId }
+        | StmtMove({stmtId, idx}) => 
+            { typ:"SM", id:stmtId, int:idx }
+        | Snapshot(editorSnapshot) => 
+            { typ:"E", sn:editorSnapshot->editorSnapshotToLocStor }
+    }
+}
+
+let optGetEdls = (opt:option<'a>, attrName:string):'a => {
+    switch opt {
+        | None => raise(MmException({msg:`'${attrName}' is not set in an editorDiffLocStor.`}))
+        | Some(str) => str
+    }
+}
+
+let edlsGetId = (d:editorDiffLocStor):string => optGetEdls(d.id, "id")
+let edlsGetBool = (d:editorDiffLocStor):bool => optGetEdls(d.bool, "bool")
+let edlsGetInt = (d:editorDiffLocStor):int => optGetEdls(d.int, "int")
+let edlsGetStr = (d:editorDiffLocStor):string => optGetEdls(d.str, "str")
+let edlsGetStmt = (d:editorDiffLocStor):stmtSnapshotLocStor => optGetEdls(d.stmt, "stmt")
+let edlsGetSn = (d:editorDiffLocStor):editorSnapshotLocStor => optGetEdls(d.sn, "sn")
+
+let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
+    switch diff.typ {
+        | "D" => Descr(diff->edlsGetStr)
+        | "V" => Vars(diff->edlsGetStr)
+        | "J" => Disj(diff->edlsGetStr)
+        | "SL" => StmtLabel({stmtId:diff->edlsGetId, label:diff->edlsGetStr})
+        | "ST" => StmtTyp({stmtId:diff->edlsGetId, typ:diff->edlsGetStr->userStmtTypeFromStr, isGoal:diff->edlsGetBool})
+        | "SJ" => StmtJstf({stmtId:diff->edlsGetId, jstfText:diff->edlsGetStr})
+        | "SC" => StmtCont({stmtId:diff->edlsGetId, cont:diff->edlsGetStr})
+        | "SS" => StmtStatus({stmtId:diff->edlsGetId, proofStatus:diff.str->Belt.Option.map(proofStatusFromStr)})
+        | "SA" => StmtAdd({idx:diff->edlsGetInt, stmt:diff->edlsGetStmt->stmtSnapshotFromLocStor})
+        | "SR" => StmtRemove({stmtId:diff->edlsGetId})
+        | "SM" => StmtMove({stmtId:diff->edlsGetId, idx:diff->edlsGetInt})
+        | "E" => Snapshot(diff->edlsGetSn->editorSnapshotFromLocStor)
+        | _ => raise(MmException({msg:`Cannot convert editorDiffLocStor to editorDiff for diff.typ='${diff.typ}'.`}))
     }
 }
