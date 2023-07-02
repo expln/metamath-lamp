@@ -439,11 +439,14 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
     }
 }
 
+/*
+If findDiff(a,b)==diff then applyDiff(a,diff)==b
+*/
 let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
     diff->Js_array2.reduce( applyDiffSingle, sn )
 }
 
-let editorHistMake = (~initState:editorState, maxLength:int):editorHistory => {
+let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
     {
         maxLength: Js_math.max_int(0, Js_math.min_int(200, maxLength)),
         head: initState->editorSnapshotMake,
@@ -497,7 +500,7 @@ let editorHistLength = (ht:editorHistory):int => {
     ht.prev->Js_array2.length
 }
 
-let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): option<editorState> => {
+let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): option<(editorState,editorHistory)> => {
     let histLen = ht->editorHistLength
     if (histLen == 0 || histLen <= idx) {
         None
@@ -506,7 +509,13 @@ let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int)
         for i in 0 to idx {
             curSn := curSn.contents->applyDiff(ht.prev[i])
         }
-        Some(st->updateEditorStateFromSnapshot(curSn.contents))
+        Some(
+            st->updateEditorStateFromSnapshot(curSn.contents),
+            {
+                ...ht,
+                prev: ht.prev->Js.Array2.sliceFrom(idx+1)
+            }
+        )
     }
 }
 
