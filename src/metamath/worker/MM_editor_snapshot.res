@@ -288,10 +288,6 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     }
 }
 
-let applyDiff = (a:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
-    raise(MmException({msg:`not implemented`}))
-}
-
 let isStmtMove = (diff:editorDiff):bool => {
     switch diff {
         | StmtMove(_) => true
@@ -325,4 +321,58 @@ let mergeDiff = (a:array<editorDiff>, b:array<editorDiff>):option<array<editorDi
     } else {
         None
     }
+}
+
+let updateStmt = (sn:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
+    {
+        ...sn,
+        stmts:sn.stmts->Js_array2.map(stmt => if (stmt.id == stmtId) {stmt->update} else {stmt})
+    }
+}
+
+let addStmt = (sn:editorSnapshot, idx:int, stmt:stmtSnapshot):editorSnapshot => {
+    let newStmts = sn.stmts->Js_array2.copy
+    newStmts->Js.Array2.spliceInPlace(~pos=idx, ~remove=0, ~add=[stmt])->ignore
+    {
+        ...sn,
+        stmts:newStmts
+    }
+}
+
+let removeStmt = (sn:editorSnapshot, stmtId:stmtId):editorSnapshot => {
+    {
+        ...sn,
+        stmts:sn.stmts->Js.Array2.filter(stmt => stmt.id != stmtId)
+    }
+}
+
+let moveStmt = (sn:editorSnapshot, stmtId:stmtId, idx:int):editorSnapshot => {
+    switch sn.stmts->Js.Array2.find(stmt => stmt.id == stmtId) {
+        | None => sn
+        | Some(stmt) => {
+            let sn = sn->removeStmt(stmtId)
+            sn->addStmt(idx, stmt)
+        }
+    }
+}
+
+let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
+    switch diff {
+        | Descr(descr) => {...sn, descr}
+        | Vars(varsText) => {...sn, varsText}
+        | Disj(disjText) => {...sn, disjText}
+        | StmtLabel({stmtId, label}) => sn->updateStmt(stmtId, stmt => {...stmt, label})
+        | StmtTyp({stmtId, typ, isGoal}) => sn->updateStmt(stmtId, stmt => {...stmt, typ, isGoal})
+        | StmtJstf({stmtId, jstfText}) => sn->updateStmt(stmtId, stmt => {...stmt, jstfText})
+        | StmtCont({stmtId, cont}) => sn->updateStmt(stmtId, stmt => {...stmt, cont})
+        | StmtStatus({stmtId, proofStatus}) => sn->updateStmt(stmtId, stmt => {...stmt, proofStatus})
+        | StmtAdd({idx, stmt}) => sn->addStmt(idx, stmt)
+        | StmtRemove({stmtId}) => sn->removeStmt(stmtId)
+        | StmtMove({stmtId, idx}) => sn->moveStmt(stmtId, idx)
+        | Snapshot(editorSnapshot) => editorSnapshot
+    }
+}
+
+let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
+    diff->Js_array2.reduce( applyDiffSingle, sn )
 }

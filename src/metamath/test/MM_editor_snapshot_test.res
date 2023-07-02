@@ -50,6 +50,22 @@ let moveStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
     }
 }
 
+let testApplyDiff = (
+    ~initState:editorSnapshot,
+    ~changes:editorSnapshot=>editorSnapshot,
+    ~expectedEndState:editorSnapshot
+):unit => {
+    //given
+    let diff = initState->findDiff(initState->changes)
+    assertEq(diff->Js.Array2.length > 0, true)
+
+    //when
+    let actualEndState = initState->applyDiff(diff)
+
+    //then
+    assertEq(actualEndState, expectedEndState)
+}
+
 describe("findDiff", _ => {
     it("finds diffs", _ => {
         assertEq( findDiff(a, {...a, descr: "descr-new"}), [Descr("descr-new")] )
@@ -234,6 +250,157 @@ describe("findDiff", _ => {
                     }
                 )
             ] 
+        )
+    })
+})
+
+describe("applyDiff", _ => {
+    it("applies diffs", _ => {
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {...sn, descr: "descr-new"},
+            ~expectedEndState = {...a, descr: "descr-new"}
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {...sn, varsText: "varsText-new"},
+            ~expectedEndState = {...a, varsText: "varsText-new"}
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {...sn, disjText: "disjText-new"},
+            ~expectedEndState = {...a, disjText: "disjText-new"}
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "1", stmt => {...stmt, label:"label-new"}),
+            ~expectedEndState = a->updateStmt("1", stmt => {...stmt, label:"label-new"})
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "2", stmt => {...stmt, typ:E}),
+            ~expectedEndState = a->updateStmt("2", stmt => {...stmt, typ:E})
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "2", stmt => {...stmt, isGoal:true}),
+            ~expectedEndState = a->updateStmt("2", stmt => {...stmt, isGoal:true})
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "2", stmt => {...stmt, typ:E, isGoal:true}),
+            ~expectedEndState = a->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "3", stmt => {...stmt, jstfText: "jstfText-new"}),
+            ~expectedEndState = a->updateStmt("3", stmt => {...stmt, jstfText: "jstfText-new"})
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "1", stmt => {...stmt, cont: "cont-new"}),
+            ~expectedEndState = a->updateStmt("1", stmt => {...stmt, cont: "cont-new"})
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "2", stmt => {...stmt, proofStatus: None}),
+            ~expectedEndState = a->updateStmt("2", stmt => {...stmt, proofStatus: None})
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = addStmt(_, 0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
+            ~expectedEndState = a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = addStmt(_, 1, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
+            ~expectedEndState = a->addStmt(1, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = addStmt(_, 2, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }),
+            ~expectedEndState = a->addStmt(2, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = addStmt(_, 3, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }),
+            ~expectedEndState = a->addStmt(3, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = removeStmt(_, "1"),
+            ~expectedEndState = a->removeStmt("1")
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = removeStmt(_, "2"),
+            ~expectedEndState = a->removeStmt("2")
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = removeStmt(_, "3"),
+            ~expectedEndState = a->removeStmt("3")
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = moveStmt(_, "1"),
+            ~expectedEndState = a->moveStmt("1")
+        )
+        testApplyDiff( ~initState=a,
+            ~changes = moveStmt(_, "2"),
+            ~expectedEndState = a->moveStmt("2")
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = sn => sn->removeStmt("1")->removeStmt("2"),
+            ~expectedEndState = a->removeStmt("1")->removeStmt("2")
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {
+                sn
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
+            },
+            ~expectedEndState = a
+                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = sn => sn->moveStmt("1")->moveStmt("1"),
+            ~expectedEndState = a->moveStmt("1")->moveStmt("1")
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {
+                sn
+                    ->updateStmt("1", stmt => {...stmt, proofStatus:None})
+                    ->updateStmt("2", stmt => {...stmt, proofStatus:None})
+                    ->updateStmt("3", stmt => {...stmt, proofStatus:None})
+            },
+            ~expectedEndState = a
+                ->updateStmt("1", stmt => {...stmt, proofStatus:None})
+                ->updateStmt("2", stmt => {...stmt, proofStatus:None})
+                ->updateStmt("3", stmt => {...stmt, proofStatus:None})
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {
+                {...sn, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                    ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+                    ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
+            },
+            ~expectedEndState = {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
+                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+                ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
+        )
+
+        testApplyDiff( ~initState=a,
+            ~changes = sn => {
+                {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                    ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+                    ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
+                    ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
+            },
+            ~expectedEndState = {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
+                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+                ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
+                ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
         )
     })
 })
