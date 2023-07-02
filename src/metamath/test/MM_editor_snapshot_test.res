@@ -167,5 +167,73 @@ describe("findDiff", _ => {
                 )
             ] 
         )
+
+        assertEq( 
+            findDiff(
+                a
+                    ->updateStmt("1", stmt => {...stmt, proofStatus:None})
+                    ->updateStmt("2", stmt => {...stmt, proofStatus:None})
+                    ->updateStmt("3", stmt => {...stmt, proofStatus:None}),
+                a
+                    ->updateStmt("1", stmt => {...stmt, proofStatus:Some(Ready)})
+                    ->updateStmt("2", stmt => {...stmt, proofStatus:Some(Waiting)})
+                    ->updateStmt("3", stmt => {...stmt, proofStatus:Some(JstfIsIncorrect)}),
+            ), 
+            [
+                StmtStatus({stmtId: "1", proofStatus: Some(Ready)}),
+                StmtStatus({stmtId: "2", proofStatus: Some(Waiting)}),
+                StmtStatus({stmtId: "3", proofStatus: Some(JstfIsIncorrect)}),
+            ] 
+        )
+
+        assertEq( 
+            findDiff(
+                a,
+                {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                    ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+                    ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"}),
+            ), 
+            [
+                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
+                StmtLabel({stmtId: "1", label: "ABC"}),
+                StmtStatus({stmtId: "1", proofStatus: Some(NoJstf)}),
+                StmtTyp({stmtId: "2", typ:E, isGoal:true}),
+                StmtJstf({stmtId: "3", jstfText:"BBB"}),
+                StmtCont({stmtId: "3", cont:"TTTTT"}),
+                Descr("descr-new"),
+                Vars("varsText-new"),
+                Disj("disjText-new"),
+            ] 
+        )
+
+        assertEq( 
+            findDiff(
+                a,
+                {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                    ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
+                    ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
+                    ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }),
+            ), 
+            [
+                Snapshot(
+                    {
+                        descr: "descr-new",
+                        varsText: "varsText-new",
+                        disjText: "disjText-new",
+                        stmts: [
+                            { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) },
+                            { id: "1", label: "ABC", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: Some(NoJstf) },
+                            { id: "2", label: "label2", typ:E, isGoal:true, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
+                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText:"BBB", cont:"TTTTT", proofStatus: Some(Waiting) },
+                            { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) },
+                        ],
+                    }
+                )
+            ] 
+        )
     })
 })
