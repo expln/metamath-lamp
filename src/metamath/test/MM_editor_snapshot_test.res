@@ -16,10 +16,38 @@ describe("findDiff", _ => {
         }
     }
 
-    let updateStmt = (a:editorSnapshot,stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
+    let updateStmt = (a:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
         {
             ...a,
             stmts:a.stmts->Js_array2.map(stmt => if (stmt.id == stmtId) {stmt->update} else {stmt})
+        }
+    }
+
+    let addStmt = (a:editorSnapshot, atIdx:int, stmt:stmtSnapshot):editorSnapshot => {
+        let newStmts = a.stmts->Js_array2.copy
+        newStmts->Js.Array2.spliceInPlace(~pos=atIdx, ~remove=0, ~add=[stmt])->ignore
+        {
+            ...a,
+            stmts:newStmts
+        }
+    }
+
+    let removeStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
+        {
+            ...a,
+            stmts:a.stmts->Js.Array2.filter(stmt => stmt.id != stmtId)
+        }
+    }
+
+    let moveStmt = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
+        let newStmts = a.stmts->Js_array2.copy
+        let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
+        let tmp = newStmts[idx]
+        newStmts[idx] = newStmts[idx+1]
+        newStmts[idx+1] = tmp
+        {
+            ...a,
+            stmts:newStmts
         }
     }
 
@@ -56,5 +84,29 @@ describe("findDiff", _ => {
             findDiff(a, a->updateStmt("2", stmt => {...stmt, proofStatus: None})), 
             [StmtStatus({stmtId: "2", proofStatus: None})]
         )
+
+        assertEq( 
+            findDiff(a, a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
+            [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
+        )
+        assertEq( 
+            findDiff(a, a->addStmt(1, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
+            [StmtAdd({idx: 1, stmt: { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
+        )
+        assertEq( 
+            findDiff(a, a->addStmt(2, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })), 
+            [StmtAdd({idx: 2, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
+        )
+        assertEq( 
+            findDiff(a, a->addStmt(3, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })), 
+            [StmtAdd({idx: 3, stmt: { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
+        )
+
+        assertEq( findDiff(a, a->removeStmt("1")), [StmtRemove({stmtId: "1"})] )
+        assertEq( findDiff(a, a->removeStmt("2")), [StmtRemove({stmtId: "2"})] )
+        assertEq( findDiff(a, a->removeStmt("3")), [StmtRemove({stmtId: "3"})] )
+
+        assertEq( findDiff(a, a->moveStmt("1")), [StmtMove({stmtId: "1", idx: 1})] )
+        assertEq( findDiff(a, a->moveStmt("2")), [StmtMove({stmtId: "2", idx: 2})] )
     })
 })
