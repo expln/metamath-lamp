@@ -61,7 +61,7 @@ let strToCont = (
     ~preCtxColors: option<Belt_HashMapString.t<string>>=?,
     ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?,
     ()
-) => {
+):stmtCont => {
     Text(
         getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
             {

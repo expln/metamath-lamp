@@ -68,6 +68,8 @@ let testApplyDiff = (
 
 describe("findDiff", _ => {
     it("finds diffs", _ => {
+        assertEq( findDiff(a, {...a, descr: a.descr}), [] )
+
         assertEq( findDiff(a, {...a, descr: "descr-new"}), [Descr("descr-new")] )
         assertEq( findDiff(a, {...a, varsText: "varsText-new"}), [Vars("varsText-new")] )
         assertEq( findDiff(a, {...a, disjText: "disjText-new"}), [Disj("disjText-new")] )

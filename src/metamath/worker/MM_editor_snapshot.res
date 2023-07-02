@@ -32,6 +32,76 @@ type editorDiff =
     | StmtMove({stmtId: stmtId, idx: int})
     | Snapshot(editorSnapshot)
 
+type rec editorHistoryNode = {
+    mutable prev:option<editorHistoryNode>,
+    diff:array<editorDiff>,
+}
+
+type editorHistory = {
+    head: editorSnapshot,
+    prev: option<editorHistoryNode>,
+    maxLength: int,
+}
+
+let editorSnapshotMake = (st:editorState):editorSnapshot => {
+    {
+        descr: st.descr,
+        varsText: st.varsText,
+        disjText: st.disjText,
+        stmts: st.stmts->Js.Array2.map(stmt => {
+            {
+                id: stmt.id,
+                label: stmt.label,
+                typ: stmt.typ,
+                isGoal: stmt.isGoal,
+                jstfText: stmt.jstfText,
+                cont: stmt.cont->contToStr,
+                proofStatus: stmt.proofStatus,
+            }
+        })
+    }
+}
+
+let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorState => {
+    {
+        ...st,
+        descr: sn.descr,
+        varsText: sn.varsText,
+        disjText: sn.disjText,
+        stmts: sn.stmts->Js.Array2.map(stmt => {
+            {
+                id: stmt.id,
+
+                label: stmt.label,
+                labelEditMode: false,
+                typ: stmt.typ,
+                typEditMode: false,
+                isGoal: stmt.isGoal,
+                cont: stmt.cont->strToCont(
+                    ~preCtxColors=st.preCtxColors,
+                    ~wrkCtxColors=st.wrkCtxColors,
+                    ()
+                ),
+                contEditMode: false,
+                
+                jstfText: stmt.jstfText,
+                jstfEditMode: false,
+
+                stmtErr: None,
+
+                expr: None,
+                jstf: None,
+                proofTreeDto: None,
+                src: None,
+                proof: None,
+                proofStatus: None,
+                unifErr: None,
+                syntaxErr: None,
+            }
+        })
+    }
+}
+
 let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
     switch a {
         | None => {
@@ -375,4 +445,129 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
 
 let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
     diff->Js_array2.reduce( applyDiffSingle, sn )
+}
+
+let editorHistMake = (~initState:editorState, maxLength:int):editorHistory => {
+    {
+        maxLength: Js_math.max_int(1, Js_math.min_int(200, maxLength)),
+        head: initState->editorSnapshotMake,
+        prev: None
+    }
+}
+
+let editorHistTruncate = (ht:editorHistory):editorHistory => {
+    if (ht.maxLength <= 1) {
+        switch ht.prev {
+            | None => ht
+            | Some(_) => {
+                {
+                    ...ht,
+                    prev: None
+                }
+            }
+        }
+    } else {
+        let nodeRef = ref(ht.prev)
+        let len = ref(2)
+        let modified = ref(false)
+        while (nodeRef.contents->Belt_Option.isSome) {
+            let node = nodeRef.contents->Belt_Option.getExn
+            if (len.contents < ht.maxLength) {
+                nodeRef := node.prev
+                len := len.contents + 1
+            } else {
+                node.prev = None
+                modified := true
+                nodeRef := None
+            }
+        }
+        if (modified.contents) {
+            {
+                ...ht,
+                prev: ht.prev,
+            }
+        } else {
+            ht
+        }
+    }
+}
+
+let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => {
+    let newHead = editorSnapshotMake(st)
+    let diff = newHead->findDiff(ht.head)
+    if (diff->Js.Array2.length == 0) {
+        ht
+    } else {
+        let ht = switch ht.prev {
+            | None => {
+                {
+                    ...ht,
+                    head: newHead,
+                    prev: Some({ prev:None, diff, }),
+                }
+            }
+            | Some(prev) => {
+                switch diff->mergeDiff(prev.diff) {
+                    | None => {
+                        {
+                            ...ht,
+                            head: newHead,
+                            prev: Some({ prev:ht.prev, diff, }),
+                        }
+                    }
+                    | Some(mergedDiff) => {
+                        {
+                            ...ht,
+                            head: newHead,
+                            prev: Some({ prev:prev.prev, diff: mergedDiff, }),
+                        }
+                    }
+                }
+            }
+        }
+        ht->editorHistTruncate
+    }
+}
+
+let editorHistSetMaxLength = (ht:editorHistory, maxLength:int):editorHistory => {
+    if (maxLength == ht.maxLength) {
+        ht
+    } else {
+        {
+            ...ht,
+            maxLength
+        }->editorHistTruncate
+    }
+}
+
+let editorHistIsEmpty = (ht:editorHistory):bool => {
+    ht.prev->Belt_Option.isNone
+}
+
+let editorHistLength = (ht:editorHistory):int => {
+    let len = ref(0)
+    let node = ref(ht.prev)
+    while (node.contents->Belt_Option.isSome) {
+        len := len.contents + 1
+        node := (node.contents->Belt_Option.getExn).prev
+    }
+    len.contents
+}
+
+let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): option<editorState> => {
+    if (ht->editorHistIsEmpty) {
+        None
+    } else {
+        let curIdx = ref(0)
+        let curNode = ref(ht.prev)
+        let curSn = ref(curNode.contents->Belt_Option.map(curNode => ht.head->applyDiff(curNode.diff)))
+        while (curSn.contents->Belt_Option.isSome && curIdx.contents < idx) {
+            curIdx := curIdx.contents + 1
+            curNode := curNode.contents->Belt_Option.flatMap(curNode => curNode.prev)
+            curSn := curNode.contents->Belt_Option.flatMap(
+                curNode => curSn.contents->Belt_Option.map(applyDiff(_, curNode.diff))
+            )
+        }
+        curSn.contents->Belt_Option.map(st->updateEditorStateFromSnapshot)
+    }
 }
