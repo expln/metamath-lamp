@@ -132,17 +132,17 @@ type wrkSubs = {
 let createEmptyUserStmt: (string, userStmtType, string, bool) => userStmt
 let userStmtToRootStmt: userStmt => rootStmt
 
-let updateStmt: (editorState, string, userStmt => userStmt) => editorState
-let isStmtChecked: (editorState, string) => bool
-let toggleStmtChecked: (editorState, string) => editorState
+let updateStmt: (editorState, stmtId, userStmt => userStmt) => editorState
+let isStmtChecked: (editorState, stmtId) => bool
+let toggleStmtChecked: (editorState, stmtId) => editorState
 let checkAllStmts: editorState => editorState
 let uncheckAllStmts: editorState => editorState
 let deleteCheckedStmts: editorState => editorState
-let deleteStmt: (editorState, string) => editorState
+let deleteStmt: (editorState, stmtId) => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
-let addNewStmt: editorState => (editorState,string)
+let addNewStmt: editorState => (editorState,stmtId)
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: editorState => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
@@ -155,7 +155,7 @@ let completeDisjEditMode: (editorState, string) => editorState
 let setLabelEditMode: (editorState, string) => editorState
 let completeLabelEditMode: (editorState, string, Js_string2.t) => editorState
 let setContEditMode: (editorState, string) => editorState
-let completeContEditMode: (editorState, string, string) => editorState
+let completeContEditMode: (editorState, stmtId, string) => editorState
 let setStmtCont: (editorState, stmtId, stmtCont) => editorState
 let setTypEditMode: (editorState, string) => editorState
 let completeTypEditMode: (editorState, string, userStmtType, bool) => editorState
