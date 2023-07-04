@@ -13,10 +13,8 @@ let copyToClipboard = (text:string) => {
     navigator["clipboard"]["writeText"](. text)
 }
 
-let readFromClipboard = ():option<string> => {
-    // navigator["clipboard"]["readText"]()
-    // TODO: STUB
-    Some("( 2 + 3 )")
+let readFromClipboard = ():promise<string> => {
+    navigator["clipboard"]["readText"](.)
 }
 
 let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {

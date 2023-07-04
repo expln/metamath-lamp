@@ -11,7 +11,7 @@ let openInfoDialog: (
 ) => unit
 
 let copyToClipboard: string => unit
-let readFromClipboard: () => option<string>
+let readFromClipboard: () => promise<string>
 let getAvailWidth: () => int
 
 type mouseButton = Left | Middle | Right
