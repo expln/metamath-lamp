@@ -164,7 +164,6 @@ let completeJstfEditMode: (editorState, string, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
-let prepareEditorForUnification: editorState => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
 let findPossibleSubs: (editorState, expr, expr) => array<wrkSubs>
 let applySubstitutionForEditor: (editorState, wrkSubs) => editorState

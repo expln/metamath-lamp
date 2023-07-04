@@ -206,10 +206,12 @@ let make = (
         setMainMenuIsOpened(_ => false)
     }
 
-    let actAddNewStmt = () => setState(st => {
-        let (st, _) = addNewStmt(st)
-        st
-    })
+    let actAddNewStmt = () => {
+        setState(st => {
+            let (st, _) = addNewStmt(st)
+            st
+        })
+    }
     let actDeleteCheckedStmts = () => {
         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {

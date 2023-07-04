@@ -285,7 +285,7 @@ let findDiffStmt = (a:array<stmtSnapshot>, b:array<stmtSnapshot>):result<option<
     } else {
         if (bLen == 0) {
             Ok(Some(
-                b->Js_array2.map(stmt => StmtRemove({stmtId:stmt.id}))
+                a->Js_array2.map(stmt => StmtRemove({stmtId:stmt.id}))
             ))
         } else if (aLen == bLen) {
             let idxSwap = ref(None)
@@ -500,22 +500,22 @@ let editorHistLength = (ht:editorHistory):int => {
     ht.prev->Js_array2.length
 }
 
-let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): option<(editorState,editorHistory)> => {
+let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): result<(editorState,editorHistory),string> => {
     let histLen = ht->editorHistLength
     if (histLen == 0 || histLen <= idx) {
-        None
+        Error(`histLen == 0 || histLen <= idx`)
     } else {
         let curSn = ref(ht.head)
         for i in 0 to idx {
             curSn := curSn.contents->applyDiff(ht.prev[i])
         }
-        Some(
+        Ok((
             st->updateEditorStateFromSnapshot(curSn.contents),
             {
                 ...ht,
                 prev: ht.prev->Js.Array2.sliceFrom(idx+1)
             }
-        )
+        ))
     }
 }
 
@@ -773,6 +773,13 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
         )
 
         assertEq( 
+            findDiff(
+                {...a, stmts:[]}, 
+                {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+            ), 
+            [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
+        )
+        assertEq( 
             findDiff(a, a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
             [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
         )
@@ -792,6 +799,13 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
         assertEq( findDiff(a, a->removeStmt("1")), [StmtRemove({stmtId: "1"})] )
         assertEq( findDiff(a, a->removeStmt("2")), [StmtRemove({stmtId: "2"})] )
         assertEq( findDiff(a, a->removeStmt("3")), [StmtRemove({stmtId: "3"})] )
+        assertEq( 
+            findDiff(
+                {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
+                {...a, stmts:[]},
+            ), 
+            [StmtRemove({stmtId: "4"})]
+        )
 
         assertEq( findDiff(a, a->moveStmtTest("1")), [StmtMove({stmtId: "1", idx: 1})] )
         assertEq( findDiff(a, a->moveStmtTest("2")), [StmtMove({stmtId: "2", idx: 2})] )

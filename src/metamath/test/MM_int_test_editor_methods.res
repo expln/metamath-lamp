@@ -72,7 +72,7 @@ let createEditorState = (
                 }
             }
     )
-    st->prepareEditorForUnification
+    st->updateEditorStateWithPostupdateActions(s=>s)
 }
 
 let addStmt = (
