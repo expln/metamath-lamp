@@ -7,6 +7,7 @@ let editorHistAddSnapshot: (editorHistory, editorState) => editorHistory
 let editorHistSetMaxLength: (editorHistory, int) => editorHistory
 let editorHistIsEmpty: editorHistory => bool
 let editorHistLength: editorHistory => int
+let editorHistGetSnapshotPreview: (editorHistory, int, editorState) => result<editorState,string>
 let restoreEditorStateFromSnapshot: (editorState, editorHistory, int) => result<(editorState,editorHistory),string>
 // let editorHistClear: editorHistory => editorHistory
 // let editorHistToString: editorHistory => string

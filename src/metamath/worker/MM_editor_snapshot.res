@@ -90,7 +90,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
                 proofTreeDto: None,
                 src: None,
                 proof: None,
-                proofStatus: None,
+                proofStatus: stmt.proofStatus,
                 unifErr: None,
                 syntaxErr: None,
             }
@@ -500,7 +500,7 @@ let editorHistLength = (ht:editorHistory):int => {
     ht.prev->Js_array2.length
 }
 
-let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): result<(editorState,editorHistory),string> => {
+let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): result<editorState,string> => {
     let histLen = ht->editorHistLength
     if (histLen == 0 || histLen <= idx) {
         Error(`histLen == 0 || histLen <= idx`)
@@ -509,14 +509,28 @@ let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int)
         for i in 0 to idx {
             curSn := curSn.contents->applyDiff(ht.prev[i])
         }
-        Ok((
-            st->updateEditorStateFromSnapshot(curSn.contents),
+        Ok(st->updateEditorStateFromSnapshot(curSn.contents))
+    }
+}
+
+let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): result<(editorState,editorHistory),string> => {
+    editorHistGetSnapshotPreview(ht, idx, st)->Belt_Result.map(st => {
+        (
+            {
+                ...st,
+                stmts: st.stmts->Js.Array2.map(stmt => {
+                    {
+                        ...stmt,
+                        proofStatus: None,
+                    }
+                })
+            },
             {
                 ...ht,
                 prev: ht.prev->Js.Array2.sliceFrom(idx+1)
             }
-        ))
-    }
+        )
+    })
 }
 
 type stmtSnapshotLocStor = {
