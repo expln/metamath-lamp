@@ -1024,6 +1024,7 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    // getSelectedRange() - returns what part of a statement is selected as Some((first, last)); range ends just before last
     let getSelectedRange = ():option<(int,int)> => {
         switch stmt.cont {
             | Text(_) => None
@@ -1067,6 +1068,30 @@ let make = React.memoCustomCompareProps( ({
             }
         }
     }
+
+    let actPasteFromClipboard = () => {
+        // TODO: Support undo/redo
+        let clipboardContents = readFromClipboard()
+        switch clipboardContents {
+            | None => ()
+            | Some(contents) => {
+                let selectedRangeIndices = getSelectedRange()
+                switch selectedRangeIndices {
+                    | None => ()
+                    | Some((low, high)) =>
+                        let currentText = stmt.cont->contToStr
+                        let newText = (
+                            currentText->Js.String2.slice(~from=0, ~to_=low) ++
+                            contents ++
+                            currentText->Js.String2.sliceToEnd(~from=high)
+                        )
+                        // Propagate changes to MM_cmp_editor
+                        onContEditDone(newText)
+                }
+            }
+        }
+    }
+
 
     let actEditSelection = () => {
         setSelectionRange(_ => getSelectedRange())
@@ -1149,6 +1174,7 @@ let make = React.memoCustomCompareProps( ({
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Paste from the clipbboard to the selection" onClick={_=>actPasteFromClipboard()} ?style> <MM_Icons.ContentPaste/> </Button>
                 <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
                 <Button title="Unselect" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
