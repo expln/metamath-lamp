@@ -13,6 +13,10 @@ let copyToClipboard = (text:string) => {
     navigator["clipboard"]["writeText"](. text)
 }
 
+let readFromClipboard = ():promise<string> => {
+    navigator["clipboard"]["readText"](.)
+}
+
 let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
     <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
         <Row alignItems=#center spacing=1.>
