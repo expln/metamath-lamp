@@ -540,17 +540,20 @@ let a:editorSnapshot = {
     }
 }
 
-let moveStmtTest = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => {
+let moveStmtTest = (a:editorSnapshot, stmtId:stmtId, dIdx:int):editorSnapshot => {
     let newStmts = a.stmts->Js_array2.copy
     let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
     let tmp = newStmts[idx]
-    newStmts[idx] = newStmts[idx+1]
-    newStmts[idx+1] = tmp
+    newStmts[idx] = newStmts[idx+dIdx]
+    newStmts[idx+dIdx] = tmp
     {
         ...a,
         stmts:newStmts
     }
 }
+
+let moveStmtUp = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => moveStmtTest(a, stmtId, -1)
+let moveStmtDown = (a:editorSnapshot, stmtId:stmtId):editorSnapshot => moveStmtTest(a, stmtId, 1)
 
 let testApplyDiff = (
     ~initState:editorSnapshot,
@@ -640,8 +643,8 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
             [StmtRemove({stmtId: "4"})]
         )
 
-        assertEq( findDiff(a, a->moveStmtTest("1")), [StmtMove({stmtId: "2", idx: 0})] )
-        assertEq( findDiff(a, a->moveStmtTest("2")), [StmtMove({stmtId: "3", idx: 1})] )
+        assertEq( findDiff(a, a->moveStmtDown("1")), [StmtMove({stmtId: "2", idx: 0})] )
+        assertEq( findDiff(a, a->moveStmtDown("2")), [StmtMove({stmtId: "3", idx: 1})] )
 
         assertEq( 
             findDiff(a, a->removeStmt("1")->removeStmt("2")), 
@@ -665,10 +668,31 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
         )
 
         assertEq( 
-            findDiff( a, a->moveStmtTest("1")->moveStmtTest("1") ), 
+            findDiff( a, a->moveStmtDown("1") ), 
+            [
+                StmtMove({stmtId: "2", idx: 0}),
+            ] 
+        )
+
+        assertEq( 
+            findDiff( a, a->moveStmtDown("1")->moveStmtDown("1") ), 
             [
                 StmtMove({stmtId: "2", idx: 0}),
                 StmtMove({stmtId: "3", idx: 1}),
+            ] 
+        )
+
+        assertEq( 
+            findDiff( a, a->moveStmtUp("3") ), 
+            [
+                StmtMove({stmtId: "3", idx: 1}),
+            ] 
+        )
+
+        assertEq( 
+            findDiff( a, a->moveStmtUp("3")->moveStmtUp("3") ), 
+            [
+                StmtMove({stmtId: "3", idx: 0}),
             ] 
         )
 
@@ -813,12 +837,12 @@ let mm_editor_snapshot__test_applyDiff = ():unit => {
         )
 
         testApplyDiff( ~initState=a,
-            ~changes = moveStmtTest(_, "1"),
-            ~expectedEndState = a->moveStmtTest("1")
+            ~changes = moveStmtDown(_, "1"),
+            ~expectedEndState = a->moveStmtDown("1")
         )
         testApplyDiff( ~initState=a,
-            ~changes = moveStmtTest(_, "2"),
-            ~expectedEndState = a->moveStmtTest("2")
+            ~changes = moveStmtDown(_, "2"),
+            ~expectedEndState = a->moveStmtDown("2")
         )
 
         testApplyDiff( ~initState=a,
@@ -838,8 +862,8 @@ let mm_editor_snapshot__test_applyDiff = ():unit => {
         )
 
         testApplyDiff( ~initState=a,
-            ~changes = sn => sn->moveStmtTest("1")->moveStmtTest("1"),
-            ~expectedEndState = a->moveStmtTest("1")->moveStmtTest("1")
+            ~changes = sn => sn->moveStmtDown("1")->moveStmtDown("1"),
+            ~expectedEndState = a->moveStmtDown("1")->moveStmtDown("1")
         )
 
         testApplyDiff( ~initState=a,
@@ -892,10 +916,10 @@ let mm_editor_snapshot__test_applyDiff = ():unit => {
 let mm_editor_snapshot__test_mergeDiff = ():unit => {
     it("merges consecutive moves of same step", _ => {
         //given
-        let b = a->moveStmtTest("1")
+        let b = a->moveStmtDown("1")
         let diff1 = findDiff(a,b)
         assertEqMsg(diff1, [StmtMove({stmtId: "2", idx: 0})], "diff1")
-        let c = b->moveStmtTest("1")
+        let c = b->moveStmtDown("1")
         let diff2 = findDiff(b,c)
         assertEqMsg(diff2, [StmtMove({stmtId: "3", idx: 1})], "diff2")
 
@@ -908,10 +932,10 @@ let mm_editor_snapshot__test_mergeDiff = ():unit => {
     
     it("merges consecutive moves of different steps", _ => {
         //given
-        let b = a->moveStmtTest("1")
+        let b = a->moveStmtDown("1")
         let diff1 = findDiff(a,b)
         assertEqMsg(diff1, [StmtMove({stmtId: "2", idx: 0})], "diff1")
-        let c = b->moveStmtTest("2")
+        let c = b->moveStmtDown("2")
         let diff2 = findDiff(b,c)
         assertEqMsg(diff2, [StmtMove({stmtId: "1", idx: 0})], "diff2")
 
