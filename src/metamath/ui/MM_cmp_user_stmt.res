@@ -12,6 +12,7 @@ open MM_parser
 open Expln_React_Modal
 open Local_storage_utils
 open Common
+open Expln_utils_promise
 
 @val external window: {..} = "window"
 
@@ -1069,21 +1070,22 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
-    let actPasteFromClipboard = async () => {
-        let clipboardContents = await readFromClipboard()
-        let selectedRangeIndices = getSelectedRange()
-        switch selectedRangeIndices {
-            | None => ()
-            | Some((low, high)) =>
-                let currentText = stmt.cont->contToStr
-                let newText = (
-                    currentText->Js.String2.slice(~from=0, ~to_=low) ++
-                    clipboardContents ++
-                    currentText->Js.String2.sliceToEnd(~from=high)
-                )
-                // Propagate changes to MM_cmp_editor
-                onContEditDone(newText)
-        }
+    let actPasteFromClipboard = () => {
+        readFromClipboard()->promiseMap(clipboardContents => {
+            let selectedRangeIndices = getSelectedRange()
+            switch selectedRangeIndices {
+                | None => ()
+                | Some((low, high)) =>
+                    let currentText = stmt.cont->contToStr
+                    let newText = (
+                        currentText->Js.String2.slice(~from=0, ~to_=low) ++
+                        clipboardContents ++
+                        currentText->Js.String2.sliceToEnd(~from=high)
+                    )
+                    // Propagate changes to MM_cmp_editor
+                    onContEditDone(newText)
+            }
+        })->ignore
     }
 
     let actEditSelection = () => {
@@ -1167,7 +1169,7 @@ let make = React.memoCustomCompareProps( ({
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
-                <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()->ignore} ?style>
+                <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
                     <MM_Icons.ContentPaste/>
                 </Button>
                 <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
