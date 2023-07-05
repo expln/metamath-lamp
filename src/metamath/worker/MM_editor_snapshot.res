@@ -30,7 +30,6 @@ type editorDiff =
     | StmtAdd({idx: int, stmt: stmtSnapshot})
     | StmtRemove({stmtId: stmtId})
     | StmtMove({stmtId: stmtId, idx: int})
-    | Snapshot(editorSnapshot)
 
 type editorHistory = {
     head: editorSnapshot,
@@ -115,245 +114,6 @@ let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
     }
 }
 
-let getStmtA = (
-    a:array<stmtSnapshot>, 
-    idx:int,
-    ~idxAdd:option<int>,
-):option<stmtSnapshot> => {
-    switch idxAdd {
-        | Some(idxAdd) => {
-            if (idx < idxAdd) {
-                Some(a[idx])
-            } else if (idx == idxAdd) {
-                None
-            } else {
-                Some(a[idx-1])
-            }
-        }
-        | None => Some(a[idx])
-    }
-}
-
-let getStmtB = (
-    b:array<stmtSnapshot>, 
-    idx:int,
-    ~idxSwap:option<int>,
-    ~idxRemove:option<int>,
-):option<stmtSnapshot> => {
-    switch idxSwap {
-        | Some(idxSwap) => {
-            if (idx < idxSwap || idxSwap + 1 < idx) {
-                Some(b[idx])
-            } else if (idx == idxSwap) {
-                Some(b[idx+1])
-            } else {
-                Some(b[idxSwap])
-            }
-        }
-        | None => {
-            switch idxRemove {
-                | Some(idxRemove) => {
-                    if (idx < idxRemove) {
-                        Some(b[idx])
-                    } else if (idx == idxRemove) {
-                        None
-                    } else {
-                        Some(b[idx-1])
-                    }
-                }
-                | None => Some(b[idx])
-            }
-        }
-    }
-}
-
-let findSmallDiffStmt = (
-    a:array<stmtSnapshot>, 
-    b:array<stmtSnapshot>, 
-    ~idxSwap:option<int>=?,
-    ~idxRemove:option<int>=?,
-    ~idxAdd:option<int>=?,
-    ()
-):array<editorDiff> => {
-    let modCnt = ref(if (idxSwap->Belt_Option.isNone) {0} else {1})
-    modCnt := modCnt.contents + if (idxRemove->Belt_Option.isNone) {0} else {1}
-    modCnt := modCnt.contents + if (idxAdd->Belt_Option.isNone) {0} else {1}
-    if (modCnt.contents > 1) {
-        raise(MmException({msg:`findSmallDiffStmt: modCnt.contents > 1`}))
-    }
-    let diffs = []
-    switch idxSwap {
-        | Some(idxSwap) => {
-            diffs->Js.Array2.push(StmtMove({stmtId:a[idxSwap].id, idx:idxSwap+1}))->ignore
-        }
-        | None => ()
-    }
-    switch idxRemove {
-        | Some(idxRemove) => {
-            diffs->Js.Array2.push(StmtRemove({stmtId:a[idxRemove].id}))->ignore
-        }
-        | None => ()
-    }
-    switch idxAdd {
-        | Some(idxAdd) => {
-            diffs->Js.Array2.push(StmtAdd({idx:idxAdd, stmt:b[idxAdd]}))->ignore
-        }
-        | None => ()
-    }
-    let maxI = Js.Math.max_int(a->Js_array2.length, b->Js_array2.length) - 1
-    for i in 0 to maxI {
-        switch getStmtA(a, i, ~idxAdd) {
-            | None => ()
-            | Some(stmtA) => {
-                switch getStmtB(b, i, ~idxSwap, ~idxRemove) {
-                    | None => ()
-                    | Some(stmtB) => {
-                        if (stmtA.id != stmtB.id) {
-                            raise(MmException({msg:`stmtA.id != stmtB.id`}))
-                        }
-                        if (stmtA.label != stmtB.label) {
-                            diffs->Js.Array2.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))->ignore
-                        }
-                        if (stmtA.typ != stmtB.typ || stmtA.isGoal != stmtB.isGoal) {
-                            diffs->Js.Array2.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))->ignore
-                        }
-                        if (stmtA.jstfText != stmtB.jstfText) {
-                            diffs->Js.Array2.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))->ignore
-                        }
-                        if (stmtA.cont != stmtB.cont) {
-                            diffs->Js.Array2.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))->ignore
-                        }
-                        if (!(stmtA.proofStatus->proofStatusEq(stmtB.proofStatus))) {
-                            diffs->Js.Array2.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))->ignore
-                        }
-                    }
-                }
-            }
-        }
-    }
-    diffs
-}
-
-let findIdxAdd = (a:array<stmtSnapshot>, b:array<stmtSnapshot>):option<int> => {
-    let aLen = a->Js_array2.length
-    let bLen = b->Js_array2.length
-    if (aLen + 1 == bLen) {
-        let idxAdd = ref(None)
-        let match = ref(true)
-        let i = ref(0)
-        while (match.contents && i.contents < aLen) {
-            if (a[i.contents].id != b[i.contents].id) {
-                switch idxAdd.contents {
-                    | None => {
-                        if (a[i.contents].id == b[i.contents+1].id) {
-                            idxAdd := Some(i.contents)
-                        } else {
-                            match := false
-                        }
-                    }
-                    | Some(idxAdd) => match := a[i.contents].id == b[i.contents+1].id
-                }
-            }
-            i := i.contents + 1
-        }
-        if (!match.contents) {
-            None
-        } else {
-            idxAdd.contents->Belt_Option.orElse(Some(aLen))
-        }
-    } else {
-        None
-    }
-}
-
-/* 
-Ok(None): a and b are same;
-Ok(Some): some diff is found;
-Error: a and b are different, but the function cannot explain the difference in terms of the editorDiff type.
- */
-let findDiffStmt = (a:array<stmtSnapshot>, b:array<stmtSnapshot>):result<option<array<editorDiff>>,unit> => {
-    let aLen = a->Js_array2.length
-    let bLen = b->Js_array2.length
-    if (aLen == 0) {
-        if (bLen == 0) {
-            Ok(None)
-        } else {
-            Ok(Some(
-                b->Js_array2.mapi((stmt,i) => StmtAdd({idx:i, stmt}))
-            ))
-        }
-    } else {
-        if (bLen == 0) {
-            Ok(Some(
-                a->Js_array2.map(stmt => StmtRemove({stmtId:stmt.id}))
-            ))
-        } else if (aLen == bLen) {
-            let idxSwap = ref(None)
-            let match = ref(true)
-            let i = ref(0)
-            while (match.contents && i.contents < aLen) {
-                if (a[i.contents].id != b[i.contents].id) {
-                    switch idxSwap.contents {
-                        | None => {
-                            if (i.contents < aLen-1 && a[i.contents].id == b[i.contents+1].id && a[i.contents+1].id == b[i.contents].id) {
-                                idxSwap := Some(i.contents)
-                            } else {
-                                match := false
-                            }
-                        }
-                        | Some(idxSwap) => match := idxSwap + 1 == i.contents
-                    }
-                }
-                i := i.contents + 1
-            }
-            if (!match.contents) {
-                Error(())
-            } else {
-                let diffs = findSmallDiffStmt( a, b, ~idxSwap=?(idxSwap.contents), ())
-                if (diffs->Js.Array2.length == 0) {
-                    Ok(None)
-                } else {
-                    Ok(Some(diffs))
-                }
-            }
-        } else if (aLen + 1 == bLen) {
-            switch findIdxAdd(a, b) {
-                | None => Error(())
-                | Some(idxAdd) => Ok(Some(findSmallDiffStmt( a, b, ~idxAdd, ())))
-            }
-        } else if (aLen - 1 == bLen) {
-            switch findIdxAdd(b, a) {
-                | None => Error(())
-                | Some(idxRemove) => Ok(Some(findSmallDiffStmt( a, b, ~idxRemove, ())))
-            }
-        } else {
-            Error(())
-        }
-    }
-}
-
-let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
-    switch findDiffStmt(a.stmts, b.stmts) {
-        | Error(_) => [Snapshot(b)]
-        | Ok(diffsOpt) => {
-            let diffs = switch diffsOpt {
-                | None => []
-                | Some(diffs) => diffs
-            }
-            if (a.descr != b.descr) {
-                diffs->Js.Array2.push(Descr(b.descr))->ignore
-            }
-            if (a.varsText != b.varsText) {
-                diffs->Js.Array2.push(Vars(b.varsText))->ignore
-            }
-            if (a.disjText != b.disjText) {
-                diffs->Js.Array2.push(Disj(b.disjText))->ignore
-            }
-            diffs
-        }
-    }
-}
-
 let isStmtMove = (diff:editorDiff):bool => {
     switch diff {
         | StmtMove(_) => true
@@ -361,29 +121,27 @@ let isStmtMove = (diff:editorDiff):bool => {
     }
 }
 
+let allMoves = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(isStmtMove)
+}
+
+let isStmtStatus = (diff:editorDiff):bool => {
+    switch diff {
+        | StmtStatus(_) => true
+        | _ => false
+    }
+}
+
+let allStatuses = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(isStmtStatus)
+}
+
 let mergeDiff = (a:array<editorDiff>, b:array<editorDiff>):option<array<editorDiff>> => {
-    let aLen = a->Js_array2.length
-    let bLen = b->Js_array2.length
-    if (aLen == bLen) {
-        if (aLen == 1 && isStmtMove(a[0])) {
-            switch a[0] {
-                | StmtMove({stmtId: stmtIdA}) => {
-                    switch b[0] {
-                        | StmtMove({stmtId: stmtIdB}) => {
-                            if (stmtIdA == stmtIdB) {
-                                Some(b)
-                            } else {
-                                None
-                            }
-                        }
-                        | _ => None
-                    }
-                }
-                | _ => None
-            }
-        } else {
-            None
-        }
+    if (
+        (a->allMoves && b->allMoves) 
+        || (a->allStatuses || b->allStatuses)
+    ) {
+        Some(a->Js_array2.concat(b))
     } else {
         None
     }
@@ -435,7 +193,6 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
         | StmtAdd({idx, stmt}) => sn->addStmt(idx, stmt)
         | StmtRemove({stmtId}) => sn->removeStmt(stmtId)
         | StmtMove({stmtId, idx}) => sn->moveStmt(stmtId, idx)
-        | Snapshot(editorSnapshot) => editorSnapshot
     }
 }
 
@@ -444,6 +201,73 @@ If findDiff(a,b)==diff then applyDiff(a,diff)==b
 */
 let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
     diff->Js_array2.reduce( applyDiffSingle, sn )
+}
+
+let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
+    let diffs = []
+
+    let aIds = a.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
+    let bIds = b.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
+    a.stmts->Js_array2.forEachi((stmtA,i) => {
+        if (!(bIds->Belt_HashSetString.has(stmtA.id))) {
+            diffs->Js_array2.push(StmtRemove({stmtId:stmtA.id}))->ignore
+        }
+    })
+    b.stmts->Js_array2.forEachi((stmtB,i) => {
+        if (!(aIds->Belt_HashSetString.has(stmtB.id))) {
+            diffs->Js_array2.push(StmtAdd({idx:i, stmt:stmtB}))->ignore
+        }
+    })
+
+    let aMod = ref(a->applyDiff(diffs))
+    let aModLen = aMod.contents.stmts->Js_array2.length
+    let bLen = b.stmts->Js_array2.length
+    if (aModLen != bLen) {
+        raise(MmException({msg:`aModLen != bLen`}))
+    }
+    for i in 0 to bLen-1 {
+        let stmtA = aMod.contents.stmts[i]
+        let stmtB = b.stmts[i]
+        if (stmtA.id != stmtB.id) {
+            let move = StmtMove({stmtId:stmtB.id, idx:i})
+            diffs->Js_array2.push(move)->ignore
+            aMod := aMod.contents->applyDiffSingle(move)
+        }
+    }
+
+    b.stmts->Js_array2.forEachi((stmtB,i) => {
+        let stmtA = aMod.contents.stmts[i]
+        if (stmtA.id != stmtB.id) {
+            raise(MmException({msg:`stmtA.id != stmtB.id`}))
+        }
+        if (stmtA.label != stmtB.label) {
+            diffs->Js.Array2.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))->ignore
+        }
+        if (stmtA.typ != stmtB.typ || stmtA.isGoal != stmtB.isGoal) {
+            diffs->Js.Array2.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))->ignore
+        }
+        if (stmtA.jstfText != stmtB.jstfText) {
+            diffs->Js.Array2.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))->ignore
+        }
+        if (stmtA.cont != stmtB.cont) {
+            diffs->Js.Array2.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))->ignore
+        }
+        if (!(stmtA.proofStatus->proofStatusEq(stmtB.proofStatus))) {
+            diffs->Js.Array2.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))->ignore
+        }
+    })
+
+    if (a.descr != b.descr) {
+        diffs->Js.Array2.push(Descr(b.descr))->ignore
+    }
+    if (a.varsText != b.varsText) {
+        diffs->Js.Array2.push(Vars(b.varsText))->ignore
+    }
+    if (a.disjText != b.disjText) {
+        diffs->Js.Array2.push(Disj(b.disjText))->ignore
+    }
+
+    diffs
 }
 
 let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
@@ -557,7 +381,6 @@ type editorDiffLocStor = {
     int?:int,
     str?:string,
     stmt?:stmtSnapshotLocStor,
-    sn?:editorSnapshotLocStor,
 }
 
 type editorHistoryLocStor = {
@@ -651,8 +474,6 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
             { typ:"SR", id:stmtId }
         | StmtMove({stmtId, idx}) => 
             { typ:"SM", id:stmtId, int:idx }
-        | Snapshot(editorSnapshot) => 
-            { typ:"E", sn:editorSnapshot->editorSnapshotToLocStor }
     }
 }
 
@@ -668,7 +489,6 @@ let edlsGetBool = (d:editorDiffLocStor):bool => optGetEdls(d.bool, d.typ, "bool"
 let edlsGetInt = (d:editorDiffLocStor):int => optGetEdls(d.int, d.typ, "int")
 let edlsGetStr = (d:editorDiffLocStor):string => optGetEdls(d.str, d.typ, "str")
 let edlsGetStmt = (d:editorDiffLocStor):stmtSnapshotLocStor => optGetEdls(d.stmt, d.typ, "stmt")
-let edlsGetSn = (d:editorDiffLocStor):editorSnapshotLocStor => optGetEdls(d.sn, d.typ, "sn")
 
 let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
     switch diff.typ {
@@ -683,7 +503,6 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | "SA" => StmtAdd({idx:diff->edlsGetInt, stmt:diff->edlsGetStmt->stmtSnapshotFromLocStor})
         | "SR" => StmtRemove({stmtId:diff->edlsGetId})
         | "SM" => StmtMove({stmtId:diff->edlsGetId, idx:diff->edlsGetInt})
-        | "E" => Snapshot(diff->edlsGetSn->editorSnapshotFromLocStor)
         | _ => raise(MmException({msg:`Cannot convert editorDiffLocStor to editorDiff for diff.typ='${diff.typ}'.`}))
     }
 }
@@ -821,22 +640,14 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
             [StmtRemove({stmtId: "4"})]
         )
 
-        assertEq( findDiff(a, a->moveStmtTest("1")), [StmtMove({stmtId: "1", idx: 1})] )
-        assertEq( findDiff(a, a->moveStmtTest("2")), [StmtMove({stmtId: "2", idx: 2})] )
+        assertEq( findDiff(a, a->moveStmtTest("1")), [StmtMove({stmtId: "2", idx: 0})] )
+        assertEq( findDiff(a, a->moveStmtTest("2")), [StmtMove({stmtId: "3", idx: 1})] )
 
         assertEq( 
             findDiff(a, a->removeStmt("1")->removeStmt("2")), 
             [
-                Snapshot(
-                    {
-                        descr: "descr",
-                        varsText: "varsText",
-                        disjText: "disjText",
-                        stmts: [
-                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
-                        ],
-                    }
-                )
+                StmtRemove({stmtId: "1"}),
+                StmtRemove({stmtId: "2"}),
             ] 
         )
 
@@ -848,38 +659,16 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
                     ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
             ), 
             [
-                Snapshot(
-                    {
-                        descr: "descr",
-                        varsText: "varsText",
-                        disjText: "disjText",
-                        stmts: [
-                            { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) },
-                            { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
-                            { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) },
-                            { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
-                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
-                        ],
-                    }
-                )
+                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
+                StmtAdd({idx: 2, stmt: { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) }}),
             ] 
         )
 
         assertEq( 
             findDiff( a, a->moveStmtTest("1")->moveStmtTest("1") ), 
             [
-                Snapshot(
-                    {
-                        descr: "descr",
-                        varsText: "varsText",
-                        disjText: "disjText",
-                        stmts: [
-                            { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
-                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
-                            { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
-                        ],
-                    }
-                )
+                StmtMove({stmtId: "2", idx: 0}),
+                StmtMove({stmtId: "3", idx: 1}),
             ] 
         )
 
@@ -934,21 +723,17 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
                     ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }),
             ), 
             [
-                Snapshot(
-                    {
-                        descr: "descr-new",
-                        varsText: "varsText-new",
-                        disjText: "disjText-new",
-                        stmts: [
-                            { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) },
-                            { id: "1", label: "ABC", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: Some(NoJstf) },
-                            { id: "2", label: "label2", typ:E, isGoal:true, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
-                            { id: "3", label: "label3", typ: P, isGoal: true, jstfText:"BBB", cont:"TTTTT", proofStatus: Some(Waiting) },
-                            { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) },
-                        ],
-                    }
-                )
-            ] 
+                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
+                StmtAdd({idx: 4, stmt: { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }}),
+                StmtLabel({stmtId: "1", label: "ABC"}),
+                StmtStatus({stmtId: "1", proofStatus: Some(NoJstf)}),
+                StmtTyp({stmtId: "2", typ:E, isGoal:true}),
+                StmtJstf({stmtId: "3", jstfText:"BBB"}),
+                StmtCont({stmtId: "3", cont:"TTTTT"}),
+                Descr("descr-new"),
+                Vars("varsText-new"),
+                Disj("disjText-new"),
+            ], 
         )
     })
 }
@@ -1109,27 +894,31 @@ let mm_editor_snapshot__test_mergeDiff = ():unit => {
         //given
         let b = a->moveStmtTest("1")
         let diff1 = findDiff(a,b)
+        assertEqMsg(diff1, [StmtMove({stmtId: "2", idx: 0})], "diff1")
         let c = b->moveStmtTest("1")
         let diff2 = findDiff(b,c)
+        assertEqMsg(diff2, [StmtMove({stmtId: "3", idx: 1})], "diff2")
 
         //when
         let mergeResult = mergeDiff(diff1,diff2)
 
         //then
-        assertEq(mergeResult, Some([StmtMove({stmtId: "1", idx: 2})]))
+        assertEq(mergeResult, Some([StmtMove({stmtId: "2", idx: 0}), StmtMove({stmtId: "3", idx: 1})]))
     })
     
-    it("does not merge consecutive moves of different steps", _ => {
+    it("merges consecutive moves of different steps", _ => {
         //given
         let b = a->moveStmtTest("1")
         let diff1 = findDiff(a,b)
+        assertEqMsg(diff1, [StmtMove({stmtId: "2", idx: 0})], "diff1")
         let c = b->moveStmtTest("2")
         let diff2 = findDiff(b,c)
+        assertEqMsg(diff2, [StmtMove({stmtId: "1", idx: 0})], "diff2")
 
         //when
         let mergeResult = mergeDiff(diff1,diff2)
 
         //then
-        assertEq(mergeResult, None)
+        assertEq(mergeResult, Some([StmtMove({stmtId: "2", idx: 0}), StmtMove({stmtId: "1", idx: 0})]))
     })
 }
