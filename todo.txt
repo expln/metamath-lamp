@@ -3,6 +3,9 @@
     - reverse page order
     - implement read-only mode for MM_cmp_user_stmt
     - show proof statuses
+    - store hist to loc stor
+    - bug: start adding a new stmt then cancel it - history shows empty stmt
+    - bug: start editing the descr then cancel it - history shows old descr
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
 - improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
 - make "compact mode" and "small buttons" default on mobile.

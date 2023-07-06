@@ -16,6 +16,7 @@ let make = (
     ~histLen:int,
     ~onClose:unit=>unit,
     ~viewOptions:viewOptions,
+    ~onRestore:int=>unit,
 ) => {
     let (curIdx, setCurIdx) = React.useState(() => 0)
     let (curEditorState, setCurEditorState) = React.useState(() => hist->editorHistGetSnapshotPreview(0,editorState))
@@ -30,6 +31,7 @@ let make = (
 
     let rndPagination = () => {
         <Row>
+            <Button onClick={_=>onRestore(curIdx)} > {React.string("Restore this")} </Button>
             <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             <Pagination 
                 count=histLen

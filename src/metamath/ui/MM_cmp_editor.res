@@ -588,13 +588,25 @@ let make = (
         })
     }
 
+    let actRestorePrevState = (histIdx:int):unit => {
+        notifyEditInTempMode(() => {
+            switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
+                | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg, () )
+                | Ok((editorState,editorHistory)) => {
+                    setState(_ => editorState)
+                    setHist(_ => editorHistory)
+                }
+            }
+        })
+    }
+
     let viewOptions = { 
         MM_cmp_user_stmt.showCheckbox:showCheckbox, 
         showLabel, showType, showJstf, inlineMode, 
         smallBtns, 
     }
 
-    let actRestorePrevState = () => {
+    let actOpenRestorePrevStateDialog = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_editor_hist 
@@ -604,6 +616,10 @@ let make = (
                     histLen={hist->editorHistLength}
                     onClose={_=>closeModal(modalRef, modalId)} 
                     viewOptions
+                    onRestore={histIdx => {
+                        actRestorePrevState(histIdx)
+                        closeModal(modalRef, modalId)
+                    }}
                 />
             })
         })->ignore
@@ -1263,7 +1279,7 @@ let make = (
                     ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
                     ~active=oneStatementIsChecked, ~title="Merge two similar steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
-                    ~onClick=actRestorePrevState, ~notifyEditInTempMode,
+                    ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
                     ~active={!(hist->editorHistIsEmpty)}, ~title="Restore previous state", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
