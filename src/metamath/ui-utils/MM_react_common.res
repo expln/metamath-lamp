@@ -19,12 +19,9 @@ let copyToClipboard = (text:string) => {
 let readFromClipboard = ():promise<string> => {
     // Firefox doesn't support readText. Implement a workaround so we
     // can readFromClipboard (paste) from within this application.
-    switch navigator["clipboard"]["readText"] {
-        | None => Js.Promise2.make((~resolve, ~reject as _) => {
-            // Uncurried functions for resolve / reject produces cleaner output
-            resolve(. backupClipboard.contents)
-          })
-        | Some(_readtextFunc) => navigator["clipboard"]["readText"](.)
+    switch navigator["clipboard"]["readText"]->Js.Nullable.toOption {
+        | None => promise(resolve => resolve(backupClipboard.contents))
+        | Some(_) => navigator["clipboard"]["readText"](.)
     }
 }
 
