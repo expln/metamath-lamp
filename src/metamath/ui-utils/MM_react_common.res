@@ -9,12 +9,23 @@ let getAvailWidth = ():int => {
     window["screen"]["availWidth"]
 }
 
+let backupClipboard = ref("")
+
 let copyToClipboard = (text:string) => {
+    backupClipboard := text
     navigator["clipboard"]["writeText"](. text)
 }
 
 let readFromClipboard = ():promise<string> => {
-    navigator["clipboard"]["readText"](.)
+    // Firefox doesn't support readText. Implement a workaround so we
+    // can readFromClipboard (paste) from within this application.
+    switch navigator["clipboard"]["readText"] {
+        | None => Js.Promise2.make((~resolve, ~reject as _) => {
+            // Uncurried functions for resolve / reject produces cleaner output
+            resolve(. backupClipboard.contents)
+          })
+        | Some(_readtextFunc) => navigator["clipboard"]["readText"](.)
+    }
 }
 
 let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
