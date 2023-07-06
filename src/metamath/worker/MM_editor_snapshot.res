@@ -125,23 +125,24 @@ let allMoves = (diff:array<editorDiff>):bool => {
     diff->Js_array2.every(isStmtMove)
 }
 
-let isStmtStatus = (diff:editorDiff):bool => {
+let isStmtStatusRemove = (diff:editorDiff):bool => {
     switch diff {
-        | StmtStatus(_) => true
+        | StmtStatus({proofStatus:None}) => true
         | _ => false
     }
 }
 
-let allStatuses = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtStatus)
+let allStatusRemove = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(isStmtStatusRemove)
 }
 
 let mergeDiff = (a:array<editorDiff>, b:array<editorDiff>):option<array<editorDiff>> => {
-    if (
-        (a->allMoves && b->allMoves) 
-        || (a->allStatuses || b->allStatuses)
-    ) {
+    if (a->allMoves && b->allMoves) {
         Some(a->Js_array2.concat(b))
+    } else if (a->allStatusRemove) {
+        Some(b)
+    } else if (b->allStatusRemove) {
+        Some(a)
     } else {
         None
     }

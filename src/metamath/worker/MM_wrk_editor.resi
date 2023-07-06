@@ -180,6 +180,7 @@ let mergeStmts: (editorState, string, string) => result<editorState, string>
 let renameStmt: (editorState, string, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
 let parseJstf: string => result<option<jstf>,string>
+let removeAllTempData: editorState => editorState
 
 let getIdsOfSelectedNodes: stmtCont => (int,Belt_SetInt.t)
 let hasSelectedText: stmtCont => bool

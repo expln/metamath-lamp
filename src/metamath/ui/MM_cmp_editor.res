@@ -14,6 +14,7 @@ open MM_provers
 open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
+open MM_editor_snapshot
 
 let unifyAllIsRequiredCnt = ref(0)
 
@@ -136,11 +137,14 @@ let make = (
         ~preCtx=preCtxData.ctxV.val, 
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
+    let (hist, setHist) = React.useState(() => editorHistMake(~initState=state, ~maxLength=100))
+    //Js.Console.log2(`hist`, hist)
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
             let st = updateEditorStateWithPostupdateActions(st, update)
             editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+            setHist(ht => ht->editorHistAddSnapshot(st))
             st
         })
     }
@@ -582,6 +586,27 @@ let make = (
                 }
             }
         })
+    }
+
+    let viewOptions = { 
+        MM_cmp_user_stmt.showCheckbox:showCheckbox, 
+        showLabel, showType, showJstf, inlineMode, 
+        smallBtns, 
+    }
+
+    let actRestorePrevState = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_editor_hist 
+                    modalRef
+                    editorState={state->removeAllTempData}
+                    hist 
+                    histLen={hist->editorHistLength}
+                    onClose={_=>closeModal(modalRef, modalId)} 
+                    viewOptions
+                />
+            })
+        })->ignore
     }
 
     let actMergeTwoStmts = () => {
@@ -1208,7 +1233,7 @@ let make = (
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 10 => Some(Js.Json.string("auto"))
+                        | 11 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1237,6 +1262,9 @@ let make = (
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
                     ~active=oneStatementIsChecked, ~title="Merge two similar steps", ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.Restore/>, 
+                    ~onClick=actRestorePrevState, ~notifyEditInTempMode,
+                    ~active={!(hist->editorHistIsEmpty)}, ~title="Restore previous state", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
@@ -1289,12 +1317,6 @@ let make = (
         } else {
             <></>
         }
-    }
-
-    let viewOptions = { 
-        MM_cmp_user_stmt.showCheckbox:showCheckbox, 
-        showLabel, showType, showJstf, inlineMode, 
-        smallBtns, 
     }
 
     let rndStmt = (stmt:userStmt):reElem => {
