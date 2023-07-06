@@ -1338,6 +1338,10 @@ let make = React.memoCustomCompareProps( ({
 
     let rndTyp = () => {
         if (stmt.typEditMode) {
+            let typStrLowerCase = switch stmt.typ {
+                | E => "e"
+                | P => if (stmt.isGoal) {"g"} else {"p"}
+            }
             <FormControl 
                 size=#small 
                 style=ReactDOM.Style.make(
@@ -1347,12 +1351,12 @@ let make = React.memoCustomCompareProps( ({
                 )
             >
                 <Select
-                    value=""
+                    value={typStrLowerCase}
                     onChange=evt2str(actTypEditDone)
                 >
-                    <MenuItem value="e">{React.string("H")}</MenuItem>
-                    <MenuItem value="p">{React.string("P")}</MenuItem>
-                    <MenuItem value="g">{React.string("G")}</MenuItem>
+                    <MenuItem value="e">{React.string("H - (Essential) Hypothesis")}</MenuItem>
+                    <MenuItem value="p">{React.string("P - Provable Statement")}</MenuItem>
+                    <MenuItem value="g">{React.string("G - Goal Statement")}</MenuItem>
                 </Select>
             </FormControl>
         } else {
