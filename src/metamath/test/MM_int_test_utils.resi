@@ -1,6 +1,7 @@
 open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
+open MM_editor_snapshot
 
 let setMmPath: string
 let asrtsToSkipFilePath: string
@@ -14,6 +15,7 @@ let getTestDataDir: () => string
 let assertNoErrors: editorState => unit
 let assertEditorState: (editorState, string) => unit
 let assertStmtsDto: (stmtsDto, string) => unit
+let assertEditorHistory: (editorHistory, string) => unit
 let assertProof: (editorState, string, string) => unit
 let assertTextsEq: (string, string, string, string) => unit
 let assertTextEqFile: (string, string) => unit

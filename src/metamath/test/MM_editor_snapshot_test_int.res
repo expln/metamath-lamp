@@ -32,7 +32,24 @@ describe("editorHistory", _ => {
         assertEditorState(st0Restored, "st0Restored")
     })
 
-    // it("merges changes when only proof statuses were added", _ => {
-        
-    // })
+    it("merges changes when only proof statuses were added", _ => {
+        setTestDataDir("editor-history-merge-status")
+
+        let st = createEditorState(
+            ~mmFilePath="./src/metamath/test/resources/demo0._mm", ~stopBefore="th1", ~debug, ()
+        )->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = editorHistMake(~initState=st, ~maxLength=200)
+        assertEditorHistory(ht, "hist1")
+
+        let (st,goalStmtId) = st->addNewStmt
+        let ht = ht->editorHistAddSnapshot(st)
+        let st = st->completeContEditMode(goalStmtId, "|- t = t")
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist2")
+
+        // let st = st->addStmtsBySearch( ~filterLabel="a1", ~chooseLabel="a1", () )
+        //         ->updateEditorStateWithPostupdateActions(st=>st)
+        // let ht = ht->editorHistAddSnapshot(st)
+        // assertEditorHistory(ht, "hist2")
+    })
 })

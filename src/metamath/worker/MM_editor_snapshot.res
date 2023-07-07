@@ -280,27 +280,31 @@ let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
 }
 
 let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => {
-    let newHead = editorSnapshotMake(st)
-    let diff = newHead->findDiff(ht.head)
-    if (diff->Js.Array2.length == 0) {
+    if (st->isEditMode) {
         ht
     } else {
-        {
-            ...ht,
-            head: newHead,
-            prev: 
-                if (ht.prev->Js_array2.length == 0) {
-                    [diff]
-                } else {
-                    switch diff->mergeDiff(ht.prev[0]) {
-                        | None => {
-                            [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
-                        }
-                        | Some(mergedDiff) => {
-                            [mergedDiff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=1, ~end_=ht.maxLength))
+        let newHead = editorSnapshotMake(st)
+        let diff = newHead->findDiff(ht.head)
+        if (diff->Js.Array2.length == 0) {
+            ht
+        } else {
+            {
+                ...ht,
+                head: newHead,
+                prev: 
+                    if (ht.prev->Js_array2.length == 0) {
+                        [diff]
+                    } else {
+                        switch diff->mergeDiff(ht.prev[0]) {
+                            | None => {
+                                [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
+                            }
+                            | Some(mergedDiff) => {
+                                [mergedDiff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=1, ~end_=ht.maxLength))
+                            }
                         }
                     }
-                }
+            }
         }
     }
 }

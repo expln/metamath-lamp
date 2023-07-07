@@ -835,6 +835,13 @@ let removeAllTempData = st => {
     }
 }
 
+let isEditMode = (st:editorState): bool => {
+    st.descrEditMode || st.varsEditMode || st.disjEditMode ||
+        st.stmts->Js.Array2.some(stmt => 
+            stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode 
+        )
+}
+
 let userStmtHasErrors = stmt => {
     stmt.stmtErr->Belt_Option.isSome
 }

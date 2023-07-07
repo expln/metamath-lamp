@@ -138,7 +138,6 @@ let make = (
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
     let (hist, setHist) = React.useState(() => editorHistMake(~initState=state, ~maxLength=100))
-    //Js.Console.log2(`hist`, hist)
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
@@ -166,9 +165,7 @@ let make = (
         }
     }
 
-    let editIsActive = 
-        state.varsEditMode || state.disjEditMode ||
-        state.stmts->Js.Array2.some(stmt => stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode )
+    let editIsActive = state->isEditMode
 
     let thereAreSyntaxErrors = editorStateHasErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
