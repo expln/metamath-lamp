@@ -3,6 +3,7 @@ open MM_parser
 open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
+open MM_editor_snapshot
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
 let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"
@@ -127,6 +128,11 @@ let assertNoErrors = (st) => {
         Expln_utils_files.writeStringToFile( st->editorStateToStr, filePath )
         raise(MmException({msg:`Editor state has errors: ${filePath}`}))
     }
+}
+
+let assertEditorHistory = (ht:editorHistory, expectedStrFileName:string) => {
+    let actualStr = ht->editorHistToStringExtended
+    assertStrEqFile(actualStr, expectedStrFileName)
 }
 
 let assertEditorState = (st, expectedStrFileName:string) => {

@@ -338,23 +338,17 @@ let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): 
     }
 }
 
-let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): result<(editorState,editorHistory),string> => {
+let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int): result<editorState,string> => {
     editorHistGetSnapshotPreview(ht, idx, st)->Belt_Result.map(st => {
-        (
-            {
-                ...st,
-                stmts: st.stmts->Js.Array2.map(stmt => {
-                    {
-                        ...stmt,
-                        proofStatus: None,
-                    }
-                })
-            },
-            {
-                ...ht,
-                prev: ht.prev->Js.Array2.sliceFrom(idx+1)
-            }
-        )
+        {
+            ...st,
+            stmts: st.stmts->Js.Array2.map(stmt => {
+                {
+                    ...stmt,
+                    proofStatus: None,
+                }
+            })
+        }
     })
 }
 
@@ -522,6 +516,49 @@ let editorHistoryFromLocStor = (ht:editorHistoryLocStor):editorHistory => {
         prev: ht.prev->Js_array2.map(diff => diff->Js_array2.map(editorDiffFromLocStor)),
         maxLength: ht.maxLength,
     }
+}
+
+let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
+    let typStr = switch stmt.typ {
+        | E => "H"
+        | P => if (stmt.isGoal) {"G"} else {"P"}
+    }
+    let statusStr = switch stmt.proofStatus {
+        | None => ""
+        | Some(Ready) => "\u2713"
+        | Some(Waiting) => "\u223F"
+        | Some(NoJstf) => "?"
+        | Some(JstfIsIncorrect) => "\u2717"
+    }
+    `${stmt.id}: ${statusStr} ${stmt.label} ${typStr} [${stmt.jstfText}] ${stmt.cont}`
+}
+
+let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
+    let res = []
+    res->Js.Array2.push("Description")->ignore
+    res->Js.Array2.push(sn.descr)->ignore
+    res->Js.Array2.push("Variables")->ignore
+    res->Js.Array2.push(sn.varsText)->ignore
+    res->Js.Array2.push("Disjoints")->ignore
+    res->Js.Array2.push(sn.disjText)->ignore
+    sn.stmts->Js.Array2.forEach(stmt => {
+        res->Js.Array2.push(stmt->stmtSnapshotToStringExtended)->ignore
+    })
+    res->Js.Array2.joinWith("\n")
+}
+
+let editorHistToStringExtended = (ht:editorHistory):string => {
+    let res = []
+    let delim = "------------------------------------------------------------------------------------"
+    let curSn = ref(ht.head)
+    res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
+    res->Js.Array2.push(delim)->ignore
+    ht.prev->Js.Array2.forEach(diff => {
+        curSn := curSn.contents->applyDiff(diff)
+        res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
+        res->Js.Array2.push(delim)->ignore
+    })
+    res->Js.Array2.joinWith("\n")
 }
 
 // --------- Tests for private types and functions ---------------------------------------

@@ -28,7 +28,11 @@ describe("editorHistory", _ => {
         assertEditorState(st1, "st1")
 
         @warning("-8")
-        let Ok((st0Restored, _)) = st1->restoreEditorStateFromSnapshot(ht, ht->editorHistLength - 1)
+        let Ok(st0Restored) = st1->restoreEditorStateFromSnapshot(ht, ht->editorHistLength - 1)
         assertEditorState(st0Restored, "st0Restored")
     })
+
+    // it("merges changes when only proof statuses were added", _ => {
+        
+    // })
 })
