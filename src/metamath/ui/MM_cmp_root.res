@@ -64,6 +64,9 @@ let updateCtxSelectorIsExpanded = (st:state,ctxSelectorIsExpanded:bool):state =>
 let mainTheme = ThemeProvider.createTheme(
     {
         "palette": {
+            "white": {
+                "main": "#ffffff",
+            },
             "grey": {
                 "main": "#e0e0e0",
             },

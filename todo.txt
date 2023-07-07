@@ -1,5 +1,5 @@
 -editor history:
-    - make it fixed at the top
+    + make it fixed at the top
     - reverse page order
     - implement read-only mode for MM_cmp_user_stmt
     - show proof statuses

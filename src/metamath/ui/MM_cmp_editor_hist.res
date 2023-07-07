@@ -30,7 +30,7 @@ let make = (
     }
 
     let rndPagination = () => {
-        <Row>
+        <Row alignItems=#center>
             <Button onClick={_=>onRestore(curIdx)} > {React.string("Restore this")} </Button>
             <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             <Pagination 
@@ -165,8 +165,10 @@ let make = (
     }
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
-        <Col>
+        <AppBar position=#sticky color="white">
             {rndPagination()}
+        </AppBar>
+        <Col>
             {rndEditorState()}
         </Col>
     </Paper>
