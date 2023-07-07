@@ -1,9 +1,10 @@
 -editor history:
     + make it fixed at the top
-    - reverse page order
     - implement read-only mode for MM_cmp_user_stmt
     - show proof statuses
     - store hist to loc stor
+    - switch versions by a keyboard
+    - close by Esc
     - bug: start adding a new stmt then cancel it - history shows empty stmt
     - bug: start editing the descr then cancel it - history shows old descr
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.

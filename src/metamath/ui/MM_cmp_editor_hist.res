@@ -21,23 +21,25 @@ let make = (
     let (curIdx, setCurIdx) = React.useState(() => 0)
     let (curEditorState, setCurEditorState) = React.useState(() => hist->editorHistGetSnapshotPreview(0,editorState))
 
-    let actChangePage = (newPageNum:int) => {
-        if (1 <= newPageNum && newPageNum <= histLen) {
-            let newCurIdx = newPageNum-1
+    let actChangeCurIdx = (newCurIdx:int) => {
+        if (0 <= newCurIdx && newCurIdx <= histLen-1) {
             setCurIdx(_ => newCurIdx)
             setCurEditorState(_ => hist->editorHistGetSnapshotPreview(newCurIdx,editorState))
         }
     }
 
+    let actPrev = () => actChangeCurIdx(curIdx+1)
+    let actNext = () => actChangeCurIdx(curIdx-1)
+
+    let prevIsDisabled = curIdx == histLen-1
+    let nextIsDisabled = curIdx == 0
+
     let rndPagination = () => {
         <Row alignItems=#center>
             <Button onClick={_=>onRestore(curIdx)} > {React.string("Restore this")} </Button>
             <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
-            <Pagination 
-                count=histLen
-                page={curIdx+1} 
-                onChange={(_,newPage) => actChangePage(newPage)}
-            />
+            <Button onClick={_=>actPrev()} disabled=prevIsDisabled > {React.string("< PREV")} </Button>
+            <Button onClick={_=>actNext()} disabled=nextIsDisabled > {React.string("NEXT >")} </Button>
         </Row>
     }
 
@@ -168,8 +170,6 @@ let make = (
         <AppBar position=#sticky color="white">
             {rndPagination()}
         </AppBar>
-        <Col>
-            {rndEditorState()}
-        </Col>
+        {rndEditorState()}
     </Paper>
 }
