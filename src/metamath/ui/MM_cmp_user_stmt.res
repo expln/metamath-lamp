@@ -937,6 +937,10 @@ let make = React.memoCustomCompareProps( ({
         let (newTyp,newIsGoal) = userStmtTypeAndIsGoalFromStr(newTypStr)
         onTypEditDone(newTyp,newIsGoal)
     }
+
+    let actTypEditCancel = () => {
+        onTypEditDone(stmt.typ, stmt.isGoal)
+    }
     
     let actContEditDone = () => {
         onContEditDone(state.newText->Js_string2.trim)
@@ -1342,23 +1346,30 @@ let make = React.memoCustomCompareProps( ({
                 | E => "e"
                 | P => if (stmt.isGoal) {"g"} else {"p"}
             }
-            <FormControl 
-                size=#small 
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
-            >
-                <Select
-                    value={typStrLowerCase}
-                    onChange=evt2str(actTypEditDone)
+            <Col spacing=0.>
+                <FormControl
+                    size=#small
+                    style=ReactDOM.Style.make(
+                        ~marginLeft=stmtPartMarginLeft,
+                        ~marginTop=stmtPartMarginTop,
+                        ()
+                    )
                 >
-                    <MenuItem value="e">{React.string("H - (Essential) Hypothesis")}</MenuItem>
-                    <MenuItem value="p">{React.string("P - Provable Statement")}</MenuItem>
-                    <MenuItem value="g">{React.string("G - Goal Statement")}</MenuItem>
-                </Select>
-            </FormControl>
+                    <Select
+                        value={typStrLowerCase}
+                        onChange=evt2str(actTypEditDone)
+                    >
+                        <MenuItem value="e">{React.string("H - (Essential) Hypothesis")}</MenuItem>
+                        <MenuItem value="p">{React.string("P - Provable Statement")}</MenuItem>
+                        <MenuItem value="g">{React.string("G - Goal Statement")}</MenuItem>
+                    </Select>
+                </FormControl>
+                {
+                    rndIconButton(
+                        ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actTypEditCancel, ~title="Cancel", ~color=None, ()
+                    )
+                }
+            </Col>
         } else {
             let typStr = switch stmt.typ {
                 | E => "H"
