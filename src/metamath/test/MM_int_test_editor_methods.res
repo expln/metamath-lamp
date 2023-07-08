@@ -48,7 +48,7 @@ let createEditorState = (
         defaultStmtLabel: "qed",
         defaultStmtType: "",
         checkSyntax: true,
-        stickGoalToBottom: true,
+        stickGoalToBottom: false,
         typeSettings: [ ],
         webSrcSettings: [ ],
         longClickEnabled: true,

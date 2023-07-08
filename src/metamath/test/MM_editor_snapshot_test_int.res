@@ -63,5 +63,22 @@ describe("editorHistory", _ => {
         let st = st->unifyAll
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist6")
+
+        let st = st->addStmtsBySearch( ~filterLabel="a2", ~chooseLabel="a2", () )
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist7")
+
+        let st = st->unifyAll
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist8")
+
+        let st = st->toggleStmtChecked(st.stmts[0].id)
+        let st = st->moveCheckedStmts(false)->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist9")
+
+        let st = st->moveCheckedStmts(false)->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist10")
     })
 })

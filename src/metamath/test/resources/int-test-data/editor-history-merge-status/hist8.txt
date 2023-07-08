@@ -2,6 +2,26 @@ Description
 
 Variables
 var2 term term2
+var1 term term1
+
+Disjoints
+
+2: ✓ 2 P [: a2] |- ( term1 + 0 ) = term1
+1: ✓ 1 P [: a1] |- ( term2 = t -> ( term2 = t -> t = t ) )
+0: ? qed P [] |- t = t
+====================================================================================
+StmtStatus({stmtId=2, proofStatus=None})
+StmtStatus({stmtId=1, proofStatus=None})
+StmtStatus({stmtId=0, proofStatus=None})
+StmtRemove({stmtId=2})
+StmtStatus({stmtId=1, proofStatus=r})
+StmtStatus({stmtId=0, proofStatus=n})
+Vars(var2 term term2)
+------------------------------------------------------------------------------------
+Description
+
+Variables
+var2 term term2
 
 Disjoints
 

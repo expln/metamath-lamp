@@ -245,17 +245,6 @@ let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
     }
 }
 
-let isStmtMove = (diff:editorDiff):bool => {
-    switch diff {
-        | StmtMove(_) => true
-        | _ => false
-    }
-}
-
-let allMoves = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtMove)
-}
-
 let isStmtStatusRemove = (diff:editorDiff):bool => {
     switch diff {
         | StmtStatus({proofStatus:None}) => true
@@ -263,8 +252,26 @@ let isStmtStatusRemove = (diff:editorDiff):bool => {
     }
 }
 
+let isStmtStatusSet = (diff:editorDiff):bool => {
+    switch diff {
+        | StmtStatus({proofStatus:Some(_)}) => true
+        | _ => false
+    }
+}
+
+let isStmtMove = (diff:editorDiff):bool => {
+    switch diff {
+        | StmtMove(_) => true
+        | _ => false
+    }
+}
+
 let allStatusRemove = (diff:array<editorDiff>):bool => {
     diff->Js_array2.every(isStmtStatusRemove)
+}
+
+let allMoveAndStatusSet = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(d => isStmtMove(d) || isStmtStatusSet(d))
 }
 
 let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDiff>>, maxLength:int) => {
@@ -298,19 +305,11 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
                     prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
                 }
             }
-        } else if (diff->allMoves) {
-            if (ht.prev->Js_array2.length == 0) {
-                {
-                    ...ht,
-                    head: newHead,
-                    prev: [diff]
-                }
-            } else {
-                {
-                    ...ht,
-                    head: newHead,
-                    prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
-                }
+        } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev[0]->allMoveAndStatusSet) {
+            {
+                ...ht,
+                head: newHead,
+                prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
             }
         } else {
             {
@@ -577,16 +576,41 @@ let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
     res->Js.Array2.joinWith("\n")
 }
 
+let diffToStringExtendedSingle = (diff:editorDiff):string => {
+    switch diff {
+        | Descr(descr) => `Descr(${descr})`
+        | Vars(varsText) => `Vars(${varsText->Js.String2.replaceByRe(%re("/[\n\r]+/g"), " ; ")})`
+        | Disj(disjText) => `Disj(${disjText->Js.String2.replaceByRe(%re("/[\n\r]+/g"), " ; ")})`
+        | StmtLabel({stmtId, label}) => `StmtLabel({stmtId=${stmtId}, label=${label}})`
+        | StmtTyp({stmtId, typ, isGoal}) => 
+            `StmtTyp({stmtId=${stmtId}, typ=${typ->userStmtTypeToStr}, isGoal=${isGoal->Expln_utils_common.stringify}})`
+        | StmtJstf({stmtId, jstfText}) => `StmtJstf({stmtId=${stmtId}, jstfText=${jstfText}})`
+        | StmtCont({stmtId, cont}) => `StmtCont({stmtId=${stmtId}, cont=${cont}})`
+        | StmtStatus({stmtId, proofStatus}) => 
+            `StmtStatus({stmtId=${stmtId}, proofStatus=${proofStatus->Belt_Option.map(proofStatusToStr)->Belt_Option.getWithDefault("None")}})`
+        | StmtAdd({idx, stmt}) => `StmtAdd({idx=${idx->Belt.Int.toString}, stmtId=${stmt.id}})`
+        | StmtRemove({stmtId}) => `StmtRemove({stmtId=${stmtId}})`
+        | StmtMove({stmtId, idx}) => `StmtMove({stmtId=${stmtId}, idx=${idx->Belt.Int.toString}})`
+    }
+}
+
+let diffToStringExtended = (diff:array<editorDiff>):string => {
+    diff->Js_array2.map(diffToStringExtendedSingle)->Js.Array2.joinWith("\n")
+}
+
 let editorHistToStringExtended = (ht:editorHistory):string => {
     let res = []
-    let delim = "------------------------------------------------------------------------------------"
+    let delim1 = "------------------------------------------------------------------------------------"
+    let delim2 = "===================================================================================="
     let curSn = ref(ht.head)
     res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
-    res->Js.Array2.push(delim)->ignore
+    res->Js.Array2.push(delim2)->ignore
     ht.prev->Js.Array2.forEach(diff => {
+        res->Js.Array2.push(diff->diffToStringExtended)->ignore
+        res->Js.Array2.push(delim1)->ignore
         curSn := curSn.contents->applyDiff(diff)
         res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
-        res->Js.Array2.push(delim)->ignore
+        res->Js.Array2.push(delim2)->ignore
     })
     res->Js.Array2.joinWith("\n")
 }
