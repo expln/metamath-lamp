@@ -285,7 +285,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         diffs->Js.Array2.push(Disj(b.disjText))->ignore
     }
 
-    if (diffs->allStatusUnset) {
+    if (diffs->Js.Array2.length > 1 && diffs->allStatusUnset) {
         [StmtStatusUnset({ stmtIds:diffs->getStmtIdsFromStatusUnset})]
     } else {
         diffs
