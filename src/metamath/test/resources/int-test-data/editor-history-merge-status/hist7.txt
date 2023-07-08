@@ -25,8 +25,7 @@ Disjoints
 1: ✓ 1 P [: a1] |- ( term2 = t -> ( term2 = t -> t = t ) )
 0: ? qed P [] |- t = t
 ====================================================================================
-StmtStatus({stmtId=1, proofStatus=None})
-StmtStatus({stmtId=0, proofStatus=None})
+StmtStatusUnset({stmtIds=[1, 0]})
 StmtCont({stmtId=1, cont=|- ( term2 = term3 -> ( term2 = term1 -> term3 = term1 ) )})
 Vars(var1 term term1 ; var2 term term2 ; var3 term term3)
 ------------------------------------------------------------------------------------
