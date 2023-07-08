@@ -1,5 +1,6 @@
 -editor history:
     + make it fixed at the top
+    - fully expand the dialog and show the current state too
     - implement read-only mode for MM_cmp_user_stmt
     - show proof statuses
     - store hist to loc stor
@@ -7,8 +8,9 @@
     - close by Esc
     - a button to clear the history
     - a new setting: max hist length
-    - bug: start adding a new stmt then cancel it - history shows empty stmt
-    - bug: start editing the descr then cancel it - history shows old descr
+    - check how it works in the temp mode
+    + bug: start adding a new stmt then cancel it - history shows empty stmt
+    + bug: start editing the descr then cancel it - history shows old descr
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
 - improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
 - make "compact mode" and "small buttons" default on mobile.

@@ -114,40 +114,6 @@ let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
     }
 }
 
-let isStmtMove = (diff:editorDiff):bool => {
-    switch diff {
-        | StmtMove(_) => true
-        | _ => false
-    }
-}
-
-let allMoves = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtMove)
-}
-
-let isStmtStatusRemove = (diff:editorDiff):bool => {
-    switch diff {
-        | StmtStatus({proofStatus:None}) => true
-        | _ => false
-    }
-}
-
-let allStatusRemove = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtStatusRemove)
-}
-
-let mergeDiff = (a:array<editorDiff>, b:array<editorDiff>):option<array<editorDiff>> => {
-    if (a->allMoves && b->allMoves) {
-        Some(a->Js_array2.concat(b))
-    } else if (a->allStatusRemove) {
-        Some(b)
-    } else if (b->allStatusRemove) {
-        Some(a)
-    } else {
-        None
-    }
-}
-
 let updateStmt = (sn:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
     {
         ...sn,
@@ -279,6 +245,38 @@ let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
     }
 }
 
+let isStmtMove = (diff:editorDiff):bool => {
+    switch diff {
+        | StmtMove(_) => true
+        | _ => false
+    }
+}
+
+let allMoves = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(isStmtMove)
+}
+
+let isStmtStatusRemove = (diff:editorDiff):bool => {
+    switch diff {
+        | StmtStatus({proofStatus:None}) => true
+        | _ => false
+    }
+}
+
+let allStatusRemove = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(isStmtStatusRemove)
+}
+
+let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDiff>>, maxLength:int) => {
+    if (diff->Js_array2.length == 0) {
+        raise(MmException({msg:`diff->Js_array2.length == 0`}))
+    }
+    if (prev->Js_array2.length == 0) {
+        raise(MmException({msg:`prev->Js_array2.length == 0`}))
+    }
+    [ diff->Js.Array2.concat(prev[0]) ]->Js.Array2.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
+}
+
 let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => {
     if (st->isEditMode) {
         ht
@@ -287,23 +285,38 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
         let diff = newHead->findDiff(ht.head)
         if (diff->Js.Array2.length == 0) {
             ht
+        } else if (diff->allStatusRemove) {
+            if (ht.prev->Js_array2.length == 0) {
+                {
+                    ...ht,
+                    head: newHead,
+                }
+            } else {
+                {
+                    ...ht,
+                    head: newHead,
+                    prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
+                }
+            }
+        } else if (diff->allMoves) {
+            if (ht.prev->Js_array2.length == 0) {
+                {
+                    ...ht,
+                    head: newHead,
+                    prev: [diff]
+                }
+            } else {
+                {
+                    ...ht,
+                    head: newHead,
+                    prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
+                }
+            }
         } else {
             {
                 ...ht,
                 head: newHead,
-                prev: 
-                    if (ht.prev->Js_array2.length == 0) {
-                        [diff]
-                    } else {
-                        switch diff->mergeDiff(ht.prev[0]) {
-                            | None => {
-                                [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
-                            }
-                            | Some(mergedDiff) => {
-                                [mergedDiff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=1, ~end_=ht.maxLength))
-                            }
-                        }
-                    }
+                prev: [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
             }
         }
     }
@@ -539,12 +552,25 @@ let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
 
 let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
     let res = []
+
     res->Js.Array2.push("Description")->ignore
     res->Js.Array2.push(sn.descr)->ignore
+    if (sn.descr->Js.String2.length > 0) {
+        res->Js.Array2.push("")->ignore
+    }
+
     res->Js.Array2.push("Variables")->ignore
     res->Js.Array2.push(sn.varsText)->ignore
+    if (sn.varsText->Js.String2.length > 0) {
+        res->Js.Array2.push("")->ignore
+    }
+
     res->Js.Array2.push("Disjoints")->ignore
     res->Js.Array2.push(sn.disjText)->ignore
+    if (sn.disjText->Js.String2.length > 0) {
+        res->Js.Array2.push("")->ignore
+    }
+
     sn.stmts->Js.Array2.forEach(stmt => {
         res->Js.Array2.push(stmt->stmtSnapshotToStringExtended)->ignore
     })
@@ -952,39 +978,5 @@ let mm_editor_snapshot__test_applyDiff = ():unit => {
                 ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
                 ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
         )
-    })
-}
-
-let mm_editor_snapshot__test_mergeDiff = ():unit => {
-    it("merges consecutive moves of same step", _ => {
-        //given
-        let b = a->moveStmtDown("1")
-        let diff1 = findDiff(a,b)
-        assertEqMsg(diff1, [StmtMove({stmtId: "2", idx: 0})], "diff1")
-        let c = b->moveStmtDown("1")
-        let diff2 = findDiff(b,c)
-        assertEqMsg(diff2, [StmtMove({stmtId: "3", idx: 1})], "diff2")
-
-        //when
-        let mergeResult = mergeDiff(diff1,diff2)
-
-        //then
-        assertEq(mergeResult, Some([StmtMove({stmtId: "2", idx: 0}), StmtMove({stmtId: "3", idx: 1})]))
-    })
-    
-    it("merges consecutive moves of different steps", _ => {
-        //given
-        let b = a->moveStmtDown("1")
-        let diff1 = findDiff(a,b)
-        assertEqMsg(diff1, [StmtMove({stmtId: "2", idx: 0})], "diff1")
-        let c = b->moveStmtDown("2")
-        let diff2 = findDiff(b,c)
-        assertEqMsg(diff2, [StmtMove({stmtId: "1", idx: 0})], "diff2")
-
-        //when
-        let mergeResult = mergeDiff(diff1,diff2)
-
-        //then
-        assertEq(mergeResult, Some([StmtMove({stmtId: "2", idx: 0}), StmtMove({stmtId: "1", idx: 0})]))
     })
 }

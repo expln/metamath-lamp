@@ -20,4 +20,3 @@ let editorHistToStringExtended: editorHistory => string
 
 let mm_editor_snapshot__test_findDiff: () => unit
 let mm_editor_snapshot__test_applyDiff: () => unit
-let mm_editor_snapshot__test_mergeDiff: () => unit

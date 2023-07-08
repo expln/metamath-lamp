@@ -28,7 +28,3 @@ describe("findDiff", _ => {
 describe("applyDiff", _ => {
     mm_editor_snapshot__test_applyDiff()
 })
-
-describe("mergeDiff", _ => {
-    mm_editor_snapshot__test_mergeDiff()
-})

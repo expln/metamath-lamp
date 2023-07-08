@@ -754,6 +754,7 @@ let make = (
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
             editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+            setHist(ht => ht->editorHistAddSnapshot(st))
             st
         })
     }
