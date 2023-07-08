@@ -80,5 +80,43 @@ describe("editorHistory", _ => {
         let st = st->moveCheckedStmts(false)->updateEditorStateWithPostupdateActions(st=>st)
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist10")
+
+        let st = st->moveCheckedStmts(true)->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist11")
+
+        let st = st->moveCheckedStmts(true)->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist12")
+
+        let st = st->uncheckAllStmts
+        let st = st->unifyAll
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist13")
+
+        let st = st->applySubstitution(~replaceWhat="term2 = t", ~replaceWith="( term1 + 0 ) = term1")
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist14")
+
+        let st = st->unifyAll
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist15")
+
+        let st = st->applySubstitution(~replaceWhat="term1", ~replaceWith="t")
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist16")
+
+        let st = st->toggleStmtChecked(st.stmts[st.stmts->Js.Array2.length-1].id)
+        let (st,s2) = st->addNewStmt
+        let st = st->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st = st->completeContEditMode(s2, "|- ( ( t + 0 ) = t -> t = t )")->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist17")
+
+        let st = st->unifyAll
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist18")
+
     })
 })
