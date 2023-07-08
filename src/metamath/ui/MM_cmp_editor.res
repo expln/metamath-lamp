@@ -601,7 +601,7 @@ let make = (
     }
 
     let actOpenRestorePrevStateDialog = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+        openModalFullScreen(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_editor_hist 
                     modalRef
