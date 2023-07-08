@@ -22,7 +22,7 @@ let make = (
     let (curEditorState, setCurEditorState) = React.useState(() => hist->editorHistGetSnapshotPreview(0,editorState))
 
     let actChangeCurIdx = (newCurIdx:int) => {
-        if (0 <= newCurIdx && newCurIdx <= histLen-1) {
+        if (-1 <= newCurIdx && newCurIdx <= histLen-1) {
             setCurIdx(_ => newCurIdx)
             setCurEditorState(_ => hist->editorHistGetSnapshotPreview(newCurIdx,editorState))
         }
@@ -32,11 +32,14 @@ let make = (
     let actNext = () => actChangeCurIdx(curIdx-1)
 
     let prevIsDisabled = curIdx == histLen-1
-    let nextIsDisabled = curIdx == 0
+    let nextIsDisabled = curIdx == -1
+    let restoreThisIsDisabled = nextIsDisabled
 
     let rndPagination = () => {
-        <Row alignItems=#center>
-            <Button onClick={_=>onRestore(curIdx)} > {React.string("Restore this")} </Button>
+        <Row alignItems=#center style=ReactDOM.Style.make(~padding="4px", ())>
+            <Button onClick={_=>onRestore(curIdx)} disabled=restoreThisIsDisabled variant=#contained color="grey" > 
+                {React.string("Restore this")} 
+            </Button>
             <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             <Button onClick={_=>actPrev()} disabled=prevIsDisabled > {React.string("< PREV")} </Button>
             <Button onClick={_=>actNext()} disabled=nextIsDisabled > {React.string("NEXT >")} </Button>

@@ -369,15 +369,19 @@ let editorHistLength = (ht:editorHistory):int => {
 }
 
 let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): result<editorState,string> => {
-    let histLen = ht->editorHistLength
-    if (histLen == 0 || histLen <= idx) {
-        Error(`histLen == 0 || histLen <= idx`)
+    if (idx == -1) {
+        Ok(st->updateEditorStateFromSnapshot(ht.head))
     } else {
-        let curSn = ref(ht.head)
-        for i in 0 to idx {
-            curSn := curSn.contents->applyDiff(ht.prev[i])
+        let histLen = ht->editorHistLength
+        if (histLen == 0 || histLen <= idx) {
+            Error(`histLen == 0 || histLen <= idx`)
+        } else {
+            let curSn = ref(ht.head)
+            for i in 0 to idx {
+                curSn := curSn.contents->applyDiff(ht.prev[i])
+            }
+            Ok(st->updateEditorStateFromSnapshot(curSn.contents))
         }
-        Ok(st->updateEditorStateFromSnapshot(curSn.contents))
     }
 }
 
