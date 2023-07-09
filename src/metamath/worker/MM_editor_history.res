@@ -295,7 +295,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
 
 let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
     {
-        maxLength: Js_math.max_int(0, Js_math.min_int(200, maxLength)),
+        maxLength: Js_math.max_int(0, Js_math.min_int(1000, maxLength)),
         head: initState->editorSnapshotMake,
         prev: []
     }
