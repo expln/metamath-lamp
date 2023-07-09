@@ -1,0 +1,65 @@
+Description
+
+Variables
+var2 term term2
+var1 term term1
+
+Disjoints
+
+2:  2 P [: a2] |- ( term1 + 0 ) = term1
+1:  1 P [: a1] |- ( term2 = t -> ( term2 = t -> t = t ) )
+0:  qed P [] |- t = t
+====================================================================================
+StmtRemove({stmtId=2})
+StmtStatus({stmtId=1, proofStatus=r})
+StmtStatus({stmtId=0, proofStatus=n})
+Vars(var2 term term2)
+------------------------------------------------------------------------------------
+Description
+
+Variables
+var2 term term2
+
+Disjoints
+
+1: ✓ 1 P [: a1] |- ( term2 = t -> ( term2 = t -> t = t ) )
+0: ? qed P [] |- t = t
+====================================================================================
+StmtStatusUnset({stmtIds=[1, 0]})
+StmtCont({stmtId=1, cont=|- ( term2 = term3 -> ( term2 = term1 -> term3 = term1 ) )})
+Vars(var1 term term1 ; var2 term term2 ; var3 term term3)
+------------------------------------------------------------------------------------
+Description
+
+Variables
+var1 term term1
+var2 term term2
+var3 term term3
+
+Disjoints
+
+1:  1 P [: a1] |- ( term2 = term3 -> ( term2 = term1 -> term3 = term1 ) )
+0:  qed P [] |- t = t
+====================================================================================
+StmtRemove({stmtId=1})
+StmtStatus({stmtId=0, proofStatus=n})
+Vars()
+------------------------------------------------------------------------------------
+Description
+
+Variables
+
+Disjoints
+
+0: ? qed P [] |- t = t
+====================================================================================
+StmtStatus({stmtId=0, proofStatus=None})
+StmtRemove({stmtId=0})
+------------------------------------------------------------------------------------
+Description
+
+Variables
+
+Disjoints
+
+====================================================================================

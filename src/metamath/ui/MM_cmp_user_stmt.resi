@@ -51,6 +51,7 @@ type props = {
     showVisByDefault:bool,
 
     viewOptions:viewOptions,
+    readOnly:bool,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 

@@ -14,12 +14,41 @@ open MM_provers
 open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
+open MM_editor_history
 
 let unifyAllIsRequiredCnt = ref(0)
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
         locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+    }
+}
+
+let editorHistRegLocStorKey = "hist-reg"
+let editorHistTmpLocStorKey = "hist-tmp"
+
+let getHistLockStorKey = (tempMode:bool):string => {
+    if (tempMode) { 
+        editorHistTmpLocStorKey 
+    } else { 
+        editorHistRegLocStorKey 
+    }
+}
+
+let histSaveToLocStor = (hist:editorHistory, tempMode:bool):unit => {
+    let histStr = hist->editorHistToString
+    locStorWriteString( getHistLockStorKey(tempMode), histStr )
+}
+
+let histReadFromLocStor = (~editorState:editorState, ~tempMode:bool, ~maxLength:int):editorHistory => {
+    switch locStorReadString(getHistLockStorKey(tempMode)) {
+        | None => editorHistMake(~initState=editorState, ~maxLength)
+        | Some(histStr) => {
+            switch editorHistFromString(histStr) {
+                | Error(_) => editorHistMake(~initState=editorState, ~maxLength)
+                | Ok(hist) => hist->editorHistAddSnapshot(editorState)
+            }
+        }
     }
 }
 
@@ -136,11 +165,23 @@ let make = (
         ~preCtx=preCtxData.ctxV.val, 
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
+    let (hist, setHistPriv) = React.useState(() => {
+        histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
+    })
+
+    let setHist = (update:editorHistory=>editorHistory):unit => {
+        setHistPriv(ht => {
+            let ht = update(ht)
+            histSaveToLocStor(ht, tempMode)
+            ht
+        })
+    }
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
             let st = updateEditorStateWithPostupdateActions(st, update)
             editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+            setHist(ht => ht->editorHistAddSnapshot(st))
             st
         })
     }
@@ -162,9 +203,7 @@ let make = (
         }
     }
 
-    let editIsActive = 
-        state.varsEditMode || state.disjEditMode ||
-        state.stmts->Js.Array2.some(stmt => stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode )
+    let editIsActive = state->isEditMode
 
     let thereAreSyntaxErrors = editorStateHasErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
@@ -191,6 +230,7 @@ let make = (
 
     let actPreCtxDataUpdated = () => {
         setState(setPreCtxData(_, preCtxData))
+        setHist(editorHistSetMaxLength(_, preCtxData.settingsV.val.editorHistMaxLength))
     }
 
     React.useEffect1(() => {
@@ -206,10 +246,12 @@ let make = (
         setMainMenuIsOpened(_ => false)
     }
 
-    let actAddNewStmt = () => setState(st => {
-        let (st, _) = addNewStmt(st)
-        st
-    })
+    let actAddNewStmt = () => {
+        setState(st => {
+            let (st, _) = addNewStmt(st)
+            st
+        })
+    }
     let actDeleteCheckedStmts = () => {
         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
@@ -582,6 +624,39 @@ let make = (
         })
     }
 
+    let actRestorePrevState = (histIdx:int):unit => {
+        notifyEditInTempMode(() => {
+            switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
+                | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg, () )
+                | Ok(editorState) => setState(_ => editorState)
+            }
+        })
+    }
+
+    let viewOptions = { 
+        MM_cmp_user_stmt.showCheckbox:showCheckbox, 
+        showLabel, showType, showJstf, inlineMode, 
+        smallBtns, 
+    }
+
+    let actOpenRestorePrevStateDialog = () => {
+        openModalFullScreen(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_editor_hist 
+                    modalRef
+                    editorState={state->removeAllTempData}
+                    hist 
+                    onClose={_=>closeModal(modalRef, modalId)} 
+                    viewOptions
+                    onRestore={histIdx => {
+                        actRestorePrevState(histIdx)
+                        closeModal(modalRef, modalId)
+                    }}
+                />
+            })
+        })->ignore
+    }
+
     let actMergeTwoStmts = () => {
         switch state->findStmtsToMerge {
             | Error(msg) => {
@@ -717,6 +792,7 @@ let make = (
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
             editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+            setHist(ht => ht->editorHistAddSnapshot(st))
             st
         })
     }
@@ -1206,7 +1282,7 @@ let make = (
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 10 => Some(Js.Json.string("auto"))
+                        | 11 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1235,6 +1311,9 @@ let make = (
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
                     ~active=oneStatementIsChecked, ~title="Merge two similar steps", ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.Restore/>, 
+                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
+                    ~title="Restore previous state", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
@@ -1289,12 +1368,6 @@ let make = (
         }
     }
 
-    let viewOptions = { 
-        MM_cmp_user_stmt.showCheckbox:showCheckbox, 
-        showLabel, showType, showJstf, inlineMode, 
-        smallBtns, 
-    }
-
     let rndStmt = (stmt:userStmt):reElem => {
         <MM_cmp_user_stmt
             modalRef
@@ -1311,6 +1384,7 @@ let make = (
             preCtxColors=state.preCtxColors
             wrkCtxColors=state.wrkCtxColors
             viewOptions
+            readOnly=false
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs

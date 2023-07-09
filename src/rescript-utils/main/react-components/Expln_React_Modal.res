@@ -6,6 +6,7 @@ type modalId = string
 
 type modalMethods = {
     openModal: (unit=>reElem) => promise<modalId>,
+    openModalFullScreen: (unit=>reElem) => promise<modalId>,
     updateModal: (modalId, (unit => reElem)) => unit,
     closeModal: modalId => unit,
 }
@@ -23,11 +24,13 @@ let modalRefToModalMethods: modalRef => modalMethods = modalRef => {
 }
 
 let openModal = (modalRef:modalRef, render:unit=>reElem):promise<modalId> => modalRefToModalMethods(modalRef).openModal(render)
+let openModalFullScreen = (modalRef:modalRef, render:unit=>reElem):promise<modalId> => modalRefToModalMethods(modalRef).openModalFullScreen(render)
 let updateModal = (modalRef:modalRef, modalId:modalId, render:unit=>reElem):unit => modalRefToModalMethods(modalRef).updateModal(modalId, render)
 let closeModal = (modalRef:modalRef, modalId:modalId):unit => modalRefToModalMethods(modalRef).closeModal(modalId)
 
 type modal = {
     id: modalId,
+    fullScreen:bool,
     render: unit => reElem
 }
 
@@ -43,13 +46,14 @@ let createInitialState = () => {
     }
 }
 
-let openModalPriv = (st, render) => {
+let openModalPriv = (st, fullScreen, render) => {
     let id = st.nextId->Belt_Int.toString
     (
         {
             nextId: st.nextId+1,
             modals: st.modals->Js_array2.concat([{
                 id,
+                fullScreen,
                 render
             }])
         },
@@ -80,7 +84,14 @@ let make = (~modalRef:modalRef) => {
             {
                 openModal: render => promise(rlv => {
                     setState(prev => {
-                        let (st, id) = prev->openModalPriv(render)
+                        let (st, id) = prev->openModalPriv(false, render)
+                        rlv(id)
+                        st
+                    })
+                }),
+                openModalFullScreen: render => promise(rlv => {
+                    setState(prev => {
+                        let (st, id) = prev->openModalPriv(true, render)
                         rlv(id)
                         st
                     })
@@ -99,7 +110,12 @@ let make = (~modalRef:modalRef) => {
     {
         state.modals
             ->Js.Array2.map(modal=>{
-                <Dialog key=modal.id opn=true maxWidth="xl">
+                <Dialog 
+                    key=modal.id 
+                    opn=true 
+                    maxWidth=?(if (modal.fullScreen) {None} else {Some("xl")})
+                    fullScreen=modal.fullScreen
+                >
                     {modal.render()}
                 </Dialog>
             })

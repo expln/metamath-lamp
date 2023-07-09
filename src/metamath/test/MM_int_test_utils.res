@@ -3,6 +3,7 @@ open MM_parser
 open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
+open MM_editor_history
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
 let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"
@@ -90,7 +91,7 @@ let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
     disjStr ++ "\n" ++ stmtsStr
 }
 
-let readEditorStateToString = (fileName:string):string => {
+let readTestFileToString = (fileName:string):string => {
     Expln_utils_files.readStringFromFile(curTestDataDir.contents ++ "/" ++ fileName ++ ".txt")
         ->Js.String2.replaceByRe(%re("/\r/g"), "")
 }
@@ -129,6 +130,11 @@ let assertNoErrors = (st) => {
     }
 }
 
+let assertEditorHistory = (ht:editorHistory, expectedStrFileName:string) => {
+    let actualStr = ht->editorHistToStringExtended
+    assertStrEqFile(actualStr, expectedStrFileName)
+}
+
 let assertEditorState = (st, expectedStrFileName:string) => {
     let actualStr = st->editorStateToStr
     assertStrEqFile(actualStr, expectedStrFileName)
@@ -163,6 +169,14 @@ let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:str
 
 let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
     assertStrEqFile(actualStr, expectedStrFileName)
+}
+
+let assertFileContentsEq = (fileName1:string, fileName2:string):unit => {
+    let text1 = readTestFileToString(fileName1)
+    let text2 = readTestFileToString(fileName2)
+    if (text1 != text2) {
+        failMsg(`${fileName1} != ${fileName2}`)
+    }
 }
 
 let generateReducedMmFile = (

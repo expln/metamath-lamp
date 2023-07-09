@@ -2,6 +2,7 @@
 module Accordion = Expln_React_Accordion
 module AccordionDetails = Expln_React_AccordionDetails
 module AccordionSummary = Expln_React_AccordionSummary
+module AppBar = Expln_React_AppBar
 module Box = Expln_React_Box
 module Button = Expln_React_Button
 module ButtonGroup = Expln_React_ButtonGroup

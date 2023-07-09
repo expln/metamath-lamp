@@ -61,7 +61,7 @@ let strToCont = (
     ~preCtxColors: option<Belt_HashMapString.t<string>>=?,
     ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?,
     ()
-) => {
+):stmtCont => {
     Text(
         getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
             {
@@ -833,6 +833,13 @@ let removeAllTempData = st => {
             }
         })
     }
+}
+
+let isEditMode = (st:editorState): bool => {
+    st.descrEditMode || st.varsEditMode || st.disjEditMode ||
+        st.stmts->Js.Array2.some(stmt => 
+            stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode 
+        )
 }
 
 let userStmtHasErrors = stmt => {
