@@ -20,7 +20,8 @@ let assertEditorHistory: (editorHistory, string) => unit
 let assertProof: (editorState, string, string) => unit
 let assertTextsEq: (string, string, string, string) => unit
 let assertTextEqFile: (string, string) => unit
-let readEditorStateToString: string => string
+let assertFileContentsEq: (string, string) => unit
+let readTestFileToString: string => string
 
 let generateReducedMmFile: (
     ~pathToFullMmFile:string,

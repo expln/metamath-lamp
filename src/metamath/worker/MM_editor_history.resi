@@ -11,7 +11,7 @@ let editorHistGetSnapshotPreview: (editorHistory, int, editorState) => result<ed
 let restoreEditorStateFromSnapshot: (editorState, editorHistory, int) => result<editorState,string>
 // let editorHistClear: editorHistory => editorHistory
 let editorHistToString: editorHistory => string
-// let editorHistFromString: string => result<editorHistory,string>
+let editorHistFromString: string => result<editorHistory,string>
 
 let editorHistToStringExtended: editorHistory => string
 

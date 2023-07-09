@@ -118,6 +118,14 @@ describe("editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist18")
 
-        assertStrEqFile(ht->editorHistToString, "hist18-locStor")
+        let htStr = ht->editorHistToString
+        assertStrEqFile(htStr, "hist18-locStor")
+
+        let htRestored = switch htStr->editorHistFromString {
+            | Error(msg) => failMsg(`Could not restore editor history from a string: ${htStr}`)
+            | Ok(ht) => ht
+        }
+        assertEditorHistory(htRestored, "hist18-restored")
+        assertFileContentsEq("hist18", "hist18-restored")
     })
 })

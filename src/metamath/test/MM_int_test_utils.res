@@ -91,7 +91,7 @@ let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
     disjStr ++ "\n" ++ stmtsStr
 }
 
-let readEditorStateToString = (fileName:string):string => {
+let readTestFileToString = (fileName:string):string => {
     Expln_utils_files.readStringFromFile(curTestDataDir.contents ++ "/" ++ fileName ++ ".txt")
         ->Js.String2.replaceByRe(%re("/\r/g"), "")
 }
@@ -169,6 +169,14 @@ let assertTextsEq = (text1:string, fileName1:string, text2:string, fileName2:str
 
 let assertTextEqFile = (actualStr:string, expectedStrFileName:string):unit => {
     assertStrEqFile(actualStr, expectedStrFileName)
+}
+
+let assertFileContentsEq = (fileName1:string, fileName2:string):unit => {
+    let text1 = readTestFileToString(fileName1)
+    let text2 = readTestFileToString(fileName2)
+    if (text1 != text2) {
+        failMsg(`${fileName1} != ${fileName2}`)
+    }
 }
 
 let generateReducedMmFile = (

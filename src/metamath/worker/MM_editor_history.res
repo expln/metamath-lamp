@@ -574,6 +574,49 @@ let editorHistToString = (ht:editorHistory):string => {
     Expln_utils_common.stringify(ht->editorHistoryToLocStor)
 }
 
+let parseStmtSnapshotLocStor = (d:Expln_utils_jsonParse.jsonAny):stmtSnapshotLocStor => {
+    open Expln_utils_jsonParse
+    {
+        d: d->str("d", ()),
+        l: d->str("l", ()),
+        t: d->str("t", ()),
+        g: d->bool("g", ()),
+        j: d->str("j", ()),
+        c: d->str("c", ()),
+        p: d->strOpt("p", ()),
+    }
+}
+
+let editorHistFromString = (jsonStr:string):result<editorHistory,string> => {
+    open Expln_utils_jsonParse
+    parseJson(jsonStr, asObj(_, d=>{
+        {
+            head: d->obj("head", d=>{
+                {
+                    d: d->str("d", ()),
+                    v: d->str("v", ()),
+                    j: d->str("j", ()),
+                    s: d->arr("s", parseStmtSnapshotLocStor, ())
+                }
+            }, ()),
+            prev: d->arr("prev", d=>{
+                d->asArr(d=>{
+                    {
+                        t: d->str("t", ()),
+                        d: ?d->strOpt("d", ()),
+                        b: ?d->boolOpt("b", ()),
+                        i: ?d->intOpt("i", ()),
+                        s: ?d->strOpt("s", ()),
+                        m: ?d->objOpt("m", parseStmtSnapshotLocStor, ()),
+                        a: ?d->arrOpt("a", asStr(_, ()), ()),
+                    }
+                }, ())
+            }, ()),
+            maxLength: d->int("maxLength", ())
+        }
+    }, ()), ())->Belt.Result.map(editorHistoryFromLocStor)
+}
+
 let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
     let typStr = switch stmt.typ {
         | E => "H"

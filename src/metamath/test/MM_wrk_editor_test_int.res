@@ -306,8 +306,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step3")
 
-        let state2Text = readEditorStateToString("step2")
-        let state3Text = readEditorStateToString("step3")
+        let state2Text = readTestFileToString("step2")
+        let state3Text = readTestFileToString("step3")
 
         assertEq(state2Text, state3Text)
 
