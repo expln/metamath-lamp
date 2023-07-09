@@ -1345,6 +1345,7 @@ let make = (
             preCtxColors=state.preCtxColors
             wrkCtxColors=state.wrkCtxColors
             viewOptions
+            readOnly=false
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs

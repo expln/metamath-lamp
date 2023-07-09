@@ -27,6 +27,19 @@ let make = (
     let actPrev = () => actChangeCurIdx(curIdx+1)
     let actNext = () => actChangeCurIdx(curIdx-1)
 
+    let updateCurEditorState = (update:editorState=>editorState):unit => {
+        setCurEditorState(stRes => {
+            switch stRes {
+                | Error(_) => stRes
+                | Ok(st) => Ok(update(st))
+            }
+        })
+    }
+
+    let actSyntaxTreeUpdated = (stmtId, newStmtCont) => {
+        updateCurEditorState(setStmtCont(_, stmtId, newStmtCont))
+    }
+
     let prevIsDisabled = curIdx == hist->editorHistLength - 1
     let nextIsDisabled = curIdx == -1
     let restoreThisIsDisabled = nextIsDisabled
@@ -107,6 +120,7 @@ let make = (
             viewOptions={
                 {...viewOptions, showCheckbox:false}
             }
+            readOnly=true
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs
@@ -123,7 +137,7 @@ let make = (
             onContEditRequested={() => ()}
             onContEditDone={_ => ()}
             onContEditCancel={_ => ()}
-            onSyntaxTreeUpdated={_ => ()}
+            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(stmt.id,newStmtCont)}
             
             onJstfEditRequested={() => ()}
             onJstfEditDone={_ => ()}

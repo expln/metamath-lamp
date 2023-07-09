@@ -637,6 +637,7 @@ type props = {
     showVisByDefault:bool,
 
     viewOptions:viewOptions,
+    readOnly:bool,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 
@@ -673,6 +674,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.viewOptions.showJstf == b.viewOptions.showJstf
     && a.viewOptions.inlineMode == b.viewOptions.inlineMode
     && a.viewOptions.smallBtns == b.viewOptions.smallBtns
+    && a.readOnly == b.readOnly
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
@@ -724,6 +726,7 @@ let make = React.memoCustomCompareProps( ({
     preCtxColors,
     wrkCtxColors,
     viewOptions,
+    readOnly,
     editStmtsByLeftClick,
     longClickEnabled,
     longClickDelayMs,
@@ -1139,16 +1142,22 @@ let make = React.memoCustomCompareProps( ({
                 onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onLabelEditRequested
                 style=ReactDOM.Style.make(
-                    ~cursor="pointer", 
+                    ~cursor=?{if (readOnly) {None} else {Some("pointer")}}, 
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
                     ~display="inline-block",
                     ()
                 )
-                title={
-                    chgLabelShortcutName ++ " to change. " 
-                        ++ "Alt is sometimes labelled Opt. " 
-                        ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                title=?{
+                    if (readOnly) {
+                        None
+                    } else {
+                        Some(
+                            chgLabelShortcutName ++ " to change. " 
+                                ++ "Alt is sometimes labelled Opt. " 
+                                ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                        )
+                    }
                 }
             >
                 {React.string(stmt.label)}
@@ -1166,17 +1175,33 @@ let make = React.memoCustomCompareProps( ({
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
-                <Button title="Add new step above" onClick={_=>actAddStmtAbove()} ?style> 
-                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
-                </Button>
-                <Button title="Add new step below" onClick={_=>actAddStmtBelow()} ?style> 
-                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
-                </Button>
+                {
+                    if (readOnly) {React.null} else {
+                        <Button title="Add new step above" onClick={_=>actAddStmtAbove()} ?style> 
+                            <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
+                        </Button>
+                    }
+                }
+                {
+                    if (readOnly) {React.null} else {
+                        <Button title="Add new step below" onClick={_=>actAddStmtBelow()} ?style> 
+                            <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
+                        </Button>
+                    }
+                }
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
-                <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
-                    <MM_Icons.ContentPaste/>
-                </Button>
-                <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
+                {
+                    if (readOnly) {React.null} else {
+                        <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
+                            <MM_Icons.ContentPaste/>
+                        </Button>
+                    }
+                }
+                {
+                    if (readOnly) {React.null} else {
+                        <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
+                    }
+                }
                 <Button title="Unselect" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {
@@ -1252,18 +1277,32 @@ let make = React.memoCustomCompareProps( ({
                 | Text(_) => false
                 | Tree({clickedNodeId}) => clickedNodeId->Belt.Option.isSome
             }
-            let title =
+            let howToSelect =
                 if (editStmtsByLeftClick) {
                     if (longClickEnabled) {
-                        "<short-click> to change, <long-click> (Alt+<left-click>) to select"
+                        "<long-click> (Alt+<left-click>) to select"
                     } else {
-                        "<left-click> to change, Alt+<left-click> to select"
+                        "Alt+<left-click> to select"
                     }
                 } else {
                     if (longClickEnabled) {
-                        "<long-click> (Alt+<left-click>) to change, <short-click> to select"
+                        "<short-click> to select"
                     } else {
-                        "Alt+<left-click> to change, <left-click> to select"
+                        "<left-click> to select"
+                    }
+                }
+            let title =
+                if (editStmtsByLeftClick) {
+                    if (longClickEnabled) {
+                        "<short-click> to change, " ++ howToSelect
+                    } else {
+                        "<left-click> to change, " ++ howToSelect
+                    }
+                } else {
+                    if (longClickEnabled) {
+                        "<long-click> (Alt+<left-click>) to change, " ++ howToSelect
+                    } else {
+                        "Alt+<left-click> to change, " ++ howToSelect
                     }
                 }
             let elems = [
@@ -1310,7 +1349,7 @@ let make = React.memoCustomCompareProps( ({
                             ~longClickDelayMs,
                             ~renderSelection=true,
                             ~cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"},
-                            ~title,
+                            ~title={if (readOnly) {howToSelect} else {title}},
                             ()
                         )
                     }
@@ -1387,17 +1426,24 @@ let make = React.memoCustomCompareProps( ({
                 onShortClick = {_ => actToggleInfoExpanded()}
                 onLongClick=onTypEditRequested
                 style=ReactDOM.Style.make(
-                    ~cursor="pointer", 
+                    ~cursor=?{if (readOnly) {None} else {Some("pointer")}}, 
                     ~fontWeight="bold", 
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
                     ~display="inline-block",
                     ()
                 )
-                title={
-                    chgTypShortcutName ++ " to change step type between P (provable), G (goal) and H (hypothesis). " 
-                        ++ "Alt is sometimes labelled Opt. " 
-                        ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                title=?{
+                    if (readOnly) {
+                        None
+                    } else {
+                        Some(
+                            chgTypShortcutName 
+                                ++ " to change step type between P (provable), G (goal) and H (hypothesis). " 
+                                ++ "Alt is sometimes labelled Opt. " 
+                                ++ showJstfShortcutName ++ " to show/hide the justification for provable."
+                        )
+                    }
                 }
             >
                 {React.string(typStr)}
@@ -1480,7 +1526,7 @@ let make = React.memoCustomCompareProps( ({
                         ~whiteSpace="nowrap", 
                         ()
                     )
-                    title
+                    title=?{if (readOnly) {None} else {Some(title)}}
                 >
                     {React.string(jstfText)}
                 </LongClickPaper>
