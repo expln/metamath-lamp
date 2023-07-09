@@ -112,7 +112,7 @@ Disjoints
 
 0: ? qed P [] |- t = t
 ====================================================================================
-StmtStatusUnset({stmtIds=[0]})
+StmtStatus({stmtId=0, proofStatus=None})
 StmtRemove({stmtId=0})
 ------------------------------------------------------------------------------------
 Description

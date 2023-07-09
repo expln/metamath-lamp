@@ -13,6 +13,7 @@ let newStmtsDtoToStr: stmtsDto => string
 let setTestDataDir: string => unit
 let getTestDataDir: () => string
 let assertNoErrors: editorState => unit
+let assertStrEqFile: (string, string) => unit
 let assertEditorState: (editorState, string) => unit
 let assertStmtsDto: (stmtsDto, string) => unit
 let assertEditorHistory: (editorHistory, string) => unit

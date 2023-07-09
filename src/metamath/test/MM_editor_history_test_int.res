@@ -118,5 +118,6 @@ describe("editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist18")
 
+        assertStrEqFile(ht->editorHistToString, "hist18-locStor")
     })
 })
