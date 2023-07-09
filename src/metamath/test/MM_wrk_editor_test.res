@@ -35,6 +35,7 @@ let createEditorState = (
         longClickDelayMs: 500,
         hideContextSelector: false,
         showVisByDefault:false,
+        editorHistMaxLength:0,
     }
     let preCtxV = 1
     let preCtx = ctx

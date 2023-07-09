@@ -35,6 +35,7 @@ type settingsState = {
 
     hideContextSelector:bool,
     showVisByDefault:bool,
+    editorHistMaxLengthStr:string,
 }
 
 let allColors = [
@@ -58,6 +59,9 @@ let createDefaultWebSrcSettingState = (alias:string,url:string):webSrcSettingsSt
 let longClickDelayMsDefault = 500
 let longClickDelayMsMin = UseLongClick.repeatDelayMs->Belt_Float.toInt + 100
 let longClickDelayMsMax = 3000
+let editorHistMaxLengthDefault = 20
+let editorHistMaxLengthMin = 0
+let editorHistMaxLengthMax = 1000
 
 let setmm = createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath.org/metamath/set.mm")
 let isetmm = createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm")
@@ -112,6 +116,7 @@ let createDefaultSettings = () => {
         longClickDelayMsStr:longClickDelayMsDefault->Belt.Int.toString,
         hideContextSelector:false,
         showVisByDefault:false,
+        editorHistMaxLengthStr:editorHistMaxLengthDefault->Belt.Int.toString,
     }
 }
 
@@ -349,6 +354,32 @@ let validateAndCorrectLongClickSettings = (st:settingsState):settingsState => {
     }
 }
 
+let validateEditorHistoryMaxLength = (length:int):result<int,string> => {
+    if (length < editorHistMaxLengthMin) {
+        Ok(editorHistMaxLengthMin)
+    } else if (editorHistMaxLengthMax < length) {
+        Ok(editorHistMaxLengthMax)
+    } else {
+        Ok(length)
+    }
+}
+
+let validateAndCorrectEditorHistoryMaxLengthSetting = (st:settingsState):settingsState => {
+    {
+        ...st,
+        editorHistMaxLengthStr:
+            switch st.editorHistMaxLengthStr->Belt_Int.fromString {
+                | None => editorHistMaxLengthDefault->Belt.Int.toString
+                | Some(length) => {
+                    switch validateEditorHistoryMaxLength(length) {
+                        | Ok(length) => length->Belt.Int.toString
+                        | Error(_) => editorHistMaxLengthDefault->Belt.Int.toString
+                    }
+                }
+            }
+    }
+}
+
 let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
     let st = validateAndCorrectDefaultStmtType(st)
@@ -356,6 +387,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectWebSrcSettings(st)
     let st = validateAndCorrectLongClickSettings(st)
     let st = validateAndCorrectDefaultStmtLabel(st)
+    let st = validateAndCorrectEditorHistoryMaxLengthSetting(st)
     st
 }
 
@@ -385,6 +417,8 @@ let stateToSettings = (st:settingsState):settings => {
             st.longClickDelayMsStr->Belt_Int.fromString->Belt.Option.getWithDefault(longClickDelayMsDefault),
         hideContextSelector: st.hideContextSelector,
         showVisByDefault: st.showVisByDefault,
+        editorHistMaxLength: 
+            st.editorHistMaxLengthStr->Belt_Int.fromString->Belt.Option.getWithDefault(editorHistMaxLengthDefault),
     }
 }
 
@@ -420,6 +454,7 @@ let settingsToState = (ls:settings):settingsState => {
         longClickDelayMsStr: ls.longClickDelayMs->Belt.Int.toString,
         hideContextSelector: ls.hideContextSelector,
         showVisByDefault: ls.showVisByDefault,
+        editorHistMaxLengthStr: ls.editorHistMaxLength->Belt.Int.toString,
     }
     validateAndCorrectState(res)
 }
@@ -489,6 +524,11 @@ let readStateFromLocStor = ():settingsState => {
                         ~default=()=>defaultSettings.showVisByDefault, 
                         () 
                     ),
+                    editorHistMaxLengthStr: d->int( "editorHistMaxLength", 
+                        ~default = () => editorHistMaxLengthDefault,
+                        ~validator = validateEditorHistoryMaxLength,
+                        () 
+                    )->Belt_Int.toString,
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -539,6 +579,7 @@ let eqState = (st1, st2) => {
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector
         && st1.showVisByDefault == st2.showVisByDefault
+        && st1.editorHistMaxLengthStr== st2.editorHistMaxLengthStr
 }
 
 let updateParens = (st,parens) => {
@@ -636,6 +677,10 @@ let updateLongClickDelayMsStr = (st, longClickDelayMsStr) => {
     { ...st, longClickDelayMsStr: longClickDelayMsStr }
 }
 
+let updateEditorHistMaxLengthStr = (st, editorHistMaxLengthStr) => {
+    { ...st, editorHistMaxLengthStr: editorHistMaxLengthStr }
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -697,6 +742,10 @@ let make = (
 
     let actLongClickDelayMsStrChange = longClickDelayMsStr => {
         setState(updateLongClickDelayMsStr(_, longClickDelayMsStr))
+    }
+
+    let actEditorHistMaxLengthStrChange = editorHistMaxLengthStr => {
+        setState(updateEditorHistMaxLengthStr(_, editorHistMaxLengthStr))
     }
 
     let actCheckSyntaxChange = checkSyntax => {
@@ -1002,6 +1051,14 @@ let make = (
                 />
             }
             label="Show visualizations by default"
+        />
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="200px", ())
+            label="Max length of editor history" 
+            value=state.editorHistMaxLengthStr
+            onChange=evt2str(actEditorHistMaxLengthStrChange)
+            title="How many previous editor states to store."
         />
         <Divider/>
         <MM_cmp_type_settings

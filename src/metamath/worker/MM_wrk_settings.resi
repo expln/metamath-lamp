@@ -26,6 +26,7 @@ type settings = {
     longClickDelayMs:int,
     hideContextSelector:bool,
     showVisByDefault:bool,
+    editorHistMaxLength:int,
 }
 
 let markUrlAsTrusted: (settings, string) => settings

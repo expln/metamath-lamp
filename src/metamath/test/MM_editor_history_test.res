@@ -12,7 +12,7 @@ let createEditorState = ():editorState => {
             parens: "", asrtsToSkip: [], asrtsToSkipRegex: "", editStmtsByLeftClick:false, defaultStmtType:"", 
             defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, stickGoalToBottom:false, typeSettings: [], 
             webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 
-            showVisByDefault:false,
+            showVisByDefault:false, editorHistMaxLength:1000,
         }, 
         ~srcs=[],
         ~preCtxV=0, 
