@@ -4,8 +4,6 @@
     + implement read-only mode for MM_cmp_user_stmt
     + show proof statuses
     + store hist to loc stor
-    - switch versions by a keyboard
-    - close by Esc
     - a button to clear the history
     + a new setting: max hist length
     + check how it works in the temp mode
