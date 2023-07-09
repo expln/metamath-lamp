@@ -2,7 +2,6 @@ open Expln_test
 open MM_editor_history
 open MM_wrk_editor
 open MM_context
-open MM_parenCounter
 open MM_wrk_editor_json
 
 let createEditorState = ():editorState => {

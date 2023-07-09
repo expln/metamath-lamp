@@ -1,7 +1,6 @@
 open MM_context
 open Expln_React_Modal
 open MM_wrk_settings
-open Expln_utils_promise
 open MM_wrk_pre_ctx_data
 open Expln_React_common
 

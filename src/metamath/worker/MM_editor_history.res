@@ -230,7 +230,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
 
     let aIds = a.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
     let bIds = b.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
-    a.stmts->Js_array2.forEachi((stmtA,i) => {
+    a.stmts->Js_array2.forEach(stmtA => {
         if (!(bIds->Belt_HashSetString.has(stmtA.id))) {
             diffs->Js_array2.push(StmtRemove({stmtId:stmtA.id}))->ignore
         }
@@ -535,7 +535,7 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
 
 let optGetEdls = (opt:option<'a>, typ:string, attrName:string):'a => {
     switch opt {
-        | None => raise(MmException({msg:`'${attrName}' is not set in an editorDiffLocStor.`}))
+        | None => raise(MmException({msg:`'${attrName}' is not set in an editorDiffLocStor for typ = '${typ}'.`}))
         | Some(str) => str
     }
 }
@@ -1083,7 +1083,7 @@ let mm_editor_history__test_applyDiff = ():unit => {
         )
 
         testApplyDiff( ~initState=a,
-            ~changes = sn => {
+            ~changes = _ => {
                 {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
                     ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
                     ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})

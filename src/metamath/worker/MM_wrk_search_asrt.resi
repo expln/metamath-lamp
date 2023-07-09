@@ -1,5 +1,4 @@
 open MM_context
-open Expln_utils_promise
 open MM_substitution
 open MM_statements_dto
 open MM_wrk_settings

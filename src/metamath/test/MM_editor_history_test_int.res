@@ -1,9 +1,6 @@
 open Expln_test
 open MM_editor_history
 open MM_wrk_editor
-open MM_context
-open MM_parenCounter
-open MM_wrk_editor_json
 
 open MM_int_test_utils
 open MM_int_test_editor_methods
@@ -122,7 +119,7 @@ describe("editorHistory", _ => {
         assertStrEqFile(htStr, "hist18-locStor")
 
         let htRestored = switch htStr->editorHistFromString {
-            | Error(msg) => failMsg(`Could not restore editor history from a string: ${htStr}`)
+            | Error(msg) => failMsg(`Could not restore editor history from a string: ${msg}`)
             | Ok(ht) => ht
         }
         assertEditorHistory(htRestored, "hist18-restored")
