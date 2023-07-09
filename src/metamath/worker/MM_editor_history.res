@@ -701,7 +701,7 @@ let testApplyDiff = (
     assertEq(actualEndState, expectedEndState)
 }
 
-let mm_editor_snapshot__test_findDiff = ():unit => {
+let mm_editor_history__test_findDiff = ():unit => {
     it("finds diffs", _ => {
         assertEq( findDiff(a, {...a, descr: a.descr}), [] )
 
@@ -892,7 +892,7 @@ let mm_editor_snapshot__test_findDiff = ():unit => {
     })
 }
 
-let mm_editor_snapshot__test_applyDiff = ():unit => {
+let mm_editor_history__test_applyDiff = ():unit => {
     it("applies diffs", _ => {
         testApplyDiff( ~initState=a,
             ~changes = sn => {...sn, descr: "descr-new"},

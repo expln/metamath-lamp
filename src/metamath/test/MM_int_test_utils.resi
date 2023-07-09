@@ -1,7 +1,7 @@
 open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
-open MM_editor_snapshot
+open MM_editor_history
 
 let setMmPath: string
 let asrtsToSkipFilePath: string

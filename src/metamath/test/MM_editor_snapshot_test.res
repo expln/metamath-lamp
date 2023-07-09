@@ -1,5 +1,5 @@
 open Expln_test
-open MM_editor_snapshot
+open MM_editor_history
 open MM_wrk_editor
 open MM_context
 open MM_parenCounter
@@ -22,9 +22,9 @@ let createEditorState = ():editorState => {
 }
 
 describe("findDiff", _ => {
-    mm_editor_snapshot__test_findDiff()
+    mm_editor_history__test_findDiff()
 })
 
 describe("applyDiff", _ => {
-    mm_editor_snapshot__test_applyDiff()
+    mm_editor_history__test_applyDiff()
 })

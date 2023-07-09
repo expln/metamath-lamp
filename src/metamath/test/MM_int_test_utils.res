@@ -3,7 +3,7 @@ open MM_parser
 open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
-open MM_editor_snapshot
+open MM_editor_history
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
 let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"

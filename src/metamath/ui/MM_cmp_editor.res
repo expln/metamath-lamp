@@ -14,7 +14,7 @@ open MM_provers
 open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
-open MM_editor_snapshot
+open MM_editor_history
 
 let unifyAllIsRequiredCnt = ref(0)
 

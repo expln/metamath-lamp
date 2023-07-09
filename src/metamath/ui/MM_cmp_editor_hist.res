@@ -3,7 +3,7 @@ open Expln_React_Mui
 open MM_react_common
 open Local_storage_utils
 open Common
-open MM_editor_snapshot
+open MM_editor_history
 open MM_wrk_editor
 open Expln_React_Modal
 open MM_cmp_user_stmt
