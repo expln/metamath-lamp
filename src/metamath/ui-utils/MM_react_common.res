@@ -193,6 +193,8 @@ let kbrdHnd = (
             && evt->ReactEvent.Keyboard.shiftKey === shift
         ) {
             act()
+            evt->ReactEvent.Keyboard.stopPropagation
+            evt->ReactEvent.Keyboard.preventDefault
         }
     }
 }
@@ -205,6 +207,8 @@ let runKbrdCallback = (evt:ReactEvent.Keyboard.t, clbk:kbrdCallback):unit => {
         && evt->ReactEvent.Keyboard.shiftKey === clbk.shift
     ) {
         clbk.act()
+        evt->ReactEvent.Keyboard.stopPropagation
+        evt->ReactEvent.Keyboard.preventDefault
     }
 }
 

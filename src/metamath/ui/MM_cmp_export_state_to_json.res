@@ -13,14 +13,26 @@ let make = (
     let (appendTimestamp, setAppendTimestamp) = useStateFromLocalStorageBool(
         ~key="export-to-json-append-timestamp", ~default=false, ~tempMode
     )
+    let (descr, setDescr) = React.useState(() => "")
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
+
+    let actDescrChanged = (newDescr:string) => {
+        setDescr(_ => newDescr)
+    }
 
     let timestampStr = if (appendTimestamp) {
         Common.currTimeStr() ++ " "
     } else {
         ""
     }
-    let textToShow = timestampStr ++ jsonStr
+
+    let descrStr = if (descr->Js.String2.length > 0) {
+        descr ++ " "
+    } else {
+        ""
+    }
+
+    let textToShow = timestampStr ++ descrStr ++ jsonStr
 
     let actCopyToClipboard = () => {
         copyToClipboard(textToShow)
@@ -34,6 +46,11 @@ let make = (
                 1000
             ))
         })
+    }
+
+    let actCopyAndClose = () => {
+        actCopyToClipboard()
+        onClose()
     }
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
@@ -59,6 +76,19 @@ let make = (
                 </Button>
                 <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             </Row>
+            <TextField 
+                size=#small
+                style=ReactDOM.Style.make(~width="350px", ())
+                label="Description" 
+                value=descr
+                onChange=evt2str(actDescrChanged)
+                title="Press Enter to copy to the clipboard and close this dialog window."
+                onKeyDown=kbrdHnd2(
+                    kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actCopyAndClose, ()),
+                    kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onClose, ())
+                )
+                autoFocus=true
+            />
             <pre style=ReactDOM.Style.make(~overflow="auto", ())>{React.string(textToShow)}</pre>
         </Col>
     </Paper>

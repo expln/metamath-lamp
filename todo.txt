@@ -9,7 +9,7 @@
     - a button to clear the history
     + a new setting: max hist length
     + check how it works in the temp mode
-    - description to exported JSON
+    + description to exported JSON
     + bug: start adding a new stmt then cancel it - history shows empty stmt
     + bug: start editing the descr then cancel it - history shows old descr
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
