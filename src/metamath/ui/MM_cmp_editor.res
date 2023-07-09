@@ -24,6 +24,34 @@ let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):un
     }
 }
 
+let editorHistRegLocStorKey = "hist-reg"
+let editorHistTmpLocStorKey = "hist-tmp"
+
+let getHistLockStorKey = (tempMode:bool):string => {
+    if (tempMode) { 
+        editorHistTmpLocStorKey 
+    } else { 
+        editorHistRegLocStorKey 
+    }
+}
+
+let histSaveToLocStor = (hist:editorHistory, tempMode:bool):unit => {
+    let histStr = hist->editorHistToString
+    locStorWriteString( getHistLockStorKey(tempMode), histStr )
+}
+
+let histReadFromLocStor = (~editorState:editorState, ~tempMode:bool, ~maxLength:int):editorHistory => {
+    switch locStorReadString(getHistLockStorKey(tempMode)) {
+        | None => editorHistMake(~initState=editorState, ~maxLength)
+        | Some(histStr) => {
+            switch editorHistFromString(histStr) {
+                | Error(_) => editorHistMake(~initState=editorState, ~maxLength)
+                | Ok(hist) => hist->editorHistAddSnapshot(editorState)
+            }
+        }
+    }
+}
+
 let rndIconButton = (
     ~icon:reElem, 
     ~onClick:unit=>unit, 
@@ -137,7 +165,17 @@ let make = (
         ~preCtx=preCtxData.ctxV.val, 
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
-    let (hist, setHist) = React.useState(() => editorHistMake(~initState=state, ~maxLength=100))
+    let (hist, setHistPriv) = React.useState(() => {
+        histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
+    })
+
+    let setHist = (update:editorHistory=>editorHistory):unit => {
+        setHistPriv(ht => {
+            let ht = update(ht)
+            histSaveToLocStor(ht, tempMode)
+            ht
+        })
+    }
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
@@ -192,6 +230,7 @@ let make = (
 
     let actPreCtxDataUpdated = () => {
         setState(setPreCtxData(_, preCtxData))
+        setHist(editorHistSetMaxLength(_, preCtxData.settingsV.val.editorHistMaxLength))
     }
 
     React.useEffect1(() => {

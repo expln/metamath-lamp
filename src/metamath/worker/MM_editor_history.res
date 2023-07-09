@@ -320,33 +320,40 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
         ht
     } else {
         let newHead = editorSnapshotMake(st)
-        let diff = newHead->findDiff(ht.head)
-        if (diff->Js.Array2.length == 0 || diff->allStatusSet) {
-            ht
-        } else if (diff->allStatusUnset) {
-            if (ht.prev->Js_array2.length == 0) {
-                {
-                    ...ht,
-                    head: newHead,
+        if (ht.maxLength == 0) {
+            {
+                ...ht,
+                head: newHead,
+            }
+        } else {
+            let diff = newHead->findDiff(ht.head)
+            if (diff->Js.Array2.length == 0 || diff->allStatusSet) {
+                ht
+            } else if (diff->allStatusUnset) {
+                if (ht.prev->Js_array2.length == 0) {
+                    {
+                        ...ht,
+                        head: newHead,
+                    }
+                } else {
+                    {
+                        ...ht,
+                        head: newHead,
+                        prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
+                    }
                 }
-            } else {
+            } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev[0]->allMoveAndStatusSet) {
                 {
                     ...ht,
                     head: newHead,
                     prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
                 }
-            }
-        } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev[0]->allMoveAndStatusSet) {
-            {
-                ...ht,
-                head: newHead,
-                prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
-            }
-        } else {
-            {
-                ...ht,
-                head: newHead,
-                prev: [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
+            } else {
+                {
+                    ...ht,
+                    head: newHead,
+                    prev: [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
+                }
             }
         }
     }
