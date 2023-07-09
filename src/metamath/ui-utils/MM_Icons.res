@@ -7,6 +7,7 @@ module AccountTree = { @module("@mui/icons-material/AccountTree") @react.compone
 module CancelOutlined = { @module("@mui/icons-material/CancelOutlined") @react.component external make: () => React.element = "default" }
 module ControlPointDuplicate = { @module("@mui/icons-material/ControlPointDuplicate") @react.component external make: () => React.element = "default" }
 module ContentCopy = { @module("@mui/icons-material/ContentCopy") @react.component external make: () => React.element = "default" }
+module ContentPaste = { @module("@mui/icons-material/ContentPaste") @react.component external make: () => React.element = "default" }
 module DeleteForever = { @module("@mui/icons-material/DeleteForever") @react.component external make: () => React.element = "default" }
 module Delete = { @module("@mui/icons-material/Delete") @react.component external make: () => React.element = "default" }
 module Edit = { @module("@mui/icons-material/Edit") @react.component external make: () => React.element = "default" }

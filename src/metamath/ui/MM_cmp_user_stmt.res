@@ -12,6 +12,7 @@ open MM_parser
 open Expln_React_Modal
 open Local_storage_utils
 open Common
+open Expln_utils_promise
 
 @val external window: {..} = "window"
 
@@ -936,6 +937,10 @@ let make = React.memoCustomCompareProps( ({
         let (newTyp,newIsGoal) = userStmtTypeAndIsGoalFromStr(newTypStr)
         onTypEditDone(newTyp,newIsGoal)
     }
+
+    let actTypEditCancel = () => {
+        onTypEditDone(stmt.typ, stmt.isGoal)
+    }
     
     let actContEditDone = () => {
         onContEditDone(state.newText->Js_string2.trim)
@@ -1024,6 +1029,7 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    // getSelectedRange() - returns what part of a statement is selected as Some((first, last)); range ends just before last
     let getSelectedRange = ():option<(int,int)> => {
         switch stmt.cont {
             | Text(_) => None
@@ -1066,6 +1072,24 @@ let make = React.memoCustomCompareProps( ({
                 }
             }
         }
+    }
+
+    let actPasteFromClipboard = () => {
+        readFromClipboard()->promiseMap(clipboardContents => {
+            let selectedRangeIndices = getSelectedRange()
+            switch selectedRangeIndices {
+                | None => ()
+                | Some((low, high)) =>
+                    let currentText = stmt.cont->contToStr
+                    let newText = (
+                        currentText->Js.String2.slice(~from=0, ~to_=low) ++
+                        clipboardContents ++
+                        currentText->Js.String2.sliceToEnd(~from=high)
+                    )
+                    // Propagate changes to MM_cmp_editor
+                    onContEditDone(newText)
+            }
+        })->ignore
     }
 
     let actEditSelection = () => {
@@ -1149,6 +1173,9 @@ let make = React.memoCustomCompareProps( ({
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
+                    <MM_Icons.ContentPaste/>
+                </Button>
                 <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
                 <Button title="Unselect" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
@@ -1315,23 +1342,34 @@ let make = React.memoCustomCompareProps( ({
 
     let rndTyp = () => {
         if (stmt.typEditMode) {
-            <FormControl 
-                size=#small 
-                style=ReactDOM.Style.make(
-                    ~marginLeft=stmtPartMarginLeft, 
-                    ~marginTop=stmtPartMarginTop, 
-                    ()
-                )
-            >
-                <Select
-                    value=""
-                    onChange=evt2str(actTypEditDone)
+            let typStrLowerCase = switch stmt.typ {
+                | E => "e"
+                | P => if (stmt.isGoal) {"g"} else {"p"}
+            }
+            <Col spacing=0.>
+                <FormControl
+                    size=#small
+                    style=ReactDOM.Style.make(
+                        ~marginLeft=stmtPartMarginLeft,
+                        ~marginTop=stmtPartMarginTop,
+                        ()
+                    )
                 >
-                    <MenuItem value="e">{React.string("H")}</MenuItem>
-                    <MenuItem value="p">{React.string("P")}</MenuItem>
-                    <MenuItem value="g">{React.string("G")}</MenuItem>
-                </Select>
-            </FormControl>
+                    <Select
+                        value={typStrLowerCase}
+                        onChange=evt2str(actTypEditDone)
+                    >
+                        <MenuItem value="e">{React.string("H - (Essential) Hypothesis")}</MenuItem>
+                        <MenuItem value="p">{React.string("P - Provable Statement")}</MenuItem>
+                        <MenuItem value="g">{React.string("G - Goal Statement")}</MenuItem>
+                    </Select>
+                </FormControl>
+                {
+                    rndIconButton(
+                        ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actTypEditCancel, ~title="Cancel", ~color=None, ()
+                    )
+                }
+            </Col>
         } else {
             let typStr = switch stmt.typ {
                 | E => "H"
