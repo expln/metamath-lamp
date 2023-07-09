@@ -127,5 +127,9 @@ describe("editorHistory", _ => {
         }
         assertEditorHistory(htRestored, "hist18-restored")
         assertFileContentsEq("hist18", "hist18-restored")
+
+        let st = st->completeContEditMode(goalStmtId, "|- t = t")->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        assertEditorHistory(ht, "hist19")
     })
 })

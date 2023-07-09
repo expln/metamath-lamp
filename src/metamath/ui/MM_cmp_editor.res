@@ -607,7 +607,6 @@ let make = (
                     modalRef
                     editorState={state->removeAllTempData}
                     hist 
-                    histLen={hist->editorHistLength}
                     onClose={_=>closeModal(modalRef, modalId)} 
                     viewOptions
                     onRestore={histIdx => {
@@ -1274,8 +1273,8 @@ let make = (
                     ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
                     ~active=oneStatementIsChecked, ~title="Merge two similar steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
-                    ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
-                    ~active={!(hist->editorHistIsEmpty)}, ~title="Restore previous state", ~smallBtns, ())}
+                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
+                    ~title="Restore previous state", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
                         ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,

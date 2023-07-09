@@ -1,8 +1,5 @@
 open Expln_React_common
 open Expln_React_Mui
-open MM_react_common
-open Local_storage_utils
-open Common
 open MM_editor_history
 open MM_wrk_editor
 open Expln_React_Modal
@@ -13,16 +10,15 @@ let make = (
     ~modalRef:modalRef, 
     ~editorState:editorState,
     ~hist:editorHistory,
-    ~histLen:int,
     ~onClose:unit=>unit,
     ~viewOptions:viewOptions,
     ~onRestore:int=>unit,
 ) => {
-    let (curIdx, setCurIdx) = React.useState(() => 0)
-    let (curEditorState, setCurEditorState) = React.useState(() => hist->editorHistGetSnapshotPreview(0,editorState))
+    let (curIdx, setCurIdx) = React.useState(() => if (hist->editorHistLength > 0) {0} else {-1})
+    let (curEditorState, setCurEditorState) = React.useState(() => hist->editorHistGetSnapshotPreview(curIdx,editorState))
 
     let actChangeCurIdx = (newCurIdx:int) => {
-        if (-1 <= newCurIdx && newCurIdx <= histLen-1) {
+        if (-1 <= newCurIdx && newCurIdx <= hist->editorHistLength - 1) {
             setCurIdx(_ => newCurIdx)
             setCurEditorState(_ => hist->editorHistGetSnapshotPreview(newCurIdx,editorState))
         }
@@ -31,7 +27,7 @@ let make = (
     let actPrev = () => actChangeCurIdx(curIdx+1)
     let actNext = () => actChangeCurIdx(curIdx-1)
 
-    let prevIsDisabled = curIdx == histLen-1
+    let prevIsDisabled = curIdx == hist->editorHistLength - 1
     let nextIsDisabled = curIdx == -1
     let restoreThisIsDisabled = nextIsDisabled
 

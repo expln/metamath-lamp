@@ -63,6 +63,10 @@ let allStatusUnset = (diff:array<editorDiff>):bool => {
     diff->Js_array2.every(isStmtStatusRemove)
 }
 
+let allStatusSet = (diff:array<editorDiff>):bool => {
+    diff->Js_array2.every(isStmtStatusSet)
+}
+
 let allMoveAndStatusSet = (diff:array<editorDiff>):bool => {
     diff->Js_array2.every(d => isStmtMove(d) || isStmtStatusSet(d))
 }
@@ -317,7 +321,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
     } else {
         let newHead = editorSnapshotMake(st)
         let diff = newHead->findDiff(ht.head)
-        if (diff->Js.Array2.length == 0) {
+        if (diff->Js.Array2.length == 0 || diff->allStatusSet) {
             ht
         } else if (diff->allStatusUnset) {
             if (ht.prev->Js_array2.length == 0) {
