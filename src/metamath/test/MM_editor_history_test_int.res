@@ -50,7 +50,9 @@ let testStateRestore = (~ht:editorHistory, ~stateToRestore:editorState, ~expecte
     let Ok(stRestored) = baseState->restoreEditorStateFromSnapshot(ht, ht->findHistIdx(stateToRestore))
 
     //then
-    assertEditorState(stRestored, expected)
+    let expectedFileName = expected ++ "-restored"
+    assertEditorState(stRestored, expectedFileName)
+    assertFileContentsEq(expected, expectedFileName)
 }
 
 describe("editorHistory", _ => {
@@ -74,7 +76,7 @@ describe("editorHistory", _ => {
 
         @warning("-8")
         let Ok(ht) = ht->editorHistToString->editorHistFromString
-        testStateRestore(~ht, ~stateToRestore=st0, ~expected="st0Restored")
+        testStateRestore(~ht, ~stateToRestore=st0, ~expected="st0")
     })
 
     it("records all changes as expected", _ => {
