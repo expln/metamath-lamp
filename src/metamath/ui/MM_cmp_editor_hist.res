@@ -44,14 +44,17 @@ let make = (
     let nextIsDisabled = curIdx == -1
     let restoreThisIsDisabled = nextIsDisabled
 
-    let rndPagination = () => {
+    let rndButtons = () => {
         <Row alignItems=#center style=ReactDOM.Style.make(~padding="4px", ())>
             <Button onClick={_=>onRestore(curIdx)} disabled=restoreThisIsDisabled variant=#contained color="grey" > 
                 {React.string("Restore this")} 
             </Button>
             <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
-            <Button onClick={_=>actPrev()} disabled=prevIsDisabled > {React.string("< PREV")} </Button>
-            <Button onClick={_=>actNext()} disabled=nextIsDisabled > {React.string("NEXT >")} </Button>
+            <Row spacing=0. alignItems=#center>
+                <Button onClick={_=>actPrev()} disabled=prevIsDisabled > {React.string("< PREV")} </Button>
+                <span> {(curIdx+1)->Belt_Int.toString->React.string} </span>
+                <Button onClick={_=>actNext()} disabled=nextIsDisabled > {React.string("NEXT >")} </Button>
+            </Row>
         </Row>
     }
 
@@ -181,7 +184,7 @@ let make = (
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
         <AppBar position=#sticky color="white">
-            {rndPagination()}
+            {rndButtons()}
         </AppBar>
         {rndEditorState()}
     </Paper>

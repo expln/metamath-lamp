@@ -1,7 +1,6 @@
 - allow edinting of settings in the temp mode
 - editor history:
-    - store plain text in syntax trees
-    - if length==0 don't store history at all
+    + store plain text in syntax trees
     - add int tests for restoring of previous states
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
 - improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
