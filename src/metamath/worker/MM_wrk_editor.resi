@@ -26,9 +26,16 @@ type stmtSym = {
     color: option<string>,
 }
 
-type stmtContTreeData = {exprTyp:string, root:syntaxTreeNode, clickedNodeId:option<int>, expLvl:int}
+type stmtContTreeData = {
+    text:string, 
+    exprTyp:string, 
+    root:syntaxTreeNode, 
+    clickedNodeId:option<int>, 
+    expLvl:int
+}
+
 type stmtCont =
-    | Text(array<stmtSym>)
+    | Text({text:string, syms:array<stmtSym>})
     | Tree(stmtContTreeData)
 
 let defaultJstfForHyp:string

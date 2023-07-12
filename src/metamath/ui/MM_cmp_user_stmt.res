@@ -314,7 +314,7 @@ let rndContText = (
     ()
 ) => {
     switch stmtCont {
-        | Text(syms) => {
+        | Text({syms}) => {
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
@@ -824,7 +824,7 @@ let make = React.memoCustomCompareProps( ({
             | Some(wrkCtx) => {
                 switch stmt.cont {
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
-                    | Text(syms) => {
+                    | Text({text, syms}) => {
                         switch textToSyntaxTree( 
                             ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt,
                             ~lastSyntaxType=getLastSyntaxType(),
@@ -833,6 +833,7 @@ let make = React.memoCustomCompareProps( ({
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
                                 onSyntaxTreeUpdated(Tree({
+                                    text,
                                     exprTyp:syms[0].sym, 
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
