@@ -462,12 +462,10 @@ let settingsToState = (ls:settings):settingsState => {
 let settingsLocStorKey = "settings"
 
 let settingsSaveToLocStor = (settings:settings, tempMode:bool):unit => {
-    if (!tempMode) {
-        Dom_storage2.localStorage->Dom_storage2.setItem(
-            settingsLocStorKey, 
-            Expln_utils_common.stringify(settings)
-        )
-    }
+    Dom_storage2.localStorage->Dom_storage2.setItem(
+        settingsLocStorKey, 
+        Expln_utils_common.stringify(settings)
+    )
 }
 
 let readStateFromLocStor = ():settingsState => {
@@ -699,7 +697,7 @@ let make = (
         None
     }, [settingsVer])
 
-    let applyChanges = () => {
+    let actApplyChanges = () => {
         let st = validateAndCorrectState(state)
         setState(_ => st)
         if (st->isValid) {
@@ -971,7 +969,7 @@ let make = (
     let rndApplyChangesBtn = () => {
         let disabled = !isValid(state) || eqState(prevState, state) 
         <Row spacing=3. >
-            <Button disabled onClick={_=>applyChanges()} variant=#contained>
+            <Button disabled onClick={_=>actApplyChanges()} variant=#contained>
                 {React.string("Apply changes")}
             </Button>
             <Button disabled onClick={_ => discardChanges()}>

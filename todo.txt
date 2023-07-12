@@ -1,4 +1,4 @@
-- allow edinting of settings in the temp mode
++ allow editing of settings in the temp mode
 - editor history:
     + store plain text in syntax trees
     - add int tests for restoring of previous states
