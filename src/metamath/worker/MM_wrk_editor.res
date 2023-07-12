@@ -2136,7 +2136,7 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
     )
 }
 
-let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,string> => {
+let mergeStmts = (st:editorState,id1:stmtId,id2:stmtId):result<editorState,string> => {
     switch st->editorGetStmtById(id1) {
         | None => Error(`Cannot find a step with id = '${id1}'`)
         | Some(stmt1) => {

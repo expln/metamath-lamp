@@ -1,0 +1,11 @@
+{
+  "descr": "",
+  "varsText": "",
+  "disjText": "",
+  "stmts": [
+    {"label": "2", "typ": "p", "isGoal": false, "cont": "|- ( t + 0 ) = t", "jstfText": ": a2"},
+    {"label": "1", "typ": "p", "isGoal": false, "cont": "|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", "jstfText": ": a1"},
+    {"label": "3", "typ": "p", "isGoal": false, "cont": "|- ( ( t + 0 ) = t -> t = t )", "jstfText": "2 1 : mp"},
+    {"label": "qed", "typ": "p", "isGoal": true, "cont": "|- t = t", "jstfText": "2 3 : mp"}
+  ]
+}

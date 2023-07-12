@@ -1,32 +1,80 @@
 open Expln_test
 open MM_editor_history
 open MM_wrk_editor
+open MM_wrk_editor_json
+open MM_context
 
 open MM_int_test_utils
 open MM_int_test_editor_methods
 
 module Ed = MM_int_test_editor_methods
 
+let createEmptyEditorState = ():editorState => {
+    createInitialEditorState(
+        ~settingsV=0, 
+        ~settings={
+            parens: "", asrtsToSkip: [], asrtsToSkipRegex: "", editStmtsByLeftClick:false, defaultStmtType:"", 
+            defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, stickGoalToBottom:false, typeSettings: [], 
+            webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 
+            showVisByDefault:false, editorHistMaxLength:1000,
+        }, 
+        ~srcs=[],
+        ~preCtxV=0, 
+        ~preCtx=createContext(()), 
+        ~stateLocStor=None
+    )
+}
+
+let findHistIdx = (ht:editorHistory, st:editorState):int => {
+    let stLocStor = st->editorStateToEditorStateLocStor
+    let found = ref(None)
+    for i in 0 to ht->editorHistLength - 1 {
+        if (found.contents->Belt_Option.isNone) {
+            @warning("-8")
+            let Ok(stRestored) = ht->editorHistGetSnapshotPreview(i, st)
+            let stRestoredLocStor = stRestored->editorStateToEditorStateLocStor
+            if (stLocStor == stRestoredLocStor) {
+                found := Some(i)
+            }
+        }
+    }
+    found.contents->Belt_Option.getExn
+}
+
+let testStateRestore = (~ht:editorHistory, ~stateToRestore:editorState, ~expected:string):unit => {
+    //given
+    let baseState = createEmptyEditorState()
+
+    //when
+    @warning("-8")
+    let Ok(stRestored) = baseState->restoreEditorStateFromSnapshot(ht, ht->findHistIdx(stateToRestore))
+
+    //then
+    assertEditorState(stRestored, expected)
+}
+
 describe("editorHistory", _ => {
     it("is able to undo changes", _ => {
-        setTestDataDir("editor-history")
+        setTestDataDir("editor-history-restore-prev")
 
-        let st0 = createEditorState(
-            ~mmFilePath="./src/metamath/test/resources/demo0._mm", ~stopBefore="th1", ~debug, ()
+        let st = createEditorState(
+            ~mmFilePath="./src/metamath/test/resources/demo0._mm", ~stopBefore="th1", ~debug, 
+            ~editorState="editor-initial-state", ()
         )->updateEditorStateWithPostupdateActions(st=>st)
-        let ht = editorHistMake(~initState=st0, ~maxLength=200)
+        let ht = editorHistMake(~initState=st, ~maxLength=200)
+        let st0 = st
         assertEditorState(st0, "st0")
 
-        let (st1,s1) = st0->addNewStmt
-        let ht = ht->editorHistAddSnapshot(st1)
-
-        let st1 = st1->completeContEditMode(s1, "|- t = t")
-        let ht = ht->editorHistAddSnapshot(st1)
+        @warning("-8")
+        let Ok(st) = st->renameStmt(getStmtId(st, ~label="2", ()), "20")
+            ->Belt.Result.map(updateEditorStateWithPostupdateActions(_, st=>st))
+        let ht = ht->editorHistAddSnapshot(st)
+        let st1 = st
         assertEditorState(st1, "st1")
 
         @warning("-8")
-        let Ok(st0Restored) = st1->restoreEditorStateFromSnapshot(ht, ht->editorHistLength - 1)
-        assertEditorState(st0Restored, "st0Restored")
+        let Ok(ht) = ht->editorHistToString->editorHistFromString
+        testStateRestore(~ht, ~stateToRestore=st0, ~expected="st0Restored")
     })
 
     it("records all changes as expected", _ => {
