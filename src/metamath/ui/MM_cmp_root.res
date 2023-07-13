@@ -134,7 +134,7 @@ let make = () => {
     let actSettingsUpdated = (newSettings:settings) => {
         actCloseFrmTabs()
         setState(updatePreCtxData(_,~settings=newSettings, ()))
-        settingsSaveToLocStor(newSettings, tempMode.contents)
+        settingsSaveToLocStor(newSettings)
     }
 
     let actCtxSelectorExpandedChange = (expanded) => {

@@ -461,7 +461,7 @@ let settingsToState = (ls:settings):settingsState => {
 
 let settingsLocStorKey = "settings"
 
-let settingsSaveToLocStor = (settings:settings, tempMode:bool):unit => {
+let settingsSaveToLocStor = (settings:settings):unit => {
     Dom_storage2.localStorage->Dom_storage2.setItem(
         settingsLocStorKey, 
         Expln_utils_common.stringify(settings)

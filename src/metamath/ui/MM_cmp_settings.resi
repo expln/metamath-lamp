@@ -4,7 +4,7 @@ open Expln_React_Modal
 open MM_wrk_settings
 
 let settingsReadFromLocStor: () => settings
-let settingsSaveToLocStor: (settings,bool) => unit
+let settingsSaveToLocStor: settings => unit
 
 @react.component
 let make: (
