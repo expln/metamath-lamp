@@ -74,9 +74,76 @@ describe("editorHistory", _ => {
         let st1 = st
         assertEditorState(st1, "st1")
 
+        let st = st->completeVarsEditMode(".vvv term tmp-var")
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st2 = st
+        assertEditorState(st2, "st2")
+
+        let st = st->completeDisjEditMode("tmp-var,t")
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st3 = st
+        assertEditorState(st3, "st3")
+
+        let st = st->completeTypEditMode(getStmtId(st, ~label="20", ()), E, false)
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st4 = st
+        assertEditorState(st4, "st4")
+
+        let st = st->completeJstfEditMode(getStmtId(st, ~label="1", ()), ": a2")
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st5 = st
+        assertEditorState(st5, "st5")
+
+        let st = st->completeContEditMode(getStmtId(st, ~label="3", ()), "|- ( ( r + 0 ) = r -> r = r )")
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st6 = st
+        assertEditorState(st6, "st6")
+
+        let (st,s1) = st->addNewStmt
+        let st = st->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st = st->completeContEditMode(s1, "|- r = r")
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st7 = st
+        assertEditorState(st7, "st7")
+
+        let st = st->toggleStmtChecked(getStmtId(st, ~label="2", ()))
+        let st = st->moveCheckedStmts(true)->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st8 = st
+        assertEditorState(st8, "st8")
+
+        let st = st->uncheckAllStmts
+        let st = st->toggleStmtChecked(getStmtId(st, ~label="3", ()))
+        let st = st->deleteCheckedStmts->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st = st->completeJstfEditMode(getStmtId(st, ~label="qed", ()), "")
+            ->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+        let st9 = st
+        assertEditorState(st9, "st9")
+
+        let st = st->completeDescrEditMode("sdfh dfert vzxaw")->updateEditorStateWithPostupdateActions(st=>st)
+        let ht = ht->editorHistAddSnapshot(st)
+
         @warning("-8")
         let Ok(ht) = ht->editorHistToString->editorHistFromString
         testStateRestore(~ht, ~stateToRestore=st0, ~expected="st0")
+        testStateRestore(~ht, ~stateToRestore=st1, ~expected="st1")
+        testStateRestore(~ht, ~stateToRestore=st2, ~expected="st2")
+        testStateRestore(~ht, ~stateToRestore=st3, ~expected="st3")
+        testStateRestore(~ht, ~stateToRestore=st4, ~expected="st4")
+        testStateRestore(~ht, ~stateToRestore=st5, ~expected="st5")
+        testStateRestore(~ht, ~stateToRestore=st6, ~expected="st6")
+        testStateRestore(~ht, ~stateToRestore=st7, ~expected="st7")
+        testStateRestore(~ht, ~stateToRestore=st8, ~expected="st8")
+        testStateRestore(~ht, ~stateToRestore=st9, ~expected="st9")
     })
 
     it("records all changes as expected", _ => {
