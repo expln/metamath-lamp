@@ -69,9 +69,10 @@ let strToCont = (
     ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?,
     ()
 ):stmtCont => {
+    let symsArr = getSpaceSeparatedValuesAsArray(str)
     Text({
-        text:str->Js.String2.trim,
-        syms: getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
+        text: symsArr->Js_array2.joinWith(" "),
+        syms: symsArr->Js.Array2.map(sym => {
             {
                 sym,
                 color:
