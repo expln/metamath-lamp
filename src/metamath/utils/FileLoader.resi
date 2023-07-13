@@ -11,7 +11,7 @@ let loadFile: (
 let loadFileWithProgress: (
     ~modalRef:modalRef,
     ~showWarning:bool,
-    ~onUrlBecomesTrusted:option<string=>unit>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~url:string,
     ~progressText:string,
     ~onReady:string=>unit,

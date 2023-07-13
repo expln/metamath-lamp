@@ -26,9 +26,16 @@ type stmtSym = {
     color: option<string>,
 }
 
-type stmtContTreeData = {exprTyp:string, root:syntaxTreeNode, clickedNodeId:option<int>, expLvl:int}
+type stmtContTreeData = {
+    text:string, 
+    exprTyp:string, 
+    root:syntaxTreeNode, 
+    clickedNodeId:option<int>, 
+    expLvl:int
+}
+
 type stmtCont =
-    | Text(array<stmtSym>)
+    | Text({text:string, syms:array<stmtSym>})
     | Tree(stmtContTreeData)
 
 let defaultJstfForHyp:string
@@ -157,10 +164,10 @@ let completeLabelEditMode: (editorState, string, Js_string2.t) => editorState
 let setContEditMode: (editorState, string) => editorState
 let completeContEditMode: (editorState, stmtId, string) => editorState
 let setStmtCont: (editorState, stmtId, stmtCont) => editorState
-let setTypEditMode: (editorState, string) => editorState
-let completeTypEditMode: (editorState, string, userStmtType, bool) => editorState
+let setTypEditMode: (editorState, stmtId) => editorState
+let completeTypEditMode: (editorState, stmtId, userStmtType, bool) => editorState
 let setJstfEditMode: (editorState, string) => editorState
-let completeJstfEditMode: (editorState, string, string) => editorState
+let completeJstfEditMode: (editorState, stmtId, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
@@ -176,8 +183,8 @@ let getTheOnlyCheckedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, stmtId) => option<userStmt>
 let editorGetStmtByIdExn: (editorState, stmtId) => userStmt
 let getAllExprsToSyntaxCheck: (editorState, array<rootStmt>) => array<expr>
-let mergeStmts: (editorState, string, string) => result<editorState, string>
-let renameStmt: (editorState, string, string) => result<editorState, string>
+let mergeStmts: (editorState, stmtId, stmtId) => result<editorState, string>
+let renameStmt: (editorState, stmtId, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
 let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState

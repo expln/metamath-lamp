@@ -33,27 +33,34 @@ type stmtSym = {
     color: option<string>,
 }
 
-type stmtContTreeData = {exprTyp:string, root:syntaxTreeNode, clickedNodeId:option<int>, expLvl:int}
+type stmtContTreeData = {
+    text:string, 
+    exprTyp:string, 
+    root:syntaxTreeNode, 
+    clickedNodeId:option<int>, 
+    expLvl:int
+}
+
 type stmtCont =
-    | Text(array<stmtSym>)
+    | Text({text:string, syms:array<stmtSym>})
     | Tree(stmtContTreeData)
 
 let contIsEmpty = cont => {
     switch cont {
-        | Text(arr) => arr->Js_array2.length == 0
-        | Tree({root}) => syntaxTreeIsEmpty(root)
+        | Text({text}) | Tree({text}) => text->Js_string2.length == 0
     }
 }
 
 let contToArrStr = cont => {
     switch cont {
-        | Text(arr) => arr->Js_array2.map(stmtSym => stmtSym.sym)
-        | Tree({exprTyp, root}) => [exprTyp]->Js.Array2.concat(syntaxTreeToSymbols(root))
+        | Text({text}) | Tree({text}) => getSpaceSeparatedValuesAsArray(text)
     }
 }
 
 let contToStr = cont => {
-    cont->contToArrStr->Js_array2.joinWith(" ")
+    switch cont {
+        | Text({text}) | Tree({text}) => text
+    }
 }
 
 let strToCont = (
@@ -62,8 +69,10 @@ let strToCont = (
     ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?,
     ()
 ):stmtCont => {
-    Text(
-        getSpaceSeparatedValuesAsArray(str)->Js.Array2.map(sym => {
+    let symsArr = getSpaceSeparatedValuesAsArray(str)
+    Text({
+        text: symsArr->Js_array2.joinWith(" "),
+        syms: symsArr->Js.Array2.map(sym => {
             {
                 sym,
                 color:
@@ -78,7 +87,7 @@ let strToCont = (
                     }
             }
         })
-    )
+    })
 }
 
 type userStmtType = E | P
@@ -220,7 +229,7 @@ let createEmptyUserStmt = (id, typ, label, isGoal):userStmt => {
         label, labelEditMode:false, 
         typ, typEditMode:false, 
         isGoal,
-        cont:Text([]), contEditMode:true,
+        cont:Text({text:"", syms:[]}), contEditMode:true,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
         expr:None, jstf:None, proofTreeDto:None, src:None, proof:None, proofStatus:None, unifErr:None, syntaxErr:None,
@@ -1817,7 +1826,7 @@ let stmtSetSyntaxTree = (
 ):userStmt => {
     switch stmt.cont {
         | Tree(_) => stmt
-        | Text(syms) => {
+        | Text({text, syms}) => {
             let syntaxTree = switch syntaxNodes->Belt_HashMap.get(expr->Js_array2.sliceFrom(1)) {
                 | None => None
                 | Some(nodeDto) => Some(buildSyntaxTreeFromProofTreeDto(~ctx=wrkCtx, ~proofTreeDto, ~typeStmt=nodeDto.expr))
@@ -1843,6 +1852,7 @@ let stmtSetSyntaxTree = (
                     {
                         ...stmt,
                         cont: Tree({
+                            text,
                             exprTyp: syms[0].sym, 
                             root: addColorsToSyntaxTree( 
                                 ~tree=syntaxTree, 
@@ -2127,7 +2137,7 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
     )
 }
 
-let mergeStmts = (st:editorState,id1:string,id2:string):result<editorState,string> => {
+let mergeStmts = (st:editorState,id1:stmtId,id2:stmtId):result<editorState,string> => {
     switch st->editorGetStmtById(id1) {
         | None => Error(`Cannot find a step with id = '${id1}'`)
         | Some(stmt1) => {

@@ -13,12 +13,14 @@ type state = {
 }
 
 let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapString.t<string>) => {
+    let syms = ctx->ctxIntsToSymsExn(stmt)
     {
-        cont:Text(
-            ctx->ctxIntsToSymsExn(stmt)->Js_array2.map(sym => {
+        cont:Text({
+            text: syms->Js.Array2.joinWith(" "),
+            syms: syms->Js_array2.map(sym => {
                 {sym, color:symColors->Belt_HashMapString.get(sym)}
             })
-        ),
+        }),
     }
 }
 
@@ -127,7 +129,7 @@ let make = React.memoCustomCompareProps( ({
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
         switch state.cont {
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
-            | Text(syms) => {
+            | Text({text,syms}) => {
                 switch textToSyntaxTree( 
                     ~wrkCtx=ctx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, 
                     ~lastSyntaxType=getLastSyntaxType(),
@@ -136,6 +138,7 @@ let make = React.memoCustomCompareProps( ({
                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                     | Ok(syntaxTree) => {
                         actUpdateStmt(Tree({
+                            text,
                             exprTyp:syms[0].sym, 
                             root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
                             clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),

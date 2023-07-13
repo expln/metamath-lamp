@@ -13,11 +13,11 @@ let make = (
     let (appendTimestamp, setAppendTimestamp) = useStateFromLocalStorageBool(
         ~key="export-to-json-append-timestamp", ~default=false, ~tempMode
     )
-    let (descr, setDescr) = React.useState(() => "")
+    let (notes, setNotes) = React.useState(() => "")
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
-    let actDescrChanged = (newDescr:string) => {
-        setDescr(_ => newDescr)
+    let actNotesChanged = (newNotes:string) => {
+        setNotes(_ => newNotes)
     }
 
     let timestampStr = if (appendTimestamp) {
@@ -26,13 +26,13 @@ let make = (
         ""
     }
 
-    let descrStr = if (descr->Js.String2.length > 0) {
-        descr ++ " "
+    let notesStr = if (notes->Js.String2.length > 0) {
+        notes ++ " "
     } else {
         ""
     }
 
-    let textToShow = timestampStr ++ descrStr ++ jsonStr
+    let textToShow = timestampStr ++ notesStr ++ jsonStr
 
     let actCopyToClipboard = () => {
         copyToClipboard(textToShow)
@@ -79,9 +79,9 @@ let make = (
             <TextField 
                 size=#small
                 style=ReactDOM.Style.make(~width="350px", ())
-                label="Description" 
-                value=descr
-                onChange=evt2str(actDescrChanged)
+                label="Notes" 
+                value=notes
+                onChange=evt2str(actNotesChanged)
                 title="Press Enter to copy to the clipboard and close this dialog window."
                 onKeyDown=kbrdHnd2(
                     kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actCopyAndClose, ()),

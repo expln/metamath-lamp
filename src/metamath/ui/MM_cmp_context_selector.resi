@@ -8,7 +8,7 @@ open Expln_React_common
 let make: (
     ~modalRef: modalRef,
     ~webSrcSettings:array<webSrcSettings>,
-    ~onUrlBecomesTrusted:option<string=>unit>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style:reStyle=?,

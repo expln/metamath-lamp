@@ -239,11 +239,7 @@ let make = () => {
                         modalRef 
                         webSrcSettings={state.preCtxData.settingsV.val.webSrcSettings}
                         onUrlBecomesTrusted={
-                            if (tempMode.contents) {
-                                None
-                            } else {
-                                Some(url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated)
-                            }
+                            url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated
                         }
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx

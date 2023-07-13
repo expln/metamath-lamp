@@ -340,7 +340,7 @@ let loadMmContext = (
 let loadMmFileText = (
     ~modalRef:modalRef,
     ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:option<string=>unit>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~alias:string,
     ~url:string,
 ):promise<result<string,string>> => {
@@ -367,7 +367,7 @@ let rec loadMmFileTextForSingleScope = (
     ~mmScope:mmScope,
     ~modalRef:modalRef,
     ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:option<string=>unit>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~loadedTexts:Belt_HashMapString.t<string>,
     ~ssIdx:int,
 ):promise<result<mmScope,string>> => {
@@ -439,7 +439,7 @@ let makeMmScopeFromSrcDtos = (
     ~webSrcSettings:array<webSrcSettings>,
     ~srcs: array<mmCtxSrcDto>,
     ~trustedUrls:array<string>,
-    ~onUrlBecomesTrusted:option<string=>unit>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~loadedTexts:Belt_HashMapString.t<string>,
 ):promise<result<mmScope,string>> => {
     let mmScope = srcs->Js_array2.reduce(
@@ -481,7 +481,7 @@ let defaultValueOfDefaultSrcTypeStr = Web->mmFileSourceTypeToStr
 let make = (
     ~modalRef:modalRef,
     ~webSrcSettings:array<webSrcSettings>,
-    ~onUrlBecomesTrusted:option<string=>unit>,
+    ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style as _ :option<reStyle>=?,

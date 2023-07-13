@@ -1,8 +1,3 @@
-- allow edinting of settings in the temp mode
-- editor history:
-    - store plain text in syntax trees
-    - if length==0 don't store history at all
-    - add int tests for restoring of previous states
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
 - improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
 - make "compact mode" and "small buttons" default on mobile.
@@ -84,3 +79,4 @@ DONE:
 - Specify in the guide the version of mm-lamp which it was written for
 - implement table view in the editor.
 - add onEnter and onEscape wherever possible.
+- allow editing of settings in the temp mode
