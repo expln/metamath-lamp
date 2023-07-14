@@ -196,6 +196,7 @@ let getSelectedText: stmtCont => option<string>
 let getNodeIdBySymIdx: ( ~symIdx:int, ~tree:syntaxTreeNode) => option<int>
 let incExpLvl: stmtContTreeData => stmtContTreeData
 let decExpLvl: stmtContTreeData => stmtContTreeData
+let incExpLvlIfConstClicked: stmtContTreeData => stmtContTreeData
 let getNumberOfSelectedSymbols: stmtContTreeData => int
 let getSelectedSymbols: stmtCont => option<array<string>>
 let updateExpLevel: (stmtContTreeData, bool) => stmtContTreeData

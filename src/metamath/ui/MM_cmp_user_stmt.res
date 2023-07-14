@@ -832,13 +832,14 @@ let make = React.memoCustomCompareProps( ({
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
-                                onSyntaxTreeUpdated(Tree({
+                                let stmtContTreeData = {
                                     text,
                                     exprTyp:syms[0].sym, 
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
                                     expLvl:0,
-                                }))
+                                }
+                                onSyntaxTreeUpdated(Tree(stmtContTreeData->incExpLvlIfConstClicked))
                             }
                         }
                     }
@@ -977,7 +978,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actTreeNodeClicked = (nodeId) => {
-        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:Some(nodeId), expLvl:0})
+        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:Some(nodeId), expLvl:0}->incExpLvlIfConstClicked)
     }
 
     let actUnselect = () => {

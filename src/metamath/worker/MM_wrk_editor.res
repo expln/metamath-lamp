@@ -2239,13 +2239,9 @@ let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_Se
             switch treeData.root->getNodeById(nodeId) {
                 | None => (-1,Belt_SetInt.empty)
                 | Some(Subtree(_)) => (-1,Belt_SetInt.empty) //this should never happen because a Subtree cannot be clicked
-                | Some(Symbol({parent, isVar})) => {
+                | Some(Symbol({parent})) => {
                     if (treeData.expLvl == 0) {
-                        if (isVar) {
-                            (nodeId,Belt_SetInt.fromArray([nodeId]))
-                        } else {
-                            (nodeId,getIdsOfAllChildSymbols(parent))
-                        }
+                        (nodeId,Belt_SetInt.fromArray([nodeId]))
                     } else {
                         let curParent = ref(Some(parent))
                         let curLvl = ref(treeData.expLvl)
@@ -2366,6 +2362,30 @@ let decExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
     {
         ...treeData, 
         expLvl: Js_math.max_int(treeData.expLvl - 1, 0)
+    }
+}
+
+let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
+    if (treeData.expLvl == 0) {
+        switch treeData.clickedNodeId {
+            | None => treeData
+            | Some(clickedNodeId) => {
+                switch treeData.root->getNodeById(clickedNodeId) {
+                    | None => treeData
+                    | Some(Symbol({parent})) => {
+                        if (parent->getIdsOfAllChildSymbols->Belt_SetInt.size == 1) {
+                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
+                            treeData
+                        } else {
+                            treeData->incExpLvl
+                        }
+                    }
+                    | Some(Subtree(_)) => treeData
+                }
+            }
+        }
+    } else {
+        treeData
     }
 }
 
