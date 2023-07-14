@@ -1140,7 +1140,14 @@ let make = React.memoCustomCompareProps( ({
                 )
                 longClickEnabled
                 longClickDelayMs
-                onShortClick = {_ => actToggleInfoExpanded()}
+                onShortClick = {
+                    (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                        switch clickAttrs {
+                            | Some({alt:true}) => onLabelEditRequested()
+                            | _ => actToggleInfoExpanded()
+                        }
+                    }
+                }
                 onLongClick=onLabelEditRequested
                 style=ReactDOM.Style.make(
                     ~cursor=?{if (readOnly) {None} else {Some("pointer")}}, 
@@ -1424,7 +1431,14 @@ let make = React.memoCustomCompareProps( ({
                 )
                 longClickEnabled
                 longClickDelayMs
-                onShortClick = {_ => actToggleInfoExpanded()}
+                onShortClick = {
+                    (clickAttrs:option<UseLongClick.clickAttrs>) => {
+                        switch clickAttrs {
+                            | Some({alt:true}) => onTypEditRequested()
+                            | _ => actToggleInfoExpanded()
+                        }
+                    }
+                }
                 onLongClick=onTypEditRequested
                 style=ReactDOM.Style.make(
                     ~cursor=?{if (readOnly) {None} else {Some("pointer")}}, 
