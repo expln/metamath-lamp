@@ -235,6 +235,7 @@ let rndStmtAndHyp = (
             }
         }
 
+        let rndCtxStmt = ctxFirst || frmStmt->Js.Array2.some(subs->Belt_HashMapString.has)
         let (_, bndSample) = text(~ex, ~text=".", ())
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
@@ -252,7 +253,7 @@ let rndStmtAndHyp = (
         } else {
             (
                 ref(exL),
-                ref(exS->vecTr(ey->vecMul(charHeight *. 3.3)))
+                ref( if (rndCtxStmt) {exS->vecTr(ey->vecMul(charHeight *. 3.3))} else {exL} )
             )
         }
         let frmElems = []
@@ -270,28 +271,30 @@ let rndStmtAndHyp = (
             bnds->Js_array2.push(frmBnd)->ignore
             frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
-            let (cElems,ctxBnd,ctxContentOnlyBnd) = rndStmt(
-                ~ex=ctxEx.contents,
-                ~stmt=getCtxSubStmt(frmSym),
-                ~symToColor=ctxSymToColor,
-                ~key="ctx-" ++ i->Belt_Int.toString,
-            )
-            ctxElems->Js_array2.pushMany(cElems)->ignore
-            bnds->Js_array2.push(ctxBnd)->ignore
-            ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
+            if (rndCtxStmt) {
+                let (cElems,ctxBnd,ctxContentOnlyBnd) = rndStmt(
+                    ~ex=ctxEx.contents,
+                    ~stmt=getCtxSubStmt(frmSym),
+                    ~symToColor=ctxSymToColor,
+                    ~key="ctx-" ++ i->Belt_Int.toString,
+                )
+                ctxElems->Js_array2.pushMany(cElems)->ignore
+                bnds->Js_array2.push(ctxBnd)->ignore
+                ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
 
-            switch subsColors->Belt_HashMapString.get(frmSym) {
-                | None => ()
-                | Some(color) => {
-                    let (conElem,conBnd) = rndConnection(
-                        ~bnd1=frmContentOnlyBnd, 
-                        ~bnd2=ctxContentOnlyBnd, 
-                        ~color, 
-                        ~key=i->Belt_Int.toString,
-                        ~noFrameForBottomBnd,
-                    )
-                    conElems->Js_array2.push(conElem)->ignore
-                    bnds->Js_array2.push(conBnd)->ignore
+                switch subsColors->Belt_HashMapString.get(frmSym) {
+                    | None => ()
+                    | Some(color) => {
+                        let (conElem,conBnd) = rndConnection(
+                            ~bnd1=frmContentOnlyBnd, 
+                            ~bnd2=ctxContentOnlyBnd, 
+                            ~color, 
+                            ~key=i->Belt_Int.toString,
+                            ~noFrameForBottomBnd,
+                        )
+                        conElems->Js_array2.push(conElem)->ignore
+                        bnds->Js_array2.push(conBnd)->ignore
+                    }
                 }
             }
         })
