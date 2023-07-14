@@ -2245,7 +2245,7 @@ let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_Se
                     } else {
                         let curParent = ref(Some(parent))
                         let curLvl = ref(treeData.expLvl)
-                        while (curLvl.contents > 0 && curParent.contents->Belt_Option.isSome) {
+                        while (curLvl.contents > 1 && curParent.contents->Belt_Option.isSome) {
                             curLvl := curLvl.contents - 1
                             curParent := (curParent.contents->Belt_Option.getExn).parent
                         }
@@ -2365,30 +2365,6 @@ let decExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
     }
 }
 
-let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
-    if (treeData.expLvl == 0) {
-        switch treeData.clickedNodeId {
-            | None => treeData
-            | Some(clickedNodeId) => {
-                switch treeData.root->getNodeById(clickedNodeId) {
-                    | None => treeData
-                    | Some(Symbol({parent})) => {
-                        if (parent->getIdsOfAllChildSymbols->Belt_SetInt.size == 1) {
-                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
-                            treeData
-                        } else {
-                            treeData->incExpLvl
-                        }
-                    }
-                    | Some(Subtree(_)) => treeData
-                }
-            }
-        }
-    } else {
-        treeData
-    }
-}
-
 let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array<expr> => {
     let res = []
     st.stmts->Js.Array2.forEachi((stmt,i) => {
@@ -2419,6 +2395,30 @@ let updateExpLevel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
         newNum := getNumberOfSelectedSymbols(newTreeData.contents)
     }
     newTreeData.contents
+}
+
+let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
+    if (treeData.expLvl == 0) {
+        switch treeData.clickedNodeId {
+            | None => treeData
+            | Some(clickedNodeId) => {
+                switch treeData.root->getNodeById(clickedNodeId) {
+                    | None => treeData
+                    | Some(Symbol({parent})) => {
+                        if (parent->getIdsOfAllChildSymbols->Belt_SetInt.size == 1) {
+                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
+                            treeData
+                        } else {
+                            treeData->updateExpLevel(true)
+                        }
+                    }
+                    | Some(Subtree(_)) => treeData
+                }
+            }
+        }
+    } else {
+        treeData
+    }
 }
 
 let onlyDigitsPattern = %re("/^\d+$/")
