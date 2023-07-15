@@ -50,6 +50,7 @@ let make = (
     ~fullWidth:bool=false,
     ~buttonDirHor:bool=true,
     ~onHelp:option<unit=>unit>=?,
+    ~onDelete:option<unit=>unit>=?,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
 
@@ -117,13 +118,22 @@ let make = (
             | None => React.null
             | Some(onHelp) => {
                 rndIconButton(
-                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None, ())
+                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None, ()
+                )
+            }
+        }
+        let deleteBtn = switch onDelete {
+            | None => React.null
+            | Some(onDelete) => {
+                rndIconButton(
+                    ~icon=<MM_Icons.DeleteForever/>, ~onClick=onDelete, ~title="Clear", ~color=None, ()
+                )
             }
         }
         if (buttonDirHor) {
-            <Row> saveBtn cancelBtn helpBtn </Row>
+            <Row spacing=0.> saveBtn cancelBtn helpBtn deleteBtn </Row>
         } else {
-            <Col> saveBtn cancelBtn helpBtn </Col>
+            <Col spacing=0.> saveBtn cancelBtn helpBtn deleteBtn </Col>
         }
     }
 
@@ -148,7 +158,7 @@ let make = (
                         kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actEditCancel, ()),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
-                    minRows={if (buttonDirHor) {1} else if (onHelp->Belt.Option.isNone) {3} else {5} }
+                    minRows={if (buttonDirHor) {1} else {6} }
                 />
                 {rndButtons()}
             </Row>

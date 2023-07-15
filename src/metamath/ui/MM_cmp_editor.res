@@ -371,6 +371,19 @@ let make = (
     let actCompleteEdit = (setter:editorState=>editorState) => {
         setState(setter)
     }
+
+    let actDescrEditComplete = newText => {
+        setState(completeDescrEditMode(_,newText))
+    }
+
+    let actVarsEditComplete = newText => {
+        setState(completeVarsEditMode(_,newText))
+    }
+
+    let actDisjEditComplete = newText => {
+        setState(completeDisjEditMode(_,newText))
+    }
+
     let actSyntaxTreeUpdated = (setter:editorState=>editorState) => {
         setState(setter)
     }
@@ -1442,7 +1455,7 @@ let make = (
                     longClickEnabled=state.settings.longClickEnabled
                     longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
-                    onEditDone={newText => actCompleteEdit(completeDescrEditMode(_,newText))}
+                    onEditDone=actDescrEditComplete
                     onEditCancel={newText => actCancelEditDescr(newText)}
                     renderer={str => {
                         <Static_XML_to_HTML xmlStr=str />
@@ -1455,6 +1468,9 @@ let make = (
                                 <XML_formatting_help onClose={_=>closeModal(modalRef, modalId)} />
                             })
                         })->ignore
+                    }}
+                    onDelete={() => {
+                        actDescrEditComplete("")
                     }}
                 />
             </Col>
@@ -1475,8 +1491,11 @@ let make = (
                     longClickEnabled=state.settings.longClickEnabled
                     longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setVarsEditMode)}
-                    onEditDone={newText => actCompleteEdit(completeVarsEditMode(_,newText))}
+                    onEditDone=actVarsEditComplete
                     onEditCancel={newText => actCancelEditVars(newText)}
+                    onDelete={() => {
+                        actVarsEditComplete("")
+                    }}
                 />
                 {rndError(state.varsErr,"red")}
             </Col>
@@ -1497,8 +1516,11 @@ let make = (
                     longClickEnabled=state.settings.longClickEnabled
                     longClickDelayMs=state.settings.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDisjEditMode)}
-                    onEditDone={newText => actCompleteEdit(completeDisjEditMode(_,newText))}
+                    onEditDone=actDisjEditComplete
                     onEditCancel={newText => actCancelEditDisj(newText)}
+                    onDelete={() => {
+                        actDisjEditComplete("")
+                    }}
                 />
                 {rndError(state.disjErr,"red")}
             </Col>
