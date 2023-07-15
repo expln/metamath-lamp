@@ -661,6 +661,8 @@ type props = {
     onDebug:unit=>unit,
     addStmtAbove:string=>unit,
     addStmtBelow:string=>unit,
+    setShowTabs:bool=>unit,
+    openFrameExplorer:string=>unit,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -734,6 +736,8 @@ let make = React.memoCustomCompareProps( ({
     showVisByDefault,
     addStmtAbove,
     addStmtBelow,
+    setShowTabs,
+    openFrameExplorer,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
@@ -1100,6 +1104,11 @@ let make = React.memoCustomCompareProps( ({
     let actEditSelection = () => {
         setSelectionRange(_ => getSelectedRange())
         onContEditRequested()
+    }
+
+    let actOpenFrameExplorer = label => {
+        setShowTabs(true)
+        openFrameExplorer(label)
     }
 
     let rndLabel = () => {
@@ -1505,8 +1514,27 @@ let make = React.memoCustomCompareProps( ({
                 </Row>
             </Col>
         } else {
-            let jstfText = if (stmt.typ == E) { "HYP" } else { stmt.jstfText }
-            let padding = if (jstfText->Js_string2.trim == "") { "11px 16px" } else { "1px" }
+            let jstfTextStr = if (stmt.typ == E) { "HYP" } else { stmt.jstfText }
+            let jstfText = if (stmt.typ == E) { jstfTextStr->React.string } else {
+                switch parseJstf(jstfTextStr) {
+                    | Error(_) | Ok(None) => jstfTextStr->React.string
+                    | Ok(Some({args, label})) => {
+                        <span>
+                            {React.string(args->Js_array2.joinWith(" ") ++ " : ")}
+                            <span 
+                                style=ReactDOM.Style.make(~cursor="pointer", ())
+                                onClick=clickHnd2(
+                                    clickClbkMake(~alt=true, ~act=actJstfEditRequested, ()),
+                                    clickClbkMake(~act=()=>actOpenFrameExplorer(label), ()),
+                                )
+                            >
+                                {label->React.string}
+                            </span>
+                        </span>
+                    }
+                }
+            }
+            let padding = if (jstfTextStr->Js_string2.trim == "") { "11px 16px" } else { "1px" }
             let title =
                 if (longClickEnabled) {
                     "<long-click> (Alt+<left-click>) to change"
@@ -1544,14 +1572,14 @@ let make = React.memoCustomCompareProps( ({
                     )
                     title=?{if (readOnly) {None} else {Some(title)}}
                 >
-                    {React.string(jstfText)}
+                    jstfText
                 </LongClickPaper>
                 {
                     if (isInline) {
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
                         let btns = []
-                        if (jstfText->Js_string2.trim != "") {
+                        if (jstfTextStr->Js_string2.trim != "") {
                             btns->Js.Array2.push(
                                 rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~key="d",
                                     ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()

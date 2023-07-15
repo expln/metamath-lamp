@@ -209,6 +209,7 @@ let make = () => {
                             openCtxSelector
                             showTabs
                             setShowTabs={b=>setShowTabs(_ => b)}
+                            openFrameExplorer
                         />
                     | ExplorerIndex => 
                         <MM_cmp_pe_index

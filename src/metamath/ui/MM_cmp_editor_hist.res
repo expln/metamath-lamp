@@ -155,6 +155,8 @@ let make = (
 
             addStmtAbove={_ => ()}
             addStmtBelow={_ => ()}
+            setShowTabs={_ => ()}
+            openFrameExplorer={_ => ()}
         />
     }
 

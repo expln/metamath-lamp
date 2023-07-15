@@ -133,6 +133,7 @@ let make = (
     ~openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
+    ~openFrameExplorer:string=>unit,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
@@ -1431,6 +1432,8 @@ let make = (
 
             addStmtAbove=actAddStmtAbove(stmt.id)
             addStmtBelow=actAddStmtBelow(stmt.id)
+            setShowTabs
+            openFrameExplorer
         />
     }
 

@@ -75,6 +75,8 @@ type props = {
     onDebug:unit=>unit,
     addStmtAbove:string=>unit,
     addStmtBelow:string=>unit,
+    setShowTabs:bool=>unit,
+    openFrameExplorer:string=>unit,
 }
 
 let make: props => React.element
