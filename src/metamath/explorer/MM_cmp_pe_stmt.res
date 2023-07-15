@@ -1,4 +1,5 @@
 open Expln_React_Mui
+open Expln_utils_promise
 open MM_wrk_editor
 open MM_react_common
 open MM_context
@@ -111,17 +112,18 @@ let make = React.memoCustomCompareProps( ({
         switch getSelectedSymbols(state.cont) {
             | None => ()
             | Some(syms) => {
-                copyToClipboard(syms->Js_array2.joinWith(" "))
-                setCopiedToClipboard(timerId => {
-                    switch timerId {
-                        | None => ()
-                        | Some(timerId) => clearTimeout(timerId)
-                    }
-                    Some(setTimeout(
-                        () => setCopiedToClipboard(_ => None),
-                        1000
-                    ))
-                })
+                copyToClipboard(syms->Js_array2.joinWith(" "))->promiseMap(_ => {
+                    setCopiedToClipboard(timerId => {
+                        switch timerId {
+                            | None => ()
+                            | Some(timerId) => clearTimeout(timerId)
+                        }
+                        Some(setTimeout(
+                            () => setCopiedToClipboard(_ => None),
+                            1000
+                        ))
+                    })
+                })->ignore
             }
         }
     }

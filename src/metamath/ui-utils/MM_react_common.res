@@ -11,7 +11,7 @@ let getAvailWidth = ():int => {
 
 let backupClipboard = ref("")
 
-let copyToClipboard = (text:string) => {
+let copyToClipboard = (text:string):promise<unit> => {
     backupClipboard := text
     navigator["clipboard"]["writeText"](. text)
 }

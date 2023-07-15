@@ -1023,17 +1023,18 @@ let make = React.memoCustomCompareProps( ({
         switch getSelectedSymbols(stmt.cont) {
             | None => ()
             | Some(syms) => {
-                copyToClipboard(syms->Js_array2.joinWith(" "))
-                setCopiedToClipboard(timerId => {
-                    switch timerId {
-                        | None => ()
-                        | Some(timerId) => clearTimeout(timerId)
-                    }
-                    Some(setTimeout(
-                        () => setCopiedToClipboard(_ => None),
-                        1000
-                    ))
-                })
+                copyToClipboard(syms->Js_array2.joinWith(" "))->promiseMap(_ => {
+                    setCopiedToClipboard(timerId => {
+                        switch timerId {
+                            | None => ()
+                            | Some(timerId) => clearTimeout(timerId)
+                        }
+                        Some(setTimeout(
+                            () => setCopiedToClipboard(_ => None),
+                            1000
+                        ))
+                    })
+                })->ignore
             }
         }
     }
