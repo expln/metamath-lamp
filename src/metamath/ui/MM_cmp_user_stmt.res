@@ -1190,7 +1190,7 @@ let make = React.memoCustomCompareProps( ({
         } else {
             None
         }
-        <Row alignItems=#center spacing=0. style=ReactDOM.Style.make(~marginTop="3px", ())>
+        <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
