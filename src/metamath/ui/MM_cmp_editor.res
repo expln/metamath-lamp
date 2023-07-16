@@ -157,6 +157,9 @@ let make = (
     let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
         ~key="editor-smallBtns", ~default=false, ~tempMode
     )
+    let (parenAc, setParenAc) = useStateFromLocalStorageBool(
+        ~key="paren-autocomplete", ~default=true, ~tempMode=false
+    )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~settingsV=preCtxData.settingsV.ver, 
@@ -607,6 +610,10 @@ let make = (
                 })
             })->ignore
         }
+    }
+
+    let actToggleParenAc = () => {
+        setParenAc(prev => !prev)
     }
 
     let actAsrtSearchResultsSelected = selectedResults => {
@@ -1399,6 +1406,8 @@ let make = (
             wrkCtxColors=state.wrkCtxColors
             viewOptions
             readOnly=false
+            parenAc
+            toggleParenAc=actToggleParenAc
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs

@@ -166,7 +166,7 @@ let make = React.memoCustomCompareProps(({
             autoFocus=true
             value=labelFilter
             onChange=evt2str(actLabelFilterUpdated)
-            onKeyDown=kbrdHnd(~keyCode=keyCodeEnter, ~act=actApplyFilters, ())
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters, ())
         />
     }
 
@@ -177,7 +177,7 @@ let make = React.memoCustomCompareProps(({
             style=ReactDOM.Style.make(~width="300px", ())
             value=patternFilterStr
             onChange=evt2str(actPatternFilterStrUpdated)
-            onKeyDown=kbrdHnd(~keyCode=keyCodeEnter, ~act=actApplyFilters, ())
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters, ())
         />
     }
 

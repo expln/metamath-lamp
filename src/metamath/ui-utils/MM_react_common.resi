@@ -37,13 +37,13 @@ let clickHnd: (
 
 let clickHnd2: ( clickCallback, clickCallback, ) => (ReactEvent.Mouse.t => unit)
 
-let keyCodeEnter: int
-let keyCodeEsc: int
+let keyEnter: string
+let keyEsc: string
 
 type kbrdCallback
 
 let kbrdClbkMake: (
-    ~keyCode:int,
+    ~key:string,
     ~alt:bool=?,
     ~shift:bool=?,
     ~ctrl:bool=?,
@@ -52,7 +52,7 @@ let kbrdClbkMake: (
 ) => kbrdCallback
 
 let kbrdHnd: (
-    ~keyCode:int,
+    ~key:string,
     ~alt:bool=?,
     ~shift:bool=?,
     ~ctrl:bool=?,
@@ -61,3 +61,4 @@ let kbrdHnd: (
 ) => (ReactEvent.Keyboard.t => unit)
 
 let kbrdHnd2: ( kbrdCallback, kbrdCallback ) => (ReactEvent.Keyboard.t => unit)
+let kbrdHnd3: ( kbrdCallback, kbrdCallback, kbrdCallback ) => (ReactEvent.Keyboard.t => unit)

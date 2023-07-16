@@ -229,8 +229,8 @@ let make = (
             onChange=evt2str(onChange)
             inputProps={"tabIndex":tabIndex}
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~keyCode=keyCodeEnter, ~act=onEnter, ()),
-                kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=onEnter, ()),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
             )
         />
     }
