@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open Expln_utils_promise
 open MM_react_common
 open Local_storage_utils
 open Common
@@ -35,17 +36,18 @@ let make = (
     let textToShow = timestampStr ++ notesStr ++ jsonStr
 
     let actCopyToClipboard = () => {
-        copyToClipboard(textToShow)
-        setCopiedToClipboard(timerId => {
-            switch timerId {
-                | None => ()
-                | Some(timerId) => clearTimeout(timerId)
-            }
-            Some(setTimeout(
-                () => setCopiedToClipboard(_ => None),
-                1000
-            ))
-        })
+        copyToClipboard(textToShow)->promiseMap(_ => {
+            setCopiedToClipboard(timerId => {
+                switch timerId {
+                    | None => ()
+                    | Some(timerId) => clearTimeout(timerId)
+                }
+                Some(setTimeout(
+                    () => setCopiedToClipboard(_ => None),
+                    1000
+                ))
+            })
+        })->ignore
     }
 
     let actCopyAndClose = () => {

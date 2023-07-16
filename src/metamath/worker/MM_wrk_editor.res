@@ -13,8 +13,6 @@ open Common
 open MM_unification_debug
 open MM_wrk_pre_ctx_data
 
-let newLabelPrefix = ""
-
 type mmFileSourceType = Local | Web
 
 type readInstr = ReadAll | StopBefore | StopAfter
@@ -391,7 +389,7 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
     st->getAllStmtsUpToChecked
 }
 
-let createNewLabel = (st:editorState, prefix:string):string => {
+let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false, ()):string => {
     let reservedLabels = Belt_HashSetString.fromArray(st.stmts->Js_array2.map(stmt=>stmt.label))
     switch textToVarDefs(st.varsText) {
         | Error(_) => ()
@@ -402,13 +400,30 @@ let createNewLabel = (st:editorState, prefix:string):string => {
         }
     }
 
-    let labelIsReserved = label => reservedLabels->Belt_HashSetString.has(label) || st.preCtx->isHyp(label)
+    let labelIsReserved = (label:string):bool => {
+        reservedLabels->Belt_HashSetString.has(label) || st.preCtx->isHyp(label) ||
+            forHyp && st.preCtx->getTokenType(label)->Belt.Option.isSome
+    }
+
+    let prefixToUse = switch prefix {
+        | Some(prefix) => prefix
+        | None => {
+            if (forHyp) {
+                switch st.stmts->Js.Array2.find(stmt => stmt.isGoal) {
+                    | None => ""
+                    | Some(goal) => goal.label ++ "."
+                }
+            } else {
+                ""
+            }
+        }
+    }
     
     let cnt = ref(1)
-    let newLabel = ref(prefix ++ cnt.contents->Belt_Int.toString)
+    let newLabel = ref(prefixToUse ++ cnt.contents->Belt_Int.toString)
     while (labelIsReserved(newLabel.contents)) {
         cnt.contents = cnt.contents + 1
-        newLabel.contents = prefix ++ cnt.contents->Belt_Int.toString
+        newLabel.contents = prefixToUse ++ cnt.contents->Belt_Int.toString
     }
     newLabel.contents
 }
@@ -432,7 +447,7 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
                 && st.settings.defaultStmtLabel->Js.String2.trim->Js.String2.length > 0) {
             st.settings.defaultStmtLabel->Js.String2.trim
         } else {
-            createNewLabel(st, newLabelPrefix)
+            createNewLabel(st, ~prefix="", ~forHyp=false, ())
         }
     let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
@@ -478,7 +493,6 @@ let duplicateCheckedStmt = st => {
         st
     } else {
         let newId = st.nextStmtId->Belt_Int.toString
-        let newLabel = createNewLabel(st, newLabelPrefix)
         let idToAddAfter = st.checkedStmtIds[0]
         {
             ...st,
@@ -486,7 +500,16 @@ let duplicateCheckedStmt = st => {
             stmts: 
                 st.stmts->Js_array2.map(stmt => {
                     if (stmt.id == idToAddAfter) {
-                        [stmt, {...stmt, id:newId, label:newLabel, isGoal:false, jstfText:""}]
+                        [
+                            stmt, 
+                            {
+                                ...stmt, 
+                                id:newId, 
+                                label:createNewLabel(st, ~forHyp = stmt.typ == E, ()),
+                                isGoal:false, 
+                                jstfText:""
+                            }
+                        ]
                     } else {
                         [stmt]
                     }
@@ -592,61 +615,12 @@ let setTypEditMode = (st, stmtId) => {
     }
 }
 
-let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
-    updateStmt(st, stmtId, stmt => {
-        {
-            ...stmt,
-            typ:newTyp,
-            isGoal: 
-                switch newTyp {
-                    | E => false
-                    | P => newIsGoal
-                },
-            typEditMode: false
-        }
-    })
-}
-
 let setJstfEditMode = (st, stmtId) => {
     if (canGoEditModeForStmt(st, stmtId)) {
         updateStmt(st, stmtId, stmt => {...stmt, jstfEditMode:true})
     } else {
         st
     }
-}
-
-let defaultJstfForHyp = "HYP"
-
-let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
-    updateStmt(st, stmtId, stmt => {
-        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
-        let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
-        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
-
-        let pCnt = st.stmts->Js.Array2.reduce(
-            (cnt,stmt) => {
-                let typ = if (stmt.id == stmtId) {newTyp} else {stmt.typ}
-                if (stmt.id != stmtId && typ == P) {cnt + 1} else {cnt}
-            },
-            0
-        )
-        
-        let newIsGoal = if (newTyp == E) { false } else { pCnt == 0 }
-        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
-            st.settings.defaultStmtLabel
-        } else { 
-            stmt.label
-        }
-        
-        {
-            ...stmt,
-            typ: newTyp,
-            isGoal: newIsGoal,
-            label:newLabel,
-            jstfText:newJstf,
-            jstfEditMode: false,
-        }
-    })
 }
 
 let incUnifyAllIsRequiredCnt = st => {
@@ -2192,6 +2166,93 @@ let renameStmt = (st:editorState, stmtId:stmtId, newLabel:string):result<editorS
     }
 }
 
+let onlyDigitsPattern = %re("/^\d+$/")
+
+let containsOnlyDigits = (label:string):bool => label->Js_string2.match_(onlyDigitsPattern)->Belt_Option.isSome
+
+let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):editorState => {
+    if (oldStmt.id != newStmt.id) {
+        raise(MmException({msg:`renameHypToMatchGoal: oldStmt.id != newStmt.id`}))
+    }
+    let stmtId = oldStmt.id
+    if (oldStmt.typ == P && newStmt.typ == E && newStmt.label->containsOnlyDigits) {
+        let newLabel = 
+            if (
+                st.stmts->Js.Array2.find(stmt => stmt.isGoal)->Belt.Option.isSome
+                || st.preCtx->getTokenType(newStmt.label)->Belt.Option.isSome
+            ) {
+                createNewLabel(st, ~forHyp=true, ())
+            } else {
+                newStmt.label
+            }
+        if (newLabel == newStmt.label) {
+            st
+        } else {
+            switch st->renameStmt(stmtId, newLabel) {
+                | Error(_) => st
+                | Ok(st) => st
+            }
+        }
+    } else {
+        st
+    }
+}
+
+let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
+    let oldStmt = st->editorGetStmtByIdExn(stmtId)
+    let st = updateStmt(st, stmtId, stmt => {
+        {
+            ...stmt,
+            typ:newTyp,
+            isGoal: 
+                switch newTyp {
+                    | E => false
+                    | P => newIsGoal
+                },
+            typEditMode: false
+        }
+    })
+    let newStmt = st->editorGetStmtByIdExn(stmtId)
+    renameHypToMatchGoal(st, oldStmt, newStmt)
+}
+
+let defaultJstfForHyp = "HYP"
+
+let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
+    let oldStmt = st->editorGetStmtByIdExn(stmtId)
+    let st = updateStmt(st, stmtId, stmt => {
+        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
+        let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
+        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
+
+        let pCnt = st.stmts->Js.Array2.reduce(
+            (cnt,stmt) => {
+                let typ = if (stmt.id == stmtId) {newTyp} else {stmt.typ}
+                if (stmt.id != stmtId && typ == P) {cnt + 1} else {cnt}
+            },
+            0
+        )
+        
+        let newIsGoal = if (newTyp == E) { false } else { pCnt == 0 }
+        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
+            st.settings.defaultStmtLabel
+        } else { 
+            stmt.label
+        }
+        
+        {
+            ...stmt,
+            typ: newTyp,
+            isGoal: newIsGoal,
+            label:newLabel,
+            jstfText:newJstf,
+            jstfEditMode: false,
+        }
+    })
+    let newStmt = st->editorGetStmtByIdExn(stmtId)
+    renameHypToMatchGoal(st, oldStmt, newStmt)
+}
+
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     if (st.checkedStmtIds->Js.Array2.length == 1) {
         switch st->editorGetStmtById(st.checkedStmtIds[0]) {
@@ -2245,7 +2306,7 @@ let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_Se
                     } else {
                         let curParent = ref(Some(parent))
                         let curLvl = ref(treeData.expLvl)
-                        while (curLvl.contents > 0 && curParent.contents->Belt_Option.isSome) {
+                        while (curLvl.contents > 1 && curParent.contents->Belt_Option.isSome) {
                             curLvl := curLvl.contents - 1
                             curParent := (curParent.contents->Belt_Option.getExn).parent
                         }
@@ -2365,30 +2426,6 @@ let decExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
     }
 }
 
-let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
-    if (treeData.expLvl == 0) {
-        switch treeData.clickedNodeId {
-            | None => treeData
-            | Some(clickedNodeId) => {
-                switch treeData.root->getNodeById(clickedNodeId) {
-                    | None => treeData
-                    | Some(Symbol({parent})) => {
-                        if (parent->getIdsOfAllChildSymbols->Belt_SetInt.size == 1) {
-                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
-                            treeData
-                        } else {
-                            treeData->incExpLvl
-                        }
-                    }
-                    | Some(Subtree(_)) => treeData
-                }
-            }
-        }
-    } else {
-        treeData
-    }
-}
-
 let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array<expr> => {
     let res = []
     st.stmts->Js.Array2.forEachi((stmt,i) => {
@@ -2421,9 +2458,29 @@ let updateExpLevel = (treeData:stmtContTreeData, inc:bool):stmtContTreeData => {
     newTreeData.contents
 }
 
-let onlyDigitsPattern = %re("/^\d+$/")
-
-let containsOnlyDigits = label => label->Js_string2.match_(onlyDigitsPattern)->Belt_Option.isSome
+let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
+    if (treeData.expLvl == 0) {
+        switch treeData.clickedNodeId {
+            | None => treeData
+            | Some(clickedNodeId) => {
+                switch treeData.root->getNodeById(clickedNodeId) {
+                    | None => treeData
+                    | Some(Symbol({parent})) => {
+                        if (parent->getIdsOfAllChildSymbols->Belt_SetInt.size == 1) {
+                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
+                            treeData
+                        } else {
+                            treeData->updateExpLevel(true)
+                        }
+                    }
+                    | Some(Subtree(_)) => treeData
+                }
+            }
+        }
+    } else {
+        treeData
+    }
+}
 
 let renumberSteps = (state:editorState):result<editorState, string> => {
     let state = state->prepareEditorForUnification
@@ -2460,7 +2517,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
         let res = idsToRenumberArr->Js.Array2.reduce(
             (res,stmtId) => {
                 switch res {
-                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(""))
+                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix="", ~forHyp=false, ()))
                     | err => err
                 }
             },

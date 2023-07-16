@@ -1,4 +1,5 @@
 open Expln_React_Mui
+open Expln_utils_promise
 open MM_react_common
 open Common
 
@@ -17,17 +18,18 @@ let make = (
     let url = origin ++ pathname ++ "?editorState=" ++ editorStateBase64
 
     let actCopyToClipboard = () => {
-        copyToClipboard(url)
-        setCopiedToClipboard(timerId => {
-            switch timerId {
-                | None => ()
-                | Some(timerId) => clearTimeout(timerId)
-            }
-            Some(setTimeout(
-                () => setCopiedToClipboard(_ => None),
-                1000
-            ))
-        })
+        copyToClipboard(url)->promiseMap(_ => {
+            setCopiedToClipboard(timerId => {
+                switch timerId {
+                    | None => ()
+                    | Some(timerId) => clearTimeout(timerId)
+                }
+                Some(setTimeout(
+                    () => setCopiedToClipboard(_ => None),
+                    1000
+                ))
+            })
+        })->ignore
     }
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >

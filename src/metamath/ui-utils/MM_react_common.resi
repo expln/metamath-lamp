@@ -10,7 +10,7 @@ let openInfoDialog: (
     unit,
 ) => unit
 
-let copyToClipboard: string => unit
+let copyToClipboard: string => promise<unit>
 let readFromClipboard: () => promise<string>
 let getAvailWidth: () => int
 

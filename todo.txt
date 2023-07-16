@@ -80,3 +80,4 @@ DONE:
 - implement table view in the editor.
 - add onEnter and onEscape wherever possible.
 - allow editing of settings in the temp mode
+- check if copy to clipboard should return a promise
