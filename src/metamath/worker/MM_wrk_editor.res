@@ -592,61 +592,12 @@ let setTypEditMode = (st, stmtId) => {
     }
 }
 
-let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
-    updateStmt(st, stmtId, stmt => {
-        {
-            ...stmt,
-            typ:newTyp,
-            isGoal: 
-                switch newTyp {
-                    | E => false
-                    | P => newIsGoal
-                },
-            typEditMode: false
-        }
-    })
-}
-
 let setJstfEditMode = (st, stmtId) => {
     if (canGoEditModeForStmt(st, stmtId)) {
         updateStmt(st, stmtId, stmt => {...stmt, jstfEditMode:true})
     } else {
         st
     }
-}
-
-let defaultJstfForHyp = "HYP"
-
-let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
-    updateStmt(st, stmtId, stmt => {
-        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
-        let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
-        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
-
-        let pCnt = st.stmts->Js.Array2.reduce(
-            (cnt,stmt) => {
-                let typ = if (stmt.id == stmtId) {newTyp} else {stmt.typ}
-                if (stmt.id != stmtId && typ == P) {cnt + 1} else {cnt}
-            },
-            0
-        )
-        
-        let newIsGoal = if (newTyp == E) { false } else { pCnt == 0 }
-        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
-            st.settings.defaultStmtLabel
-        } else { 
-            stmt.label
-        }
-        
-        {
-            ...stmt,
-            typ: newTyp,
-            isGoal: newIsGoal,
-            label:newLabel,
-            jstfText:newJstf,
-            jstfEditMode: false,
-        }
-    })
 }
 
 let incUnifyAllIsRequiredCnt = st => {
@@ -2192,6 +2143,86 @@ let renameStmt = (st:editorState, stmtId:stmtId, newLabel:string):result<editorS
     }
 }
 
+let onlyDigitsPattern = %re("/^\d+$/")
+
+let containsOnlyDigits = (label:string):bool => label->Js_string2.match_(onlyDigitsPattern)->Belt_Option.isSome
+
+let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):editorState => {
+    if (oldStmt.id != newStmt.id) {
+        raise(MmException({msg:`renameHypToMatchGoal: oldStmt.id != newStmt.id`}))
+    }
+    let stmtId = oldStmt.id
+    if (oldStmt.typ == P && newStmt.typ == E && newStmt.label->containsOnlyDigits) {
+        switch st.stmts->Js.Array2.find(stmt => stmt.isGoal) {
+            | None => st
+            | Some(goal) => {
+                let newLabel = createNewLabel(st, goal.label ++ ".")
+                switch st->renameStmt(stmtId, newLabel) {
+                    | Error(msg) => st
+                    | Ok(st) => st
+                }
+            }
+        }
+    } else {
+        st
+    }
+}
+
+let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
+    let oldStmt = st->editorGetStmtByIdExn(stmtId)
+    let st = updateStmt(st, stmtId, stmt => {
+        {
+            ...stmt,
+            typ:newTyp,
+            isGoal: 
+                switch newTyp {
+                    | E => false
+                    | P => newIsGoal
+                },
+            typEditMode: false
+        }
+    })
+    let newStmt = st->editorGetStmtByIdExn(stmtId)
+    renameHypToMatchGoal(st, oldStmt, newStmt)
+}
+
+let defaultJstfForHyp = "HYP"
+
+let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
+    let oldStmt = st->editorGetStmtByIdExn(stmtId)
+    let st = updateStmt(st, stmtId, stmt => {
+        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
+        let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
+        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
+
+        let pCnt = st.stmts->Js.Array2.reduce(
+            (cnt,stmt) => {
+                let typ = if (stmt.id == stmtId) {newTyp} else {stmt.typ}
+                if (stmt.id != stmtId && typ == P) {cnt + 1} else {cnt}
+            },
+            0
+        )
+        
+        let newIsGoal = if (newTyp == E) { false } else { pCnt == 0 }
+        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
+            st.settings.defaultStmtLabel
+        } else { 
+            stmt.label
+        }
+        
+        {
+            ...stmt,
+            typ: newTyp,
+            isGoal: newIsGoal,
+            label:newLabel,
+            jstfText:newJstf,
+            jstfEditMode: false,
+        }
+    })
+    let newStmt = st->editorGetStmtByIdExn(stmtId)
+    renameHypToMatchGoal(st, oldStmt, newStmt)
+}
+
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     if (st.checkedStmtIds->Js.Array2.length == 1) {
         switch st->editorGetStmtById(st.checkedStmtIds[0]) {
@@ -2420,10 +2451,6 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
         treeData
     }
 }
-
-let onlyDigitsPattern = %re("/^\d+$/")
-
-let containsOnlyDigits = label => label->Js_string2.match_(onlyDigitsPattern)->Belt_Option.isSome
 
 let renumberSteps = (state:editorState):result<editorState, string> => {
     let state = state->prepareEditorForUnification
