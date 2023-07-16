@@ -1538,9 +1538,9 @@ let make = React.memoCustomCompareProps( ({
             let padding = if (jstfTextStr->Js_string2.trim == "") { "11px 16px" } else { "1px" }
             let title =
                 if (longClickEnabled) {
-                    "<long-click> (Alt+<left-click>) to change"
+                    "<long-click> (Alt+<left-click>) to change; click on the label to open a proof explorer tab"
                 } else {
-                    "Alt+<left-click> to change"
+                    "Alt+<left-click> to change; click on the label to open a proof explorer tab"
                 }
             <Row
                 spacing=0.
