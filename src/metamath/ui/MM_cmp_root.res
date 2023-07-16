@@ -244,7 +244,6 @@ let make = () => {
                         }
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
-                        tempMode=tempMode.contents
                         style=ReactDOM.Style.make(
                             ~display=
                                 ?if(state.preCtxData.settingsV.val.hideContextSelector 

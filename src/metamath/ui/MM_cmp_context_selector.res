@@ -485,12 +485,11 @@ let make = (
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style as _ :option<reStyle>=?,
-    ~tempMode:bool,
     ~onExpandedChange:bool=>unit,
     ~doExpand: React.ref<Js.Nullable.t<unit=>unit>>,
 ) => {
     let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(
-        ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr, ~tempMode
+        ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr
     )
 
     let defaultSrcType = mmFileSourceTypeFromStrOpt(defaultSrcTypeStr)->Belt_Option.getWithDefault(Web)

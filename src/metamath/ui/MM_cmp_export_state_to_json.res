@@ -9,10 +9,9 @@ open Common
 let make = (
     ~jsonStr:string, 
     ~onClose:unit=>unit,
-    ~tempMode:bool,
 ) => {
     let (appendTimestamp, setAppendTimestamp) = useStateFromLocalStorageBool(
-        ~key="export-to-json-append-timestamp", ~default=false, ~tempMode
+        ~key="export-to-json-append-timestamp", ~default=false
     )
     let (notes, setNotes) = React.useState(() => "")
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)

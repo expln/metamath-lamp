@@ -11,13 +11,12 @@ let make = (
     ~proofTableWithTypes:string, 
     ~proofTableWithoutTypes:string,
     ~onClose:unit=>unit,
-    ~tempMode:bool,
 ) => {
     let (showProofTable, setShowProofTable) = useStateFromLocalStorageBool(
-        ~key="export-proof-show-proof-table", ~default=false, ~tempMode
+        ~key="export-proof-show-proof-table", ~default=false
     )
     let (essentialsOnly, setEssentialsOnly) = useStateFromLocalStorageBool(
-        ~key="export-proof-essentials-only", ~default=false, ~tempMode
+        ~key="export-proof-essentials-only", ~default=false
     )
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
