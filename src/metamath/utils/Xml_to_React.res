@@ -94,16 +94,12 @@ let createStyle = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<React
 
 let createDomProps = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<ReactDOM.domProps> => {
     if (attrs->Belt_MapString.size != 0 || addBorder) {
-        let resultRef = ref({}:ReactDOM.domProps)
-        switch createStyle(attrs, ~addBorder) {
-            | None => ()
-            | Some(style) => resultRef.contents = {...resultRef.contents, style: style}
-        }
-        switch (attrs->Belt_MapString.get("href")) {
-            | None => ()
-            | Some(href) => resultRef.contents = {...resultRef.contents, href: href, title: href, target: "_blank"}
-        }
-        Some(resultRef.contents)
+        Some({
+            style:?createStyle(attrs, ~addBorder),
+            href:?(attrs->Belt_MapString.get("href")),
+            title:?(attrs->Belt_MapString.get("href")),
+            target:?(attrs->Belt_MapString.get("href")->Belt_Option.map(_ => "_blank")),
+        })
     } else {
         None
     }
