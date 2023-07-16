@@ -1298,10 +1298,12 @@ let make = React.memoCustomCompareProps( ({
                     {
                         if (parenAc) {
                             rndIconButton(~icon=<MM_Icons.Code/>, 
-                                ~onClick=toggleParenAc, ~title="Parentheses autocomplete is On", ())
+                                ~onClick=toggleParenAc, 
+                                ~title="Parentheses autocomplete is On; press Alt+P to turn it Off", ())
                         } else {
                             rndIconButton(~icon=<MM_Icons.CodeOff/>, 
-                                ~onClick=toggleParenAc, ~title="Parentheses autocomplete is Off", ())
+                                ~onClick=toggleParenAc, 
+                                ~title="Parentheses autocomplete is Off; press Alt+P to turn it On", ())
                         }
                     }
                     {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
