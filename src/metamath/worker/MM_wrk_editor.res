@@ -13,8 +13,6 @@ open Common
 open MM_unification_debug
 open MM_wrk_pre_ctx_data
 
-let newLabelPrefix = ""
-
 type mmFileSourceType = Local | Web
 
 type readInstr = ReadAll | StopBefore | StopAfter
@@ -2191,7 +2189,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
             st
         } else {
             switch st->renameStmt(stmtId, newLabel) {
-                | Error(msg) => st
+                | Error(_) => st
                 | Ok(st) => st
             }
         }
