@@ -391,7 +391,7 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
     st->getAllStmtsUpToChecked
 }
 
-let createNewLabel = (st:editorState, prefix:string):string => {
+let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false, ()):string => {
     let reservedLabels = Belt_HashSetString.fromArray(st.stmts->Js_array2.map(stmt=>stmt.label))
     switch textToVarDefs(st.varsText) {
         | Error(_) => ()
@@ -402,13 +402,30 @@ let createNewLabel = (st:editorState, prefix:string):string => {
         }
     }
 
-    let labelIsReserved = label => reservedLabels->Belt_HashSetString.has(label) || st.preCtx->isHyp(label)
+    let labelIsReserved = (label:string):bool => {
+        reservedLabels->Belt_HashSetString.has(label) || st.preCtx->isHyp(label) ||
+            forHyp && st.preCtx->getTokenType(label)->Belt.Option.isSome
+    }
+
+    let prefixToUse = switch prefix {
+        | Some(prefix) => prefix
+        | None => {
+            if (forHyp) {
+                switch st.stmts->Js.Array2.find(stmt => stmt.isGoal) {
+                    | None => ""
+                    | Some(goal) => goal.label ++ "."
+                }
+            } else {
+                ""
+            }
+        }
+    }
     
     let cnt = ref(1)
-    let newLabel = ref(prefix ++ cnt.contents->Belt_Int.toString)
+    let newLabel = ref(prefixToUse ++ cnt.contents->Belt_Int.toString)
     while (labelIsReserved(newLabel.contents)) {
         cnt.contents = cnt.contents + 1
-        newLabel.contents = prefix ++ cnt.contents->Belt_Int.toString
+        newLabel.contents = prefixToUse ++ cnt.contents->Belt_Int.toString
     }
     newLabel.contents
 }
@@ -432,7 +449,7 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
                 && st.settings.defaultStmtLabel->Js.String2.trim->Js.String2.length > 0) {
             st.settings.defaultStmtLabel->Js.String2.trim
         } else {
-            createNewLabel(st, newLabelPrefix)
+            createNewLabel(st, ~prefix="", ~forHyp=false, ())
         }
     let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
@@ -478,7 +495,6 @@ let duplicateCheckedStmt = st => {
         st
     } else {
         let newId = st.nextStmtId->Belt_Int.toString
-        let newLabel = createNewLabel(st, newLabelPrefix)
         let idToAddAfter = st.checkedStmtIds[0]
         {
             ...st,
@@ -486,7 +502,16 @@ let duplicateCheckedStmt = st => {
             stmts: 
                 st.stmts->Js_array2.map(stmt => {
                     if (stmt.id == idToAddAfter) {
-                        [stmt, {...stmt, id:newId, label:newLabel, isGoal:false, jstfText:""}]
+                        [
+                            stmt, 
+                            {
+                                ...stmt, 
+                                id:newId, 
+                                label:createNewLabel(st, ~forHyp = stmt.typ == E, ()),
+                                isGoal:false, 
+                                jstfText:""
+                            }
+                        ]
                     } else {
                         [stmt]
                     }
@@ -2153,14 +2178,21 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
     }
     let stmtId = oldStmt.id
     if (oldStmt.typ == P && newStmt.typ == E && newStmt.label->containsOnlyDigits) {
-        switch st.stmts->Js.Array2.find(stmt => stmt.isGoal) {
-            | None => st
-            | Some(goal) => {
-                let newLabel = createNewLabel(st, goal.label ++ ".")
-                switch st->renameStmt(stmtId, newLabel) {
-                    | Error(msg) => st
-                    | Ok(st) => st
-                }
+        let newLabel = 
+            if (
+                st.stmts->Js.Array2.find(stmt => stmt.isGoal)->Belt.Option.isSome
+                || st.preCtx->getTokenType(newStmt.label)->Belt.Option.isSome
+            ) {
+                createNewLabel(st, ~forHyp=true, ())
+            } else {
+                newStmt.label
+            }
+        if (newLabel == newStmt.label) {
+            st
+        } else {
+            switch st->renameStmt(stmtId, newLabel) {
+                | Error(msg) => st
+                | Ok(st) => st
             }
         }
     } else {
@@ -2487,7 +2519,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
         let res = idsToRenumberArr->Js.Array2.reduce(
             (res,stmtId) => {
                 switch res {
-                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(""))
+                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix="", ~forHyp=false, ()))
                     | err => err
                 }
             },
