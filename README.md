@@ -66,18 +66,15 @@ Mac: `cp ./dist/webworker-main.js ./public`
 
 ***How to run all integration tests***
 
-1. Update setMmPath constant in src/metamath/test/MM_int_test_utils.res to point out to set.mm file.
-2. Run tests: 
 `npm run compile-test-all-int`
-
 
 ***How to run a particular test***
 
 1. In package.json, update 'compile-test-single' script replacing put_test_name_here with required test name. For example:
 
-replace: `"compile-test-single": "rescript && mocha --timeout 100000 -g \"'put_test_name_here'\" src/metamath/test/**/*.js",`
+replace: `"compile-test-single": "rescript && mocha --timeout 10000000 -g \"'put_test_name_here'\" src/**/test/**/*.js",`
 
-with: `"compile-test-single": "rescript && mocha --timeout 100000 -g \"'finds proofs for simple wffs'\" src/metamath/test/**/*.js",`
+with: `"compile-test-single": "rescript && mocha --timeout 10000000 -g \"'finds proofs for simple wffs'\" src/**/test/**/*.js",`
 
 2. Run tests:
 
