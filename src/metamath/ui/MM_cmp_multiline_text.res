@@ -12,9 +12,8 @@ let makeInitialState = () => {
     }
 }
 
-let setNewText = (st,text):state => {
+let setNewText = (_, text):state => {
     {
-        ...st,
         newText:text
     }
 }
