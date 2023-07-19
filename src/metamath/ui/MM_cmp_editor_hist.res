@@ -124,6 +124,8 @@ let make = (
                 {...viewOptions, showCheckbox:false}
             }
             readOnly=true
+            parenAc=false
+            toggleParenAc={()=>()}
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs

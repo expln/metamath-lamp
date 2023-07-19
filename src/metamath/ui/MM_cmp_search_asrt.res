@@ -261,8 +261,8 @@ let make = (
             value=state.patternStr
             onChange=evt2str(actPatternChange)
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actSearch, ()),
-                kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSearch, ()),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
             )
         />
     }
@@ -275,8 +275,8 @@ let make = (
             value=state.label
             onChange=evt2str(actLabelChange)
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actSearch, ()),
-                kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSearch, ()),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
             )
         />
     }

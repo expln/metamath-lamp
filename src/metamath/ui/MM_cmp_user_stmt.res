@@ -638,6 +638,8 @@ type props = {
 
     viewOptions:viewOptions,
     readOnly:bool,
+    parenAc:bool,
+    toggleParenAc: unit=>unit,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 
@@ -677,6 +679,7 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.viewOptions.inlineMode == b.viewOptions.inlineMode
     && a.viewOptions.smallBtns == b.viewOptions.smallBtns
     && a.readOnly == b.readOnly
+    && a.parenAc == b.parenAc
 
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
@@ -729,6 +732,8 @@ let make = React.memoCustomCompareProps( ({
     wrkCtxColors,
     viewOptions,
     readOnly,
+    parenAc,
+    toggleParenAc,
     editStmtsByLeftClick,
     longClickEnabled,
     longClickDelayMs,
@@ -909,21 +914,25 @@ let make = React.memoCustomCompareProps( ({
         let prevLen = state.newText->Js.String2.length
         let newLen = newText->Js.String2.length
         let newText = 
-            if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->Js.String2.charAt(selectionStart - 1)) {
-                let pos = selectionStart-1
-                let prevBefore = state.newText->before(pos)
-                let newBefore = newText->before(pos)
-                let prevAfter = state.newText->after(pos-1)
-                let newAfter = newText->after(pos)
-                if ( prevBefore == newBefore && prevAfter == newAfter ) {
-                    let lastSymbol = getLastSymbol(newBefore)
-                    switch parensMap->Belt_HashMapString.get(lastSymbol) {
-                        | None => newText
-                        | Some(closingParen) => {
-                            let newText = newBefore ++ "  " ++ closingParen ++ newAfter
-                            setNewTextCursorPosition(_ => Some(selectionStart))
-                            newText
+            if (parenAc) {
+                if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->Js.String2.charAt(selectionStart - 1)) {
+                    let pos = selectionStart-1
+                    let prevBefore = state.newText->before(pos)
+                    let newBefore = newText->before(pos)
+                    let prevAfter = state.newText->after(pos-1)
+                    let newAfter = newText->after(pos)
+                    if ( prevBefore == newBefore && prevAfter == newAfter ) {
+                        let lastSymbol = getLastSymbol(newBefore)
+                        switch parensMap->Belt_HashMapString.get(lastSymbol) {
+                            | None => newText
+                            | Some(closingParen) => {
+                                let newText = newBefore ++ "  " ++ closingParen ++ newAfter
+                                setNewTextCursorPosition(_ => Some(selectionStart))
+                                newText
+                            }
                         }
+                    } else {
+                        newText
                     }
                 } else {
                     newText
@@ -1129,8 +1138,8 @@ let make = React.memoCustomCompareProps( ({
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actLabelEditDone, ()),
-                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actLabelEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actLabelEditDone, ()),
+                        kbrdClbkMake(~key=keyEsc, ~act=actLabelEditCancel, ()),
                     )
                     title="Enter to save, Esc to cancel"
                 />
@@ -1278,13 +1287,30 @@ let make = React.memoCustomCompareProps( ({
                         let value = (evt->ReactEvent.Form.target)["value"]
                         actStmtContentUpdated(value, selectionStart)
                     }}
-                    onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actContEditDone, ()),
-                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actContEditCancel, ()),
+                    onKeyDown=kbrdHnd3(
+                        kbrdClbkMake(~key=keyEnter, ~act=actContEditDone, ()),
+                        kbrdClbkMake(~key=keyEsc, ~act=actContEditCancel, ()),
+                        kbrdClbkMake(~alt=true, ~key="p", ~act=toggleParenAc, ()),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
                 <Row>
+                    {
+                        if (parenAc) {
+                            rndIconButton(~icon=<MM_Icons.Code/>, 
+                                ~onClick=toggleParenAc, 
+                                ~title="Parentheses autocomplete is On; press Alt+P to turn it Off", 
+                                ()
+                            )
+                        } else {
+                            rndIconButton(~icon=<MM_Icons.CodeOff/>, 
+                                ~onClick=toggleParenAc, 
+                                ~title="Parentheses autocomplete is Off; press Alt+P to turn it On", 
+                                ~color=None,
+                                ()
+                            )
+                        }
+                    }
                     {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
                         ~onClick=actContEditDone, ~title="Save, Enter", ())}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
@@ -1500,8 +1526,8 @@ let make = React.memoCustomCompareProps( ({
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actJstfEditDone, ()),
-                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actJstfEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actJstfEditDone, ()),
+                        kbrdClbkMake(~key=keyEsc, ~act=actJstfEditCancel, ()),
                     )
                     title="Enter to save, Esc to cancel"
                 />

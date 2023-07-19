@@ -155,11 +155,11 @@ let clickHnd2 = ( clbk1:clickCallback, clbk2:clickCallback, ):(ReactEvent.Mouse.
     }
 }
 
-let keyCodeEnter = 13
-let keyCodeEsc = 27
+let keyEnter = "Enter"
+let keyEsc = "Escape"
 
 type kbrdCallback = {
-    keyCode:int,
+    key:string,
     alt:bool,
     shift:bool,
     ctrl:bool,
@@ -167,27 +167,28 @@ type kbrdCallback = {
 }
 
 let kbrdClbkMake = (
-    ~keyCode:int,
+    ~key:string,
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
     ~act:unit=>unit,
     ()
 ) => {
-    { keyCode, alt, shift, ctrl, act, }
+    { key:key->Js_string2.toLowerCase, alt, shift, ctrl, act, }
 }
 
 let kbrdHnd = (
-    ~keyCode:int,
+    ~key:string,
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
     ~act:unit=>unit,
     ()
 ):(ReactEvent.Keyboard.t => unit) => {
+    let key = key->Js_string2.toLowerCase
     evt => {
         if (
-            evt->ReactEvent.Keyboard.keyCode === keyCode
+            evt->ReactEvent.Keyboard.key->Js_string2.toLowerCase === key
             && evt->ReactEvent.Keyboard.altKey === alt
             && evt->ReactEvent.Keyboard.ctrlKey === ctrl
             && evt->ReactEvent.Keyboard.shiftKey === shift
@@ -201,7 +202,7 @@ let kbrdHnd = (
 
 let runKbrdCallback = (evt:ReactEvent.Keyboard.t, clbk:kbrdCallback):unit => {
     if (
-        evt->ReactEvent.Keyboard.keyCode === clbk.keyCode
+        evt->ReactEvent.Keyboard.key->Js_string2.toLowerCase === clbk.key
         && evt->ReactEvent.Keyboard.altKey === clbk.alt
         && evt->ReactEvent.Keyboard.ctrlKey === clbk.ctrl
         && evt->ReactEvent.Keyboard.shiftKey === clbk.shift
@@ -216,5 +217,13 @@ let kbrdHnd2 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, ):(ReactEvent.Keyboard.
     evt => {
         runKbrdCallback(evt,clbk1)
         runKbrdCallback(evt,clbk2)
+    }
+}
+
+let kbrdHnd3 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, clbk3:kbrdCallback, ):(ReactEvent.Keyboard.t => unit) => {
+    evt => {
+        runKbrdCallback(evt,clbk1)
+        runKbrdCallback(evt,clbk2)
+        runKbrdCallback(evt,clbk3)
     }
 }

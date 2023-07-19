@@ -8,6 +8,8 @@ module CancelOutlined = { @module("@mui/icons-material/CancelOutlined") @react.c
 module ControlPointDuplicate = { @module("@mui/icons-material/ControlPointDuplicate") @react.component external make: () => React.element = "default" }
 module ContentCopy = { @module("@mui/icons-material/ContentCopy") @react.component external make: () => React.element = "default" }
 module ContentPaste = { @module("@mui/icons-material/ContentPaste") @react.component external make: () => React.element = "default" }
+module Code = { @module("@mui/icons-material/Code") @react.component external make: () => React.element = "default" }
+module CodeOff = { @module("@mui/icons-material/CodeOff") @react.component external make: () => React.element = "default" }
 module DeleteForever = { @module("@mui/icons-material/DeleteForever") @react.component external make: () => React.element = "default" }
 module Delete = { @module("@mui/icons-material/Delete") @react.component external make: () => React.element = "default" }
 module Edit = { @module("@mui/icons-material/Edit") @react.component external make: () => React.element = "default" }

@@ -43,16 +43,13 @@ let useStateFromLocalStorage = (
     ~key:string,
     ~fromString:option<string>=>'a,
     ~toString:'a=>string,
-    ~tempMode:bool,
 ):('a, ('a=>'a) => unit) => {
     let (value, setValuePriv) = React.useState(_ => fromString(locStorReadString(key)))
 
     let setValue = (mapper:('a=>'a)) => {
         setValuePriv(old => {
             let new = mapper(old)
-            if (!tempMode) {
-                locStorWriteString(key, toString(new))
-            }
+            locStorWriteString(key, toString(new))
             new
         })
     }
@@ -60,7 +57,7 @@ let useStateFromLocalStorage = (
     ( value, setValue )
 }
 
-let useStateFromLocalStorageBool = (~key:string,~default:bool,~tempMode:bool):(bool, (bool=>bool) => unit) => {
+let useStateFromLocalStorageBool = (~key:string,~default:bool):(bool, (bool=>bool) => unit) => {
     useStateFromLocalStorage(
         ~key,
         ~fromString = boolStrOpt => {
@@ -72,11 +69,10 @@ let useStateFromLocalStorageBool = (~key:string,~default:bool,~tempMode:bool):(b
             }
         },
         ~toString = Expln_utils_common.stringify,
-        ~tempMode,
     )
 }
 
-let useStateFromLocalStorageStr = (~key:string,~default:string,~tempMode:bool):(string, (string=>string) => unit) => {
+let useStateFromLocalStorageStr = (~key:string,~default:string):(string, (string=>string) => unit) => {
     useStateFromLocalStorage(
         ~key,
         ~fromString = strOpt => {
@@ -86,6 +82,5 @@ let useStateFromLocalStorageStr = (~key:string,~default:string,~tempMode:bool):(
             }
         },
         ~toString = str => str,
-        ~tempMode,
     )
 }

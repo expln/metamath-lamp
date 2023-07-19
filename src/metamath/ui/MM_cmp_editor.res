@@ -140,22 +140,25 @@ let make = (
     let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
-        ~key="editor-showCheckbox", ~default=true, ~tempMode
+        ~key="editor-showCheckbox", ~default=true,
     )
     let (showLabel, setShowLabel) = useStateFromLocalStorageBool(
-        ~key="editor-showLabel", ~default=true, ~tempMode
+        ~key="editor-showLabel", ~default=true,
     )
     let (showType, setShowType) = useStateFromLocalStorageBool(
-        ~key="editor-showType", ~default=true, ~tempMode
+        ~key="editor-showType", ~default=true,
     )
     let (showJstf, setShowJstf) = useStateFromLocalStorageBool(
-        ~key="editor-showJstf", ~default=true, ~tempMode
+        ~key="editor-showJstf", ~default=true,
     )
     let (inlineMode, setInlineMode) = useStateFromLocalStorageBool(
-        ~key="editor-inlineMode", ~default=false, ~tempMode
+        ~key="editor-inlineMode", ~default=false,
     )
     let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
-        ~key="editor-smallBtns", ~default=false, ~tempMode
+        ~key="editor-smallBtns", ~default=false,
+    )
+    let (parenAc, setParenAc) = useStateFromLocalStorageBool(
+        ~key="paren-autocomplete", ~default=true,
     )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
@@ -609,6 +612,10 @@ let make = (
         }
     }
 
+    let actToggleParenAc = () => {
+        setParenAc(prev => !prev)
+    }
+
     let actAsrtSearchResultsSelected = selectedResults => {
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
@@ -955,7 +962,6 @@ let make = (
                         <MM_cmp_export_proof 
                             proofText proofTableWithTypes proofTableWithoutTypes 
                             onClose={_=>closeModal(modalRef, modalId)} 
-                            tempMode
                         />
                     })
                 })->ignore
@@ -969,7 +975,6 @@ let make = (
                 <MM_cmp_export_state_to_json 
                     jsonStr=Expln_utils_common.stringify(state->editorStateToEditorStateLocStor)
                     onClose={_=>closeModal(modalRef, modalId)}
-                    tempMode
                 />
             })
         })->ignore
@@ -1399,6 +1404,8 @@ let make = (
             wrkCtxColors=state.wrkCtxColors
             viewOptions
             readOnly=false
+            parenAc
+            toggleParenAc=actToggleParenAc
             editStmtsByLeftClick=state.settings.editStmtsByLeftClick
             longClickEnabled=state.settings.longClickEnabled
             longClickDelayMs=state.settings.longClickDelayMs

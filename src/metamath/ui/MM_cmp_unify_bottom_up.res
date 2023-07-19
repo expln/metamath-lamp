@@ -744,8 +744,8 @@ let make = (
                         value=state.depthStr
                         onChange=evt2str(actDepthUpdated)
                         onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actProve, ()),
-                            kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCancel, ()),
+                            kbrdClbkMake(~key=keyEnter, ~act=actProve, ()),
+                            kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
                         )
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
@@ -813,8 +813,8 @@ let make = (
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
                         onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actProve, ()),
-                            kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onCancel, ()),
+                            kbrdClbkMake(~key=keyEnter, ~act=actProve, ()),
+                            kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
                         )
                     />
                 </Row>

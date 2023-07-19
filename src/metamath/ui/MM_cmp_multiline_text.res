@@ -153,8 +153,8 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actEditDone, ()),
-                        kbrdClbkMake(~keyCode=keyCodeEsc, ~act=actEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actEditDone, ()),
+                        kbrdClbkMake(~key=keyEsc, ~act=actEditCancel, ()),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                     minRows={if (buttonDirHor) {1} else {6} }

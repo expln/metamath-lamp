@@ -9,10 +9,9 @@ open Common
 let make = (
     ~jsonStr:string, 
     ~onClose:unit=>unit,
-    ~tempMode:bool,
 ) => {
     let (appendTimestamp, setAppendTimestamp) = useStateFromLocalStorageBool(
-        ~key="export-to-json-append-timestamp", ~default=false, ~tempMode
+        ~key="export-to-json-append-timestamp", ~default=false
     )
     let (notes, setNotes) = React.useState(() => "")
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
@@ -86,8 +85,8 @@ let make = (
                 onChange=evt2str(actNotesChanged)
                 title="Press Enter to copy to the clipboard and close this dialog window."
                 onKeyDown=kbrdHnd2(
-                    kbrdClbkMake(~keyCode=keyCodeEnter, ~act=actCopyAndClose, ()),
-                    kbrdClbkMake(~keyCode=keyCodeEsc, ~act=onClose, ())
+                    kbrdClbkMake(~key=keyEnter, ~act=actCopyAndClose, ()),
+                    kbrdClbkMake(~key=keyEsc, ~act=onClose, ())
                 )
                 autoFocus=true
             />

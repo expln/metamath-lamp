@@ -12,7 +12,6 @@ let make: (
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style:reStyle=?,
-    ~tempMode:bool,
     ~onExpandedChange:bool=>unit,
     ~doExpand: React.ref<Js.Nullable.t<unit=>unit>>,
 ) => React.element

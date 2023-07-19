@@ -52,6 +52,8 @@ type props = {
 
     viewOptions:viewOptions,
     readOnly:bool,
+    parenAc:bool,
+    toggleParenAc:unit=>unit,
 
     stmt:userStmt, 
     onLabelEditRequested:unit=>unit, 
