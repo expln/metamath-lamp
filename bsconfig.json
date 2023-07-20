@@ -15,7 +15,7 @@
     "@rescript/react"
   ],
   "warnings": {
-    "number": "-45-23",
+    "number": "-45",
     "error": "+8"
   }
 }

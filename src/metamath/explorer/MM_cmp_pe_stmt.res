@@ -80,7 +80,7 @@ let make = React.memoCustomCompareProps( ({
     }, [syntaxTreeError])
 
     let actUpdateStmt = (newCont:stmtCont):unit => {
-        setState(st => {...st, cont:newCont})
+        setState(_ => {cont:newCont})
     }
 
     let actUpdateSyntaxTree = (update:stmtContTreeData=>stmtContTreeData):unit => {
