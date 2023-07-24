@@ -100,23 +100,23 @@ let rndContText: (
 
 let textToSyntaxProofTable: (
     ~wrkCtx:mmContext,
-    ~syms:array<stmtSym>,
+    ~syms:array<array<stmtSym>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
-) => result<MM_proof_table.proofTable,string>
+) => result<array<result<MM_proof_table.proofTable,string>>,string>
 
 let textToSyntaxTree: (
     ~wrkCtx:mmContext,
-    ~syms:array<stmtSym>,
+    ~syms:array<array<stmtSym>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
-) => result<syntaxTreeNode,string>
+) => result<array<result<syntaxTreeNode,string>>,string>
 
 let getLastSyntaxType: unit => option<string>
 

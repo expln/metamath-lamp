@@ -74,9 +74,9 @@ let setVisExpanded = (st,visExpanded):state => {
     }
 }
 
-let textToSyntaxProofTableArr = (
+let textToSyntaxProofTable = (
     ~wrkCtx:mmContext,
-    ~symsArr:array<array<stmtSym>>,
+    ~syms:array<array<stmtSym>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
@@ -88,7 +88,7 @@ let textToSyntaxProofTableArr = (
     } else {
         let findUndefinedSym = (syms:array<stmtSym>):option<stmtSym> => 
             syms->Js.Array2.find(stmtSym => wrkCtx->ctxSymToInt(stmtSym.sym)->Belt_Option.isNone)
-        switch []->Js_array2.concatMany(symsArr)->findUndefinedSym {
+        switch Belt_Array.concatMany(syms)->findUndefinedSym {
             | Some({sym:unrecognizedSymbol}) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
             | None => {
                 let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
@@ -101,8 +101,8 @@ let textToSyntaxProofTableArr = (
                         a - b
                     }
                 })
-                let stmts = symsArr->Js_array2.map(syms => 
-                    syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
+                let stmts = syms->Js_array2.map(ss => 
+                    ss->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
                 )
                 let exprs = stmts->Js.Array2.map(Js_array2.sliceFrom(_, 1))
                 let proofTree = MM_provers.proveSyntaxTypes(~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ())
@@ -151,83 +151,16 @@ let textToSyntaxProofTableArr = (
     }
 }
 
-let textToSyntaxProofTable = (
-    ~wrkCtx:mmContext,
-    ~syms:array<stmtSym>,
-    ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
-):result<MM_proof_table.proofTable,string> => {
-    if (syntaxTypes->Js_array2.length == 0) {
-        Error(`Could not determine syntax types.`)
-    } else {
-        switch syms->Js.Array2.find(stmtSym => wrkCtx->ctxSymToInt(stmtSym.sym)->Belt_Option.isNone) {
-            | Some({sym:unrecognizedSymbol}) => {
-                Error(`The statement contains an unrecognized symbol: '${unrecognizedSymbol}'`)
-            }
-            | None => {
-                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
-                let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
-                    if (a == lastSyntaxTypeInt) {
-                        -1
-                    } else if (b == lastSyntaxTypeInt) {
-                        1
-                    } else {
-                        a - b
-                    }
-                })
-                let stmt = syms->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
-                let expr = stmt->Js_array2.sliceFrom(1)
-                let proofTree = MM_provers.proveSyntaxTypes(
-                    ~wrkCtx=wrkCtx,
-                    ~frms,
-                    ~parenCnt,
-                    ~exprs=[expr],
-                    ~syntaxTypes,
-                    ()
-                )
-                switch proofTree->ptGetSyntaxProof(expr) {
-                    | None => {
-                        Error(
-                            `Could not prove this statement is of any of the types: ` 
-                                ++ `${wrkCtx->ctxIntsToSymsExn(syntaxTypes)->Js.Array2.joinWith(", ")}`
-                        )
-                    }
-                    | Some(node) => {
-                        switch (lastSyntaxType, wrkCtx->ctxIntToSym((node->pnGetExpr)[0])) {
-                            | (None, Some(provedSyntaxTypeStr)) => onLastSyntaxTypeChange(provedSyntaxTypeStr)
-                            | (Some(lastSyntaxTypeStr), Some(provedSyntaxTypeStr)) => {
-                                if (lastSyntaxTypeStr != provedSyntaxTypeStr) {
-                                    onLastSyntaxTypeChange(provedSyntaxTypeStr)
-                                }
-                            }
-                            | _ => ()
-                        }
-                        let typeStmt = node->pnGetExpr
-                        buildSyntaxProofTableFromProofTreeDto( 
-                            ~ctx=wrkCtx, 
-                            ~proofTreeDto=proofTree->MM_proof_tree_dto.proofTreeToDto([typeStmt]),
-                            ~typeStmt, 
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 let textToSyntaxTree = (
     ~wrkCtx:mmContext,
-    ~syms:array<stmtSym>,
+    ~syms:array<array<stmtSym>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
-):result<syntaxTreeNode,string> => {
-    let syntaxProofTable = textToSyntaxProofTable(
+):result<array<result<syntaxTreeNode,string>>,string> => {
+    let syntaxProofTables = textToSyntaxProofTable(
         ~wrkCtx,
         ~syms,
         ~syntaxTypes,
@@ -236,9 +169,18 @@ let textToSyntaxTree = (
         ~lastSyntaxType,
         ~onLastSyntaxTypeChange,
     )
-    switch syntaxProofTable {
+    switch syntaxProofTables {
         | Error(msg) => Error(msg)
-        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1)
+        | Ok(proofTables) => {
+            Ok(
+                proofTables->Js_array2.map(proofTable => {
+                    switch proofTable {
+                        | Error(msg) => Error(msg)
+                        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1)
+                    }
+                })
+            )
+        }
     }
 }
 
@@ -912,20 +854,25 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms, ~syntaxTypes, ~frms, ~parenCnt,
+                            ~wrkCtx, ~syms=[syms], ~syntaxTypes, ~frms, ~parenCnt,
                             ~lastSyntaxType=getLastSyntaxType(),
                             ~onLastSyntaxTypeChange=setLastSyntaxType,
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
-                            | Ok(syntaxTree) => {
-                                let stmtContTreeData = {
-                                    text,
-                                    exprTyp:syms[0].sym, 
-                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
-                                    clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
-                                    expLvl:0,
+                            | Ok(syntaxTrees) => {
+                                switch (syntaxTrees[0]) {
+                                    | Error(msg) => setSyntaxTreeError(_ => Some(msg))
+                                    | Ok(syntaxTree) => {
+                                        let stmtContTreeData = {
+                                            text,
+                                            exprTyp:syms[0].sym, 
+                                            root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
+                                            clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
+                                            expLvl:0,
+                                        }
+                                        onSyntaxTreeUpdated(Tree(stmtContTreeData->incExpLvlIfConstClicked))
+                                    }
                                 }
-                                onSyntaxTreeUpdated(Tree(stmtContTreeData->incExpLvlIfConstClicked))
                             }
                         }
                     }

@@ -328,7 +328,7 @@ let make = React.memoCustomCompareProps(({
             let ctx = st.frmCtx
             switch MM_cmp_user_stmt.textToSyntaxProofTable( 
                 ~wrkCtx=ctx, 
-                ~syms = st.asrt->Js_array2.map(i => {sym:ctx->ctxIntToSymExn(i), color:None}),
+                ~syms = [st.asrt->Js_array2.map(i => {sym:ctx->ctxIntToSymExn(i), color:None})],
                 ~syntaxTypes = st.syntaxTypes, 
                 ~frms = st.frms, 
                 ~parenCnt = st.parenCnt, 
@@ -336,10 +336,15 @@ let make = React.memoCustomCompareProps(({
                 ~onLastSyntaxTypeChange=MM_cmp_user_stmt.setLastSyntaxType,
             ) {
                 | Error(msg) => st->setSyntaxProofTableError(Some(msg))
-                | Ok(proofTable) => {
-                    let st = st->setProofTable(proofTable)
-                    let st = st->setShowTypes(true)
-                    st
+                | Ok(proofTables) => {
+                    switch proofTables[0] {
+                        | Error(msg) => st->setSyntaxProofTableError(Some(msg))
+                        | Ok(proofTable) => {
+                            let st = st->setProofTable(proofTable)
+                            let st = st->setShowTypes(true)
+                            st
+                        }
+                    }
                 }
             }
         })

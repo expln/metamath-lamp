@@ -133,20 +133,25 @@ let make = React.memoCustomCompareProps( ({
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
-                    ~wrkCtx=ctx, ~syms, ~syntaxTypes, ~frms, ~parenCnt, 
+                    ~wrkCtx=ctx, ~syms=[syms], ~syntaxTypes, ~frms, ~parenCnt, 
                     ~lastSyntaxType=getLastSyntaxType(),
                     ~onLastSyntaxTypeChange=setLastSyntaxType,
                 ) {
                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
-                    | Ok(syntaxTree) => {
-                        let stmtContTreeData = {
-                            text,
-                            exprTyp:syms[0].sym, 
-                            root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
-                            clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
-                            expLvl:0,
+                    | Ok(syntaxTrees) => {
+                        switch syntaxTrees[0] {
+                            | Error(msg) => setSyntaxTreeError(_ => Some(msg))
+                            | Ok(syntaxTree) => {
+                                let stmtContTreeData = {
+                                    text,
+                                    exprTyp:syms[0].sym, 
+                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
+                                    clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
+                                    expLvl:0,
+                                }
+                                actUpdateStmt(Tree(stmtContTreeData->incExpLvlIfConstClicked))
+                            }
                         }
-                        actUpdateStmt(Tree(stmtContTreeData->incExpLvlIfConstClicked))
                     }
                 }
             }
