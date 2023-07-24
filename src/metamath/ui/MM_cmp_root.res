@@ -109,7 +109,7 @@ let make = () => {
     let (showTabs, setShowTabs) = React.useState(() => true)
 
     let reloadCtx = React.useRef(Js.Nullable.null)
-    let openCtxSelector = React.useRef(Js.Nullable.null)
+    let toggleCtxSelector = React.useRef(Js.Nullable.null)
 
     let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
         switch tabData {
@@ -206,7 +206,7 @@ let make = () => {
                             reloadCtx
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
-                            openCtxSelector
+                            toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             showTabs
                             setShowTabs={b=>setShowTabs(_ => b)}
@@ -217,7 +217,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             openFrameExplorer
-                            openCtxSelector
+                            toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
                     | ExplorerFrame({label}) => 
@@ -255,7 +255,7 @@ let make = () => {
                             ()
                         )
                         onExpandedChange=actCtxSelectorExpandedChange
-                        doExpand=openCtxSelector
+                        doToggle=toggleCtxSelector
                     />
                     {
                         if (showTabs) {

@@ -11,7 +11,7 @@ type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
-    openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
 }
 
@@ -23,7 +23,7 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
     openFrameExplorer,
-    openCtxSelector,
+    toggleCtxSelector,
     ctxSelectorIsExpanded,
 }:props) => {
     let settings = preCtxData.settingsV.val
@@ -242,8 +242,8 @@ let make = React.memoCustomCompareProps(({
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                openCtxSelector.current->Js.Nullable.toOption
-                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
+                                toggleCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
                             }}
                         >
                             {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}

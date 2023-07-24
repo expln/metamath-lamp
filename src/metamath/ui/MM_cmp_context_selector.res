@@ -486,7 +486,7 @@ let make = (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style as _ :option<reStyle>=?,
     ~onExpandedChange:bool=>unit,
-    ~doExpand: React.ref<Js.Nullable.t<unit=>unit>>,
+    ~doToggle: React.ref<Js.Nullable.t<unit=>unit>>,
 ) => {
     let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(
         ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr
@@ -686,7 +686,7 @@ let make = (
         }
     )
 
-    doExpand.current = Js.Nullable.return(actToggleAccordion)
+    doToggle.current = Js.Nullable.return(actToggleAccordion)
 
     let rndSaveButtons = () => {
         let thereAreNoChanges = (scopeIsEmpty(state.singleScopes) && scopeIsEmpty(prevState.singleScopes)) 
