@@ -12,10 +12,11 @@ type props = {
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
     openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ctxSelectorIsExpanded:bool,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    a.preCtxData === b.preCtxData
+    a.preCtxData === b.preCtxData && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
 }
 
 let make = React.memoCustomCompareProps(({
@@ -23,6 +24,7 @@ let make = React.memoCustomCompareProps(({
     preCtxData,
     openFrameExplorer,
     openCtxSelector,
+    ctxSelectorIsExpanded,
 }:props) => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
@@ -244,7 +246,7 @@ let make = React.memoCustomCompareProps(({
                                     ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
                             }}
                         >
-                            {React.string("Show context")}
+                            {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
                         </MenuItem>
                     </Menu>
                 }

@@ -526,10 +526,6 @@ let make = (
     let actCloseAccordion = () => {
         setState(setExpanded(_, false))
     }
-    
-    let actOpenAccordion = () => {
-        setState(setExpanded(_, true))
-    }
 
     React.useEffect1(() => {
         onExpandedChange(state.expanded)
@@ -690,7 +686,7 @@ let make = (
         }
     )
 
-    doExpand.current = Js.Nullable.return(actOpenAccordion)
+    doExpand.current = Js.Nullable.return(actToggleAccordion)
 
     let rndSaveButtons = () => {
         let thereAreNoChanges = (scopeIsEmpty(state.singleScopes) && scopeIsEmpty(prevState.singleScopes)) 

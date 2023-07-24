@@ -207,6 +207,7 @@ let make = () => {
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
                             openCtxSelector
+                            ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             showTabs
                             setShowTabs={b=>setShowTabs(_ => b)}
                             openFrameExplorer
@@ -217,6 +218,7 @@ let make = () => {
                             preCtxData=state.preCtxData
                             openFrameExplorer
                             openCtxSelector
+                            ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
                     | ExplorerFrame({label}) => 
                         <MM_cmp_pe_frame_full

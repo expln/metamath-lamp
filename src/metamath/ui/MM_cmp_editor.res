@@ -131,6 +131,7 @@ let make = (
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
     ~openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ~ctxSelectorIsExpanded:bool,
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
     ~openFrameExplorer:string=>unit,
@@ -1237,7 +1238,7 @@ let make = (
                                     ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
                             }}
                         >
-                            {React.string("Show context")}
+                            {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
