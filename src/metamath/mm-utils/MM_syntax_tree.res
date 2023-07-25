@@ -1,5 +1,6 @@
 open MM_context
 open MM_proof_table
+open MM_parser
 
 type rec syntaxTreeNode = {
     id: int,
@@ -203,5 +204,67 @@ let buildSyntaxTreeFromProofTreeDto = (
     switch buildSyntaxProofTableFromProofTreeDto( ~ctx, ~proofTreeDto, ~typeStmt, ) {
         | Error(msg) => Error(msg)
         | Ok(proofTable) => buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
+    }
+}
+
+type unifSubs = array<(string,childNode)>
+
+let childNodeEq = (a:childNode, b:childNode):bool => {
+    raise(MmException({msg:`Not implemented.`}))
+}
+
+let assignSubs = (foundSubs:unifSubs, var:string, expr:childNode):bool => {
+    switch foundSubs->Js_array2.find(((v,_)) => v == var) {
+        | Some((_,chExpr)) => childNodeEq(expr,chExpr)
+        | None => {
+            foundSubs->Js_array2.push((var,expr))->ignore
+            true
+        }
+    }
+}
+
+let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, foundSubs:unifSubs, continue:ref<bool>):unit => {
+    if (a.label != b.label || a.children->Js.Array2.length != b.children->Js.Array2.length) {
+        continue := false
+    } else {
+        let maxI = a.children->Js.Array2.length-1
+        let i = ref(0)
+        while (continue.contents && i.contents <= maxI) {
+            switch a.children[i.contents] {
+                | Subtree(ac) => {
+                    switch b.children[i.contents] {
+                        | Subtree(bc) => unify(ac,bc,foundSubs,continue)
+                        | Symbol({sym:bcSym, isVar:bcIsVar}) => {
+                            if (bcIsVar) {
+                                continue := assignSubs(foundSubs, bcSym, a.children[i.contents])
+                            } else {
+                                continue := false
+                            }
+                        }
+                    }
+                }
+                | Symbol({sym:acSym, isVar:acIsVar}) => {
+                    switch b.children[i.contents] {
+                        | Subtree(bc) => {
+                            if (acIsVar) {
+                                continue := assignSubs(foundSubs, acSym, b.children[i.contents])
+                            } else {
+                                continue := false
+                            }
+                        }
+                        | Symbol({sym:bcSym, isVar:bcIsVar}) => {
+                            if (acIsVar) {
+                                continue := assignSubs(foundSubs, acSym, b.children[i.contents])
+                            } else if (bcIsVar) {
+                                continue := assignSubs(foundSubs, bcSym, a.children[i.contents])
+                            } else if (acSym != bcSym) {
+                                continue := false
+                            }
+                        }
+                    }
+                }
+            }
+            i := i.contents + 1
+        }
     }
 }

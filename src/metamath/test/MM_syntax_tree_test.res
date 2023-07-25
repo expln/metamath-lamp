@@ -30,9 +30,7 @@ let rec syntaxTreeToSyntaxTreeTest = (node:syntaxTreeNode) => {
     }
 }
 
-
-let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest) => {
-    //given
+let buildSyntaxTreeForTest = (~mmFile, ~exprStr):syntaxTreeNode => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
@@ -49,23 +47,25 @@ let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest)
     let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
     let proofTable = createProofTable(~tree=proofTreeDto, ~root=node, ())
 
-    //when
-    let actualSyntaxTree = buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
-
-    //then
-    switch actualSyntaxTree {
+    switch buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1) {
         | Error(msg) => failMsg(msg)
-        | Ok(actualSyntaxTree) => {
-            assertEqMsg(actualSyntaxTree->syntaxTreeToSyntaxTreeTest, expectedSyntaxTree, `testSyntaxTree for: ${exprStr}`)
-        }
+        | Ok(syntaxTree) => syntaxTree
     }
 }
 
+let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest) => {
+    assertEqMsg(
+        buildSyntaxTreeForTest(~mmFile, ~exprStr)->syntaxTreeToSyntaxTreeTest, 
+        expectedSyntaxTree, 
+        `testSyntaxTree for: ${exprStr}`
+    )
+}
+
+let demo0 = "./src/metamath/test/resources/demo0._mm"
+let setReduced = "./src/metamath/test/resources/set-reduced._mm"
+
 describe("buildSyntaxTree", _ => {
     it("builds correct syntax trees for WWFs", _ => {
-        let demo0 = "./src/metamath/test/resources/demo0._mm"
-        let setReduced = "./src/metamath/test/resources/set-reduced._mm"
-
         testSyntaxTree(~mmFile=demo0, ~exprStr="wff t = t", 
             ~expectedSyntaxTree = {
                 label: "weq",
@@ -193,5 +193,24 @@ describe("buildSyntaxTree", _ => {
                 height: 6,
             }
         )
+    })
+})
+
+describe("unify", _ => {
+    it("finds unification for two expressions", _ => {
+        //given
+        let a = buildSyntaxTreeForTest(~mmFile=setReduced, ~exprStr="wff ( ( ka -> ( la -> mu ) ) -> ( ( ka -> la ) -> ( ka -> mu ) ) )")
+        let b = buildSyntaxTreeForTest(~mmFile=setReduced, ~exprStr="wff ( th -> ( ( ph -> ps ) -> ( ph -> ch ) ) )")
+        let continue = ref(true)
+        let unifSubs = []
+
+        //when
+        unify(a, b, unifSubs, continue)
+
+        //then
+        Js.Console.log2(`a`, a)
+        Js.Console.log2(`b`, b)
+        Js.Console.log2(`continue.contents`, continue.contents)
+        Js.Console.log2(`unifSubs`, unifSubs)
     })
 })

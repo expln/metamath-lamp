@@ -30,3 +30,7 @@ let syntaxTreeToSymbols: syntaxTreeNode => array<string>
 let syntaxTreeIsEmpty: syntaxTreeNode => bool
 
 let getNodeById: ( syntaxTreeNode, int, ) => option<childNode>
+
+type unifSubs = array<(string,childNode)>
+
+let unify: (syntaxTreeNode, syntaxTreeNode, unifSubs, ref<bool>) => unit
