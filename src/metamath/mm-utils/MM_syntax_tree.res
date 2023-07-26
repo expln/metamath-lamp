@@ -11,7 +11,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool})
+    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool, isLocal:bool})
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
@@ -58,7 +58,7 @@ let getMaxHeight = (children:array<childNode>):int => {
     )
 }
 
-let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
+let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
             let maxI = r.expr->Js_array2.length - 1
@@ -70,11 +70,14 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                 height:0,
             }
             for i in 1 to maxI {
+                let sym = ctx->ctxIntToSymExn(r.expr[i])
+                let isVar = r.expr[i] >= 0
                 this.children[i-1] = Symbol({
                     id: idSeq(),
                     parent:this,
-                    sym: ctx->ctxIntToSymExn(r.expr[i]),
-                    isVar: r.expr[i] >= 0,
+                    sym,
+                    isVar,
+                    isLocal: isVar && localVars->Js_array2.includes(sym),
                     color: None,
                 })
             }
@@ -106,10 +109,11 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                             parent:this,
                                             sym: ctx->ctxIntToSymExn(s),
                                             isVar: false,
+                                            isLocal: false,
                                             color: None,
                                         })
                                     } else {
-                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, localVars, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
                                             | Error(msg) => err := Some(Error(msg))
                                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
                                         }
@@ -140,7 +144,7 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
         nextId := nextId.contents + 1
         nextId.contents - 1
     }
-    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
+    buildSyntaxTreeInner(idSeq, ctx, ctx->getLocalVars, tbl, None, tbl[targetIdx])
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
@@ -252,7 +256,7 @@ let isVar = (expr:syntaxTreeNode):option<string> => {
         | 1 => {
             switch expr.children[0] {
                 | Subtree(_) => None
-                | Symbol({isVar,sym}) => if (isVar) { Some(sym) } else { None }
+                | Symbol({isVar,isLocal,sym}) => if (isVar && isLocal) { Some(sym) } else { None }
             }
         }
         | _ => None
@@ -346,4 +350,13 @@ let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:
             }
         }
     }
+}
+
+let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
+    syntaxTreeNode.children->Expln_utils_common.arrFlatMap(ch => {
+        switch ch {
+            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode)
+            | Symbol({sym}) => [sym]
+        }
+    })
 }

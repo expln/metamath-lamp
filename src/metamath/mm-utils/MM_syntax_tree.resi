@@ -10,7 +10,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool})
+    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool, isLocal:bool})
 
 let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 
@@ -34,3 +34,5 @@ let getNodeById: ( syntaxTreeNode, int, ) => option<childNode>
 type unifSubs = array<(string,syntaxTreeNode)>
 
 let unify: (syntaxTreeNode, syntaxTreeNode, ~ctx:mmContext, ~foundSubs:unifSubs, ~continue:ref<bool>) => unit
+
+let getAllSymbols: syntaxTreeNode => array<string>

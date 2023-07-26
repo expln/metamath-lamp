@@ -44,12 +44,18 @@ let rec syntaxTreeToJson = (node:syntaxTreeNode):Js_json.t => {
     ]->Js.Dict.fromArray->Js_json.object_
 }
 
-let buildSyntaxTreeForTest = (~mmFile, ~exprStr:array<string>):(mmContext,array<syntaxTreeNode>) => {
+let buildSyntaxTreeForTest = (
+    ~mmFile:string, 
+    ~ctxUpdate:option<mmContext=>mmContext>=?,
+    ~exprStr:array<string>, 
+    ()
+):(mmContext,array<syntaxTreeNode>) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
+    let ctx = ctxUpdate->Belt_Option.map(update => update(ctx))->Belt.Option.getWithDefault(ctx)
     let expr = exprStr->Js_array2.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
@@ -76,7 +82,7 @@ let buildSyntaxTreeForTest = (~mmFile, ~exprStr:array<string>):(mmContext,array<
 
 let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest) => {
     @warning("-8")
-    let (_, [actualSyntaxTree]) = buildSyntaxTreeForTest(~mmFile, ~exprStr=[exprStr])
+    let (_, [actualSyntaxTree]) = buildSyntaxTreeForTest(~mmFile, ~exprStr=[exprStr], ())
     assertEqMsg(
         actualSyntaxTree->syntaxTreeToSyntaxTreeTest, 
         expectedSyntaxTree, 
@@ -225,10 +231,20 @@ describe("unify", _ => {
         @warning("-8")
         let (ctx, [a,b]) = buildSyntaxTreeForTest(
             ~mmFile=setReduced, 
+            ~ctxUpdate = ctx => {
+                ctx->openChildContext
+                ctx->applySingleStmt(Var({symbols:["&W1", "&W2", "&W3", "&W4"]}))
+                ctx->applySingleStmt(Floating({label:"W1-wff", expr:["wff", "&W1"]}))
+                ctx->applySingleStmt(Floating({label:"W2-wff", expr:["wff", "&W2"]}))
+                ctx->applySingleStmt(Floating({label:"W3-wff", expr:["wff", "&W3"]}))
+                ctx->applySingleStmt(Floating({label:"W4-wff", expr:["wff", "&W4"]}))
+                ctx
+            },
             ~exprStr=[
-                "wff ( ( ka -> ( la -> mu ) ) -> ( ( ka -> la ) -> ( ka -> mu ) ) )",
-                "wff ( th                     -> ( ( ph -> ps ) -> ( ph -> ch ) ) )",
-            ]
+                "wff ( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )",
+                "wff ( &W1                       -> ( ( ph  -> ps  ) -> ( ph  -> ch  ) ) )",
+            ],
+            ()
         )
         let continue = ref(true)
         let foundSubs = []
@@ -239,7 +255,8 @@ describe("unify", _ => {
         //then
         // a->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/a.json")
         // b->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/b.json")
+        let foundSubsStr = foundSubs->Js.Array2.map(((var,tree)) => (var, tree->getAllSymbols->Js.Array2.joinWith(" ")))
         Js.Console.log2(`continue.contents`, continue.contents)
-        Js.Console.log2(`foundSubs`, foundSubs)
+        Js.Console.log2(`foundSubsStr`, foundSubsStr)
     })
 })
