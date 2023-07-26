@@ -11,7 +11,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool, isLocal:bool})
+    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool})
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
@@ -70,14 +70,11 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<sy
                 height:0,
             }
             for i in 1 to maxI {
-                let sym = ctx->ctxIntToSymExn(r.expr[i])
-                let isVar = r.expr[i] >= 0
                 this.children[i-1] = Symbol({
                     id: idSeq(),
                     parent:this,
-                    sym,
-                    isVar,
-                    isLocal: isVar && localVars->Js_array2.includes(sym),
+                    sym: ctx->ctxIntToSymExn(r.expr[i]),
+                    isVar: r.expr[i] >= 0,
                     color: None,
                 })
             }
@@ -109,7 +106,6 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<sy
                                             parent:this,
                                             sym: ctx->ctxIntToSymExn(s),
                                             isVar: false,
-                                            isLocal: false,
                                             color: None,
                                         })
                                     } else {
@@ -250,27 +246,27 @@ let getExprType = (expr:syntaxTreeNode, ctx:mmContext):int => {
     }
 }
 
-let isVar = (expr:syntaxTreeNode):option<string> => {
+let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<string> => {
     @warning("-8")
     switch expr.children->Js.Array2.length {
         | 1 => {
             switch expr.children[0] {
                 | Subtree(_) => None
-                | Symbol({isVar,isLocal,sym}) => if (isVar && isLocal) { Some(sym) } else { None }
+                | Symbol({isVar,sym}) => if (isVar && isMetavar(sym)) { Some(sym) } else { None }
             }
         }
         | _ => None
     }
 }
 
-let rec exprContainsVar = (expr:syntaxTreeNode, var:string):bool => {
-    switch expr->isVar {
+let rec exprContainsVar = (expr:syntaxTreeNode, var:string, isMetavar:string=>bool):bool => {
+    switch expr->isVar(isMetavar) {
         | Some(exprVar) => exprVar == var
         | None => {
             expr.children->Js.Array2.some(ch => {
                 switch ch {
                     | Symbol(_) => false
-                    | Subtree(chNode) => chNode->exprContainsVar(var)
+                    | Subtree(chNode) => chNode->exprContainsVar(var, isMetavar)
                 }
             })
         }
@@ -318,13 +314,24 @@ let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
     })
 }
 
-let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:unifSubs, ~continue:ref<bool>):unit => {
+/*
+    The core idea of the unification algorithm is as per explanations by Mario Carneiro.
+    https://github.com/expln/metamath-lamp/issues/77#issuecomment-1577804381
+*/
+let rec unify = ( 
+    a:syntaxTreeNode, 
+    b:syntaxTreeNode, 
+    ~ctx:mmContext, 
+    ~isMetavar:string=>bool, 
+    ~foundSubs:unifSubs, 
+    ~continue:ref<bool>
+):unit => {
     if (a->getExprType(ctx) != b->getExprType(ctx)) {
         continue := false
     } else {
-        switch a->isVar {
+        switch a->isVar(isMetavar) {
             | Some(aVar) => {
-                switch b->isVar {
+                switch b->isVar(isMetavar) {
                     | Some(bVar) => {
                         if (aVar != bVar) {
                             continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
@@ -336,7 +343,7 @@ let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:
                 }
             }
             | None => {
-                switch b->isVar {
+                switch b->isVar(isMetavar) {
                     | Some(bVar) => {
                         continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                     }
@@ -362,7 +369,7 @@ let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:
                                         switch b.children[i.contents] {
                                             | Symbol(_) => continue := false
                                             | Subtree(bCh) => {
-                                                unify(aCh, bCh, ~ctx, ~foundSubs, ~continue)
+                                                unify(aCh, bCh, ~ctx, ~isMetavar, ~foundSubs, ~continue)
                                             }
                                         }
                                     }

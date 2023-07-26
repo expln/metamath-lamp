@@ -232,7 +232,6 @@ describe("unify", _ => {
         let (ctx, [a,b]) = buildSyntaxTreeForTest(
             ~mmFile=setReduced, 
             ~ctxUpdate = ctx => {
-                ctx->openChildContext
                 ctx->applySingleStmt(Var({symbols:["&W1", "&W2", "&W3", "&W4"]}))
                 ctx->applySingleStmt(Floating({label:"W1-wff", expr:["wff", "&W1"]}))
                 ctx->applySingleStmt(Floating({label:"W2-wff", expr:["wff", "&W2"]}))
@@ -250,7 +249,7 @@ describe("unify", _ => {
         let foundSubs = Belt_HashMapString.make(~hintSize = 100)
 
         //when
-        unify(a, b, ~ctx, ~foundSubs, ~continue)
+        unify(a, b, ~ctx, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,"&"))
 
         //then
         // a->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/a.json")
