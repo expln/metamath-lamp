@@ -31,6 +31,6 @@ let syntaxTreeIsEmpty: syntaxTreeNode => bool
 
 let getNodeById: ( syntaxTreeNode, int, ) => option<childNode>
 
-type unifSubs = array<(string,childNode)>
+type unifSubs = array<(string,syntaxTreeNode)>
 
-let unify: (syntaxTreeNode, syntaxTreeNode, unifSubs, ref<bool>) => unit
+let unify: (syntaxTreeNode, syntaxTreeNode, ~ctx:mmContext, ~foundSubs:unifSubs, ~continue:ref<bool>) => unit

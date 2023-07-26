@@ -30,32 +30,55 @@ let rec syntaxTreeToSyntaxTreeTest = (node:syntaxTreeNode) => {
     }
 }
 
-let buildSyntaxTreeForTest = (~mmFile, ~exprStr):syntaxTreeNode => {
+let rec syntaxTreeToJson = (node:syntaxTreeNode):Js_json.t => {
+    [
+        ("label", node.label->Js_json.string),
+        ("children", 
+            node.children->Js_array2.map(c => {
+                switch c {
+                    | Subtree(childNode) => syntaxTreeToJson(childNode)
+                    | Symbol({sym}) => sym->Js_json.string
+                }
+            })->Js_json.array
+        )
+    ]->Js.Dict.fromArray->Js_json.object_
+}
+
+let buildSyntaxTreeForTest = (~mmFile, ~exprStr:array<string>):(mmContext,array<syntaxTreeNode>) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
-    let expr = exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _)
+    let expr = exprStr->Js_array2.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
-        ~floatingsToProve = [expr],
+        ~floatingsToProve = expr,
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
     )
-    let proofTreeDto = proofTreeToDto(proofTree, [expr])
-    let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
-    let proofTable = createProofTable(~tree=proofTreeDto, ~root=node, ())
+    let proofTreeDto = proofTreeToDto(proofTree, expr)
+    let nodes = expr->Js.Array2.map(e => {
+        proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(e))->Belt.Option.getExn
+    })
+    let proofTables = nodes->Js.Array2.map(n => createProofTable(~tree=proofTreeDto, ~root=n, ()))
 
-    switch buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1) {
-        | Error(msg) => failMsg(msg)
-        | Ok(syntaxTree) => syntaxTree
-    }
+    (
+        ctx,
+        proofTables->Js.Array2.map(proofTable => {
+            switch buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1) {
+                | Error(msg) => failMsg(msg)
+                | Ok(syntaxTree) => syntaxTree
+            }
+        })
+    )
 }
 
 let testSyntaxTree = (~mmFile, ~exprStr, ~expectedSyntaxTree:syntaxTreeNodeTest) => {
+    @warning("-8")
+    let (_, [actualSyntaxTree]) = buildSyntaxTreeForTest(~mmFile, ~exprStr=[exprStr])
     assertEqMsg(
-        buildSyntaxTreeForTest(~mmFile, ~exprStr)->syntaxTreeToSyntaxTreeTest, 
+        actualSyntaxTree->syntaxTreeToSyntaxTreeTest, 
         expectedSyntaxTree, 
         `testSyntaxTree for: ${exprStr}`
     )
@@ -199,18 +222,24 @@ describe("buildSyntaxTree", _ => {
 describe("unify", _ => {
     it("finds unification for two expressions", _ => {
         //given
-        let a = buildSyntaxTreeForTest(~mmFile=setReduced, ~exprStr="wff ( ( ka -> ( la -> mu ) ) -> ( ( ka -> la ) -> ( ka -> mu ) ) )")
-        let b = buildSyntaxTreeForTest(~mmFile=setReduced, ~exprStr="wff ( th -> ( ( ph -> ps ) -> ( ph -> ch ) ) )")
+        @warning("-8")
+        let (ctx, [a,b]) = buildSyntaxTreeForTest(
+            ~mmFile=setReduced, 
+            ~exprStr=[
+                "wff ( ( ka -> ( la -> mu ) ) -> ( ( ka -> la ) -> ( ka -> mu ) ) )",
+                "wff ( th                     -> ( ( ph -> ps ) -> ( ph -> ch ) ) )",
+            ]
+        )
         let continue = ref(true)
-        let unifSubs = []
+        let foundSubs = []
 
         //when
-        unify(a, b, unifSubs, continue)
+        unify(a, b, ~ctx, ~foundSubs, ~continue)
 
         //then
-        Js.Console.log2(`a`, a)
-        Js.Console.log2(`b`, b)
+        // a->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/a.json")
+        // b->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/b.json")
         Js.Console.log2(`continue.contents`, continue.contents)
-        Js.Console.log2(`unifSubs`, unifSubs)
+        Js.Console.log2(`foundSubs`, foundSubs)
     })
 })

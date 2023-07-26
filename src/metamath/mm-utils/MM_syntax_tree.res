@@ -207,64 +207,143 @@ let buildSyntaxTreeFromProofTreeDto = (
     }
 }
 
-type unifSubs = array<(string,childNode)>
+type unifSubs = array<(string,syntaxTreeNode)>
 
-let childNodeEq = (a:childNode, b:childNode):bool => {
-    raise(MmException({msg:`Not implemented.`}))
+let rec syntaxTreeNodeEq = (a:syntaxTreeNode, b:syntaxTreeNode):bool => {
+    a.label == b.label
+    && a.children->Js.Array2.everyi((ai,i) => ai->childNodeEq(b.children[i]))
 }
-
-let assignSubs = (foundSubs:unifSubs, var:string, expr:childNode):bool => {
-    switch foundSubs->Js_array2.find(((v,_)) => v == var) {
-        | Some((_,chExpr)) => childNodeEq(expr,chExpr)
-        | None => {
-            foundSubs->Js_array2.push((var,expr))->ignore
-            true
+and childNodeEq = (a:childNode, b:childNode):bool => {
+    switch a {
+        | Subtree(aSyntaxTreeNode) => {
+            switch b {
+                | Subtree(bSyntaxTreeNode) => aSyntaxTreeNode->syntaxTreeNodeEq(bSyntaxTreeNode)
+                | Symbol({sym:bSym, isVar:bIsVar}) => false
+            }
+        }
+        | Symbol({sym:aSym, isVar:aIsVar}) => {
+            switch b {
+                | Subtree(bSyntaxTreeNode) => false
+                | Symbol({sym:bSym, isVar:bIsVar}) => aSym == bSym && aIsVar == bIsVar
+            }
         }
     }
 }
 
-let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, foundSubs:unifSubs, continue:ref<bool>):unit => {
-    if (a.label != b.label || a.children->Js.Array2.length != b.children->Js.Array2.length) {
+let getExprType = (expr:syntaxTreeNode, ctx:mmContext):int => {
+    switch ctx->getFrame(expr.label) {
+        | Some(frame) => frame.asrt[0]
+        | None => {
+            switch ctx->getHypothesis(expr.label) {
+                | Some({expr:hypExpr}) => hypExpr[0]
+                | None => {
+                    raise(MmException({
+                        msg:`Could not determine type of a syntax tree node with label '${expr.label}'`
+                    }))
+                }
+            }
+        }
+    }
+}
+
+let isVar = (expr:syntaxTreeNode):option<string> => {
+    @warning("-8")
+    switch expr.children->Js.Array2.length {
+        | 1 => {
+            switch expr.children[0] {
+                | Subtree(_) => None
+                | Symbol({isVar,sym}) => if (isVar) { Some(sym) } else { None }
+            }
+        }
+        | _ => None
+    }
+}
+
+let rec exprContainsVar = (expr:syntaxTreeNode, var:string):bool => {
+    switch expr->isVar {
+        | Some(exprVar) => exprVar == var
+        | None => {
+            expr.children->Js.Array2.some(ch => {
+                switch ch {
+                    | Symbol(_) => false
+                    | Subtree(chNode) => chNode->exprContainsVar(var)
+                }
+            })
+        }
+    }
+}
+
+let subsIsNotProper = (foundSubs:unifSubs):bool => {
+    foundSubs->Js_array2.some(((var,_)) => {
+        foundSubs->Js_array2.some(((_,expr)) => expr->exprContainsVar(var))
+    })
+}
+
+let assignSubs = (foundSubs:unifSubs, var:string, expr:syntaxTreeNode):bool => {
+    switch foundSubs->Js_array2.find(((existingVar,_)) => existingVar == var) {
+        | Some((_,existingExpr)) => syntaxTreeNodeEq(expr,existingExpr)
+        | None => {
+            foundSubs->Js_array2.push((var,expr))->ignore
+            !subsIsNotProper(foundSubs)
+        }
+    }
+}
+
+let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:unifSubs, ~continue:ref<bool>):unit => {
+    if (a->getExprType(ctx) != b->getExprType(ctx)) {
         continue := false
     } else {
-        let maxI = a.children->Js.Array2.length-1
-        let i = ref(0)
-        while (continue.contents && i.contents <= maxI) {
-            switch a.children[i.contents] {
-                | Subtree(ac) => {
-                    switch b.children[i.contents] {
-                        | Subtree(bc) => unify(ac,bc,foundSubs,continue)
-                        | Symbol({sym:bcSym, isVar:bcIsVar}) => {
-                            if (bcIsVar) {
-                                continue := assignSubs(foundSubs, bcSym, a.children[i.contents])
-                            } else {
-                                continue := false
-                            }
+        switch a->isVar {
+            | Some(aVar) => {
+                switch b->isVar {
+                    | Some(bVar) => {
+                        if (aVar != bVar) {
+                            continue := assignSubs(foundSubs, aVar, b)
                         }
                     }
+                    | None => {
+                        continue := assignSubs(foundSubs, aVar, b)
+                    }
                 }
-                | Symbol({sym:acSym, isVar:acIsVar}) => {
-                    switch b.children[i.contents] {
-                        | Subtree(bc) => {
-                            if (acIsVar) {
-                                continue := assignSubs(foundSubs, acSym, b.children[i.contents])
-                            } else {
-                                continue := false
-                            }
-                        }
-                        | Symbol({sym:bcSym, isVar:bcIsVar}) => {
-                            if (acIsVar) {
-                                continue := assignSubs(foundSubs, acSym, b.children[i.contents])
-                            } else if (bcIsVar) {
-                                continue := assignSubs(foundSubs, bcSym, a.children[i.contents])
-                            } else if (acSym != bcSym) {
-                                continue := false
+            }
+            | None => {
+                switch b->isVar {
+                    | Some(bVar) => {
+                        continue := assignSubs(foundSubs, bVar, a)
+                    }
+                    | None => {
+                        if (a.children->Js.Array2.length != b.children->Js.Array2.length) {
+                            continue := false
+                        } else {
+                            let maxI = a.children->Js.Array2.length-1
+                            let i = ref(0)
+                            while (continue.contents && i.contents <= maxI) {
+                                switch a.children[i.contents] {
+                                    | Symbol({sym:aSym, isVar:aIsVar}) => {
+                                        switch b.children[i.contents] {
+                                            | Symbol({sym:bSym, isVar:bIsVar}) => {
+                                                if (aIsVar || bIsVar || aSym != bSym) {
+                                                    continue := false
+                                                }
+                                            }
+                                            | Subtree(_) => continue := false
+                                        }
+                                    }
+                                    | Subtree(aCh) => {
+                                        switch b.children[i.contents] {
+                                            | Symbol(_) => continue := false
+                                            | Subtree(bCh) => {
+                                                unify(aCh, bCh, ~ctx, ~foundSubs, ~continue)
+                                            }
+                                        }
+                                    }
+                                } 
+                                i := i.contents + 1
                             }
                         }
                     }
                 }
             }
-            i := i.contents + 1
         }
     }
 }
