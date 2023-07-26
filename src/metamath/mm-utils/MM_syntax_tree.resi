@@ -31,8 +31,6 @@ let syntaxTreeIsEmpty: syntaxTreeNode => bool
 
 let getNodeById: ( syntaxTreeNode, int, ) => option<childNode>
 
-type unifSubs = array<(string,syntaxTreeNode)>
+type unifSubs = Belt_HashMapString.t<array<string>>
 
 let unify: (syntaxTreeNode, syntaxTreeNode, ~ctx:mmContext, ~foundSubs:unifSubs, ~continue:ref<bool>) => unit
-
-let getAllSymbols: syntaxTreeNode => array<string>

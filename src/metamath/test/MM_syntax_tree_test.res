@@ -247,7 +247,7 @@ describe("unify", _ => {
             ()
         )
         let continue = ref(true)
-        let foundSubs = []
+        let foundSubs = Belt_HashMapString.make(~hintSize = 100)
 
         //when
         unify(a, b, ~ctx, ~foundSubs, ~continue)
@@ -255,8 +255,12 @@ describe("unify", _ => {
         //then
         // a->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/a.json")
         // b->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/b.json")
-        let foundSubsStr = foundSubs->Js.Array2.map(((var,tree)) => (var, tree->getAllSymbols->Js.Array2.joinWith(" ")))
-        Js.Console.log2(`continue.contents`, continue.contents)
-        Js.Console.log2(`foundSubsStr`, foundSubsStr)
+        let foundSubsStr = foundSubs->Belt_HashMapString.toArray->Js.Array2.map(((v,expr)) => (v,expr->Js_array2.joinWith(" ")))->Belt_HashMapString.fromArray
+        assertEq(continue.contents, true)
+        assertEq(foundSubsStr->Belt_HashMapString.size, 4)
+        assertEq(foundSubsStr->Belt_HashMapString.get("&W3"), Some("ph"))
+        assertEq(foundSubsStr->Belt_HashMapString.get("&W4"), Some("ps"))
+        assertEq(foundSubsStr->Belt_HashMapString.get("&W2"), Some("ch"))
+        assertEq(foundSubsStr->Belt_HashMapString.get("&W1"), Some("( ph -> ( ps -> ch ) )"))
     })
 })

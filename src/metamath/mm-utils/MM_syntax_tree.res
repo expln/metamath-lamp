@@ -211,7 +211,7 @@ let buildSyntaxTreeFromProofTreeDto = (
     }
 }
 
-type unifSubs = array<(string,syntaxTreeNode)>
+type unifSubs = Belt_HashMapString.t<array<string>>
 
 let rec syntaxTreeNodeEq = (a:syntaxTreeNode, b:syntaxTreeNode):bool => {
     a.label == b.label
@@ -277,20 +277,45 @@ let rec exprContainsVar = (expr:syntaxTreeNode, var:string):bool => {
     }
 }
 
-let subsIsNotProper = (foundSubs:unifSubs):bool => {
-    foundSubs->Js_array2.some(((var,_)) => {
-        foundSubs->Js_array2.some(((_,expr)) => expr->exprContainsVar(var))
-    })
-}
-
-let assignSubs = (foundSubs:unifSubs, var:string, expr:syntaxTreeNode):bool => {
-    switch foundSubs->Js_array2.find(((existingVar,_)) => existingVar == var) {
-        | Some((_,existingExpr)) => syntaxTreeNodeEq(expr,existingExpr)
-        | None => {
-            foundSubs->Js_array2.push((var,expr))->ignore
-            !subsIsNotProper(foundSubs)
+let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):unit => {
+    let i = ref(0)
+    while (i.contents < expr->Js_array2.length) {
+        if (expr[i.contents] == e) {
+            expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
+            i := i.contents + subExpr->Js_array2.length
+        } else {
+            i := i.contents + 1
         }
     }
+}
+
+let applySubsInPlace = (expr:array<string>, subs:unifSubs):unit => {
+    subs->Belt_HashMapString.forEachU((. v, subExpr) => substituteInPlace(expr, v, subExpr))
+}
+
+let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
+    if (expr->Js_array2.includes(var)) {
+        false
+    } else {
+        applySubsInPlace(expr, foundSubs)
+        switch foundSubs->Belt_HashMapString.get(var) {
+            | Some(existingExpr) => expr == existingExpr
+            | None => {
+                foundSubs->Belt_HashMapString.set(var, expr)
+                foundSubs->Belt_HashMapString.forEachU((. _, expr) => applySubsInPlace(expr, foundSubs))
+                true
+            }
+        }
+    }
+}
+
+let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
+    syntaxTreeNode.children->Expln_utils_common.arrFlatMap(ch => {
+        switch ch {
+            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode)
+            | Symbol({sym}) => [sym]
+        }
+    })
 }
 
 let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:unifSubs, ~continue:ref<bool>):unit => {
@@ -302,18 +327,18 @@ let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:
                 switch b->isVar {
                     | Some(bVar) => {
                         if (aVar != bVar) {
-                            continue := assignSubs(foundSubs, aVar, b)
+                            continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
                         }
                     }
                     | None => {
-                        continue := assignSubs(foundSubs, aVar, b)
+                        continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
                     }
                 }
             }
             | None => {
                 switch b->isVar {
                     | Some(bVar) => {
-                        continue := assignSubs(foundSubs, bVar, a)
+                        continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                     }
                     | None => {
                         if (a.children->Js.Array2.length != b.children->Js.Array2.length) {
@@ -352,11 +377,3 @@ let rec unify = (a:syntaxTreeNode, b:syntaxTreeNode, ~ctx:mmContext, ~foundSubs:
     }
 }
 
-let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
-    syntaxTreeNode.children->Expln_utils_common.arrFlatMap(ch => {
-        switch ch {
-            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode)
-            | Symbol({sym}) => [sym]
-        }
-    })
-}
