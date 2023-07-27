@@ -47,6 +47,7 @@ let createEditorState = (
         initStmtIsGoal: false,
         defaultStmtLabel: "qed",
         defaultStmtType: "",
+        unifMetavarPrefix: "&",
         checkSyntax: true,
         stickGoalToBottom: false,
         typeSettings: [ ],

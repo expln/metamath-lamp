@@ -27,6 +27,7 @@ let createEditorState = (
         initStmtIsGoal,
         defaultStmtLabel,
         defaultStmtType: "",
+        unifMetavarPrefix: "&",
         checkSyntax: true,
         stickGoalToBottom: true,
         typeSettings: [ ],
