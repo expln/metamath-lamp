@@ -58,7 +58,7 @@ let getMaxHeight = (children:array<childNode>):int => {
     )
 }
 
-let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<syntaxTreeNode,string> => {
+let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
             let maxI = r.expr->Js_array2.length - 1
@@ -111,7 +111,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<sy
                                             color: None,
                                         })
                                     } else {
-                                        switch buildSyntaxTreeInner(idSeq, ctx, localVars, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
                                             | Error(msg) => err := Some(Error(msg))
                                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
                                         }
@@ -142,7 +142,7 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
         nextId := nextId.contents + 1
         nextId.contents - 1
     }
-    buildSyntaxTreeInner(idSeq, ctx, ctx->getLocalVars, tbl, None, tbl[targetIdx])
+    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
