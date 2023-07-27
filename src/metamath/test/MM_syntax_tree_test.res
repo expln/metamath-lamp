@@ -229,7 +229,7 @@ describe("unify", _ => {
     it("finds unification for two expressions", _ => {
         //given
         @warning("-8")
-        let (ctx, [a,b]) = buildSyntaxTreeForTest(
+        let (_, [a,b]) = buildSyntaxTreeForTest(
             ~mmFile=setReduced, 
             ~ctxUpdate = ctx => {
                 ctx->applySingleStmt(Var({symbols:["&W1", "&W2", "&W3", "&W4"]}))

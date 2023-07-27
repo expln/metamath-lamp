@@ -1,6 +1,5 @@
 open MM_context
 open MM_proof_table
-open MM_parser
 
 type rec syntaxTreeNode = {
     id: int,
@@ -212,27 +211,6 @@ let buildSyntaxTreeFromProofTreeDto = (
 
 type unifSubs = Belt_HashMapString.t<array<string>>
 
-let rec syntaxTreeNodeEq = (a:syntaxTreeNode, b:syntaxTreeNode):bool => {
-    a.label == b.label
-    && a.children->Js.Array2.everyi((ai,i) => ai->childNodeEq(b.children[i]))
-}
-and childNodeEq = (a:childNode, b:childNode):bool => {
-    switch a {
-        | Subtree(aSyntaxTreeNode) => {
-            switch b {
-                | Subtree(bSyntaxTreeNode) => aSyntaxTreeNode->syntaxTreeNodeEq(bSyntaxTreeNode)
-                | Symbol({sym:bSym, isVar:bIsVar}) => false
-            }
-        }
-        | Symbol({sym:aSym, isVar:aIsVar}) => {
-            switch b {
-                | Subtree(bSyntaxTreeNode) => false
-                | Symbol({sym:bSym, isVar:bIsVar}) => aSym == bSym && aIsVar == bIsVar
-            }
-        }
-    }
-}
-
 let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<string> => {
     @warning("-8")
     switch expr.children->Js.Array2.length {
@@ -243,20 +221,6 @@ let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<string> => {
             }
         }
         | _ => None
-    }
-}
-
-let rec exprContainsVar = (expr:syntaxTreeNode, var:string, isMetavar:string=>bool):bool => {
-    switch expr->isVar(isMetavar) {
-        | Some(exprVar) => exprVar == var
-        | None => {
-            expr.children->Js.Array2.some(ch => {
-                switch ch {
-                    | Symbol(_) => false
-                    | Subtree(chNode) => chNode->exprContainsVar(var, isMetavar)
-                }
-            })
-        }
     }
 }
 
