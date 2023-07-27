@@ -171,9 +171,8 @@ let completeJstfEditMode: (editorState, stmtId, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
+let createNewDisj: (editorState, disjMutable) => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
-let findPossibleSubs: (editorState, expr, expr, bool) => array<wrkSubs>
-let applySubstitutionForEditor: (editorState, wrkSubs) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
@@ -217,3 +216,23 @@ let getColorForSymbol: (
 let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>
 
 let renumberSteps: editorState => result<editorState, string>
+
+let textToSyntaxProofTable: (
+    ~wrkCtx:mmContext,
+    ~syms:array<array<string>>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+) => result<array<result<MM_proof_table.proofTable,string>>,string>
+
+let textToSyntaxTree: (
+    ~wrkCtx:mmContext,
+    ~syms:array<array<string>>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+) => result<array<result<syntaxTreeNode,string>>,string>

@@ -4,6 +4,7 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open MM_provers
 open MM_wrk_editor
+open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_wrk_search_asrt
 open MM_wrk_unify
@@ -278,7 +279,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
                 wrkCtx->ctxStrToIntsExn(replaceWith),
                 true
-            )->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
+            )->Belt.Result.getExn->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
             if (wrkSubs->Js.Array2.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {

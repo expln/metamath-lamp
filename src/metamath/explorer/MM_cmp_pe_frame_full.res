@@ -326,9 +326,9 @@ let make = React.memoCustomCompareProps(({
     let actBuildSyntaxProofTable = ():unit => {
         modifyState(st => {
             let ctx = st.frmCtx
-            switch MM_cmp_user_stmt.textToSyntaxProofTable( 
+            switch textToSyntaxProofTable( 
                 ~wrkCtx=ctx, 
-                ~syms = [st.asrt->Js_array2.map(i => {sym:ctx->ctxIntToSymExn(i), color:None})],
+                ~syms = [st.asrt->Js_array2.map(i => ctx->ctxIntToSymExn(i))],
                 ~syntaxTypes = st.syntaxTypes, 
                 ~frms = st.frms, 
                 ~parenCnt = st.parenCnt, 

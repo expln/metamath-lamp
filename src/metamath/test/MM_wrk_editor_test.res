@@ -2,6 +2,7 @@ open Expln_test
 open MM_parser
 open MM_context
 open MM_wrk_editor
+open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
@@ -510,7 +511,7 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn("t + r"),
             ctx->ctxStrToIntsExn("( t + t ) + ( t + r ) + ( t + s )"),
             true,
-        )
+        )->Belt.Result.getExn
 
         //then
         assertEq(
@@ -550,7 +551,7 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn("y"),
             ctx->ctxStrToIntsExn("z"),
             true,
-        )
+        )->Belt.Result.getExn
 
         //then
         assertEq(possibleSubs->Js.Array2.length, 1)
@@ -592,7 +593,7 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
             true,
-        )
+        )->Belt.Result.getExn
 
         assertEq(possibleSubs->Js.Array2.length, 1)
         assertEqMsg(
@@ -624,7 +625,7 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
             true,
-        )
+        )->Belt.Result.getExn
 
         //then
         assertEq(possibleSubs->Js.Array2.length, 1)
@@ -666,7 +667,7 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
             true,
-        )
+        )->Belt.Result.getExn
 
         //then
         assertEq(possibleSubs->Js.Array2.length, 2)
@@ -722,7 +723,7 @@ describe("findPossibleSubs", _ => {
             ctx->ctxStrToIntsExn("y"),
             ctx->ctxStrToIntsExn("z"),
             true,
-        )
+        )->Belt.Result.getExn
 
         //then
         assertEq( possibleSubs->Js_array2.length, 1 )
@@ -741,12 +742,12 @@ describe("applySubstitutionForEditor", _ => {
         let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0", ())})
         let st = updateEditorStateWithPostupdateActions(st, s=>s)
         let ctx = st.wrkCtx->Belt_Option.getExn
-        let wrkSubs = findPossibleSubs(
+        let wrkSubs = (findPossibleSubs(
             st, 
             ctx->ctxStrToIntsExn("t = s"),
             ctx->ctxStrToIntsExn("r = ( t + r )"),
             true,
-        )[0]
+        )->Belt.Result.getExn)[0]
 
         //when
         let st = applySubstitutionForEditor(st, wrkSubs)

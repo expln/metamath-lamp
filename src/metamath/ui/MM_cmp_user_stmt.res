@@ -6,7 +6,6 @@ open MM_react_common
 open MM_context
 open MM_substitution
 open MM_parenCounter
-open MM_proof_tree
 open MM_proof_tree_dto
 open MM_parser
 open Expln_React_Modal
@@ -71,116 +70,6 @@ let setVisExpanded = (st,visExpanded):state => {
     {
         ...st,
         visExpanded
-    }
-}
-
-let textToSyntaxProofTable = (
-    ~wrkCtx:mmContext,
-    ~syms:array<array<stmtSym>>,
-    ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
-):result<array<result<MM_proof_table.proofTable,string>>,string> => {
-    if (syntaxTypes->Js_array2.length == 0) {
-        Error(`Could not determine syntax types.`)
-    } else {
-        let findUndefinedSym = (syms:array<stmtSym>):option<stmtSym> => 
-            syms->Js.Array2.find(stmtSym => wrkCtx->ctxSymToInt(stmtSym.sym)->Belt_Option.isNone)
-        switch Belt_Array.concatMany(syms)->findUndefinedSym {
-            | Some({sym:unrecognizedSymbol}) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
-            | None => {
-                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
-                let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
-                    if (a == lastSyntaxTypeInt) {
-                        -1
-                    } else if (b == lastSyntaxTypeInt) {
-                        1
-                    } else {
-                        a - b
-                    }
-                })
-                let stmts = syms->Js_array2.map(ss => 
-                    ss->Js_array2.map(stmtSym => stmtSym.sym)->ctxSymsToIntsExn(wrkCtx, _)
-                )
-                let exprs = stmts->Js.Array2.map(Js_array2.sliceFrom(_, 1))
-                let proofTree = MM_provers.proveSyntaxTypes(~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ())
-                let typeStmts = exprs->Js.Array2.map(expr => {
-                    switch proofTree->ptGetSyntaxProof(expr) {
-                        | None => None
-                        | Some(node) => Some(node->pnGetExpr)
-                    }
-                })
-                let proofTreeDto = proofTree->MM_proof_tree_dto.proofTreeToDto(
-                    typeStmts->Js_array2.filter(Belt_Option.isSome)->Js_array2.map(Belt_Option.getExn)
-                )
-                switch typeStmts->Js_array2.find(Belt_Option.isSome) {
-                    | None => ()
-                    | Some(None) => ()
-                    | Some(Some(typeStmt)) => {
-                        switch lastSyntaxType {
-                            | None => wrkCtx->ctxIntToSym(typeStmt[0])->Belt_Option.forEach(onLastSyntaxTypeChange)
-                            | Some(lastSyntaxType) => {
-                                wrkCtx->ctxIntToSym(typeStmt[0])->Belt_Option.forEach(provedSyntaxType => {
-                                    if (lastSyntaxType != provedSyntaxType) {
-                                        onLastSyntaxTypeChange(provedSyntaxType)
-                                    }
-                                })
-                            }
-                        }
-                    }
-                }
-                Ok(
-                    typeStmts->Js.Array2.map(typeStmt => {
-                        switch typeStmt {
-                            | None => {
-                                Error(
-                                    `Could not prove this statement is of any of the types: ` 
-                                        ++ `${wrkCtx->ctxIntsToSymsExn(syntaxTypes)->Js.Array2.joinWith(", ")}`
-                                )
-                            }
-                            | Some(typeStmt) => {
-                                buildSyntaxProofTableFromProofTreeDto( ~ctx=wrkCtx, ~proofTreeDto, ~typeStmt, )
-                            }
-                        }
-                    })
-                )
-            }
-        }
-    }
-}
-
-let textToSyntaxTree = (
-    ~wrkCtx:mmContext,
-    ~syms:array<array<stmtSym>>,
-    ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
-):result<array<result<syntaxTreeNode,string>>,string> => {
-    let syntaxProofTables = textToSyntaxProofTable(
-        ~wrkCtx,
-        ~syms,
-        ~syntaxTypes,
-        ~frms,
-        ~parenCnt,
-        ~lastSyntaxType,
-        ~onLastSyntaxTypeChange,
-    )
-    switch syntaxProofTables {
-        | Error(msg) => Error(msg)
-        | Ok(proofTables) => {
-            Ok(
-                proofTables->Js_array2.map(proofTable => {
-                    switch proofTable {
-                        | Error(msg) => Error(msg)
-                        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1)
-                    }
-                })
-            )
-        }
     }
 }
 
@@ -854,7 +743,7 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms=[syms], ~syntaxTypes, ~frms, ~parenCnt,
+                            ~wrkCtx, ~syms=[syms->Js_array2.map(s => s.sym)], ~syntaxTypes, ~frms, ~parenCnt,
                             ~lastSyntaxType=getLastSyntaxType(),
                             ~onLastSyntaxTypeChange=setLastSyntaxType,
                         ) {

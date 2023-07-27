@@ -3,6 +3,7 @@ open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
 open MM_wrk_editor
+open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_wrk_unify
 open Expln_utils_promise
