@@ -52,7 +52,7 @@ let editorStateToStr = st => {
         )->ignore
         switch stmt.stmtErr {
             | None => ()
-            | Some(msg) => lines->Js_array2.push("Stmt Error: " ++ msg)->ignore
+            | Some({msg}) => lines->Js_array2.push("Stmt Error: " ++ msg)->ignore
         }
         switch stmt.syntaxErr {
             | None => ()

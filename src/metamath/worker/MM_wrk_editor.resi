@@ -64,6 +64,13 @@ type stmtId = string
 
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
+type stmtGenericError = {
+    code:int,
+    msg:string,
+}
+let someStmtErrCode:int
+let duplicatedStmtErrCode:int
+
 type userStmt = {
     id: stmtId,
 
@@ -78,7 +85,7 @@ type userStmt = {
     jstfText: string,
     jstfEditMode: bool,
 
-    stmtErr: option<string>,
+    stmtErr: option<stmtGenericError>,
 
     expr: option<expr>,
     jstf: option<jstf>,
@@ -185,6 +192,7 @@ let getAllExprsToSyntaxCheck: (editorState, array<rootStmt>) => array<expr>
 let mergeStmts: (editorState, stmtId, stmtId) => result<editorState, string>
 let renameStmt: (editorState, stmtId, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
+let autoMergeDuplicatedStatements: editorState => editorState
 let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool

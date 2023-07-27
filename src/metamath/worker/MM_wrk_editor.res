@@ -149,6 +149,13 @@ type stmtId = string
 
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
+type stmtGenericError = {
+    code:int,
+    msg:string,
+}
+let someStmtErrCode = -1
+let duplicatedStmtErrCode = 1
+
 type userStmt = {
     id: stmtId,
 
@@ -163,7 +170,7 @@ type userStmt = {
     jstfText: string,
     jstfEditMode: bool,
 
-    stmtErr: option<string>,
+    stmtErr: option<stmtGenericError>,
 
     expr: option<expr>,
     jstf: option<jstf>,
@@ -896,7 +903,7 @@ let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
                 expr: Some(wrkCtx->ctxSymsToIntsExn(stmt.cont->contToArrStr)),
             }
         } catch {
-            | MmException({msg}) => {...stmt, stmtErr:Some(msg)}
+            | MmException({msg}) => {...stmt, stmtErr:Some({code:someStmtErrCode, msg})}
         }
     }
 }
@@ -906,7 +913,7 @@ let setStmtJstf = (stmt:userStmt):userStmt => {
         stmt
     } else {
         switch parseJstf(stmt.jstfText) {
-            | Error(msg) => {...stmt, stmtErr:Some(msg)}
+            | Error(msg) => {...stmt, stmtErr:Some({code:someStmtErrCode, msg})}
             | Ok(jstf) => {...stmt, jstf}
         }
     }
@@ -931,13 +938,13 @@ let validateStmtJstf = (
             | Some({args,label}) => {
                 switch args->Js_array2.find(ref => !isLabelDefined(ref,wrkCtx,definedUserLabels) ) {
                     | Some(jstfArgLabel) => {
-                        {...stmt, stmtErr:Some(`The label '${jstfArgLabel}' is not defined.`)}
+                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${jstfArgLabel}' is not defined.`})}
                     }
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
-                            {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
+                            {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' doesn't refer to any assertion.`})}
                         } else if (asrtsToSkip->Js_array2.includes(label)) {
-                            {...stmt, stmtErr:Some(`The assertion '${label}' is skipped by settings.`)}
+                            {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The assertion '${label}' is skipped by settings.`})}
                         } else {
                             switch frms->Belt_MapString.get(label) {
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
@@ -955,10 +962,14 @@ let validateStmtJstf = (
                                         } else {
                                             "are"
                                         }
-                                        {...stmt, stmtErr:Some(
-                                            `'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
-                                                ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
-                                        )}
+                                        {
+                                            ...stmt, 
+                                            stmtErr:Some({
+                                                code:someStmtErrCode, 
+                                                msg:`'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
+                                                    ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
+                                            })
+                                        }
                                     } else {
                                         stmt
                                     }
@@ -979,11 +990,11 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt
         if (stmt.typ == E) {
             switch wrkCtx->getTokenType(stmt.label) {
                 | Some(_) => {
-                    {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [1].`)}
+                    {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [1].`})}
                 }
                 | None => {
                     if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
-                        {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [2].`)}
+                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [2].`})}
                     } else {
                         stmt
                     }
@@ -991,7 +1002,7 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt
             }
         } else {
             if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
-                {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [3].`)}
+                {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [3].`})}
             } else {
                 stmt
             }
@@ -1012,14 +1023,16 @@ let validateStmtExpr = (
             | Some(expr) => {
                 switch wrkCtx->getHypByExpr(expr) {
                     | Some(hyp) => {
-                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
-                            ++ ` hypothesis - '${hyp.label}'`)}
+                        {...stmt, stmtErr:Some({code:duplicatedStmtErrCode, 
+                                                msg:`This statement is the same as the previously defined` 
+                                                    ++ ` hypothesis - '${hyp.label}'`})}
                     }
                     | _ => {
                         switch definedUserExprs->Belt_HashMap.get(expr) {
                             | Some(prevStmtLabel) => {
-                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
-                                    ++ ` one - '${prevStmtLabel}'`)}
+                                {...stmt, stmtErr:Some({code:duplicatedStmtErrCode, 
+                                                        msg:`This statement is the same as the previous` 
+                                                            ++ ` one - '${prevStmtLabel}'`})}
                             }
                             | None => stmt
                         }
@@ -1041,9 +1054,9 @@ let validateStmtIsGoal = (
             | None => stmt
             | Some(goalLabel) => {
                 if (stmt.isGoal) {
-                    {...stmt, stmtErr:Some(`Cannot re-define the goal. ` 
+                    {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot re-define the goal. ` 
                                     ++ `Previously defined goal is the step labeled` 
-                                    ++ ` '${goalLabel}'`)}
+                                    ++ ` '${goalLabel}'`})}
                 } else {
                     stmt
                 }
@@ -2083,6 +2096,50 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     } else {
         Error("One step should be selected [2].")
     }
+}
+
+let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
+    st.stmts->Js_array2.find(stmt => 
+        stmt.typ != E
+        && stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)
+            ->Belt_Option.getWithDefault(false)
+    )
+}
+
+let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt> => {
+    let contStr = stmt1.cont->contToStr
+    st.stmts->Js.Array2.find(stmt2 => stmt2.typ != E && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr)
+}
+
+let autoMergeDuplicatedStatements = (st:editorState):editorState => {
+    let resultState = ref(st)
+    let continue = ref(true)
+    while (continue.contents) {
+        switch resultState.contents->findFirstDuplicatedStmt {
+            | None => continue := false
+            | Some(stmt1) => {
+                switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
+                    | None => continue := false
+                    | Some(stmt2) => {
+                        if (stmt1.jstfText->Js_string2.trim != "" && stmt2.jstfText->Js_string2.trim == "") {
+                            switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
+                                | Error(_) => continue := false
+                                | Ok(stateAfterMerge) => resultState := stateAfterMerge
+                            }
+                        } else if (stmt1.jstfText->Js_string2.trim == "" && stmt2.jstfText->Js_string2.trim != "") {
+                            switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                | Error(_) => continue := false
+                                | Ok(stateAfterMerge) => resultState := stateAfterMerge
+                            }
+                        } else {
+                            continue := false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    resultState.contents
 }
 
 let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
