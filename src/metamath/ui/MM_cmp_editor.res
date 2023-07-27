@@ -131,7 +131,8 @@ let make = (
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
-    ~openCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ~toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ~ctxSelectorIsExpanded:bool,
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
     ~openFrameExplorer:string=>unit,
@@ -1228,11 +1229,11 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                openCtxSelector.current->Js.Nullable.toOption
-                                    ->Belt.Option.forEach(openCtxSelector => openCtxSelector())
+                                toggleCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
                             }}
                         >
-                            {React.string("Show context")}
+                            {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
