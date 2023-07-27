@@ -249,7 +249,7 @@ describe("unify", _ => {
         let foundSubs = Belt_HashMapString.make(~hintSize = 100)
 
         //when
-        unify(a, b, ~ctx, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,"&"))
+        unify(a, b, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,"&"))
 
         //then
         // a->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/a.json")

@@ -5,6 +5,7 @@ open MM_parser
 type rec syntaxTreeNode = {
     id: int,
     parent:option<syntaxTreeNode>,
+    typ:int,
     label:string,
     children:array<childNode>,
     height:int,
@@ -65,6 +66,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<sy
             let this = {
                 id: idSeq(),
                 parent,
+                typ:r.expr[0],
                 label,
                 children: Expln_utils_common.createArray(maxI),
                 height:0,
@@ -93,6 +95,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, localVars, tbl, parent, r):result<sy
                             let this = {
                                 id: idSeq(),
                                 parent,
+                                typ:frame.asrt[0],
                                 label,
                                 children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1),
                                 height:0,
@@ -230,22 +233,6 @@ and childNodeEq = (a:childNode, b:childNode):bool => {
     }
 }
 
-let getExprType = (expr:syntaxTreeNode, ctx:mmContext):int => {
-    switch ctx->getFrame(expr.label) {
-        | Some(frame) => frame.asrt[0]
-        | None => {
-            switch ctx->getHypothesis(expr.label) {
-                | Some({expr:hypExpr}) => hypExpr[0]
-                | None => {
-                    raise(MmException({
-                        msg:`Could not determine type of a syntax tree node with label '${expr.label}'`
-                    }))
-                }
-            }
-        }
-    }
-}
-
 let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<string> => {
     @warning("-8")
     switch expr.children->Js.Array2.length {
@@ -321,12 +308,11 @@ let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
 let rec unify = ( 
     a:syntaxTreeNode, 
     b:syntaxTreeNode, 
-    ~ctx:mmContext, 
     ~isMetavar:string=>bool, 
     ~foundSubs:unifSubs, 
     ~continue:ref<bool>
 ):unit => {
-    if (a->getExprType(ctx) != b->getExprType(ctx)) {
+    if (a.typ != b.typ) {
         continue := false
     } else {
         switch a->isVar(isMetavar) {
@@ -369,7 +355,7 @@ let rec unify = (
                                         switch b.children[i.contents] {
                                             | Symbol(_) => continue := false
                                             | Subtree(bCh) => {
-                                                unify(aCh, bCh, ~ctx, ~isMetavar, ~foundSubs, ~continue)
+                                                unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
                                             }
                                         }
                                     }

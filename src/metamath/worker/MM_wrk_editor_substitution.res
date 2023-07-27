@@ -2,7 +2,6 @@ open MM_wrk_editor
 open MM_context
 open MM_parser
 open MM_proof_tree
-open MM_proof_tree_dto
 open MM_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
@@ -189,15 +188,18 @@ let findPossibleSubsByMatch = (
     Ok(foundSubs)
 }
 
-let findPossibleSubsByUnif = (
+let makeCannotBuildSyntaxTreeError = (expr:expr, msg:string, ctx:mmContext):string => {
+    `Cannot build a syntax tree for the expression '${ctx->ctxIntsToStrExn(expr)}': ${msg}`
+}
+
+let buildSyntaxTreesOfSameType = (
     ~wrkCtx:mmContext, 
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
     ~expr1:expr, 
     ~expr2:expr,
-    ~metavarPrefix:string,
-):result<array<wrkSubs>,string> => {
+):result<(syntaxTreeNode,syntaxTreeNode),string> => {
     let syntaxTrees = textToSyntaxTree(
         ~wrkCtx,
         ~syms = [ wrkCtx->ctxIntsToSymsExn(expr1), wrkCtx->ctxIntsToSymsExn(expr2) ],
@@ -207,7 +209,95 @@ let findPossibleSubsByUnif = (
         ~lastSyntaxType=None,
         ~onLastSyntaxTypeChange = _ => (),
     )
-    Error(`Not implemented.`)
+    @warning("-8")
+    switch syntaxTrees {
+        | Error(msg) => Error(msg)
+        | Ok([tree1,tree2]) => {
+            switch tree1 {
+                | Error(msg) => Error(makeCannotBuildSyntaxTreeError(expr1, msg, wrkCtx))
+                | Ok(tree1) => {
+                    switch tree2 {
+                        | Error(msg) => Error(makeCannotBuildSyntaxTreeError(expr2, msg, wrkCtx))
+                        | Ok(tree2) => {
+                            if (tree1.typ == tree2.typ) {
+                                Ok((tree1,tree2))
+                            } else {
+                                let syntaxTreeWithMatchingType = textToSyntaxTree(
+                                    ~wrkCtx,
+                                    ~syms = [ wrkCtx->ctxIntsToSymsExn(expr1) ],
+                                    ~syntaxTypes=[tree2.typ],
+                                    ~frms,
+                                    ~parenCnt,
+                                    ~lastSyntaxType=None,
+                                    ~onLastSyntaxTypeChange = _ => (),
+                                )
+                                @warning("-8")
+                                switch syntaxTreeWithMatchingType {
+                                    | Ok([Ok(tree1)]) => Ok((tree1,tree2))
+                                    | _ => {
+                                        let syntaxTreeWithMatchingType = textToSyntaxTree(
+                                            ~wrkCtx,
+                                            ~syms = [ wrkCtx->ctxIntsToSymsExn(expr2) ],
+                                            ~syntaxTypes=[tree1.typ],
+                                            ~frms,
+                                            ~parenCnt,
+                                            ~lastSyntaxType=None,
+                                            ~onLastSyntaxTypeChange = _ => (),
+                                        )
+                                        @warning("-8")
+                                        switch syntaxTreeWithMatchingType {
+                                            | Ok([Ok(tree2)]) => Ok((tree1,tree2))
+                                            | _ => {
+                                                Error(`Cannot prove the two expressions are of the same type.`)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let findPossibleSubsByUnif = (
+    ~wrkCtx:mmContext, 
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~expr1:expr, 
+    ~expr2:expr,
+    ~metavarPrefix:string,
+):result<array<wrkSubs>,string> => {
+    let syntaxTrees = buildSyntaxTreesOfSameType( ~wrkCtx, ~syntaxTypes, ~frms, ~parenCnt, ~expr1, ~expr2, )
+    switch syntaxTrees {
+        | Error(msg) => Error(msg)
+        | Ok((tree1,tree2)) => {
+            let continue = ref(true)
+            let foundSubs = Belt_HashMapString.make(~hintSize = expr1->Js_array2.length + expr2->Js_array2.length)
+            unify(tree1, tree2, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,metavarPrefix))
+            if (!continue.contents) {
+                Error(`Cannot unify these expressions.`)
+            } else {
+                let res = foundSubs->Belt_HashMapString.toArray
+                    ->Js.Array2.map(((var,expr)) => (wrkCtx->ctxSymToIntExn(var), wrkCtx->ctxSymsToIntsExn(expr)))
+                    ->Belt_HashMapInt.fromArray
+                let maxVar = wrkCtx->getNumOfVars-1
+                for v in 0 to maxVar {
+                    if (!(res->Belt_HashMapInt.has(v))) {
+                        res->Belt_HashMapInt.set(v, [v])
+                    }
+                }
+                Ok([{
+                    subs: res->Belt_HashMapInt.toArray->Belt_MapInt.fromArray,
+                    newDisj: disjMake(),
+                    err: None,
+                }])
+            }
+        }
+    }
 }
 
 let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:bool):result<array<wrkSubs>,string> => {
