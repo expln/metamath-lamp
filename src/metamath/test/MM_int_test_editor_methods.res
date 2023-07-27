@@ -276,7 +276,8 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
             let wrkSubs = findPossibleSubs(
                 st, 
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
-                wrkCtx->ctxStrToIntsExn(replaceWith)
+                wrkCtx->ctxStrToIntsExn(replaceWith),
+                true
             )->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
             if (wrkSubs->Js.Array2.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))

@@ -509,6 +509,7 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn("t + r"),
             ctx->ctxStrToIntsExn("( t + t ) + ( t + r ) + ( t + s )"),
+            true,
         )
 
         //then
@@ -548,6 +549,7 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn("y"),
             ctx->ctxStrToIntsExn("z"),
+            true,
         )
 
         //then
@@ -589,6 +591,7 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
+            true,
         )
 
         assertEq(possibleSubs->Js.Array2.length, 1)
@@ -620,6 +623,7 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
+            true,
         )
 
         //then
@@ -661,6 +665,7 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
+            true,
         )
 
         //then
@@ -716,6 +721,7 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn("y"),
             ctx->ctxStrToIntsExn("z"),
+            true,
         )
 
         //then
@@ -739,6 +745,7 @@ describe("applySubstitutionForEditor", _ => {
             st, 
             ctx->ctxStrToIntsExn("t = s"),
             ctx->ctxStrToIntsExn("r = ( t + r )"),
+            true,
         )[0]
 
         //when

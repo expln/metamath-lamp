@@ -1494,7 +1494,7 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
     })
 }
 
-let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
+let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:bool):array<wrkSubs> => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {

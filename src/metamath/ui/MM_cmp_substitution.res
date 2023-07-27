@@ -94,6 +94,9 @@ let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:opt
     </span>
 }
 
+let findSubsByMatch = "match"
+let findSubsByUnif = "unif"
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -105,8 +108,13 @@ let make = (
     ~onSubstitutionSelected:wrkSubs=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(~expr1Init, ~expr2Init))
+    let (findSubsBy, setFindSubsBy) = Local_storage_utils.useStateFromLocalStorageStr(
+        ~key="find-substitution-by", ~default=findSubsByMatch
+    )
     let expr1TextFieldRef = React.useRef(Js.Nullable.null)
     let expr2TextFieldRef = React.useRef(Js.Nullable.null)
+
+    let methodName = if (findSubsBy == findSubsByMatch) {"Match"} else {"Unify"}
 
     let actSaveResults = results => {
         setState(setResults(_, results))
@@ -142,6 +150,7 @@ let make = (
                     editorState, 
                     wrkCtx->ctxSymsToIntsExn(syms1),
                     wrkCtx->ctxSymsToIntsExn(syms2),
+                    findSubsBy == findSubsByMatch,
                 )
             )
         } else {
@@ -199,15 +208,23 @@ let make = (
     }
 
     let actExpr1Change = str => {
+        actClearResults()
         setState(setExpr1Str(_,str))
     }
 
     let actExpr2Change = str => {
+        actClearResults()
         setState(setExpr2Str(_,str))
     }
 
     let actSwapExprs = () => {
+        actClearResults()
         setState(swapExprs)
+    }
+
+    let actFindSubsByChange = newValue => {
+        actClearResults()
+        setFindSubsBy(_ => if (newValue == findSubsByMatch) {findSubsByMatch} else {findSubsByUnif})
     }
 
     let rndError = msgOpt => {
@@ -235,11 +252,22 @@ let make = (
         />
     }
 
-    let expr1Label = "Match what"
-    let expr2Label = "Match with"
+    let expr1Label = `${methodName} what`
+    let expr2Label = `${methodName} with`
     
     let rndInput = () => {
         <Col>
+            <Row alignItems=#center>
+                {React.string("Find substitution by:")}
+                <RadioGroup
+                    row=true
+                    value=findSubsBy
+                    onChange=evt2str(actFindSubsByChange)
+                >
+                    <FormControlLabel value=findSubsByMatch control={ <Radio/> } label="Matching" />
+                    <FormControlLabel value=findSubsByUnif control={ <Radio/> } label="Unification" />
+                </RadioGroup>
+            </Row>
             <table>
                 <tbody>
                     <tr>
