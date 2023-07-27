@@ -64,6 +64,13 @@ type stmtId = string
 
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
+type stmtGenericError = {
+    code:int,
+    msg:string,
+}
+let someStmtErrCode:int
+let duplicatedStmtErrCode:int
+
 type userStmt = {
     id: stmtId,
 
@@ -78,7 +85,7 @@ type userStmt = {
     jstfText: string,
     jstfEditMode: bool,
 
-    stmtErr: option<string>,
+    stmtErr: option<stmtGenericError>,
 
     expr: option<expr>,
     jstf: option<jstf>,
@@ -171,9 +178,8 @@ let completeJstfEditMode: (editorState, stmtId, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
+let createNewDisj: (editorState, disjMutable) => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
-let findPossibleSubs: (editorState, expr, expr) => array<wrkSubs>
-let applySubstitutionForEditor: (editorState, wrkSubs) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
@@ -186,6 +192,7 @@ let getAllExprsToSyntaxCheck: (editorState, array<rootStmt>) => array<expr>
 let mergeStmts: (editorState, stmtId, stmtId) => result<editorState, string>
 let renameStmt: (editorState, stmtId, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
+let autoMergeDuplicatedStatements: editorState => editorState
 let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
@@ -217,3 +224,23 @@ let getColorForSymbol: (
 let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>
 
 let renumberSteps: editorState => result<editorState, string>
+
+let textToSyntaxProofTable: (
+    ~wrkCtx:mmContext,
+    ~syms:array<array<string>>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+) => result<array<result<MM_proof_table.proofTable,string>>,string>
+
+let textToSyntaxTree: (
+    ~wrkCtx:mmContext,
+    ~syms:array<array<string>>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+) => result<array<result<syntaxTreeNode,string>>,string>

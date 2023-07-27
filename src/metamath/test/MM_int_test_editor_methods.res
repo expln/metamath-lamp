@@ -4,6 +4,7 @@ open MM_proof_tree
 open MM_proof_tree_dto
 open MM_provers
 open MM_wrk_editor
+open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_wrk_search_asrt
 open MM_wrk_unify
@@ -47,6 +48,7 @@ let createEditorState = (
         initStmtIsGoal: false,
         defaultStmtLabel: "qed",
         defaultStmtType: "",
+        unifMetavarPrefix: "&",
         checkSyntax: true,
         stickGoalToBottom: false,
         typeSettings: [ ],
@@ -275,8 +277,9 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
             let wrkSubs = findPossibleSubs(
                 st, 
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
-                wrkCtx->ctxStrToIntsExn(replaceWith)
-            )->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
+                wrkCtx->ctxStrToIntsExn(replaceWith),
+                true
+            )->Belt.Result.getExn->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
             if (wrkSubs->Js.Array2.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {

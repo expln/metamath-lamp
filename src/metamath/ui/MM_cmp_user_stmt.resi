@@ -3,7 +3,6 @@ open MM_context
 open Expln_React_Modal
 open MM_substitution
 open MM_parenCounter
-open MM_syntax_tree
 
 let rndProofStatus: (
     ~proofStatus:option<proofStatus>,
@@ -97,26 +96,6 @@ let rndContText: (
     ~title:string=?,
     ()
 ) => React.element
-
-let textToSyntaxProofTable: (
-    ~wrkCtx:mmContext,
-    ~syms:array<stmtSym>,
-    ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
-) => result<MM_proof_table.proofTable,string>
-
-let textToSyntaxTree: (
-    ~wrkCtx:mmContext,
-    ~syms:array<stmtSym>,
-    ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
-    ~parenCnt: parenCnt,
-    ~lastSyntaxType:option<string>,
-    ~onLastSyntaxTypeChange:string => unit,
-) => result<syntaxTreeNode,string>
 
 let getLastSyntaxType: unit => option<string>
 

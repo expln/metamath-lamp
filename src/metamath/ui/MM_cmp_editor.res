@@ -3,6 +3,7 @@ open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
 open MM_wrk_editor
+open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_wrk_unify
 open Expln_utils_promise
@@ -231,7 +232,7 @@ let make = (
         | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
     }
-    let oneStatementIsChecked = state.checkedStmtIds->Js.Array2.length == 1
+    let numOfCheckedStmts = state.checkedStmtIds->Js.Array2.length
 
     let actPreCtxDataUpdated = () => {
         setState(setPreCtxData(_, preCtxData))
@@ -681,13 +682,7 @@ let make = (
 
     let actMergeTwoStmts = () => {
         switch state->findStmtsToMerge {
-            | Error(msg) => {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~text=msg,
-                    ()
-                )
-            }
+            | Error(_) => setState(autoMergeDuplicatedStatements)
             | Ok((stmt1,stmt2)) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
@@ -1330,7 +1325,8 @@ let make = (
                     ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
-                    ~active=oneStatementIsChecked, ~title="Merge two similar steps", ~smallBtns, ())}
+                    ~active = numOfCheckedStmts==0 || numOfCheckedStmts==1, 
+                    ~title="Merge two similar steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
                     ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
                     ~title="Restore previous state", ~smallBtns, ())}
@@ -1368,7 +1364,7 @@ let make = (
             || stmt.syntaxErr->Belt_Option.isSome 
             || stmt.unifErr->Belt_Option.isSome) {
             <Col style=ReactDOM.Style.make(~marginLeft="10px", ())>
-                {rndError(stmt.stmtErr,"red")}
+                {rndError(stmt.stmtErr->Belt.Option.map(err => err.msg),"red")}
                 {
                     rndError(
                         stmt.syntaxErr->Belt.Option.map(msg => {

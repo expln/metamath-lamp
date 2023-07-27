@@ -4,6 +4,7 @@ open MM_proof_table
 type rec syntaxTreeNode = {
     id: int,
     parent:option<syntaxTreeNode>,
+    typ:int,
     label:string,
     children:array<childNode>,
     height:int,
@@ -30,3 +31,13 @@ let syntaxTreeToSymbols: syntaxTreeNode => array<string>
 let syntaxTreeIsEmpty: syntaxTreeNode => bool
 
 let getNodeById: ( syntaxTreeNode, int, ) => option<childNode>
+
+type unifSubs = Belt_HashMapString.t<array<string>>
+
+let unify: (
+    syntaxTreeNode, 
+    syntaxTreeNode, 
+    ~isMetavar:string=>bool, 
+    ~foundSubs:unifSubs, 
+    ~continue:ref<bool>
+) => unit

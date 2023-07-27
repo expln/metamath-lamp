@@ -149,6 +149,13 @@ type stmtId = string
 
 type proofStatus = Ready | Waiting | NoJstf | JstfIsIncorrect
 
+type stmtGenericError = {
+    code:int,
+    msg:string,
+}
+let someStmtErrCode = -1
+let duplicatedStmtErrCode = 1
+
 type userStmt = {
     id: stmtId,
 
@@ -163,7 +170,7 @@ type userStmt = {
     jstfText: string,
     jstfEditMode: bool,
 
-    stmtErr: option<string>,
+    stmtErr: option<stmtGenericError>,
 
     expr: option<expr>,
     jstf: option<jstf>,
@@ -896,7 +903,7 @@ let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
                 expr: Some(wrkCtx->ctxSymsToIntsExn(stmt.cont->contToArrStr)),
             }
         } catch {
-            | MmException({msg}) => {...stmt, stmtErr:Some(msg)}
+            | MmException({msg}) => {...stmt, stmtErr:Some({code:someStmtErrCode, msg})}
         }
     }
 }
@@ -906,7 +913,7 @@ let setStmtJstf = (stmt:userStmt):userStmt => {
         stmt
     } else {
         switch parseJstf(stmt.jstfText) {
-            | Error(msg) => {...stmt, stmtErr:Some(msg)}
+            | Error(msg) => {...stmt, stmtErr:Some({code:someStmtErrCode, msg})}
             | Ok(jstf) => {...stmt, jstf}
         }
     }
@@ -931,13 +938,13 @@ let validateStmtJstf = (
             | Some({args,label}) => {
                 switch args->Js_array2.find(ref => !isLabelDefined(ref,wrkCtx,definedUserLabels) ) {
                     | Some(jstfArgLabel) => {
-                        {...stmt, stmtErr:Some(`The label '${jstfArgLabel}' is not defined.`)}
+                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${jstfArgLabel}' is not defined.`})}
                     }
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
-                            {...stmt, stmtErr:Some(`The label '${label}' doesn't refer to any assertion.`)}
+                            {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' doesn't refer to any assertion.`})}
                         } else if (asrtsToSkip->Js_array2.includes(label)) {
-                            {...stmt, stmtErr:Some(`The assertion '${label}' is skipped by settings.`)}
+                            {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The assertion '${label}' is skipped by settings.`})}
                         } else {
                             switch frms->Belt_MapString.get(label) {
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
@@ -955,10 +962,14 @@ let validateStmtJstf = (
                                         } else {
                                             "are"
                                         }
-                                        {...stmt, stmtErr:Some(
-                                            `'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
-                                                ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
-                                        )}
+                                        {
+                                            ...stmt, 
+                                            stmtErr:Some({
+                                                code:someStmtErrCode, 
+                                                msg:`'${label}' assertion expects ${expectedNumberOfArgs->Belt_Int.toString} ${eHypsText} but`
+                                                    ++ ` ${providedNumberOfArgs->Belt_Int.toString} ${isAreText} provided.`
+                                            })
+                                        }
                                     } else {
                                         stmt
                                     }
@@ -979,11 +990,11 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt
         if (stmt.typ == E) {
             switch wrkCtx->getTokenType(stmt.label) {
                 | Some(_) => {
-                    {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [1].`)}
+                    {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [1].`})}
                 }
                 | None => {
                     if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
-                        {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [2].`)}
+                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [2].`})}
                     } else {
                         stmt
                     }
@@ -991,7 +1002,7 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt
             }
         } else {
             if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
-                {...stmt, stmtErr:Some(`Cannot reuse label '${stmt.label}' [3].`)}
+                {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [3].`})}
             } else {
                 stmt
             }
@@ -1012,14 +1023,16 @@ let validateStmtExpr = (
             | Some(expr) => {
                 switch wrkCtx->getHypByExpr(expr) {
                     | Some(hyp) => {
-                        {...stmt, stmtErr:Some(`This statement is the same as the previously defined` 
-                            ++ ` hypothesis - '${hyp.label}'`)}
+                        {...stmt, stmtErr:Some({code:duplicatedStmtErrCode, 
+                                                msg:`This statement is the same as the previously defined` 
+                                                    ++ ` hypothesis - '${hyp.label}'`})}
                     }
                     | _ => {
                         switch definedUserExprs->Belt_HashMap.get(expr) {
                             | Some(prevStmtLabel) => {
-                                {...stmt, stmtErr:Some(`This statement is the same as the previous` 
-                                    ++ ` one - '${prevStmtLabel}'`)}
+                                {...stmt, stmtErr:Some({code:duplicatedStmtErrCode, 
+                                                        msg:`This statement is the same as the previous` 
+                                                            ++ ` one - '${prevStmtLabel}'`})}
                             }
                             | None => stmt
                         }
@@ -1041,9 +1054,9 @@ let validateStmtIsGoal = (
             | None => stmt
             | Some(goalLabel) => {
                 if (stmt.isGoal) {
-                    {...stmt, stmtErr:Some(`Cannot re-define the goal. ` 
+                    {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot re-define the goal. ` 
                                     ++ `Previously defined goal is the step labeled` 
-                                    ++ ` '${goalLabel}'`)}
+                                    ++ ` '${goalLabel}'`})}
                 } else {
                     stmt
                 }
@@ -1395,191 +1408,6 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
         }
     })
     stMut.contents
-}
-
-let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs):unit => {
-    let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
-    let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
-        [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
-    )
-    let proofTree = proveFloatings(
-        ~wrkCtx=ctx,
-        ~frms,
-        ~floatingsToProve=typesToProve,
-        ~parenCnt,
-    )
-    varToExprArr->Js_array2.forEachi(((var,expr), i) =>
-        if (wrkSubs.err->Belt_Option.isNone) {
-            let typeExpr = typesToProve[i]
-            if (proofTree->ptGetNode(typeExpr)->pnGetProof->Belt_Option.isNone) {
-                wrkSubs.err = Some(TypeMismatch({ var, subsExpr:expr, typeExpr, }))
-            }
-        }
-    )
-}
-
-let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
-    let frameVarToCtxVar = frameVar => {
-        switch tmpFrame.frameVarToSymb->Belt_Array.get(frameVar) {
-            | None => raise(MmException({msg:`Cannot convert frameVar to ctxVar.`}))
-            | Some(ctxSym) => ctx->ctxSymToIntExn(ctxSym)
-        }
-    }
-    let res = Belt_Array.range(0,tmpFrame.numOfVars-1)
-        ->Js.Array2.map(v => {
-            (
-                frameVarToCtxVar(v),
-                applySubs(
-                    ~frmExpr=[v],
-                    ~subs,
-                    ~createWorkVar = 
-                        _ => raise(MmException({msg:`Work variables are not supported in convertSubsToWrkSubs().`}))
-                )
-            )
-        })
-        ->Belt_HashMapInt.fromArray
-    let maxVar = ctx->getNumOfVars-1
-    for v in 0 to maxVar {
-        if (!(res->Belt_HashMapInt.has(v))) {
-            res->Belt_HashMapInt.set(v, [v])
-        }
-    }
-    {
-        subs: res->Belt_HashMapInt.toArray->Belt_MapInt.fromArray,
-        newDisj: disjMake(),
-        err: None,
-    }
-}
-
-let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
-    let varToSubVars = Belt_HashMapInt.make(~hintSize=wrkSubs.subs->Belt_MapInt.size)
-
-    let getSubVars = var => {
-        switch varToSubVars->Belt_HashMapInt.get(var) {
-            | None => {
-                varToSubVars->Belt_HashMapInt.set(
-                    var, 
-                    switch wrkSubs.subs->Belt_MapInt.get(var) {
-                        | None => []
-                        | Some(expr) => expr->Js_array2.filter(s => s >= 0)
-                    }
-                )
-                varToSubVars->Belt_HashMapInt.get(var)->Belt.Option.getExn
-            }
-            | Some(arr) => arr
-        }
-    }
-
-    disj->disjForEach((n,m) => {
-        if (wrkSubs.err->Belt_Option.isNone) {
-            getSubVars(n)->Js_array2.forEach(nv => {
-                if (wrkSubs.err->Belt_Option.isNone) {
-                    getSubVars(m)->Js_array2.forEach(mv => {
-                        if (wrkSubs.err->Belt_Option.isNone) {
-                            if (nv == mv) {
-                                wrkSubs.err = Some(CommonVar({
-                                    var1:n,
-                                    var2:m,
-                                    commonVar:nv
-                                }))
-                            }
-                            if (wrkSubs.err->Belt_Option.isNone && !(disj->disjContains(nv,mv))) {
-                                wrkSubs.newDisj->disjAddPair(nv,mv)
-                            }
-                        }
-                    })
-                }
-            })
-        }
-    })
-}
-
-let findPossibleSubs = (st, frmExpr, expr):array<wrkSubs> => {
-    switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
-        | Some(wrkCtx) => {
-            let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
-            let tmpFrame = createFrame(
-                ~ctx=wrkCtx, ~ord=0, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
-                ~skipEssentials=true, ~skipFirstSymCheck=true, ()
-            )
-            let frm = prepareFrmSubsDataForFrame(tmpFrame)
-            let disj = wrkCtx->getAllDisj
-            let foundSubs = []
-            iterateSubstitutions(
-                ~frmExpr=tmpFrame.asrt,
-                ~expr,
-                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-                ~constParts = frm.constParts[frm.numOfHypsE], 
-                ~varGroups = frm.varGroups[frm.numOfHypsE],
-                ~subs = frm.subs,
-                ~parenCnt=st.parenCnt,
-                ~consumer = subs => {
-                    let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
-                    verifyDisjoints(~wrkSubs, ~disj)
-                    if (wrkSubs.err->Belt_Option.isNone) {
-                        verifyTypesForSubstitution(~parenCnt=st.parenCnt, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
-                    }
-                    foundSubs->Js_array2.push(wrkSubs)->ignore
-                    Continue
-                }
-            )->ignore
-            foundSubs
-        }
-    }
-}
-
-let applyWrkSubs = (expr, wrkSubs): expr => {
-    let resultSize = ref(0)
-    expr->Js_array2.forEach(s => {
-        if (s < 0) {
-            resultSize.contents = resultSize.contents + 1
-        } else {
-            switch wrkSubs.subs->Belt_MapInt.get(s) {
-                | None => raise(MmException({msg:`Cannot find a substitution for ${s->Belt_Int.toString} in applyWrkSubs.`}))
-                | Some(expr) => resultSize.contents = resultSize.contents + expr->Js_array2.length
-            }
-        }
-    })
-    let res = Expln_utils_common.createArray(resultSize.contents)
-    let e = ref(0)
-    let r = ref(0)
-    while (r.contents < resultSize.contents) {
-        let s = expr[e.contents]
-        if (s < 0) {
-            res[r.contents] = s
-            r.contents = r.contents + 1
-        } else {
-            let subExpr = wrkSubs.subs->Belt_MapInt.getExn(s)
-            let len = subExpr->Js_array2.length
-            Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=0, ~dst=res, ~dstFromIdx=r.contents, ~len)
-            r.contents = r.contents + len
-        }
-        e.contents = e.contents + 1
-    }
-    res
-}
-
-let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wrkSubs:wrkSubs):userStmt => {
-    let expr = ctx->ctxSymsToIntsExn(stmt.cont->contToArrStr)
-    let newExpr = applyWrkSubs(expr, wrkSubs)
-    {
-        ...stmt,
-        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ())
-    }
-}
-
-let applySubstitutionForEditor = (st, wrkSubs:wrkSubs):editorState => {
-    switch st.wrkCtx {
-        | None => raise(MmException({msg:`Cannot apply substitution without wrkCtx.`}))
-        | Some(wrkCtx) => {
-            let st = createNewDisj(st, wrkSubs.newDisj)
-            {
-                ...st,
-                stmts: st.stmts->Js_array2.map(stmt => applySubstitutionForStmt(st, wrkCtx,stmt,wrkSubs))
-            }
-        }
-    }
 }
 
 let removeUnusedVars = (st:editorState):editorState => {
@@ -2270,6 +2098,50 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     }
 }
 
+let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
+    st.stmts->Js_array2.find(stmt => 
+        stmt.typ != E
+        && stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)
+            ->Belt_Option.getWithDefault(false)
+    )
+}
+
+let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt> => {
+    let contStr = stmt1.cont->contToStr
+    st.stmts->Js.Array2.find(stmt2 => stmt2.typ != E && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr)
+}
+
+let autoMergeDuplicatedStatements = (st:editorState):editorState => {
+    let resultState = ref(st)
+    let continue = ref(true)
+    while (continue.contents) {
+        switch resultState.contents->findFirstDuplicatedStmt {
+            | None => continue := false
+            | Some(stmt1) => {
+                switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
+                    | None => continue := false
+                    | Some(stmt2) => {
+                        if (stmt1.jstfText->Js_string2.trim != "" && stmt2.jstfText->Js_string2.trim == "") {
+                            switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
+                                | Error(_) => continue := false
+                                | Ok(stateAfterMerge) => resultState := stateAfterMerge
+                            }
+                        } else if (stmt1.jstfText->Js_string2.trim == "" && stmt2.jstfText->Js_string2.trim != "") {
+                            switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                | Error(_) => continue := false
+                                | Ok(stateAfterMerge) => resultState := stateAfterMerge
+                            }
+                        } else {
+                            continue := false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    resultState.contents
+}
+
 let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
     let res = []
     Expln_utils_data.traverseTree(
@@ -2534,6 +2406,114 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
                     Ok(state)
                 }
             }
+        }
+    }
+}
+
+let textToSyntaxProofTable = (
+    ~wrkCtx:mmContext,
+    ~syms:array<array<string>>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+):result<array<result<MM_proof_table.proofTable,string>>,string> => {
+    if (syntaxTypes->Js_array2.length == 0) {
+        Error(`Could not determine syntax types.`)
+    } else {
+        let findUndefinedSym = (syms:array<string>):option<string> => 
+            syms->Js.Array2.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
+        switch Belt_Array.concatMany(syms)->findUndefinedSym {
+            | Some(unrecognizedSymbol) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
+            | None => {
+                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
+                let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
+                    if (a == lastSyntaxTypeInt) {
+                        -1
+                    } else if (b == lastSyntaxTypeInt) {
+                        1
+                    } else {
+                        a - b
+                    }
+                })
+                let stmts = syms->Js_array2.map(ss => ss->ctxSymsToIntsExn(wrkCtx, _) )
+                let exprs = stmts->Js.Array2.map(Js_array2.sliceFrom(_, 1))
+                let proofTree = MM_provers.proveSyntaxTypes(~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ())
+                let typeStmts = exprs->Js.Array2.map(expr => {
+                    switch proofTree->ptGetSyntaxProof(expr) {
+                        | None => None
+                        | Some(node) => Some(node->pnGetExpr)
+                    }
+                })
+                let proofTreeDto = proofTree->MM_proof_tree_dto.proofTreeToDto(
+                    typeStmts->Js_array2.filter(Belt_Option.isSome)->Js_array2.map(Belt_Option.getExn)
+                )
+                switch typeStmts->Js_array2.find(Belt_Option.isSome) {
+                    | None => ()
+                    | Some(None) => ()
+                    | Some(Some(typeStmt)) => {
+                        switch lastSyntaxType {
+                            | None => wrkCtx->ctxIntToSym(typeStmt[0])->Belt_Option.forEach(onLastSyntaxTypeChange)
+                            | Some(lastSyntaxType) => {
+                                wrkCtx->ctxIntToSym(typeStmt[0])->Belt_Option.forEach(provedSyntaxType => {
+                                    if (lastSyntaxType != provedSyntaxType) {
+                                        onLastSyntaxTypeChange(provedSyntaxType)
+                                    }
+                                })
+                            }
+                        }
+                    }
+                }
+                Ok(
+                    typeStmts->Js.Array2.map(typeStmt => {
+                        switch typeStmt {
+                            | None => {
+                                Error(
+                                    `Could not prove this statement is of any of the types: ` 
+                                        ++ `${wrkCtx->ctxIntsToSymsExn(syntaxTypes)->Js.Array2.joinWith(", ")}`
+                                )
+                            }
+                            | Some(typeStmt) => {
+                                buildSyntaxProofTableFromProofTreeDto( ~ctx=wrkCtx, ~proofTreeDto, ~typeStmt, )
+                            }
+                        }
+                    })
+                )
+            }
+        }
+    }
+}
+
+let textToSyntaxTree = (
+    ~wrkCtx:mmContext,
+    ~syms:array<array<string>>,
+    ~syntaxTypes:array<int>,
+    ~frms: Belt_MapString.t<frmSubsData>,
+    ~parenCnt: parenCnt,
+    ~lastSyntaxType:option<string>,
+    ~onLastSyntaxTypeChange:string => unit,
+):result<array<result<syntaxTreeNode,string>>,string> => {
+    let syntaxProofTables = textToSyntaxProofTable(
+        ~wrkCtx,
+        ~syms,
+        ~syntaxTypes,
+        ~frms,
+        ~parenCnt,
+        ~lastSyntaxType,
+        ~onLastSyntaxTypeChange,
+    )
+    switch syntaxProofTables {
+        | Error(msg) => Error(msg)
+        | Ok(proofTables) => {
+            Ok(
+                proofTables->Js_array2.map(proofTable => {
+                    switch proofTable {
+                        | Error(msg) => Error(msg)
+                        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1)
+                    }
+                })
+            )
         }
     }
 }

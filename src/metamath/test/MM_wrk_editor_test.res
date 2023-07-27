@@ -2,6 +2,7 @@ open Expln_test
 open MM_parser
 open MM_context
 open MM_wrk_editor
+open MM_wrk_editor_substitution
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
@@ -27,6 +28,7 @@ let createEditorState = (
         initStmtIsGoal,
         defaultStmtLabel,
         defaultStmtType: "",
+        unifMetavarPrefix: "&",
         checkSyntax: true,
         stickGoalToBottom: true,
         typeSettings: [ ],
@@ -229,7 +231,10 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
         assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
-        assertEq(st.stmts[0].stmtErr->Belt_Option.getWithDefault(""), "The symbol '0.' is not declared.")
+        assertEq(
+            st.stmts[0].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "The symbol '0.' is not declared."
+        )
         assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
         assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
     })
@@ -255,7 +260,10 @@ describe("prepareEditorForUnification", _ => {
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.getWithDefault(""), "The symbol '+-' is not declared.")
+        assertEq(
+            st.stmts[2].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "The symbol '+-' is not declared."
+        )
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(st.stmts[3].stmtErr->Belt_Option.isNone, true)
     })
@@ -286,7 +294,7 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), 
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "Cannot parse justification: 'pr1 hyp1'. A justification must contain exactly one colon symbol."
         )
     })
@@ -316,7 +324,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "The label 'hyp1' doesn't refer to any assertion.")
+        assertEq(
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "The label 'hyp1' doesn't refer to any assertion."
+        )
     })
 
     it("detects a ref error in a provable's justification when asrt label refers to another provable", _ => {
@@ -344,7 +355,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "The label 'pr1' doesn't refer to any assertion.")
+        assertEq(
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "The label 'pr1' doesn't refer to any assertion."
+        )
     })
 
     it("detects a ref error in a provable's justification when argument label is undefined", _ => {
@@ -372,7 +386,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "The label 'hyp--' is not defined.")
+        assertEq(
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "The label 'hyp--' is not defined."
+        )
     })
 
     it("detects a label duplication when a provable uses label of a predefined hypothesis", _ => {
@@ -400,7 +417,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'tt' [3].")
+        assertEq(
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Cannot reuse label 'tt' [3]."
+        )
     })
 
     it("detects a label duplication when a provable uses label of a previously defined hypothesis", _ => {
@@ -428,7 +448,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'hyp2' [3].")
+        assertEq(
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Cannot reuse label 'hyp2' [3]."
+        )
     })
 
     it("detects a label duplication when a provable uses label of a previously defined another provable", _ => {
@@ -456,7 +479,10 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
         assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.getWithDefault(""), "Cannot reuse label 'pr1' [3].")
+        assertEq(
+            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Cannot reuse label 'pr1' [3]."
+        )
     })
 
     it("sets expr and jstf for each provable when there are no errors", _ => {
@@ -508,7 +534,8 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn("t + r"),
             ctx->ctxStrToIntsExn("( t + t ) + ( t + r ) + ( t + s )"),
-        )
+            true,
+        )->Belt.Result.getExn
 
         //then
         assertEq(
@@ -547,7 +574,8 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn("y"),
             ctx->ctxStrToIntsExn("z"),
-        )
+            true,
+        )->Belt.Result.getExn
 
         //then
         assertEq(possibleSubs->Js.Array2.length, 1)
@@ -588,7 +616,8 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
-        )
+            true,
+        )->Belt.Result.getExn
 
         assertEq(possibleSubs->Js.Array2.length, 1)
         assertEqMsg(
@@ -619,7 +648,8 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
-        )
+            true,
+        )->Belt.Result.getExn
 
         //then
         assertEq(possibleSubs->Js.Array2.length, 1)
@@ -660,7 +690,8 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn(stmt1),
             ctx->ctxStrToIntsExn(stmt2),
-        )
+            true,
+        )->Belt.Result.getExn
 
         //then
         assertEq(possibleSubs->Js.Array2.length, 2)
@@ -715,7 +746,8 @@ describe("findPossibleSubs", _ => {
             st, 
             ctx->ctxStrToIntsExn("y"),
             ctx->ctxStrToIntsExn("z"),
-        )
+            true,
+        )->Belt.Result.getExn
 
         //then
         assertEq( possibleSubs->Js_array2.length, 1 )
@@ -734,11 +766,12 @@ describe("applySubstitutionForEditor", _ => {
         let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0", ())})
         let st = updateEditorStateWithPostupdateActions(st, s=>s)
         let ctx = st.wrkCtx->Belt_Option.getExn
-        let wrkSubs = findPossibleSubs(
+        let wrkSubs = (findPossibleSubs(
             st, 
             ctx->ctxStrToIntsExn("t = s"),
             ctx->ctxStrToIntsExn("r = ( t + r )"),
-        )[0]
+            true,
+        )->Belt.Result.getExn)[0]
 
         //when
         let st = applySubstitutionForEditor(st, wrkSubs)

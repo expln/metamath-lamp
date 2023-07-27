@@ -21,6 +21,7 @@ type settings = {
     checkSyntax:bool,
     stickGoalToBottom:bool,
     typeSettings: array<typeSettings>,
+    unifMetavarPrefix:string,
     webSrcSettings: array<webSrcSettings>,
     longClickEnabled:bool,
     longClickDelayMs:int,

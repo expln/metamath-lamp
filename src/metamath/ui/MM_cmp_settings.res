@@ -26,6 +26,7 @@ type settingsState = {
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
+    unifMetavarPrefix:string,
 
     webSrcNextId: int,
     webSrcSettings: array<webSrcSettingsState>,
@@ -77,6 +78,7 @@ let createDefaultSettings = () => {
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
         defaultStmtType:"|-",
+        unifMetavarPrefix:"&",
         checkSyntax: true,
         stickGoalToBottom:true,
         typeNextId: 4,
@@ -158,6 +160,13 @@ let validateAndCorrectDefaultStmtType = (st:settingsState):settingsState => {
     {
         ...st,
         defaultStmtType: st.defaultStmtType->Js_string2.trim,
+    }
+}
+
+let validateAndCorrectUnifMetavarPrefix = (st:settingsState):settingsState => {
+    {
+        ...st,
+        unifMetavarPrefix: st.unifMetavarPrefix->Js_string2.trim,
     }
 }
 
@@ -384,6 +393,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
     let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
+    let st = validateAndCorrectUnifMetavarPrefix(st)
     let st = validateAndCorrectWebSrcSettings(st)
     let st = validateAndCorrectLongClickSettings(st)
     let st = validateAndCorrectDefaultStmtLabel(st)
@@ -400,6 +410,7 @@ let stateToSettings = (st:settingsState):settings => {
         initStmtIsGoal:st.initStmtIsGoal,
         defaultStmtLabel:st.defaultStmtLabel,
         defaultStmtType:st.defaultStmtType,
+        unifMetavarPrefix:st.unifMetavarPrefix,
         checkSyntax:st.checkSyntax,
         stickGoalToBottom:st.stickGoalToBottom,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
@@ -432,6 +443,7 @@ let settingsToState = (ls:settings):settingsState => {
         initStmtIsGoal:ls.initStmtIsGoal,
         defaultStmtLabel:ls.defaultStmtLabel,
         defaultStmtType:ls.defaultStmtType,
+        unifMetavarPrefix:ls.unifMetavarPrefix,
         checkSyntax:ls.checkSyntax,
         stickGoalToBottom:ls.stickGoalToBottom,
         typeNextId: 0,
@@ -490,6 +502,7 @@ let readStateFromLocStor = ():settingsState => {
                         ()
                     ),
                     defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
+                    unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix, ()),
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
                     stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
                     typeNextId: 0,
@@ -567,6 +580,7 @@ let eqState = (st1, st2) => {
         && st1.initStmtIsGoal == st2.initStmtIsGoal
         && st1.defaultStmtLabel == st2.defaultStmtLabel
         && st1.defaultStmtType == st2.defaultStmtType
+        && st1.unifMetavarPrefix == st2.unifMetavarPrefix
         && st1.checkSyntax == st2.checkSyntax
         && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
@@ -595,6 +609,7 @@ let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmts
 let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
 let updateDefaultStmtLabel = (st, defaultStmtLabel) => {...st, defaultStmtLabel}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
+let updateUnifMetavarPrefix = (st, unifMetavarPrefix) => {...st, unifMetavarPrefix}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
@@ -736,6 +751,10 @@ let make = (
 
     let actDefaultStmtTypeChange = defaultStmtType => {
         setState(updateDefaultStmtType(_, defaultStmtType))
+    }
+
+    let actUnifMetavarPrefixChange = unifMetavarPrefix => {
+        setState(updateUnifMetavarPrefix(_, unifMetavarPrefix))
     }
 
     let actLongClickDelayMsStrChange = longClickDelayMsStr => {
@@ -1057,6 +1076,14 @@ let make = (
             value=state.editorHistMaxLengthStr
             onChange=evt2str(actEditorHistMaxLengthStrChange)
             title="How many previous editor states to store."
+        />
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="200px", ())
+            label="Prefix of metavariables in unification" 
+            value=state.unifMetavarPrefix
+            onChange=evt2str(actUnifMetavarPrefixChange)
+            title="All variables with names starting with this prefix will be considered as metavariables during the unification process."
         />
         <Divider/>
         <MM_cmp_type_settings
