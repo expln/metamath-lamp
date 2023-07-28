@@ -23,6 +23,7 @@ type settingsState = {
     defaultStmtType:string,
     checkSyntax: bool,
     stickGoalToBottom:bool,
+    autoMergeStmts:bool,
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
@@ -81,6 +82,7 @@ let createDefaultSettings = () => {
         unifMetavarPrefix:"&",
         checkSyntax: true,
         stickGoalToBottom:true,
+        autoMergeStmts:true,
         typeNextId: 4,
         typeSettings: [
             {
@@ -413,6 +415,7 @@ let stateToSettings = (st:settingsState):settings => {
         unifMetavarPrefix:st.unifMetavarPrefix,
         checkSyntax:st.checkSyntax,
         stickGoalToBottom:st.stickGoalToBottom,
+        autoMergeStmts:st.autoMergeStmts,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -446,6 +449,7 @@ let settingsToState = (ls:settings):settingsState => {
         unifMetavarPrefix:ls.unifMetavarPrefix,
         checkSyntax:ls.checkSyntax,
         stickGoalToBottom:ls.stickGoalToBottom,
+        autoMergeStmts:ls.autoMergeStmts,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -505,6 +509,7 @@ let readStateFromLocStor = ():settingsState => {
                     unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix, ()),
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
                     stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
+                    autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts,()),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -583,6 +588,7 @@ let eqState = (st1, st2) => {
         && st1.unifMetavarPrefix == st2.unifMetavarPrefix
         && st1.checkSyntax == st2.checkSyntax
         && st1.stickGoalToBottom == st2.stickGoalToBottom
+        && st1.autoMergeStmts == st2.autoMergeStmts
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -612,6 +618,7 @@ let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 let updateUnifMetavarPrefix = (st, unifMetavarPrefix) => {...st, unifMetavarPrefix}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
+let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
 
@@ -779,6 +786,10 @@ let make = (
 
     let actStickGoalToBottomChange = stickGoalToBottom => {
         setState(updateStickGoalToBottom(_, stickGoalToBottom))
+    }
+
+    let actAutoMergeStmtsChange = autoMergeStmts => {
+        setState(updateAutoMergeStmts(_, autoMergeStmts))
     }
 
     let actLongClickEnabledChange = (longClickEnabled) => {
@@ -1068,6 +1079,15 @@ let make = (
                 />
             }
             label="Show visualizations by default"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.autoMergeStmts
+                    onChange=evt2bool(actAutoMergeStmtsChange)
+                />
+            }
+            label="Merge similar steps automatically"
         />
         <TextField 
             size=#small

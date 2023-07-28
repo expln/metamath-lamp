@@ -14,7 +14,8 @@ let createEmptyEditorState = ():editorState => {
         ~settingsV=0, 
         ~settings={
             parens: "", asrtsToSkip: [], asrtsToSkipRegex: "", editStmtsByLeftClick:false, defaultStmtType:"", 
-            unifMetavarPrefix:"&", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, stickGoalToBottom:false, typeSettings: [], 
+            unifMetavarPrefix:"&", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, 
+            stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
             webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 
             showVisByDefault:false, editorHistMaxLength:1000,
         }, 

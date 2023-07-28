@@ -166,6 +166,7 @@ type userStmt = {
     isGoal: bool,
     cont: stmtCont,
     contEditMode: bool,
+    isDuplicated: bool,
     
     jstfText: string,
     jstfEditMode: bool,
@@ -236,6 +237,7 @@ let createEmptyUserStmt = (id, typ, label, isGoal):userStmt => {
         typ, typEditMode:false, 
         isGoal,
         cont:Text({text:"", syms:[]}), contEditMode:true,
+        isDuplicated:false,
         jstfText:"", jstfEditMode:false,
         stmtErr: None,
         expr:None, jstf:None, proofTreeDto:None, src:None, proof:None, proofStatus:None, unifErr:None, syntaxErr:None,
@@ -515,7 +517,8 @@ let duplicateCheckedStmt = st => {
                                 id:newId, 
                                 label:createNewLabel(st, ~forHyp = stmt.typ == E, ()),
                                 isGoal:false, 
-                                jstfText:""
+                                jstfText:"",
+                                isDuplicated:true,
                             }
                         ]
                     } else {
@@ -600,7 +603,8 @@ let completeContEditMode = (st, stmtId, newContText):editorState => {
             {
                 ...stmt,
                 cont:strToCont(newContText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
-                contEditMode: false
+                contEditMode: false,
+                isDuplicated: false,
             }
         }
     })
@@ -1731,18 +1735,6 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
     }
 }
 
-let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorState) => {
-    let st = update(st)
-    let st = prepareEditorForUnification(st)
-    if (st.wrkCtx->Belt_Option.isSome) {
-        let st = removeUnusedVars(st)
-        let st = prepareEditorForUnification(st)
-        st
-    } else {
-        st
-    }
-}
-
 let splitIntoChunks = (str, chunkMaxSize): array<string> => {
     let len = str->Js_string2.length
     if (len <= chunkMaxSize) {
@@ -2103,6 +2095,7 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
 let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
     st.stmts->Js_array2.find(stmt => 
         stmt.typ != E
+        && !stmt.isDuplicated
         && stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)
             ->Belt_Option.getWithDefault(false)
     )
@@ -2110,7 +2103,9 @@ let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
 
 let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt> => {
     let contStr = stmt1.cont->contToStr
-    st.stmts->Js.Array2.find(stmt2 => stmt2.typ != E && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr)
+    st.stmts->Js.Array2.find(stmt2 => {
+        stmt2.typ != E && !stmt2.isDuplicated && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr
+    })
 }
 
 let autoMergeDuplicatedStatements = (st:editorState):editorState => {
@@ -2142,6 +2137,23 @@ let autoMergeDuplicatedStatements = (st:editorState):editorState => {
         }
     }
     resultState.contents
+}
+
+let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorState) => {
+    let st = update(st)
+    let st = prepareEditorForUnification(st)
+    if (st.wrkCtx->Belt_Option.isSome) {
+        let st = removeUnusedVars(st)
+        let st = if (st.settings.autoMergeStmts) {
+            autoMergeDuplicatedStatements(st)
+        } else {
+            st
+        }
+        let st = prepareEditorForUnification(st)
+        st
+    } else {
+        st
+    }
 }
 
 let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {

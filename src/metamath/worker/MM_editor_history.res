@@ -112,6 +112,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
                     ()
                 ),
                 contEditMode: false,
+                isDuplicated: false,
                 
                 jstfText: stmt.jstfText,
                 jstfEditMode: false,

@@ -20,6 +20,7 @@ type settings = {
     initStmtIsGoal:bool,
     checkSyntax:bool,
     stickGoalToBottom:bool,
+    autoMergeStmts:bool,
     typeSettings: array<typeSettings>,
     unifMetavarPrefix:string,
     webSrcSettings: array<webSrcSettings>,

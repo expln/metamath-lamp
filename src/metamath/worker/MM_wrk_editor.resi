@@ -81,6 +81,7 @@ type userStmt = {
     isGoal: bool,
     cont: stmtCont,
     contEditMode: bool,
+    isDuplicated: bool,
     
     jstfText: string,
     jstfEditMode: bool,
@@ -193,7 +194,6 @@ let getAllExprsToSyntaxCheck: (editorState, array<rootStmt>) => array<expr>
 let mergeStmts: (editorState, stmtId, stmtId) => result<editorState, string>
 let renameStmt: (editorState, stmtId, string) => result<editorState, string>
 let findStmtsToMerge: editorState => result<(userStmt,userStmt), string>
-let autoMergeDuplicatedStatements: editorState => editorState
 let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool

@@ -31,6 +31,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         isGoal: userStmtLocStor.isGoal,
         cont: strToCont(userStmtLocStor.cont, ()),
         contEditMode: false,
+        isDuplicated: false,
 
         jstfText: userStmtLocStor.jstfText,
         jstfEditMode: false,

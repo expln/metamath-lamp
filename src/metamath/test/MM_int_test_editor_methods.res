@@ -51,6 +51,7 @@ let createEditorState = (
         unifMetavarPrefix: "&",
         checkSyntax: true,
         stickGoalToBottom: false,
+        autoMergeStmts: false,
         typeSettings: [ ],
         webSrcSettings: [ ],
         longClickEnabled: true,

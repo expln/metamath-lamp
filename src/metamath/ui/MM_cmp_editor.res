@@ -682,7 +682,13 @@ let make = (
 
     let actMergeTwoStmts = () => {
         switch state->findStmtsToMerge {
-            | Error(_) => setState(autoMergeDuplicatedStatements)
+            | Error(msg) => {
+                openInfoDialog(
+                    ~modalRef, 
+                    ~text=msg,
+                    ()
+                )
+            }
             | Ok((stmt1,stmt2)) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
@@ -1325,8 +1331,7 @@ let make = (
                     ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
-                    ~active = numOfCheckedStmts==0 || numOfCheckedStmts==1, 
-                    ~title="Merge two similar steps", ~smallBtns, ())}
+                    ~active=numOfCheckedStmts==1, ~title="Merge two similar steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
                     ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
                     ~title="Restore previous state", ~smallBtns, ())}
