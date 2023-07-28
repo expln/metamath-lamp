@@ -680,6 +680,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         testUnifSubs( ~expr1="setvar &S1", ~expr2="setvar x", ~expected = [ ("&S1", "x") ] )
         testUnifSubs( ~expr1="&C1", ~expr2="x", ~expected = [ ("&C1", "x") ] )
         testUnifSubs( ~expr1="class &C1", ~expr2="setvar x", ~expected = [ ("&C1", "x") ] )
+        testUnifSubs( ~expr1="&C1", ~expr2="&S1", ~expected = [ ("&C1", "&S1") ] )
+        testUnifSubs( ~expr1="class &C1", ~expr2="setvar &S1", ~expected = [ ("&C1", "&S1") ] )
 
         testUnifSubs( 
             ~expr1="( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )", 
