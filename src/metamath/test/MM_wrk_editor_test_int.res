@@ -618,6 +618,92 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertProof(st, st->getStmtId(~label="cvjust", ()), "cvjust")
     })
 
+    it("findPossibleSubs is able to find substitutions by unification", _ => {
+        setTestDataDir("findPossibleSubs")
+        let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="bj-0", ~debug, ~editorState="editor-initial-state", ())
+        assertEditorState(st, "step1")
+        let ctx = st.wrkCtx->Belt_Option.getExn
+
+        let unifSubsToMap = (wrkSubs:MM_wrk_editor.wrkSubs):Belt_MapString.t<string> => {
+            wrkSubs.subs->Belt_MapInt.toArray
+                ->Js.Array2.map(((e,expr)) => (ctx->MM_context.ctxIntToSymExn(e), ctx->MM_context.ctxIntsToStrExn(expr)))
+                ->Belt_MapString.fromArray
+        }
+
+        let assertUnifSubs = (
+            ~testCaseName:string,
+            ~actualUnifSubs:result<array<MM_wrk_editor.wrkSubs>,string>, 
+            ~expectedUnifSubs:Belt_MapString.t<string>
+        ):unit => {
+            switch actualUnifSubs {
+                | Error(msg) => failMsg(`assertUnifSubs failed for '${testCaseName}': ${msg}`)
+                | Ok([wrkSubs]) => {
+                    let actualSubsMap = unifSubsToMap(wrkSubs)
+                    expectedUnifSubs->Belt_MapString.forEach((expectedVar, expectedSubExpr) => {
+                        switch actualSubsMap->Belt_MapString.get(expectedVar) {
+                            | None => failMsg(`assertUnifSubs failed for '${testCaseName}': actualSubsMap doesn't contain a substitution for ${expectedVar}`)
+                            | Some(actualSubExpr) => {
+                                assertEqMsg(
+                                    expectedVar ++ " \u2192 " ++ actualSubExpr,
+                                    expectedVar ++ " \u2192 " ++ expectedSubExpr,
+                                    `assertUnifSubs failed for '${testCaseName}'`
+                                )
+                            }
+                        }
+                    })
+                }
+                | Ok(_) => failMsg(`assertUnifSubs failed for '${testCaseName}': actualUnifSubs.length != 1`)
+            }
+        }
+        
+        let testUnifSubs = (
+            ~expr1:string,
+            ~expr2:string,
+            ~expected:array<(string,string)>
+        ):unit => {
+            assertUnifSubs(
+                ~testCaseName = expr1 ++ " <<<~>>> " ++ expr2,
+                ~actualUnifSubs = st->MM_wrk_editor_substitution.findPossibleSubs(
+                    ctx->MM_context.ctxStrToIntsExn(expr1), 
+                    ctx->MM_context.ctxStrToIntsExn(expr2), 
+                    false
+                ), 
+                ~expectedUnifSubs=expected->Belt_MapString.fromArray
+            )
+        }
+
+        testUnifSubs( ~expr1="&W1", ~expr2="ph", ~expected = [ ("&W1", "ph") ] )
+        testUnifSubs( ~expr1="|- &W1", ~expr2="|- ph", ~expected = [ ("&W1", "ph") ] )
+        testUnifSubs( ~expr1="&C1", ~expr2="A", ~expected = [ ("&C1", "A") ] )
+        testUnifSubs( ~expr1="class &C1", ~expr2="class A", ~expected = [ ("&C1", "A") ] )
+        testUnifSubs( ~expr1="&S1", ~expr2="x", ~expected = [ ("&S1", "x") ] )
+        testUnifSubs( ~expr1="setvar &S1", ~expr2="setvar x", ~expected = [ ("&S1", "x") ] )
+        testUnifSubs( ~expr1="&C1", ~expr2="x", ~expected = [ ("&C1", "x") ] )
+        testUnifSubs( ~expr1="class &C1", ~expr2="setvar x", ~expected = [ ("&C1", "x") ] )
+
+        testUnifSubs( 
+            ~expr1="( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )", 
+            ~expr2="( &W1                       -> ( ( ph  -> ps  ) -> ( ph  -> ch  ) ) )", 
+            ~expected = [ 
+                ("&W3", "ph"),
+                ("&W4", "ps"),
+                ("&W2", "ch"),
+                ("&W1", "( ph -> ( ps -> ch ) )"),
+            ] 
+        )
+
+        testUnifSubs( 
+            ~expr1="|- ( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )", 
+            ~expr2="|- ( &W1                       -> ( ( ph  -> ps  ) -> ( ph  -> ch  ) ) )", 
+            ~expected = [ 
+                ("&W3", "ph"),
+                ("&W4", "ps"),
+                ("&W2", "ch"),
+                ("&W1", "( ph -> ( ps -> ch ) )"),
+            ] 
+        )
+    })
+
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {
     // })
 })

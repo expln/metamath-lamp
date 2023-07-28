@@ -193,6 +193,7 @@ type editorState = {
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
+    allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
 
@@ -731,6 +732,7 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
         preCtx, 
         frms:preCtxData.frms,
         parenCnt:preCtxData.parenCnt,
+        allTypes:preCtxData.allTypes,
         syntaxTypes:preCtxData.syntaxTypes,
         parensMap,
     }
@@ -2437,8 +2439,7 @@ let textToSyntaxProofTable = (
                         a - b
                     }
                 })
-                let stmts = syms->Js_array2.map(ss => ss->ctxSymsToIntsExn(wrkCtx, _) )
-                let exprs = stmts->Js.Array2.map(Js_array2.sliceFrom(_, 1))
+                let exprs = syms->Js_array2.map(wrkCtx->ctxSymsToIntsExn)
                 let proofTree = MM_provers.proveSyntaxTypes(~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ())
                 let typeStmts = exprs->Js.Array2.map(expr => {
                     switch proofTree->ptGetSyntaxProof(expr) {

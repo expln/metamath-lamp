@@ -52,6 +52,7 @@ let createEditorState = (
         frms: prepareFrmSubsData(~ctx, ()),
         parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
+        allTypes: [],
         syntaxTypes: [],
         parensMap:Belt_HashMapString.make(~hintSize=0),
 

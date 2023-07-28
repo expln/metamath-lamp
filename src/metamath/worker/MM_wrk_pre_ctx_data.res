@@ -23,6 +23,7 @@ type preCtxData = {
     ctxV: version<mmContext>,
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
+    allTypes:array<int>,
     syntaxTypes:array<int>,
 }
 
@@ -34,26 +35,34 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
         ctxV: versionMake(createContext(())),
         frms: Belt_MapString.empty,
         parenCnt: parenCntMake([], ()),
+        allTypes:[],
         syntaxTypes:[],
     }
 }
 
-let findSyntaxTypes = (ctx:mmContext, frms: Belt_MapString.t<frmSubsData>): array<int> => {
+let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
     let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
+    let allTypes = Belt_HashSetInt.make(~hintSize=16)
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
+        let typ = hyp.expr[0]
+        allTypes->Belt_HashSetInt.add(typ)
         if (hyp.typ == F) {
-            syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
+            syntaxTypes->Belt_HashSetInt.add(typ)
         }
         None
     })->ignore
-    frms->Belt_MapString.forEach((_,frm) => {
-        frm.frame.hyps->Js_array2.forEach(hyp => {
+    ctx->forEachFrame(frame => {
+        allTypes->Belt_HashSetInt.add(frame.asrt[0])
+        frame.hyps->Js_array2.forEach(hyp => {
+            let typ = hyp.expr[0]
+            allTypes->Belt_HashSetInt.add(typ)
             if (hyp.typ == F) {
-                syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
+                syntaxTypes->Belt_HashSetInt.add(typ)
             }
         })
-    })
-    syntaxTypes->Belt_HashSetInt.toArray
+        None
+    })->ignore
+    (allTypes->Belt_HashSetInt.toArray, syntaxTypes->Belt_HashSetInt.toArray)
 }
 
 let preCtxDataUpdate = (
@@ -77,7 +86,7 @@ let preCtxDataUpdate = (
         ~ctx=ctxV.val, ~asrtsToSkip=settingsV.val.asrtsToSkip->Belt_HashSetString.fromArray, ()
     )
     let parenCnt = parenCntMake(prepareParenInts(ctxV.val, settingsV.val.parens), ~checkParensOptimized=true, ())
-    let syntaxTypes = findSyntaxTypes(ctxV.val, frms)
+    let (allTypes, syntaxTypes) = findTypes(ctxV.val)
 
     {
         settingsV,
@@ -85,6 +94,7 @@ let preCtxDataUpdate = (
         ctxV,
         frms,
         parenCnt,
+        allTypes,
         syntaxTypes,
     }
 }

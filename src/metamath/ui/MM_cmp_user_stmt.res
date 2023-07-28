@@ -743,7 +743,8 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms=[syms->Js_array2.map(s => s.sym)], ~syntaxTypes, ~frms, ~parenCnt,
+                            ~wrkCtx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                            ~syntaxTypes, ~frms, ~parenCnt,
                             ~lastSyntaxType=getLastSyntaxType(),
                             ~onLastSyntaxTypeChange=setLastSyntaxType,
                         ) {

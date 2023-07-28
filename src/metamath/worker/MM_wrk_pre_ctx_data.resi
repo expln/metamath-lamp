@@ -22,6 +22,7 @@ type preCtxData = {
     ctxV: version<mmContext>,
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
+    allTypes:array<int>,
     syntaxTypes: array<int>,
 }
 
@@ -34,4 +35,4 @@ let preCtxDataUpdate: (
   unit,
 ) => preCtxData
 
-let findSyntaxTypes: (mmContext, Belt_MapString.t<frmSubsData>) => array<int>
+let findTypes: mmContext => (array<int>,array<int>)

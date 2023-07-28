@@ -2,7 +2,6 @@ open Expln_React_Mui
 open MM_context
 open MM_cmp_settings
 open MM_wrk_settings
-open MM_substitution
 open Expln_React_Modal
 open Common
 open MM_wrk_pre_ctx_data
@@ -22,24 +21,6 @@ type state = {
 let createInitialState = (~settings) => {
     preCtxData: preCtxDataMake(~settings),
     ctxSelectorIsExpanded:true,
-}
-
-let findSyntaxTypes = (ctx:mmContext, frms: Belt_MapString.t<frmSubsData>): array<int> => {
-    let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
-    ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        if (hyp.typ == F) {
-            syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
-        }
-        None
-    })->ignore
-    frms->Belt_MapString.forEach((_,frm) => {
-        frm.frame.hyps->Js_array2.forEach(hyp => {
-            if (hyp.typ == F) {
-                syntaxTypes->Belt_HashSetInt.add(hyp.expr[0])
-            }
-        })
-    })
-    syntaxTypes->Belt_HashSetInt.toArray
 }
 
 let updatePreCtxData = (

@@ -95,6 +95,16 @@ let setReduced = "./src/metamath/test/resources/set-reduced._mm"
 
 describe("buildSyntaxTree", _ => {
     it("builds correct syntax trees for WWFs", _ => {
+        testSyntaxTree(~mmFile=demo0, ~exprStr="term t", 
+            ~expectedSyntaxTree = {
+                label: "tt",
+                children: [
+                    Symbol("t"),
+                ],
+                height: 1,
+            }
+        )
+
         testSyntaxTree(~mmFile=demo0, ~exprStr="wff t = t", 
             ~expectedSyntaxTree = {
                 label: "weq",

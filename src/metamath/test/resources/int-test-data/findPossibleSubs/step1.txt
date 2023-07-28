@@ -1,0 +1,10 @@
+Variables:
+.loca-var1 wff &W1
+.loca-var2 setvar &S1
+.loca-var3 class &C1
+.loca-var4 wff &W2
+.loca-var5 wff &W3
+.loca-var6 wff &W4
+
+Disjoints:
+

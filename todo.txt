@@ -1,4 +1,3 @@
-- add tests for unify()
 - add tests for autoMergeDuplicatedStatements()
 - Bug: Error: Cannot build a syntax tree for the expression '&C': Could not prove this statement is of any of the types: wff, class, setvar
 - add "items per page" to PE index.

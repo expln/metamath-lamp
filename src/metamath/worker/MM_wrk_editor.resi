@@ -108,6 +108,7 @@ type editorState = {
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
+    allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
 

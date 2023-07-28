@@ -262,8 +262,17 @@ let buildSyntaxTreesOfSameType = (
     }
 }
 
+let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
+    if (expr->Js_array2.length > 0 && allTypes->Js_array2.includes(expr[0])) {
+        expr->Js_array2.sliceFrom(1)
+    } else {
+        expr
+    }
+}
+
 let findPossibleSubsByUnif = (
     ~wrkCtx:mmContext, 
+    ~allTypes:array<int>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
     ~parenCnt: parenCnt,
@@ -271,7 +280,11 @@ let findPossibleSubsByUnif = (
     ~expr2:expr,
     ~metavarPrefix:string,
 ):result<array<wrkSubs>,string> => {
-    let syntaxTrees = buildSyntaxTreesOfSameType( ~wrkCtx, ~syntaxTypes, ~frms, ~parenCnt, ~expr1, ~expr2, )
+    let syntaxTrees = buildSyntaxTreesOfSameType( 
+        ~wrkCtx, ~syntaxTypes, ~frms, ~parenCnt, 
+        ~expr1=removeTypePrefix(expr1, allTypes), 
+        ~expr2=removeTypePrefix(expr2, allTypes), 
+    )
     switch syntaxTrees {
         | Error(msg) => Error(msg)
         | Ok((tree1,tree2)) => {
@@ -309,6 +322,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
             } else {
                 findPossibleSubsByUnif(
                     ~wrkCtx, 
+                    ~allTypes=st.allTypes,
                     ~syntaxTypes=st.syntaxTypes,
                     ~frms=st.frms,
                     ~parenCnt=st.parenCnt,

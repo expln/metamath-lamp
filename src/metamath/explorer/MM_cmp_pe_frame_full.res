@@ -138,7 +138,7 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
     frmCtx->moveConstsToBegin(settings.parens)
     let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
     let parenCnt = parenCntMake(prepareParenInts(frmCtx, settings.parens), ~checkParensOptimized=true, ())
-    let syntaxTypes = findSyntaxTypes(frmCtx, frms)
+    let (_, syntaxTypes) = findTypes(frmCtx)
 
     let frmIntToCtxInt = (i:int):int => {
         switch frmCtx->ctxSymToInt(
@@ -328,7 +328,7 @@ let make = React.memoCustomCompareProps(({
             let ctx = st.frmCtx
             switch textToSyntaxProofTable( 
                 ~wrkCtx=ctx, 
-                ~syms = [st.asrt->Js_array2.map(i => ctx->ctxIntToSymExn(i))],
+                ~syms = [ctx->ctxIntsToSymsExn(st.asrt->Js_array2.sliceFrom(_, 1))],
                 ~syntaxTypes = st.syntaxTypes, 
                 ~frms = st.frms, 
                 ~parenCnt = st.parenCnt, 
