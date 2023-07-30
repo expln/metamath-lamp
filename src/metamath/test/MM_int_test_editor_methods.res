@@ -158,7 +158,7 @@ let updateStmt = (
             | Some(jstf) => {...stmt, jstfText:jstf}
         }
         let stmt = switch content {
-            | Some(content) => stmt
+            | Some(_) => stmt
             | None => {
                 switch (contReplaceWhat, contReplaceWith) {
                     | (Some(contReplaceWhat), Some(contReplaceWith)) => {
