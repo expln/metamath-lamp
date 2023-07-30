@@ -758,14 +758,19 @@ let completeDescrEditMode = (st, newDescr) => {
     }
 }
 
+let recalcWrkColors = (st:editorState):editorState => {
+    let st = recalcWrkCtxColors(st)
+    let st = updateColorsInAllStmts(st)
+    st
+}
+
 let completeVarsEditMode = (st, newVarsText) => {
     let st = {
         ...st,
         varsText:newVarsText,
         varsEditMode: false
     }
-    let st = recalcWrkCtxColors(st)
-    let st = updateColorsInAllStmts(st)
+    let st = recalcWrkColors(st)
     st
 }
 

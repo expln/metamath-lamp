@@ -392,7 +392,7 @@ let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): 
             for i in 0 to idx {
                 curSn := curSn.contents->applyDiff(ht.prev[i])
             }
-            Ok(st->updateEditorStateFromSnapshot(curSn.contents))
+            Ok(st->updateEditorStateFromSnapshot(curSn.contents)->recalcWrkColors)
         }
     }
 }

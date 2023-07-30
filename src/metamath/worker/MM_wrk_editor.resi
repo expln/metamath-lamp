@@ -245,3 +245,5 @@ let textToSyntaxTree: (
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
 ) => result<array<result<syntaxTreeNode,string>>,string>
+
+let recalcWrkColors: editorState => editorState

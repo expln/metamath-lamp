@@ -651,7 +651,7 @@ let make = (
         notifyEditInTempMode(() => {
             switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
                 | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg, () )
-                | Ok(editorState) => setState(_ => editorState)
+                | Ok(editorState) => setState(_ => editorState->recalcWrkColors)
             }
         })
     }
