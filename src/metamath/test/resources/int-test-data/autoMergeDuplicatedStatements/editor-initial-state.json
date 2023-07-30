@@ -1,0 +1,36 @@
+{
+  "srcs": [],
+  "descr": "",
+  "varsText": "var101 wff &W1\nvar102 wff &W2\nvar103 wff &W3\nvar104 wff &W4",
+  "disjText": "",
+  "stmts": [
+    {
+      "label": "syl.1",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> ps )",
+      "jstfText": ""
+    },
+    {
+      "label": "syl.2",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ps -> ch )",
+      "jstfText": ""
+    },
+    {
+      "label": "1",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )",
+      "jstfText": ": ax-2"
+    },
+    {
+      "label": "3",
+      "typ": "p",
+      "isGoal": true,
+      "cont": "|- ( &W1 -> ( ( ph -> ps ) -> ( ph -> ch ) ) )",
+      "jstfText": ""
+    }
+  ]
+}

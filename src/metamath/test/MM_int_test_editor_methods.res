@@ -50,7 +50,7 @@ let createEditorState = (
         defaultStmtType: "",
         unifMetavarPrefix: "&",
         checkSyntax: true,
-        stickGoalToBottom: false,
+        stickGoalToBottom: true,
         autoMergeStmts: false,
         typeSettings: [ ],
         webSrcSettings: [ ],
@@ -158,7 +158,7 @@ let updateStmt = (
             | Some(jstf) => {...stmt, jstfText:jstf}
         }
         let stmt = switch content {
-            | Some(content) => {...stmt, cont:strToCont(content, ())}
+            | Some(content) => stmt
             | None => {
                 switch (contReplaceWhat, contReplaceWith) {
                     | (Some(contReplaceWhat), Some(contReplaceWith)) => {
@@ -176,6 +176,10 @@ let updateStmt = (
         }
         stmt
     })
+    let st = switch content {
+        | Some(content) => st->completeContEditMode(stmtId, content)
+        | None => st
+    }
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
@@ -270,7 +274,7 @@ let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorState => {
+let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatching:bool):editorState => {
     assertNoErrors(st)
     let st = switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot applySubstitution when wrkCtx is None.`}))
@@ -279,7 +283,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string):editorSta
                 st, 
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
                 wrkCtx->ctxStrToIntsExn(replaceWith),
-                true
+                useMatching
             )->Belt.Result.getExn->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
             if (wrkSubs->Js.Array2.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))

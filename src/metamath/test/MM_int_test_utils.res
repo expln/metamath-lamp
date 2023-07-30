@@ -28,6 +28,13 @@ let proofStatusToStr = status => {
 }
 
 let editorStateToStr = st => {
+    let userStmtTypeToStr = stmt => {
+        switch stmt.typ {
+            | E => "e"
+            | P => if (stmt.isGoal) {"g"} else {"p"}
+        }
+    }
+
     let lines = []
     lines->Js_array2.push("Variables:")->ignore
     lines->Js_array2.push(st.varsText)->ignore
@@ -39,7 +46,7 @@ let editorStateToStr = st => {
         lines->Js_array2.push("")->ignore
         lines->Js_array2.push(
             "--- "
-            ++ (stmt.typ->userStmtTypeToStr)
+            ++ (stmt->userStmtTypeToStr)
             ++ " -------------------------------------------------------------------------------"
         )->ignore
         lines->Js_array2.push(stmt.label)->ignore

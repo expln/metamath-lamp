@@ -171,7 +171,7 @@ describe("editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist4")
 
-        let st = st->applySubstitution(~replaceWhat="term3 = term1", ~replaceWith="t = t")
+        let st = st->applySubstitution(~replaceWhat="term3 = term1", ~replaceWith="t = t", ~useMatching=true)
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist5")
 
@@ -209,7 +209,7 @@ describe("editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist13")
 
-        let st = st->applySubstitution(~replaceWhat="term2 = t", ~replaceWith="( term1 + 0 ) = term1")
+        let st = st->applySubstitution(~replaceWhat="term2 = t", ~replaceWith="( term1 + 0 ) = term1", ~useMatching=true)
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist14")
 
@@ -217,7 +217,7 @@ describe("editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist15")
 
-        let st = st->applySubstitution(~replaceWhat="term1", ~replaceWith="t")
+        let st = st->applySubstitution(~replaceWhat="term1", ~replaceWith="t", ~useMatching=true)
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist16")
 

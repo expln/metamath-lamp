@@ -82,7 +82,7 @@ let createDefaultSettings = () => {
         unifMetavarPrefix:"&",
         checkSyntax: true,
         stickGoalToBottom:true,
-        autoMergeStmts:true,
+        autoMergeStmts:false,
         typeNextId: 4,
         typeSettings: [
             {

@@ -65,6 +65,7 @@ let applySubstitution: (
     editorState,
     ~replaceWhat: string,
     ~replaceWith: string,
+    ~useMatching:bool,
 ) => editorState
 
 let unifyAll: editorState => editorState

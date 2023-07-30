@@ -611,10 +611,13 @@ let completeContEditMode = (st, stmtId, newContText):editorState => {
 }
 
 let setStmtCont = (st, stmtId, stmtCont):editorState => {
+    let newContStr = stmtCont->contToStr
+    let isDuplicated = st.settings.autoMergeStmts && st.stmts->Js.Array2.some(stmt => stmt.cont->contToStr == newContStr)
     updateStmt(st, stmtId, stmt => {
         {
             ...stmt,
             cont:stmtCont,
+            isDuplicated,
         }
     })
 }
@@ -1933,20 +1936,25 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
     )
 }
 
-let mergeStmts = (st:editorState,id1:stmtId,id2:stmtId):result<editorState,string> => {
-    switch st->editorGetStmtById(id1) {
-        | None => Error(`Cannot find a step with id = '${id1}'`)
-        | Some(stmt1) => {
-            switch st->editorGetStmtById(id2) {
-                | None => Error(`Cannot find a step with id = '${id2}'`)
-                | Some(stmt2) => {
-                    if (stmt1.cont->contToStr != stmt2.cont->contToStr) {
+let mergeStmts = (st:editorState,idToUse:stmtId,idToDelete:stmtId):result<editorState,string> => {
+    switch st->editorGetStmtById(idToUse) {
+        | None => Error(`Cannot find a step with id = '${idToUse}'`)
+        | Some(stmtToUse) => {
+            switch st->editorGetStmtById(idToDelete) {
+                | None => Error(`Cannot find a step with id = '${idToDelete}'`)
+                | Some(stmtToDelete) => {
+                    if (stmtToUse.cont->contToStr != stmtToDelete.cont->contToStr) {
                         Error(`Steps to merge must have identical expressions.`)
                     } else {
-                        switch replaceRef(st, ~replaceWhat=stmt2.label, ~replaceWith=stmt1.label) {
+                        switch replaceRef(st, ~replaceWhat=stmtToDelete.label, ~replaceWith=stmtToUse.label) {
                             | Error(msg) => Error(msg)
                             | Ok(st) => {
-                                let st = st->deleteStmt(id2)
+                                let st = st->deleteStmt(idToDelete)
+                                let st = if (stmtToDelete.typ == P && stmtToDelete.isGoal && stmtToUse.typ != E) {
+                                    st->updateStmt(idToUse, stmt => {...stmt, typ:P, isGoal:true})
+                                } else {
+                                    st
+                                }
                                 Ok(st)
                             }
                         }
@@ -2055,7 +2063,7 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
             0
         )
         
-        let newIsGoal = if (newTyp == E) { false } else { pCnt == 0 }
+        let newIsGoal = if (newTyp == E) { false } else { st.settings.initStmtIsGoal && pCnt == 0 }
         let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
             st.settings.defaultStmtLabel
         } else { 
