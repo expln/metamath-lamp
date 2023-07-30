@@ -87,6 +87,24 @@ let swapExprs = (st):state => {
     }
 }
 
+let copyExpr1ToExpr2 = (st):state => {
+    {
+        ...st,
+        expr1Err:None,
+        expr2Err:None,
+        expr2Str: st.expr1Str,
+    }
+}
+
+let copyExpr2ToExpr1 = (st):state => {
+    {
+        ...st,
+        expr1Err:None,
+        expr2Err:None,
+        expr1Str: st.expr2Str,
+    }
+}
+
 let toggleResultChecked = (st,idx) => {
     if (st.checkedResultIdx == Some(idx)) {
         {
@@ -240,6 +258,16 @@ let make = (
         setState(swapExprs)
     }
 
+    let actCopyExpr1ToExpr2 = () => {
+        actClearResults()
+        setState(copyExpr1ToExpr2)
+    }
+
+    let actCopyExpr2ToExpr1 = () => {
+        actClearResults()
+        setState(copyExpr2ToExpr1)
+    }
+
     let actFindSubsByChange = newValue => {
         actClearResults()
         setFindSubsBy(_ => if (newValue == findSubsByMatch) {findSubsByMatch} else {findSubsByUnif})
@@ -295,6 +323,12 @@ let make = (
                                 ~ref=expr1TextFieldRef)}
                         </td>
                         <td>
+                            {rndIconButton(
+                                ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
+                                ~onClick={_=>actCopyExpr1ToExpr2()}, ~active=true, 
+                                ~title=`Copy this statement to the below text field`, ())}
+                        </td>
+                        <td>
                             {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
                                 ~title=`Swap "${expr1Label}" and "${expr2Label}"`, ())}
                         </td>
@@ -302,9 +336,23 @@ let make = (
                 </tbody>
             </table>
             {rndError(state.expr1Err)}
-            {rndExpr(~label=expr2Label, ~value=state.expr2Str, ~autoFocus=false,
-                ~onChange=actExpr2Change, ~tabIndex=2, ~onEnter=actExpr2OnEnter,
-                ~ref=expr2TextFieldRef )}
+            <table>
+                <tbody>
+                    <tr>
+                        <td>
+                            {rndExpr(~label=expr2Label, ~value=state.expr2Str, ~autoFocus=false,
+                                    ~onChange=actExpr2Change, ~tabIndex=2, ~onEnter=actExpr2OnEnter,
+                                    ~ref=expr2TextFieldRef )}
+                        </td>
+                        <td>
+                            {rndIconButton(
+                                ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
+                                ~onClick={_=>actCopyExpr2ToExpr1()}, ~active=true, 
+                                ~title=`Copy this statement to the above text field`, ())}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             {rndError(state.expr2Err)}
             <Row>
                 <Button onClick={_=>actDetermineSubs()} variant=#contained color="grey" >
