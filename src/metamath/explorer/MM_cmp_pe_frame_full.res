@@ -15,6 +15,7 @@ open Common
 open ColumnWidth
 open MM_react_common
 open MM_wrk_editor_json
+open MM_statements_dto
 
 @val external window: {..} = "window"
 let location = window["location"]
@@ -416,6 +417,21 @@ let make = React.memoCustomCompareProps(({
 
     let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
 
+    let getStepNum = (state,pRecIdx:int):int => {
+        if (state.showTypes) {
+            pRecIdx + 1
+        } else {
+            state.stepRenum->Belt_HashMapInt.get(pRecIdx)->Belt.Option.map(n => n + 1)->Belt.Option.getWithDefault(0)
+        }
+    }
+
+    let pRecIdxToLabel = (state, proofTable, pRecIdx:int):string => {
+        switch proofTable[pRecIdx].proof {
+            | Hypothesis({label}) => label
+            | Assertion(_) => getStepNum(state,pRecIdx)->Belt_Int.toString
+        }
+    }
+
     let actLoadProofToEditor = state => {
         loadEditorState.current->Js.Nullable.toOption ->Belt.Option.forEach(loadEditorState => {
             let vars = []
@@ -458,6 +474,37 @@ let make = React.memoCustomCompareProps(({
                     )->ignore
                 }
             })
+            switch state.proofTable {
+                | None => ()
+                | Some(proofTable) => {
+                    proofTable
+                        ->Js_array2.mapi((pRec,idx) => (pRec,idx))
+                        ->Js_array2.filter(((_,idx)) => state.essIdxs->Belt_HashSetInt.has(idx))
+                        ->Js.Array2.forEach(((pRec,idx)) => {
+                            switch pRec.proof {
+                                | Hypothesis(_) => ()
+                                | Assertion({args,label}) => {
+                                    let jstfArgs = []
+                                    for i in 0 to args->Js.Array2.length-1 {
+                                        let argIdx = args[i]
+                                        if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
+                                            jstfArgs->Js.Array2.push(pRecIdxToLabel(state,proofTable,argIdx))->ignore
+                                        }
+                                    }
+                                    stmts->Js.Array2.push(
+                                        {
+                                            label: pRecIdxToLabel(state,proofTable,idx), 
+                                            typ: userStmtTypeToStr(P), 
+                                            isGoal: false,
+                                            cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
+                                            jstfText: jstfToStr({args:jstfArgs, label}),
+                                        }
+                                    )->ignore
+                                }
+                            }
+                        })
+                }
+            }
             loadEditorState(
                 {
                     srcs: [],
@@ -468,14 +515,6 @@ let make = React.memoCustomCompareProps(({
                 }
             )
         })
-    }
-
-    let getStepNum = (state,pRecIdx:int):int => {
-        if (state.showTypes) {
-            pRecIdx + 1
-        } else {
-            state.stepRenum->Belt_HashMapInt.get(pRecIdx)->Belt.Option.map(n => n + 1)->Belt.Option.getWithDefault(0)
-        }
     }
 
     let getNumberOfRowsInProofTable = (state:option<state>):int => {
