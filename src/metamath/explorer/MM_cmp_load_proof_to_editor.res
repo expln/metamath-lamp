@@ -22,8 +22,7 @@ let make = (
             <FormControlLabel
                 control={
                     <Checkbox
-                        checked=false
-                        disabled=true
+                        checked=adjustContext
                         onChange={evt2bool(b => setAdjustContext(_ => b))}
                     />
                 }

@@ -32,6 +32,7 @@ type vDataRec = {
 
 type state = {
     settings:settings,
+    frmMmScopes:array<mmScope>,
     frmCtx:mmContext,
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
@@ -137,7 +138,13 @@ let setProofTable = (st:state, proofTable:proofTable):state => {
     }
 }
 
-let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmContext, ~frame:frame):state => {
+let createInitialState = (
+    ~settings:settings, 
+    ~frmMmScopes:array<mmScope>,
+    ~preCtx:mmContext, 
+    ~frmCtx:mmContext, 
+    ~frame:frame
+):state => {
     frmCtx->moveConstsToBegin(settings.parens)
     let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
     let parenCnt = parenCntMake(prepareParenInts(frmCtx, settings.parens), ~checkParensOptimized=true, ())
@@ -179,6 +186,7 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
 
     let st = {
         settings,
+        frmMmScopes,
         frmCtx,
         frms,
         parenCnt,
@@ -250,12 +258,18 @@ let loadFrameContext = (
     ~srcs:array<mmCtxSrcDto>,
     ~label:string,
     ~onProgress:float=>unit,
-    ~onDone: result<mmContext,string>=>unit,
+    ~onDone: result<(array<mmScope>, mmContext),string>=>unit,
 ):unit => {
+    let scopes = createMmScopesForFrame( ~srcs, ~label, )
     beginLoadingMmContext(
-        ~scopes = createMmScopesForFrame( ~srcs, ~label, ),
+        ~scopes,
         ~onProgress,
-        ~onDone,
+        ~onDone = res => {
+            switch res {
+                | Error(msg) => onDone(Error(msg))
+                | Ok(ctx) => onDone(Ok((scopes,ctx)))
+            }
+        },
         ()
     )
 }
@@ -305,6 +319,46 @@ let rndIconButton = (
     </span>
 }
 
+let convertMmScopesToMmCtxSrcDtos = (
+    ~origMmCtxSrcDtos:array<mmCtxSrcDto>,
+    ~mmScopes:array<mmScope>,
+):option<array<mmCtxSrcDto>> => {
+    let canConvert = mmScopes->Js_array2.length <= origMmCtxSrcDtos->Js_array2.length 
+                        && mmScopes->Js_array2.everyi((mmScope,i) => {
+                            origMmCtxSrcDtos[i].ast
+                                ->Belt_Option.map(origAst => origAst == mmScope.ast)
+                                ->Belt.Option.getWithDefault(false)
+                        })
+    if (!canConvert) {
+        None
+    } else {
+        Some(
+            mmScopes->Js_array2.mapi((mmScope,i) => {
+                let origMmCtxSrcDto = origMmCtxSrcDtos[i]
+                let (readInstr,label) = switch mmScope.stopBefore {
+                    | Some(label) => (readInstrToStr(StopBefore), label)
+                    | None => {
+                        switch mmScope.stopAfter {
+                            | Some(label) => (readInstrToStr(StopAfter), label)
+                            | None => (readInstrToStr(ReadAll), "")
+                        }
+                    }
+                }
+                {
+                    typ: origMmCtxSrcDto.typ,
+                    fileName: origMmCtxSrcDto.fileName,
+                    url: origMmCtxSrcDto.url,
+                    readInstr,
+                    label,
+                    resetNestingLevel:true,
+                    ast: origMmCtxSrcDto.ast,
+                    allLabels: origMmCtxSrcDto.allLabels,
+                }
+            })
+        )
+    }
+}
+
 let make = React.memoCustomCompareProps(({
     top,
     modalRef,
@@ -327,6 +381,7 @@ let make = React.memoCustomCompareProps(({
     React.useEffect0(() => {
         setTimeout(
             () => {
+                //Js.Console.log2(`preCtxData`, preCtxData)
                 loadFrameContext(
                     ~srcs=preCtxData.srcs,
                     ~label,
@@ -334,10 +389,11 @@ let make = React.memoCustomCompareProps(({
                     ~onDone = res => {
                         switch res {
                             | Error(msg) => setLoadErr(_ => Some(msg))
-                            | Ok(frmCtx) => {
+                            | Ok((frmMmScopes,frmCtx)) => {
                                 setState(_ => {
                                     Some(createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
+                                        ~frmMmScopes,
                                         ~preCtx=preCtxData.ctxV.val,
                                         ~frmCtx, 
                                         ~frame=preCtxData.ctxV.val->getFrameExn(label)
@@ -516,9 +572,17 @@ let make = React.memoCustomCompareProps(({
                         })
                 }
             }
+            let srcs = if (adjustContext) {
+                switch convertMmScopesToMmCtxSrcDtos(~origMmCtxSrcDtos=preCtxData.srcs, ~mmScopes=state.frmMmScopes) {
+                    | None => []
+                    | Some(srcs) => srcs
+                }
+            } else {
+                []
+            }
             loadEditorState(
                 {
-                    srcs: [],
+                    srcs,
                     descr: state.frame.descr->Belt.Option.getWithDefault(""),
                     varsText: vars->Js.Array2.joinWith("\n"),
                     disjText: disjArr->Js.Array2.joinWith("\n"),
