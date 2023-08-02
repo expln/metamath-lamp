@@ -381,7 +381,6 @@ let make = React.memoCustomCompareProps(({
     React.useEffect0(() => {
         setTimeout(
             () => {
-                //Js.Console.log2(`preCtxData`, preCtxData)
                 loadFrameContext(
                     ~srcs=preCtxData.srcs,
                     ~label,

@@ -1026,7 +1026,7 @@ let make = (
             ~preCtx=preCtxData.ctxV.val, 
             ~stateLocStor=Some(stateLocStor)
         ))
-        reloadCtx.current->Js.Nullable.toOption ->Belt.Option.forEach(reloadCtx => {
+        reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(stateLocStor.srcs)->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
