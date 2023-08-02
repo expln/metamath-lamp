@@ -16,6 +16,7 @@ open ColumnWidth
 open MM_react_common
 open MM_wrk_editor_json
 open MM_statements_dto
+open Expln_utils_promise
 
 @val external window: {..} = "window"
 let location = window["location"]
@@ -268,6 +269,7 @@ type props = {
     label:string,
     openFrameExplorer:string=>unit,
     loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
+    focusEditorTab: unit=>unit,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -310,6 +312,7 @@ let make = React.memoCustomCompareProps(({
     label,
     openFrameExplorer,
     loadEditorState,
+    focusEditorTab,
 }:props) => {
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
@@ -432,7 +435,7 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let actLoadProofToEditor = state => {
+    let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
         loadEditorState.current->Js.Nullable.toOption ->Belt.Option.forEach(loadEditorState => {
             let vars = []
             state.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
@@ -484,23 +487,30 @@ let make = React.memoCustomCompareProps(({
                             switch pRec.proof {
                                 | Hypothesis(_) => ()
                                 | Assertion({args,label}) => {
-                                    let jstfArgs = []
-                                    for i in 0 to args->Js.Array2.length-1 {
-                                        let argIdx = args[i]
-                                        if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
-                                            jstfArgs->Js.Array2.push(pRecIdxToLabel(state,proofTable,argIdx))->ignore
-                                        }
-                                    }
                                     let isGoal = idx == proofTable->Js_array2.length - 1
-                                    stmts->Js.Array2.push(
-                                        {
-                                            label: if (isGoal) {state.frame.label} else {pRecIdxToLabel(state,proofTable,idx)}, 
-                                            typ: userStmtTypeToStr(P), 
-                                            isGoal,
-                                            cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
-                                            jstfText: jstfToStr({args:jstfArgs, label}),
+                                    if (loadSteps || isGoal) {
+                                        let jstfArgs = []
+                                        for i in 0 to args->Js.Array2.length-1 {
+                                            let argIdx = args[i]
+                                            if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
+                                                jstfArgs->Js.Array2.push(pRecIdxToLabel(state,proofTable,argIdx))->ignore
+                                            }
                                         }
-                                    )->ignore
+                                        let jstfText = if (loadSteps) {
+                                            jstfToStr({args:jstfArgs, label})
+                                        } else {
+                                            ""
+                                        }
+                                        stmts->Js.Array2.push(
+                                            {
+                                                label: if (isGoal) {state.frame.label} else {pRecIdxToLabel(state,proofTable,idx)}, 
+                                                typ: userStmtTypeToStr(P), 
+                                                isGoal,
+                                                cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
+                                                jstfText,
+                                            }
+                                        )->ignore
+                                    }
                                 }
                             }
                         })
@@ -515,7 +525,22 @@ let make = React.memoCustomCompareProps(({
                     stmts,
                 }
             )
+            focusEditorTab()
         })
+    }
+
+    let actOpenLoadProofToEditorDialog = state => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_load_proof_to_editor
+                    onOk={(~adjustContext:bool,~loadSteps:bool)=>{
+                        actLoadProofToEditor(~state,~adjustContext,~loadSteps)
+                        closeModal(modalRef, modalId)
+                    }}
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
     }
 
     let getNumberOfRowsInProofTable = (state:option<state>):int => {
@@ -609,7 +634,7 @@ let make = React.memoCustomCompareProps(({
                             disabled={state.frame.isAxiom}
                             onClick={() => {
                                 actCloseMainMenu()
-                                actLoadProofToEditor(state)
+                                actOpenLoadProofToEditorDialog(state)
                             }}
                         >
                             {React.string("Load this proof to the editor")}

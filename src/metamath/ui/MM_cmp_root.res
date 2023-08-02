@@ -100,6 +100,13 @@ let make = () => {
         }
     }
 
+    let isEditorTab = (tabData:tabData):bool => {
+        switch tabData {
+            | Editor => true
+            | _ => false
+        }
+    }
+
     let actCloseFrmTabs = () => {
         tabs->Js.Array2.forEach(tab => {
             if (isFrameExplorerTab(tab.data, ())) {
@@ -147,6 +154,15 @@ let make = () => {
                 }
             }
             st
+        })
+    }
+
+    let focusEditorTab = ():unit => {
+        updateTabs(tabsSt => {
+            switch tabsSt->Expln_React_UseTabs.getTabs->Js.Array2.find(tab => isEditorTab(tab.data)) {
+                | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
+                | None => tabsSt
+            }
         })
     }
 
@@ -211,6 +227,7 @@ let make = () => {
                             label
                             openFrameExplorer
                             loadEditorState
+                            focusEditorTab
                         />
                 }
             }
