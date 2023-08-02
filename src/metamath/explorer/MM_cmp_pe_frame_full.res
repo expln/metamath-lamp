@@ -491,11 +491,12 @@ let make = React.memoCustomCompareProps(({
                                             jstfArgs->Js.Array2.push(pRecIdxToLabel(state,proofTable,argIdx))->ignore
                                         }
                                     }
+                                    let isGoal = idx == proofTable->Js_array2.length - 1
                                     stmts->Js.Array2.push(
                                         {
-                                            label: pRecIdxToLabel(state,proofTable,idx), 
+                                            label: if (isGoal) {state.frame.label} else {pRecIdxToLabel(state,proofTable,idx)}, 
                                             typ: userStmtTypeToStr(P), 
-                                            isGoal: false,
+                                            isGoal,
                                             cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
                                             jstfText: jstfToStr({args:jstfArgs, label}),
                                         }
