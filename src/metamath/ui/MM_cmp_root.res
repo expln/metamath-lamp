@@ -91,6 +91,7 @@ let make = () => {
 
     let reloadCtx = React.useRef(Js.Nullable.null)
     let toggleCtxSelector = React.useRef(Js.Nullable.null)
+    let loadEditorState = React.useRef(Js.Nullable.null)
 
     let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
         switch tabData {
@@ -185,6 +186,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             reloadCtx
+                            loadEditorState
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
                             toggleCtxSelector
@@ -208,6 +210,7 @@ let make = () => {
                             preCtxData=state.preCtxData
                             label
                             openFrameExplorer
+                            loadEditorState
                         />
                 }
             }

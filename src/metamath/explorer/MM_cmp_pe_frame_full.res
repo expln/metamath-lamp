@@ -14,6 +14,7 @@ open MM_parenCounter
 open Common
 open ColumnWidth
 open MM_react_common
+open MM_wrk_editor_json
 
 @val external window: {..} = "window"
 let location = window["location"]
@@ -265,10 +266,40 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
+    loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
     a.top === b.top
+}
+
+let rndIconButton = (
+    ~icon:reElem, 
+    ~onClick:unit=>unit, 
+    ~active:bool, 
+    ~notifyEditInTempMode:option<(unit=>'a)=>'a>=?,
+    ~ref:option<ReactDOM.domRef>=?,
+    ~title:option<string>=?, 
+    ~smallBtns:bool=false,
+    ()
+) => {
+    <span ?ref ?title>
+        <IconButton 
+            disabled={!active} 
+            onClick={_ => {
+                switch notifyEditInTempMode {
+                    | None => onClick()
+                    | Some(notifyEditInTempMode) => notifyEditInTempMode(() => onClick())
+                }
+            }} 
+            color="primary"
+            style=?{
+                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+            }
+        > 
+            icon 
+        </IconButton>
+    </span>
 }
 
 let make = React.memoCustomCompareProps(({
@@ -277,6 +308,7 @@ let make = React.memoCustomCompareProps(({
     preCtxData,
     label,
     openFrameExplorer,
+    loadEditorState,
 }:props) => {
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
@@ -284,6 +316,9 @@ let make = React.memoCustomCompareProps(({
     let (stepWidth, setStepWidth) = React.useState(() => "100px")
     let (hypWidth, setHypWidth) = React.useState(() => "100px")
     let (refWidth, setRefWidth) = React.useState(() => "100px")
+
+    let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
+    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
     React.useEffect0(() => {
         setTimeout(
@@ -321,6 +356,14 @@ let make = React.memoCustomCompareProps(({
                 | Some(st) => Some(update(st))
             }
         })
+    }
+
+    let actOpenMainMenu = () => {
+        setMainMenuIsOpened(_ => true)
+    }
+
+    let actCloseMainMenu = () => {
+        setMainMenuIsOpened(_ => false)
     }
 
     let actBuildSyntaxProofTable = ():unit => {
@@ -372,6 +415,60 @@ let make = React.memoCustomCompareProps(({
     let actToggleShowTypes = () => modifyState(toggleShowTypes)
 
     let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
+
+    let actLoadProofToEditor = state => {
+        loadEditorState.current->Js.Nullable.toOption ->Belt.Option.forEach(loadEditorState => {
+            let vars = []
+            state.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
+                if (hyp.typ == F) {
+                    switch preCtxData.ctxV.val->getTokenType(state.frmCtx->ctxIntToSymExn(hyp.expr[1])) {
+                        | Some(V) => ()
+                        | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
+                            vars->Js.Array2.push(`${hyp.label} ${state.frmCtx->ctxIntsToStrExn(hyp.expr)}`)->ignore
+                        }
+                    }
+                }
+                None
+            })->ignore
+
+            let disj = disjMake()
+            state.frame.disj->Belt_MapInt.forEach((n,ms) => {
+                ms->Belt_SetInt.forEach(m => {
+                    disj->disjAddPair(n,m)
+                })
+            })
+            let disjArr = []
+            disj->disjForEachArr(disjGrp => {
+                disjArr->Js.Array2.push(
+                    preCtxData.ctxV.val->frmIntsToSymsExn(state.frame, disjGrp)->Js.Array2.joinWith(",")
+                )->ignore
+            })
+
+            let stmts = []
+            state.frame.hyps->Js_array2.forEach(hyp => {
+                if (hyp.typ == E) {
+                    stmts->Js.Array2.push(
+                        {
+                            label: hyp.label, 
+                            typ: userStmtTypeToStr(E), 
+                            isGoal: false,
+                            cont: preCtxData.ctxV.val->frmIntsToStrExn(state.frame, hyp.expr), 
+                            jstfText: "",
+                        }
+                    )->ignore
+                }
+            })
+            loadEditorState(
+                {
+                    srcs: [],
+                    descr: state.frame.descr->Belt.Option.getWithDefault(""),
+                    varsText: vars->Js.Array2.joinWith("\n"),
+                    disjText: disjArr->Js.Array2.joinWith("\n"),
+                    stmts,
+                }
+            )
+        })
+    }
 
     let getStepNum = (state,pRecIdx:int):int => {
         if (state.showTypes) {
@@ -428,19 +525,61 @@ let make = React.memoCustomCompareProps(({
                 {"Theorem"->React.string}
             </span>
         }
-        <span>
-            asrtType
-            <span 
-                style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
-            >
-                { (" " ++ state.frame.label)->React.string }
+        <Row
+            spacing = 0.
+            childXsOffset = {idx => {
+                switch idx {
+                    | 1 => Some(Js.Json.string("auto"))
+                    | _ => None
+                }
+            }}
+        >
+            <span>
+                asrtType
+                <span 
+                    style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+                >
+                    { (" " ++ state.frame.label)->React.string }
+                </span>
+                <span 
+                    style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
+                >
+                    { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
+                </span>
             </span>
-            <span 
-                style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
-            >
-                { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
-            </span>
-        </span>
+            { 
+                rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active=true, 
+                    ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
+                    ~title="Additional actions", () )
+            }
+        </Row>
+    }
+
+    let rndMainMenu = state => {
+        if (mainMenuIsOpened) {
+            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+                | None => React.null
+                | Some(mainMenuButtonRef) => {
+                    <Menu
+                        opn=true
+                        anchorEl=mainMenuButtonRef
+                        onClose=actCloseMainMenu
+                    >
+                        <MenuItem
+                            disabled={state.frame.isAxiom}
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actLoadProofToEditor(state)
+                            }}
+                        >
+                            {React.string("Load this proof to the editor")}
+                        </MenuItem>
+                    </Menu>
+                }
+            }
+        } else {
+            React.null
+        }
     }
 
     let rndSummary = state => {
@@ -769,6 +908,7 @@ let make = React.memoCustomCompareProps(({
         }
         | Some(state) => {
             <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                {rndMainMenu(state)}
                 {rndLabel(state)}
                 {rndDescr(state)}
                 {rndDisj(state)}
