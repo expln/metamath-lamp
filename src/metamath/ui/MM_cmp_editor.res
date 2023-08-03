@@ -129,6 +129,7 @@ let make = (
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
     ~toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
@@ -1016,7 +1017,7 @@ let make = (
         </Col>
     }
 
-    let loadEditorState = (stateLocStor:editorStateLocStor):unit => {
+    let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
         setState(_ => createInitialEditorState(
             ~settingsV=preCtxData.settingsV.ver, 
             ~settings=preCtxData.settingsV.val, 
@@ -1025,7 +1026,7 @@ let make = (
             ~preCtx=preCtxData.ctxV.val, 
             ~stateLocStor=Some(stateLocStor)
         ))
-        reloadCtx.current->Js.Nullable.toOption ->Belt.Option.forEach(reloadCtx => {
+        reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(stateLocStor.srcs)->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
@@ -1056,6 +1057,7 @@ let make = (
             })->ignore
         })
     }
+    loadEditorState.current = Js.Nullable.return(loadEditorStatePriv)
 
     let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
@@ -1075,7 +1077,7 @@ let make = (
                 false
             }
             | Ok(stateLocStor) => {
-                loadEditorState(stateLocStor)
+                loadEditorStatePriv(stateLocStor)
                 true
             }
         }

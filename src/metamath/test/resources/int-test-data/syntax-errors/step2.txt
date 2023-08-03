@@ -50,7 +50,7 @@ stmt9
 stmt9-opabex2.11 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.41: opabex2
 |- ( A e. _V -> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } e. _V )
 jstfIsIncorrect
-Unif Error: Could not unify essential hypothesis #3:
+Unif Error: Could not match essential hypothesis #3:
 1: |- ( A e. _V -> -> A e. _V )
 2: |- ( A e. _V -> -> A e. _V )
 3: |- ( ( A e. _V /\ ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) ) -> u e. A )
@@ -86,7 +86,7 @@ stmt6 : adantr
 |- ( ( u = x / v = y ) -> ( F ` u ) = ( F ` x ) ) ]
 jstfIsIncorrect
 Syntax error - parentheses mismatch.
-Unif Error: Could not find a unification for assertion:
+Unif Error: Could not find a match for assertion:
 |- ( ( ph /\ ch ) -> ps )
 →
 |- ( ( u = x / v = y ) -> ( F ` u ) = ( F ` x ) ) ]
@@ -96,7 +96,7 @@ stmt3-brab2a.11
 stmt4 stmt5 : eqeq12d
 |- ( ( u = x /\ v = y ) -> ( ( F ` u ) = ( F ` v ) <-> ( F ` x ) = ( F ` y ) ) )
 jstfIsIncorrect
-Unif Error: Could not unify essential hypothesis #1
+Unif Error: Could not match essential hypothesis #1
 
 
 --- p -------------------------------------------------------------------------------

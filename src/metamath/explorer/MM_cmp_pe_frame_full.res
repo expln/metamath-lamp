@@ -14,6 +14,9 @@ open MM_parenCounter
 open Common
 open ColumnWidth
 open MM_react_common
+open MM_wrk_editor_json
+open MM_statements_dto
+open Expln_utils_promise
 
 @val external window: {..} = "window"
 let location = window["location"]
@@ -29,12 +32,15 @@ type vDataRec = {
 
 type state = {
     settings:settings,
+    frmMmScopes:array<mmScope>,
     frmCtx:mmContext,
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
     frame:frame,
-    disj: option<array<array<(string,option<string>)>>>,
+    disjStr: option<array<array<(string,option<string>)>>>,
+    dummyVarDisj: option<disjMutable>,
+    dummyVarDisjStr: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
     proofTable:option<proofTable>,
@@ -94,7 +100,7 @@ let createVDataRec = (
     }
 }
 
-let setProofTable = (st:state, proofTable:proofTable):state => {
+let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable):state => {
     let frmCtx = st.frmCtx
     let settings = st.settings
     let typeColors = settings->settingsGetTypeColors
@@ -123,8 +129,26 @@ let setProofTable = (st:state, proofTable:proofTable):state => {
             stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
         }
     })
+    let dummyVarDisjStr = if (!(dummyVarDisj->disjIsEmpty)) {
+        Some(
+            MM_cmp_pe_frame_summary_state.createDisjGroups(
+                ~disj = dummyVarDisj->disjMutToDisjImm,
+                ~intToSym = i => {
+                    let sym = frmCtx->ctxIntToSymExn(i)
+                    (
+                        sym,
+                        st.symColors->Belt_HashMapString.get(sym)
+                    )
+                },
+            )
+        )
+    } else {
+        None
+    }
     {
         ...st,
+        dummyVarDisj: if (dummyVarDisj->disjIsEmpty) {None} else {Some(dummyVarDisj)},
+        dummyVarDisjStr,
         proofTable: Some(proofTable),
         vData,
         showTypes:false,
@@ -134,7 +158,13 @@ let setProofTable = (st:state, proofTable:proofTable):state => {
     }
 }
 
-let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmContext, ~frame:frame):state => {
+let createInitialState = (
+    ~settings:settings, 
+    ~frmMmScopes:array<mmScope>,
+    ~preCtx:mmContext, 
+    ~frmCtx:mmContext, 
+    ~frame:frame
+):state => {
     frmCtx->moveConstsToBegin(settings.parens)
     let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
     let parenCnt = parenCntMake(prepareParenInts(frmCtx, settings.parens), ~checkParensOptimized=true, ())
@@ -144,8 +174,15 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
         switch frmCtx->ctxSymToInt(
             if (i < 0) { preCtx->ctxIntToSymExn(i) } else { frame.frameVarToSymb[i] }
         ) {
-            | None => raise(MmException({msg:`ctx->ctxSymToInt == None in frmIntToCtxInt`}))
+            | None => raise(MmException({msg:`preCtx->ctxSymToInt == None in frmIntToCtxInt`}))
             | Some(n) => n
+        }
+    }
+
+    let ctxVarToFrmVar = (i:int):option<int> => {
+        switch frame.frameVarToSymb->Js.Array2.indexOf(frmCtx->ctxIntToSymExn(i)) {
+            | -1 => None
+            | n => Some(n)
         }
     }
 
@@ -157,7 +194,7 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
     let symColors = createSymbolColors(~ctx=frmCtx, ~typeColors)
     let asrt = frame.asrt->frmExprToCtxExpr
 
-    let disj = if (frame.disj->Belt_MapInt.size > 0) {
+    let disjStr = if (frame.disj->Belt_MapInt.size > 0) {
         Some(
             MM_cmp_pe_frame_summary_state.createDisjGroups(
                 ~disj = frame.disj,
@@ -176,12 +213,15 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
 
     let st = {
         settings,
+        frmMmScopes,
         frmCtx,
         frms,
         parenCnt,
         syntaxTypes,
         frame,
-        disj,
+        disjStr,
+        dummyVarDisj:None,
+        dummyVarDisjStr:None,
         hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
         proofTable: None,
@@ -200,13 +240,28 @@ let createInitialState = (~settings:settings, ~preCtx:mmContext, ~frmCtx:mmConte
             switch proof {
                 | Uncompressed({labels:["?"]}) => st
                 | _ => {
+                    let dummyVarDisj = disjMake()
                     let proofRoot = MM_proof_verifier.verifyProof(
                         ~ctx=frmCtx,
                         ~expr=asrt,
                         ~proof,
-                        ~isDisjInCtx = (_,_) => true,
+                        ~isDisjInCtx = (n,m) => {
+                            let isFrmDisj = switch ctxVarToFrmVar(n) {
+                                | None => false
+                                | Some(n) => {
+                                    switch ctxVarToFrmVar(m) {
+                                        | None => false
+                                        | Some(m) => frame.disj->disjImmContains(n,m)
+                                    }
+                                }
+                            }
+                            if (!isFrmDisj) {
+                                dummyVarDisj->disjAddPair(n,m)
+                            }
+                            true
+                        },
                     )
-                    st->setProofTable(createProofTableFromProof(proofRoot))
+                    st->setProofTable(~proofTable=createProofTableFromProof(proofRoot), ~dummyVarDisj)
                 }
             }
         }
@@ -247,12 +302,18 @@ let loadFrameContext = (
     ~srcs:array<mmCtxSrcDto>,
     ~label:string,
     ~onProgress:float=>unit,
-    ~onDone: result<mmContext,string>=>unit,
+    ~onDone: result<(array<mmScope>, mmContext),string>=>unit,
 ):unit => {
+    let scopes = createMmScopesForFrame( ~srcs, ~label, )
     beginLoadingMmContext(
-        ~scopes = createMmScopesForFrame( ~srcs, ~label, ),
+        ~scopes,
         ~onProgress,
-        ~onDone,
+        ~onDone = res => {
+            switch res {
+                | Error(msg) => onDone(Error(msg))
+                | Ok(ctx) => onDone(Ok((scopes,ctx)))
+            }
+        },
         ()
     )
 }
@@ -265,10 +326,84 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
+    loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
+    focusEditorTab: unit=>unit,
+    toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ctxSelectorIsExpanded:bool,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    a.top === b.top
+    a.top === b.top 
+    && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
+}
+
+let rndIconButton = (
+    ~icon:reElem, 
+    ~onClick:unit=>unit, 
+    ~active:bool, 
+    ~notifyEditInTempMode:option<(unit=>'a)=>'a>=?,
+    ~ref:option<ReactDOM.domRef>=?,
+    ~title:option<string>=?, 
+    ~smallBtns:bool=false,
+    ()
+) => {
+    <span ?ref ?title>
+        <IconButton 
+            disabled={!active} 
+            onClick={_ => {
+                switch notifyEditInTempMode {
+                    | None => onClick()
+                    | Some(notifyEditInTempMode) => notifyEditInTempMode(() => onClick())
+                }
+            }} 
+            color="primary"
+            style=?{
+                if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+            }
+        > 
+            icon 
+        </IconButton>
+    </span>
+}
+
+let convertMmScopesToMmCtxSrcDtos = (
+    ~origMmCtxSrcDtos:array<mmCtxSrcDto>,
+    ~mmScopes:array<mmScope>,
+):option<array<mmCtxSrcDto>> => {
+    let canConvert = mmScopes->Js_array2.length <= origMmCtxSrcDtos->Js_array2.length 
+                        && mmScopes->Js_array2.everyi((mmScope,i) => {
+                            origMmCtxSrcDtos[i].ast
+                                ->Belt_Option.map(origAst => origAst == mmScope.ast)
+                                ->Belt.Option.getWithDefault(false)
+                        })
+    if (!canConvert) {
+        None
+    } else {
+        Some(
+            mmScopes->Js_array2.mapi((mmScope,i) => {
+                let origMmCtxSrcDto = origMmCtxSrcDtos[i]
+                let (readInstr,label) = switch mmScope.stopBefore {
+                    | Some(label) => (readInstrToStr(StopBefore), label)
+                    | None => {
+                        switch mmScope.stopAfter {
+                            | Some(label) => (readInstrToStr(StopAfter), label)
+                            | None => (readInstrToStr(ReadAll), "")
+                        }
+                    }
+                }
+                {
+                    typ: origMmCtxSrcDto.typ,
+                    fileName: origMmCtxSrcDto.fileName,
+                    url: origMmCtxSrcDto.url,
+                    readInstr,
+                    label,
+                    resetNestingLevel:true,
+                    ast: origMmCtxSrcDto.ast,
+                    allLabels: origMmCtxSrcDto.allLabels,
+                }
+            })
+        )
+    }
 }
 
 let make = React.memoCustomCompareProps(({
@@ -277,6 +412,10 @@ let make = React.memoCustomCompareProps(({
     preCtxData,
     label,
     openFrameExplorer,
+    loadEditorState,
+    focusEditorTab,
+    toggleCtxSelector,
+    ctxSelectorIsExpanded,
 }:props) => {
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
@@ -284,6 +423,9 @@ let make = React.memoCustomCompareProps(({
     let (stepWidth, setStepWidth) = React.useState(() => "100px")
     let (hypWidth, setHypWidth) = React.useState(() => "100px")
     let (refWidth, setRefWidth) = React.useState(() => "100px")
+
+    let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
+    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
 
     React.useEffect0(() => {
         setTimeout(
@@ -295,12 +437,13 @@ let make = React.memoCustomCompareProps(({
                     ~onDone = res => {
                         switch res {
                             | Error(msg) => setLoadErr(_ => Some(msg))
-                            | Ok(frmCtx) => {
+                            | Ok((frmMmScopes,frmCtx)) => {
                                 setState(_ => {
                                     Some(createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
+                                        ~frmMmScopes,
                                         ~preCtx=preCtxData.ctxV.val,
-                                        ~frmCtx, 
+                                        ~frmCtx,
                                         ~frame=preCtxData.ctxV.val->getFrameExn(label)
                                     ))
                                 })
@@ -323,6 +466,14 @@ let make = React.memoCustomCompareProps(({
         })
     }
 
+    let actOpenMainMenu = () => {
+        setMainMenuIsOpened(_ => true)
+    }
+
+    let actCloseMainMenu = () => {
+        setMainMenuIsOpened(_ => false)
+    }
+
     let actBuildSyntaxProofTable = ():unit => {
         modifyState(st => {
             let ctx = st.frmCtx
@@ -340,7 +491,7 @@ let make = React.memoCustomCompareProps(({
                     switch proofTables[0] {
                         | Error(msg) => st->setSyntaxProofTableError(Some(msg))
                         | Ok(proofTable) => {
-                            let st = st->setProofTable(proofTable)
+                            let st = st->setProofTable(~proofTable, ~dummyVarDisj=disjMake())
                             let st = st->setShowTypes(true)
                             st
                         }
@@ -379,6 +530,139 @@ let make = React.memoCustomCompareProps(({
         } else {
             state.stepRenum->Belt_HashMapInt.get(pRecIdx)->Belt.Option.map(n => n + 1)->Belt.Option.getWithDefault(0)
         }
+    }
+
+    let pRecIdxToLabel = (state, proofTable, pRecIdx:int):string => {
+        switch proofTable[pRecIdx].proof {
+            | Hypothesis({label}) => label
+            | Assertion(_) => getStepNum(state,pRecIdx)->Belt_Int.toString
+        }
+    }
+
+    let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
+        loadEditorState.current->Js.Nullable.toOption ->Belt.Option.forEach(loadEditorState => {
+            let vars = []
+            state.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
+                if (hyp.typ == F) {
+                    switch preCtxData.ctxV.val->getTokenType(state.frmCtx->ctxIntToSymExn(hyp.expr[1])) {
+                        | Some(V) => ()
+                        | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
+                            vars->Js.Array2.push(`${hyp.label} ${state.frmCtx->ctxIntsToStrExn(hyp.expr)}`)->ignore
+                        }
+                    }
+                }
+                None
+            })->ignore
+
+            let disjArr = []
+            let frmDisj = disjMake()
+            state.frame.disj->Belt_MapInt.forEach((n,ms) => {
+                ms->Belt_SetInt.forEach(m => {
+                    frmDisj->disjAddPair(n,m)
+                })
+            })
+            frmDisj->disjForEachArr(disjGrp => {
+                disjArr->Js.Array2.push(
+                    preCtxData.ctxV.val->frmIntsToSymsExn(state.frame, disjGrp)->Js.Array2.joinWith(",")
+                )->ignore
+            })
+            switch state.dummyVarDisj {
+                | None => ()
+                | Some(dummyVarDisj) => {
+                    dummyVarDisj->disjForEachArr(disjGrp => {
+                        disjArr->Js.Array2.push(
+                            state.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(",")
+                        )->ignore
+                    })
+                }
+            }
+            
+            let stmts = []
+            state.frame.hyps->Js_array2.forEach(hyp => {
+                if (hyp.typ == E) {
+                    stmts->Js.Array2.push(
+                        {
+                            label: hyp.label, 
+                            typ: userStmtTypeToStr(E), 
+                            isGoal: false,
+                            cont: preCtxData.ctxV.val->frmIntsToStrExn(state.frame, hyp.expr), 
+                            jstfText: "",
+                        }
+                    )->ignore
+                }
+            })
+            switch state.proofTable {
+                | None => ()
+                | Some(proofTable) => {
+                    proofTable
+                        ->Js_array2.mapi((pRec,idx) => (pRec,idx))
+                        ->Js_array2.filter(((_,idx)) => state.essIdxs->Belt_HashSetInt.has(idx))
+                        ->Js.Array2.forEach(((pRec,idx)) => {
+                            switch pRec.proof {
+                                | Hypothesis(_) => ()
+                                | Assertion({args,label}) => {
+                                    let isGoal = idx == proofTable->Js_array2.length - 1
+                                    if (loadSteps || isGoal) {
+                                        let jstfArgs = []
+                                        for i in 0 to args->Js.Array2.length-1 {
+                                            let argIdx = args[i]
+                                            if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
+                                                jstfArgs->Js.Array2.push(pRecIdxToLabel(state,proofTable,argIdx))->ignore
+                                            }
+                                        }
+                                        let jstfText = if (loadSteps) {
+                                            jstfToStr({args:jstfArgs, label})
+                                        } else {
+                                            ""
+                                        }
+                                        stmts->Js.Array2.push(
+                                            {
+                                                label: if (isGoal) {state.frame.label} else {pRecIdxToLabel(state,proofTable,idx)}, 
+                                                typ: userStmtTypeToStr(P), 
+                                                isGoal,
+                                                cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
+                                                jstfText,
+                                            }
+                                        )->ignore
+                                    }
+                                }
+                            }
+                        })
+                }
+            }
+            let srcs = if (adjustContext) {
+                switch convertMmScopesToMmCtxSrcDtos(~origMmCtxSrcDtos=preCtxData.srcs, ~mmScopes=state.frmMmScopes) {
+                    | None => []
+                    | Some(srcs) => srcs
+                }
+            } else {
+                []
+            }
+            loadEditorState(
+                {
+                    srcs,
+                    descr: state.frame.descr->Belt.Option.getWithDefault(""),
+                    varsText: vars->Js.Array2.joinWith("\n"),
+                    disjText: disjArr->Js.Array2.joinWith("\n"),
+                    stmts,
+                }
+            )
+            focusEditorTab()
+        })
+    }
+
+    let actOpenLoadProofToEditorDialog = state => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_load_proof_to_editor
+                    onOk={(~adjustContext:bool,~loadSteps:bool)=>{
+                        actLoadProofToEditor(~state,~adjustContext,~loadSteps)
+                        closeModal(modalRef, modalId)
+                    }}
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
     }
 
     let getNumberOfRowsInProofTable = (state:option<state>):int => {
@@ -428,19 +712,70 @@ let make = React.memoCustomCompareProps(({
                 {"Theorem"->React.string}
             </span>
         }
-        <span>
-            asrtType
-            <span 
-                style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
-            >
-                { (" " ++ state.frame.label)->React.string }
+        <Row
+            spacing = 0.
+            childXsOffset = {idx => {
+                switch idx {
+                    | 1 => Some(Js.Json.string("auto"))
+                    | _ => None
+                }
+            }}
+        >
+            <span>
+                asrtType
+                <span 
+                    style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+                >
+                    { (" " ++ state.frame.label)->React.string }
+                </span>
+                <span 
+                    style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
+                >
+                    { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
+                </span>
             </span>
-            <span 
-                style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
-            >
-                { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
-            </span>
-        </span>
+            { 
+                rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active=true, 
+                    ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
+                    ~title="Additional actions", () )
+            }
+        </Row>
+    }
+
+    let rndMainMenu = state => {
+        if (mainMenuIsOpened) {
+            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+                | None => React.null
+                | Some(mainMenuButtonRef) => {
+                    <Menu
+                        opn=true
+                        anchorEl=mainMenuButtonRef
+                        onClose=actCloseMainMenu
+                    >
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                toggleCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
+                            }}
+                        >
+                            {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
+                        </MenuItem>
+                        <MenuItem
+                            disabled={state.frame.isAxiom}
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenLoadProofToEditorDialog(state)
+                            }}
+                        >
+                            {React.string("Load this proof to the editor")}
+                        </MenuItem>
+                    </Menu>
+                }
+            }
+        } else {
+            React.null
+        }
     }
 
     let rndSummary = state => {
@@ -502,11 +837,23 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndDisj = state => {
-        switch state.disj {
+        switch state.disjStr {
             | None => <div style=ReactDOM.Style.make(~display="none", ()) />
             | Some(disj) => {
                 <div>
                     { (`Distinct variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
+                    {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
+                </div>
+            }
+        }
+    }
+
+    let rndDummyVarDisj = state => {
+        switch state.dummyVarDisjStr {
+            | None => <div style=ReactDOM.Style.make(~display="none", ()) />
+            | Some(disj) => {
+                <div>
+                    { (`Distinct dummy variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
                     {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
                 </div>
             }
@@ -769,9 +1116,11 @@ let make = React.memoCustomCompareProps(({
         }
         | Some(state) => {
             <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                {rndMainMenu(state)}
                 {rndLabel(state)}
                 {rndDescr(state)}
                 {rndDisj(state)}
+                {rndDummyVarDisj(state)}
                 {rndSummary(state)}
                 {rndProof(state)}
                 {rndFooter()}

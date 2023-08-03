@@ -83,7 +83,7 @@ stmt3-brab2a.11
 stmt4 stmt5 : brab2a
 |- ( ( u = x /\ v = y ) -> ( ( F ` u ) = ( F ` v ) <-> ( F ` x ) = ( F ` y ) ) )
 jstfIsIncorrect
-Unif Error: Could not find a unification for assertion:
+Unif Error: Could not find a match for assertion:
 |- ( A R B <-> ( ( A e. C /\ B e. D ) /\ ps ) )
 →
 |- ( ( u = x /\ v = y ) -> ( ( F ` u ) = ( F ` v ) <-> ( F ` x ) = ( F ` y ) ) )

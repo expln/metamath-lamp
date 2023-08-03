@@ -447,10 +447,11 @@ let makeMmScopeFromSrcDtos = (
             let mmScope = mmScope->addSingleScope(~defaultSrcType=src.typ->mmFileSourceTypeFromStr)
             let ssId = mmScope.singleScopes[mmScope.singleScopes->Js_array2.length-1].id
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
+            let mmScope = mmScope->updateSingleScope( ssId,setAst(_,src.ast->Belt_Option.map(ast => Ok(ast))))
+            let mmScope = mmScope->updateSingleScope( ssId,setAllLabels(_,src.allLabels))
             let mmScope = mmScope->updateSingleScope( ssId,setReadInstr(_,src.readInstr->readInstrFromStr))
             let mmScope = mmScope->updateSingleScope( ssId,setLabel(_,Some(src.label)))
             let mmScope = mmScope->updateSingleScope( ssId,setResetNestingLevel(_,src.resetNestingLevel))
-            let mmScope = mmScope->updateSingleScope( ssId,setAst(_,src.ast->Belt_Option.map(ast => Ok(ast))))
             mmScope
         },
         {

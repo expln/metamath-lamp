@@ -91,10 +91,18 @@ let make = () => {
 
     let reloadCtx = React.useRef(Js.Nullable.null)
     let toggleCtxSelector = React.useRef(Js.Nullable.null)
+    let loadEditorState = React.useRef(Js.Nullable.null)
 
     let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
         switch tabData {
             | ExplorerFrame({label:lbl}) => label->Belt_Option.mapWithDefault(true, label => lbl == label)
+            | _ => false
+        }
+    }
+
+    let isEditorTab = (tabData:tabData):bool => {
+        switch tabData {
+            | Editor => true
             | _ => false
         }
     }
@@ -149,6 +157,15 @@ let make = () => {
         })
     }
 
+    let focusEditorTab = ():unit => {
+        updateTabs(tabsSt => {
+            switch tabsSt->Expln_React_UseTabs.getTabs->Js.Array2.find(tab => isEditorTab(tab.data)) {
+                | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
+                | None => tabsSt
+            }
+        })
+    }
+
     React.useEffect0(()=>{
         updateTabs(st => {
             if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
@@ -185,6 +202,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             reloadCtx
+                            loadEditorState
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
                             toggleCtxSelector
@@ -208,6 +226,10 @@ let make = () => {
                             preCtxData=state.preCtxData
                             label
                             openFrameExplorer
+                            loadEditorState
+                            focusEditorTab
+                            toggleCtxSelector
+                            ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
                 }
             }

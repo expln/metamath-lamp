@@ -38,12 +38,12 @@ let unifErrToStr = (
         | UnprovedFloating({expr:expr}) => `Could not prove this floating statement:\n` ++ exprToStr(expr)
         | NoUnifForAsrt({asrtExpr, expr}) => {
             let arrow = Js_string2.fromCharCode(8594)
-            `Could not find a unification for assertion:\n`
+            `Could not find a match for assertion:\n`
                 ++ `${frmExprToStr(asrtExpr)}\n${arrow}\n${exprToStr(expr)}`
         }
         | NoUnifForArg({args,errArgIdx}) => {
             let colon = if (args->Js.Array2.length == 0) {""} else {":"}
-            `Could not unify essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}${colon}\n`
+            `Could not match essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}${colon}\n`
                 ++ argsToString(args, exprToStr)
         }
         | NewVarsAreDisabled({args,errArgIdx}) => {

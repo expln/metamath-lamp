@@ -114,6 +114,12 @@ let disjAddPair = (disjMap:disjMutable, n, m) => {
     }
 }
 
+let disjMutToDisjImm = (disj:disjMutable):Belt_MapInt.t<Belt_SetInt.t> => {
+    disj->Belt_HashMapInt.toArray
+        ->Js.Array2.map(((n,ms)) => (n,ms->Belt_HashSetInt.toArray->Belt_SetInt.fromArray))
+        ->Belt_MapInt.fromArray
+}
+
 let rec forEachCtxInDeclarationOrder = (ctx:mmContextContents,consumer:mmContextContents=>option<'a>):option<'a> => {
     switch ctx.parent {
         | Some(parent) => {
@@ -194,6 +200,15 @@ let disjContains = (disj:disjMutable, n, m):bool => {
     switch disj->Belt_HashMapInt.get(min) {
         | None => false
         | Some(ms) => ms->Belt_HashSetInt.has(max)
+    }
+}
+
+let disjImmContains = (disj:Belt_MapInt.t<Belt_SetInt.t>, n, m):bool => {
+    let min = if (n <= m) {n} else {m}
+    let max = if (n <= m) {m} else {n}
+    switch disj->Belt_MapInt.get(min) {
+        | None => false
+        | Some(ms) => ms->Belt_SetInt.has(max)
     }
 }
 
