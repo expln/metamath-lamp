@@ -228,6 +228,8 @@ let make = () => {
                             openFrameExplorer
                             loadEditorState
                             focusEditorTab
+                            toggleCtxSelector
+                            ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />
                 }
             }

@@ -284,10 +284,13 @@ type props = {
     openFrameExplorer:string=>unit,
     loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
     focusEditorTab: unit=>unit,
+    toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ctxSelectorIsExpanded:bool,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    a.top === b.top
+    a.top === b.top 
+    && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
 }
 
 let rndIconButton = (
@@ -367,6 +370,8 @@ let make = React.memoCustomCompareProps(({
     openFrameExplorer,
     loadEditorState,
     focusEditorTab,
+    toggleCtxSelector,
+    ctxSelectorIsExpanded,
 }:props) => {
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
@@ -693,6 +698,15 @@ let make = React.memoCustomCompareProps(({
                         anchorEl=mainMenuButtonRef
                         onClose=actCloseMainMenu
                     >
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                toggleCtxSelector.current->Js.Nullable.toOption
+                                    ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
+                            }}
+                        >
+                            {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
+                        </MenuItem>
                         <MenuItem
                             disabled={state.frame.isAxiom}
                             onClick={() => {
