@@ -101,7 +101,7 @@ stmt11
 : cvv
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er A <-> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A ) )
 jstfIsIncorrect
-Unif Error: Could not find a unification for assertion:
+Unif Error: Could not find a match for assertion:
 class _V
 →
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er A <-> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A ) )

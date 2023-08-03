@@ -47,7 +47,7 @@ stmt9
 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.11 stmt9-opabex2.41: opabex2
 |- ( A e. _V -> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } e. _V )
 jstfIsIncorrect
-Unif Error: Could not unify essential hypothesis #2
+Unif Error: Could not match essential hypothesis #2
 
 
 --- p -------------------------------------------------------------------------------
