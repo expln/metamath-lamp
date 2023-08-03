@@ -38,7 +38,9 @@ type state = {
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
     frame:frame,
-    disj: option<array<array<(string,option<string>)>>>,
+    disjStr: option<array<array<(string,option<string>)>>>,
+    dummyVarDisj: option<disjMutable>,
+    dummyVarDisjStr: option<array<array<(string,option<string>)>>>,
     hyps:array<hypothesis>,
     asrt:expr,
     proofTable:option<proofTable>,
@@ -98,7 +100,7 @@ let createVDataRec = (
     }
 }
 
-let setProofTable = (st:state, proofTable:proofTable):state => {
+let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable):state => {
     let frmCtx = st.frmCtx
     let settings = st.settings
     let typeColors = settings->settingsGetTypeColors
@@ -127,8 +129,26 @@ let setProofTable = (st:state, proofTable:proofTable):state => {
             stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
         }
     })
+    let dummyVarDisjStr = if (!(dummyVarDisj->disjIsEmpty)) {
+        Some(
+            MM_cmp_pe_frame_summary_state.createDisjGroups(
+                ~disj = dummyVarDisj->disjMutToDisjImm,
+                ~intToSym = i => {
+                    let sym = frmCtx->ctxIntToSymExn(i)
+                    (
+                        sym,
+                        st.symColors->Belt_HashMapString.get(sym)
+                    )
+                },
+            )
+        )
+    } else {
+        None
+    }
     {
         ...st,
+        dummyVarDisj: if (dummyVarDisj->disjIsEmpty) {None} else {Some(dummyVarDisj)},
+        dummyVarDisjStr,
         proofTable: Some(proofTable),
         vData,
         showTypes:false,
@@ -154,8 +174,15 @@ let createInitialState = (
         switch frmCtx->ctxSymToInt(
             if (i < 0) { preCtx->ctxIntToSymExn(i) } else { frame.frameVarToSymb[i] }
         ) {
-            | None => raise(MmException({msg:`ctx->ctxSymToInt == None in frmIntToCtxInt`}))
+            | None => raise(MmException({msg:`preCtx->ctxSymToInt == None in frmIntToCtxInt`}))
             | Some(n) => n
+        }
+    }
+
+    let ctxVarToFrmVar = (i:int):option<int> => {
+        switch frame.frameVarToSymb->Js.Array2.indexOf(frmCtx->ctxIntToSymExn(i)) {
+            | -1 => None
+            | n => Some(n)
         }
     }
 
@@ -167,7 +194,7 @@ let createInitialState = (
     let symColors = createSymbolColors(~ctx=frmCtx, ~typeColors)
     let asrt = frame.asrt->frmExprToCtxExpr
 
-    let disj = if (frame.disj->Belt_MapInt.size > 0) {
+    let disjStr = if (frame.disj->Belt_MapInt.size > 0) {
         Some(
             MM_cmp_pe_frame_summary_state.createDisjGroups(
                 ~disj = frame.disj,
@@ -192,7 +219,9 @@ let createInitialState = (
         parenCnt,
         syntaxTypes,
         frame,
-        disj,
+        disjStr,
+        dummyVarDisj:None,
+        dummyVarDisjStr:None,
         hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
         proofTable: None,
@@ -211,13 +240,28 @@ let createInitialState = (
             switch proof {
                 | Uncompressed({labels:["?"]}) => st
                 | _ => {
+                    let dummyVarDisj = disjMake()
                     let proofRoot = MM_proof_verifier.verifyProof(
                         ~ctx=frmCtx,
                         ~expr=asrt,
                         ~proof,
-                        ~isDisjInCtx = (_,_) => true,
+                        ~isDisjInCtx = (n,m) => {
+                            let isFrmDisj = switch ctxVarToFrmVar(n) {
+                                | None => false
+                                | Some(n) => {
+                                    switch ctxVarToFrmVar(m) {
+                                        | None => false
+                                        | Some(m) => frame.disj->disjImmContains(n,m)
+                                    }
+                                }
+                            }
+                            if (!isFrmDisj) {
+                                dummyVarDisj->disjAddPair(n,m)
+                            }
+                            true
+                        },
                     )
-                    st->setProofTable(createProofTableFromProof(proofRoot))
+                    st->setProofTable(~proofTable=createProofTableFromProof(proofRoot), ~dummyVarDisj)
                 }
             }
         }
@@ -399,7 +443,7 @@ let make = React.memoCustomCompareProps(({
                                         ~settings=preCtxData.settingsV.val, 
                                         ~frmMmScopes,
                                         ~preCtx=preCtxData.ctxV.val,
-                                        ~frmCtx, 
+                                        ~frmCtx,
                                         ~frame=preCtxData.ctxV.val->getFrameExn(label)
                                     ))
                                 })
@@ -447,7 +491,7 @@ let make = React.memoCustomCompareProps(({
                     switch proofTables[0] {
                         | Error(msg) => st->setSyntaxProofTableError(Some(msg))
                         | Ok(proofTable) => {
-                            let st = st->setProofTable(proofTable)
+                            let st = st->setProofTable(~proofTable, ~dummyVarDisj=disjMake())
                             let st = st->setShowTypes(true)
                             st
                         }
@@ -510,19 +554,29 @@ let make = React.memoCustomCompareProps(({
                 None
             })->ignore
 
-            let disj = disjMake()
+            let disjArr = []
+            let frmDisj = disjMake()
             state.frame.disj->Belt_MapInt.forEach((n,ms) => {
                 ms->Belt_SetInt.forEach(m => {
-                    disj->disjAddPair(n,m)
+                    frmDisj->disjAddPair(n,m)
                 })
             })
-            let disjArr = []
-            disj->disjForEachArr(disjGrp => {
+            frmDisj->disjForEachArr(disjGrp => {
                 disjArr->Js.Array2.push(
                     preCtxData.ctxV.val->frmIntsToSymsExn(state.frame, disjGrp)->Js.Array2.joinWith(",")
                 )->ignore
             })
-
+            switch state.dummyVarDisj {
+                | None => ()
+                | Some(dummyVarDisj) => {
+                    dummyVarDisj->disjForEachArr(disjGrp => {
+                        disjArr->Js.Array2.push(
+                            state.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(",")
+                        )->ignore
+                    })
+                }
+            }
+            
             let stmts = []
             state.frame.hyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == E) {
@@ -783,11 +837,23 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndDisj = state => {
-        switch state.disj {
+        switch state.disjStr {
             | None => <div style=ReactDOM.Style.make(~display="none", ()) />
             | Some(disj) => {
                 <div>
                     { (`Distinct variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
+                    {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
+                </div>
+            }
+        }
+    }
+
+    let rndDummyVarDisj = state => {
+        switch state.dummyVarDisjStr {
+            | None => <div style=ReactDOM.Style.make(~display="none", ()) />
+            | Some(disj) => {
+                <div>
+                    { (`Distinct dummy variable groups:` ++ MM_cmp_pe_frame_summary_state.disjGrpDelim)->React.string }
                     {MM_cmp_pe_frame_summary_state.rndDisj(disj)}
                 </div>
             }
@@ -1054,6 +1120,7 @@ let make = React.memoCustomCompareProps(({
                 {rndLabel(state)}
                 {rndDescr(state)}
                 {rndDisj(state)}
+                {rndDummyVarDisj(state)}
                 {rndSummary(state)}
                 {rndProof(state)}
                 {rndFooter()}

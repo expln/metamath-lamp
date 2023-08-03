@@ -1,3 +1,4 @@
+- extract wrk logic from MM_cmp_pe_frame_full and cover it with tests.
 - implement "go to assertion" in the Explorer.
 - add "items per page" to PE index.
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.

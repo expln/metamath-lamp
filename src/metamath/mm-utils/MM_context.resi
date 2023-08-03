@@ -25,7 +25,7 @@ type frameDbg = {
 type frame = {
     ord:int,
     isAxiom:bool,
-    disj: Belt.Map.Int.t<Belt_SetInt.t>,
+    disj: Belt_MapInt.t<Belt_SetInt.t>,
     hyps: array<hypothesis>,
     asrt: expr,
     label: string,
@@ -130,10 +130,12 @@ let generateNewLabels: (
 let disjMake: unit => disjMutable
 let disjAddPair: (disjMutable, int, int) => unit
 let disjContains: (disjMutable, int, int) => bool
+let disjImmContains: (Belt_MapInt.t<Belt_SetInt.t>, int, int) => bool
 let disjToArr: disjMutable => array<array<int>>
 let disjForEachArr: (disjMutable, array<int> => unit) => unit
 let disjForEach: (disjMutable, (int,int) => unit) => unit
 let disjIsEmpty: disjMutable => bool
+let disjMutToDisjImm: disjMutable => Belt_MapInt.t<Belt_SetInt.t>
 
 let exprEq: (expr,expr) => bool
 
