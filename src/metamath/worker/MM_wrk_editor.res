@@ -1104,10 +1104,10 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
             let actions = [
                 validateStmtLabel(_, wrkCtx, definedUserLabels),
                 setStmtExpr(_, wrkCtx),
-                validateStmtExpr(_, wrkCtx, definedUserExprs),
                 validateStmtIsGoal(_, goalLabel),
                 setStmtJstf,
                 validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip, st.frms),
+                validateStmtExpr(_, wrkCtx, definedUserExprs),
             ]
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {

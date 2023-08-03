@@ -1338,8 +1338,8 @@ let make = (
                     checked={mainCheckboxState->Belt_Option.getWithDefault(false)}
                     onChange={_ => actToggleMainCheckbox()}
                     style=?{
-                    if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
-                }
+                        if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
+                    }
                 />
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
