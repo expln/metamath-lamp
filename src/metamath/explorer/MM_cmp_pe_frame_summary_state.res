@@ -175,9 +175,10 @@ let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
         let grp = disj[i]
         if (i > 0) {
             disjGrpArr->Js.Array2.push(
-                <span key={"s-" ++ i->Belt_Int.toString} >
-                    {disjGrpDelim->React.string}
-                </span>
+                <span 
+                    key={"s-" ++ i->Belt_Int.toString} 
+                    style=ReactDOM.Style.make(~minWidth="20px", ~display="inline-block", ()) 
+                />
             )->ignore
         }
         disjGrpArr->Js.Array2.push(

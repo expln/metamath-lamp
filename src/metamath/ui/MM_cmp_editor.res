@@ -234,6 +234,7 @@ let make = (
         | _ => None
     }
     let numOfCheckedStmts = state.checkedStmtIds->Js.Array2.length
+    let thereIsDuplicatedStmt = state->editorStateHasDuplicatedStmts
 
     let actPreCtxDataUpdated = () => {
         setState(setPreCtxData(_, preCtxData))
@@ -636,10 +637,22 @@ let make = (
         setState(st => st->applySubstitutionForEditor(wrkSubs))
     }
 
-    let actOnMergeStmtsSelected = (stmtToUse:userStmt,stmtToRemove:userStmt) => {
+    let actOnMergeStmtsSelected = (~stmtToUse:userStmt,~stmtToRemove:userStmt,~continueMergingStmts:bool) => {
         setState(st => {
             switch st->mergeStmts(stmtToUse.id, stmtToRemove.id) {
-                | Ok(st) => st->uncheckAllStmts
+                | Ok(st) => {
+                    let st = st->uncheckAllStmts
+                    if (continueMergingStmts) {
+                        let st = st->updateEditorStateWithPostupdateActions(st => st)
+                        if (st->editorStateHasDuplicatedStmts) {
+                            st->incContinueMergingStmts
+                        } else {
+                            st
+                        }
+                    } else {
+                        st
+                    }
+                }
                 | Error(msg) => {
                     openInfoDialog(~modalRef, ~text=msg, ())
                     st
@@ -681,7 +694,7 @@ let make = (
         })->ignore
     }
 
-    let actMergeTwoStmts = () => {
+    let actMergeStmts = () => {
         switch state->findStmtsToMerge {
             | Error(msg) => {
                 openInfoDialog(
@@ -698,7 +711,9 @@ let make = (
                             stmt2
                             onStmtSelected={(stmtToUse,stmtToRemove)=>{
                                 closeModal(modalRef, modalId)
-                                actOnMergeStmtsSelected(stmtToUse,stmtToRemove)
+                                actOnMergeStmtsSelected(
+                                    ~stmtToUse, ~stmtToRemove, ~continueMergingStmts = numOfCheckedStmts==0
+                                )
                             }}
                             onCancel={()=>closeModal(modalRef, modalId)}
                         />
@@ -707,6 +722,13 @@ let make = (
             }
         }
     }
+
+    React.useEffect1(() => {
+        if (state->editorStateHasDuplicatedStmts) {
+            actMergeStmts()
+        }
+        None
+    }, [state.continueMergingStmts])
 
     let actSearchAsrt = () => {
         switch state.wrkCtx {
@@ -1332,8 +1354,9 @@ let make = (
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step", 
                     ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
-                    ~onClick=actMergeTwoStmts, ~notifyEditInTempMode,
-                    ~active=numOfCheckedStmts==1, ~title="Merge two similar steps", ~smallBtns, ())}
+                    ~onClick=actMergeStmts, ~notifyEditInTempMode,
+                    ~active= numOfCheckedStmts==1 || thereIsDuplicatedStmt, 
+                    ~title="Merge two similar steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
                     ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
                     ~title="Restore previous state", ~smallBtns, ())}

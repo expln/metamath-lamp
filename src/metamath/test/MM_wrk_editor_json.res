@@ -102,6 +102,7 @@ let createInitialEditorState = (
         checkedStmtIds: [],
 
         unifyAllIsRequiredCnt: 0,
+        continueMergingStmts: 0,
     }
     let st = st->setPreCtxData(
         preCtxDataMake(~settings)->preCtxDataUpdate(

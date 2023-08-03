@@ -133,6 +133,7 @@ type editorState = {
     checkedStmtIds: array<stmtId>,
 
     unifyAllIsRequiredCnt: int,
+    continueMergingStmts: int,
 }
 
 type wrkSubsErr = 
@@ -178,8 +179,10 @@ let completeTypEditMode: (editorState, stmtId, userStmtType, bool) => editorStat
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, stmtId, string) => editorState
 let incUnifyAllIsRequiredCnt: editorState => editorState
+let incContinueMergingStmts: editorState => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
+let editorStateHasDuplicatedStmts: editorState => bool
 let createNewDisj: (editorState, disjMutable) => editorState
 let addNewStatements: (editorState, stmtsDto) => editorState
 let removeUnusedVars: editorState => editorState

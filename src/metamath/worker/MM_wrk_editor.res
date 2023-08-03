@@ -217,7 +217,8 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<stmtId>,
 
-    unifyAllIsRequiredCnt: int
+    unifyAllIsRequiredCnt: int,
+    continueMergingStmts: int,
 }
 
 type wrkSubsErr =
@@ -645,6 +646,13 @@ let incUnifyAllIsRequiredCnt = st => {
     }
 }
 
+let incContinueMergingStmts = st => {
+    {
+        ...st,
+        continueMergingStmts: st.continueMergingStmts + 1
+    }
+}
+
 let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
     let res = Belt_HashMapString.make(~hintSize=16)
     switch textToVarDefs(varsText) {
@@ -854,6 +862,12 @@ let editorStateHasErrors = st => {
     st.varsErr->Belt_Option.isSome 
         || st.disjErr->Belt_Option.isSome 
         || st.stmts->Js_array2.some(userStmtHasErrors)
+}
+
+let editorStateHasDuplicatedStmts = (st:editorState):bool => {
+    st.stmts->Js.Array2.some(stmt => {
+        stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)->Belt.Option.getWithDefault(false)
+    })
 }
 
 let parseWrkCtxErr = (st:editorState, wrkCtxErr:wrkCtxErr):editorState => {
@@ -2089,19 +2103,22 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
 }
 
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
-    if (st.checkedStmtIds->Js.Array2.length == 1) {
-        switch st->editorGetStmtById(st.checkedStmtIds[0]) {
-            | None => Error("One step should be selected [1].")
-            | Some(stmt1) => {
-                let contStr = stmt1.cont->contToStr
-                switch st.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
-                    | None => Error("Cannot find another step to merge with.")
-                    | Some(stmt2) => Ok((stmt1, stmt2))
-                }
+    let stmt1 = if (st.checkedStmtIds->Js.Array2.length == 0) {
+        st.stmts->Js_array2.find(stmt => {
+            stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)->Belt.Option.getWithDefault(false)
+        })
+    } else {
+        st->editorGetStmtById(st.checkedStmtIds[0])
+    }
+    switch stmt1 {
+        | None => Error("[1] Cannot determine a duplicated step.")
+        | Some(stmt1) => {
+            let contStr = stmt1.cont->contToStr
+            switch st.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
+                | None => Error("[2] Cannot find another step to merge with.")
+                | Some(stmt2) => Ok((stmt1, stmt2))
             }
         }
-    } else {
-        Error("One step should be selected [2].")
     }
 }
 
