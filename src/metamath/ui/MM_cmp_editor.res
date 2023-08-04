@@ -994,6 +994,29 @@ let make = (
         }
     }
 
+    let currGoalStmtStatus:option<(stmtId,string,option<proofStatus>)> = state.stmts
+        ->Js.Array2.find(stmt => stmt.isGoal)
+        ->Belt.Option.map(stmt => (stmt.id, stmt.cont->contToStr, stmt.proofStatus))
+    let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
+    React.useEffect1(() => {
+        switch currGoalStmtStatus {
+            | None => ()
+            | Some((curGoalId,curGoalText,currGoalStatus)) => {
+                switch currGoalStatus {
+                    | None => ()
+                    | Some(currGoalStatus) => {
+                        let (prevGoalText,prevGoalStatus) = prevGoalStmtStatus.current
+                        if (currGoalStatus == Ready && (prevGoalStatus != Ready || curGoalText != prevGoalText)) {
+                            actExportProof(curGoalId)
+                        }
+                        prevGoalStmtStatus.current = (curGoalText,currGoalStatus)
+                    }
+                }
+            }
+        }
+        None
+    }, [currGoalStmtStatus])
+
     let actExportToJson = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
