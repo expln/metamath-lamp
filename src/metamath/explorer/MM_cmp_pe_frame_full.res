@@ -261,7 +261,7 @@ let createInitialState = (
                             true
                         },
                     )
-                    st->setProofTable(~proofTable=createProofTableFromProof(proofRoot), ~dummyVarDisj)
+                    st->setProofTable(~proofTable=createProofTableFromProof(~proofNode=proofRoot, ()), ~dummyVarDisj)
                 }
             }
         }

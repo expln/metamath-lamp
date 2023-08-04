@@ -149,7 +149,7 @@ let useTabs = ():tabMethods<'a> => {
                             label={
                                 if (tab.closable) {
                                     <span style=ReactDOM.Style.make(~textTransform="none", ())>
-                                        <span style=ReactDOM.Style.make(~marginRight="10px", ())>
+                                        <span style=ReactDOM.Style.make(~marginRight="5px", ())>
                                             {React.string(tab.label)}
                                         </span>
                                         <IconButton 

@@ -1,5 +1,5 @@
+- add "Search" tab
 - when automerging two stmts, if both have same jstf then select the upper one (write a test to check bad references before duplications)
-- do not repeat references to hypotheses in proof tables, example - dimkerim has 279 rows in mm-lamp and 270 on https://us.metamath.org/mpeuni/dimkerim.html
 - extract wrk logic from MM_cmp_pe_frame_full and cover it with tests.
 - implement "go to assertion" in the Explorer.
 - add "items per page" to PE index.
@@ -86,3 +86,4 @@ DONE:
 - add onEnter and onEscape wherever possible.
 - allow editing of settings in the temp mode
 - check if copy to clipboard should return a promise
+- do not repeat references to hypotheses in proof tables, example - dimkerim has 279 rows in mm-lamp and 270 on https://us.metamath.org/mpeuni/dimkerim.html

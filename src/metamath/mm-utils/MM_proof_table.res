@@ -181,7 +181,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     })
 }
 
-let createProofTableFromProof = (proofNode:proofNode):proofTable => {
+let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true, ()):proofTable => {
     let nodeIdToIdx = Belt_HashMapInt.make(~hintSize=proofNode->proofNodeGetId)
     let tbl = []
 
@@ -194,12 +194,23 @@ let createProofTableFromProof = (proofNode:proofNode):proofTable => {
         }
     }
 
+    let saveExprToTblWithoutChecks = (nodeId:int,expr:expr,proof:exprSource):unit => {
+        let idx = tbl->Js_array2.push({expr, proof})-1
+        nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
+    }
+
     let saveExprToTbl = (nodeId:int,expr:expr,proof:exprSource):unit => {
         if (getIdxByNodeId(nodeId)->Belt_Option.isSome) {
             raise(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
         }
-        let idx = tbl->Js_array2.push({expr, proof})-1
-        nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
+        if (mergeSameRows) {
+            switch tbl->Js.Array2.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
+                | -1 => saveExprToTblWithoutChecks(nodeId,expr,proof)
+                | idx => nodeIdToIdx->Belt_HashMapInt.set(nodeId, idx)
+            }
+        } else {
+            saveExprToTblWithoutChecks(nodeId,expr,proof)
+        }
     }
 
     Expln_utils_data.traverseTree(
