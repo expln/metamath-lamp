@@ -1003,7 +1003,7 @@ let make = (
             | None => ()
             | Some((curGoalId,curGoalText,currGoalStatus)) => {
                 switch currGoalStatus {
-                    | None => ()
+                    | None => prevGoalStmtStatus.current = (curGoalText,NoJstf)
                     | Some(currGoalStatus) => {
                         let (prevGoalText,prevGoalStatus) = prevGoalStmtStatus.current
                         if (currGoalStatus == Ready && (prevGoalStatus != Ready || curGoalText != prevGoalText)) {
