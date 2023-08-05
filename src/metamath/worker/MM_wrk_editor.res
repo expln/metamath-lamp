@@ -1014,14 +1014,26 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt
     if (userStmtHasErrors(stmt)) {
         stmt
     } else {
-        if (stmt.typ == E) {
+        if (stmt.typ == E || stmt.typ == P && stmt.isGoal) {
             switch wrkCtx->getTokenType(stmt.label) {
-                | Some(_) => {
-                    {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [1].`})}
+                | Some(tokenType) => {
+                    if (stmt.typ == E) {
+                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`[1] Cannot reuse label '${stmt.label}'.`})}
+                    } else {
+                        switch tokenType {
+                            | C | V | F | E => {
+                                {
+                                    ...stmt, 
+                                    stmtErr:Some({code:someStmtErrCode, msg:`[2] Cannot reuse label '${stmt.label}'.`})
+                                }
+                            }
+                            | A | P => stmt
+                        }
+                    }
                 }
                 | None => {
                     if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
-                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [2].`})}
+                        {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`[3] Cannot reuse label '${stmt.label}'.`})}
                     } else {
                         stmt
                     }
@@ -1029,7 +1041,7 @@ let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt
             }
         } else {
             if (isLabelDefined(stmt.label,wrkCtx,definedUserLabels)) {
-                {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`Cannot reuse label '${stmt.label}' [3].`})}
+                {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`[4] Cannot reuse label '${stmt.label}'.`})}
             } else {
                 stmt
             }
@@ -2575,7 +2587,7 @@ let textToSyntaxTree = (
 let resetEditorContent = (st:editorState):editorState => {
     {
         ...st,
-        
+
         descr: "",
         descrEditMode: false,
 

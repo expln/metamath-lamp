@@ -32,7 +32,7 @@ let make = (
                         onChange={evt2bool(b => setLoadSteps(_ => b))}
                     />
                 }
-                label="Load proof steps"
+                label="Load intermediate steps"
             />
             <Row alignItems=#center>
                 <Button onClick={_=>onOk(~adjustContext, ~loadSteps)} variant=#contained > 

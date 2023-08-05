@@ -421,7 +421,7 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(
             st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
-            "Cannot reuse label 'tt' [3]."
+            "[4] Cannot reuse label 'tt'."
         )
     })
 
@@ -452,7 +452,7 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(
             st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
-            "Cannot reuse label 'hyp2' [3]."
+            "[4] Cannot reuse label 'hyp2'."
         )
     })
 
@@ -483,7 +483,7 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(
             st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
-            "Cannot reuse label 'pr1' [3]."
+            "[4] Cannot reuse label 'pr1'."
         )
     })
 
