@@ -6,6 +6,8 @@ open Expln_React_Mui
 open Expln_React_common
 open MM_wrk_pre_ctx_data
 open Common
+open Local_storage_utils
+open Expln_utils_promise
 
 type props = {
     modalRef:modalRef,
@@ -42,6 +44,10 @@ let make = React.memoCustomCompareProps(({
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+
+    let (asrtsPerPage, setAsrtsPerPage) = useStateFromLocalStorageInt(
+        ~key="pe-index-asrts-per-page", ~default=10
+    )
 
     let actClearFilters = (~applyFilters:bool) => {
         setIsAxiomFilter(_ => None)
@@ -141,6 +147,28 @@ let make = React.memoCustomCompareProps(({
 
     let actCloseMainMenu = () => {
         setMainMenuIsOpened(_ => false)
+    }
+
+    let actSetAsrtsPerPage = (strNum:string):unit => {
+        switch strNum->Belt_Int.fromString {
+            | None => ()
+            | Some(num) => setAsrtsPerPage(_ => Js.Math.max_int(1, Js.Math.min_int(num, 100)))
+        }
+    }
+
+    let actOpenAsrtsPerPageDialog = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_asrts_per_page
+                    initAsrtsPerPage={asrtsPerPage->Belt_Int.toString}
+                    onOk={strNum=>{
+                        closeModal(modalRef, modalId)
+                        actSetAsrtsPerPage(strNum)
+                    }}
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
     }
 
     let rndIsAxiomFilter = () => {
@@ -248,6 +276,14 @@ let make = React.memoCustomCompareProps(({
                         >
                             {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
                         </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenAsrtsPerPageDialog()
+                            }}
+                        >
+                            {React.string(`Assertions per page: ${asrtsPerPage->Belt_Int.toString}`)}
+                        </MenuItem>
                     </Menu>
                 }
             }
@@ -271,6 +307,7 @@ let make = React.memoCustomCompareProps(({
             syntaxTypes=preCtxData.syntaxTypes
             labels=filteredLabels
             openFrameExplorer
+            asrtsPerPage
         />
     </Col>
 

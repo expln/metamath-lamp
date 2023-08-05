@@ -6,7 +6,6 @@ open Expln_React_Modal
 open MM_substitution
 open MM_parenCounter
 
-let pageSize = 20
 let nonDigitPattern = %re("/\D/g")
 
 type props = {
@@ -21,6 +20,7 @@ type props = {
 
     labels:array<(int,string)>,
     openFrameExplorer:string=>unit,
+    asrtsPerPage:int,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -28,6 +28,7 @@ let propsAreSame = (a:props, b:props):bool => {
     && a.editStmtsByLeftClick === b.editStmtsByLeftClick
     && a.preCtx === b.preCtx
     && a.labels === b.labels
+    && a.asrtsPerPage === b.asrtsPerPage
 }
 
 let make = React.memoCustomCompareProps(({
@@ -40,10 +41,12 @@ let make = React.memoCustomCompareProps(({
     parenCnt,
     labels,
     openFrameExplorer,
+    asrtsPerPage,
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
 
+    let pageSize = Js.Math.max_int(1, Js.Math.min_int(asrtsPerPage, 100))
     let numOfPages = (labels->Js.Array2.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
                         ->Js_math.ceil_float->Belt.Float.toInt
     let beginIdx = pageIdx * pageSize
@@ -54,10 +57,10 @@ let make = React.memoCustomCompareProps(({
         setGoToPageText(_ => "")
     }
 
-    React.useEffect1(() => {
+    React.useEffect2(() => {
         actReset()
         None
-    }, [labels])
+    }, (labels, asrtsPerPage))
 
     let actChangePage = (newPageNum:int) => {
         if (1 <= newPageNum && newPageNum <= numOfPages) {

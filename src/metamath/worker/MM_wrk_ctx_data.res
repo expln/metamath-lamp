@@ -45,12 +45,8 @@ let lineToVarDef = (line:string):result<array<string>,string> => {
     }
 }
 
-let newLineRegex = %re("/[\n\r]/")
 let textToVarDefs = (text:string):result<array<array<string>>,string> => {
-    let varLines = text
-        ->Js_string2.splitByRe(newLineRegex)
-        ->Js_array2.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(str => str->Js_string2.length > 0)
+    let varLines = text->multilineTextToNonEmptyLines
     if (varLines->Js.Array2.length == 0) {
         Ok([])
     } else {

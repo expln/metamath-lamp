@@ -84,3 +84,16 @@ let useStateFromLocalStorageStr = (~key:string,~default:string):(string, (string
         ~toString = str => str,
     )
 }
+
+let useStateFromLocalStorageInt = (~key:string,~default:int):(int, (int=>int) => unit) => {
+    useStateFromLocalStorage(
+        ~key,
+        ~fromString = strOpt => {
+            switch strOpt {
+                | None => default
+                | Some(str) => str->Belt_Int.fromString->Belt.Option.getWithDefault(default)
+            }
+        },
+        ~toString = Belt_Int.toString,
+    )
+}
