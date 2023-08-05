@@ -1240,6 +1240,10 @@ let make = (
         })->ignore
     }
 
+    let actResetEditorContent = () => {
+        setState(resetEditorContent)
+    }
+
     let rndError = (msgOpt,color) => {
         switch msgOpt {
             | None => <></>
@@ -1305,6 +1309,14 @@ let make = (
                             }}
                         >
                             {"Import from JSON ..."->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actResetEditorContent()
+                            }}
+                        >
+                            {"Reset editor content"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

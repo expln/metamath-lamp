@@ -68,7 +68,6 @@ let createEditorState = (
         disjText: "",
         disjEditMode: false,
         disjErr: None,
-        disj: Belt_MapInt.fromArray([]),
 
         wrkCtx: None,
 

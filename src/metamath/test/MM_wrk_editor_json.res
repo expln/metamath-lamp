@@ -83,7 +83,6 @@ let createInitialEditorState = (
         disjText: stateLocStor->Belt.Option.map(obj => obj.disjText)->Belt.Option.getWithDefault(""),
         disjEditMode: false,
         disjErr: None,
-        disj: Belt_MapInt.fromArray([]),
 
         wrkCtx: None,
 

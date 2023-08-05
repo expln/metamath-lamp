@@ -209,7 +209,6 @@ type editorState = {
     disjText: string,
     disjEditMode: bool,
     disjErr: option<string>,
-    disj: Belt_MapInt.t<Belt_SetInt.t>,
 
     wrkCtx: option<mmContext>,
 
@@ -2570,5 +2569,23 @@ let textToSyntaxTree = (
                 })
             )
         }
+    }
+}
+
+let resetEditorContent = (st:editorState):editorState => {
+    {
+        ...st,
+        
+        descr: "",
+        descrEditMode: false,
+
+        varsText: "",
+        varsEditMode: false,
+
+        disjText: "",
+        disjEditMode: false,
+
+        stmts: [],
+        checkedStmtIds: [],
     }
 }
