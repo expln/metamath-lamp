@@ -760,52 +760,38 @@ let make = (
         }
     }
 
-    let getIdOfFirstStmtToSubstitute = ():option<stmtId> => {
-        if (state.checkedStmtIds->Js.Array2.length >= 1) {
-            Some(state.checkedStmtIds[0])
-        } else {
-            state.stmts->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
-                ->Belt.Option.map(stmt=>stmt.id)
-        }
-    }
-
-    let getIdOfSecondStmtToSubstitute = (firstId:option<stmtId>):option<stmtId> => {
-        switch firstId {
-            | None => None
-            | Some(firstId) => {
-                if (state.checkedStmtIds->Js.Array2.length >= 2) {
-                    Some(state.checkedStmtIds[1])
-                } else {
-                    state.stmts->Js.Array2.find(stmt => stmt.id != firstId && stmt.cont->hasSelectedText)
-                        ->Belt.Option.map(stmt=>stmt.id)
-                }
-            }
-        }
-    }
-
-    let getTextToSubstitute = (id:option<stmtId>):option<string> => {
-        switch id {
-            | None => None
-            | Some(id) => {
-                switch state->editorGetStmtById(id) {
+    let getSelectionText = (stmt:userStmt):option<(string,Js_date.t)> => {
+        switch stmt.cont {
+            | Text(_) => None
+            | Tree({clickedNodeId}) => {
+                switch clickedNodeId {
                     | None => None
-                    | Some(stmt) => {
-                        switch stmt.cont->getSelectedText {
-                            | Some(text) => Some(text)
-                            | None => Some(stmt.cont->contToStr)
-                        }
-                    }
+                    | Some((_,time)) => stmt.cont->getSelectedText->Belt.Option.map(str => (str,time))
                 }
             }
         }
     }
 
-    let getExprsToSubstitute = ():(option<string>,option<string>) => {
-        let id1 = getIdOfFirstStmtToSubstitute()
-        let id2 = getIdOfSecondStmtToSubstitute(id1)
+    let getStmtTextIfChecked = (st:editorState,stmt:userStmt):option<(string,Js_date.t)> => {
+        st.checkedStmtIds->Js.Array2.find(((id,_)) => id == stmt.id)
+            ->Belt_Option.map(((_,time)) => (stmt.cont->contToStr, time))
+    }
+
+    let getSelectedExpr = (st:editorState,stmt:userStmt):option<(string,Js_date.t)> => {
+        switch getSelectionText(stmt) {
+            | Some(res) => Some(res)
+            | None => getStmtTextIfChecked(st,stmt)
+        }
+    }
+
+    let getExprsToSubstitute = (st:editorState):(option<string>,option<string>) => {
+        let selections = st.stmts->Js.Array2.map(stmt => getSelectedExpr(st,stmt))
+            ->Js.Array2.filter(Belt_Option.isSome)
+            ->Js.Array2.map(Belt_Option.getExn)
+            ->Js.Array2.sortInPlaceWith(((_,time1),(_,time2)) => compareDates(time1,time2) )
         (
-            getTextToSubstitute(id1),
-            getTextToSubstitute(id2)
+            selections->Belt_Array.get(0)->Belt.Option.map(((str,_)) => str),
+            selections->Belt_Array.get(1)->Belt.Option.map(((str,_)) => str),
         )
     }
 
@@ -813,7 +799,7 @@ let make = (
         switch state.wrkCtx {
             | None => ()
             | Some(wrkCtx) => {
-                let (expr1Init,expr2Init) = getExprsToSubstitute()
+                let (expr1Init,expr2Init) = getExprsToSubstitute(state)
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_substitution

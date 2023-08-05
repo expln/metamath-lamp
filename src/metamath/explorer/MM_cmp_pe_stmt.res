@@ -93,7 +93,9 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actTreeNodeClicked = (nodeId) => {
-        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:Some(nodeId), expLvl:0}->incExpLvlIfConstClicked)
+        actUpdateSyntaxTree(treeData => {
+            {...treeData, clickedNodeId:Some((nodeId,Js_date.make())), expLvl:0}->incExpLvlIfConstClicked
+        })
     }
 
     let actUnselect = () => {
@@ -147,7 +149,8 @@ let make = React.memoCustomCompareProps( ({
                                     text,
                                     exprTyp:syms[0].sym, 
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
-                                    clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx),
+                                    clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
+                                                        ->Belt.Option.map(id => (id,Js_date.make())),
                                     expLvl:0,
                                 }
                                 actUpdateStmt(Tree(stmtContTreeData->incExpLvlIfConstClicked))

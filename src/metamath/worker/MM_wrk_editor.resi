@@ -30,7 +30,7 @@ type stmtContTreeData = {
     text:string, 
     exprTyp:string, 
     root:syntaxTreeNode, 
-    clickedNodeId:option<int>, 
+    clickedNodeId:option<(int,Js_date.t)>, 
     expLvl:int
 }
 
@@ -130,7 +130,7 @@ type editorState = {
 
     nextStmtId: int,
     stmts: array<userStmt>,
-    checkedStmtIds: array<stmtId>,
+    checkedStmtIds: array<(stmtId,Js_date.t)>,
 
     unifyAllIsRequiredCnt: int,
     continueMergingStmts: int,

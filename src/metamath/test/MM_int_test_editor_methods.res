@@ -121,7 +121,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     if (st.checkedStmtIds->Js.Array2.length != 1) {
         raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
     } else {
-        let newStmtId = st.checkedStmtIds[0]
+        let (newStmtId,_) = st.checkedStmtIds[0]
         let st = st->uncheckAllStmts
         (st->updateEditorStateWithPostupdateActions(st => st), newStmtId)
     }

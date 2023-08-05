@@ -35,7 +35,7 @@ type stmtContTreeData = {
     text:string, 
     exprTyp:string, 
     root:syntaxTreeNode, 
-    clickedNodeId:option<int>, 
+    clickedNodeId:option<(int,Js_date.t)>, 
     expLvl:int
 }
 
@@ -215,7 +215,7 @@ type editorState = {
 
     nextStmtId: int,
     stmts: array<userStmt>,
-    checkedStmtIds: array<stmtId>,
+    checkedStmtIds: array<(stmtId,Js_date.t)>,
 
     unifyAllIsRequiredCnt: int,
     continueMergingStmts: int,
@@ -295,20 +295,20 @@ let updateStmt = (st:editorState,id,update):editorState => {
     }
 }
 
-let isStmtChecked = (st,id) => {
-    st.checkedStmtIds->Js.Array2.includes(id)
+let isStmtChecked = (st:editorState,stmtId:stmtId):bool => {
+    st.checkedStmtIds->Js.Array2.some(((id,_)) => id == stmtId)
 }
 
-let toggleStmtChecked = (st,id) => {
-    if (isStmtChecked(st,id)) {
+let toggleStmtChecked = (st,stmtId:stmtId) => {
+    if (isStmtChecked(st,stmtId)) {
         {
             ...st,
-            checkedStmtIds: st.checkedStmtIds->Js_array2.filter(checkedId => checkedId != id)
+            checkedStmtIds: st.checkedStmtIds->Js_array2.filter(((checkedId,_)) => checkedId != stmtId)
         }
     } else {
         {
             ...st,
-            checkedStmtIds: st.checkedStmtIds->Js_array2.concat([id])
+            checkedStmtIds: st.checkedStmtIds->Js_array2.concat([(stmtId,Js_date.make())])
         }
     }
 }
@@ -316,7 +316,7 @@ let toggleStmtChecked = (st,id) => {
 let checkAllStmts = (st:editorState):editorState => {
     {
         ...st,
-        checkedStmtIds: st.stmts->Js.Array2.map(stmt => stmt.id)
+        checkedStmtIds: st.stmts->Js.Array2.map(stmt => (stmt.id, Js_date.make()))
     }
 }
 
@@ -336,11 +336,11 @@ let deleteCheckedStmts = (st:editorState):editorState => {
     }
 }
 
-let deleteStmt = (st:editorState, id:stmtId):editorState => {
+let deleteStmt = (st:editorState, stmtId:stmtId):editorState => {
     {
         ...st,
-        stmts: st.stmts->Js_array2.filter(stmt => stmt.id != id),
-        checkedStmtIds: st.checkedStmtIds->Js_array2.filter(checkedId => checkedId != id),
+        stmts: st.stmts->Js_array2.filter(stmt => stmt.id != stmtId),
+        checkedStmtIds: st.checkedStmtIds->Js_array2.filter(((checkedId,_)) => checkedId != stmtId),
     }
 }
 
@@ -382,7 +382,7 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
     }
 }
 
-let getAllStmtsUpToChecked = (st):array<userStmt> => {
+let getAllStmtsUpToChecked = (st:editorState):array<userStmt> => {
     let checkedAdded = ref(false)
     let res = []
     let i = ref(0)
@@ -390,7 +390,7 @@ let getAllStmtsUpToChecked = (st):array<userStmt> => {
     while (i.contents < stmtsLen && !checkedAdded.contents) {
         let stmt = st.stmts[i.contents]
         res->Js.Array2.push(stmt)->ignore
-        checkedAdded.contents = st.checkedStmtIds->Js.Array2.includes(stmt.id)
+        checkedAdded.contents = st->isStmtChecked(stmt.id)
         i.contents = i.contents + 1
     }
     res
@@ -504,7 +504,7 @@ let duplicateCheckedStmt = st => {
         st
     } else {
         let newId = st.nextStmtId->Belt_Int.toString
-        let idToAddAfter = st.checkedStmtIds[0]
+        let (idToAddAfter,_) = st.checkedStmtIds[0]
         {
             ...st,
             nextStmtId: st.nextStmtId+1,
@@ -526,7 +526,7 @@ let duplicateCheckedStmt = st => {
                         [stmt]
                     }
                 })->Belt_Array.concatMany,
-            checkedStmtIds: [newId],
+            checkedStmtIds: [(newId,Js_date.make())],
         }
     }
 }
@@ -2111,7 +2111,8 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
             stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)->Belt.Option.getWithDefault(false)
         })
     } else {
-        st->editorGetStmtById(st.checkedStmtIds[0])
+        let (checkedStmtId,_) = st.checkedStmtIds[0]
+        st->editorGetStmtById(checkedStmtId)
     }
     switch stmt1 {
         | None => Error("[1] Cannot determine a duplicated step.")
@@ -2223,7 +2224,7 @@ let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
 let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_SetInt.t) => {
     switch treeData.clickedNodeId {
         | None => (-1,Belt_SetInt.empty)
-        | Some(nodeId) => {
+        | Some((nodeId,_)) => {
             switch treeData.root->getNodeById(nodeId) {
                 | None => (-1,Belt_SetInt.empty)
                 | Some(Subtree(_)) => (-1,Belt_SetInt.empty) //this should never happen because a Subtree cannot be clicked
@@ -2389,7 +2390,7 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
     if (treeData.expLvl == 0) {
         switch treeData.clickedNodeId {
             | None => treeData
-            | Some(clickedNodeId) => {
+            | Some((clickedNodeId,_)) => {
                 switch treeData.root->getNodeById(clickedNodeId) {
                     | None => treeData
                     | Some(Symbol({parent})) => {
