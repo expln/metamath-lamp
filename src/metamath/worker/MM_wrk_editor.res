@@ -2076,14 +2076,17 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
 
         let pCnt = st.stmts->Js.Array2.reduce(
             (cnt,stmt) => {
-                let typ = if (stmt.id == stmtId) {newTyp} else {stmt.typ}
-                if (stmt.id != stmtId && typ == P) {cnt + 1} else {cnt}
+                if (stmt.id != stmtId && stmt.typ == P) {
+                    cnt + 1
+                } else {
+                    cnt
+                }
             },
             0
         )
         
-        let newIsGoal = if (newTyp == E) { false } else { st.settings.initStmtIsGoal && pCnt == 0 }
-        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) { 
+        let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal || st.settings.initStmtIsGoal && pCnt == 0 }
+        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) {
             st.settings.defaultStmtLabel
         } else { 
             stmt.label

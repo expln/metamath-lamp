@@ -1042,6 +1042,24 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
         assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
         assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
     })
+    
+    it("+s1, +s2, s1.jstf=':ax-mp' -> s1.typ=P, s1.isGoal=T, s2.typ=P, s2.isGoal=F", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let (st, s1) = addNewStmt(st)
+        let (st, s2) = addNewStmt(st)
+
+        //when
+        let st = st->completeJstfEditMode(s1, ":ax-mp")
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEq( editorGetStmtByIdExn(st,s1).jstfText, ":ax-mp")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true, "s1.isGoal")
+
+        assertEqMsg( editorGetStmtByIdExn(st,s2).typ, P , "s2.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s2).isGoal, false, "s2.isGoal")
+    })
 })
 
 
