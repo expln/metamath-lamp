@@ -723,7 +723,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         )
         assertEditorState(st, "step2")
 
-        let (st, d1) = st->duplicateStmt(st->getStmtId(~label="1", ()))
+        let (st, d1) = st->duplicateStmt(st->getStmtId(~label="qed", ()))
         assertEditorState(st, "step3")
 
         let st = st->updateStmt(d1, ~content="|- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) ) +", ())
@@ -748,7 +748,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let st = st->deleteStmts([newId])
         let st = MM_wrk_editor.uncheckAllStmts(st)
-        let st = MM_wrk_editor.toggleStmtChecked(st,st->getStmtId(~label="1", ()))
+        let st = MM_wrk_editor.toggleStmtChecked(st,st->getStmtId(~label="qed", ()))
         let (st, newId2) = MM_wrk_editor.addNewStmt(st)
         let st = st->MM_wrk_editor.setStmtCont( 
             newId2, 

@@ -18,14 +18,14 @@ syl.2
 None
 
 --- p -------------------------------------------------------------------------------
-2
+1
 
 |- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) )
 None
 
 --- g -------------------------------------------------------------------------------
-1
+qed
 : ax-2
 |- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) )
 None
-Stmt Error: This statement is the same as the previous one - '2'
+Stmt Error: This statement is the same as the previous one - '1'

@@ -1966,35 +1966,6 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
     )
 }
 
-let mergeStmts = (st:editorState,idToUse:stmtId,idToDelete:stmtId):result<editorState,string> => {
-    switch st->editorGetStmtById(idToUse) {
-        | None => Error(`Cannot find a step with id = '${idToUse}'`)
-        | Some(stmtToUse) => {
-            switch st->editorGetStmtById(idToDelete) {
-                | None => Error(`Cannot find a step with id = '${idToDelete}'`)
-                | Some(stmtToDelete) => {
-                    if (stmtToUse.cont->contToStr != stmtToDelete.cont->contToStr) {
-                        Error(`Steps to merge must have identical expressions.`)
-                    } else {
-                        switch replaceRef(st, ~replaceWhat=stmtToDelete.label, ~replaceWith=stmtToUse.label) {
-                            | Error(msg) => Error(msg)
-                            | Ok(st) => {
-                                let st = st->deleteStmt(idToDelete)
-                                let st = if (stmtToDelete.typ == P && stmtToDelete.isGoal && stmtToUse.typ != E) {
-                                    st->updateStmt(idToUse, stmt => {...stmt, typ:P, isGoal:true})
-                                } else {
-                                    st
-                                }
-                                Ok(st)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
 let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
 
@@ -2016,6 +1987,35 @@ let renameStmt = (st:editorState, stmtId:stmtId, newLabel:string):result<editorS
                                 | Error(msg) => Error(msg)
                                 | Ok(st) => {
                                     Ok(st->updateStmt(stmtId, stmt => {...stmt, label:newLabel}))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let mergeStmts = (st:editorState,idToUse:stmtId,idToDelete:stmtId):result<editorState,string> => {
+    switch st->editorGetStmtById(idToUse) {
+        | None => Error(`Cannot find a step with id = '${idToUse}'`)
+        | Some(stmtToUse) => {
+            switch st->editorGetStmtById(idToDelete) {
+                | None => Error(`Cannot find a step with id = '${idToDelete}'`)
+                | Some(stmtToDelete) => {
+                    if (stmtToUse.cont->contToStr != stmtToDelete.cont->contToStr) {
+                        Error(`Steps to merge must have identical expressions.`)
+                    } else {
+                        switch replaceRef(st, ~replaceWhat=stmtToDelete.label, ~replaceWith=stmtToUse.label) {
+                            | Error(msg) => Error(msg)
+                            | Ok(st) => {
+                                let st = st->deleteStmt(idToDelete)
+                                if (stmtToDelete.typ == P && stmtToDelete.isGoal && stmtToUse.typ != E) {
+                                    let st = st->updateStmt(idToUse, stmt => {...stmt, typ:P, isGoal:true})
+                                    st->renameStmt(idToUse, stmtToDelete.label)
+                                } else {
+                                    Ok(st)
                                 }
                             }
                         }
