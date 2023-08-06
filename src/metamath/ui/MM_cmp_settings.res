@@ -71,8 +71,8 @@ let createDefaultSettings = () => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
         parensErr: None,
-        descrRegexToDisc: "ABC",
-        labelRegexToDisc: "DEF",
+        descrRegexToDisc: "\\(New usage is discouraged\\.\\)",
+        labelRegexToDisc: "",
         editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",

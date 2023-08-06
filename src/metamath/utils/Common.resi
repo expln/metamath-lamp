@@ -18,6 +18,8 @@ let base64ToStr: string => string
 let strToSafeBase64: string => string
 let safeBase64ToStr: string => string
 
+let strToRegex: string => result<Js_re.t,string>
+
 type timeoutID
 let setTimeout: (unit => unit, int) => timeoutID
 let clearTimeout: (timeoutID) => unit

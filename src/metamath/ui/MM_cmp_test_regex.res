@@ -1,6 +1,7 @@
 open Expln_React_common
 open Expln_React_Mui
 open MM_react_common
+open Common
 
 let checkMarkSymbol = "\u2713"
 let crossSymbol = "\u2717"
@@ -30,7 +31,10 @@ let make = (
     }
 
     let actTestRegex = () => {
-        setResult(_ => Some(regex->Js_re.fromString->Js_re.test_(text)))
+        switch regex->strToRegex {
+            | Error(msg) => setResult(_ => Some(Error(msg)))
+            | Ok(re) => setResult(_ => Some(Ok(re->Js_re.test_(text))))
+        }
     }
 
     let rndText = () => {
@@ -69,7 +73,7 @@ let make = (
     let rndResult = () => {
         switch result {
             | None => React.string(`Press the "TEST" button to test the regex.`)
-            | Some(res) => {
+            | Some(Ok(res)) => {
                 if (res) {
                     <span>
                         <span style=ReactDOM.Style.make(~color="green", ~fontWeight="bold", ())>
@@ -85,6 +89,14 @@ let make = (
                         {React.string(` the regex doesn't match the text.`)}
                     </span>
                 }
+            }
+            | Some(Error(msg)) => {
+                <span>
+                    <span style=ReactDOM.Style.make(~color="red", ())>
+                        {React.string("Error: ")}
+                    </span>
+                    {React.string(msg)}
+                </span>
             }
         }
     }

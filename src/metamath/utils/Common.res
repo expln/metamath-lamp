@@ -52,6 +52,19 @@ let cacheGet = (cache, depVer, dep) => {
     }
 }
 
+let strToRegex = (str:string):result<Js_re.t,string> => {
+    try {
+        Ok(Js_re.fromString(str))
+    } catch {
+        | exn => {
+            Error(
+                exn->Js_exn.asJsExn->Belt_Option.flatMap(Js_exn.message)
+                    ->Belt.Option.getWithDefault(`could not create a regular expression from string '${str}'`)
+            )
+        }
+    }
+}
+
 let splitByRegex = (str,regex) => {
     str
         ->Js_string2.splitByRe(regex)
