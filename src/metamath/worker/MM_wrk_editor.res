@@ -1201,10 +1201,10 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
                     ~amount=numOfVars,
                     ()
                 )
-                wrkCtx->applySingleStmt(Var({symbols:newVarNames}))
+                wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
                 newHypLabels->Js.Array2.forEachi((label,i) => {
-                    wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}))
+                    wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
                 })
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
                 let newVarsText = newHypLabels->Js.Array2.mapi((label,i) => {
@@ -1228,7 +1228,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
             let newDisjTextLines = []
             newDisj->disjForEachArr(varInts => {
                 let varsStr = wrkCtx->ctxIntsToSymsExn(varInts)
-                wrkCtx->applySingleStmt(Disj({vars:varsStr}))
+                wrkCtx->applySingleStmt(Disj({vars:varsStr}), ())
                 newDisjTextLines->Js.Array2.push(varsStr->Js.Array2.joinWith(","))->ignore
             })
             if (newDisjTextLines->Js.Array2.length == 0) {

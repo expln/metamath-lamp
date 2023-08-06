@@ -157,25 +157,29 @@ let validateAndCorrectParens = (st:settingsState):settingsState => {
 }
 
 let validateAndCorrectDescrRegexToDisc = (st:settingsState):settingsState => {
-    let err = switch st.descrRegexToDisc->strToRegex {
+    let newDescrRegexToDisc = st.descrRegexToDisc->Js_string2.trim
+    let err = switch newDescrRegexToDisc->strToRegex {
         | Error(msg) => Some(msg)
         | Ok(_) => None
     }
 
     {
         ...st,
+        descrRegexToDisc: newDescrRegexToDisc,
         descrRegexToDiscErr: err,
     }
 }
 
 let validateAndCorrectLabelRegexToDisc = (st:settingsState):settingsState => {
-    let err = switch st.labelRegexToDisc->strToRegex {
+    let newLabelRegexToDisc = st.labelRegexToDisc->Js_string2.trim
+    let err = switch newLabelRegexToDisc->strToRegex {
         | Error(msg) => Some(msg)
         | Ok(_) => None
     }
 
     {
         ...st,
+        labelRegexToDisc: newLabelRegexToDisc,
         labelRegexToDiscErr: err,
     }
 }

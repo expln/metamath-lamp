@@ -268,6 +268,8 @@ let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool =>
 
 let loadMmContext = (
     ~singleScopes: array<mmSingleScope>, 
+    ~descrRegexToDisc:string,
+    ~labelRegexToDisc:string,
     ~modalRef:modalRef,
     ~showError:bool,
 ):promise<result<mmContext,string>> => {
@@ -299,6 +301,8 @@ let loadMmContext = (
                             resetNestingLevel:ss.resetNestingLevel,
                         }
                     }),
+                    ~descrRegexToDisc,
+                    ~labelRegexToDisc,
                     ~onProgress = pct => 
                         updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
                     ~onDone = ctx => {
@@ -330,7 +334,6 @@ let loadMmContext = (
                         rsv(ctx)
                         closeModal(modalRef, modalId)
                     },
-                    ()
                 )
             })->ignore
         }
@@ -483,6 +486,8 @@ let make = (
     ~modalRef:modalRef,
     ~webSrcSettings:array<webSrcSettings>,
     ~onUrlBecomesTrusted:string=>unit,
+    ~descrRegexToDisc:string,
+    ~labelRegexToDisc:string,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style as _ :option<reStyle>=?,
@@ -601,7 +606,13 @@ let make = (
                 rslv(Ok(()))
             })
         } else {
-            loadMmContext(~singleScopes=state.singleScopes, ~modalRef, ~showError)->promiseMap(res => {
+            loadMmContext(
+                ~singleScopes=state.singleScopes, 
+                ~descrRegexToDisc,
+                ~labelRegexToDisc,
+                ~modalRef, 
+                ~showError
+            )->promiseMap(res => {
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {

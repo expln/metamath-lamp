@@ -257,6 +257,8 @@ let make = () => {
                         onUrlBecomesTrusted={
                             url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated
                         }
+                        descrRegexToDisc={state.preCtxData.settingsV.val.descrRegexToDisc}
+                        labelRegexToDisc={state.preCtxData.settingsV.val.labelRegexToDisc}
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
                         style=ReactDOM.Style.make(

@@ -725,7 +725,7 @@ let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => 
     let proofCtx = createContext(~parent=wrkCtx, ())
     rootStmts->Js_array2.forEach(stmt => {
         if (stmt.isHyp) {
-            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}))
+            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}), ())
         }
     })
     proofCtx

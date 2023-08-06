@@ -76,8 +76,8 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
         | Ok(varDefs) => {
             try {
                 varDefs->Js_array2.forEach(varDef => {
-                    wrkCtx->applySingleStmt(Var({symbols:[varDef[2]]}))
-                    wrkCtx->applySingleStmt(Floating({label:varDef[0], expr:[varDef[1], varDef[2]]}))
+                    wrkCtx->applySingleStmt(Var({symbols:[varDef[2]]}), ())
+                    wrkCtx->applySingleStmt(Floating({label:varDef[0], expr:[varDef[1], varDef[2]]}), ())
                 })
                 None
             } catch {
@@ -88,7 +88,7 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
 }
 
 let addDisjFromString = (wrkCtx, disjStr) => {
-    wrkCtx->applySingleStmt(Disj({vars:disjStr->Js.String2.split(",")->Js_array2.map(Js_string2.trim)}))
+    wrkCtx->applySingleStmt(Disj({vars:disjStr->Js.String2.split(",")->Js_array2.map(Js_string2.trim)}), ())
 }
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {

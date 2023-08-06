@@ -301,12 +301,16 @@ let setSyntaxProofTableError = (st:state,syntaxProofTableError:option<string>):s
 let loadFrameContext = (
     ~srcs:array<mmCtxSrcDto>,
     ~label:string,
+    ~descrRegexToDisc:string,
+    ~labelRegexToDisc:string,
     ~onProgress:float=>unit,
     ~onDone: result<(array<mmScope>, mmContext),string>=>unit,
 ):unit => {
     let scopes = createMmScopesForFrame( ~srcs, ~label, )
     beginLoadingMmContext(
         ~scopes,
+        ~descrRegexToDisc,
+        ~labelRegexToDisc,
         ~onProgress,
         ~onDone = res => {
             switch res {
@@ -314,7 +318,6 @@ let loadFrameContext = (
                 | Ok(ctx) => onDone(Ok((scopes,ctx)))
             }
         },
-        ()
     )
 }
 
@@ -433,6 +436,8 @@ let make = React.memoCustomCompareProps(({
                 loadFrameContext(
                     ~srcs=preCtxData.srcs,
                     ~label,
+                    ~descrRegexToDisc=preCtxData.settingsV.val.descrRegexToDisc,
+                    ~labelRegexToDisc=preCtxData.settingsV.val.labelRegexToDisc,
                     ~onProgress = pct => setLoadPct(_ => pct),
                     ~onDone = res => {
                         switch res {

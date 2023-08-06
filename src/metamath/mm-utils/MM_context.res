@@ -1021,7 +1021,13 @@ let addAssertion = (
     }
 }
 
-let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
+let applySingleStmt = (
+    ctx:mmContext, 
+    stmt:stmt,
+    ~descrRegexToDisc:option<Js_re.t>=?,
+    ~labelRegexToDisc:option<Js_re.t>=?,
+    ()
+):unit => {
     switch stmt {
         | Comment({text}) => addComment(ctx, text)
         | Const({symbols}) => symbols->Js_array2.forEach(addConst(ctx, _))
@@ -1030,8 +1036,10 @@ let applySingleStmt = (ctx:mmContext, stmt:stmt):unit => {
         | Disj({vars}) => addDisj(ctx, vars)
         | Floating({label, expr}) => addFloating(ctx, ~label, ~exprStr=expr)
         | Essential({label, expr}) => addEssential(ctx, ~label, ~exprStr=expr)
-        | Axiom({label, expr}) => addAssertion(ctx, ~isAxiom=true, ~label, ~exprStr=expr, ~proof=None, ())
-        | Provable({label, expr, proof}) => addAssertion(ctx, ~isAxiom=false, ~label, ~exprStr=expr, ~proof, ())
+        | Axiom({label, expr}) => 
+            addAssertion(ctx, ~isAxiom=true, ~label, ~exprStr=expr, ~proof=None, ~descrRegexToDisc?, ~labelRegexToDisc?, ())
+        | Provable({label, expr, proof}) => 
+            addAssertion(ctx, ~isAxiom=false, ~label, ~exprStr=expr, ~proof, ~descrRegexToDisc?, ~labelRegexToDisc?, ())
     }
 }
 
@@ -1042,6 +1050,8 @@ let loadContext = (
     ~stopAfter="",
     ~onPreProcess: option<(mmContext,MM_parser.stmt)=>unit>=?,
     ~expectedNumOfAssertions=-1, 
+    ~descrRegexToDisc:option<Js_re.t>=?,
+    ~labelRegexToDisc:option<Js_re.t>=?,
     ~onProgress= _=>(), 
     ~debug:bool=false, 
     ()
@@ -1090,7 +1100,7 @@ let loadContext = (
         ~process = (ctx,node) => {
             switch node {
                 | {stmt:Block(_)} => ()
-                | {stmt} => applySingleStmt(ctx,stmt)
+                | {stmt} => applySingleStmt(ctx, stmt, ~descrRegexToDisc?, ~labelRegexToDisc?, ())
             }
             None
         },

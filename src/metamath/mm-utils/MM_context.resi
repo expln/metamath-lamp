@@ -41,7 +41,13 @@ type frame = {
 }
 
 let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
-let applySingleStmt: (mmContext, stmt) => unit
+let applySingleStmt: (
+    mmContext, 
+    stmt,
+    ~descrRegexToDisc:Js_re.t=?,
+    ~labelRegexToDisc:Js_re.t=?,
+    ()
+) => unit
 let openChildContext: mmContext => unit
 let closeChildContext: mmContext => unit
 let resetToParentContext: mmContext => unit
@@ -52,6 +58,8 @@ let loadContext: (
     ~stopAfter:string=?, 
     ~onPreProcess: (mmContext,MM_parser.stmt)=>unit =?,
     ~expectedNumOfAssertions:int=?, 
+    ~descrRegexToDisc:Js_re.t=?,
+    ~labelRegexToDisc:Js_re.t=?,
     ~onProgress:float=>unit=?, 
     ~debug:bool=?, 
     ()

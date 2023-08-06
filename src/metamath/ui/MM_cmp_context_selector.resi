@@ -9,6 +9,8 @@ let make: (
     ~modalRef: modalRef,
     ~webSrcSettings:array<webSrcSettings>,
     ~onUrlBecomesTrusted:string=>unit,
+    ~descrRegexToDisc:string,
+    ~labelRegexToDisc:string,
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
     ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
     ~style:reStyle=?,
