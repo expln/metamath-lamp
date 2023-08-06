@@ -1,4 +1,5 @@
 open Expln_React_common
+open MM_react_common
 open Expln_React_Mui
 
 type typeSettingsState = {
@@ -67,12 +68,12 @@ let make = (
             <IconButton key="add-button" onClick={_ => onAdd()}>
                 <MM_Icons.Add/>
             </IconButton>
-            <span
-                onClick={_=> onRestoreDefaults() }
-                style=ReactDOM.Style.make(~cursor="pointer", ~color="grey", ~fontSize="0.7em", ())
-            >
-                {React.string("Restore default type settings")}
-            </span>
+            {
+                rndSmallTextBtn(
+                    ~text="Restore default type settings",
+                    ~onClick=onRestoreDefaults
+                )
+            }
         </Row>
     </Col>
 }

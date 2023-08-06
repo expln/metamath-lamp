@@ -10,6 +10,8 @@ let openInfoDialog: (
     unit,
 ) => unit
 
+let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ) => React.element
+
 let copyToClipboard: string => promise<unit>
 let readFromClipboard: () => promise<string>
 let getAvailWidth: () => int

@@ -88,6 +88,23 @@ let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>
     })->ignore
 }
 
+let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
+    <span
+        onClick={_=> onClick() }
+        style=ReactDOM.Style.make( 
+            ~cursor="pointer", 
+            ~color="grey", 
+            ~fontSize="0.7em", 
+            ~padding="2px",
+            ~borderRadius="3px",
+            () 
+        )
+        className="grey-bkg-on-hover"
+    >
+        {React.string(text)}
+    </span>
+}
+
 type mouseButton = Left | Middle | Right
 
 type clickCallback = {

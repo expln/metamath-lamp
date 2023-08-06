@@ -22,3 +22,7 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.grey-bkg-on-hover:hover {
+  background: rgba(211, 211, 211, 0.2);
+}

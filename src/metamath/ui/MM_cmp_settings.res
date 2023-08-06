@@ -889,6 +889,10 @@ let make = (
         })
     }
 
+    let actRestoreDefaultDescrRegexToDisc = () => {
+        actDescrRegexToDiscUpdated(createDefaultSettings().descrRegexToDisc)
+    }
+
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
         modalId->Belt.Option.map(modalId => () => {
             MM_wrk_client.terminateWorker()
@@ -915,24 +919,20 @@ let make = (
     }
 
     let actOpenCheckRegexDialog = (~initRegex:string, ~onSave:string=>unit) => {
-        ()
-        // openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-        //     updateModal(modalRef, modalId, () => {
-        //         <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-        //             <MM_cmp_asrts_to_skip 
-        //                 initText={state.asrtsToSkip->Js.Array2.joinWith("\n")}
-        //                 initRegex=state.asrtsToSkipRegex
-        //                 onSave={res => {
-        //                     closeModal(modalRef, modalId)
-        //                     actAsrtsToSkipChange(res)
-        //                 }}
-        //                 onCancel={()=> {
-        //                     closeModal(modalRef, modalId)
-        //                 }}
-        //             />
-        //         </Paper>
-        //     })
-        // })->ignore
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_test_regex 
+                    initRegex
+                    onSave={regex => {
+                        closeModal(modalRef, modalId)
+                        onSave(regex)
+                    }}
+                    onCancel={()=> {
+                        closeModal(modalRef, modalId)
+                    }}
+                />
+            })
+        })->ignore
     }
 
     let rndParens = () => {
@@ -968,22 +968,49 @@ let make = (
 
     let rndDiscAsrtsSettings = () => {
         <Col spacing=2.>
-            <TextField 
-                size=#small
-                style=ReactDOM.Style.make(~width="500px", ())
-                label="Regex to determine discouraged assertions by description" 
-                value=state.descrRegexToDisc
-                onChange=evt2str(actDescrRegexToDiscUpdated)
-                title="All assertions with a description matching this regular expression will be considered as discouraged."
-            />
-            <TextField 
-                size=#small
-                style=ReactDOM.Style.make(~width="500px", ())
-                label="Regex to determine discouraged assertions by label" 
-                value=state.labelRegexToDisc
-                onChange=evt2str(actLabelRegexToDiscUpdated)
-                title="All assertions with a label matching this regular expression will be considered as discouraged."
-            />
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine discouraged assertions by description" 
+                    value=state.descrRegexToDisc
+                    onChange=evt2str(actDescrRegexToDiscUpdated)
+                    title="All assertions with a description matching this regular expression will be considered as discouraged."
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.descrRegexToDisc, ~onSave=actDescrRegexToDiscUpdated)
+                        }
+                    )
+                }
+                {
+                    rndSmallTextBtn(
+                        ~text="Restore default regex",
+                        ~onClick=actRestoreDefaultDescrRegexToDisc
+                    )
+                }
+            </Row>
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine discouraged assertions by label" 
+                    value=state.labelRegexToDisc
+                    onChange=evt2str(actLabelRegexToDiscUpdated)
+                    title="All assertions with a label matching this regular expression will be considered as discouraged."
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.labelRegexToDisc, ~onSave=actLabelRegexToDiscUpdated)
+                        }
+                    )
+                }
+            </Row>
+            
         </Col>
     }
 
