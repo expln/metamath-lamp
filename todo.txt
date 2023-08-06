@@ -1,3 +1,5 @@
+- export in uncompressed-essential and compressed-essential formats
+- remember last selected scope for each source
 - add "Search" tab
 - when automerging two stmts, if both have same jstf then select the upper one (write a test to check bad references before duplications)
 - extract wrk logic from MM_cmp_pe_frame_full and cover it with tests.

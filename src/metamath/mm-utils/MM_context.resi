@@ -35,6 +35,8 @@ type frame = {
     numOfArgs: int,
     descr:option<string>,
     proof:option<proof>,
+    isDisc:bool, /* is discouraged */
+    isTranDisc:bool, /* is transitively discouraged (depends on an isDisc frame or another isTranDisc frame ) */
     dbg: option<frameDbg>,
 }
 
@@ -105,6 +107,8 @@ let createFrame: (
     ~tokenType:string=?,
     ~skipEssentials:bool=?, 
     ~skipFirstSymCheck:bool=?, 
+    ~descrRegexToDisc:Js_re.t=?,
+    ~labelRegexToDisc:Js_re.t=?,
     ()
 ) => frame
 
