@@ -15,7 +15,9 @@ type settingsState = {
     parensErr: option<string>,
 
     descrRegexToDisc: string,
+    descrRegexToDiscErr: option<string>,
     labelRegexToDisc: string,
+    labelRegexToDiscErr: option<string>,
 
     editStmtsByLeftClick:bool,
     initStmtIsGoal:bool,
@@ -72,7 +74,9 @@ let createDefaultSettings = () => {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
         parensErr: None,
         descrRegexToDisc: "\\(New usage is discouraged\\.\\)",
+        descrRegexToDiscErr: None,
         labelRegexToDisc: "",
+        labelRegexToDiscErr: None,
         editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
@@ -149,6 +153,30 @@ let validateAndCorrectParens = (st:settingsState):settingsState => {
         ...st,
         parens: newParens,
         parensErr,
+    }
+}
+
+let validateAndCorrectDescrRegexToDisc = (st:settingsState):settingsState => {
+    let err = switch st.descrRegexToDisc->strToRegex {
+        | Error(msg) => Some(msg)
+        | Ok(_) => None
+    }
+
+    {
+        ...st,
+        descrRegexToDiscErr: err,
+    }
+}
+
+let validateAndCorrectLabelRegexToDisc = (st:settingsState):settingsState => {
+    let err = switch st.labelRegexToDisc->strToRegex {
+        | Error(msg) => Some(msg)
+        | Ok(_) => None
+    }
+
+    {
+        ...st,
+        labelRegexToDiscErr: err,
     }
 }
 
@@ -391,6 +419,8 @@ let validateAndCorrectEditorHistoryMaxLengthSetting = (st:settingsState):setting
 
 let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
+    let st = validateAndCorrectDescrRegexToDisc(st)
+    let st = validateAndCorrectLabelRegexToDisc(st)
     let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectUnifMetavarPrefix(st)
@@ -439,7 +469,9 @@ let settingsToState = (ls:settings):settingsState => {
         parens: ls.parens,
         parensErr: None,
         descrRegexToDisc: ls.descrRegexToDisc,
+        descrRegexToDiscErr: None,
         labelRegexToDisc: ls.labelRegexToDisc,
+        labelRegexToDiscErr: None,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         initStmtIsGoal:ls.initStmtIsGoal,
         defaultStmtLabel:ls.defaultStmtLabel,
@@ -502,7 +534,9 @@ let readStateFromLocStor = ():settingsState => {
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
                     descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc, ()),
+                    descrRegexToDiscErr: None,
                     labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
+                    labelRegexToDiscErr: None,
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
@@ -568,6 +602,8 @@ let settingsReadFromLocStor = () => readStateFromLocStor()->stateToSettings
 
 let isValid = st => {
     st.parensErr->Belt_Option.isNone
+        && st.descrRegexToDiscErr->Belt_Option.isNone
+        && st.labelRegexToDiscErr->Belt_Option.isNone
         && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
         && st.webSrcSettings->Js_array2.every(s => s.err->Belt_Option.isNone)
 }
@@ -615,8 +651,12 @@ let updateParens = (st,parens) => {
     }
 }
 
-let setDescrRegexToDisc = (st, descrRegexToDisc) => {...st, descrRegexToDisc}
-let setLabelRegexToDisc = (st, labelRegexToDisc) => {...st, labelRegexToDisc}
+let setDescrRegexToDisc = (st, descrRegexToDisc) => {
+    {...st, descrRegexToDisc, descrRegexToDiscErr:None }
+}
+let setLabelRegexToDisc = (st, labelRegexToDisc) => {
+    {...st, labelRegexToDisc, labelRegexToDiscErr:None}
+}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
 let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
@@ -966,6 +1006,15 @@ let make = (
         elems->React.array
     }
 
+    let rndError = (err:option<string>) => {
+        switch err {
+            | None => React.null
+            | Some(msg) => {
+                <pre style=ReactDOM.Style.make(~color="red", ()) >{React.string(msg)}</pre>
+            }
+        }
+    }
+
     let rndDiscAsrtsSettings = () => {
         <Col spacing=2.>
             <Row alignItems=#center>
@@ -976,6 +1025,7 @@ let make = (
                     value=state.descrRegexToDisc
                     onChange=evt2str(actDescrRegexToDiscUpdated)
                     title="All assertions with a description matching this regular expression will be considered as discouraged."
+                    error={state.descrRegexToDiscErr->Belt_Option.isSome}
                 />
                 {
                     rndSmallTextBtn(
@@ -992,6 +1042,7 @@ let make = (
                     )
                 }
             </Row>
+            {rndError(state.descrRegexToDiscErr)}
             <Row alignItems=#center>
                 <TextField 
                     size=#small
@@ -1000,6 +1051,7 @@ let make = (
                     value=state.labelRegexToDisc
                     onChange=evt2str(actLabelRegexToDiscUpdated)
                     title="All assertions with a label matching this regular expression will be considered as discouraged."
+                    error={state.labelRegexToDiscErr->Belt_Option.isSome}
                 />
                 {
                     rndSmallTextBtn(
@@ -1010,6 +1062,7 @@ let make = (
                     )
                 }
             </Row>
+            {rndError(state.labelRegexToDiscErr)}
             
         </Col>
     }
@@ -1038,9 +1091,11 @@ let make = (
     }
 
     let rndApplyChangesBtn = () => {
-        let disabled = !isValid(state) || eqState(prevState, state) 
+        let disabled = eqState(prevState, state) 
         <Row spacing=3. >
-            <Button disabled onClick={_=>actApplyChanges()} variant=#contained>
+            <Button disabled onClick={_=>actApplyChanges()} variant=#contained 
+                color=?{if(!isValid(state)){Some("pastelred")}else{None}}
+            >
                 {React.string("Apply changes")}
             </Button>
             <Button disabled onClick={_ => discardChanges()}>

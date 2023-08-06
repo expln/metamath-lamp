@@ -53,6 +53,9 @@ let mainTheme = ThemeProvider.createTheme(
             },
             "red": {
                 "main": "#FF0000",
+            },
+            "pastelred": {
+                "main": "#FAA0A0",
             }
         }
     }
@@ -103,6 +106,13 @@ let make = () => {
     let isEditorTab = (tabData:tabData):bool => {
         switch tabData {
             | Editor => true
+            | _ => false
+        }
+    }
+
+    let isSettingsTab = (tabData:tabData):bool => {
+        switch tabData {
+            | Settings => true
             | _ => false
         }
     }
