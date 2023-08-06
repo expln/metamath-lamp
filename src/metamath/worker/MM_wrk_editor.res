@@ -954,7 +954,6 @@ let validateStmtJstf = (
     stmt:userStmt, 
     wrkCtx:mmContext, 
     definedUserLabels:Belt_HashSetString.t,
-    asrtsToSkip: array<string>,
     frms: Belt_MapString.t<frmSubsData>,
 ):userStmt => {
     if (userStmtHasErrors(stmt)) {
@@ -970,8 +969,6 @@ let validateStmtJstf = (
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
                             {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' doesn't refer to any assertion.`})}
-                        } else if (asrtsToSkip->Js_array2.includes(label)) {
-                            {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The assertion '${label}' is skipped by settings.`})}
                         } else {
                             switch frms->Belt_MapString.get(label) {
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
@@ -1117,7 +1114,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                 setStmtExpr(_, wrkCtx),
                 validateStmtIsGoal(_, goalLabel),
                 setStmtJstf,
-                validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip, st.frms),
+                validateStmtJstf(_, wrkCtx, definedUserLabels, st.frms),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
             ]
             st.stmts->Js_array2.reduce(

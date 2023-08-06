@@ -23,7 +23,6 @@ let createEditorState = (
     ~stopBefore:option<string>=?, 
     ~stopAfter:option<string>=?, 
     ~editorState:option<string>=?,
-    ~asrtsToSkipFilePath:option<string>=?,
     ~debug:option<bool>=?, 
     ()
 ) => {
@@ -38,12 +37,8 @@ let createEditorState = (
     let settingsV = 1
     let settings = {
         parens,
-        asrtsToSkip:
-            switch asrtsToSkipFilePath {
-                | None => []
-                | Some(filePath) => multilineTextToNonEmptyLines(Expln_utils_files.readStringFromFile(filePath))
-            },
-        asrtsToSkipRegex: "",
+        descrRegexToDisc: "",
+        labelRegexToDisc: "",
         editStmtsByLeftClick:true,
         initStmtIsGoal: false,
         defaultStmtLabel: "qed",

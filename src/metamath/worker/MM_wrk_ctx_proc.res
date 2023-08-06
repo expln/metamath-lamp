@@ -82,8 +82,8 @@ let preCtxCache = cacheMake(
 )
 
 let frmsCache = cacheMake(
-    ~recalc = ((settings,ctx)) => {
-        prepareFrmSubsData(~ctx, ~asrtsToSkip=Belt_HashSetString.fromArray(settings.asrtsToSkip), ())
+    ~recalc = ((_,ctx)) => {
+        prepareFrmSubsData(~ctx, ())
     },
     ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
 )

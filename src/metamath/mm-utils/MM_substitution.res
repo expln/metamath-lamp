@@ -568,14 +568,11 @@ let prepareFrmSubsDataForFrame = (frame):frmSubsData => {
 
 let prepareFrmSubsData = (
     ~ctx:mmContext, 
-    ~asrtsToSkip:Belt_HashSetString.t=Belt_HashSetString.make(~hintSize=0),
     ()
 ):Belt_MapString.t<frmSubsData> => {
     let frms = []
     ctx->forEachFrame(frame => {
-        if (!(asrtsToSkip->Belt_HashSetString.has(frame.label))) {
-            frms->Js_array2.push(prepareFrmSubsDataForFrame(frame))->ignore
-        }
+        frms->Js_array2.push(prepareFrmSubsDataForFrame(frame))->ignore
         None
     })->ignore
     Belt_MapString.fromArray(frms->Js_array2.map(frm => (frm.frame.label, frm)))

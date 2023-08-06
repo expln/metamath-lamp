@@ -22,8 +22,8 @@ let createEditorState = (
     let settingsV = 1
     let settings = {
         parens,
-        asrtsToSkip: [],
-        asrtsToSkipRegex: "",
+        descrRegexToDisc: "",
+        labelRegexToDisc: "",
         editStmtsByLeftClick:true,
         initStmtIsGoal,
         defaultStmtLabel,

@@ -14,8 +14,8 @@ type settingsState = {
     parens: string,
     parensErr: option<string>,
 
-    asrtsToSkip: array<string>,
-    asrtsToSkipRegex: string,
+    descrRegexToDisc: string,
+    labelRegexToDisc: string,
 
     editStmtsByLeftClick:bool,
     initStmtIsGoal:bool,
@@ -46,8 +46,6 @@ let allColors = [
     "#000000"
 ]
 
-let asrtsToSkipRegexDefault = "New usage of \"([^\"]+)\" is discouraged"
-
 let createDefaultWebSrcSettingState = (alias:string,url:string):webSrcSettingsState => {
     {
         id: "0",
@@ -73,8 +71,8 @@ let createDefaultSettings = () => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
         parensErr: None,
-        asrtsToSkip: [],
-        asrtsToSkipRegex: asrtsToSkipRegexDefault,
+        descrRegexToDisc: "ABC",
+        labelRegexToDisc: "DEF",
         editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
@@ -406,8 +404,8 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
 let stateToSettings = (st:settingsState):settings => {
     {
         parens: st.parens,
-        asrtsToSkip: st.asrtsToSkip,
-        asrtsToSkipRegex: st.asrtsToSkipRegex,
+        descrRegexToDisc: st.descrRegexToDisc,
+        labelRegexToDisc: st.labelRegexToDisc,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
         initStmtIsGoal:st.initStmtIsGoal,
         defaultStmtLabel:st.defaultStmtLabel,
@@ -440,8 +438,8 @@ let settingsToState = (ls:settings):settingsState => {
     let res = {
         parens: ls.parens,
         parensErr: None,
-        asrtsToSkip: ls.asrtsToSkip,
-        asrtsToSkipRegex: ls.asrtsToSkipRegex,
+        descrRegexToDisc: ls.descrRegexToDisc,
+        labelRegexToDisc: ls.labelRegexToDisc,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         initStmtIsGoal:ls.initStmtIsGoal,
         defaultStmtLabel:ls.defaultStmtLabel,
@@ -491,11 +489,20 @@ let readStateFromLocStor = ():settingsState => {
         | Some(settingsLocStorStr) => {
             open Expln_utils_jsonParse
             let parseResult:result<settingsState,string> = parseJson(settingsLocStorStr, asObj(_, d=>{
+                // let oldAstrsToSkip = d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>"", ())->Js_string2.trim
+                // let newLabelRegexToDisc = d->str("labelRegexToDisc", ~default=()=>{
+                //     if (oldAstrsToSkip->Js_string2.length == 0) {
+                //         defaultSettings.labelRegexToDisc
+                //     } else {
+
+                //     }
+                // }, ())
+
                 {
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
-                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>defaultSettings.asrtsToSkip, ()),
-                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>defaultSettings.asrtsToSkipRegex, ()),
+                    descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc, ()),
+                    labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
@@ -579,8 +586,8 @@ let eqWebSrcSetting = (ts1:webSrcSettingsState, ts2:webSrcSettingsState):bool =>
 
 let eqState = (st1, st2) => {
     st1.parens == st2.parens
-        && st1.asrtsToSkip == st2.asrtsToSkip
-        && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
+        && st1.descrRegexToDisc == st2.descrRegexToDisc
+        && st1.labelRegexToDisc == st2.labelRegexToDisc
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.initStmtIsGoal == st2.initStmtIsGoal
         && st1.defaultStmtLabel == st2.defaultStmtLabel
@@ -608,8 +615,8 @@ let updateParens = (st,parens) => {
     }
 }
 
-let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
-let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
+let setDescrRegexToDisc = (st, descrRegexToDisc) => {...st, descrRegexToDisc}
+let setLabelRegexToDisc = (st, labelRegexToDisc) => {...st, labelRegexToDisc}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
 let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
@@ -736,12 +743,12 @@ let make = (
         setState(updateParens(_, parens))
     }
 
-    let actAsrtsToSkipChange = (res:MM_cmp_asrts_to_skip.asrtsToSkipResult) => {
-        setState(st => {
-            let st = st->setAsrtsToSkip(res.asrtsToSkip)
-            let st = st->setAsrtsToSkipRegex(res.regex)
-            st
-        })
+    let actDescrRegexToDiscUpdated = (descrRegexToDisc:string) => {
+        setState(setDescrRegexToDisc(_,descrRegexToDisc))
+    }
+
+    let actLabelRegexToDiscUpdated = (labelRegexToDisc:string) => {
+        setState(setLabelRegexToDisc(_,labelRegexToDisc))
     }
 
     let actEditStmtsByLeftClickChange = editStmtsByLeftClick => {
@@ -907,24 +914,25 @@ let make = (
         })->ignore
     }
 
-    let actOpenAsrtsToSkipDialog = () => {
-        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-            updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                    <MM_cmp_asrts_to_skip 
-                        initText={state.asrtsToSkip->Js.Array2.joinWith("\n")}
-                        initRegex=state.asrtsToSkipRegex
-                        onSave={res => {
-                            closeModal(modalRef, modalId)
-                            actAsrtsToSkipChange(res)
-                        }}
-                        onCancel={()=> {
-                            closeModal(modalRef, modalId)
-                        }}
-                    />
-                </Paper>
-            })
-        })->ignore
+    let actOpenCheckRegexDialog = (~initRegex:string, ~onSave:string=>unit) => {
+        ()
+        // openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        //     updateModal(modalRef, modalId, () => {
+        //         <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+        //             <MM_cmp_asrts_to_skip 
+        //                 initText={state.asrtsToSkip->Js.Array2.joinWith("\n")}
+        //                 initRegex=state.asrtsToSkipRegex
+        //                 onSave={res => {
+        //                     closeModal(modalRef, modalId)
+        //                     actAsrtsToSkipChange(res)
+        //                 }}
+        //                 onCancel={()=> {
+        //                     closeModal(modalRef, modalId)
+        //                 }}
+        //             />
+        //         </Paper>
+        //     })
+        // })->ignore
     }
 
     let rndParens = () => {
@@ -958,19 +966,25 @@ let make = (
         elems->React.array
     }
 
-    let rndAsrtsToSkip = () => {
-        let asrtsSelected = state.asrtsToSkip->Js_array2.length->Belt.Int.toString
-        <Row>
-            <span>
-                {`Assertions to skip: ${asrtsSelected} assertions selected.`->React.string}
-            </span>
-            <span
-                onClick={_=> { actOpenAsrtsToSkipDialog() }}
-                style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
-            >
-                {React.string("edit")}
-            </span>
-        </Row>
+    let rndDiscAsrtsSettings = () => {
+        <Col spacing=2.>
+            <TextField 
+                size=#small
+                style=ReactDOM.Style.make(~width="500px", ())
+                label="Regex to determine discouraged assertions by description" 
+                value=state.descrRegexToDisc
+                onChange=evt2str(actDescrRegexToDiscUpdated)
+                title="All assertions with a description matching this regular expression will be considered as discouraged."
+            />
+            <TextField 
+                size=#small
+                style=ReactDOM.Style.make(~width="500px", ())
+                label="Regex to determine discouraged assertions by label" 
+                value=state.labelRegexToDisc
+                onChange=evt2str(actLabelRegexToDiscUpdated)
+                title="All assertions with a label matching this regular expression will be considered as discouraged."
+            />
+        </Col>
     }
 
     let rndLongClickSettings = () => {
@@ -1021,7 +1035,6 @@ let make = (
             }
             label="Check syntax"
         />
-        {rndAsrtsToSkip()}
         <FormControlLabel
             control={
                 <Checkbox
@@ -1097,15 +1110,17 @@ let make = (
             onChange=evt2str(actEditorHistMaxLengthStrChange)
             title="How many previous editor states to store."
         />
+        <Divider/>
+        {rndDiscAsrtsSettings()}
+        <Divider/>
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style=ReactDOM.Style.make(~width="310px", ())
             label="Prefix of metavariables in unification" 
             value=state.unifMetavarPrefix
             onChange=evt2str(actUnifMetavarPrefixChange)
             title="All variables with names starting with this prefix will be considered as metavariables during the unification process."
         />
-        <Divider/>
         <MM_cmp_type_settings
             typeSettings=state.typeSettings
             availableColors=allColors

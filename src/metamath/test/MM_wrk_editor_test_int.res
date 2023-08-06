@@ -416,8 +416,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
     it("bottom-up prover should be able to restore missing disjoints", _ => {
         setTestDataDir("restore-missing-disjoints")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
-            ~asrtsToSkipFilePath, ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
         let st = st->deleteStmts([st->getStmtId(~label="description", ())])
         assertEditorState(st, "step1.0")
 
@@ -517,8 +516,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
     it("unify-all identifies some types of unification errors", _ => {
         setTestDataDir("identify-errors")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
-            ~asrtsToSkipFilePath, ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -551,8 +549,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
     it("unify-all identifies syntax errors", _ => {
         setTestDataDir("syntax-errors")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
-            ~asrtsToSkipFilePath, ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -565,8 +562,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
     it("updateEditorStateWithPostupdateActions removes redundant variables from disjoints", _ => {
         setTestDataDir("no-redundant-vars-in-disj")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
-            ~asrtsToSkipFilePath, ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -602,8 +598,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
     it("actExportProof does not export redundant elements", _ => {
         setTestDataDir("no-redundant-elems-in-export")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
-            ~asrtsToSkipFilePath, ())
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
         assertProof(st, st->getStmtId(~label="stmt5", ()), "proof-no-redundant-vars")
@@ -614,7 +609,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
     it("actExportProof exports implicit local vars", _ => {
         setTestDataDir("implicit-loc-vars-in-export")
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 
-            ~asrtsToSkipFilePath, ~stopBefore="cvjust", ())
+            ~stopBefore="cvjust", ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
         assertProof(st, st->getStmtId(~label="cvjust", ()), "cvjust")

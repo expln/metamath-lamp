@@ -4,7 +4,6 @@ open MM_progress_tracker
 open MM_editor_history
 
 let setMmPath: string
-let asrtsToSkipFilePath: string
 let failOnMismatch: bool
 let debug: bool
 

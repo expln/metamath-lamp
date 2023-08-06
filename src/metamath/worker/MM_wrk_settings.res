@@ -12,8 +12,8 @@ type webSrcSettings = {
 
 type settings = {
     parens: string,
-    asrtsToSkip: array<string>,
-    asrtsToSkipRegex: string,
+    descrRegexToDisc: string,
+    labelRegexToDisc: string,
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
     defaultStmtLabel:string,

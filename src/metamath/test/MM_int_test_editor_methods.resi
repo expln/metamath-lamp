@@ -11,7 +11,6 @@ let createEditorState: (
     ~stopBefore: string=?,
     ~stopAfter: string=?,
     ~editorState:string=?,
-    ~asrtsToSkipFilePath:string=?,
     ~debug: bool=?,
     unit,
 ) => editorState
