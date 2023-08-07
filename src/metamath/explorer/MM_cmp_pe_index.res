@@ -43,6 +43,8 @@ let make = React.memoCustomCompareProps(({
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
+    let (discFilter, setDiscFilter) = React.useState(() => false)
+    let (tranDiscFilter, setTranDiscFilter) = React.useState(() => false)
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
@@ -58,6 +60,8 @@ let make = React.memoCustomCompareProps(({
         setLabelFilter(_ => "")
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
+        setDiscFilter(_ => false)
+        setTranDiscFilter(_ => false)
         if (applyFilters) {
             setApplyFiltersRequested(_ => true)
         }
@@ -83,6 +87,8 @@ let make = React.memoCustomCompareProps(({
                             true, 
                             stmtType => stmtType === frame.asrt[0]
                         ) 
+                        && (!discFilter || frame.isDisc)
+                        && (!tranDiscFilter || frame.isTranDisc)
                         && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
                         && frameMatchesPattern(frame)
                     })
@@ -176,10 +182,18 @@ let make = React.memoCustomCompareProps(({
         setPatternFilterStr(_ => newPatternFilterStr)
     }
 
-    React.useEffect2(() => {
+    let actDiscFilterUpdated = newDiscFilter => {
+        setDiscFilter(_ => newDiscFilter)
+    }
+
+    let actTranDiscFilterUpdated = newTranDiscFilter => {
+        setTranDiscFilter(_ => newTranDiscFilter)
+    }
+
+    React.useEffect4(() => {
         actApplyFilters()
         None
-    }, (isAxiomFilter, stmtTypeFilter))
+    }, (isAxiomFilter, stmtTypeFilter, discFilter, tranDiscFilter))
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -282,6 +296,32 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let rndDiscFilter = () => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=discFilter
+                    onChange=evt2bool(actDiscFilterUpdated)
+                />
+            }
+            label="Discouraged"
+            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+        />
+    }
+
+    let rndTranDiscFilter = () => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=tranDiscFilter
+                    onChange=evt2bool(actTranDiscFilterUpdated)
+                />
+            }
+            label="Transitively discouraged"
+            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+        />
+    }
+
     let rndApplyFiltersBtn = () => {
         <span title="Apply filters">
             <IconButton onClick={_ => actApplyFilters()} color="primary"> 
@@ -318,6 +358,8 @@ let make = React.memoCustomCompareProps(({
             </Row>
             <Row>
                 {rndStmtTypeFilter()}
+                {rndDiscFilter()}
+                {rndTranDiscFilter()}
             </Row>
         </Col>
     }
