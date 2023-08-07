@@ -92,7 +92,7 @@ let make = () => {
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
 
-    let reloadCtx = React.useRef(Js.Nullable.null)
+    let reloadCtx: React.ref<Js.Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Js.Nullable.null)
     let toggleCtxSelector = React.useRef(Js.Nullable.null)
     let loadEditorState = React.useRef(Js.Nullable.null)
 
@@ -132,8 +132,22 @@ let make = () => {
 
     let actSettingsUpdated = (newSettings:settings) => {
         actCloseFrmTabs()
-        setState(updatePreCtxData(_,~settings=newSettings, ()))
         settingsSaveToLocStor(newSettings)
+        setState(updatePreCtxData(_,~settings=newSettings, ()))
+        if (
+            state.preCtxData.settingsV.val.descrRegexToDisc != newSettings.descrRegexToDisc
+            || state.preCtxData.settingsV.val.labelRegexToDisc != newSettings.labelRegexToDisc
+        ) {
+            reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
+                reloadCtx(
+                    ~srcs=state.preCtxData.srcs, 
+                    ~settings=state.preCtxData.settingsV.val, 
+                    ~force=true, 
+                    ~showError=true, 
+                    ()
+                )->ignore
+            })
+        }
     }
 
     let actCtxSelectorExpandedChange = (expanded) => {
@@ -253,12 +267,10 @@ let make = () => {
                 <Col>
                     <MM_cmp_context_selector 
                         modalRef 
-                        webSrcSettings={state.preCtxData.settingsV.val.webSrcSettings}
+                        settings={state.preCtxData.settingsV.val}
                         onUrlBecomesTrusted={
                             url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated
                         }
-                        descrRegexToDisc={state.preCtxData.settingsV.val.descrRegexToDisc}
-                        labelRegexToDisc={state.preCtxData.settingsV.val.labelRegexToDisc}
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx
                         style=ReactDOM.Style.make(

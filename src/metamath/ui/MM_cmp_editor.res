@@ -128,7 +128,7 @@ let make = (
     ~modalRef:modalRef, 
     ~preCtxData:preCtxData,
     ~top:int,
-    ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~reloadCtx: React.ref<Js.Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
     ~loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
@@ -1058,7 +1058,7 @@ let make = (
             ~stateLocStor=Some(stateLocStor)
         ))
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
-            reloadCtx(stateLocStor.srcs)->promiseMap(res => {
+            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
                     | Error(msg) => {
