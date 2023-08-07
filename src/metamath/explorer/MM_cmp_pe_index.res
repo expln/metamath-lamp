@@ -35,8 +35,11 @@ let make = React.memoCustomCompareProps(({
     let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
     let (allLabels, setAllLabels) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
+    let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
+    let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
+    let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
@@ -51,6 +54,7 @@ let make = React.memoCustomCompareProps(({
 
     let actClearFilters = (~applyFilters:bool) => {
         setIsAxiomFilter(_ => None)
+        setStmtTypeFilter(_ => None)
         setLabelFilter(_ => "")
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
@@ -74,6 +78,10 @@ let make = React.memoCustomCompareProps(({
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
                             isAxiomFilter => isAxiomFilter === frame.isAxiom
+                        ) 
+                        && stmtTypeFilter->Belt_Option.mapWithDefault(
+                            true, 
+                            stmtType => stmtType === frame.asrt[0]
                         ) 
                         && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
                         && frameMatchesPattern(frame)
@@ -100,6 +108,19 @@ let make = React.memoCustomCompareProps(({
         let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
+
+        let allStmtIntTypes = []
+        preCtx->forEachFrame(frame => {
+            let stmtTyp = frame.asrt[0]
+            if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
+                allStmtIntTypes->Js.Array2.push(stmtTyp)->ignore
+            }
+            None
+        })->ignore
+        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
+        setAllStmtTypes(_ => allStmtTypes)
+        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
+
         actClearFilters(~applyFilters=false)
     }
 
@@ -124,8 +145,27 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let stmtTypeFilterToStr = typeFilter => {
+        switch typeFilter {
+            | None => allStmtTypesConcat
+            | Some(n) => preCtx->ctxIntToSymExn(n)
+        }
+    }
+
+    let stmtTypeFilterFromStr = str => {
+        if (str == allStmtTypesConcat) {
+            None
+        } else {
+            preCtx->ctxSymToInt(str)
+        }
+    }
+
     let actIsAxiomFilterUpdated = isAxiomStr => {
         setIsAxiomFilter(_ => isAxiomStr->isAxiomFilterFromStr)
+    }
+
+    let actStmtTypeFilterUpdated = stmtTypeStr => {
+        setStmtTypeFilter(_ => stmtTypeStr->stmtTypeFilterFromStr)
     }
 
     let actLabelFilterUpdated = newLabelFilter => {
@@ -136,10 +176,10 @@ let make = React.memoCustomCompareProps(({
         setPatternFilterStr(_ => newPatternFilterStr)
     }
 
-    React.useEffect1(() => {
+    React.useEffect2(() => {
         actApplyFilters()
         None
-    }, [isAxiomFilter])
+    }, (isAxiomFilter, stmtTypeFilter))
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -184,6 +224,26 @@ let make = React.memoCustomCompareProps(({
                 <MenuItem value="none">{React.string("All")}</MenuItem>
                 <MenuItem value="true">{React.string("Axiom")}</MenuItem>
                 <MenuItem value="false">{React.string("Theorem")}</MenuItem>
+            </Select>
+        </FormControl>
+    }
+
+    let rndStmtTypeFilter = () => {
+        <FormControl size=#small>
+            <InputLabel id="stmtTypeFilter-label">"Statement type"</InputLabel>
+            <Select
+                sx={"width": 130}
+                labelId="stmtTypeFilter-label"
+                value={stmtTypeFilter->stmtTypeFilterToStr}
+                label="Statement type"
+                onChange=evt2str(actStmtTypeFilterUpdated)
+            >
+                <MenuItem value=allStmtTypesConcat>{React.string("All")}</MenuItem>
+                {
+                    allStmtTypes->Js_array2.map(stmtType => {
+                        <MenuItem key=stmtType value=stmtType>{React.string(stmtType)}</MenuItem>
+                    })->React.array
+                }
             </Select>
         </FormControl>
     }
@@ -247,14 +307,19 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndFilters = () => {
-        <Row>
-            {rndIsAxiomFilter()}
-            {rndLabelFilter()}
-            {rndPatternFilter()}
-            {rndApplyFiltersBtn()}
-            {rndClearFiltersBtn()}
-            {rndMainMenuBtn()}
-        </Row>
+        <Col>
+            <Row>
+                {rndIsAxiomFilter()}
+                {rndLabelFilter()}
+                {rndPatternFilter()}
+                {rndApplyFiltersBtn()}
+                {rndClearFiltersBtn()}
+                {rndMainMenuBtn()}
+            </Row>
+            <Row>
+                {rndStmtTypeFilter()}
+            </Row>
+        </Col>
     }
 
     let rndMainMenu = () => {
