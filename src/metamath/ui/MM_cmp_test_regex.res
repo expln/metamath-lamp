@@ -64,7 +64,12 @@ let make = (
                     kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
                 )
             />
-            <Button onClick=(_=>actTestRegex()) variant=#contained color="grey" > 
+            <Button 
+                onClick=(_=>actTestRegex()) 
+                variant=#contained 
+                color="grey" 
+                disabled={regex->Js.String2.trim->Js.String2.length == 0}
+            > 
                 { React.string("Test") }
             </Button>
         </Row>
@@ -72,7 +77,7 @@ let make = (
 
     let rndResult = () => {
         switch result {
-            | None => React.string(`Press the "TEST" button to test the regex.`)
+            | None => React.string(`Click the "TEST" button to test the regex.`)
             | Some(Ok(res)) => {
                 if (res) {
                     <span>
