@@ -12,6 +12,12 @@ let openInfoDialog: (
 
 let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ) => React.element
 
+let rndColorSelect: (
+    ~availableColors:array<string>, 
+    ~selectedColor:string, 
+    ~onNewColorSelected:string=>unit
+) => React.element
+
 let copyToClipboard: string => promise<unit>
 let readFromClipboard: () => promise<string>
 let getAvailWidth: () => int

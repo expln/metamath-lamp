@@ -1,5 +1,6 @@
 open Expln_React_Mui
 open Expln_React_Modal
+open Expln_React_common
 open Expln_utils_promise
 
 @val external navigator: {..} = "navigator"
@@ -103,6 +104,30 @@ let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
     >
         {React.string(text)}
     </span>
+}
+
+let rndColorSelect = (
+    ~availableColors:array<string>, 
+    ~selectedColor:string, 
+    ~onNewColorSelected:string=>unit
+):React.element => {
+    <FormControl size=#small >
+        <InputLabel id="label-for-color-select">"Color"</InputLabel>
+        <Select 
+            labelId="label-for-color-select"
+            label="Color"
+            value=selectedColor
+            onChange=evt2str(onNewColorSelected)
+        >
+            {
+                React.array(availableColors->Js_array2.map(color => {
+                    <MenuItem key=color value=color>
+                        <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
+                    </MenuItem>
+                }))
+            }
+        </Select>
+    </FormControl>
 }
 
 type mouseButton = Left | Middle | Right

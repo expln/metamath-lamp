@@ -19,6 +19,10 @@ type settingsState = {
     labelRegexToDisc: string,
     labelRegexToDiscErr: option<string>,
 
+    discColor:option<string>,
+    deprColor:option<string>,
+    tranDeprColor:option<string>,
+
     descrRegexToDepr: string,
     descrRegexToDeprErr: option<string>,
     labelRegexToDepr: string,
@@ -74,9 +78,14 @@ let setmm = createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath
 let isetmm = createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm")
 let defaultAliases = [setmm.alias, isetmm.alias]
 
+let defaultDiscColor = "#fabed4"
+let defaultDeprColor = "#ffe119"
+let defaultTranDeprColor = "#fffac8"
+
 let createDefaultSettings = () => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
+
         parensErr: None,
         descrRegexToDisc: "\\(New usage is discouraged\\.\\)",
         descrRegexToDiscErr: None,
@@ -86,6 +95,11 @@ let createDefaultSettings = () => {
         descrRegexToDeprErr: None,
         labelRegexToDepr: "",
         labelRegexToDeprErr: None,
+
+        discColor:Some(defaultDiscColor),
+        deprColor:Some(defaultDeprColor),
+        tranDeprColor:Some(defaultTranDeprColor),
+
         editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
@@ -165,60 +179,46 @@ let validateAndCorrectParens = (st:settingsState):settingsState => {
     }
 }
 
-let validateAndCorrectDescrRegexToDisc = (st:settingsState):settingsState => {
-    let newDescrRegexToDisc = st.descrRegexToDisc->Js_string2.trim
-    let err = switch newDescrRegexToDisc->strToRegex {
+let validateRegex = (regex:string):option<string> => {
+    switch strToRegex(regex) {
         | Error(msg) => Some(msg)
         | Ok(_) => None
-    }
-
-    {
-        ...st,
-        descrRegexToDisc: newDescrRegexToDisc,
-        descrRegexToDiscErr: err,
     }
 }
 
-let validateAndCorrectLabelRegexToDisc = (st:settingsState):settingsState => {
-    let newLabelRegexToDisc = st.labelRegexToDisc->Js_string2.trim
-    let err = switch newLabelRegexToDisc->strToRegex {
-        | Error(msg) => Some(msg)
-        | Ok(_) => None
-    }
-
-    {
-        ...st,
-        labelRegexToDisc: newLabelRegexToDisc,
-        labelRegexToDiscErr: err,
-    }
-}
-
-let validateAndCorrectDescrRegexToDepr = (st:settingsState):settingsState => {
-    let newDescrRegexToDepr = st.descrRegexToDepr->Js_string2.trim
-    let err = switch newDescrRegexToDepr->strToRegex {
-        | Error(msg) => Some(msg)
-        | Ok(_) => None
-    }
-
-    {
-        ...st,
-        descrRegexToDepr: newDescrRegexToDepr,
-        descrRegexToDeprErr: err,
+let validateColor = (color:option<string>):option<string> => {
+    switch color {
+        | None => None
+        | Some(color) => {
+            if (allColors->Js_array2.includes(color)) {
+                Some(color)
+            } else {
+                None
+            }
+        }
     }
 }
 
-let validateAndCorrectLabelRegexToDepr = (st:settingsState):settingsState => {
-    let newLabelRegexToDepr = st.labelRegexToDepr->Js_string2.trim
-    let err = switch newLabelRegexToDepr->strToRegex {
-        | Error(msg) => Some(msg)
-        | Ok(_) => None
-    }
-
-    {
+let validateAndCorrectDiscAndDeprSettings = (st:settingsState):settingsState => {
+    let st = {
         ...st,
-        labelRegexToDepr: newLabelRegexToDepr,
-        labelRegexToDeprErr: err,
+        descrRegexToDisc: st.descrRegexToDisc->Js_string2.trim,
+        labelRegexToDisc: st.labelRegexToDisc->Js_string2.trim,
+        descrRegexToDepr: st.descrRegexToDepr->Js_string2.trim,
+        labelRegexToDepr: st.labelRegexToDepr->Js_string2.trim,
     }
+    let st = {
+        ...st,
+        descrRegexToDiscErr: st.descrRegexToDisc->validateRegex,
+        labelRegexToDiscErr: st.labelRegexToDisc->validateRegex,
+        descrRegexToDeprErr: st.descrRegexToDepr->validateRegex,
+        labelRegexToDeprErr: st.labelRegexToDepr->validateRegex,
+
+        discColor: st.discColor->validateColor,
+        deprColor: st.deprColor->validateColor,
+        tranDeprColor: st.tranDeprColor->validateColor,
+    }
+    st
 }
 
 let validateDefaultStmtLabel = (label:string):string => {
@@ -460,10 +460,7 @@ let validateAndCorrectEditorHistoryMaxLengthSetting = (st:settingsState):setting
 
 let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
-    let st = validateAndCorrectDescrRegexToDisc(st)
-    let st = validateAndCorrectLabelRegexToDisc(st)
-    let st = validateAndCorrectDescrRegexToDepr(st)
-    let st = validateAndCorrectLabelRegexToDepr(st)
+    let st = validateAndCorrectDiscAndDeprSettings(st)
     let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectUnifMetavarPrefix(st)
@@ -481,6 +478,9 @@ let stateToSettings = (st:settingsState):settings => {
         labelRegexToDisc: st.labelRegexToDisc,
         descrRegexToDepr: st.descrRegexToDepr,
         labelRegexToDepr: st.labelRegexToDepr,
+        discColor: st.discColor,
+        deprColor: st.deprColor,
+        tranDeprColor: st.tranDeprColor,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
         initStmtIsGoal:st.initStmtIsGoal,
         defaultStmtLabel:st.defaultStmtLabel,
@@ -521,6 +521,9 @@ let settingsToState = (ls:settings):settingsState => {
         descrRegexToDeprErr: None,
         labelRegexToDepr: ls.labelRegexToDepr,
         labelRegexToDeprErr: None,
+        discColor: ls.discColor,
+        deprColor: ls.deprColor,
+        tranDeprColor: ls.tranDeprColor,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         initStmtIsGoal:ls.initStmtIsGoal,
         defaultStmtLabel:ls.defaultStmtLabel,
@@ -590,6 +593,9 @@ let readStateFromLocStor = ():settingsState => {
                     descrRegexToDeprErr: None,
                     labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr, ()),
                     labelRegexToDeprErr: None,
+                    discColor: d->strOpt("discColor", ()),
+                    deprColor: d->strOpt("deprColor", ()),
+                    tranDeprColor: d->strOpt("tranDeprColor", ()),
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
@@ -681,6 +687,9 @@ let eqState = (st1, st2) => {
         && st1.labelRegexToDisc == st2.labelRegexToDisc
         && st1.descrRegexToDepr == st2.descrRegexToDepr
         && st1.labelRegexToDepr == st2.labelRegexToDepr
+        && st1.discColor == st2.discColor
+        && st1.deprColor == st2.deprColor
+        && st1.tranDeprColor == st2.tranDeprColor
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.initStmtIsGoal == st2.initStmtIsGoal
         && st1.defaultStmtLabel == st2.defaultStmtLabel
@@ -720,6 +729,16 @@ let setDescrRegexToDepr = (st, descrRegexToDepr) => {
 }
 let setLabelRegexToDepr = (st, labelRegexToDepr) => {
     {...st, labelRegexToDepr, labelRegexToDeprErr:None}
+}
+
+let setDiscColor = (st, color) => {
+    {...st, discColor:color}
+}
+let setDeprColor = (st, color) => {
+    {...st, deprColor:color}
+}
+let setTranDeprColor = (st, color) => {
+    {...st, tranDeprColor:color}
 }
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
@@ -861,6 +880,18 @@ let make = (
 
     let actLabelRegexToDeprUpdated = (labelRegexToDepr:string) => {
         setState(setLabelRegexToDepr(_,labelRegexToDepr))
+    }
+
+    let actDiscColorUpdated = (color:option<string>) => {
+        setState(setDiscColor(_,color))
+    }
+
+    let actDeprColorUpdated = (color:option<string>) => {
+        setState(setDeprColor(_,color))
+    }
+
+    let actTranDeprColorUpdated = (color:option<string>) => {
+        setState(setTranDeprColor(_,color))
     }
 
     let actEditStmtsByLeftClickChange = editStmtsByLeftClick => {
@@ -1087,8 +1118,55 @@ let make = (
         }
     }
 
+    let rndOptHighlightColorSetting = (
+        ~selectedColor:option<string>,
+        ~onChange:option<string>=>unit,
+        ~label:string,
+        ~defaultColor:string,
+    ):React.element => {
+        <Row>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked={selectedColor->Belt_Option.isSome}
+                        onChange=evt2bool(checked => {
+                            if (checked) {
+                                let color = allColors->Js.Array2.find(c => c == defaultColor)
+                                    ->Belt.Option.getWithDefault(allColors[0])
+                                onChange(Some(color))
+                            } else {
+                                onChange(None)
+                            }
+                        })
+                    />
+                }
+                label
+            />
+            {
+                switch selectedColor {
+                    | None => React.null
+                    | Some(color) => {
+                        rndColorSelect( 
+                            ~availableColors=allColors, 
+                            ~selectedColor=color, 
+                            ~onNewColorSelected = newColor => onChange(Some(newColor)),
+                        )
+                    }
+                }
+            }
+        </Row>
+    }
+
     let rndDiscAsrtsSettings = () => {
         <Col spacing=1.5>
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.discColor,
+                    ~onChange=actDiscColorUpdated,
+                    ~label="Highlight discouraged assertions",
+                    ~defaultColor=defaultDiscColor,
+                )
+            }
             <Row alignItems=#center>
                 <TextField 
                     size=#small
@@ -1135,6 +1213,22 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDiscErr)}
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.deprColor,
+                    ~onChange=actDeprColorUpdated,
+                    ~label="Highlight deprecated assertions",
+                    ~defaultColor=defaultDeprColor,
+                )
+            }
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.tranDeprColor,
+                    ~onChange=actTranDeprColorUpdated,
+                    ~label="Highlight transitively deprecated assertions",
+                    ~defaultColor=defaultTranDeprColor,
+                )
+            }
             <Row alignItems=#center>
                 <TextField 
                     size=#small
@@ -1175,7 +1269,6 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDeprErr)}
-            
         </Col>
     }
 

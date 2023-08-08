@@ -12,10 +12,15 @@ type webSrcSettings = {
 
 type settings = {
     parens: string,
+
     descrRegexToDisc: string,
     labelRegexToDisc: string,
     descrRegexToDepr: string,
     labelRegexToDepr: string,
+    discColor:option<string>,
+    deprColor:option<string>,
+    tranDeprColor:option<string>,
+    
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
     defaultStmtLabel:string,

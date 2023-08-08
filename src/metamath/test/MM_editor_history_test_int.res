@@ -14,6 +14,7 @@ let createEmptyEditorState = ():editorState => {
         ~settingsV=0, 
         ~settings={
             parens: "", descrRegexToDisc: "", labelRegexToDisc: "", descrRegexToDepr: "", labelRegexToDepr: "", 
+            discColor:None, deprColor:None, tranDeprColor:None,
             editStmtsByLeftClick:false, defaultStmtType:"", 
             unifMetavarPrefix:"&", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, 
             stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
