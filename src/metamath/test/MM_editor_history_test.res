@@ -8,7 +8,8 @@ let createEditorState = ():editorState => {
     createInitialEditorState(
         ~settingsV=0, 
         ~settings={
-            parens: "", descrRegexToDisc: "", labelRegexToDisc: "", editStmtsByLeftClick:false, defaultStmtType:"", 
+            parens: "", descrRegexToDisc: "", labelRegexToDisc: "", descrRegexToDepr: "", labelRegexToDepr: "", 
+            editStmtsByLeftClick:false, defaultStmtType:"", 
             unifMetavarPrefix:"&", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, 
             stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
             webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 

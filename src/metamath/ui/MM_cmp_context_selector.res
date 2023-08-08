@@ -310,6 +310,8 @@ let loadMmContext = (
                     }),
                     ~descrRegexToDisc=settings.descrRegexToDisc,
                     ~labelRegexToDisc=settings.labelRegexToDisc,
+                    ~descrRegexToDepr=settings.descrRegexToDepr,
+                    ~labelRegexToDepr=settings.labelRegexToDepr,
                     ~onProgress = pct => 
                         updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
                     ~onDone = ctx => {

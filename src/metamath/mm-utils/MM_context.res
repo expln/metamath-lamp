@@ -78,7 +78,8 @@ type frame = {
     descr:option<string>,
     proof:option<proof>,
     isDisc:bool, /* is discouraged */
-    isTranDisc:bool, /* is transitively discouraged (depends on an isDisc frame or another isTranDisc frame ) */
+    isDepr:bool, /* is deprecated */
+    isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
 }
 
@@ -100,7 +101,8 @@ type rec mmContextContents = {
     frames: Belt_HashMapString.t<frame>,
     frameLabels:array<string>,
     discFrms:Belt_HashSetString.t,
-    tranDiscFrms:Belt_HashSetString.t,
+    deprFrms:Belt_HashSetString.t,
+    tranDeprFrms:Belt_HashSetString.t,
     debug:bool,
 }
 
@@ -708,7 +710,8 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
             frames: Belt_HashMapString.make(~hintSize=1),
             frameLabels:[],
             discFrms: Belt_HashSetString.make(~hintSize=1),
-            tranDiscFrms: Belt_HashSetString.make(~hintSize=1),
+            deprFrms: Belt_HashSetString.make(~hintSize=1),
+            tranDeprFrms: Belt_HashSetString.make(~hintSize=1),
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
@@ -729,7 +732,8 @@ let closeChildContext = (ctx:mmContext):unit => {
         | Some(parent) => {
             ctx.contents.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
             ctx.contents.discFrms->Belt_HashSetString.forEach(parent.discFrms->Belt_HashSetString.add)
-            ctx.contents.tranDiscFrms->Belt_HashSetString.forEach(parent.tranDiscFrms->Belt_HashSetString.add)
+            ctx.contents.deprFrms->Belt_HashSetString.forEach(parent.deprFrms->Belt_HashSetString.add)
+            ctx.contents.tranDeprFrms->Belt_HashSetString.forEach(parent.tranDeprFrms->Belt_HashSetString.add)
             parent
         }
     }
@@ -881,27 +885,27 @@ let matchesOptRegex = (str:string, regex:option<Js_re.t>):bool => {
     regex->Belt_Option.map(regex => regex->Js_re.test_(str))->Belt.Option.getWithDefault(false)
 }
 
-let atLeastOneLabelIsDiscOrTranDisc = (
+let isMatch = (
+    ~descr:option<string>,
+    ~label:string,
+    ~descrRegexToMatch:option<Js_re.t>,
+    ~labelRegexToMatch:option<Js_re.t>,
+):bool => {
+    descr->Belt.Option.map(matchesOptRegex(_,descrRegexToMatch))->Belt_Option.getWithDefault(false) 
+        || label->matchesOptRegex(labelRegexToMatch)
+}
+
+let atLeastOneLabelIsDeprOrTranDepr = (
     ~labels:array<string>,
-    ~discFrms:Belt_HashSetString.t,
-    ~tranDiscFrms:Belt_HashSetString.t,
+    ~deprFrms:Belt_HashSetString.t,
+    ~tranDeprFrms:Belt_HashSetString.t,
 ):bool => {
     labels->Js_array2.some(label => {
-        discFrms->Belt_HashSetString.has(label) || tranDiscFrms->Belt_HashSetString.has(label)
+        deprFrms->Belt_HashSetString.has(label) || tranDeprFrms->Belt_HashSetString.has(label)
     })
 }
 
-let isDisc = (
-    ~descr:option<string>,
-    ~label:string,
-    ~descrRegexToDisc:option<Js_re.t>,
-    ~labelRegexToDisc:option<Js_re.t>,
-):bool => {
-    descr->Belt.Option.map(matchesOptRegex(_,descrRegexToDisc))->Belt_Option.getWithDefault(false) 
-        || label->matchesOptRegex(labelRegexToDisc)
-}
-
-let isTranDisc = (
+let isTranDepr = (
     ~ctx:mmContext,
     ~proof:option<proof>,
 ):bool => {
@@ -912,8 +916,8 @@ let isTranDisc = (
                 | Uncompressed({labels}) | Compressed({labels}) => {
                     ctx.contents->forEachCtxInDeclarationOrder(ctx => {
                         if (
-                            atLeastOneLabelIsDiscOrTranDisc(
-                                ~labels, ~discFrms=ctx.discFrms, ~tranDiscFrms=ctx.tranDiscFrms
+                            atLeastOneLabelIsDeprOrTranDepr(
+                                ~labels, ~deprFrms=ctx.deprFrms, ~tranDeprFrms=ctx.tranDeprFrms
                             )
                         ) {
                             Some(true)
@@ -939,6 +943,8 @@ let createFrame = (
     ~skipFirstSymCheck:bool=false, 
     ~descrRegexToDisc:option<Js_re.t>=?,
     ~labelRegexToDisc:option<Js_re.t>=?,
+    ~descrRegexToDepr:option<Js_re.t>=?,
+    ~labelRegexToDepr:option<Js_re.t>=?,
     ()
 ):frame => {
     assertNameIsUnique(ctx,label,tokenType)
@@ -972,8 +978,13 @@ let createFrame = (
                     numOfArgs: mandatoryHypotheses->Js_array2.length,
                     descr,
                     proof,
-                    isDisc: isDisc( ~descr, ~label, ~descrRegexToDisc, ~labelRegexToDisc, ),
-                    isTranDisc: isTranDisc( ~ctx, ~proof, ),
+                    isDisc: isMatch( 
+                        ~descr, ~label, ~descrRegexToMatch=descrRegexToDisc, ~labelRegexToMatch=labelRegexToDisc, 
+                    ),
+                    isDepr: isMatch( 
+                        ~descr, ~label, ~descrRegexToMatch=descrRegexToDepr, ~labelRegexToMatch=labelRegexToDepr, 
+                    ),
+                    isTranDepr: isTranDepr( ~ctx, ~proof, ),
                     dbg:
                         if (ctx.contents.debug) {
                             Some({
@@ -991,7 +1002,7 @@ let createFrame = (
     }
 }
 
-let addAssertion = ( 
+let addAssertion = (
     ctx:mmContext, 
     ~isAxiom:bool, 
     ~label:string, 
@@ -999,6 +1010,8 @@ let addAssertion = (
     ~proof:option<proof>,
     ~descrRegexToDisc:option<Js_re.t>=?,
     ~labelRegexToDisc:option<Js_re.t>=?,
+    ~descrRegexToDepr:option<Js_re.t>=?,
+    ~labelRegexToDepr:option<Js_re.t>=?,
     ()
 ):unit => {
     let frameLabels = (ctx.contents.root->Belt_Option.getExn).frameLabels
@@ -1009,6 +1022,8 @@ let addAssertion = (
         ~tokenType = if (proof->Belt_Option.isNone) {"an axiom"} else {"a theorem"}, 
         ~descrRegexToDisc?,
         ~labelRegexToDisc?,
+        ~descrRegexToDepr?,
+        ~labelRegexToDepr?,
         ()
     )
     ctx.contents.frames->Belt_HashMapString.set( label, frame )
@@ -1016,8 +1031,11 @@ let addAssertion = (
     if (frame.isDisc) {
         ctx.contents.discFrms->Belt_HashSetString.add(label)
     }
-    if (frame.isTranDisc) {
-        ctx.contents.tranDiscFrms->Belt_HashSetString.add(label)
+    if (frame.isDepr) {
+        ctx.contents.deprFrms->Belt_HashSetString.add(label)
+    }
+    if (frame.isTranDepr) {
+        ctx.contents.tranDeprFrms->Belt_HashSetString.add(label)
     }
 }
 
@@ -1026,6 +1044,8 @@ let applySingleStmt = (
     stmt:stmt,
     ~descrRegexToDisc:option<Js_re.t>=?,
     ~labelRegexToDisc:option<Js_re.t>=?,
+    ~descrRegexToDepr:option<Js_re.t>=?,
+    ~labelRegexToDepr:option<Js_re.t>=?,
     ()
 ):unit => {
     switch stmt {
@@ -1036,10 +1056,18 @@ let applySingleStmt = (
         | Disj({vars}) => addDisj(ctx, vars)
         | Floating({label, expr}) => addFloating(ctx, ~label, ~exprStr=expr)
         | Essential({label, expr}) => addEssential(ctx, ~label, ~exprStr=expr)
-        | Axiom({label, expr}) => 
-            addAssertion(ctx, ~isAxiom=true, ~label, ~exprStr=expr, ~proof=None, ~descrRegexToDisc?, ~labelRegexToDisc?, ())
-        | Provable({label, expr, proof}) => 
-            addAssertion(ctx, ~isAxiom=false, ~label, ~exprStr=expr, ~proof, ~descrRegexToDisc?, ~labelRegexToDisc?, ())
+        | Axiom({label, expr}) => {
+            addAssertion(
+                ctx, ~isAxiom=true, ~label, ~exprStr=expr, ~proof=None, 
+                ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?, ()
+            )
+        }
+        | Provable({label, expr, proof}) => {
+            addAssertion(
+                ctx, ~isAxiom=false, ~label, ~exprStr=expr, ~proof, 
+                ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?, ()
+            )
+        }
     }
 }
 
@@ -1052,6 +1080,8 @@ let loadContext = (
     ~expectedNumOfAssertions=-1, 
     ~descrRegexToDisc:option<Js_re.t>=?,
     ~labelRegexToDisc:option<Js_re.t>=?,
+    ~descrRegexToDepr:option<Js_re.t>=?,
+    ~labelRegexToDepr:option<Js_re.t>=?,
     ~onProgress= _=>(), 
     ~debug:bool=false, 
     ()
@@ -1100,7 +1130,11 @@ let loadContext = (
         ~process = (ctx,node) => {
             switch node {
                 | {stmt:Block(_)} => ()
-                | {stmt} => applySingleStmt(ctx, stmt, ~descrRegexToDisc?, ~labelRegexToDisc?, ())
+                | {stmt} => {
+                    applySingleStmt(
+                        ctx, stmt, ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?, ()
+                    )
+                }
             }
             None
         },

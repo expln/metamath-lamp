@@ -19,6 +19,11 @@ type settingsState = {
     labelRegexToDisc: string,
     labelRegexToDiscErr: option<string>,
 
+    descrRegexToDepr: string,
+    descrRegexToDeprErr: option<string>,
+    labelRegexToDepr: string,
+    labelRegexToDeprErr: option<string>,
+
     editStmtsByLeftClick:bool,
     initStmtIsGoal:bool,
     defaultStmtLabel:string,
@@ -77,6 +82,10 @@ let createDefaultSettings = () => {
         descrRegexToDiscErr: None,
         labelRegexToDisc: "",
         labelRegexToDiscErr: None,
+        descrRegexToDepr: "",
+        descrRegexToDeprErr: None,
+        labelRegexToDepr: "",
+        labelRegexToDeprErr: None,
         editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
@@ -181,6 +190,34 @@ let validateAndCorrectLabelRegexToDisc = (st:settingsState):settingsState => {
         ...st,
         labelRegexToDisc: newLabelRegexToDisc,
         labelRegexToDiscErr: err,
+    }
+}
+
+let validateAndCorrectDescrRegexToDepr = (st:settingsState):settingsState => {
+    let newDescrRegexToDepr = st.descrRegexToDepr->Js_string2.trim
+    let err = switch newDescrRegexToDepr->strToRegex {
+        | Error(msg) => Some(msg)
+        | Ok(_) => None
+    }
+
+    {
+        ...st,
+        descrRegexToDepr: newDescrRegexToDepr,
+        descrRegexToDeprErr: err,
+    }
+}
+
+let validateAndCorrectLabelRegexToDepr = (st:settingsState):settingsState => {
+    let newLabelRegexToDepr = st.labelRegexToDepr->Js_string2.trim
+    let err = switch newLabelRegexToDepr->strToRegex {
+        | Error(msg) => Some(msg)
+        | Ok(_) => None
+    }
+
+    {
+        ...st,
+        labelRegexToDepr: newLabelRegexToDepr,
+        labelRegexToDeprErr: err,
     }
 }
 
@@ -425,6 +462,8 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
     let st = validateAndCorrectDescrRegexToDisc(st)
     let st = validateAndCorrectLabelRegexToDisc(st)
+    let st = validateAndCorrectDescrRegexToDepr(st)
+    let st = validateAndCorrectLabelRegexToDepr(st)
     let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectUnifMetavarPrefix(st)
@@ -440,6 +479,8 @@ let stateToSettings = (st:settingsState):settings => {
         parens: st.parens,
         descrRegexToDisc: st.descrRegexToDisc,
         labelRegexToDisc: st.labelRegexToDisc,
+        descrRegexToDepr: st.descrRegexToDepr,
+        labelRegexToDepr: st.labelRegexToDepr,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
         initStmtIsGoal:st.initStmtIsGoal,
         defaultStmtLabel:st.defaultStmtLabel,
@@ -476,6 +517,10 @@ let settingsToState = (ls:settings):settingsState => {
         descrRegexToDiscErr: None,
         labelRegexToDisc: ls.labelRegexToDisc,
         labelRegexToDiscErr: None,
+        descrRegexToDepr: ls.descrRegexToDepr,
+        descrRegexToDeprErr: None,
+        labelRegexToDepr: ls.labelRegexToDepr,
+        labelRegexToDeprErr: None,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         initStmtIsGoal:ls.initStmtIsGoal,
         defaultStmtLabel:ls.defaultStmtLabel,
@@ -541,6 +586,10 @@ let readStateFromLocStor = ():settingsState => {
                     descrRegexToDiscErr: None,
                     labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
                     labelRegexToDiscErr: None,
+                    descrRegexToDepr: d->str("descrRegexToDepr", ~default=()=>defaultSettings.descrRegexToDepr, ()),
+                    descrRegexToDeprErr: None,
+                    labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr, ()),
+                    labelRegexToDeprErr: None,
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
@@ -608,6 +657,8 @@ let isValid = st => {
     st.parensErr->Belt_Option.isNone
         && st.descrRegexToDiscErr->Belt_Option.isNone
         && st.labelRegexToDiscErr->Belt_Option.isNone
+        && st.descrRegexToDeprErr->Belt_Option.isNone
+        && st.labelRegexToDeprErr->Belt_Option.isNone
         && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
         && st.webSrcSettings->Js_array2.every(s => s.err->Belt_Option.isNone)
 }
@@ -628,6 +679,8 @@ let eqState = (st1, st2) => {
     st1.parens == st2.parens
         && st1.descrRegexToDisc == st2.descrRegexToDisc
         && st1.labelRegexToDisc == st2.labelRegexToDisc
+        && st1.descrRegexToDepr == st2.descrRegexToDepr
+        && st1.labelRegexToDepr == st2.labelRegexToDepr
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.initStmtIsGoal == st2.initStmtIsGoal
         && st1.defaultStmtLabel == st2.defaultStmtLabel
@@ -660,6 +713,13 @@ let setDescrRegexToDisc = (st, descrRegexToDisc) => {
 }
 let setLabelRegexToDisc = (st, labelRegexToDisc) => {
     {...st, labelRegexToDisc, labelRegexToDiscErr:None}
+}
+
+let setDescrRegexToDepr = (st, descrRegexToDepr) => {
+    {...st, descrRegexToDepr, descrRegexToDeprErr:None }
+}
+let setLabelRegexToDepr = (st, labelRegexToDepr) => {
+    {...st, labelRegexToDepr, labelRegexToDeprErr:None}
 }
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
@@ -793,6 +853,14 @@ let make = (
 
     let actLabelRegexToDiscUpdated = (labelRegexToDisc:string) => {
         setState(setLabelRegexToDisc(_,labelRegexToDisc))
+    }
+
+    let actDescrRegexToDeprUpdated = (descrRegexToDepr:string) => {
+        setState(setDescrRegexToDepr(_,descrRegexToDepr))
+    }
+
+    let actLabelRegexToDeprUpdated = (labelRegexToDepr:string) => {
+        setState(setLabelRegexToDepr(_,labelRegexToDepr))
     }
 
     let actEditStmtsByLeftClickChange = editStmtsByLeftClick => {
@@ -1020,7 +1088,7 @@ let make = (
     }
 
     let rndDiscAsrtsSettings = () => {
-        <Col spacing=2.>
+        <Col spacing=1.5>
             <Row alignItems=#center>
                 <TextField 
                     size=#small
@@ -1028,7 +1096,7 @@ let make = (
                     label="Regex to determine discouraged assertions by description" 
                     value=state.descrRegexToDisc
                     onChange=evt2str(actDescrRegexToDiscUpdated)
-                    title="All assertions with a description matching this regular expression will be considered as discouraged."
+                    title="All assertions with a description matching this regular expression will be marked as discouraged."
                     error={state.descrRegexToDiscErr->Belt_Option.isSome}
                 />
                 {
@@ -1054,7 +1122,7 @@ let make = (
                     label="Regex to determine discouraged assertions by label" 
                     value=state.labelRegexToDisc
                     onChange=evt2str(actLabelRegexToDiscUpdated)
-                    title="All assertions with a label matching this regular expression will be considered as discouraged."
+                    title="All assertions with a label matching this regular expression will be marked as discouraged."
                     error={state.labelRegexToDiscErr->Belt_Option.isSome}
                 />
                 {
@@ -1067,6 +1135,46 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDiscErr)}
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine deprecated assertions by description" 
+                    value=state.descrRegexToDepr
+                    onChange=evt2str(actDescrRegexToDeprUpdated)
+                    title="All assertions with a description matching this regular expression will be marked as deprecated."
+                    error={state.descrRegexToDeprErr->Belt_Option.isSome}
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.descrRegexToDepr, ~onSave=actDescrRegexToDeprUpdated)
+                        }
+                    )
+                }
+            </Row>
+            {rndError(state.descrRegexToDeprErr)}
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine deprecated assertions by label" 
+                    value=state.labelRegexToDepr
+                    onChange=evt2str(actLabelRegexToDeprUpdated)
+                    title="All assertions with a label matching this regular expression will be marked as deprecated."
+                    error={state.labelRegexToDeprErr->Belt_Option.isSome}
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.labelRegexToDepr, ~onSave=actLabelRegexToDeprUpdated)
+                        }
+                    )
+                }
+            </Row>
+            {rndError(state.labelRegexToDeprErr)}
             
         </Col>
     }

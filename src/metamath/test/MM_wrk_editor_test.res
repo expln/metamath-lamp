@@ -24,6 +24,8 @@ let createEditorState = (
         parens,
         descrRegexToDisc: "",
         labelRegexToDisc: "",
+        descrRegexToDepr: "",
+        labelRegexToDepr: "",
         editStmtsByLeftClick:true,
         initStmtIsGoal,
         defaultStmtLabel,

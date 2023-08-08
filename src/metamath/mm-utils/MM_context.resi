@@ -36,7 +36,8 @@ type frame = {
     descr:option<string>,
     proof:option<proof>,
     isDisc:bool, /* is discouraged */
-    isTranDisc:bool, /* is transitively discouraged (depends on an isDisc frame or another isTranDisc frame ) */
+    isDepr:bool, /* is deprecated */
+    isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
 }
 
@@ -46,6 +47,8 @@ let applySingleStmt: (
     stmt,
     ~descrRegexToDisc:Js_re.t=?,
     ~labelRegexToDisc:Js_re.t=?,
+    ~descrRegexToDepr:Js_re.t=?,
+    ~labelRegexToDepr:Js_re.t=?,
     ()
 ) => unit
 let openChildContext: mmContext => unit
@@ -60,6 +63,8 @@ let loadContext: (
     ~expectedNumOfAssertions:int=?, 
     ~descrRegexToDisc:Js_re.t=?,
     ~labelRegexToDisc:Js_re.t=?,
+    ~descrRegexToDepr:Js_re.t=?,
+    ~labelRegexToDepr:Js_re.t=?,
     ~onProgress:float=>unit=?, 
     ~debug:bool=?, 
     ()
@@ -117,6 +122,8 @@ let createFrame: (
     ~skipFirstSymCheck:bool=?, 
     ~descrRegexToDisc:Js_re.t=?,
     ~labelRegexToDisc:Js_re.t=?,
+    ~descrRegexToDepr:Js_re.t=?,
+    ~labelRegexToDepr:Js_re.t=?,
     ()
 ) => frame
 

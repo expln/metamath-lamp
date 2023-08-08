@@ -44,7 +44,8 @@ let make = React.memoCustomCompareProps(({
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (discFilter, setDiscFilter) = React.useState(() => false)
-    let (tranDiscFilter, setTranDiscFilter) = React.useState(() => false)
+    let (deprFilter, setDeprFilter) = React.useState(() => false)
+    let (tranDeprFilter, setTranDeprFilter) = React.useState(() => false)
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
@@ -61,7 +62,8 @@ let make = React.memoCustomCompareProps(({
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
         setDiscFilter(_ => false)
-        setTranDiscFilter(_ => false)
+        setDeprFilter(_ => false)
+        setTranDeprFilter(_ => false)
         if (applyFilters) {
             setApplyFiltersRequested(_ => true)
         }
@@ -88,7 +90,8 @@ let make = React.memoCustomCompareProps(({
                             stmtType => stmtType === frame.asrt[0]
                         ) 
                         && (!discFilter || frame.isDisc)
-                        && (!tranDiscFilter || frame.isTranDisc)
+                        && (!deprFilter || frame.isDepr)
+                        && (!tranDeprFilter || frame.isTranDepr)
                         && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
                         && frameMatchesPattern(frame)
                     })
@@ -186,14 +189,18 @@ let make = React.memoCustomCompareProps(({
         setDiscFilter(_ => newDiscFilter)
     }
 
-    let actTranDiscFilterUpdated = newTranDiscFilter => {
-        setTranDiscFilter(_ => newTranDiscFilter)
+    let actDeprFilterUpdated = newDeprFilter => {
+        setDeprFilter(_ => newDeprFilter)
     }
 
-    React.useEffect4(() => {
+    let actTranDeprFilterUpdated = newTranDeprFilter => {
+        setTranDeprFilter(_ => newTranDeprFilter)
+    }
+
+    React.useEffect5(() => {
         actApplyFilters()
         None
-    }, (isAxiomFilter, stmtTypeFilter, discFilter, tranDiscFilter))
+    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter))
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -309,15 +316,28 @@ let make = React.memoCustomCompareProps(({
         />
     }
 
-    let rndTranDiscFilter = () => {
+    let rndDeprFilter = () => {
         <FormControlLabel
             control={
                 <Checkbox
-                    checked=tranDiscFilter
-                    onChange=evt2bool(actTranDiscFilterUpdated)
+                    checked=deprFilter
+                    onChange=evt2bool(actDeprFilterUpdated)
                 />
             }
-            label="Transitively discouraged"
+            label="Deprecated"
+            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+        />
+    }
+
+    let rndTranDeprFilter = () => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=tranDeprFilter
+                    onChange=evt2bool(actTranDeprFilterUpdated)
+                />
+            }
+            label="Transitively deprecated"
             style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
         />
     }
@@ -359,7 +379,8 @@ let make = React.memoCustomCompareProps(({
             <Row>
                 {rndStmtTypeFilter()}
                 {rndDiscFilter()}
-                {rndTranDiscFilter()}
+                {rndDeprFilter()}
+                {rndTranDeprFilter()}
             </Row>
         </Col>
     }

@@ -303,6 +303,8 @@ let loadFrameContext = (
     ~label:string,
     ~descrRegexToDisc:string,
     ~labelRegexToDisc:string,
+    ~descrRegexToDepr:string,
+    ~labelRegexToDepr:string,
     ~onProgress:float=>unit,
     ~onDone: result<(array<mmScope>, mmContext),string>=>unit,
 ):unit => {
@@ -311,6 +313,8 @@ let loadFrameContext = (
         ~scopes,
         ~descrRegexToDisc,
         ~labelRegexToDisc,
+        ~descrRegexToDepr,
+        ~labelRegexToDepr,
         ~onProgress,
         ~onDone = res => {
             switch res {
@@ -438,6 +442,8 @@ let make = React.memoCustomCompareProps(({
                     ~label,
                     ~descrRegexToDisc=preCtxData.settingsV.val.descrRegexToDisc,
                     ~labelRegexToDisc=preCtxData.settingsV.val.labelRegexToDisc,
+                    ~descrRegexToDepr=preCtxData.settingsV.val.descrRegexToDepr,
+                    ~labelRegexToDepr=preCtxData.settingsV.val.labelRegexToDepr,
                     ~onProgress = pct => setLoadPct(_ => pct),
                     ~onDone = res => {
                         switch res {

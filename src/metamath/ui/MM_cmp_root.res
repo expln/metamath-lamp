@@ -137,11 +137,13 @@ let make = () => {
         if (
             state.preCtxData.settingsV.val.descrRegexToDisc != newSettings.descrRegexToDisc
             || state.preCtxData.settingsV.val.labelRegexToDisc != newSettings.labelRegexToDisc
+            || state.preCtxData.settingsV.val.descrRegexToDepr != newSettings.descrRegexToDepr
+            || state.preCtxData.settingsV.val.labelRegexToDepr != newSettings.labelRegexToDepr
         ) {
             reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
                 reloadCtx(
                     ~srcs=state.preCtxData.srcs, 
-                    ~settings=state.preCtxData.settingsV.val, 
+                    ~settings=newSettings, 
                     ~force=true, 
                     ~showError=true, 
                     ()

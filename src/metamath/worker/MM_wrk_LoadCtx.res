@@ -16,7 +16,13 @@ type mmScope = {
 }
 
 type request = 
-    | LoadMmContext({scopes:array<mmScope>, descrRegexToDisc:string, labelRegexToDisc:string,})
+    | LoadMmContext({
+        scopes:array<mmScope>, 
+        descrRegexToDisc:string, 
+        labelRegexToDisc:string,
+        descrRegexToDepr:string, 
+        labelRegexToDepr:string,
+    })
 
 type response =
     | MmContextLoadProgress({pct:float})
@@ -39,12 +45,20 @@ let beginLoadingMmContext = (
     ~scopes:array<mmScope>, 
     ~descrRegexToDisc:string,
     ~labelRegexToDisc:string,
+    ~descrRegexToDepr:string,
+    ~labelRegexToDepr:string,
     ~onProgress:float=>unit, 
     ~onDone:result<mmContext,string>=>unit,
 ) => {
     beginWorkerInteraction(
         ~procName,
-        ~initialRequest = LoadMmContext({ scopes:scopes, descrRegexToDisc, labelRegexToDisc }),
+        ~initialRequest = LoadMmContext({ 
+            scopes:scopes, 
+            descrRegexToDisc, 
+            labelRegexToDisc, 
+            descrRegexToDepr, 
+            labelRegexToDepr 
+        }),
         ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | MmContextLoadProgress({pct}) => onProgress(pct)
@@ -72,7 +86,7 @@ let strToRegexOpt = (str:string):option<Js_re.t> => {
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | LoadMmContext({scopes, descrRegexToDisc, labelRegexToDisc}) => {
+        | LoadMmContext({scopes, descrRegexToDisc, labelRegexToDisc, descrRegexToDepr, labelRegexToDepr}) => {
             let totalNumOfAssertions = scopes->Js_array2.reduce((a,e) => a+e.expectedNumOfAssertions, 0)->Belt_Int.toFloat
             let weights = scopes->Js_array2.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
@@ -89,6 +103,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         ~expectedNumOfAssertions=scope.expectedNumOfAssertions,
                         ~descrRegexToDisc=?strToRegexOpt(descrRegexToDisc),
                         ~labelRegexToDisc=?strToRegexOpt(labelRegexToDisc),
+                        ~descrRegexToDepr=?strToRegexOpt(descrRegexToDepr),
+                        ~labelRegexToDepr=?strToRegexOpt(labelRegexToDepr),
                         ~onProgress = pct => {
                             sendToClient(MmContextLoadProgress({pct: basePct +. pct *. weight}))
                         },

@@ -17,6 +17,8 @@ let beginLoadingMmContext: (
     ~scopes: array<mmScope>, 
     ~descrRegexToDisc:string,
     ~labelRegexToDisc:string,
+    ~descrRegexToDepr:string,
+    ~labelRegexToDepr:string,
     ~onProgress: float => unit, 
     ~onDone: result<MM_context.mmContext, string> => unit,
 ) => unit

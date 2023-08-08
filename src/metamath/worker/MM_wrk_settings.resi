@@ -14,6 +14,8 @@ type settings = {
     parens: string,
     descrRegexToDisc: string,
     labelRegexToDisc: string,
+    descrRegexToDepr: string,
+    labelRegexToDepr: string,
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
     defaultStmtLabel:string,
