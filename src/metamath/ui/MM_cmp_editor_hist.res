@@ -109,6 +109,7 @@ let make = (
         <MM_cmp_user_stmt
             modalRef
             settingsVer=state.settingsV
+            settings=state.settings
             preCtxVer=state.preCtxV
             varsText=state.varsText
             wrkCtx=state.wrkCtx

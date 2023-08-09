@@ -7,6 +7,7 @@ open MM_parenCounter
 open Expln_React_Modal
 open Common
 open MM_cmp_pe_frame_summary_state
+open MM_wrk_settings
 
 let paddingLeft = "5px"
 let paddingRight = paddingLeft
@@ -16,6 +17,7 @@ type props = {
     typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
 
+    settings:settings,
     preCtx:mmContext,
     syntaxTypes:array<int>,
     frms: Belt_MapString.t<frmSubsData>,
@@ -29,6 +31,7 @@ type props = {
 let propsAreSame = (a:props,b:props):bool => {
     a.typeColors === b.typeColors
     && a.editStmtsByLeftClick === b.editStmtsByLeftClick
+    && a.settings === b.settings
     && a.preCtx === b.preCtx
     && a.frame === b.frame
     && a.order === b.order
@@ -38,6 +41,7 @@ let make = React.memoCustomCompareProps( ({
     modalRef,
     typeColors,
     editStmtsByLeftClick,
+    settings,
     preCtx,
     syntaxTypes,
     frms,
@@ -99,10 +103,15 @@ let make = React.memoCustomCompareProps( ({
             >
                 { React.string( order->Belt_Int.toString ++ " ") }
                 asrtType
+                { React.string( " ") }
                 <span 
-                    style=ReactDOM.Style.make(~fontWeight="bold", ())
+                    style=ReactDOM.Style.make(
+                        ~fontWeight="bold", 
+                        ~backgroundColor=?getFrmLabelBkgColor(frame, settings), 
+                        ()
+                    )
                 >
-                    { (" " ++ frame.label)->React.string }
+                    { (frame.label)->React.string }
                 </span>
             </span>
             {rndExpBtn()}

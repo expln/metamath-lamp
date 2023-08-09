@@ -2,6 +2,7 @@ open MM_syntax_tree
 open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
+open MM_wrk_settings
 open MM_react_common
 open MM_context
 open MM_substitution
@@ -528,6 +529,7 @@ type props = {
     modalRef:modalRef,
 
     settingsVer:int,
+    settings:settings,
     preCtxVer:int,
     varsText:string,
     wrkCtx:option<mmContext>,
@@ -612,6 +614,7 @@ let propsAreSame = (a:props,b:props):bool => {
 
 let make = React.memoCustomCompareProps( ({
     modalRef,
+    settings,
     wrkCtx,
     frms,
     parenCnt,
@@ -1424,6 +1427,13 @@ let make = React.memoCustomCompareProps( ({
         && stmt.proofTreeDto->Belt.Option.isSome
         && stmt.src->Belt.Option.isSome
 
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch frms->Belt_MapString.get(label) {
+            | None => None
+            | Some(frm) => MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
+        }
+    }
+
     let rndJstf = (~isInline:bool, ~textFieldWidth:string):reElem => {
         if (stmt.jstfEditMode) {
             <Col 
@@ -1466,7 +1476,12 @@ let make = React.memoCustomCompareProps( ({
                         <span>
                             {React.string(args->Js_array2.joinWith(" ") ++ " : ")}
                             <span 
-                                style=ReactDOM.Style.make(~cursor="pointer", ())
+                                className="underline-on-hover"
+                                style=ReactDOM.Style.make(
+                                    ~cursor="pointer", 
+                                    ~backgroundColor=?getFrmLabelBkgColor(label),
+                                    ()
+                                )
                                 onClick=clickHnd2(
                                     clickClbkMake(~alt=true, ~act=actJstfEditRequested, ()),
                                     clickClbkMake(~act=()=>actOpenFrameExplorer(label), ()),

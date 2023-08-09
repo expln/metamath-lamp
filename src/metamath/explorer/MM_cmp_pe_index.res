@@ -428,6 +428,7 @@ let make = React.memoCustomCompareProps(({
             key=`${preCtxVer->Belt_Int.toString}`
             modalRef
             editStmtsByLeftClick=settings.editStmtsByLeftClick
+            settings=preCtxData.settingsV.val
             typeColors
             preCtx
             frms=preCtxData.frms

@@ -1,4 +1,5 @@
 open MM_wrk_editor
+open MM_wrk_settings
 open MM_context
 open Expln_React_Modal
 open MM_substitution
@@ -33,6 +34,7 @@ type props = {
     modalRef:modalRef,
 
     settingsVer:int,
+    settings:settings,
     preCtxVer:int,
     varsText:string,
     wrkCtx:option<mmContext>,

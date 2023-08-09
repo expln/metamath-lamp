@@ -1,4 +1,6 @@
 open Expln_React_common
+open MM_context
+open MM_wrk_settings
 
 let rndProgress: (~text:string, ~pct:float=?, ~onTerminate:unit=>unit=?, ()) => reElem
 
@@ -17,6 +19,8 @@ let rndColorSelect: (
     ~selectedColor:string, 
     ~onNewColorSelected:string=>unit
 ) => React.element
+
+let getFrmLabelBkgColor: (frame, settings) => option<string>
 
 let copyToClipboard: string => promise<unit>
 let readFromClipboard: () => promise<string>

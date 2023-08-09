@@ -1307,7 +1307,10 @@ let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, m
                     frame->frameOptimizeForProver
                 )
             })->Belt_HashMapString.fromArray,
-            frameLabels:[]
+            frameLabels:[],
+            discFrms:Belt_HashSetString.make(~hintSize=0),
+            deprFrms:Belt_HashSetString.make(~hintSize=0),
+            tranDeprFrms:Belt_HashSetString.make(~hintSize=0),
         }
     }
 

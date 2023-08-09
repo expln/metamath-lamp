@@ -713,6 +713,13 @@ let make = React.memoCustomCompareProps(({
         None
     }, [numberOfRowsInProofTable])
 
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch preCtxData.frms->Belt_MapString.get(label) {
+            | None => None
+            | Some(frm) => MM_react_common.getFrmLabelBkgColor(frm.frame, preCtxData.settingsV.val)
+        }
+    }
+
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
             <span style=ReactDOM.Style.make(~color="red", ())>
@@ -735,10 +742,16 @@ let make = React.memoCustomCompareProps(({
         >
             <span>
                 asrtType
+                {React.string(" ")}
                 <span 
-                    style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+                    style=ReactDOM.Style.make(
+                        ~fontWeight="bold", 
+                        ~cursor="pointer", 
+                        ~backgroundColor=?getFrmLabelBkgColor(state.frame.label),
+                        ()
+                    )
                 >
-                    { (" " ++ state.frame.label)->React.string }
+                    { React.string(state.frame.label) }
                 </span>
                 <span 
                     style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
@@ -911,7 +924,14 @@ let make = React.memoCustomCompareProps(({
         switch pRec.proof {
             | Hypothesis({label}) => label->React.string
             | Assertion({label}) => {
-                <span style=linkStyle onClick={clickHnd(~act=()=>openFrameExplorer(label),())}>
+                <span 
+                    style={
+                        linkStyle->ReactDOM.Style.combine(
+                            ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ())
+                        )
+                    }
+                    onClick={clickHnd(~act=()=>openFrameExplorer(label),())}
+                >
                     {label->React.string}
                 </span>
             }

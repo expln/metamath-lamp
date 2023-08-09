@@ -2,6 +2,8 @@ open Expln_React_Mui
 open Expln_React_Modal
 open Expln_React_common
 open Expln_utils_promise
+open MM_context
+open MM_wrk_settings
 
 @val external navigator: {..} = "navigator"
 @val external window: {..} = "window"
@@ -128,6 +130,18 @@ let rndColorSelect = (
             }
         </Select>
     </FormControl>
+}
+
+let getFrmLabelBkgColor = (frame:frame, settings:settings):option<string> => {
+    if (frame.isDisc && settings.discColor->Belt.Option.isSome) {
+        settings.discColor
+    } else if (frame.isDepr && settings.deprColor->Belt.Option.isSome) {
+        settings.deprColor
+    } else if (frame.isTranDepr && settings.tranDeprColor->Belt.Option.isSome) {
+        settings.tranDeprColor
+    } else {
+        None
+    }
 }
 
 type mouseButton = Left | Middle | Right
