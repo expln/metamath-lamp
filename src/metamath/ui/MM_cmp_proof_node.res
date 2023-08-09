@@ -269,7 +269,11 @@ module rec ProofNodeDtoCmp: {
                         >
                             {rndExpandCollapseIcon(!(state->isExpandedSrc(srcIdx)))}
                             <span
-                                style=ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ())
+                                style=ReactDOM.Style.make(
+                                    ~backgroundColor=?getFrmLabelBkgColor(label), 
+                                    ~borderRadius="3px",
+                                    ()
+                                )
                             >
                                 <i>{React.string(label)}</i>
                             </span>

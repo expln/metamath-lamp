@@ -108,6 +108,7 @@ let make = React.memoCustomCompareProps( ({
                     style=ReactDOM.Style.make(
                         ~fontWeight="bold", 
                         ~backgroundColor=?getFrmLabelBkgColor(frame, settings), 
+                        ~borderRadius="3px",
                         ()
                     )
                 >

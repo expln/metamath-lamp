@@ -301,6 +301,7 @@ let stmtsDtoToResultRendered = (
                                                         <span
                                                             style=ReactDOM.Style.make(
                                                                 ~backgroundColor=?getFrmLabelBkgColor(label), 
+                                                                ~borderRadius="3px",
                                                                 ()
                                                             )
                                                         >

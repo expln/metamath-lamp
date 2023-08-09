@@ -748,6 +748,7 @@ let make = React.memoCustomCompareProps(({
                         ~fontWeight="bold", 
                         ~cursor="pointer", 
                         ~backgroundColor=?getFrmLabelBkgColor(state.frame.label),
+                        ~borderRadius="3px",
                         ()
                     )
                 >
@@ -927,7 +928,7 @@ let make = React.memoCustomCompareProps(({
                 <span 
                     style={
                         linkStyle->ReactDOM.Style.combine(
-                            ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ())
+                            ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", ())
                         )
                     }
                     onClick={clickHnd(~act=()=>openFrameExplorer(label),())}

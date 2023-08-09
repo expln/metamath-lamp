@@ -86,6 +86,7 @@ let setResults = (
                                             ~backgroundColor=?{
                                                 if (i == lastStmtIdx) {getFrmLabelBkgColor(stmt.label)} else {None}
                                             }, 
+                                            ~borderRadius="3px",
                                             ()
                                         )
                                     >

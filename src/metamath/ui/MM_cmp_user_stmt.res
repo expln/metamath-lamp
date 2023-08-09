@@ -1480,6 +1480,7 @@ let make = React.memoCustomCompareProps( ({
                                 style=ReactDOM.Style.make(
                                     ~cursor="pointer", 
                                     ~backgroundColor=?getFrmLabelBkgColor(label),
+                                    ~borderRadius="3px",
                                     ()
                                 )
                                 onClick=clickHnd2(
