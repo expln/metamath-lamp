@@ -30,3 +30,12 @@ code {
 .underline-on-hover:hover {
   text-decoration: underline;
 }
+
+.table-single-border {
+  border-collapse: collapse;
+  border: 1px solid black
+}
+
+.rotateM90 {
+  transform: rotate(-90deg);
+}

@@ -1157,16 +1157,18 @@ let make = (
         </Row>
     }
 
+    let rndSingleCheckbox = (
+        ~checked:bool,
+        ~onChange:bool=>unit,
+    ):React.element => {
+        <Checkbox
+            checked
+            onChange=evt2bool(onChange)
+        />
+    }
+
     let rndDiscAsrtsSettings = () => {
         <Col spacing=1.5>
-            {
-                rndOptHighlightColorSetting(
-                    ~selectedColor=state.discColor,
-                    ~onChange=actDiscColorUpdated,
-                    ~label="Highlight discouraged assertions",
-                    ~defaultColor=defaultDiscColor,
-                )
-            }
             <Row alignItems=#center>
                 <TextField 
                     size=#small
@@ -1213,22 +1215,6 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDiscErr)}
-            {
-                rndOptHighlightColorSetting(
-                    ~selectedColor=state.deprColor,
-                    ~onChange=actDeprColorUpdated,
-                    ~label="Highlight deprecated assertions",
-                    ~defaultColor=defaultDeprColor,
-                )
-            }
-            {
-                rndOptHighlightColorSetting(
-                    ~selectedColor=state.tranDeprColor,
-                    ~onChange=actTranDeprColorUpdated,
-                    ~label="Highlight transitively deprecated assertions",
-                    ~defaultColor=defaultTranDeprColor,
-                )
-            }
             <Row alignItems=#center>
                 <TextField 
                     size=#small
@@ -1269,6 +1255,72 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDeprErr)}
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.discColor,
+                    ~onChange=actDiscColorUpdated,
+                    ~label="Highlight discouraged assertions",
+                    ~defaultColor=defaultDiscColor,
+                )
+            }
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.deprColor,
+                    ~onChange=actDeprColorUpdated,
+                    ~label="Highlight deprecated assertions",
+                    ~defaultColor=defaultDeprColor,
+                )
+            }
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.tranDeprColor,
+                    ~onChange=actTranDeprColorUpdated,
+                    ~label="Highlight transitively deprecated assertions",
+                    ~defaultColor=defaultTranDeprColor,
+                )
+            }
+            <table style=ReactDOM.Style.make(~borderCollapse="collapse", ~border="none", ())>
+                <thead>
+                    <tr>
+                        <td className="table-single-border" rowSpan=2 style=ReactDOM.Style.make(~border="none", ())></td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~border="none", ())></td>
+                        <td className="table-single-border" colSpan=2>
+                            <span style=ReactDOM.Style.make(~paddingLeft="48px", ())>
+                                {"Proofs"->React.string}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~border="none", ())></td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                            <span style=ReactDOM.Style.make(~paddingLeft="15px", ())>
+                                {"Syntax"->React.string}
+                            </span>
+                        </td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                            <span style=ReactDOM.Style.make(~paddingLeft="5px", ())>
+                                {"Essential"->React.string}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td className="table-single-border rotateM90" rowSpan=3>{"Assertions"->React.string}</td>
+                        <td className="table-single-border" >{"Discouraged"->React.string}</td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                    </tr>
+                    <tr>
+                        <td className="table-single-border">{"Deprecated"->React.string}</td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                    </tr>
+                    <tr>
+                        <td className="table-single-border">{"Transitively deprecated"->React.string}</td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                    </tr>
+                </thead>
+            </table>
         </Col>
     }
 
