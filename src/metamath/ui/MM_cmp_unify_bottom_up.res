@@ -263,9 +263,10 @@ let isStmtToShow = (
 }
 
 let stmtsDtoToResultRendered = (
-    stmtsDto:stmtsDto, 
-    idx:int,
-    isStmtToShow:stmtDto=>bool
+    ~stmtsDto:stmtsDto, 
+    ~idx:int,
+    ~isStmtToShow:stmtDto=>bool,
+    ~getFrmLabelBkgColor: string=>option<string>,
 ):resultRendered => {
     let elem = 
         <Col>
@@ -293,9 +294,22 @@ let stmtsDtoToResultRendered = (
                                             switch stmt.jstf {
                                                 | None => React.null
                                                 | Some({args, label}) => {
-                                                    React.string(
-                                                        "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
-                                                    )
+                                                    <>
+                                                        <span>
+                                                            {React.string("[" ++ args->Js_array2.joinWith(" ") ++ " : ")}
+                                                        </span>
+                                                        <span
+                                                            style=ReactDOM.Style.make(
+                                                                ~backgroundColor=?getFrmLabelBkgColor(label), 
+                                                                ()
+                                                            )
+                                                        >
+                                                            {React.string(label)}
+                                                        </span>
+                                                        <span>
+                                                            {React.string(" ]")}
+                                                        </span>
+                                                    </>
                                                 }
                                             }
                                         }
@@ -356,7 +370,12 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     )
 }
 
-let setResults = (st,tree,results) => {
+let setResults = (
+    st,
+    ~tree: option<proofTreeDto>,
+    ~results: option<array<stmtsDto>>,
+    ~getFrmLabelBkgColor: string=>option<string>,
+) => {
     switch results {
         | None => {
             {
@@ -375,7 +394,11 @@ let setResults = (st,tree,results) => {
                 ->Js_array2.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
-            let resultsRendered = Some(results->Js_array2.mapi((dto,i) => stmtsDtoToResultRendered(dto,i,isStmtToShow)))
+            let resultsRendered = Some(
+                results->Js_array2.mapi((dto,i) => {
+                    stmtsDtoToResultRendered(~stmtsDto=dto, ~idx=i, ~isStmtToShow, ~getFrmLabelBkgColor)
+                })
+            )
             {
                 ...st,
                 tree,
@@ -527,6 +550,15 @@ let make = (
         }
     }
 
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch frms->Belt_MapString.get(label) {
+            | None => None
+            | Some(frm) => {
+                MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
+            }
+        }
+    }
+
     let actOnResultsReady = (treeDto) => {
         let rootExprToLabel = state.rootStmts
             ->Js_array2.map(stmt => (stmt.expr,stmt.label))
@@ -539,7 +571,13 @@ let make = (
             ~exprToProve=state.exprToProve,
             ~reservedLabels,
         )
-        setState(st => setResults(st, if (st.debugLevel > 0) {Some(treeDto)} else {None}, Some(results)))
+        setState(st => {
+            st->setResults(
+                ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
+                ~results=Some(results), 
+                ~getFrmLabelBkgColor
+            )
+        })
     }
 
     let actProve = () => {
@@ -644,6 +682,7 @@ let make = (
                             <MM_cmp_proof_tree
                                 tree
                                 rootExpr=state.exprToProve
+                                settings
                                 wrkCtx
                                 rootStmts=state.rootStmts
                             />

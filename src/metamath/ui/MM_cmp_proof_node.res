@@ -54,6 +54,7 @@ type propsInner = {
     exprToStr: expr=>string,
     exprToReElem: expr=>reElem,
     frmExprToStr: (string,expr)=>string,
+    getFrmLabelBkgColor: string=>option<string>,
 }
 
 let propsInnerAreSame = (_,_) => true
@@ -70,6 +71,7 @@ module rec ProofNodeDtoCmp: {
         exprToStr,
         exprToReElem,
         frmExprToStr,
+        getFrmLabelBkgColor,
     }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
@@ -195,6 +197,7 @@ module rec ProofNodeDtoCmp: {
                                             exprToStr
                                             exprToReElem
                                             frmExprToStr
+                                            getFrmLabelBkgColor
                                         />
                                     </td>
                                 </tr>
@@ -265,7 +268,11 @@ module rec ProofNodeDtoCmp: {
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
                         >
                             {rndExpandCollapseIcon(!(state->isExpandedSrc(srcIdx)))}
-                            <i>{React.string(label)}</i>
+                            <span
+                                style=ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ())
+                            >
+                                <i>{React.string(label)}</i>
+                            </span>
                         </td>
                         <td>
                             {
@@ -347,6 +354,7 @@ let make = (
     ~exprToStr: expr=>string,
     ~exprToReElem: expr=>reElem,
     ~frmExprToStr: (string,expr)=>string,
+    ~getFrmLabelBkgColor: string=>option<string>,
 ) => {
     <ProofNodeDtoCmp
         tree
@@ -356,5 +364,6 @@ let make = (
         exprToStr
         exprToReElem
         frmExprToStr
+        getFrmLabelBkgColor
     />
 }

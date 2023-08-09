@@ -11,4 +11,5 @@ let make: (
   ~exprToStr: expr=>string,
   ~exprToReElem: expr => reElem,
   ~frmExprToStr: (string,expr)=>string,
+  ~getFrmLabelBkgColor: string=>option<string>,
 ) => React.element
