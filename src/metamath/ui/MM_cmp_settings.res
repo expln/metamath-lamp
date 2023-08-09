@@ -1157,14 +1157,12 @@ let make = (
         </Row>
     }
 
-    let rndSingleCheckbox = (
-        ~checked:bool,
-        ~onChange:bool=>unit,
-    ):React.element => {
-        <Checkbox
-            checked
-            onChange=evt2bool(onChange)
-        />
+    let rndSingleCheckbox = ( ~checked:bool, ~onChange:bool=>unit, ):React.element => {
+        <Checkbox checked onChange=evt2bool(onChange) />
+    }
+
+    let addAlignAttr = (elem:React.element, alignValue):React.element => {
+        elem->React.cloneElement({"align":alignValue})
     }
 
     let rndDiscAsrtsSettings = () => {
@@ -1282,8 +1280,11 @@ let make = (
             <table style=ReactDOM.Style.make(~borderCollapse="collapse", ~border="none", ())>
                 <thead>
                     <tr>
-                        <td className="table-single-border" rowSpan=2 style=ReactDOM.Style.make(~border="none", ())></td>
-                        <td className="table-single-border" style=ReactDOM.Style.make(~border="none", ())></td>
+                        {
+                            <td className="table-single-border" colSpan=2 style=ReactDOM.Style.make(~border="none", ())>
+                                {"Allowed usage"->React.string}
+                            </td>->addAlignAttr("center")
+                        }
                         <td className="table-single-border" colSpan=2>
                             <span style=ReactDOM.Style.make(~paddingLeft="48px", ())>
                                 {"Proofs"->React.string}
@@ -1291,7 +1292,11 @@ let make = (
                         </td>
                     </tr>
                     <tr>
-                        <td className="table-single-border" style=ReactDOM.Style.make(~border="none", ())></td>
+                        {
+                            <td className="table-single-border" colSpan=2 style=ReactDOM.Style.make(~border="none", ())>
+                                {"of assertions in proofs"->React.string}
+                            </td>->addAlignAttr("center")
+                        }
                         <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
                             <span style=ReactDOM.Style.make(~paddingLeft="15px", ())>
                                 {"Syntax"->React.string}
@@ -1305,17 +1310,17 @@ let make = (
                     </tr>
                     <tr>
                         <td className="table-single-border rotateM90" rowSpan=3>{"Assertions"->React.string}</td>
-                        <td className="table-single-border" >{"Discouraged"->React.string}</td>
+                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ()) >{"Discouraged"->React.string}</td>->addAlignAttr("right")}
                         <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
                         <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
                     </tr>
                     <tr>
-                        <td className="table-single-border">{"Deprecated"->React.string}</td>
+                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
                         <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
                         <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
                     </tr>
                     <tr>
-                        <td className="table-single-border">{"Transitively deprecated"->React.string}</td>
+                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
                         <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
                         <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
                     </tr>
