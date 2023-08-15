@@ -1285,11 +1285,13 @@ let make = (
                                 {"Allowed usage"->React.string}
                             </td>->addAlignAttr("center")
                         }
-                        <td className="table-single-border" colSpan=2>
-                            <span style=ReactDOM.Style.make(~paddingLeft="48px", ())>
-                                {"Proofs"->React.string}
-                            </span>
-                        </td>
+                        {
+                            <td className="table-single-border" colSpan=2>
+                                <span>
+                                    {"Proofs"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                     <tr>
                         {
@@ -1297,32 +1299,60 @@ let make = (
                                 {"of assertions in proofs"->React.string}
                             </td>->addAlignAttr("center")
                         }
-                        <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
-                            <span style=ReactDOM.Style.make(~paddingLeft="15px", ())>
-                                {"Syntax"->React.string}
-                            </span>
-                        </td>
-                        <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
-                            <span style=ReactDOM.Style.make(~paddingLeft="5px", ())>
-                                {"Essential"->React.string}
-                            </span>
-                        </td>
+                        {
+                            <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                                <span>
+                                    {"Syntax"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                                <span>
+                                    {"Essential"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                     <tr>
                         <td className="table-single-border rotateM90" rowSpan=3>{"Assertions"->React.string}</td>
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ()) >{"Discouraged"->React.string}</td>->addAlignAttr("right")}
-                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
-                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                     <tr>
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
-                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
-                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                     <tr>
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
-                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
-                        <td className="table-single-border" style=ReactDOM.Style.make(~paddingLeft="15px", ())>{rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}</td>
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                 </thead>
             </table>
