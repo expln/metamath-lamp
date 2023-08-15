@@ -49,6 +49,13 @@ type settingsState = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLengthStr:string,
+
+    useDiscInSyntax:bool,
+    useDiscInEssen:bool,
+    useDeprInSyntax:bool,
+    useDeprInEssen:bool,
+    useTranDeprInSyntax:bool,
+    useTranDeprInEssen:bool,
 }
 
 let allColors = [
@@ -146,6 +153,12 @@ let createDefaultSettings = () => {
         hideContextSelector:false,
         showVisByDefault:false,
         editorHistMaxLengthStr:editorHistMaxLengthDefault->Belt.Int.toString,
+        useDiscInSyntax:false,
+        useDiscInEssen:false,
+        useDeprInSyntax:true,
+        useDeprInEssen:true,
+        useTranDeprInSyntax:true,
+        useTranDeprInEssen:true,
     }
 }
 
@@ -506,6 +519,12 @@ let stateToSettings = (st:settingsState):settings => {
         showVisByDefault: st.showVisByDefault,
         editorHistMaxLength: 
             st.editorHistMaxLengthStr->Belt_Int.fromString->Belt.Option.getWithDefault(editorHistMaxLengthDefault),
+        useDiscInSyntax: st.useDiscInSyntax,
+        useDiscInEssen: st.useDiscInEssen,
+        useDeprInSyntax: st.useDeprInSyntax,
+        useDeprInEssen: st.useDeprInEssen,
+        useTranDeprInSyntax: st.useTranDeprInSyntax,
+        useTranDeprInEssen: st.useTranDeprInEssen,
     }
 }
 
@@ -553,6 +572,12 @@ let settingsToState = (ls:settings):settingsState => {
         hideContextSelector: ls.hideContextSelector,
         showVisByDefault: ls.showVisByDefault,
         editorHistMaxLengthStr: ls.editorHistMaxLength->Belt.Int.toString,
+        useDiscInSyntax:ls.useDiscInSyntax,
+        useDiscInEssen:ls.useDiscInEssen,
+        useDeprInSyntax:ls.useDeprInSyntax,
+        useDeprInEssen:ls.useDeprInEssen,
+        useTranDeprInSyntax:ls.useTranDeprInSyntax,
+        useTranDeprInEssen:ls.useTranDeprInEssen,
     }
     validateAndCorrectState(res)
 }
@@ -645,6 +670,12 @@ let readStateFromLocStor = ():settingsState => {
                         ~validator = validateEditorHistoryMaxLength,
                         () 
                     )->Belt_Int.toString,
+                    useDiscInSyntax: d->bool( "useDiscInSyntax", ~default=()=>defaultSettings.useDiscInSyntax, () ),
+                    useDiscInEssen: d->bool( "useDiscInEssen", ~default=()=>defaultSettings.useDiscInEssen, () ),
+                    useDeprInSyntax: d->bool( "useDeprInSyntax", ~default=()=>defaultSettings.useDeprInSyntax, () ),
+                    useDeprInEssen: d->bool( "useDeprInEssen", ~default=()=>defaultSettings.useDeprInEssen, () ),
+                    useTranDeprInSyntax: d->bool( "useTranDeprInSyntax", ~default=()=>defaultSettings.useTranDeprInSyntax, () ),
+                    useTranDeprInEssen: d->bool( "useTranDeprInEssen", ~default=()=>defaultSettings.useTranDeprInEssen, () ),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -706,7 +737,13 @@ let eqState = (st1, st2) => {
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector
         && st1.showVisByDefault == st2.showVisByDefault
-        && st1.editorHistMaxLengthStr== st2.editorHistMaxLengthStr
+        && st1.editorHistMaxLengthStr == st2.editorHistMaxLengthStr
+        && st1.useDiscInSyntax == st2.useDiscInSyntax
+        && st1.useDiscInEssen == st2.useDiscInEssen
+        && st1.useDeprInSyntax == st2.useDeprInSyntax
+        && st1.useDeprInEssen == st2.useDeprInEssen
+        && st1.useTranDeprInSyntax == st2.useTranDeprInSyntax
+        && st1.useTranDeprInEssen == st2.useTranDeprInEssen
 }
 
 let updateParens = (st,parens) => {
@@ -751,6 +788,13 @@ let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBott
 let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
+
+let updateUseDiscInSyntax = (st, useDiscInSyntax) => {...st, useDiscInSyntax}
+let updateUseDiscInEssen = (st, useDiscInEssen) => {...st, useDiscInEssen}
+let updateUseDeprInSyntax = (st, useDeprInSyntax) => {...st, useDeprInSyntax}
+let updateUseDeprInEssen = (st, useDeprInEssen) => {...st, useDeprInEssen}
+let updateUseTranDeprInSyntax = (st, useTranDeprInSyntax) => {...st, useTranDeprInSyntax}
+let updateUseTranDeprInEssen = (st, useTranDeprInEssen) => {...st, useTranDeprInEssen}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -985,6 +1029,13 @@ let make = (
     let actTrustedChange = (id,trusted) => {
         setState(updateTrusted(_, id, trusted))
     }
+
+    let actUseDiscInSyntaxChange = (useDiscInSyntax) => { setState(updateUseDiscInSyntax(_, useDiscInSyntax)) }
+    let actUseDiscInEssenChange = (useDiscInEssen) => { setState(updateUseDiscInEssen(_, useDiscInEssen)) }
+    let actUseDeprInSyntaxChange = (useDeprInSyntax) => { setState(updateUseDeprInSyntax(_, useDeprInSyntax)) }
+    let actUseDeprInEssenChange = (useDeprInEssen) => { setState(updateUseDeprInEssen(_, useDeprInEssen)) }
+    let actUseTranDeprInSyntaxChange = (useTranDeprInSyntax) => { setState(updateUseTranDeprInSyntax(_, useTranDeprInSyntax)) }
+    let actUseTranDeprInEssenChange = (useTranDeprInEssen) => { setState(updateUseTranDeprInEssen(_, useTranDeprInEssen)) }
 
     let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
         let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
@@ -1319,12 +1370,12 @@ let make = (
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ()) >{"Discouraged"->React.string}</td>->addAlignAttr("right")}
                         {
                             <td className="table-single-border">
-                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                                {rndSingleCheckbox( ~checked=state.useDiscInSyntax, ~onChange=actUseDiscInSyntaxChange )}
                             </td>->addAlignAttr("center")
                         }
                         {
                             <td className="table-single-border">
-                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                                {rndSingleCheckbox( ~checked=state.useDiscInEssen, ~onChange=actUseDiscInEssenChange )}
                             </td>->addAlignAttr("center")
                         }
                     </tr>
@@ -1332,12 +1383,12 @@ let make = (
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
                         {
                             <td className="table-single-border">
-                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                                {rndSingleCheckbox( ~checked=state.useDeprInSyntax, ~onChange=actUseDeprInSyntaxChange )}
                             </td>->addAlignAttr("center")
                         }
                         {
                             <td className="table-single-border">
-                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                                {rndSingleCheckbox( ~checked=state.useDeprInEssen, ~onChange=actUseDeprInEssenChange )}
                             </td>->addAlignAttr("center")
                         }
                     </tr>
@@ -1345,12 +1396,12 @@ let make = (
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
                         {
                             <td className="table-single-border">
-                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                                {rndSingleCheckbox( ~checked=state.useTranDeprInSyntax, ~onChange=actUseTranDeprInSyntaxChange )}
                             </td>->addAlignAttr("center")
                         }
                         {
                             <td className="table-single-border">
-                                {rndSingleCheckbox( ~checked=false, ~onChange=_=>() )}
+                                {rndSingleCheckbox( ~checked=state.useTranDeprInEssen, ~onChange=actUseTranDeprInEssenChange )}
                             </td>->addAlignAttr("center")
                         }
                     </tr>

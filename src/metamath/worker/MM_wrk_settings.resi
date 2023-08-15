@@ -36,6 +36,13 @@ type settings = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLength:int,
+
+    useDiscInSyntax:bool,
+    useDiscInEssen:bool,
+    useDeprInSyntax:bool,
+    useDeprInEssen:bool,
+    useTranDeprInSyntax:bool,
+    useTranDeprInEssen:bool,
 }
 
 let markUrlAsTrusted: (settings, string) => settings

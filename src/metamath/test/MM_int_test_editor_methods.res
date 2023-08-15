@@ -59,6 +59,12 @@ let createEditorState = (
         hideContextSelector: false,
         showVisByDefault:false,
         editorHistMaxLength:0,
+        useDiscInSyntax:true,
+        useDiscInEssen:true,
+        useDeprInSyntax:true,
+        useDeprInEssen:true,
+        useTranDeprInSyntax:true,
+        useTranDeprInEssen:true,
     }
     let preCtxV = 1
     let preCtx = ctx
