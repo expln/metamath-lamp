@@ -2479,6 +2479,7 @@ let textToSyntaxProofTable = (
     ~syms:array<array<string>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
@@ -2502,7 +2503,9 @@ let textToSyntaxProofTable = (
                     }
                 })
                 let exprs = syms->Js_array2.map(wrkCtx->ctxSymsToIntsExn)
-                let proofTree = MM_provers.proveSyntaxTypes(~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ())
+                let proofTree = MM_provers.proveSyntaxTypes(
+                    ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ~frameRestrict, ()
+                )
                 let typeStmts = exprs->Js.Array2.map(expr => {
                     switch proofTree->ptGetSyntaxProof(expr) {
                         | None => None
@@ -2553,6 +2556,7 @@ let textToSyntaxTree = (
     ~syms:array<array<string>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
@@ -2562,6 +2566,7 @@ let textToSyntaxTree = (
         ~syms,
         ~syntaxTypes,
         ~frms,
+        ~frameRestrict,
         ~parenCnt,
         ~lastSyntaxType,
         ~onLastSyntaxTypeChange,

@@ -8,7 +8,7 @@ open MM_parenCounter
 open MM_substitution
 open MM_provers
 
-let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs:wrkSubs):unit => {
+let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
     let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
         [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
@@ -16,6 +16,7 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~wrkSubs:wrkSubs):unit
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms,
+        ~frameRestrict,
         ~floatingsToProve=typesToProve,
         ~parenCnt,
     )
@@ -196,6 +197,7 @@ let buildSyntaxTreesOfSameType = (
     ~wrkCtx:mmContext, 
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~expr1:expr, 
     ~expr2:expr,
@@ -205,6 +207,7 @@ let buildSyntaxTreesOfSameType = (
         ~syms = [ wrkCtx->ctxIntsToSymsExn(expr1), wrkCtx->ctxIntsToSymsExn(expr2) ],
         ~syntaxTypes,
         ~frms,
+        ~frameRestrict,
         ~parenCnt,
         ~lastSyntaxType=None,
         ~onLastSyntaxTypeChange = _ => (),
@@ -227,6 +230,7 @@ let buildSyntaxTreesOfSameType = (
                                     ~syms = [ wrkCtx->ctxIntsToSymsExn(expr1) ],
                                     ~syntaxTypes=[tree2.typ],
                                     ~frms,
+                                    ~frameRestrict,
                                     ~parenCnt,
                                     ~lastSyntaxType=None,
                                     ~onLastSyntaxTypeChange = _ => (),
@@ -240,6 +244,7 @@ let buildSyntaxTreesOfSameType = (
                                             ~syms = [ wrkCtx->ctxIntsToSymsExn(expr2) ],
                                             ~syntaxTypes=[tree1.typ],
                                             ~frms,
+                                            ~frameRestrict,
                                             ~parenCnt,
                                             ~lastSyntaxType=None,
                                             ~onLastSyntaxTypeChange = _ => (),
@@ -275,13 +280,14 @@ let findPossibleSubsByUnif = (
     ~allTypes:array<int>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~expr1:expr, 
     ~expr2:expr,
     ~metavarPrefix:string,
 ):result<array<wrkSubs>,string> => {
     let syntaxTrees = buildSyntaxTreesOfSameType( 
-        ~wrkCtx, ~syntaxTypes, ~frms, ~parenCnt, 
+        ~wrkCtx, ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt, 
         ~expr1=removeTypePrefix(expr1, allTypes), 
         ~expr2=removeTypePrefix(expr2, allTypes), 
     )
@@ -325,6 +331,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                     ~allTypes=st.allTypes,
                     ~syntaxTypes=st.syntaxTypes,
                     ~frms=st.frms,
+                    ~frameRestrict=st.settings.allowedFrms.inSyntax,
                     ~parenCnt=st.parenCnt,
                     ~expr1=frmExpr, 
                     ~expr2=expr,
@@ -338,7 +345,13 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                     foundSubs->Js_array2.forEach(wrkSubs => {
                         verifyDisjoints(~wrkSubs, ~disj)
                         if (wrkSubs.err->Belt_Option.isNone) {
-                            verifyTypesForSubstitution(~parenCnt=st.parenCnt, ~ctx=wrkCtx, ~frms=st.frms, ~wrkSubs)
+                            verifyTypesForSubstitution(
+                                ~parenCnt=st.parenCnt, 
+                                ~ctx=wrkCtx, 
+                                ~frms=st.frms, 
+                                ~frameRestrict=st.settings.allowedFrms.inSyntax,
+                                ~wrkSubs
+                            )
                         }
                     })
                     Ok(foundSubs)

@@ -60,6 +60,7 @@ let buildSyntaxTreeForTest = (
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
+        ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
         ~floatingsToProve = expr,
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
     )

@@ -8,6 +8,7 @@ open MM_proof_tree
 open MM_unification_debug
 open MM_statements_dto
 open Common
+open MM_wrk_settings
 
 type lengthRestrict = No | LessEq | Less
 
@@ -63,12 +64,13 @@ let findAsrtParentsWithoutNewVars = (
     ~tree, 
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
+    ~frameRestrict:frameRestrict,
 ):array<exprSrc> => {
     let exprLen = expr->Js_array2.length
     let foundParents = []
     tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
         let frmExpr = frm.frame.asrt
-        if (frmExpr[0] == expr[0]) {
+        if (frmExpr[0] == expr[0] && frm.frame->frameIsAllowed(frameRestrict)) {
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
@@ -127,6 +129,7 @@ let findAsrtParentsWithoutNewVars = (
 let proveFloating = (
     ~tree:proofTree, 
     ~node:proofNode,
+    ~frameRestrict:frameRestrict,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -172,7 +175,7 @@ let proveFloating = (
                             | Some(parent) => curNode->pnAddParent(parent, false, false)
                             | None => {
                                 findAsrtParentsWithoutNewVars(
-                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq
+                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict
                                 )->Js.Array2.forEach(parent => {
                                     curNode->pnAddParent(parent, false, false)
                                     saveArgs(parent)
@@ -198,6 +201,7 @@ let findAsrtParentsWithNewVars = (
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
     ~allowNewDisjForExistingVars:bool,
+    ~allowedFrms:allowedFrms,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
     ~onProgress:option<int=>unit>=?,
@@ -207,8 +211,8 @@ let findAsrtParentsWithNewVars = (
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
     let frameFilter = switch asrtLabel {
-        | None => _ => true
-        | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel
+        | None => (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
+        | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel && frame->frameIsAllowed(allowedFrms.inEssen)
     }
 
     let maxVarBeforeSearch = tree->ptGetMaxVar
@@ -304,7 +308,11 @@ let findAsrtParentsWithNewVars = (
                     if (frame.hyps[argIdx.contents].typ == F
                             && applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
                     ) {
-                        proveFloating(~tree, ~node=argNode)
+                        proveFloating(
+                            ~tree, 
+                            ~node=argNode,
+                            ~frameRestrict=allowedFrms.inSyntax,
+                        )
                         if (argNode->pnGetProof->Belt.Option.isNone) {
                             unprovedFloating.contents = Some(argNode->pnGetExpr)
                         }
@@ -331,7 +339,7 @@ let findAsrtParentsWithNewVars = (
     foundParents
 }
 
-let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
+let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allowedFrms):proofNode => {
     let node = tree->ptGetNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
         let parents = findAsrtParentsWithNewVars(
@@ -342,6 +350,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr):proofNode => {
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
             ~allowNewDisjForExistingVars=false,
+            ~allowedFrms,
             () 
         )
         parents->Expln_utils_common.arrForEach(parent => {
@@ -382,6 +391,7 @@ let proveWithJustification = (
     ~tree:proofTree, 
     ~expr:expr, 
     ~jstf: jstf,
+    ~allowedFrms:allowedFrms,
 ):proofNode => {
     let findAsrtParents = (args,debugLevel) => {
         findAsrtParentsWithNewVars(
@@ -393,6 +403,7 @@ let proveWithJustification = (
             ~allowNewVars=false,
             ~asrtLabel=jstf.label,
             ~allowNewDisjForExistingVars=false,
+            ~allowedFrms,
             ~debugLevel,
             ()
         )
@@ -519,6 +530,7 @@ let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
     ~params:bottomUpProverParams,
+    ~allowedFrms:allowedFrms,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
@@ -533,6 +545,7 @@ let proveStmtBottomUp = (
             ~allowEmptyArgs = params.allowNewStmts,
             ~allowNewVars = dist == 0 && params.allowNewVars,
             ~allowNewDisjForExistingVars=params.allowNewDisjForExistingVars,
+            ~allowedFrms,
             ~debugLevel,
             ~maxNumberOfResults=?params.maxNumberOfBranches,
             ~onProgress?,
@@ -583,15 +596,16 @@ let proveStmt = (
     ~expr:expr, 
     ~jstf:option<jstf>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
+    ~allowedFrms:allowedFrms,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ) => {
     switch bottomUpProverParams {
-        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~debugLevel, ~onProgress, )->ignore
+        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~allowedFrms, ~debugLevel, ~onProgress, )->ignore
         | None => {
             switch jstf {
-                | None => proveWithoutJustification( ~tree, ~expr, )->ignore
-                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, )->ignore
+                | None => proveWithoutJustification( ~tree, ~expr, ~allowedFrms )->ignore
+                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, ~allowedFrms )->ignore
             }
         }
     }
@@ -645,6 +659,7 @@ let createProofTree = (
 let proveFloatings = (
     ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
 ):proofTree => {
@@ -655,7 +670,7 @@ let proveFloatings = (
     )
 
     floatingsToProve->Js.Array2.forEach(expr => {
-        proveFloating( ~tree, ~node=tree->ptGetNode(expr) )
+        proveFloating( ~tree, ~node=tree->ptGetNode(expr), ~frameRestrict)
     })
     tree
 }
@@ -664,6 +679,7 @@ let proveSyntaxTypes = (
     ~proofTree:option<proofTree>=?,
     ~wrkCtx: option<mmContext>=?,
     ~frms: option<Belt_MapString.t<frmSubsData>>=?,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: option<parenCnt>=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
@@ -696,14 +712,14 @@ let proveSyntaxTypes = (
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs[ei]
             let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
-            proveFloating( ~tree, ~node=node.contents )
+            proveFloating( ~tree, ~node=node.contents, ~frameRestrict )
             let ti = ref(0)
             while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Js_array2.length ) {
                 let typ = syntaxTypes[ti.contents]
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
                     node := tree->ptGetNode([typ]->Js.Array2.concat(expr))
-                    proveFloating( ~tree, ~node=node.contents )
+                    proveFloating( ~tree, ~node=node.contents, ~frameRestrict )
                 }
             }
             switch node.contents->pnGetProof {
@@ -737,6 +753,7 @@ let unifyAll = (
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
+    ~allowedFrms:allowedFrms,
     ~syntaxTypes:option<array<int>>=?,
     ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
@@ -770,6 +787,7 @@ let unifyAll = (
                             ~proofTree=tree,
                             ~syntaxTypes,
                             ~exprs=exprsToSyntaxCheck,
+                            ~frameRestrict = allowedFrms.inSyntax,
                             ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
                                 pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
                             }),
@@ -790,6 +808,7 @@ let unifyAll = (
             ~expr=stmt.expr, 
             ~jstf=stmt.jstf,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
+            ~allowedFrms,
             ~debugLevel,
             ~onProgress =
                 if (stmtIdx != maxStmtIdx || bottomUpProverParams->Belt.Option.isNone) {

@@ -59,12 +59,18 @@ let createEditorState = (
         hideContextSelector: false,
         showVisByDefault:false,
         editorHistMaxLength:0,
-        useDiscInSyntax:true,
-        useDiscInEssen:true,
-        useDeprInSyntax:true,
-        useDeprInEssen:true,
-        useTranDeprInSyntax:true,
-        useTranDeprInEssen:true,
+        allowedFrms: {
+            inSyntax: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+            inEssen: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+        },
     }
     let preCtxV = 1
     let preCtx = ctx
@@ -310,6 +316,7 @@ let unifyAll = (st):editorState => {
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
+                ~allowedFrms = st.settings.allowedFrms,
                 ~wrkCtx,
                 ~rootStmts,
                 ~syntaxTypes=st.syntaxTypes,
@@ -370,6 +377,7 @@ let unifyBottomUp = (
                     args1:filterRootStmts(rootUserStmts, args1),
                     maxNumberOfBranches: None,
                 },
+                ~allowedFrms=st.settings.allowedFrms,
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )

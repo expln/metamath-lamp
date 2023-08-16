@@ -170,6 +170,7 @@ let make = React.memoCustomCompareProps( ({
                                         ctx=state.frmCtx
                                         syntaxTypes
                                         frms
+                                        frameRestrict=settings.allowedFrms.inSyntax
                                         parenCnt
                                         stmt=hyp
                                         symColors=state.symColors
@@ -192,6 +193,7 @@ let make = React.memoCustomCompareProps( ({
                 ctx=state.frmCtx
                 syntaxTypes
                 frms
+                frameRestrict=settings.allowedFrms.inSyntax
                 parenCnt
                 stmt=state.asrt
                 symColors=state.symColors

@@ -2,6 +2,7 @@ open MM_proof_tree
 open MM_context
 open MM_substitution
 open MM_parenCounter
+open MM_wrk_settings
 
 type lengthRestrict = No | LessEq | Less
 
@@ -35,6 +36,7 @@ let createProofCtx: (mmContext, array<rootStmt>) => mmContext
 let proveFloatings: (
     ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
 ) => proofTree
@@ -43,6 +45,7 @@ let proveSyntaxTypes: (
     ~proofTree:proofTree=?,
     ~wrkCtx:mmContext=?,
     ~frms:Belt_MapString.t<frmSubsData>=?,
+    ~frameRestrict:frameRestrict,
     ~parenCnt:parenCnt=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
@@ -57,6 +60,7 @@ let unifyAll: (
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
+    ~allowedFrms:allowedFrms,
     ~syntaxTypes:array<int>=?,
     ~exprsToSyntaxCheck:array<expr>=?,
     ~debugLevel:int=?,

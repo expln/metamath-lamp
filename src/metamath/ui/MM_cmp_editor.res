@@ -930,6 +930,7 @@ let make = (
                                 ~disjText,
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
+                                ~allowedFrms=state.settings.allowedFrms,
                                 ~syntaxTypes=Some(state.syntaxTypes),
                                 ~exprsToSyntaxCheck=
                                     if (state.settings.checkSyntax) {

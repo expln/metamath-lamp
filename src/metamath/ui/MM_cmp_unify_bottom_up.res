@@ -622,6 +622,7 @@ let make = (
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
+                    ~allowedFrms=settings.allowedFrms,
                     ~syntaxTypes=None,
                     ~exprsToSyntaxCheck=None,
                     ~debugLevel = st.debugLevel,

@@ -1,5 +1,6 @@
 open MM_parser
 open MM_progress_tracker
+open MM_wrk_settings
 open Common
 
 type expr = array<int>
@@ -378,6 +379,12 @@ let getFrameExn = (ctx:mmContext,label):frame => {
         | None => raise(MmException({msg: `Could not find a frame by the label '${label}'`}))
         | Some(frame) => frame
     }
+}
+
+let frameIsAllowed = (frame:frame, frameRestrict:frameRestrict):bool => {
+    (!frame.isDisc || frameRestrict.useDisc) 
+    && (!frame.isDepr || frameRestrict.useDepr) 
+    && (!frame.isTranDepr || frameRestrict.useTranDepr)
 }
 
 let getLocalVars: mmContext => array<string> = ctx => {

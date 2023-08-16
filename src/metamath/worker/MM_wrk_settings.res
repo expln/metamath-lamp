@@ -10,6 +10,17 @@ type webSrcSettings = {
     trusted: bool,
 }
 
+type frameRestrict = {
+    useDisc:bool,
+    useDepr:bool,
+    useTranDepr:bool,
+}
+
+type allowedFrms = {
+    inSyntax: frameRestrict,
+    inEssen: frameRestrict,
+}
+
 type settings = {
     parens: string,
 
@@ -20,6 +31,7 @@ type settings = {
     discColor:option<string>,
     deprColor:option<string>,
     tranDeprColor:option<string>,
+    allowedFrms:allowedFrms,
 
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
@@ -36,13 +48,6 @@ type settings = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLength:int,
-
-    useDiscInSyntax:bool,
-    useDiscInEssen:bool,
-    useDeprInSyntax:bool,
-    useDeprInEssen:bool,
-    useTranDeprInSyntax:bool,
-    useTranDeprInEssen:bool,
 }
 
 let markUrlAsTrusted = (settings:settings, url:string):settings => {

@@ -22,6 +22,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms,
+        ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
         ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
     )

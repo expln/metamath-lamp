@@ -747,7 +747,9 @@ let make = React.memoCustomCompareProps( ({
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
                             ~wrkCtx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
-                            ~syntaxTypes, ~frms, ~parenCnt,
+                            ~syntaxTypes, ~frms, 
+                            ~frameRestrict=settings.allowedFrms.inSyntax,
+                            ~parenCnt,
                             ~lastSyntaxType=getLastSyntaxType(),
                             ~onLastSyntaxTypeChange=setLastSyntaxType,
                         ) {

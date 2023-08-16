@@ -1,4 +1,5 @@
 open MM_parser
+open MM_wrk_settings
 
 type expr = array<int>
 
@@ -87,6 +88,7 @@ let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>
 let getFrameExn: (mmContext,string) => frame
+let frameIsAllowed: (frame, frameRestrict) => bool
 let getLocalVars: mmContext => array<string>
 let getLocalHyps: mmContext => array<hypothesis>
 let getNumOfVars: mmContext => int
