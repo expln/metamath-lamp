@@ -45,6 +45,9 @@ type state = {
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
+    useDisc:bool,
+    useDepr:bool,
+    useTranDepr:bool,
     debugLevel:int,
     maxNumberOfBranchesStr:string,
 
@@ -113,6 +116,7 @@ let makeInitialState = (
     ~parenCnt: parenCnt,
     ~initialParams: option<bottomUpProverParams>,
     ~initialDebugLevel: option<int>,
+    ~allowedFrms:allowedFrms,
 ) => {
     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
@@ -165,6 +169,9 @@ let makeInitialState = (
         allowNewDisjForExistingVars: params.allowNewDisjForExistingVars,
         allowNewStmts: params.allowNewStmts,
         allowNewVars: params.allowNewVars,
+        useDisc:allowedFrms.inEssen.useDisc,
+        useDepr:allowedFrms.inEssen.useDepr,
+        useTranDepr:allowedFrms.inEssen.useTranDepr,
         debugLevel: initialDebugLevel
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
@@ -223,6 +230,10 @@ let toggleAllowNewVars = (st) => {
         allowNewVars: !st.allowNewVars
     }
 }
+
+let toggleUseDisc = (st) => { ...st, useDisc: !st.useDisc }
+let toggleUseDepr = (st) => { ...st, useDepr: !st.useDepr }
+let toggleUseTranDepr = (st) => { ...st, useTranDepr: !st.useTranDepr }
 
 let setDebugLevel = (st,debugLevel) => {
     {
@@ -491,6 +502,28 @@ let sortByFromStr = str => {
     }
 }
 
+let rndCheckboxWithLabelAndBorder = (
+    ~checked:bool,
+    ~onChange:bool=>unit,
+    ~label:string,
+) => {
+    <FormControlLabel
+        control={
+            <Checkbox
+                checked
+                onChange=evt2bool(onChange)
+            />
+        }
+        label
+        style=ReactDOM.Style.make(
+            ~border="solid 1px lightgrey", 
+            ~borderRadius="7px", 
+            ~paddingRight="10px",
+            ()
+        )
+    />
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -512,7 +545,8 @@ let make = (
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel
+        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel, 
+        ~allowedFrms=settings.allowedFrms
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -543,6 +577,10 @@ let make = (
     let actToggleAllowNewVars = () => {
         setState(toggleAllowNewVars)
     }
+
+    let actToggleUseDisc = () => setState(toggleUseDisc)
+    let actToggleUseDepr = () => setState(toggleUseDepr)
+    let actToggleUseTranDepr = () => setState(toggleUseTranDepr)
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
@@ -622,7 +660,14 @@ let make = (
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
-                    ~allowedFrms=settings.allowedFrms,
+                    ~allowedFrms={
+                        inSyntax: settings.allowedFrms.inSyntax,
+                        inEssen: {
+                            useDisc:state.useDisc,
+                            useDepr:state.useDepr,
+                            useTranDepr:state.useTranDepr,
+                        }
+                    },
                     ~syntaxTypes=None,
                     ~exprsToSyntaxCheck=None,
                     ~debugLevel = st.debugLevel,
@@ -844,6 +889,42 @@ let make = (
                         )
                     />
                 </Row>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>
+                                {React.string("Allow usage of assertions:")}
+                            </td>
+                            <td style=ReactDOM.Style.make(~paddingLeft="10px", ())>
+                                {
+                                    rndCheckboxWithLabelAndBorder(
+                                        ~checked=state.useDisc,
+                                        ~onChange=_=>actToggleUseDisc(),
+                                        ~label="discouraged",
+                                    )
+                                }
+                            </td>
+                            <td>
+                                {
+                                    rndCheckboxWithLabelAndBorder(
+                                        ~checked=state.useDepr,
+                                        ~onChange=_=>actToggleUseDepr(),
+                                        ~label="deprecated",
+                                    )
+                                }
+                            </td>
+                            <td>
+                                {
+                                    rndCheckboxWithLabelAndBorder(
+                                        ~checked=state.useTranDepr,
+                                        ~onChange=_=>actToggleUseTranDepr(),
+                                        ~label="transitively deprecated",
+                                    )
+                                }
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 <Row>
                     {rndDebugParam()}
                     <TextField 
