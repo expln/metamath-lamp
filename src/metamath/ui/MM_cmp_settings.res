@@ -1084,6 +1084,22 @@ let make = (
         actDescrRegexToDiscUpdated(createDefaultSettings().descrRegexToDisc)
     }
 
+    let actRestoreDefaultDiscUsageSettings = () => {
+        let defaultSettings = createDefaultSettings()
+        setState(st => {
+            st
+                ->updateUseDiscInSyntax(defaultSettings.allowedFrms.inSyntax.useDisc)
+                ->updateUseDeprInSyntax(defaultSettings.allowedFrms.inSyntax.useDepr)
+                ->updateUseTranDeprInSyntax(defaultSettings.allowedFrms.inSyntax.useTranDepr)
+                ->updateUseDiscInEssen(defaultSettings.allowedFrms.inEssen.useDisc)
+                ->updateUseDeprInEssen(defaultSettings.allowedFrms.inEssen.useDepr)
+                ->updateUseTranDeprInEssen(defaultSettings.allowedFrms.inEssen.useTranDepr)
+                ->setDiscColor(defaultSettings.discColor)
+                ->setDeprColor(defaultSettings.deprColor)
+                ->setTranDeprColor(defaultSettings.tranDeprColor)
+        })
+    }
+
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
         modalId->Belt.Option.map(modalId => () => {
             MM_wrk_client.terminateWorker()
@@ -1384,6 +1400,12 @@ let make = (
                     </tr>
                 </thead>
             </table>
+            {
+                rndSmallTextBtn(
+                    ~text="Restore default assertion usage settings",
+                    ~onClick=actRestoreDefaultDiscUsageSettings
+                )
+            }
         </Col>
     }
 

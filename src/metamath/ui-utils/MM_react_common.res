@@ -118,7 +118,7 @@ let rndColorSelect = (
     <FormControl size=#small >
         {
             switch label {
-                | Some(label) => <InputLabel id="label-for-color-select">"Color"</InputLabel>
+                | Some(label) => <InputLabel id="label-for-color-select">label</InputLabel>
                 | None => React.null
             }
         }
