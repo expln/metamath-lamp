@@ -76,7 +76,6 @@ stmt3-brab2a.21
  : ax-frege54c
 |- { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
 None
-Stmt Error: The assertion 'ax-frege54c' is skipped by settings.
 
 --- p -------------------------------------------------------------------------------
 stmt3
@@ -101,6 +100,7 @@ stmt14
 : ralbidv
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
 None
+Stmt Error: 'ralbidv' assertion expects 1 essential hypothesis but 0 are provided.
 
 --- p -------------------------------------------------------------------------------
 stmt12

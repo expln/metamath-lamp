@@ -26,20 +26,13 @@ let createEditorState = (
     ~debug:option<bool>=?, 
     ()
 ) => {
-    let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
-    let ctx = loadContext(ast, ~stopBefore?, ~stopAfter?, ~debug?, ())
-    while (ctx->getNestingLevel != 0) {
-        ctx->closeChildContext
-    }
     let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
     let settingsV = 1
     let settings = {
         parens,
         asrtsToSkip: [],
         descrRegexToDisc: "",
-        labelRegexToDisc: "",
+        labelRegexToDisc: "^ax-frege54c$",
         descrRegexToDepr: "",
         labelRegexToDepr: "",
         discColor:None,
@@ -62,17 +55,36 @@ let createEditorState = (
         editorHistMaxLength:0,
         allowedFrms: {
             inSyntax: {
-                useDisc:true,
+                useDisc:false,
                 useDepr:true,
                 useTranDepr:true,
             },
             inEssen: {
-                useDisc:true,
+                useDisc:false,
                 useDepr:true,
                 useTranDepr:true,
             },
         },
     }
+
+    let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
+    let ctx = loadContext(
+        ast, 
+        ~stopBefore?, 
+        ~stopAfter?, 
+        ~descrRegexToDisc=settings.descrRegexToDisc->strToRegex->Belt_Result.getExn,
+        ~labelRegexToDisc=settings.labelRegexToDisc->strToRegex->Belt_Result.getExn,
+        ~descrRegexToDepr=settings.descrRegexToDepr->strToRegex->Belt_Result.getExn,
+        ~labelRegexToDepr=settings.labelRegexToDepr->strToRegex->Belt_Result.getExn,
+        ~debug?, 
+        ()
+    )
+    while (ctx->getNestingLevel != 0) {
+        ctx->closeChildContext
+    }
+    ctx->moveConstsToBegin(parens)
+    
     let preCtxV = 1
     let preCtx = ctx
     let st = createInitialEditorState(
@@ -350,6 +362,9 @@ let unifyBottomUp = (
     ~allowNewDisjForExistingVars:bool=true,
     ~allowNewStmts:bool=true,
     ~allowNewVars:bool=true,
+    ~useDisc: option<bool>=?,
+    ~useDepr: option<bool>=?,
+    ~useTranDepr: option<bool>=?,
     ~chooseLabel:option<string>=?,
     ~chooseResult:option<stmtsDto => bool>=?,
     ()
@@ -378,7 +393,14 @@ let unifyBottomUp = (
                     args1:filterRootStmts(rootUserStmts, args1),
                     maxNumberOfBranches: None,
                 },
-                ~allowedFrms=st.settings.allowedFrms,
+                ~allowedFrms={
+                    inSyntax: st.settings.allowedFrms.inSyntax,
+                    inEssen: {
+                        useDisc: useDisc->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useDisc),
+                        useDepr: useDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useDepr),
+                        useTranDepr: useTranDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useTranDepr),
+                    }
+                },
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )

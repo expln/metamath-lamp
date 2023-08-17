@@ -212,7 +212,7 @@ let findAsrtParentsWithNewVars = (
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
     let frameFilter = switch asrtLabel {
         | None => (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
-        | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel || frame->frameIsAllowed(allowedFrms.inEssen)
+        | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel
     }
 
     let maxVarBeforeSearch = tree->ptGetMaxVar
