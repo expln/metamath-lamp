@@ -110,13 +110,6 @@ let make = () => {
         }
     }
 
-    let isSettingsTab = (tabData:tabData):bool => {
-        switch tabData {
-            | Settings => true
-            | _ => false
-        }
-    }
-
     let actCloseFrmTabs = () => {
         tabs->Js.Array2.forEach(tab => {
             if (isFrameExplorerTab(tab.data, ())) {

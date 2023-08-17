@@ -37,6 +37,7 @@ let createEditorState = (
     let settingsV = 1
     let settings = {
         parens,
+        asrtsToSkip: [],
         descrRegexToDisc: "",
         labelRegexToDisc: "",
         descrRegexToDepr: "",

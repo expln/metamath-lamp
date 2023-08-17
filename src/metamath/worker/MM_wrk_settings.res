@@ -23,6 +23,7 @@ type allowedFrms = {
 
 type settings = {
     parens: string,
+    asrtsToSkip: array<string>, //deprecated
 
     descrRegexToDisc: string,
     labelRegexToDisc: string,

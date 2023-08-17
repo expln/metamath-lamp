@@ -14,6 +14,8 @@ type settingsState = {
     parens: string,
     parensErr: option<string>,
 
+    asrtsToSkip: array<string>,
+
     descrRegexToDisc: string,
     descrRegexToDiscErr: option<string>,
     labelRegexToDisc: string,
@@ -86,8 +88,9 @@ let defaultTranDeprColor = "#fffac8"
 let createDefaultSettings = ():settingsState => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
-
         parensErr: None,
+        asrtsToSkip: [],
+
         descrRegexToDisc: "\\(New usage is discouraged\\.\\)",
         descrRegexToDiscErr: None,
         labelRegexToDisc: "",
@@ -487,6 +490,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
 let stateToSettings = (st:settingsState):settings => {
     {
         parens: st.parens,
+        asrtsToSkip: st.asrtsToSkip,
         descrRegexToDisc: st.descrRegexToDisc,
         labelRegexToDisc: st.labelRegexToDisc,
         descrRegexToDepr: st.descrRegexToDepr,
@@ -527,6 +531,7 @@ let settingsToState = (ls:settings):settingsState => {
     let res = {
         parens: ls.parens,
         parensErr: None,
+        asrtsToSkip: ls.asrtsToSkip,
         descrRegexToDisc: ls.descrRegexToDisc,
         descrRegexToDiscErr: None,
         labelRegexToDisc: ls.labelRegexToDisc,
@@ -588,18 +593,10 @@ let readStateFromLocStor = ():settingsState => {
         | Some(settingsLocStorStr) => {
             open Expln_utils_jsonParse
             let parseResult:result<settingsState,string> = parseJson(settingsLocStorStr, asObj(_, d=>{
-                // let oldAstrsToSkip = d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>"", ())->Js_string2.trim
-                // let newLabelRegexToDisc = d->str("labelRegexToDisc", ~default=()=>{
-                //     if (oldAstrsToSkip->Js_string2.length == 0) {
-                //         defaultSettings.labelRegexToDisc
-                //     } else {
-
-                //     }
-                // }, ())
-
                 {
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
+                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>defaultSettings.asrtsToSkip, ()),
                     descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc, ()),
                     descrRegexToDiscErr: None,
                     labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
