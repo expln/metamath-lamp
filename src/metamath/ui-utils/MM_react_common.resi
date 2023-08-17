@@ -17,7 +17,9 @@ let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ) => React.element
 let rndColorSelect: (
     ~availableColors:array<string>, 
     ~selectedColor:string, 
-    ~onNewColorSelected:string=>unit
+    ~onNewColorSelected:string=>unit,
+    ~label:string=?,
+    unit
 ) => React.element
 
 let getFrmLabelBkgColor: (frame, settings) => option<string>

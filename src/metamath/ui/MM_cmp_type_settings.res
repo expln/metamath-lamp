@@ -26,7 +26,12 @@ let make = (
             <Row>
                 <TextField label="Type" size=#small style=ReactDOM.Style.make(~width="100px", ()) 
                     value=ts.typ onChange=evt2str(onTypeChange(ts.id,_)) />
-                {rndColorSelect(~availableColors, ~selectedColor=ts.color, ~onNewColorSelected = onColorChange(ts.id, _))}
+                {
+                    rndColorSelect(
+                        ~availableColors, ~selectedColor=ts.color, ~onNewColorSelected = onColorChange(ts.id, _),
+                        ~label="Color", ()
+                    )
+                }
                 <TextField label="Prefix" size=#small style=ReactDOM.Style.make(~width="100px", ()) 
                     value=ts.prefix onChange=evt2str(onPrefixChange(ts.id,_)) />
                 <IconButton key="delete-button" onClick={_ => onDelete(ts.id)}>

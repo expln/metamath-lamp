@@ -1166,25 +1166,6 @@ let make = (
         }
     }
 
-    let rndHighlightColorSetting = (
-        ~selectedColor:string,
-        ~onChange:string=>unit,
-        ~label:string,
-    ):React.element => {
-        <Row alignItems=#center>
-            <span>
-                {React.string(label)}
-            </span>
-            {
-                rndColorSelect( 
-                    ~availableColors=allColors, 
-                    ~selectedColor, 
-                    ~onNewColorSelected = onChange,
-                )
-            }
-        </Row>
-    }
-
     let rndSingleCheckbox = ( ~checked:bool, ~onChange:bool=>unit, ):React.element => {
         <Checkbox checked onChange=evt2bool(onChange) />
     }
@@ -1281,27 +1262,6 @@ let make = (
                 }
             </Row>
             {rndError(state.labelRegexToDeprErr)}
-            {
-                rndHighlightColorSetting(
-                    ~selectedColor=state.discColor,
-                    ~onChange=actDiscColorUpdated,
-                    ~label="Highlight discouraged assertions",
-                )
-            }
-            {
-                rndHighlightColorSetting(
-                    ~selectedColor=state.deprColor,
-                    ~onChange=actDeprColorUpdated,
-                    ~label="Highlight deprecated assertions",
-                )
-            }
-            {
-                rndHighlightColorSetting(
-                    ~selectedColor=state.tranDeprColor,
-                    ~onChange=actTranDeprColorUpdated,
-                    ~label="Highlight transitively deprecated assertions",
-                )
-            }
             <table style=ReactDOM.Style.make(~borderCollapse="collapse", ~border="none", ())>
                 <thead>
                     <tr>
@@ -1314,6 +1274,13 @@ let make = (
                             <td className="table-single-border" colSpan=2>
                                 <span>
                                     {"Proofs"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border" rowSpan=2>
+                                <span>
+                                    {"Color"->React.string}
                                 </span>
                             </td>->addAlignAttr("center")
                         }
@@ -1352,6 +1319,18 @@ let make = (
                                 {rndSingleCheckbox( ~checked=state.allowedFrms.inEssen.useDisc, ~onChange=actUseDiscInEssenChange )}
                             </td>->addAlignAttr("center")
                         }
+                        {
+                            <td className="table-single-border">
+                                {
+                                    rndColorSelect( 
+                                        ~availableColors=allColors, 
+                                        ~selectedColor=state.discColor, 
+                                        ~onNewColorSelected = actDiscColorUpdated,
+                                        ()
+                                    )
+                                }
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                     <tr>
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
@@ -1365,6 +1344,18 @@ let make = (
                                 {rndSingleCheckbox( ~checked=state.allowedFrms.inEssen.useDepr, ~onChange=actUseDeprInEssenChange )}
                             </td>->addAlignAttr("center")
                         }
+                        {
+                            <td className="table-single-border">
+                                {
+                                    rndColorSelect( 
+                                        ~availableColors=allColors, 
+                                        ~selectedColor=state.deprColor, 
+                                        ~onNewColorSelected = actDeprColorUpdated,
+                                        ()
+                                    )
+                                }
+                            </td>->addAlignAttr("center")
+                        }
                     </tr>
                     <tr>
                         {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
@@ -1376,6 +1367,18 @@ let make = (
                         {
                             <td className="table-single-border">
                                 {rndSingleCheckbox( ~checked=state.allowedFrms.inEssen.useTranDepr, ~onChange=actUseTranDeprInEssenChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {
+                                    rndColorSelect( 
+                                        ~availableColors=allColors, 
+                                        ~selectedColor=state.tranDeprColor, 
+                                        ~onNewColorSelected = actTranDeprColorUpdated,
+                                        ()
+                                    )
+                                }
                             </td>->addAlignAttr("center")
                         }
                     </tr>

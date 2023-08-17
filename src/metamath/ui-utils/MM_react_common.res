@@ -111,13 +111,20 @@ let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
 let rndColorSelect = (
     ~availableColors:array<string>, 
     ~selectedColor:string, 
-    ~onNewColorSelected:string=>unit
+    ~onNewColorSelected:string=>unit,
+    ~label:option<string>=?,
+    ()
 ):React.element => {
     <FormControl size=#small >
-        <InputLabel id="label-for-color-select">"Color"</InputLabel>
+        {
+            switch label {
+                | Some(label) => <InputLabel id="label-for-color-select">"Color"</InputLabel>
+                | None => React.null
+            }
+        }
         <Select 
             labelId="label-for-color-select"
-            label="Color"
+            ?label
             value=selectedColor
             onChange=evt2str(onNewColorSelected)
         >
