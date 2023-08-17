@@ -26,9 +26,9 @@ type settingsState = {
     labelRegexToDepr: string,
     labelRegexToDeprErr: option<string>,
 
-    discColor:option<string>,
-    deprColor:option<string>,
-    tranDeprColor:option<string>,
+    discColor:string,
+    deprColor:string,
+    tranDeprColor:string,
     allowedFrms:allowedFrms,
 
     editStmtsByLeftClick:bool,
@@ -100,9 +100,9 @@ let createDefaultSettings = ():settingsState => {
         labelRegexToDepr: "",
         labelRegexToDeprErr: None,
 
-        discColor:Some(defaultDiscColor),
-        deprColor:Some(defaultDeprColor),
-        tranDeprColor:Some(defaultTranDeprColor),
+        discColor:defaultDiscColor,
+        deprColor:defaultDeprColor,
+        tranDeprColor:defaultTranDeprColor,
         allowedFrms: {
             inSyntax: {
                 useDisc:false,
@@ -202,16 +202,11 @@ let validateRegex = (regex:string):option<string> => {
     }
 }
 
-let validateColor = (color:option<string>):option<string> => {
-    switch color {
-        | None => None
-        | Some(color) => {
-            if (allColors->Js_array2.includes(color)) {
-                Some(color)
-            } else {
-                None
-            }
-        }
+let validateColor = (color:string):string => {
+    if (allColors->Js_array2.includes(color)) {
+        color
+    } else {
+        allColors[0]
     }
 }
 
@@ -605,8 +600,9 @@ let readStateFromLocStor = ():settingsState => {
                     descrRegexToDeprErr: None,
                     labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr, ()),
                     labelRegexToDeprErr: None,
-                    discColor: d->strOpt("discColor", ()),
-                    deprColor: d->strOpt("deprColor", ()),
+                    discColor: d->str("discColor", ~default=()=>defaultDiscColor, ()),
+                    deprColor: d->str("deprColor", ~default=()=>defaultDeprColor, ()),
+                    tranDeprColor: d->str("tranDeprColor", ~default=()=>defaultTranDeprColor, ()),
                     allowedFrms: d->obj("allowedFrms", d=>{
                         {
                             inSyntax: d->obj("inSyntax", d=>{
@@ -621,7 +617,6 @@ let readStateFromLocStor = ():settingsState => {
                             }, ())
                         }
                     }, ~default=()=>defaultSettings.allowedFrms, ()),
-                    tranDeprColor: d->strOpt("tranDeprColor", ()),
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
@@ -928,15 +923,15 @@ let make = (
         setState(setLabelRegexToDepr(_,labelRegexToDepr))
     }
 
-    let actDiscColorUpdated = (color:option<string>) => {
+    let actDiscColorUpdated = (color:string) => {
         setState(setDiscColor(_,color))
     }
 
-    let actDeprColorUpdated = (color:option<string>) => {
+    let actDeprColorUpdated = (color:string) => {
         setState(setDeprColor(_,color))
     }
 
-    let actTranDeprColorUpdated = (color:option<string>) => {
+    let actTranDeprColorUpdated = (color:string) => {
         setState(setTranDeprColor(_,color))
     }
 
@@ -1171,41 +1166,21 @@ let make = (
         }
     }
 
-    let rndOptHighlightColorSetting = (
-        ~selectedColor:option<string>,
-        ~onChange:option<string>=>unit,
+    let rndHighlightColorSetting = (
+        ~selectedColor:string,
+        ~onChange:string=>unit,
         ~label:string,
-        ~defaultColor:string,
     ):React.element => {
-        <Row>
-            <FormControlLabel
-                control={
-                    <Checkbox
-                        checked={selectedColor->Belt_Option.isSome}
-                        onChange=evt2bool(checked => {
-                            if (checked) {
-                                let color = allColors->Js.Array2.find(c => c == defaultColor)
-                                    ->Belt.Option.getWithDefault(allColors[0])
-                                onChange(Some(color))
-                            } else {
-                                onChange(None)
-                            }
-                        })
-                    />
-                }
-                label
-            />
+        <Row alignItems=#center>
+            <span>
+                {React.string(label)}
+            </span>
             {
-                switch selectedColor {
-                    | None => React.null
-                    | Some(color) => {
-                        rndColorSelect( 
-                            ~availableColors=allColors, 
-                            ~selectedColor=color, 
-                            ~onNewColorSelected = newColor => onChange(Some(newColor)),
-                        )
-                    }
-                }
+                rndColorSelect( 
+                    ~availableColors=allColors, 
+                    ~selectedColor, 
+                    ~onNewColorSelected = onChange,
+                )
             }
         </Row>
     }
@@ -1307,27 +1282,24 @@ let make = (
             </Row>
             {rndError(state.labelRegexToDeprErr)}
             {
-                rndOptHighlightColorSetting(
+                rndHighlightColorSetting(
                     ~selectedColor=state.discColor,
                     ~onChange=actDiscColorUpdated,
                     ~label="Highlight discouraged assertions",
-                    ~defaultColor=defaultDiscColor,
                 )
             }
             {
-                rndOptHighlightColorSetting(
+                rndHighlightColorSetting(
                     ~selectedColor=state.deprColor,
                     ~onChange=actDeprColorUpdated,
                     ~label="Highlight deprecated assertions",
-                    ~defaultColor=defaultDeprColor,
                 )
             }
             {
-                rndOptHighlightColorSetting(
+                rndHighlightColorSetting(
                     ~selectedColor=state.tranDeprColor,
                     ~onChange=actTranDeprColorUpdated,
                     ~label="Highlight transitively deprecated assertions",
-                    ~defaultColor=defaultTranDeprColor,
                 )
             }
             <table style=ReactDOM.Style.make(~borderCollapse="collapse", ~border="none", ())>

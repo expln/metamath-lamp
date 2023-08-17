@@ -29,9 +29,9 @@ type settings = {
     labelRegexToDisc: string,
     descrRegexToDepr: string,
     labelRegexToDepr: string,
-    discColor:option<string>,
-    deprColor:option<string>,
-    tranDeprColor:option<string>,
+    discColor:string,
+    deprColor:string,
+    tranDeprColor:string,
     allowedFrms:allowedFrms,
 
     editStmtsByLeftClick:bool,

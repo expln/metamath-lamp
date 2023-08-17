@@ -133,12 +133,12 @@ let rndColorSelect = (
 }
 
 let getFrmLabelBkgColor = (frame:frame, settings:settings):option<string> => {
-    if (frame.isDisc && settings.discColor->Belt.Option.isSome) {
-        settings.discColor
-    } else if (frame.isDepr && settings.deprColor->Belt.Option.isSome) {
-        settings.deprColor
-    } else if (frame.isTranDepr && settings.tranDeprColor->Belt.Option.isSome) {
-        settings.tranDeprColor
+    if (frame.isDisc) {
+        Some(settings.discColor)
+    } else if (frame.isDepr) {
+        Some(settings.deprColor)
+    } else if (frame.isTranDepr) {
+        Some(settings.tranDeprColor)
     } else {
         None
     }

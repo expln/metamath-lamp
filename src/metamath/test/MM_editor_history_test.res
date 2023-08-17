@@ -10,7 +10,7 @@ let createEditorState = ():editorState => {
         ~settings={
             parens: "", descrRegexToDisc: "", labelRegexToDisc: "", descrRegexToDepr: "", labelRegexToDepr: "", 
             asrtsToSkip: [],
-            discColor:None, deprColor:None, tranDeprColor:None,
+            discColor:"", deprColor:"", tranDeprColor:"",
             editStmtsByLeftClick:false, defaultStmtType:"", 
             unifMetavarPrefix:"&", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, 
             stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
