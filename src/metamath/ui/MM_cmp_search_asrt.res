@@ -55,7 +55,11 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
     }
 }
 
-let setResults = (st,results):state => {
+let setResults = (
+    st,
+    ~results: array<stmtsDto>,
+    ~getFrmLabelBkgColor: string=>option<string>,
+):state => {
     let maxPage = Js.Math.ceil_int(results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
         ...st,
@@ -77,7 +81,20 @@ let setResults = (st,results):state => {
                         {React.array(
                             result.stmts->Js_array2.mapi((stmt,i) => {
                                 <React.Fragment key={"stmt-" ++ i->Belt_Int.toString} >
-                                    {React.string(stmt.label ++ ": " ++ stmt.exprStr)}
+                                    <span 
+                                        style=ReactDOM.Style.make(
+                                            ~backgroundColor=?{
+                                                if (i == lastStmtIdx) {getFrmLabelBkgColor(stmt.label)} else {None}
+                                            }, 
+                                            ~borderRadius="3px",
+                                            ()
+                                        )
+                                    >
+                                        {React.string(stmt.label)}
+                                    </span>
+                                    <span>
+                                        {React.string(": " ++ stmt.exprStr)}
+                                    </span>
                                     {
                                         if (i != lastStmtIdx) {
                                             <Divider/>
@@ -165,8 +182,17 @@ let make = (
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(frms, initialTyp))
 
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch frms->Belt_MapString.get(label) {
+            | None => None
+            | Some(frm) => {
+                MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
+            }
+        }
+    }
+
     let actResultsRetrieved = results => {
-        setState(setResults(_, results))
+        setState(setResults(_, ~results, ~getFrmLabelBkgColor))
     }
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {

@@ -15,7 +15,21 @@ type settingsState = {
     parensErr: option<string>,
 
     asrtsToSkip: array<string>,
-    asrtsToSkipRegex: string,
+
+    descrRegexToDisc: string,
+    descrRegexToDiscErr: option<string>,
+    labelRegexToDisc: string,
+    labelRegexToDiscErr: option<string>,
+
+    descrRegexToDepr: string,
+    descrRegexToDeprErr: option<string>,
+    labelRegexToDepr: string,
+    labelRegexToDeprErr: option<string>,
+
+    discColor:option<string>,
+    deprColor:option<string>,
+    tranDeprColor:option<string>,
+    allowedFrms:allowedFrms,
 
     editStmtsByLeftClick:bool,
     initStmtIsGoal:bool,
@@ -46,8 +60,6 @@ let allColors = [
     "#000000"
 ]
 
-let asrtsToSkipRegexDefault = "New usage of \"([^\"]+)\" is discouraged"
-
 let createDefaultWebSrcSettingState = (alias:string,url:string):webSrcSettingsState => {
     {
         id: "0",
@@ -69,12 +81,41 @@ let setmm = createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath
 let isetmm = createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm")
 let defaultAliases = [setmm.alias, isetmm.alias]
 
-let createDefaultSettings = () => {
+let defaultDiscColor = "#fabed4"
+let defaultDeprColor = "#ffe119"
+let defaultTranDeprColor = "#fffac8"
+
+let createDefaultSettings = ():settingsState => {
     {
         parens: "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b",
         parensErr: None,
         asrtsToSkip: [],
-        asrtsToSkipRegex: asrtsToSkipRegexDefault,
+
+        descrRegexToDisc: "\\(New usage is discouraged\\.\\)",
+        descrRegexToDiscErr: None,
+        labelRegexToDisc: "",
+        labelRegexToDiscErr: None,
+        descrRegexToDepr: "",
+        descrRegexToDeprErr: None,
+        labelRegexToDepr: "",
+        labelRegexToDeprErr: None,
+
+        discColor:Some(defaultDiscColor),
+        deprColor:Some(defaultDeprColor),
+        tranDeprColor:Some(defaultTranDeprColor),
+        allowedFrms: {
+            inSyntax: {
+                useDisc:false,
+                useDepr:true,
+                useTranDepr:true,
+            },
+            inEssen: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+        },
+
         editStmtsByLeftClick: false,
         initStmtIsGoal:true,
         defaultStmtLabel:"qed",
@@ -152,6 +193,48 @@ let validateAndCorrectParens = (st:settingsState):settingsState => {
         parens: newParens,
         parensErr,
     }
+}
+
+let validateRegex = (regex:string):option<string> => {
+    switch strToRegex(regex) {
+        | Error(msg) => Some(msg)
+        | Ok(_) => None
+    }
+}
+
+let validateColor = (color:option<string>):option<string> => {
+    switch color {
+        | None => None
+        | Some(color) => {
+            if (allColors->Js_array2.includes(color)) {
+                Some(color)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+let validateAndCorrectDiscAndDeprSettings = (st:settingsState):settingsState => {
+    let st = {
+        ...st,
+        descrRegexToDisc: st.descrRegexToDisc->Js_string2.trim,
+        labelRegexToDisc: st.labelRegexToDisc->Js_string2.trim,
+        descrRegexToDepr: st.descrRegexToDepr->Js_string2.trim,
+        labelRegexToDepr: st.labelRegexToDepr->Js_string2.trim,
+    }
+    let st = {
+        ...st,
+        descrRegexToDiscErr: st.descrRegexToDisc->validateRegex,
+        labelRegexToDiscErr: st.labelRegexToDisc->validateRegex,
+        descrRegexToDeprErr: st.descrRegexToDepr->validateRegex,
+        labelRegexToDeprErr: st.labelRegexToDepr->validateRegex,
+
+        discColor: st.discColor->validateColor,
+        deprColor: st.deprColor->validateColor,
+        tranDeprColor: st.tranDeprColor->validateColor,
+    }
+    st
 }
 
 let validateDefaultStmtLabel = (label:string):string => {
@@ -393,6 +476,7 @@ let validateAndCorrectEditorHistoryMaxLengthSetting = (st:settingsState):setting
 
 let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectParens(st)
+    let st = validateAndCorrectDiscAndDeprSettings(st)
     let st = validateAndCorrectDefaultStmtType(st)
     let st = validateAndCorrectTypeSettings(st)
     let st = validateAndCorrectUnifMetavarPrefix(st)
@@ -407,7 +491,14 @@ let stateToSettings = (st:settingsState):settings => {
     {
         parens: st.parens,
         asrtsToSkip: st.asrtsToSkip,
-        asrtsToSkipRegex: st.asrtsToSkipRegex,
+        descrRegexToDisc: st.descrRegexToDisc,
+        labelRegexToDisc: st.labelRegexToDisc,
+        descrRegexToDepr: st.descrRegexToDepr,
+        labelRegexToDepr: st.labelRegexToDepr,
+        discColor: st.discColor,
+        deprColor: st.deprColor,
+        allowedFrms: st.allowedFrms,
+        tranDeprColor: st.tranDeprColor,
         editStmtsByLeftClick:st.editStmtsByLeftClick,
         initStmtIsGoal:st.initStmtIsGoal,
         defaultStmtLabel:st.defaultStmtLabel,
@@ -441,7 +532,18 @@ let settingsToState = (ls:settings):settingsState => {
         parens: ls.parens,
         parensErr: None,
         asrtsToSkip: ls.asrtsToSkip,
-        asrtsToSkipRegex: ls.asrtsToSkipRegex,
+        descrRegexToDisc: ls.descrRegexToDisc,
+        descrRegexToDiscErr: None,
+        labelRegexToDisc: ls.labelRegexToDisc,
+        labelRegexToDiscErr: None,
+        descrRegexToDepr: ls.descrRegexToDepr,
+        descrRegexToDeprErr: None,
+        labelRegexToDepr: ls.labelRegexToDepr,
+        labelRegexToDeprErr: None,
+        discColor: ls.discColor,
+        deprColor: ls.deprColor,
+        allowedFrms: ls.allowedFrms,
+        tranDeprColor: ls.tranDeprColor,
         editStmtsByLeftClick:ls.editStmtsByLeftClick,
         initStmtIsGoal:ls.initStmtIsGoal,
         defaultStmtLabel:ls.defaultStmtLabel,
@@ -495,7 +597,31 @@ let readStateFromLocStor = ():settingsState => {
                     parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
                     parensErr: None,
                     asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>defaultSettings.asrtsToSkip, ()),
-                    asrtsToSkipRegex: d->str("asrtsToSkipRegex", ~default=()=>defaultSettings.asrtsToSkipRegex, ()),
+                    descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc, ()),
+                    descrRegexToDiscErr: None,
+                    labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
+                    labelRegexToDiscErr: None,
+                    descrRegexToDepr: d->str("descrRegexToDepr", ~default=()=>defaultSettings.descrRegexToDepr, ()),
+                    descrRegexToDeprErr: None,
+                    labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr, ()),
+                    labelRegexToDeprErr: None,
+                    discColor: d->strOpt("discColor", ()),
+                    deprColor: d->strOpt("deprColor", ()),
+                    allowedFrms: d->obj("allowedFrms", d=>{
+                        {
+                            inSyntax: d->obj("inSyntax", d=>{
+                                useDisc: d->bool( "useDisc", () ),
+                                useDepr: d->bool( "useDepr", () ),
+                                useTranDepr: d->bool( "useTranDepr", () ),
+                            }, ()),
+                            inEssen: d->obj("inEssen", d=>{
+                                useDisc: d->bool( "useDisc", () ),
+                                useDepr: d->bool( "useDepr", () ),
+                                useTranDepr: d->bool( "useTranDepr", () ),
+                            }, ())
+                        }
+                    }, ~default=()=>defaultSettings.allowedFrms, ()),
+                    tranDeprColor: d->strOpt("tranDeprColor", ()),
                     editStmtsByLeftClick: d->bool(
                         "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
                     ),
@@ -561,6 +687,10 @@ let settingsReadFromLocStor = () => readStateFromLocStor()->stateToSettings
 
 let isValid = st => {
     st.parensErr->Belt_Option.isNone
+        && st.descrRegexToDiscErr->Belt_Option.isNone
+        && st.labelRegexToDiscErr->Belt_Option.isNone
+        && st.descrRegexToDeprErr->Belt_Option.isNone
+        && st.labelRegexToDeprErr->Belt_Option.isNone
         && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
         && st.webSrcSettings->Js_array2.every(s => s.err->Belt_Option.isNone)
 }
@@ -579,8 +709,14 @@ let eqWebSrcSetting = (ts1:webSrcSettingsState, ts2:webSrcSettingsState):bool =>
 
 let eqState = (st1, st2) => {
     st1.parens == st2.parens
-        && st1.asrtsToSkip == st2.asrtsToSkip
-        && st1.asrtsToSkipRegex == st2.asrtsToSkipRegex
+        && st1.descrRegexToDisc == st2.descrRegexToDisc
+        && st1.labelRegexToDisc == st2.labelRegexToDisc
+        && st1.descrRegexToDepr == st2.descrRegexToDepr
+        && st1.labelRegexToDepr == st2.labelRegexToDepr
+        && st1.discColor == st2.discColor
+        && st1.deprColor == st2.deprColor
+        && st1.allowedFrms == st2.allowedFrms
+        && st1.tranDeprColor == st2.tranDeprColor
         && st1.editStmtsByLeftClick == st2.editStmtsByLeftClick
         && st1.initStmtIsGoal == st2.initStmtIsGoal
         && st1.defaultStmtLabel == st2.defaultStmtLabel
@@ -597,7 +733,7 @@ let eqState = (st1, st2) => {
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector
         && st1.showVisByDefault == st2.showVisByDefault
-        && st1.editorHistMaxLengthStr== st2.editorHistMaxLengthStr
+        && st1.editorHistMaxLengthStr == st2.editorHistMaxLengthStr
 }
 
 let updateParens = (st,parens) => {
@@ -608,8 +744,29 @@ let updateParens = (st,parens) => {
     }
 }
 
-let setAsrtsToSkip = (st, asrtsToSkip) => {...st, asrtsToSkip}
-let setAsrtsToSkipRegex = (st, asrtsToSkipRegex) => {...st, asrtsToSkipRegex}
+let setDescrRegexToDisc = (st, descrRegexToDisc) => {
+    {...st, descrRegexToDisc, descrRegexToDiscErr:None }
+}
+let setLabelRegexToDisc = (st, labelRegexToDisc) => {
+    {...st, labelRegexToDisc, labelRegexToDiscErr:None}
+}
+
+let setDescrRegexToDepr = (st, descrRegexToDepr) => {
+    {...st, descrRegexToDepr, descrRegexToDeprErr:None }
+}
+let setLabelRegexToDepr = (st, labelRegexToDepr) => {
+    {...st, labelRegexToDepr, labelRegexToDeprErr:None}
+}
+
+let setDiscColor = (st, color) => {
+    {...st, discColor:color}
+}
+let setDeprColor = (st, color) => {
+    {...st, deprColor:color}
+}
+let setTranDeprColor = (st, color) => {
+    {...st, tranDeprColor:color}
+}
 
 let updateEditStmtsByLeftClick = (st, editStmtsByLeftClick) => {...st, editStmtsByLeftClick}
 let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
@@ -621,6 +778,25 @@ let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBott
 let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
+
+let updateUseDiscInSyntax = (st, useDiscInSyntax) => {
+    {...st, allowedFrms:{...st.allowedFrms, inSyntax:{...st.allowedFrms.inSyntax, useDisc:useDiscInSyntax}}}
+}
+let updateUseDiscInEssen = (st, useDiscInEssen) => {
+    {...st, allowedFrms:{...st.allowedFrms, inEssen:{...st.allowedFrms.inEssen, useDisc:useDiscInEssen}}}
+}
+let updateUseDeprInSyntax = (st, useDeprInSyntax) => {
+    {...st, allowedFrms:{...st.allowedFrms, inSyntax:{...st.allowedFrms.inSyntax, useDepr:useDeprInSyntax}}}
+}
+let updateUseDeprInEssen = (st, useDeprInEssen) => {
+    {...st, allowedFrms:{...st.allowedFrms, inEssen:{...st.allowedFrms.inEssen, useDepr:useDeprInEssen}}}
+}
+let updateUseTranDeprInSyntax = (st, useTranDeprInSyntax) => {
+    {...st, allowedFrms:{...st.allowedFrms, inSyntax:{...st.allowedFrms.inSyntax, useTranDepr:useTranDeprInSyntax}}}
+}
+let updateUseTranDeprInEssen = (st, useTranDeprInEssen) => {
+    {...st, allowedFrms:{...st.allowedFrms, inEssen:{...st.allowedFrms.inEssen, useTranDepr:useTranDeprInEssen}}}
+}
 
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
@@ -736,12 +912,32 @@ let make = (
         setState(updateParens(_, parens))
     }
 
-    let actAsrtsToSkipChange = (res:MM_cmp_asrts_to_skip.asrtsToSkipResult) => {
-        setState(st => {
-            let st = st->setAsrtsToSkip(res.asrtsToSkip)
-            let st = st->setAsrtsToSkipRegex(res.regex)
-            st
-        })
+    let actDescrRegexToDiscUpdated = (descrRegexToDisc:string) => {
+        setState(setDescrRegexToDisc(_,descrRegexToDisc))
+    }
+
+    let actLabelRegexToDiscUpdated = (labelRegexToDisc:string) => {
+        setState(setLabelRegexToDisc(_,labelRegexToDisc))
+    }
+
+    let actDescrRegexToDeprUpdated = (descrRegexToDepr:string) => {
+        setState(setDescrRegexToDepr(_,descrRegexToDepr))
+    }
+
+    let actLabelRegexToDeprUpdated = (labelRegexToDepr:string) => {
+        setState(setLabelRegexToDepr(_,labelRegexToDepr))
+    }
+
+    let actDiscColorUpdated = (color:option<string>) => {
+        setState(setDiscColor(_,color))
+    }
+
+    let actDeprColorUpdated = (color:option<string>) => {
+        setState(setDeprColor(_,color))
+    }
+
+    let actTranDeprColorUpdated = (color:option<string>) => {
+        setState(setTranDeprColor(_,color))
     }
 
     let actEditStmtsByLeftClickChange = editStmtsByLeftClick => {
@@ -836,6 +1032,13 @@ let make = (
         setState(updateTrusted(_, id, trusted))
     }
 
+    let actUseDiscInSyntaxChange = (useDiscInSyntax) => { setState(updateUseDiscInSyntax(_, useDiscInSyntax)) }
+    let actUseDiscInEssenChange = (useDiscInEssen) => { setState(updateUseDiscInEssen(_, useDiscInEssen)) }
+    let actUseDeprInSyntaxChange = (useDeprInSyntax) => { setState(updateUseDeprInSyntax(_, useDeprInSyntax)) }
+    let actUseDeprInEssenChange = (useDeprInEssen) => { setState(updateUseDeprInEssen(_, useDeprInEssen)) }
+    let actUseTranDeprInSyntaxChange = (useTranDeprInSyntax) => { setState(updateUseTranDeprInSyntax(_, useTranDeprInSyntax)) }
+    let actUseTranDeprInEssenChange = (useTranDeprInEssen) => { setState(updateUseTranDeprInEssen(_, useTranDeprInEssen)) }
+
     let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
         let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
             state
@@ -882,6 +1085,10 @@ let make = (
         })
     }
 
+    let actRestoreDefaultDescrRegexToDisc = () => {
+        actDescrRegexToDiscUpdated(createDefaultSettings().descrRegexToDisc)
+    }
+
     let makeActTerminate = (modalId:option<modalId>):option<unit=>unit> => {
         modalId->Belt.Option.map(modalId => () => {
             MM_wrk_client.terminateWorker()
@@ -907,22 +1114,19 @@ let make = (
         })->ignore
     }
 
-    let actOpenAsrtsToSkipDialog = () => {
+    let actOpenCheckRegexDialog = (~initRegex:string, ~onSave:string=>unit) => {
         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
-                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                    <MM_cmp_asrts_to_skip 
-                        initText={state.asrtsToSkip->Js.Array2.joinWith("\n")}
-                        initRegex=state.asrtsToSkipRegex
-                        onSave={res => {
-                            closeModal(modalRef, modalId)
-                            actAsrtsToSkipChange(res)
-                        }}
-                        onCancel={()=> {
-                            closeModal(modalRef, modalId)
-                        }}
-                    />
-                </Paper>
+                <MM_cmp_test_regex 
+                    initRegex
+                    onSave={regex => {
+                        closeModal(modalRef, modalId)
+                        onSave(regex)
+                    }}
+                    onCancel={()=> {
+                        closeModal(modalRef, modalId)
+                    }}
+                />
             })
         })->ignore
     }
@@ -958,19 +1162,254 @@ let make = (
         elems->React.array
     }
 
-    let rndAsrtsToSkip = () => {
-        let asrtsSelected = state.asrtsToSkip->Js_array2.length->Belt.Int.toString
+    let rndError = (err:option<string>) => {
+        switch err {
+            | None => React.null
+            | Some(msg) => {
+                <pre style=ReactDOM.Style.make(~color="red", ()) >{React.string(msg)}</pre>
+            }
+        }
+    }
+
+    let rndOptHighlightColorSetting = (
+        ~selectedColor:option<string>,
+        ~onChange:option<string>=>unit,
+        ~label:string,
+        ~defaultColor:string,
+    ):React.element => {
         <Row>
-            <span>
-                {`Assertions to skip: ${asrtsSelected} assertions selected.`->React.string}
-            </span>
-            <span
-                onClick={_=> { actOpenAsrtsToSkipDialog() }}
-                style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
-            >
-                {React.string("edit")}
-            </span>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked={selectedColor->Belt_Option.isSome}
+                        onChange=evt2bool(checked => {
+                            if (checked) {
+                                let color = allColors->Js.Array2.find(c => c == defaultColor)
+                                    ->Belt.Option.getWithDefault(allColors[0])
+                                onChange(Some(color))
+                            } else {
+                                onChange(None)
+                            }
+                        })
+                    />
+                }
+                label
+            />
+            {
+                switch selectedColor {
+                    | None => React.null
+                    | Some(color) => {
+                        rndColorSelect( 
+                            ~availableColors=allColors, 
+                            ~selectedColor=color, 
+                            ~onNewColorSelected = newColor => onChange(Some(newColor)),
+                        )
+                    }
+                }
+            }
         </Row>
+    }
+
+    let rndSingleCheckbox = ( ~checked:bool, ~onChange:bool=>unit, ):React.element => {
+        <Checkbox checked onChange=evt2bool(onChange) />
+    }
+
+    let addAlignAttr = (elem:React.element, alignValue):React.element => {
+        elem->React.cloneElement({"align":alignValue})
+    }
+
+    let rndDiscAsrtsSettings = () => {
+        <Col spacing=1.5>
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine discouraged assertions by description" 
+                    value=state.descrRegexToDisc
+                    onChange=evt2str(actDescrRegexToDiscUpdated)
+                    title="All assertions with a description matching this regular expression will be marked as discouraged."
+                    error={state.descrRegexToDiscErr->Belt_Option.isSome}
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.descrRegexToDisc, ~onSave=actDescrRegexToDiscUpdated)
+                        }
+                    )
+                }
+                {
+                    rndSmallTextBtn(
+                        ~text="Restore default regex",
+                        ~onClick=actRestoreDefaultDescrRegexToDisc
+                    )
+                }
+            </Row>
+            {rndError(state.descrRegexToDiscErr)}
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine discouraged assertions by label" 
+                    value=state.labelRegexToDisc
+                    onChange=evt2str(actLabelRegexToDiscUpdated)
+                    title="All assertions with a label matching this regular expression will be marked as discouraged."
+                    error={state.labelRegexToDiscErr->Belt_Option.isSome}
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.labelRegexToDisc, ~onSave=actLabelRegexToDiscUpdated)
+                        }
+                    )
+                }
+            </Row>
+            {rndError(state.labelRegexToDiscErr)}
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine deprecated assertions by description" 
+                    value=state.descrRegexToDepr
+                    onChange=evt2str(actDescrRegexToDeprUpdated)
+                    title="All assertions with a description matching this regular expression will be marked as deprecated."
+                    error={state.descrRegexToDeprErr->Belt_Option.isSome}
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.descrRegexToDepr, ~onSave=actDescrRegexToDeprUpdated)
+                        }
+                    )
+                }
+            </Row>
+            {rndError(state.descrRegexToDeprErr)}
+            <Row alignItems=#center>
+                <TextField 
+                    size=#small
+                    style=ReactDOM.Style.make(~width="500px", ())
+                    label="Regex to determine deprecated assertions by label" 
+                    value=state.labelRegexToDepr
+                    onChange=evt2str(actLabelRegexToDeprUpdated)
+                    title="All assertions with a label matching this regular expression will be marked as deprecated."
+                    error={state.labelRegexToDeprErr->Belt_Option.isSome}
+                />
+                {
+                    rndSmallTextBtn(
+                        ~text="Check regex",
+                        ~onClick=()=>{
+                            actOpenCheckRegexDialog(~initRegex=state.labelRegexToDepr, ~onSave=actLabelRegexToDeprUpdated)
+                        }
+                    )
+                }
+            </Row>
+            {rndError(state.labelRegexToDeprErr)}
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.discColor,
+                    ~onChange=actDiscColorUpdated,
+                    ~label="Highlight discouraged assertions",
+                    ~defaultColor=defaultDiscColor,
+                )
+            }
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.deprColor,
+                    ~onChange=actDeprColorUpdated,
+                    ~label="Highlight deprecated assertions",
+                    ~defaultColor=defaultDeprColor,
+                )
+            }
+            {
+                rndOptHighlightColorSetting(
+                    ~selectedColor=state.tranDeprColor,
+                    ~onChange=actTranDeprColorUpdated,
+                    ~label="Highlight transitively deprecated assertions",
+                    ~defaultColor=defaultTranDeprColor,
+                )
+            }
+            <table style=ReactDOM.Style.make(~borderCollapse="collapse", ~border="none", ())>
+                <thead>
+                    <tr>
+                        {
+                            <td className="table-single-border" colSpan=2 style=ReactDOM.Style.make(~border="none", ())>
+                                {"Allowed usage"->React.string}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border" colSpan=2>
+                                <span>
+                                    {"Proofs"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
+                    </tr>
+                    <tr>
+                        {
+                            <td className="table-single-border" colSpan=2 style=ReactDOM.Style.make(~border="none", ())>
+                                {"of assertions in proofs"->React.string}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                                <span>
+                                    {"Syntax"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border" style=ReactDOM.Style.make(~minWidth="70px", ())>
+                                <span>
+                                    {"Essential"->React.string}
+                                </span>
+                            </td>->addAlignAttr("center")
+                        }
+                    </tr>
+                    <tr>
+                        <td className="table-single-border rotateM90" rowSpan=3>{"Assertions"->React.string}</td>
+                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ()) >{"Discouraged"->React.string}</td>->addAlignAttr("right")}
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=state.allowedFrms.inSyntax.useDisc, ~onChange=actUseDiscInSyntaxChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=state.allowedFrms.inEssen.useDisc, ~onChange=actUseDiscInEssenChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                    </tr>
+                    <tr>
+                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Deprecated"->React.string}</td>->addAlignAttr("right")}
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=state.allowedFrms.inSyntax.useDepr, ~onChange=actUseDeprInSyntaxChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=state.allowedFrms.inEssen.useDepr, ~onChange=actUseDeprInEssenChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                    </tr>
+                    <tr>
+                        {<td className="table-single-border" style=ReactDOM.Style.make(~padding="3px", ())>{"Transitively deprecated"->React.string}</td>->addAlignAttr("right")}
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=state.allowedFrms.inSyntax.useTranDepr, ~onChange=actUseTranDeprInSyntaxChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                        {
+                            <td className="table-single-border">
+                                {rndSingleCheckbox( ~checked=state.allowedFrms.inEssen.useTranDepr, ~onChange=actUseTranDeprInEssenChange )}
+                            </td>->addAlignAttr("center")
+                        }
+                    </tr>
+                </thead>
+            </table>
+        </Col>
     }
 
     let rndLongClickSettings = () => {
@@ -997,9 +1436,11 @@ let make = (
     }
 
     let rndApplyChangesBtn = () => {
-        let disabled = !isValid(state) || eqState(prevState, state) 
+        let disabled = eqState(prevState, state) 
         <Row spacing=3. >
-            <Button disabled onClick={_=>actApplyChanges()} variant=#contained>
+            <Button disabled onClick={_=>actApplyChanges()} variant=#contained 
+                color=?{if(!isValid(state)){Some("pastelred")}else{None}}
+            >
                 {React.string("Apply changes")}
             </Button>
             <Button disabled onClick={_ => discardChanges()}>
@@ -1021,7 +1462,6 @@ let make = (
             }
             label="Check syntax"
         />
-        {rndAsrtsToSkip()}
         <FormControlLabel
             control={
                 <Checkbox
@@ -1097,15 +1537,17 @@ let make = (
             onChange=evt2str(actEditorHistMaxLengthStrChange)
             title="How many previous editor states to store."
         />
+        <Divider/>
+        {rndDiscAsrtsSettings()}
+        <Divider/>
         <TextField 
             size=#small
-            style=ReactDOM.Style.make(~width="200px", ())
+            style=ReactDOM.Style.make(~width="310px", ())
             label="Prefix of metavariables in unification" 
             value=state.unifMetavarPrefix
             onChange=evt2str(actUnifMetavarPrefixChange)
             title="All variables with names starting with this prefix will be considered as metavariables during the unification process."
         />
-        <Divider/>
         <MM_cmp_type_settings
             typeSettings=state.typeSettings
             availableColors=allColors

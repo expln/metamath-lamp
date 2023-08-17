@@ -33,6 +33,14 @@ type mmScope = {
     loadedContextSummary: string,
 }
 
+type reloadCtxFunc = (
+    ~srcs:array<mmCtxSrcDto>, 
+    ~settings:settings, 
+    ~force:bool=?, 
+    ~showError:bool=?, 
+    ()
+) => promise<result<unit,string>>
+
 let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
     {
         id,
@@ -183,8 +191,8 @@ let canLoadContext = (srcs: array<mmCtxSrcDto>):bool => {
     })
 }
 
-let shouldReloadContext = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>):bool => {
-    canLoadContext(srcs) && !isScopeSame(singleScopes, srcs)
+let shouldReloadContext = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>, force:bool):bool => {
+    canLoadContext(srcs) && (force || !isScopeSame(singleScopes, srcs))
 }
 
 let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:modalRef):promise<mmScope> => {
@@ -268,6 +276,7 @@ let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool =>
 
 let loadMmContext = (
     ~singleScopes: array<mmSingleScope>, 
+    ~settings:settings,
     ~modalRef:modalRef,
     ~showError:bool,
 ):promise<result<mmContext,string>> => {
@@ -299,6 +308,10 @@ let loadMmContext = (
                             resetNestingLevel:ss.resetNestingLevel,
                         }
                     }),
+                    ~descrRegexToDisc=settings.descrRegexToDisc,
+                    ~labelRegexToDisc=settings.labelRegexToDisc,
+                    ~descrRegexToDepr=settings.descrRegexToDepr,
+                    ~labelRegexToDepr=settings.labelRegexToDepr,
                     ~onProgress = pct => 
                         updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
                     ~onDone = ctx => {
@@ -330,7 +343,6 @@ let loadMmContext = (
                         rsv(ctx)
                         closeModal(modalRef, modalId)
                     },
-                    ()
                 )
             })->ignore
         }
@@ -481,10 +493,10 @@ let defaultValueOfDefaultSrcTypeStr = Web->mmFileSourceTypeToStr
 @react.component
 let make = (
     ~modalRef:modalRef,
-    ~webSrcSettings:array<webSrcSettings>,
+    ~settings:settings,
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
-    ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~reloadCtx: React.ref<Js.Nullable.t<reloadCtxFunc>>,
     ~style as _ :option<reStyle>=?,
     ~onExpandedChange:bool=>unit,
     ~doToggle: React.ref<Js.Nullable.t<unit=>unit>>,
@@ -512,7 +524,7 @@ let make = (
         onChange(srcs,ctx)
     }
 
-    let trustedUrls= webSrcSettings->Js_array2.filter(s => s.trusted)->Js_array2.map(s => s.url)
+    let trustedUrls= settings.webSrcSettings->Js_array2.filter(s => s.trusted)->Js_array2.map(s => s.url)
 
     let actParseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
@@ -540,7 +552,7 @@ let make = (
                 key=singleScope.id
                 modalRef
                 availableWebSrcs={
-                    webSrcSettings
+                    settings.webSrcSettings
                         ->Js_array2.filter(s => s.alias->Js_string2.trim->Js_string2.length > 0)
                         ->Js_array2.map(s => {
                             {
@@ -593,7 +605,7 @@ let make = (
         }
     }
 
-    let applyChanges = (~state:mmScope, ~showError:bool):promise<result<unit,string>> => {
+    let applyChanges = ( ~state:mmScope, ~showError:bool, ~settings:settings, ):promise<result<unit,string>> => {
         if (scopeIsEmpty(state.singleScopes)) {
             promise(rslv => {
                 setState(_ => state)
@@ -601,7 +613,12 @@ let make = (
                 rslv(Ok(()))
             })
         } else {
-            loadMmContext(~singleScopes=state.singleScopes, ~modalRef, ~showError)->promiseMap(res => {
+            loadMmContext(
+                ~singleScopes=state.singleScopes, 
+                ~settings,
+                ~modalRef, 
+                ~showError
+            )->promiseMap(res => {
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {
@@ -652,8 +669,8 @@ let make = (
     }
 
     reloadCtx.current = Js.Nullable.return(
-        (srcs: array<mmCtxSrcDto>):promise<result<unit,string>> => {
-            if (!shouldReloadContext(prevState.singleScopes, srcs)) {
+        (~srcs:array<mmCtxSrcDto>, ~settings:settings, ~force:bool=false, ~showError:bool=false, ()):promise<result<unit,string>> => {
+            if (!shouldReloadContext(prevState.singleScopes, srcs, force)) {
                 promise(rslv => rslv(Ok(())))
             } else {
                 let loadedTexts = Belt_HashMapString.fromArray(
@@ -672,7 +689,7 @@ let make = (
                 )
                 makeMmScopeFromSrcDtos(
                     ~modalRef,
-                    ~webSrcSettings,
+                    ~webSrcSettings=settings.webSrcSettings,
                     ~srcs,
                     ~trustedUrls,
                     ~onUrlBecomesTrusted,
@@ -680,7 +697,7 @@ let make = (
                 )->promiseFlatMap(res => {
                     switch res {
                         | Error(msg) => promise(rslv => rslv(Error(msg)))
-                        | Ok(mmScope) => applyChanges(~state=mmScope, ~showError=false)
+                        | Ok(mmScope) => applyChanges( ~state=mmScope, ~showError, ~settings )
                     }
                 })
             }
@@ -715,7 +732,7 @@ let make = (
             <Row>
                 <Button variant=#contained disabled={!scopeIsCorrect && !scopeIsEmpty} 
                     onClick={_=>{
-                        applyChanges(~state, ~showError=true)->promiseMap(res => {
+                        applyChanges( ~state, ~showError=true, ~settings )->promiseMap(res => {
                             switch res {
                                 | Error(_) => ()
                                 | Ok(_) => {

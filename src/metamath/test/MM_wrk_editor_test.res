@@ -23,7 +23,13 @@ let createEditorState = (
     let settings = {
         parens,
         asrtsToSkip: [],
-        asrtsToSkipRegex: "",
+        descrRegexToDisc: "",
+        labelRegexToDisc: "",
+        descrRegexToDepr: "",
+        labelRegexToDepr: "",
+        discColor:None,
+        deprColor:None,
+        tranDeprColor:None,
         editStmtsByLeftClick:true,
         initStmtIsGoal,
         defaultStmtLabel,
@@ -39,6 +45,18 @@ let createEditorState = (
         hideContextSelector: false,
         showVisByDefault:false,
         editorHistMaxLength:0,
+        allowedFrms: {
+            inSyntax: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+            inEssen: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+        },
     }
     let preCtxV = 1
     let preCtx = ctx

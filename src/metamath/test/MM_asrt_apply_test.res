@@ -177,9 +177,9 @@ let testApplyAssertions = (
         })
         let disjStr = if (disjArrStr->Js.Array2.length == 0) {""} else {"    " ++ disjArrStr->Js.Array2.joinWith("\n    ")}
 
-        workCtx->applySingleStmt(Var({symbols:workVarNames}))
+        workCtx->applySingleStmt(Var({symbols:workVarNames}), ())
         workVarHypLabels->Js.Array2.forEachi((label,i) => {
-            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes[i], workVarNames[i]]}))
+            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes[i], workVarNames[i]]}), ())
         })
         let args = []
         let argLabels = []
@@ -204,7 +204,7 @@ let testApplyAssertions = (
                             label, 
                             expr:exprArrStr,
                             proof:Some(Uncompressed({labels:[]}))
-                        }))
+                        }), ())
                         args->Js_array2.push(`${label}: ${exprArrStr->Js_array2.joinWith(" ")}`)->ignore
                         argLabels->Js_array2.push(label)->ignore
                     }
@@ -244,7 +244,7 @@ let testApplyAssertions = (
     let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
     let parens = "( ) { } [ ]"
     preCtx->moveConstsToBegin(parens)
-    additionalStatements->Js_array2.forEach(preCtx->applySingleStmt)
+    additionalStatements->Js_array2.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
     let workCtx = createContext(~parent=preCtx, ())
     let frms = prepareFrmSubsData(~ctx=workCtx, ())
     let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())

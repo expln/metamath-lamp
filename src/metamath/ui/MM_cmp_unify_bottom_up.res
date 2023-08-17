@@ -45,6 +45,9 @@ type state = {
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
+    useDisc:bool,
+    useDepr:bool,
+    useTranDepr:bool,
     debugLevel:int,
     maxNumberOfBranchesStr:string,
 
@@ -113,6 +116,7 @@ let makeInitialState = (
     ~parenCnt: parenCnt,
     ~initialParams: option<bottomUpProverParams>,
     ~initialDebugLevel: option<int>,
+    ~allowedFrms:allowedFrms,
 ) => {
     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
@@ -165,6 +169,9 @@ let makeInitialState = (
         allowNewDisjForExistingVars: params.allowNewDisjForExistingVars,
         allowNewStmts: params.allowNewStmts,
         allowNewVars: params.allowNewVars,
+        useDisc:allowedFrms.inEssen.useDisc,
+        useDepr:allowedFrms.inEssen.useDepr,
+        useTranDepr:allowedFrms.inEssen.useTranDepr,
         debugLevel: initialDebugLevel
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
@@ -224,6 +231,10 @@ let toggleAllowNewVars = (st) => {
     }
 }
 
+let toggleUseDisc = (st) => { ...st, useDisc: !st.useDisc }
+let toggleUseDepr = (st) => { ...st, useDepr: !st.useDepr }
+let toggleUseTranDepr = (st) => { ...st, useTranDepr: !st.useTranDepr }
+
 let setDebugLevel = (st,debugLevel) => {
     {
         ...st,
@@ -263,9 +274,10 @@ let isStmtToShow = (
 }
 
 let stmtsDtoToResultRendered = (
-    stmtsDto:stmtsDto, 
-    idx:int,
-    isStmtToShow:stmtDto=>bool
+    ~stmtsDto:stmtsDto, 
+    ~idx:int,
+    ~isStmtToShow:stmtDto=>bool,
+    ~getFrmLabelBkgColor: string=>option<string>,
 ):resultRendered => {
     let elem = 
         <Col>
@@ -293,9 +305,23 @@ let stmtsDtoToResultRendered = (
                                             switch stmt.jstf {
                                                 | None => React.null
                                                 | Some({args, label}) => {
-                                                    React.string(
-                                                        "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
-                                                    )
+                                                    <>
+                                                        <span>
+                                                            {React.string("[" ++ args->Js_array2.joinWith(" ") ++ " : ")}
+                                                        </span>
+                                                        <span
+                                                            style=ReactDOM.Style.make(
+                                                                ~backgroundColor=?getFrmLabelBkgColor(label), 
+                                                                ~borderRadius="3px",
+                                                                ()
+                                                            )
+                                                        >
+                                                            {React.string(label)}
+                                                        </span>
+                                                        <span>
+                                                            {React.string(" ]")}
+                                                        </span>
+                                                    </>
                                                 }
                                             }
                                         }
@@ -356,7 +382,12 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     )
 }
 
-let setResults = (st,tree,results) => {
+let setResults = (
+    st,
+    ~tree: option<proofTreeDto>,
+    ~results: option<array<stmtsDto>>,
+    ~getFrmLabelBkgColor: string=>option<string>,
+) => {
     switch results {
         | None => {
             {
@@ -375,7 +406,11 @@ let setResults = (st,tree,results) => {
                 ->Js_array2.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
-            let resultsRendered = Some(results->Js_array2.mapi((dto,i) => stmtsDtoToResultRendered(dto,i,isStmtToShow)))
+            let resultsRendered = Some(
+                results->Js_array2.mapi((dto,i) => {
+                    stmtsDtoToResultRendered(~stmtsDto=dto, ~idx=i, ~isStmtToShow, ~getFrmLabelBkgColor)
+                })
+            )
             {
                 ...st,
                 tree,
@@ -467,6 +502,28 @@ let sortByFromStr = str => {
     }
 }
 
+let rndCheckboxWithLabelAndBorder = (
+    ~checked:bool,
+    ~onChange:bool=>unit,
+    ~label:string,
+) => {
+    <FormControlLabel
+        control={
+            <Checkbox
+                checked
+                onChange=evt2bool(onChange)
+            />
+        }
+        label
+        style=ReactDOM.Style.make(
+            ~border="solid 1px lightgrey", 
+            ~borderRadius="7px", 
+            ~paddingRight="10px",
+            ()
+        )
+    />
+}
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -488,7 +545,8 @@ let make = (
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
-        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel
+        ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel, 
+        ~allowedFrms=settings.allowedFrms
     ))
 
     let onlyOneResultIsAvailable = switch state.results {
@@ -520,10 +578,23 @@ let make = (
         setState(toggleAllowNewVars)
     }
 
+    let actToggleUseDisc = () => setState(toggleUseDisc)
+    let actToggleUseDepr = () => setState(toggleUseDepr)
+    let actToggleUseTranDepr = () => setState(toggleUseTranDepr)
+
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
             MM_wrk_client.terminateWorker()
             closeModal(modalRef, modalId)
+        }
+    }
+
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch frms->Belt_MapString.get(label) {
+            | None => None
+            | Some(frm) => {
+                MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
+            }
         }
     }
 
@@ -539,7 +610,13 @@ let make = (
             ~exprToProve=state.exprToProve,
             ~reservedLabels,
         )
-        setState(st => setResults(st, if (st.debugLevel > 0) {Some(treeDto)} else {None}, Some(results)))
+        setState(st => {
+            st->setResults(
+                ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
+                ~results=Some(results), 
+                ~getFrmLabelBkgColor
+            )
+        })
     }
 
     let actProve = () => {
@@ -583,6 +660,14 @@ let make = (
                                 state.maxNumberOfBranchesStr->Belt_Int.fromString
                             },
                     }),
+                    ~allowedFrms={
+                        inSyntax: settings.allowedFrms.inSyntax,
+                        inEssen: {
+                            useDisc:state.useDisc,
+                            useDepr:state.useDepr,
+                            useTranDepr:state.useTranDepr,
+                        }
+                    },
                     ~syntaxTypes=None,
                     ~exprsToSyntaxCheck=None,
                     ~debugLevel = st.debugLevel,
@@ -644,6 +729,7 @@ let make = (
                             <MM_cmp_proof_tree
                                 tree
                                 rootExpr=state.exprToProve
+                                settings
                                 wrkCtx
                                 rootStmts=state.rootStmts
                             />
@@ -803,6 +889,42 @@ let make = (
                         )
                     />
                 </Row>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>
+                                {React.string("Allow usage of assertions:")}
+                            </td>
+                            <td style=ReactDOM.Style.make(~paddingLeft="10px", ())>
+                                {
+                                    rndCheckboxWithLabelAndBorder(
+                                        ~checked=state.useDisc,
+                                        ~onChange=_=>actToggleUseDisc(),
+                                        ~label="discouraged",
+                                    )
+                                }
+                            </td>
+                            <td>
+                                {
+                                    rndCheckboxWithLabelAndBorder(
+                                        ~checked=state.useDepr,
+                                        ~onChange=_=>actToggleUseDepr(),
+                                        ~label="deprecated",
+                                    )
+                                }
+                            </td>
+                            <td>
+                                {
+                                    rndCheckboxWithLabelAndBorder(
+                                        ~checked=state.useTranDepr,
+                                        ~onChange=_=>actToggleUseTranDepr(),
+                                        ~label="transitively deprecated",
+                                    )
+                                }
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 <Row>
                     {rndDebugParam()}
                     <TextField 

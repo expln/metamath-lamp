@@ -83,7 +83,7 @@ let preCtxDataUpdate = (
     ctxV.val->moveConstsToBegin(settingsV.val.parens)
     let ctxV = ctxV->versionSet(ctxV.val)
     let frms = prepareFrmSubsData(
-        ~ctx=ctxV.val, ~asrtsToSkip=settingsV.val.asrtsToSkip->Belt_HashSetString.fromArray, ()
+        ~ctx=ctxV.val, ()
     )
     let parenCnt = parenCntMake(prepareParenInts(ctxV.val, settingsV.val.parens), ~checkParensOptimized=true, ())
     let (allTypes, syntaxTypes) = findTypes(ctxV.val)

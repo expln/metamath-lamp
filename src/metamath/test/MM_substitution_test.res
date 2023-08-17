@@ -11,7 +11,7 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
-    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->Js_string2.split(" ")}))
+    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->Js_string2.split(" ")}), ())
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateConstParts.")
@@ -34,7 +34,7 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
-    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}))
+    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}), ())
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateSubstitutions.")

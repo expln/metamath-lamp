@@ -13,11 +13,26 @@ let createEmptyEditorState = ():editorState => {
     createInitialEditorState(
         ~settingsV=0, 
         ~settings={
-            parens: "", asrtsToSkip: [], asrtsToSkipRegex: "", editStmtsByLeftClick:false, defaultStmtType:"", 
+            parens: "", descrRegexToDisc: "", labelRegexToDisc: "", descrRegexToDepr: "", labelRegexToDepr: "", 
+            asrtsToSkip: [],
+            discColor:None, deprColor:None, tranDeprColor:None,
+            editStmtsByLeftClick:false, defaultStmtType:"", 
             unifMetavarPrefix:"&", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, 
             stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
             webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 
             showVisByDefault:false, editorHistMaxLength:1000,
+            allowedFrms: {
+                inSyntax: {
+                    useDisc:true,
+                    useDepr:true,
+                    useTranDepr:true,
+                },
+                inEssen: {
+                    useDisc:true,
+                    useDepr:true,
+                    useTranDepr:true,
+                },
+            }
         }, 
         ~srcs=[],
         ~preCtxV=0, 

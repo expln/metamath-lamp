@@ -128,7 +128,7 @@ let make = (
     ~modalRef:modalRef, 
     ~preCtxData:preCtxData,
     ~top:int,
-    ~reloadCtx: React.ref<Js.Nullable.t<array<mmCtxSrcDto> => promise<result<unit,string>>>>,
+    ~reloadCtx: React.ref<Js.Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
     ~loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
@@ -934,6 +934,7 @@ let make = (
                                 ~disjText,
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
+                                ~allowedFrms=state.settings.allowedFrms,
                                 ~syntaxTypes=Some(state.syntaxTypes),
                                 ~exprsToSyntaxCheck=
                                     if (state.settings.checkSyntax) {
@@ -1062,7 +1063,7 @@ let make = (
             ~stateLocStor=Some(stateLocStor)
         ))
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
-            reloadCtx(stateLocStor.srcs)->promiseMap(res => {
+            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
                     | Error(msg) => {
@@ -1443,6 +1444,7 @@ let make = (
         <MM_cmp_user_stmt
             modalRef
             settingsVer=state.settingsV
+            settings=state.settings
             preCtxVer=state.preCtxV
             varsText=state.varsText
             wrkCtx=state.wrkCtx

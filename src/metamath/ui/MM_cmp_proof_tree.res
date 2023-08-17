@@ -2,6 +2,7 @@ open MM_proof_tree_dto
 open MM_proof_tree
 open MM_context
 open MM_parser
+open MM_wrk_settings
 
 type state = {
     ctxMaxVar: int,
@@ -22,6 +23,7 @@ let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>,) => {
 let make = (
     ~tree: proofTreeDto,
     ~rootExpr: expr,
+    ~settings:settings,
     ~wrkCtx:mmContext,
     ~rootStmts: array<rootStmt>,
 ) => {
@@ -59,6 +61,13 @@ let make = (
 
     let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has(tree.nodes[idx].expr)
 
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch wrkCtx->getFrame(label) {
+            | None => None
+            | Some(frame) => MM_react_common.getFrmLabelBkgColor(frame, settings)
+        }
+    }
+
     switch tree.nodes->Js.Array2.findIndex(node => node.expr->exprEq(rootExpr)) {
         | -1 => React.string(`The proof tree doesn't contain expression [${exprToStr(rootExpr)}]`)
         | nodeIdx => {
@@ -70,6 +79,7 @@ let make = (
                 exprToStr
                 exprToReElem
                 frmExprToStr
+                getFrmLabelBkgColor
             />
         }
     }

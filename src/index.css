@@ -22,3 +22,20 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.grey-bkg-on-hover:hover {
+  background: rgba(211, 211, 211, 0.2);
+}
+
+.underline-on-hover:hover {
+  text-decoration: underline;
+}
+
+.table-single-border {
+  border-collapse: collapse;
+  border: 1px solid black
+}
+
+.rotateM90 {
+  transform: rotate(-90deg);
+}

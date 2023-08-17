@@ -54,7 +54,6 @@ let createSubs: (~numOfVars:int) => subs
 let prepareFrmSubsDataForFrame: frame => frmSubsData
 let prepareFrmSubsData: (
     ~ctx:mmContext,
-    ~asrtsToSkip:Belt_HashSetString.t=?,
     ()
 ) => Belt_MapString.t<frmSubsData>
 let iterateSubstitutions: (

@@ -27,6 +27,9 @@ let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string)
             numOfArgs: 0,
             descr: None,
             proof: None,
+            isDisc:false,
+            isDepr:false,
+            isTranDepr:false,
             dbg: None,
         },
     })

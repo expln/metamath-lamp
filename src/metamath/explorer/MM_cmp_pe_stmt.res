@@ -1,6 +1,7 @@
 open Expln_React_Mui
 open Expln_utils_promise
 open MM_wrk_editor
+open MM_wrk_settings
 open MM_react_common
 open MM_context
 open MM_substitution
@@ -31,6 +32,7 @@ type props = {
     ctx:mmContext,
     syntaxTypes:array<int>,
     frms: Belt_MapString.t<frmSubsData>,
+    frameRestrict:frameRestrict,
     parenCnt: parenCnt,
 
     stmt:expr,
@@ -52,6 +54,7 @@ let make = React.memoCustomCompareProps( ({
     ctx,
     syntaxTypes,
     frms,
+    frameRestrict,
     parenCnt,
     stmt,
     symColors,
@@ -136,7 +139,7 @@ let make = React.memoCustomCompareProps( ({
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
                     ~wrkCtx=ctx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
-                    ~syntaxTypes, ~frms, ~parenCnt, 
+                    ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt,
                     ~lastSyntaxType=getLastSyntaxType(),
                     ~onLastSyntaxTypeChange=setLastSyntaxType,
                 ) {

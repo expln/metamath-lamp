@@ -1,6 +1,7 @@
 open MM_wrk_client
 open MM_parser
 open MM_context
+open Common
 open MM_wrk_pre_ctx_data
 open MM_wrk_editor
 
@@ -15,7 +16,13 @@ type mmScope = {
 }
 
 type request = 
-    | LoadMmContext({scopes:array<mmScope>})
+    | LoadMmContext({
+        scopes:array<mmScope>, 
+        descrRegexToDisc:string, 
+        labelRegexToDisc:string,
+        descrRegexToDepr:string, 
+        labelRegexToDepr:string,
+    })
 
 type response =
     | MmContextLoadProgress({pct:float})
@@ -36,13 +43,22 @@ let respToStr = resp => {
 
 let beginLoadingMmContext = (
     ~scopes:array<mmScope>, 
+    ~descrRegexToDisc:string,
+    ~labelRegexToDisc:string,
+    ~descrRegexToDepr:string,
+    ~labelRegexToDepr:string,
     ~onProgress:float=>unit, 
     ~onDone:result<mmContext,string>=>unit,
-    ()
 ) => {
     beginWorkerInteraction(
         ~procName,
-        ~initialRequest = LoadMmContext({ scopes:scopes }),
+        ~initialRequest = LoadMmContext({ 
+            scopes:scopes, 
+            descrRegexToDisc, 
+            labelRegexToDisc, 
+            descrRegexToDepr, 
+            labelRegexToDepr 
+        }),
         ~onResponse = (~resp:response, ~sendToWorker as _, ~endWorkerInteraction:unit=>unit) => {
             switch resp {
                 | MmContextLoadProgress({pct}) => onProgress(pct)
@@ -56,9 +72,21 @@ let beginLoadingMmContext = (
     )
 }
 
+let strToRegexOpt = (str:string):option<Js_re.t> => {
+    let str = str->Js_string2.trim
+    if (str->Js.String2.length == 0) {
+        None
+    } else {
+        switch str->strToRegex {
+            | Error(msg) => raise(MmException({msg:`Could not parse a regex: ${msg}`}))
+            | Ok(re) => Some(re)
+        }
+    }
+}
+
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | LoadMmContext({scopes}) => {
+        | LoadMmContext({scopes, descrRegexToDisc, labelRegexToDisc, descrRegexToDepr, labelRegexToDepr}) => {
             let totalNumOfAssertions = scopes->Js_array2.reduce((a,e) => a+e.expectedNumOfAssertions, 0)->Belt_Int.toFloat
             let weights = scopes->Js_array2.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
@@ -73,6 +101,10 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         ~stopBefore=?scope.stopBefore,
                         ~stopAfter=?scope.stopAfter,
                         ~expectedNumOfAssertions=scope.expectedNumOfAssertions,
+                        ~descrRegexToDisc=?strToRegexOpt(descrRegexToDisc),
+                        ~labelRegexToDisc=?strToRegexOpt(labelRegexToDisc),
+                        ~descrRegexToDepr=?strToRegexOpt(descrRegexToDepr),
+                        ~labelRegexToDepr=?strToRegexOpt(labelRegexToDepr),
                         ~onProgress = pct => {
                             sendToClient(MmContextLoadProgress({pct: basePct +. pct *. weight}))
                         },

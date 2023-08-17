@@ -301,12 +301,20 @@ let setSyntaxProofTableError = (st:state,syntaxProofTableError:option<string>):s
 let loadFrameContext = (
     ~srcs:array<mmCtxSrcDto>,
     ~label:string,
+    ~descrRegexToDisc:string,
+    ~labelRegexToDisc:string,
+    ~descrRegexToDepr:string,
+    ~labelRegexToDepr:string,
     ~onProgress:float=>unit,
     ~onDone: result<(array<mmScope>, mmContext),string>=>unit,
 ):unit => {
     let scopes = createMmScopesForFrame( ~srcs, ~label, )
     beginLoadingMmContext(
         ~scopes,
+        ~descrRegexToDisc,
+        ~labelRegexToDisc,
+        ~descrRegexToDepr,
+        ~labelRegexToDepr,
         ~onProgress,
         ~onDone = res => {
             switch res {
@@ -314,7 +322,6 @@ let loadFrameContext = (
                 | Ok(ctx) => onDone(Ok((scopes,ctx)))
             }
         },
-        ()
     )
 }
 
@@ -433,6 +440,10 @@ let make = React.memoCustomCompareProps(({
                 loadFrameContext(
                     ~srcs=preCtxData.srcs,
                     ~label,
+                    ~descrRegexToDisc=preCtxData.settingsV.val.descrRegexToDisc,
+                    ~labelRegexToDisc=preCtxData.settingsV.val.labelRegexToDisc,
+                    ~descrRegexToDepr=preCtxData.settingsV.val.descrRegexToDepr,
+                    ~labelRegexToDepr=preCtxData.settingsV.val.labelRegexToDepr,
                     ~onProgress = pct => setLoadPct(_ => pct),
                     ~onDone = res => {
                         switch res {
@@ -481,7 +492,8 @@ let make = React.memoCustomCompareProps(({
                 ~wrkCtx=ctx, 
                 ~syms = [ctx->ctxIntsToSymsExn(st.asrt->Js_array2.sliceFrom(_, 1))],
                 ~syntaxTypes = st.syntaxTypes, 
-                ~frms = st.frms, 
+                ~frms = st.frms,
+                ~frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax, 
                 ~parenCnt = st.parenCnt, 
                 ~lastSyntaxType=MM_cmp_user_stmt.getLastSyntaxType(),
                 ~onLastSyntaxTypeChange=MM_cmp_user_stmt.setLastSyntaxType,
@@ -702,6 +714,13 @@ let make = React.memoCustomCompareProps(({
         None
     }, [numberOfRowsInProofTable])
 
+    let getFrmLabelBkgColor = (label:string):option<string> => {
+        switch preCtxData.frms->Belt_MapString.get(label) {
+            | None => None
+            | Some(frm) => MM_react_common.getFrmLabelBkgColor(frm.frame, preCtxData.settingsV.val)
+        }
+    }
+
     let rndLabel = state => {
         let asrtType = if (state.frame.isAxiom) {
             <span style=ReactDOM.Style.make(~color="red", ())>
@@ -724,10 +743,17 @@ let make = React.memoCustomCompareProps(({
         >
             <span>
                 asrtType
+                {React.string(" ")}
                 <span 
-                    style=ReactDOM.Style.make(~fontWeight="bold", ~cursor="pointer", ())
+                    style=ReactDOM.Style.make(
+                        ~fontWeight="bold", 
+                        ~cursor="pointer", 
+                        ~backgroundColor=?getFrmLabelBkgColor(state.frame.label),
+                        ~borderRadius="3px",
+                        ()
+                    )
                 >
-                    { (" " ++ state.frame.label)->React.string }
+                    { React.string(state.frame.label) }
                 </span>
                 <span 
                     style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
@@ -797,6 +823,7 @@ let make = React.memoCustomCompareProps(({
                                         ctx=state.frmCtx
                                         syntaxTypes=state.syntaxTypes
                                         frms=state.frms
+                                        frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax
                                         parenCnt=state.parenCnt
                                         stmt=hyp.expr
                                         symColors=state.symColors
@@ -815,6 +842,7 @@ let make = React.memoCustomCompareProps(({
                             ctx=state.frmCtx
                             syntaxTypes=state.syntaxTypes
                             frms=state.frms
+                            frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax
                             parenCnt=state.parenCnt
                             stmt=state.asrt
                             symColors=state.symColors
@@ -900,7 +928,14 @@ let make = React.memoCustomCompareProps(({
         switch pRec.proof {
             | Hypothesis({label}) => label->React.string
             | Assertion({label}) => {
-                <span style=linkStyle onClick={clickHnd(~act=()=>openFrameExplorer(label),())}>
+                <span 
+                    style={
+                        linkStyle->ReactDOM.Style.combine(
+                            ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", ())
+                        )
+                    }
+                    onClick={clickHnd(~act=()=>openFrameExplorer(label),())}
+                >
                     {label->React.string}
                 </span>
             }
@@ -933,6 +968,7 @@ let make = React.memoCustomCompareProps(({
             ctx=state.frmCtx
             syntaxTypes=state.syntaxTypes
             frms=state.frms
+            frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax
             parenCnt=state.parenCnt
             stmt=pRec.expr
             symColors=state.symColors

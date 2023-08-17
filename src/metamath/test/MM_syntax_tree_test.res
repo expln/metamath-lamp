@@ -60,6 +60,7 @@ let buildSyntaxTreeForTest = (
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
+        ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
         ~floatingsToProve = expr,
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
     )
@@ -242,11 +243,11 @@ describe("unify", _ => {
         let (_, [a,b]) = buildSyntaxTreeForTest(
             ~mmFile=setReduced, 
             ~ctxUpdate = ctx => {
-                ctx->applySingleStmt(Var({symbols:["&W1", "&W2", "&W3", "&W4"]}))
-                ctx->applySingleStmt(Floating({label:"W1-wff", expr:["wff", "&W1"]}))
-                ctx->applySingleStmt(Floating({label:"W2-wff", expr:["wff", "&W2"]}))
-                ctx->applySingleStmt(Floating({label:"W3-wff", expr:["wff", "&W3"]}))
-                ctx->applySingleStmt(Floating({label:"W4-wff", expr:["wff", "&W4"]}))
+                ctx->applySingleStmt(Var({symbols:["&W1", "&W2", "&W3", "&W4"]}), ())
+                ctx->applySingleStmt(Floating({label:"W1-wff", expr:["wff", "&W1"]}), ())
+                ctx->applySingleStmt(Floating({label:"W2-wff", expr:["wff", "&W2"]}), ())
+                ctx->applySingleStmt(Floating({label:"W3-wff", expr:["wff", "&W3"]}), ())
+                ctx->applySingleStmt(Floating({label:"W4-wff", expr:["wff", "&W4"]}), ())
                 ctx
             },
             ~exprStr=[

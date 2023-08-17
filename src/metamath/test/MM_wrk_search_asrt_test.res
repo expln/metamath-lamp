@@ -16,6 +16,9 @@ let createFrame = (asrt:expr, varTypes:array<int>):frame => {
         numOfArgs: 0,
         descr: None,
         proof: None,
+        isDisc:false,
+        isDepr:false,
+        isTranDepr:false,
         dbg: None,
     }
 }

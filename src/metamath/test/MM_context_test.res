@@ -26,7 +26,7 @@ describe("applySingleStmt", _ => {
         let ctx = createContext(())
 
         //when
-        ctx->applySingleStmt(Const({symbols:["c1"]}))
+        ctx->applySingleStmt(Const({symbols:["c1"]}), ())
 
         //then
         assertEq( ctx->ctxSymToIntExn("c1"), -1 )
@@ -40,7 +40,7 @@ describe("applySingleStmt", _ => {
         let ctx = createContext(())
 
         //when
-        ctx->applySingleStmt(Const({symbols:["c1", "c2", "c3"]}))
+        ctx->applySingleStmt(Const({symbols:["c1", "c2", "c3"]}), ())
 
         //then
         assertEq( ctx->ctxSymToIntExn("c1"), -1 )
@@ -62,12 +62,12 @@ describe("applySingleStmt", _ => {
     it("doesn't allow to add constants in inner blocks", _ => {
         //given
         let ctx = createContext(())
-        ctx->applySingleStmt(Const({symbols:["c1", "c2"]}))
+        ctx->applySingleStmt(Const({symbols:["c1", "c2"]}), ())
         ctx->openChildContext
 
         try {
             //when
-            ctx->applySingleStmt(Const({symbols:["c3", "c4"]}))
+            ctx->applySingleStmt(Const({symbols:["c3", "c4"]}), ())
             failMsg("The line below was supposed to throw an exception.")
         } catch {
             | MmException({msg}) => {

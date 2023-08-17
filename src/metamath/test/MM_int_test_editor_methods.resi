@@ -11,7 +11,6 @@ let createEditorState: (
     ~stopBefore: string=?,
     ~stopAfter: string=?,
     ~editorState:string=?,
-    ~asrtsToSkipFilePath:string=?,
     ~debug: bool=?,
     unit,
 ) => editorState
@@ -81,6 +80,9 @@ let unifyBottomUp: (
     ~allowNewDisjForExistingVars:bool=?,
     ~allowNewStmts:bool=?,
     ~allowNewVars: bool=?,
+    ~useDisc: bool=?,
+    ~useDepr: bool=?,
+    ~useTranDepr: bool=?,
     ~chooseLabel: string=?,
     ~chooseResult: stmtsDto=>bool =?,
     (),

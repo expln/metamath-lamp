@@ -5,6 +5,7 @@ open Expln_React_Mui
 open Expln_React_Modal
 open MM_substitution
 open MM_parenCounter
+open MM_wrk_settings
 
 let nonDigitPattern = %re("/\D/g")
 
@@ -13,6 +14,7 @@ type props = {
     typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
 
+    settings:settings,
     preCtx:mmContext,
     frms: Belt_MapString.t<frmSubsData>,
     parenCnt: parenCnt,
@@ -26,6 +28,7 @@ type props = {
 let propsAreSame = (a:props, b:props):bool => {
     a.typeColors === b.typeColors
     && a.editStmtsByLeftClick === b.editStmtsByLeftClick
+    && a.settings === b.settings
     && a.preCtx === b.preCtx
     && a.labels === b.labels
     && a.asrtsPerPage === b.asrtsPerPage
@@ -35,6 +38,7 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     typeColors,
     editStmtsByLeftClick,
+    settings,
     preCtx,
     syntaxTypes,
     frms,
@@ -101,6 +105,7 @@ let make = React.memoCustomCompareProps(({
                 <MM_cmp_pe_frame_summary
                     key={`${order->Belt.Int.toString}-${label}`}
                     modalRef
+                    settings
                     preCtx
                     syntaxTypes
                     frms

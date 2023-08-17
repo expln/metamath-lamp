@@ -1,6 +1,9 @@
 open Expln_React_Mui
 open Expln_React_Modal
+open Expln_React_common
 open Expln_utils_promise
+open MM_context
+open MM_wrk_settings
 
 @val external navigator: {..} = "navigator"
 @val external window: {..} = "window"
@@ -86,6 +89,59 @@ let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>
             )
         })
     })->ignore
+}
+
+let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
+    <span
+        onClick={_=> onClick() }
+        style=ReactDOM.Style.make( 
+            ~cursor="pointer", 
+            ~color="grey", 
+            ~fontSize="0.7em", 
+            ~padding="2px",
+            ~borderRadius="3px",
+            () 
+        )
+        className="grey-bkg-on-hover"
+    >
+        {React.string(text)}
+    </span>
+}
+
+let rndColorSelect = (
+    ~availableColors:array<string>, 
+    ~selectedColor:string, 
+    ~onNewColorSelected:string=>unit
+):React.element => {
+    <FormControl size=#small >
+        <InputLabel id="label-for-color-select">"Color"</InputLabel>
+        <Select 
+            labelId="label-for-color-select"
+            label="Color"
+            value=selectedColor
+            onChange=evt2str(onNewColorSelected)
+        >
+            {
+                React.array(availableColors->Js_array2.map(color => {
+                    <MenuItem key=color value=color>
+                        <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
+                    </MenuItem>
+                }))
+            }
+        </Select>
+    </FormControl>
+}
+
+let getFrmLabelBkgColor = (frame:frame, settings:settings):option<string> => {
+    if (frame.isDisc && settings.discColor->Belt.Option.isSome) {
+        settings.discColor
+    } else if (frame.isDepr && settings.deprColor->Belt.Option.isSome) {
+        settings.deprColor
+    } else if (frame.isTranDepr && settings.tranDeprColor->Belt.Option.isSome) {
+        settings.tranDeprColor
+    } else {
+        None
+    }
 }
 
 type mouseButton = Left | Middle | Right

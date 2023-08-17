@@ -10,10 +10,30 @@ type webSrcSettings = {
     trusted: bool,
 }
 
+type frameRestrict = {
+    useDisc:bool,
+    useDepr:bool,
+    useTranDepr:bool,
+}
+
+type allowedFrms = {
+    inSyntax: frameRestrict,
+    inEssen: frameRestrict,
+}
+
 type settings = {
     parens: string,
-    asrtsToSkip: array<string>,
-    asrtsToSkipRegex: string,
+    asrtsToSkip: array<string>, //deprecated
+
+    descrRegexToDisc: string,
+    labelRegexToDisc: string,
+    descrRegexToDepr: string,
+    labelRegexToDepr: string,
+    discColor:option<string>,
+    deprColor:option<string>,
+    tranDeprColor:option<string>,
+    allowedFrms:allowedFrms,
+
     editStmtsByLeftClick:bool,
     defaultStmtType:string,
     defaultStmtLabel:string,

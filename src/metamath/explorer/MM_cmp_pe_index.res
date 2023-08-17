@@ -35,11 +35,17 @@ let make = React.memoCustomCompareProps(({
     let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
     let (allLabels, setAllLabels) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
+    let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
+    let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
+    let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
+    let (discFilter, setDiscFilter) = React.useState(() => false)
+    let (deprFilter, setDeprFilter) = React.useState(() => false)
+    let (tranDeprFilter, setTranDeprFilter) = React.useState(() => false)
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
@@ -51,9 +57,13 @@ let make = React.memoCustomCompareProps(({
 
     let actClearFilters = (~applyFilters:bool) => {
         setIsAxiomFilter(_ => None)
+        setStmtTypeFilter(_ => None)
         setLabelFilter(_ => "")
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
+        setDiscFilter(_ => false)
+        setDeprFilter(_ => false)
+        setTranDeprFilter(_ => false)
         if (applyFilters) {
             setApplyFiltersRequested(_ => true)
         }
@@ -75,6 +85,13 @@ let make = React.memoCustomCompareProps(({
                             true, 
                             isAxiomFilter => isAxiomFilter === frame.isAxiom
                         ) 
+                        && stmtTypeFilter->Belt_Option.mapWithDefault(
+                            true, 
+                            stmtType => stmtType === frame.asrt[0]
+                        ) 
+                        && (!discFilter || frame.isDisc)
+                        && (!deprFilter || frame.isDepr)
+                        && (!tranDeprFilter || frame.isTranDepr)
                         && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
                         && frameMatchesPattern(frame)
                     })
@@ -100,6 +117,19 @@ let make = React.memoCustomCompareProps(({
         let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
+
+        let allStmtIntTypes = []
+        preCtx->forEachFrame(frame => {
+            let stmtTyp = frame.asrt[0]
+            if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
+                allStmtIntTypes->Js.Array2.push(stmtTyp)->ignore
+            }
+            None
+        })->ignore
+        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
+        setAllStmtTypes(_ => allStmtTypes)
+        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
+
         actClearFilters(~applyFilters=false)
     }
 
@@ -124,8 +154,27 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let stmtTypeFilterToStr = typeFilter => {
+        switch typeFilter {
+            | None => allStmtTypesConcat
+            | Some(n) => preCtx->ctxIntToSymExn(n)
+        }
+    }
+
+    let stmtTypeFilterFromStr = str => {
+        if (str == allStmtTypesConcat) {
+            None
+        } else {
+            preCtx->ctxSymToInt(str)
+        }
+    }
+
     let actIsAxiomFilterUpdated = isAxiomStr => {
         setIsAxiomFilter(_ => isAxiomStr->isAxiomFilterFromStr)
+    }
+
+    let actStmtTypeFilterUpdated = stmtTypeStr => {
+        setStmtTypeFilter(_ => stmtTypeStr->stmtTypeFilterFromStr)
     }
 
     let actLabelFilterUpdated = newLabelFilter => {
@@ -136,10 +185,22 @@ let make = React.memoCustomCompareProps(({
         setPatternFilterStr(_ => newPatternFilterStr)
     }
 
-    React.useEffect1(() => {
+    let actDiscFilterUpdated = newDiscFilter => {
+        setDiscFilter(_ => newDiscFilter)
+    }
+
+    let actDeprFilterUpdated = newDeprFilter => {
+        setDeprFilter(_ => newDeprFilter)
+    }
+
+    let actTranDeprFilterUpdated = newTranDeprFilter => {
+        setTranDeprFilter(_ => newTranDeprFilter)
+    }
+
+    React.useEffect5(() => {
         actApplyFilters()
         None
-    }, [isAxiomFilter])
+    }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter))
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -188,6 +249,26 @@ let make = React.memoCustomCompareProps(({
         </FormControl>
     }
 
+    let rndStmtTypeFilter = () => {
+        <FormControl size=#small>
+            <InputLabel id="stmtTypeFilter-label">"Statement type"</InputLabel>
+            <Select
+                sx={"width": 130}
+                labelId="stmtTypeFilter-label"
+                value={stmtTypeFilter->stmtTypeFilterToStr}
+                label="Statement type"
+                onChange=evt2str(actStmtTypeFilterUpdated)
+            >
+                <MenuItem value=allStmtTypesConcat>{React.string("All")}</MenuItem>
+                {
+                    allStmtTypes->Js_array2.map(stmtType => {
+                        <MenuItem key=stmtType value=stmtType>{React.string(stmtType)}</MenuItem>
+                    })->React.array
+                }
+            </Select>
+        </FormControl>
+    }
+
     let rndLabelFilter = () => {
         <TextField 
             label="Label"
@@ -222,6 +303,45 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let rndDiscFilter = () => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=discFilter
+                    onChange=evt2bool(actDiscFilterUpdated)
+                />
+            }
+            label="Discouraged"
+            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+        />
+    }
+
+    let rndDeprFilter = () => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=deprFilter
+                    onChange=evt2bool(actDeprFilterUpdated)
+                />
+            }
+            label="Deprecated"
+            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+        />
+    }
+
+    let rndTranDeprFilter = () => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=tranDeprFilter
+                    onChange=evt2bool(actTranDeprFilterUpdated)
+                />
+            }
+            label="Transitively deprecated"
+            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+        />
+    }
+
     let rndApplyFiltersBtn = () => {
         <span title="Apply filters">
             <IconButton onClick={_ => actApplyFilters()} color="primary"> 
@@ -247,14 +367,22 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndFilters = () => {
-        <Row>
-            {rndIsAxiomFilter()}
-            {rndLabelFilter()}
-            {rndPatternFilter()}
-            {rndApplyFiltersBtn()}
-            {rndClearFiltersBtn()}
-            {rndMainMenuBtn()}
-        </Row>
+        <Col>
+            <Row>
+                {rndIsAxiomFilter()}
+                {rndLabelFilter()}
+                {rndPatternFilter()}
+                {rndApplyFiltersBtn()}
+                {rndClearFiltersBtn()}
+                {rndMainMenuBtn()}
+            </Row>
+            <Row>
+                {rndStmtTypeFilter()}
+                {rndDiscFilter()}
+                {rndDeprFilter()}
+                {rndTranDeprFilter()}
+            </Row>
+        </Col>
     }
 
     let rndMainMenu = () => {
@@ -300,6 +428,7 @@ let make = React.memoCustomCompareProps(({
             key=`${preCtxVer->Belt_Int.toString}`
             modalRef
             editStmtsByLeftClick=settings.editStmtsByLeftClick
+            settings=preCtxData.settingsV.val
             typeColors
             preCtx
             frms=preCtxData.frms

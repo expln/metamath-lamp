@@ -954,7 +954,6 @@ let validateStmtJstf = (
     stmt:userStmt, 
     wrkCtx:mmContext, 
     definedUserLabels:Belt_HashSetString.t,
-    asrtsToSkip: array<string>,
     frms: Belt_MapString.t<frmSubsData>,
 ):userStmt => {
     if (userStmtHasErrors(stmt)) {
@@ -970,8 +969,6 @@ let validateStmtJstf = (
                     | None => {
                         if (!(wrkCtx->isAsrt(label))) {
                             {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' doesn't refer to any assertion.`})}
-                        } else if (asrtsToSkip->Js_array2.includes(label)) {
-                            {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The assertion '${label}' is skipped by settings.`})}
                         } else {
                             switch frms->Belt_MapString.get(label) {
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
@@ -1117,7 +1114,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                 setStmtExpr(_, wrkCtx),
                 validateStmtIsGoal(_, goalLabel),
                 setStmtJstf,
-                validateStmtJstf(_, wrkCtx, definedUserLabels, st.settings.asrtsToSkip, st.frms),
+                validateStmtJstf(_, wrkCtx, definedUserLabels, st.frms),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
             ]
             st.stmts->Js_array2.reduce(
@@ -1204,10 +1201,10 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
                     ~amount=numOfVars,
                     ()
                 )
-                wrkCtx->applySingleStmt(Var({symbols:newVarNames}))
+                wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
                 newHypLabels->Js.Array2.forEachi((label,i) => {
-                    wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}))
+                    wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
                 })
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
                 let newVarsText = newHypLabels->Js.Array2.mapi((label,i) => {
@@ -1231,7 +1228,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
             let newDisjTextLines = []
             newDisj->disjForEachArr(varInts => {
                 let varsStr = wrkCtx->ctxIntsToSymsExn(varInts)
-                wrkCtx->applySingleStmt(Disj({vars:varsStr}))
+                wrkCtx->applySingleStmt(Disj({vars:varsStr}), ())
                 newDisjTextLines->Js.Array2.push(varsStr->Js.Array2.joinWith(","))->ignore
             })
             if (newDisjTextLines->Js.Array2.length == 0) {
@@ -2482,6 +2479,7 @@ let textToSyntaxProofTable = (
     ~syms:array<array<string>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
@@ -2505,7 +2503,9 @@ let textToSyntaxProofTable = (
                     }
                 })
                 let exprs = syms->Js_array2.map(wrkCtx->ctxSymsToIntsExn)
-                let proofTree = MM_provers.proveSyntaxTypes(~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ())
+                let proofTree = MM_provers.proveSyntaxTypes(
+                    ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ~frameRestrict, ()
+                )
                 let typeStmts = exprs->Js.Array2.map(expr => {
                     switch proofTree->ptGetSyntaxProof(expr) {
                         | None => None
@@ -2556,6 +2556,7 @@ let textToSyntaxTree = (
     ~syms:array<array<string>>,
     ~syntaxTypes:array<int>,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
@@ -2565,6 +2566,7 @@ let textToSyntaxTree = (
         ~syms,
         ~syntaxTypes,
         ~frms,
+        ~frameRestrict,
         ~parenCnt,
         ~lastSyntaxType,
         ~onLastSyntaxTypeChange,

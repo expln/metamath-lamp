@@ -49,8 +49,8 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
             ~amount=1,
             ()
         )
-        frmCtx->applySingleStmt(Var({symbols:[ctxVarName]}))
-        frmCtx->applySingleStmt(Floating({label:ctxVarLabel, expr:[frmCtx->ctxIntToSymExn(typInt), ctxVarName]}))
+        frmCtx->applySingleStmt(Var({symbols:[ctxVarName]}), ())
+        frmCtx->applySingleStmt(Floating({label:ctxVarLabel, expr:[frmCtx->ctxIntToSymExn(typInt), ctxVarName]}), ())
         switch symRename.contents {
             | None => {
                 let map = Belt_HashMapString.make(~hintSize=frame.numOfVars)

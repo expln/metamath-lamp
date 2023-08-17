@@ -1,4 +1,5 @@
 open MM_parser
+open MM_wrk_settings
 
 type expr = array<int>
 
@@ -35,11 +36,22 @@ type frame = {
     numOfArgs: int,
     descr:option<string>,
     proof:option<proof>,
+    isDisc:bool, /* is discouraged */
+    isDepr:bool, /* is deprecated */
+    isTranDepr:bool, /* is transitively deprecated (depends on an isDepr frame or another isTranDepr frame) */
     dbg: option<frameDbg>,
 }
 
 let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
-let applySingleStmt: (mmContext, stmt) => unit
+let applySingleStmt: (
+    mmContext, 
+    stmt,
+    ~descrRegexToDisc:Js_re.t=?,
+    ~labelRegexToDisc:Js_re.t=?,
+    ~descrRegexToDepr:Js_re.t=?,
+    ~labelRegexToDepr:Js_re.t=?,
+    ()
+) => unit
 let openChildContext: mmContext => unit
 let closeChildContext: mmContext => unit
 let resetToParentContext: mmContext => unit
@@ -50,6 +62,10 @@ let loadContext: (
     ~stopAfter:string=?, 
     ~onPreProcess: (mmContext,MM_parser.stmt)=>unit =?,
     ~expectedNumOfAssertions:int=?, 
+    ~descrRegexToDisc:Js_re.t=?,
+    ~labelRegexToDisc:Js_re.t=?,
+    ~descrRegexToDepr:Js_re.t=?,
+    ~labelRegexToDepr:Js_re.t=?,
     ~onProgress:float=>unit=?, 
     ~debug:bool=?, 
     ()
@@ -72,6 +88,7 @@ let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>
 let getFrameExn: (mmContext,string) => frame
+let frameIsAllowed: (frame, frameRestrict) => bool
 let getLocalVars: mmContext => array<string>
 let getLocalHyps: mmContext => array<hypothesis>
 let getNumOfVars: mmContext => int
@@ -105,6 +122,10 @@ let createFrame: (
     ~tokenType:string=?,
     ~skipEssentials:bool=?, 
     ~skipFirstSymCheck:bool=?, 
+    ~descrRegexToDisc:Js_re.t=?,
+    ~labelRegexToDisc:Js_re.t=?,
+    ~descrRegexToDepr:Js_re.t=?,
+    ~labelRegexToDepr:Js_re.t=?,
     ()
 ) => frame
 

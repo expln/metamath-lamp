@@ -6,7 +6,6 @@ open MM_progress_tracker
 open MM_editor_history
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
-let asrtsToSkipFilePath = "./src/metamath/test/resources/set-no-proofs-asrts-to-skip.txt"
 let failOnMismatch = true
 let debug = false
 
