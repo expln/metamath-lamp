@@ -110,7 +110,7 @@ let createDefaultSettings = ():settingsState => {
                 useTranDepr:true,
             },
             inEssen: {
-                useDisc:true,
+                useDisc:false,
                 useDepr:true,
                 useTranDepr:true,
             },
