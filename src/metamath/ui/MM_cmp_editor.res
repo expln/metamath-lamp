@@ -789,10 +789,14 @@ let make = (
             ->Js.Array2.filter(Belt_Option.isSome)
             ->Js.Array2.map(Belt_Option.getExn)
             ->Js.Array2.sortInPlaceWith(((_,time1),(_,time2)) => compareDates(time1,time2) )
-        (
-            selections->Belt_Array.get(0)->Belt.Option.map(((str,_)) => str),
-            selections->Belt_Array.get(1)->Belt.Option.map(((str,_)) => str),
-        )
+        let len = selections->Js.Array2.length
+        let sel1 = selections->Belt_Array.get(len-2)->Belt.Option.map(((str,_)) => str)
+        let sel2 = selections->Belt_Array.get(len-1)->Belt.Option.map(((str,_)) => str)
+        switch len {
+            | 0 => (None, None)
+            | 1 => (sel2, None)
+            | _ => (sel1, sel2)
+        }
     }
 
     let actSubstitute = () => {
@@ -1390,7 +1394,7 @@ let make = (
                     ) 
                 }
                 { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~notifyEditInTempMode,
-                    ~active=generalModificationActionIsEnabled && state.checkedStmtIds->Js.Array2.length <= 2,
+                    ~active=generalModificationActionIsEnabled,
                     ~title="Apply a substitution to all steps", ~smallBtns,() ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
