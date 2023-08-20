@@ -313,8 +313,8 @@ let make = (
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
     let actMoveCheckedStmtsDown = () => setState(moveCheckedStmts(_, false))
-    let actDuplicateStmt = () => setState(st => {
-        let st = duplicateCheckedStmt(st)
+    let actDuplicateStmt = (top:bool) => setState(st => {
+        let st = duplicateCheckedStmt(st,top)
         let st = uncheckAllStmts(st)
         st
     })
@@ -1353,7 +1353,7 @@ let make = (
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 11 => Some(Js.Json.string("auto"))
+                        | 12 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1376,8 +1376,13 @@ let make = (
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
                     ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns, ()
                 )}
-                {rndIconButton(~icon=<MM_Icons.ControlPointDuplicate/>, ~onClick=actDuplicateStmt, 
-                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step", 
+                {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
+                    ~onClick=()=>actDuplicateStmt(true), 
+                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step up", 
+                    ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(+90deg)", ()) />, 
+                    ~onClick=()=>actDuplicateStmt(false), 
+                    ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step down", 
                     ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeStmts, ~notifyEditInTempMode,

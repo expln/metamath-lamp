@@ -142,7 +142,7 @@ let addStmt = (
 let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)
-    let st = st->duplicateCheckedStmt
+    let st = st->duplicateCheckedStmt(false)
     if (st.checkedStmtIds->Js.Array2.length != 1) {
         raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
     } else {

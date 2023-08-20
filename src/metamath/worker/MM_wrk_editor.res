@@ -498,13 +498,13 @@ let addNewStmtAtIdx = (st:editorState, idx:int):(editorState,stmtId) => {
 
 let isSingleStmtChecked = st => st.checkedStmtIds->Js_array2.length == 1
 
-let duplicateCheckedStmt = st => {
+let duplicateCheckedStmt = (st:editorState, top:bool) => {
     if (!isSingleStmtChecked(st)) {
         st
     } else {
         let newId = st.nextStmtId->Belt_Int.toString
         let (idToAddAfter,_) = st.checkedStmtIds[0]
-        {
+        let st = {
             ...st,
             nextStmtId: st.nextStmtId+1,
             stmts: 
@@ -526,6 +526,11 @@ let duplicateCheckedStmt = st => {
                     }
                 })->Belt_Array.concatMany,
             checkedStmtIds: [(newId,Js_date.make())],
+        }
+        if (top) {
+            st->moveCheckedStmts(true)
+        } else {
+            st
         }
     }
 }

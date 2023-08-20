@@ -1230,7 +1230,7 @@ describe("defaults for G steps", _ => {
 
         //when
         let st = st->toggleStmtChecked(s1)
-        let st = st->duplicateCheckedStmt
+        let st = st->duplicateCheckedStmt(false)
         let st = st->updateEditorStateWithPostupdateActions(s=>s)
 
         //then
