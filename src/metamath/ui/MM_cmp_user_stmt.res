@@ -1048,6 +1048,25 @@ let make = React.memoCustomCompareProps( ({
             const tr1 = {
         canApply:()=>true,
         displayName: ({selection}) => "(" + selection.text + ")",
+        createInitialState: ({selection}) => {
+            return {
+                chbx:false,
+                text:"",
+            }
+        },
+        renderDialog: ({selection, state, setState}) => {
+            const saveToState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
+            const result = selection.text + " - " + state.chbx + " - " + state.text
+            return {
+                cmp:"Col",
+                children:[
+                    {cmp:"Checkbox", label: "chbx-1", onChange: saveToState('chbx')},
+                    {cmp:"TextField", label: "Some Text", onChange: saveToState('text')},
+                    {cmp:"Text", text: "Result: " + result},
+                    {cmp:"ApplyButtons", result},
+                ]
+            }
+        }
     }
     const tr2 = {
         canApply:()=>true,

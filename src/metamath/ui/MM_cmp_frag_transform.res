@@ -3,15 +3,7 @@ open Expln_React_Modal
 open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
-
-type selection = {
-    "text": string,
-}
-
-type fragmentTransform = {
-    canApply: {"selection":selection} => bool,
-    displayName: {"selection":selection} => string,
-}
+open MM_cmp_single_frag_transf
 
 let transformsTextCache:ref<string> = ref("return [];")
 let allTransformsCache: ref<array<fragmentTransform>> = ref([])
@@ -34,6 +26,8 @@ let createTransformFromObject = (obj:{..}):fragmentTransform => {
     {
         canApply: selection => obj["canApply"](. selection),
         displayName: selection => obj["displayName"](. selection),
+        createInitialState: selection => obj["createInitialState"](. selection),
+        renderDialog: params => obj["renderDialog"](. params),
     }
 }
 
@@ -127,7 +121,7 @@ let make = (
         let listItems = unsafeFunc( modalRef, "Listing available transforms", () => {
             availableTransforms->Js_array2.mapi((availableTransform,i) => {
                 <ListItem key={i->Belt_Int.toString}>
-                    <ListItemButton>
+                    <ListItemButton onClick={_=>{setState(setSelectedTransform(_,availableTransform))}}>
                         <ListItemText>
                             {React.string(availableTransform.displayName(param))}
                         </ListItemText>
@@ -187,7 +181,13 @@ let make = (
     }
 
     let rndSelectedTransform = (selectedTransform) => {
-        React.string(`selectedTransform: `)
+        <MM_cmp_single_frag_transf
+            modalRef
+            onCancel
+            onApply={_=>()}
+            selection={state.selection}
+            transform=selectedTransform
+        />
     }
 
     let rndContent = () => {
@@ -213,7 +213,10 @@ let make = (
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
+            {rndButtons()}
+            <Divider/>
             {rndContent()}
+            <Divider/>
             {rndButtons()}
         </Col>
     </Paper>
