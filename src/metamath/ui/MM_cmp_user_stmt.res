@@ -1043,6 +1043,17 @@ let make = React.memoCustomCompareProps( ({
         openFrameExplorer(label)
     }
 
+    let actOpenFragmentTransform = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_frag_transform
+                    modalRef
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Col 
@@ -1137,6 +1148,11 @@ let make = React.memoCustomCompareProps( ({
                         <Button title="Add new step below" onClick={_=>actAddStmtBelow()} ?style> 
                             <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                         </Button>
+                    }
+                }
+                {
+                    if (readOnly) {React.null} else {
+                        <Button title="Transform" onClick={_=>actOpenFragmentTransform()} ?style> <MM_Icons.Title/> </Button>
                     }
                 }
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
