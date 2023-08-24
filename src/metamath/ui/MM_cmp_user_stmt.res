@@ -1043,12 +1043,25 @@ let make = React.memoCustomCompareProps( ({
         openFrameExplorer(label)
     }
 
-    let actOpenFragmentTransform = () => {
+    let actOpenFragmentTransform = (selectedSubtree:childNode) => {
+        let transformsText = `
+            const tr1 = {
+        canApply:()=>true,
+        displayName: ({selection}) => "(" + selection.text + ")",
+    }
+    const tr2 = {
+        canApply:()=>true,
+        displayName: ({selection}) => "<" + selection.text + ">",
+    }
+    return [tr1, tr2]
+        `
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform
                     modalRef
                     onCancel={()=>closeModal(modalRef, modalId)}
+                    selectedSubtree
+                    transformsText
                 />
             })
         })->ignore
@@ -1152,7 +1165,15 @@ let make = React.memoCustomCompareProps( ({
                 }
                 {
                     if (readOnly) {React.null} else {
-                        <Button title="Transform" onClick={_=>actOpenFragmentTransform()} ?style> <MM_Icons.Title/> </Button>
+                        <Button 
+                            title="Transform" 
+                            onClick={_=>{
+                                stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
+                            }} 
+                            ?style
+                        > 
+                            <MM_Icons.Title/>
+                        </Button>
                     }
                 }
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>

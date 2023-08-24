@@ -202,6 +202,7 @@ let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 
 let getSelectedSubtree: stmtContTreeData => option<childNode>
+let getSelectedSubtreeFromStmtCont: stmtCont => option<childNode>
 let getIdsOfSelectedNodes: stmtCont => (int,Belt_SetInt.t)
 let hasSelectedText: stmtCont => bool
 let getSelectedText: stmtCont => option<string>

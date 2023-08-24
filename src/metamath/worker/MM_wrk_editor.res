@@ -2239,6 +2239,17 @@ let getSelectedSubtree = (treeData:stmtContTreeData):option<childNode> => {
     }
 }
 
+let getStmtContTreeData = (stmtCont:stmtCont):option<stmtContTreeData> => {
+    switch stmtCont {
+        | Text(_) => None
+        | Tree(treeData) => Some(treeData)
+    }
+}
+
+let getSelectedSubtreeFromStmtCont = (stmtCont:stmtCont):option<childNode> => {
+    stmtCont->getStmtContTreeData->Belt_Option.flatMap(getSelectedSubtree)
+}
+
 let getNumberOfSelectedSymbols = (treeData:stmtContTreeData):int => {
     treeData->getSelectedSubtree->Belt.Option.map(syntaxTreeGetNumberOfSymbols)->Belt.Option.getWithDefault(0)
 }
