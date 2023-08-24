@@ -75,7 +75,11 @@ let make = (
     }
     and childrenToArray = (elem):reElem => {
         elem["children"]
-            ->Js_array2.mapi((child,i) => rndCustomElem(child)->React.cloneElement({"key":Belt_Int.toString(i)}))
+            ->Js_array2.mapi((child,i) => {
+                rndCustomElem(child)->React.cloneElement({
+                    "key":elem["key"]->Js.Nullable.toOption->Belt_Option.getWithDefault(Belt_Int.toString(i))
+                })
+            })
             ->React.array
     }
     and rndCol = (elem:{..}):reElem => {
