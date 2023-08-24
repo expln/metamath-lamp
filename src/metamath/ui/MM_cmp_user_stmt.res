@@ -1060,9 +1060,12 @@ let make = React.memoCustomCompareProps( ({
             return {
                 cmp:"Col",
                 children:[
-                    {cmp:"Checkbox", label: "chbx-1", onChange: saveToState('chbx')},
-                    {cmp:"TextField", label: "Some Text", onChange: saveToState('text')},
-                    {cmp:"Text", text: "Result: " + result},
+                    {cmp:"Text", value: "Initial: " + selection.text},
+                    {cmp:"Divider"},
+                    {cmp:"Checkbox", checked:state.chbx, label: "chbx-1", onChange: saveToState('chbx')},
+                    {cmp:"TextField", value:state.text, label: "Some Text", onChange: saveToState('text'), width:'300px'},
+                    {cmp:"Divider"},
+                    {cmp:"Text", value: "Result: " + result},
                     {cmp:"ApplyButtons", result},
                 ]
             }

@@ -65,10 +65,11 @@ let make = (
         switch elem["cmp"] {
             | "Col" => rndCol(elem)
             | "Row" => rndRow(elem)
-            // | "Checkbox" => rndCheckbox(elem)
-            // | "TextField" => rndTextField(elem)
-            // | "Text" => rndText(elem)
-            // | "ApplyButtons" => rndApplyButtons(elem)
+            | "Checkbox" => rndCheckbox(elem)
+            | "TextField" => rndTextField(elem)
+            | "Text" => rndText(elem)
+            | "ApplyButtons" => rndApplyButtons(elem)
+            | "Divider" => rndDivider()
             | _ => Js_exn.raiseError(`Unrecognized component '${elem["cmp"]}'`)
         }
     }
@@ -87,18 +88,41 @@ let make = (
             {childrenToArray(elem)}
         </Row>
     }
-    // and rndCheckbox = (elem:{..}):reElem => {
-
-    // }
-    // and rndTextField = (elem:{..}):reElem => {
-
-    // }
-    // and rndText = (elem:{..}):reElem => {
-
-    // }
-    // and rndApplyButtons = (elem:{..}):reElem => {
-
-    // }
+    and rndCheckbox = (elem:{..}):reElem => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=elem["checked"]
+                    onChange=evt2bool(b => elem["onChange"](. b))
+                />
+            }
+            label=elem["label"]
+        />
+    }
+    and rndTextField = (elem:{..}):reElem => {
+        <TextField
+            label=elem["label"]
+            size=#small
+            style=ReactDOM.Style.make(~width=?(elem["width"]->Js.Nullable.toOption), ())
+            value=elem["value"]
+            onChange=evt2str(str => elem["onChange"](. str))
+        />
+    }
+    and rndText = (elem:{..}):reElem => {
+        <span>
+            {React.string(elem["value"])}
+        </span>
+    }
+    and rndDivider = ():reElem => {
+        <Divider/>
+    }
+    and rndApplyButtons = (elem:{..}):reElem => {
+        <Row>
+            <Button onClick={_=>onApply(elem["result"])} variant=#contained>
+                {React.string("Apply")}
+            </Button>
+        </Row>
+    }
 
     let rndCustomContent = (state:fragmentTransformState) => {
         let params = {
