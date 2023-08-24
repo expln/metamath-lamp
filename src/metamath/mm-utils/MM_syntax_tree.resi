@@ -32,6 +32,11 @@ let syntaxTreeIsEmpty: syntaxTreeNode => bool
 
 let getNodeById: ( syntaxTreeNode, int, ) => option<childNode>
 
+let syntaxTreeForEachNode: (childNode, childNode=>option<'r>) => option<'r>
+let syntaxTreeGetIdsOfAllChildSymbols: childNode => Belt_SetInt.t
+let syntaxTreeToText: childNode => string
+let syntaxTreeGetNumberOfSymbols: childNode => int
+
 type unifSubs = Belt_HashMapString.t<array<string>>
 
 let unify: (

@@ -951,10 +951,10 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actCopyToClipboard = () => {
-        switch getSelectedSymbols(stmt.cont) {
+        switch getSelectedText(stmt.cont) {
             | None => ()
-            | Some(syms) => {
-                copyToClipboard(syms->Js_array2.joinWith(" "))->promiseMap(_ => {
+            | Some(selectedText) => {
+                copyToClipboard(selectedText)->promiseMap(_ => {
                     setCopiedToClipboard(timerId => {
                         switch timerId {
                             | None => ()

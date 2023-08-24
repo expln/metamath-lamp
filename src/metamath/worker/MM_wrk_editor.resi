@@ -201,6 +201,7 @@ let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 
+let getSelectedSubtree: stmtContTreeData => option<childNode>
 let getIdsOfSelectedNodes: stmtCont => (int,Belt_SetInt.t)
 let hasSelectedText: stmtCont => bool
 let getSelectedText: stmtCont => option<string>
@@ -209,7 +210,6 @@ let incExpLvl: stmtContTreeData => stmtContTreeData
 let decExpLvl: stmtContTreeData => stmtContTreeData
 let incExpLvlIfConstClicked: stmtContTreeData => stmtContTreeData
 let getNumberOfSelectedSymbols: stmtContTreeData => int
-let getSelectedSymbols: stmtCont => option<array<string>>
 let updateExpLevel: (stmtContTreeData, bool) => stmtContTreeData
 
 let addColorsToSyntaxTree: (
