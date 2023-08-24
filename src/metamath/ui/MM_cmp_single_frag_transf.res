@@ -1,4 +1,3 @@
-open MM_syntax_tree
 open Expln_React_Modal
 open MM_react_common
 open Expln_React_common
@@ -15,34 +14,34 @@ type fragmentTransform = {
     canApply: {"selection":selection} => bool,
     displayName: {"selection":selection} => string,
     createInitialState: {"selection":selection} => fragmentTransformState,
-    renderDialog: {"selection":selection, "state":fragmentTransformState, "setState":(fragmentTransformState => fragmentTransformState) => unit} => reactElemDto,
+    renderDialog: 
+        {
+            "selection":selection, 
+            "state":fragmentTransformState, 
+            "setState":(fragmentTransformState => fragmentTransformState) => unit
+        } => reactElemDto,
 }
 
 external stateToObj: fragmentTransformState => {..} = "%identity"
-external reElemDtoToObj: reactElemDto => {..} = "%identity"
+external reactElemDtoToObj: reactElemDto => {..} = "%identity"
 
-let unsafeFunc = (modalRef:modalRef, title:string, func:unit=>'a):result<'a,string> => {
+let unsafeFunc = (title:string, func:unit=>'a):result<'a,string> => {
     try {
         Ok(func())
     } catch {
         | Js.Exn.Error(exn) => {
             let errMsg = `${title}: ${exn->Js.Exn.message->Belt_Option.getWithDefault("unknown error.")}.`
-            openInfoDialog( ~modalRef, ~title="Error", ~text=errMsg, (), )
             Error(errMsg)
         }
         | _ => {
             let errMsg = `${title}: unknown error.`
-            openInfoDialog( ~modalRef, ~title="Error", ~text=errMsg, (), )
             Error(errMsg)
         }
     }
 }
 
-
-
 @react.component
 let make = (
-    ~modalRef: modalRef,
     ~onCancel:unit=>unit,
     ~onApply:string=>unit,
     ~selection:selection,
@@ -52,7 +51,7 @@ let make = (
     let (state, setState) = React.useState(() => None)
 
     React.useEffect0(() => {
-        let state = unsafeFunc(modalRef, "Creating initial state", 
+        let state = unsafeFunc("Creating initial state", 
             () => transform.createInitialState({"selection":selection})
         )
         switch state {
@@ -62,18 +61,52 @@ let make = (
         None
     })
 
+    let rec rndCustomElem = (elem:{..}):reElem => {
+        switch elem["cmp"] {
+            | "Col" => rndCol(elem)
+            | "Row" => rndRow(elem)
+            // | "Checkbox" => rndCheckbox(elem)
+            // | "TextField" => rndTextField(elem)
+            // | "Text" => rndText(elem)
+            // | "ApplyButtons" => rndApplyButtons(elem)
+            | _ => Js_exn.raiseError(`Unrecognized component '${elem["cmp"]}'`)
+        }
+    }
+    and childrenToArray = (elem):reElem => {
+        elem["children"]
+            ->Js_array2.mapi((child,i) => rndCustomElem(child)->React.cloneElement({"key":Belt_Int.toString(i)}))
+            ->React.array
+    }
+    and rndCol = (elem:{..}):reElem => {
+        <Col>
+            {childrenToArray(elem)}
+        </Col>
+    }
+    and rndRow = (elem:{..}):reElem => {
+        <Row>
+            {childrenToArray(elem)}
+        </Row>
+    }
+    // and rndCheckbox = (elem:{..}):reElem => {
+
+    // }
+    // and rndTextField = (elem:{..}):reElem => {
+
+    // }
+    // and rndText = (elem:{..}):reElem => {
+
+    // }
+    // and rndApplyButtons = (elem:{..}):reElem => {
+
+    // }
+
     let rndCustomContent = (state:fragmentTransformState) => {
         let params = {
             "selection":selection, 
             "state":state, 
-            "setState": mapper => setState(st => {
-                switch st {
-                    | None => None
-                    | Some(st) => Some(mapper(st))
-                }
-            })
+            "setState": mapper => setState(Belt_Option.map(_, mapper))
         }
-        let reElemDto = unsafeFunc(modalRef, "Rendering dialog (getting a DTO)", 
+        let reElemDto = unsafeFunc("Rendering dialog (getting a DTO)", 
             () => transform.renderDialog(params)
         )
         switch reElemDto {
@@ -82,7 +115,16 @@ let make = (
                 React.null
             }
             | Ok(reElemDto) => {
-                React.string(`CustomContent`)
+                let customElem = unsafeFunc("Rendering dialog (rendering a DTO)", 
+                    () => reElemDto->reactElemDtoToObj->rndCustomElem
+                )
+                switch customElem {
+                    | Error(msg) => {
+                        setError(_ => Some(msg))
+                        React.null
+                    }
+                    | Ok(customElem) => customElem
+                }
             }
         }
     }

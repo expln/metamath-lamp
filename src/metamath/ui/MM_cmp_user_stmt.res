@@ -1077,7 +1077,6 @@ let make = React.memoCustomCompareProps( ({
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform
-                    modalRef
                     onCancel={()=>closeModal(modalRef, modalId)}
                     selectedSubtree
                     transformsText

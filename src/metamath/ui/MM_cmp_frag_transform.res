@@ -90,26 +90,8 @@ let setSelectedTransform = (st:state,tr:fragmentTransform) => {
     {...st, selectedTransform:Some(tr)}
 }
 
-let unsafeFunc = (modalRef:modalRef, title:string, func:unit=>'a):result<'a,string> => {
-    try {
-        Ok(func())
-    } catch {
-        | Js.Exn.Error(exn) => {
-            let errMsg = `${title}: ${exn->Js.Exn.message->Belt_Option.getWithDefault("unknown error.")}.`
-            openInfoDialog( ~modalRef, ~title="Error", ~text=errMsg, (), )
-            Error(errMsg)
-        }
-        | _ => {
-            let errMsg = `${title}: unknown error.`
-            openInfoDialog( ~modalRef, ~title="Error", ~text=errMsg, (), )
-            Error(errMsg)
-        }
-    }
-}
-
 @react.component
 let make = (
-    ~modalRef: modalRef,
     ~onCancel:unit=>unit,
     ~selectedSubtree:childNode,
     ~transformsText:string,
@@ -118,7 +100,7 @@ let make = (
 
     let rndAvailableTransforms = (availableTransforms:array<fragmentTransform>):result<reElem,string> => {
         let param = {"selection":state.selection}
-        let listItems = unsafeFunc( modalRef, "Listing available transforms", () => {
+        let listItems = unsafeFunc( "Listing available transforms", () => {
             availableTransforms->Js_array2.mapi((availableTransform,i) => {
                 <ListItem key={i->Belt_Int.toString}>
                     <ListItemButton onClick={_=>{setState(setSelectedTransform(_,availableTransform))}}>
@@ -144,10 +126,11 @@ let make = (
     React.useEffect0(() => {
         let param = {"selection":state.selection}
         if (transformsText != transformsTextCache.contents) {
+            let allTransformsRef = ref([])
             let availableTransformsElem = stringToFragTransforms(transformsText)
                 ->Belt.Result.flatMap(allTransforms => {
+                    allTransformsRef := allTransforms
                     unsafeFunc(
-                        modalRef,
                         "Getting available transforms",
                         () => allTransforms->Js_array2.filter(tr => tr.canApply(param))
                     )
@@ -155,11 +138,14 @@ let make = (
                 ->Belt.Result.flatMap(rndAvailableTransforms)
             switch availableTransformsElem {
                 | Error(msg) => setState(setTransformsParseErr(_, msg))
-                | Ok(availableTransformsElem) => setState(setAvailableTransforms(_, availableTransformsElem))
+                | Ok(availableTransformsElem) => {
+                    transformsTextCache := transformsText
+                    allTransformsCache := allTransformsRef.contents
+                    setState(setAvailableTransforms(_, availableTransformsElem))
+                }
             }
         } else {
             let availableTransformsElem = unsafeFunc(
-                    modalRef,
                     "Getting available transforms from cache",
                     () => allTransformsCache.contents->Js_array2.filter(tr => tr.canApply(param))
                 )
@@ -182,7 +168,6 @@ let make = (
 
     let rndSelectedTransform = (selectedTransform) => {
         <MM_cmp_single_frag_transf
-            modalRef
             onCancel
             onApply={_=>()}
             selection={state.selection}
