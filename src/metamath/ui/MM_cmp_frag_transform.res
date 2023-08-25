@@ -86,8 +86,8 @@ let setAvailableTransforms = (st:state,elem:reElem) => {
     {...st, availableTransforms:Some(elem)}
 }
 
-let setSelectedTransform = (st:state,tr:fragmentTransform) => {
-    {...st, selectedTransform:Some(tr)}
+let setSelectedTransform = (st:state,tr:option<fragmentTransform>) => {
+    {...st, selectedTransform:tr}
 }
 
 @react.component
@@ -103,7 +103,7 @@ let make = (
         let listItems = unsafeFunc( "Listing available transforms", () => {
             availableTransforms->Js_array2.mapi((availableTransform,i) => {
                 <ListItem key={i->Belt_Int.toString}>
-                    <ListItemButton onClick={_=>{setState(setSelectedTransform(_,availableTransform))}}>
+                    <ListItemButton onClick={_=>{setState(setSelectedTransform(_,Some(availableTransform)))}}>
                         <ListItemText>
                             {React.string(availableTransform.displayName(param))}
                         </ListItemText>
@@ -158,6 +158,10 @@ let make = (
         None
     })
 
+    let actUnselectTransform = () => {
+        setState(setSelectedTransform(_,None))
+    }
+
     let rndButtons = () => {
         <Row>
             <Button onClick={_=>onCancel()} variant=#outlined>
@@ -168,7 +172,8 @@ let make = (
 
     let rndSelectedTransform = (selectedTransform) => {
         <MM_cmp_single_frag_transf
-            onCancel
+            onBack=actUnselectTransform
+            onCopy={_=>()}
             onApply={_=>()}
             selection={state.selection}
             transform=selectedTransform
@@ -198,8 +203,6 @@ let make = (
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
-            {rndButtons()}
-            <Divider/>
             {rndContent()}
             <Divider/>
             {rndButtons()}

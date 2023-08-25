@@ -1060,12 +1060,14 @@ let make = React.memoCustomCompareProps( ({
             return {
                 cmp:"Col",
                 children:[
-                    {cmp:"Text", value: "Initial: " + selection.text},
+                    {cmp:"Text", value: "Initial:"},
+                    {cmp:"Text", value: selection.text},
                     {cmp:"Divider"},
                     {cmp:"Checkbox", checked:state.chbx, label: "chbx-1", onChange: saveToState('chbx')},
                     {cmp:"TextField", value:state.text, label: "Some Text", onChange: saveToState('text'), width:'300px'},
                     {cmp:"Divider"},
-                    {cmp:"Text", value: "Result: " + result},
+                    {cmp:"Text", value: "Result:"},
+                    {cmp:"Text", value: result},
                     {cmp:"ApplyButtons", result},
                 ]
             }
@@ -1193,7 +1195,7 @@ let make = React.memoCustomCompareProps( ({
                             }} 
                             ?style
                         > 
-                            <MM_Icons.Title/>
+                            <MM_Icons.Transform/>
                         </Button>
                     }
                 }

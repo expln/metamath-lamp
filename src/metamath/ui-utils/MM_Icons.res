@@ -32,5 +32,6 @@ module SwapVert = { @module("@mui/icons-material/SwapVert") @react.component ext
 module VisibilityOff = { @module("@mui/icons-material/VisibilityOff") @react.component external make: () => React.element = "default" }
 module TextRotationNone = { @module("@mui/icons-material/TextRotationNone") @react.component external make: () => React.element = "default" }
 module Title = { @module("@mui/icons-material/Title") @react.component external make: () => React.element = "default" }
+module Transform = { @module("@mui/icons-material/Transform") @react.component external make: () => React.element = "default" }
 module ZoomInMap = { @module("@mui/icons-material/ZoomInMap") @react.component external make: () => React.element = "default" }
 module ZoomOutMap = { @module("@mui/icons-material/ZoomOutMap") @react.component external make: () => React.element = "default" }

@@ -24,6 +24,7 @@ type fragmentTransform = {
 
 external stateToObj: fragmentTransformState => {..} = "%identity"
 external reactElemDtoToObj: reactElemDto => {..} = "%identity"
+external objToObj: {..} => {..} = "%identity"
 
 let unsafeFunc = (title:string, func:unit=>'a):result<'a,string> => {
     try {
@@ -40,9 +41,21 @@ let unsafeFunc = (title:string, func:unit=>'a):result<'a,string> => {
     }
 }
 
+let req = (nullable:Js.Nullable.t<'a>, msg:string):'a => {
+    switch nullable->Js.Nullable.toOption {
+        | None => Js_exn.raiseError(`A required attribute is missing: ${msg}.`)
+        | Some(value) => value
+    }
+}
+
+let opt = (nullable:Js.Nullable.t<'a>):option<'a> => {
+    nullable->Js.Nullable.toOption
+}
+
 @react.component
 let make = (
-    ~onCancel:unit=>unit,
+    ~onBack:unit=>unit,
+    ~onCopy:string=>unit,
     ~onApply:string=>unit,
     ~selection:selection,
     ~transform:fragmentTransform,
@@ -62,69 +75,91 @@ let make = (
     })
 
     let rec rndCustomElem = (elem:{..}):reElem => {
-        switch elem["cmp"] {
-            | "Col" => rndCol(elem)
-            | "Row" => rndRow(elem)
-            | "Checkbox" => rndCheckbox(elem)
-            | "TextField" => rndTextField(elem)
-            | "Text" => rndText(elem)
-            | "ApplyButtons" => rndApplyButtons(elem)
+        let componentName = req(elem["cmp"], 
+            "Each component must have a string attribute 'cmp' which specifies component name"
+        )
+        switch componentName {
+            | "Col" => rndCol(objToObj(elem))
+            | "Row" => rndRow(objToObj(elem))
+            | "Checkbox" => rndCheckbox(objToObj(elem))
+            | "TextField" => rndTextField(objToObj(elem))
+            | "Text" => rndText(objToObj(elem))
+            | "ApplyButtons" => rndApplyButtons(objToObj(elem))
             | "Divider" => rndDivider()
-            | _ => Js_exn.raiseError(`Unrecognized component '${elem["cmp"]}'`)
+            | _ => Js_exn.raiseError(`Unrecognized component '${componentName}'`)
         }
     }
-    and childrenToArray = (elem):reElem => {
-        elem["children"]
+    and childrenToArray = (children:array<{..}>):reElem => {
+        children
             ->Js_array2.mapi((child,i) => {
                 rndCustomElem(child)->React.cloneElement({
-                    "key":elem["key"]->Js.Nullable.toOption->Belt_Option.getWithDefault(Belt_Int.toString(i))
+                    "key":opt(child["key"])->Belt_Option.getWithDefault(Belt_Int.toString(i))
                 })
             })
             ->React.array
     }
     and rndCol = (elem:{..}):reElem => {
         <Col>
-            {childrenToArray(elem)}
+            {
+                childrenToArray(
+                    req(
+                        elem["children"], 
+                        "Each 'Col' component must have a 'children' attribute which holds an array of components " 
+                            ++ "comprising the content of this 'Col' component"
+                    )
+                )
+            }
         </Col>
     }
     and rndRow = (elem:{..}):reElem => {
         <Row>
-            {childrenToArray(elem)}
+            {
+                childrenToArray(
+                    req(
+                        elem["children"], 
+                        "Each 'Row' component must have a 'children' attribute which holds an array of components " 
+                            ++ "comprising the content of this 'Row' component"
+                    )
+                )
+            }
         </Row>
     }
     and rndCheckbox = (elem:{..}):reElem => {
+        let checked = req(elem["checked"], "Each Checkbox must have a boolean attribute 'checked'")
+        let onChange = req(elem["onChange"], "Each Checkbox must have an attribute 'onChange' of type boolean => void")
         <FormControlLabel
             control={
                 <Checkbox
-                    checked=elem["checked"]
-                    onChange=evt2bool(b => elem["onChange"](. b))
+                    checked
+                    onChange=evt2bool(b => onChange(. b))
                 />
             }
-            label=elem["label"]
+            label=req(elem["label"], "Each Checkbox must have a string attribute 'label'")
         />
     }
     and rndTextField = (elem:{..}):reElem => {
+        let onChange = req(elem["onChange"], "Each TextField must have an attribute 'onChange' of type string => void")
         <TextField
-            label=elem["label"]
+            label=req(elem["label"], "Each TextField must have a string attribute 'label'")
             size=#small
-            style=ReactDOM.Style.make(~width=?(elem["width"]->Js.Nullable.toOption), ())
-            value=elem["value"]
-            onChange=evt2str(str => elem["onChange"](. str))
+            style=ReactDOM.Style.make(~width=?opt(elem["width"]), ())
+            value=req(elem["value"], "Each TextField must have a string attribute 'value'")
+            onChange=evt2str(str => onChange(. str))
         />
     }
     and rndText = (elem:{..}):reElem => {
         <span>
-            {React.string(elem["value"])}
+            {React.string(req(elem["value"], "Each Text component must have a string attribute 'value'"))}
         </span>
     }
     and rndDivider = ():reElem => {
         <Divider/>
     }
     and rndApplyButtons = (elem:{..}):reElem => {
+        let result = req(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
         <Row>
-            <Button onClick={_=>onApply(elem["result"])} variant=#contained>
-                {React.string("Apply")}
-            </Button>
+            <Button title="Back" onClick={_=>onBack()} > <MM_Icons.CancelOutlined/> </Button>
+            <Button title="Copy to the clipboard" onClick={_=>onCopy(result)} > <MM_Icons.ContentCopy/> </Button>
         </Row>
     }
 
@@ -160,11 +195,9 @@ let make = (
     let rndContent = () => {
         switch error {
             | Some(msg) => {
-                <Col spacing=1.>
+                <Col>
                     {React.string(`Error: ${msg}`)}
-                    <Button onClick={_=>onCancel()} variant=#outlined>
-                        {React.string("Cancel")}
-                    </Button>
+                    <Button title="Back" onClick={_=>onBack()} > <MM_Icons.CancelOutlined/> </Button>
                 </Col>
             }
             | None => {
@@ -172,7 +205,7 @@ let make = (
                     | None => {
                         <Col spacing=1.>
                             {React.string(`Initializing...`)}
-                            <Button onClick={_=>onCancel()} variant=#outlined>
+                            <Button onClick={_=>onBack()} variant=#outlined>
                                 {React.string("Cancel")}
                             </Button>
                         </Col>
