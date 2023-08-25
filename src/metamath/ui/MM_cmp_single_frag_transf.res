@@ -3,8 +3,9 @@ open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
 
-type selection = {
+type rec selection = {
     "text": string,
+    "children": array<selection>,
 }
 
 type fragmentTransformState = string
@@ -84,6 +85,7 @@ let make = (
             | "Checkbox" => rndCheckbox(objToObj(elem))
             | "TextField" => rndTextField(objToObj(elem))
             | "Text" => rndText(objToObj(elem))
+            | "Array" => rndArray(objToObj(elem))
             | "ApplyButtons" => rndApplyButtons(objToObj(elem))
             | "Divider" => rndDivider()
             | _ => Js_exn.raiseError(`Unrecognized component '${componentName}'`)
@@ -148,9 +150,18 @@ let make = (
         />
     }
     and rndText = (elem:{..}):reElem => {
-        <span>
+        <span style=ReactDOM.Style.make(~backgroundColor=?opt(elem["bkgColor"]), ())>
             {React.string(req(elem["value"], "Each Text component must have a string attribute 'value'"))}
         </span>
+    }
+    and rndArray = (elem:{..}):reElem => {
+        childrenToArray(
+            req(
+                elem["children"], 
+                "Each 'Array' component must have a 'children' attribute which holds an array of components " 
+                    ++ "comprising the content of this 'Array' component"
+            )
+        )
     }
     and rndDivider = ():reElem => {
         <Divider/>

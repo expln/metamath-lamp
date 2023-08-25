@@ -15,10 +15,15 @@ type state = {
     selectedTransform: option<fragmentTransform>,
 }
 
-let syntaxTreeToSelection = (tree:childNode):selection => {
+let rec syntaxTreeToSelection = (tree:childNode):selection => {
     let text = tree->syntaxTreeToText
     {
         "text": text,
+        "children":
+            switch tree {
+                | Symbol(_) => []
+                | Subtree({children}) => children->Js.Array2.map(syntaxTreeToSelection)
+            },
     }
 }
 
