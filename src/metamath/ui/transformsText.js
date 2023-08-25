@@ -238,4 +238,80 @@ const trSwap = {
     }
 }
 
-return [trInsert1, trInsert2, trElide, trSwap]
+const trAssoc = {
+    displayName: ({selection}) => "Associate: ( A + B ) + C => A + ( B + C )",
+    canApply:({selection}) =>
+        selection.children.length === 3 && (selection.children[0].children.length === 5 || selection.children[2].children.length === 5)
+        || selection.children.length === 5 && (selection.children[1].children.length === 5 || selection.children[3].children.length === 5),
+    createInitialState: ({selection}) => ({}),
+    renderDialog: ({selection, state, setState}) => {
+        const rndResult = () => {
+            if (selection.children.length === 3 && selection.children[0].children.length === 5) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text},
+                    ]
+                }
+            } else if (selection.children.length === 3 && selection.children[2].children.length === 5) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                    ]
+                }
+            } else if (selection.children.length === 5 && selection.children[1].children.length === 5) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                    ]
+                }
+            } else {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                    ]
+                }
+            }
+        }
+        const resultElem = rndResult()
+        return {cmp:"Col",
+            children:[
+                {cmp:"Text", value: "Initial:"},
+                {cmp:"Text", value: selection.text},
+                {cmp:"Divider"},
+                {cmp:"Text", value: "Result:"},
+                resultElem,
+                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
+            ]
+        }
+    }
+}
+
+return [trInsert1, trInsert2, trElide, trSwap, trAssoc]
