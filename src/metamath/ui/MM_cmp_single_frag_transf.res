@@ -42,15 +42,79 @@ let unsafeFunc = (title:string, func:unit=>'a):result<'a,string> => {
     }
 }
 
-let req = (nullable:Js.Nullable.t<'a>, msg:string):'a => {
+let reqExn = (nullable:Js.Nullable.t<'a>, msg:string):'a => {
     switch nullable->Js.Nullable.toOption {
-        | None => Js_exn.raiseError(`A required attribute is missing: ${msg}.`)
+        | None => Js_exn.raiseError(`A required attribute is missing: ${msg}`)
         | Some(value) => value
     }
 }
 
-let opt = (nullable:Js.Nullable.t<'a>):option<'a> => {
+let optExn = (nullable:Js.Nullable.t<'a>):option<'a> => {
     nullable->Js.Nullable.toOption
+}
+
+let isString: 'a => bool = %raw(`obj => typeof obj === 'string'`)
+let isBool: 'a => bool = %raw(`obj => typeof obj === 'boolean'`)
+let isArray: 'a => bool = %raw(`obj => Array.isArray(obj)`)
+let isObject: 'a => bool = %raw(`obj => obj !== undefined && obj !== null && !Array.isArray(obj) && typeof obj === 'object'`)
+let isFunction: 'a => bool = %raw(`obj => typeof obj === 'function'`)
+
+let reqStrExn = (nullable:Js.Nullable.t<'a>, msg:string):string => {
+    let res = reqExn(nullable, msg)
+    if (!isString(res)) {
+        Js_exn.raiseError(`Not a string: ${msg}`)
+    } else {
+        res
+    }
+}
+
+let reqBoolExn = (nullable:Js.Nullable.t<'a>, msg:string):bool => {
+    let res = reqExn(nullable, msg)
+    if (!isBool(res)) {
+        Js_exn.raiseError(`Not a boolean: ${msg}`)
+    } else {
+        res
+    }
+}
+
+let reqArrExn = (nullable:Js.Nullable.t<'a>, msg:string):array<'b> => {
+    let res = reqExn(nullable, msg)
+    if (!isArray(res)) {
+        Js_exn.raiseError(`Not an array: ${msg}`)
+    } else {
+        res
+    }
+}
+
+let reqObjExn = (nullable:Js.Nullable.t<'a>, msg:string):'a => {
+    let res = reqExn(nullable, msg)
+    if (!isObject(res)) {
+        Js_exn.raiseError(`Not an object: ${msg}`)
+    } else {
+        res
+    }
+}
+
+let reqFuncExn = (nullable:Js.Nullable.t<'a>, msg:string):'a => {
+    let res = reqExn(nullable, msg)
+    if (!isFunction(res)) {
+        Js_exn.raiseError(`Not a function: ${msg}`)
+    } else {
+        res
+    }
+}
+
+let optStrExn = (nullable:Js.Nullable.t<'a>, msg:string):option<string> => {
+    switch optExn(nullable) {
+        | None => None
+        | Some(res) => {
+            if (!isString(res)) {
+                Js_exn.raiseError(`Not a string: ${msg}`)
+            } else {
+                Some(res)
+            }
+        }
+    }
 }
 
 @react.component
@@ -76,7 +140,10 @@ let make = (
     })
 
     let rec rndCustomElem = (elem:{..}):reElem => {
-        let componentName = req(elem["cmp"], 
+        if (!isObject(elem)) {
+            Js.Exn.raiseError("Each component must be an object")
+        }
+        let componentName = reqStrExn(elem["cmp"], 
             "Each component must have a string attribute 'cmp' which specifies component name"
         )
         switch componentName {
@@ -85,50 +152,40 @@ let make = (
             | "Checkbox" => rndCheckbox(objToObj(elem))
             | "TextField" => rndTextField(objToObj(elem))
             | "Text" => rndText(objToObj(elem))
-            | "Array" => rndArray(objToObj(elem))
+            | "span" => rndSpan(objToObj(elem))
             | "ApplyButtons" => rndApplyButtons(objToObj(elem))
             | "Divider" => rndDivider()
             | _ => Js_exn.raiseError(`Unrecognized component '${componentName}'`)
         }
     }
-    and childrenToArray = (children:array<{..}>):reElem => {
+    and childrenToArray = (children:array<Js.Nullable.t<{..}>>, msg:string):reElem => {
         children
             ->Js_array2.mapi((child,i) => {
+                let child = reqObjExn(child, `A child element is not a component object: ${msg}`)
                 rndCustomElem(child)->React.cloneElement({
-                    "key":opt(child["key"])->Belt_Option.getWithDefault(Belt_Int.toString(i))
+                    "key":optStrExn(child["key"], "optional 'key' attribute of any component must be a string")
+                            ->Belt_Option.getWithDefault(Belt_Int.toString(i))
                 })
             })
             ->React.array
     }
     and rndCol = (elem:{..}):reElem => {
-        <Col>
-            {
-                childrenToArray(
-                    req(
-                        elem["children"], 
-                        "Each 'Col' component must have a 'children' attribute which holds an array of components " 
+        let msg = "Each 'Col' component must have a 'children' attribute which holds an array of components " 
                             ++ "comprising the content of this 'Col' component"
-                    )
-                )
-            }
+        <Col>
+            {elem["children"]->reqArrExn(msg)->childrenToArray(msg)}
         </Col>
     }
     and rndRow = (elem:{..}):reElem => {
-        <Row>
-            {
-                childrenToArray(
-                    req(
-                        elem["children"], 
-                        "Each 'Row' component must have a 'children' attribute which holds an array of components " 
+        let msg = "Each 'Row' component must have a 'children' attribute which holds an array of components " 
                             ++ "comprising the content of this 'Row' component"
-                    )
-                )
-            }
+        <Row>
+            {elem["children"]->reqArrExn(msg)->childrenToArray(msg)}
         </Row>
     }
     and rndCheckbox = (elem:{..}):reElem => {
-        let checked = req(elem["checked"], "Each Checkbox must have a boolean attribute 'checked'")
-        let onChange = req(elem["onChange"], "Each Checkbox must have an attribute 'onChange' of type boolean => void")
+        let checked = reqBoolExn(elem["checked"], "Each Checkbox must have a boolean attribute 'checked'")
+        let onChange = reqFuncExn(elem["onChange"], "Each Checkbox must have an attribute 'onChange' of type boolean => void")
         <FormControlLabel
             control={
                 <Checkbox
@@ -136,38 +193,44 @@ let make = (
                     onChange=evt2bool(b => onChange(. b))
                 />
             }
-            label=req(elem["label"], "Each Checkbox must have a string attribute 'label'")
+            label=reqStrExn(elem["label"], "Each Checkbox must have a string attribute 'label'")
         />
     }
     and rndTextField = (elem:{..}):reElem => {
-        let onChange = req(elem["onChange"], "Each TextField must have an attribute 'onChange' of type string => void")
+        let onChange = reqFuncExn(elem["onChange"], "Each TextField must have an attribute 'onChange' of type string => void")
         <TextField
-            label=req(elem["label"], "Each TextField must have a string attribute 'label'")
+            label=reqStrExn(elem["label"], "Each TextField must have a string attribute 'label'")
             size=#small
-            style=ReactDOM.Style.make(~width=?opt(elem["width"]), ())
-            value=req(elem["value"], "Each TextField must have a string attribute 'value'")
+            style=ReactDOM.Style.make(
+                ~width=?optStrExn(elem["width"], "optional 'width' attribute of a TextField must be a string"), 
+                ()
+            )
+            value=reqStrExn(elem["value"], "Each TextField must have a string attribute 'value'")
             onChange=evt2str(str => onChange(. str))
         />
     }
     and rndText = (elem:{..}):reElem => {
-        <span style=ReactDOM.Style.make(~backgroundColor=?opt(elem["bkgColor"]), ())>
-            {React.string(req(elem["value"], "Each Text component must have a string attribute 'value'"))}
+        <span 
+            style=ReactDOM.Style.make(
+                ~backgroundColor=?optStrExn(elem["bkgColor"], "optional 'bkgColor' attribute of a 'span' component must be a string"), 
+                ()
+            )
+        >
+            {React.string(reqStrExn(elem["value"], "Each Text component must have a string attribute 'value'"))}
         </span>
     }
-    and rndArray = (elem:{..}):reElem => {
-        childrenToArray(
-            req(
-                elem["children"], 
-                "Each 'Array' component must have a 'children' attribute which holds an array of components " 
-                    ++ "comprising the content of this 'Array' component"
-            )
-        )
+    and rndSpan = (elem:{..}):reElem => {
+        let msg = "Each 'span' component must have a 'children' attribute which holds an array of components " 
+                            ++ "comprising the content of this 'span' component"
+        <span>
+            {elem["children"]->reqArrExn(msg)->childrenToArray(msg)}
+        </span>
     }
     and rndDivider = ():reElem => {
         <Divider/>
     }
     and rndApplyButtons = (elem:{..}):reElem => {
-        let result = req(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
+        let result = reqStrExn(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
         <Row>
             <Button title="Back" onClick={_=>onBack()} > <MM_Icons.CancelOutlined/> </Button>
             <Button title="Copy to the clipboard" onClick={_=>onCopy(result)} > <MM_Icons.ContentCopy/> </Button>
