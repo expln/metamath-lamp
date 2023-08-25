@@ -1044,10 +1044,11 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actOpenFragmentTransform = (selectedSubtree:childNode) => {
-        let transformsText = `
-            const tr1 = {
-        canApply:()=>true,
+        let transformsText = 
+`
+        const tr1 = {
         displayName: ({selection}) => "(" + selection.text + ")",
+        canApply:({selection})=>true,
         createInitialState: ({selection}) => {
             return {
                 chbx:false,
@@ -1074,11 +1075,53 @@ let make = React.memoCustomCompareProps( ({
         }
     }
     const tr2 = {
-        canApply:()=>true,
         displayName: ({selection}) => "<" + selection.text + ">",
+        canApply:({selection})=>true,
     }
-    return [tr1, tr2]
-        `
+    const NO_PARENS = "no parentheses"
+    const allParens = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
+    const trInsert1 = {
+        displayName: ({selection}) => "Insert: X => ( X + A )",
+        canApply:({selection})=> true,
+        createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
+        renderDialog: ({selection, state, setState}) => {
+            const getSelectedParens = () => state.paren == NO_PARENS ? ["", ""] : state.paren.split(" ")
+            const getResult = init => {
+                const [leftParen, rightParen] = getSelectedParens()
+                const body = state.right ? init + " " + state.text : state.text + " " + init
+                return leftParen + " " + body + " " + rightParen
+            }
+            const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
+            const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
+            const rndParenCheckbox = paren => {
+                return {cmp:"Checkbox", checked: state.paren == paren, label:paren, onChange:onParenChange(paren)}
+            }
+            const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
+            return {cmp:"Col",
+                children:[
+                    {cmp:"Text", value: "Initial:"},
+                    {cmp:"Text", value: selection.text},
+                    {cmp:"Divider"},
+                    rndParens(),
+                    {cmp:"Divider"},
+                    {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
+                    {cmp:"Row",
+                        children:[
+                            {cmp:"Checkbox", checked:!state.right, label: "Left side", onChange: newValue => setState(st => ({...st, right: !newValue}))},
+                            {cmp:"Checkbox", checked:state.right, label: "Right side", onChange: updateState('right')},
+                        ]
+                    },
+                    {cmp:"Divider"},
+                    {cmp:"Text", value: "Result:"},
+                    {cmp:"Text", value: getResult("initial")},
+                    {cmp:"ApplyButtons", result: getResult(selection.text)},
+                ]
+            }
+        }
+    }
+    return [tr1, tr2, trInsert1]
+
+`
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform
