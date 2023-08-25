@@ -575,6 +575,8 @@ type props = {
     addStmtBelow:string=>unit,
     setShowTabs:bool=>unit,
     openFrameExplorer:string=>unit,
+
+    fragmentTransformsText: string,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -610,6 +612,8 @@ let propsAreSame = (a:props,b:props):bool => {
 
     && a.stmt.src == b.stmt.src
     && a.stmt.proofStatus === b.stmt.proofStatus
+
+    && a.fragmentTransformsText === b.fragmentTransformsText
 }
 
 let make = React.memoCustomCompareProps( ({
@@ -654,6 +658,7 @@ let make = React.memoCustomCompareProps( ({
     addStmtBelow,
     setShowTabs,
     openFrameExplorer,
+    fragmentTransformsText,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState())
     let labelRef = React.useRef(Js.Nullable.null)
@@ -1044,7 +1049,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actOpenFragmentTransform = (selectedSubtree:childNode) => {
-        let transformsText = 
+        let _ = 
 `
     const bkgColor = "yellow"
     const tr1 = {
@@ -1180,7 +1185,7 @@ let make = React.memoCustomCompareProps( ({
                 <MM_cmp_frag_transform
                     onCancel={()=>closeModal(modalRef, modalId)}
                     selectedSubtree
-                    transformsText
+                    transformsText=fragmentTransformsText
                 />
             })
         })->ignore

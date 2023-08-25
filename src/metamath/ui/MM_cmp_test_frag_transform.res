@@ -3,6 +3,7 @@ open Expln_React_Mui
 open MM_wrk_editor
 open Expln_React_Modal
 open MM_cmp_user_stmt
+open MM_react_common
 
 let prepareTestEditorState = (st:editorState):editorState => {
     let st = st->completeDescrEditMode("")
@@ -11,7 +12,8 @@ let prepareTestEditorState = (st:editorState):editorState => {
     let st = st->checkAllStmts
     let st = st->deleteCheckedStmts
     let (st,stmtId) = st->addNewStmt
-    let st = st->completeContEditMode(stmtId,"write a test statement here")
+    // let st = st->completeContEditMode(stmtId,"write a test statement here")
+    let st = st->completeContEditMode(stmtId,"|- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) )")
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
@@ -32,6 +34,24 @@ let make = (
 
     let actSyntaxTreeUpdated = (stmtId, newStmtCont) => {
         updateEditorState(setStmtCont(_, stmtId, newStmtCont))
+    }
+
+    let actTransformsTextUpdated = (newTransformsText) => {
+        setTransformsText(_ => newTransformsText)
+    }
+    
+    let rndTransformsText = () => {
+        <TextField
+            label="Transformations"
+            size=#small
+            style=ReactDOM.Style.make(~width="800px", ())
+            autoFocus=true
+            multiline=true
+            maxRows=10
+            value=transformsText
+            onChange=evt2str(actTransformsTextUpdated)
+            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose, ())
+        />
     }
 
     let rndButtons = () => {
@@ -99,6 +119,8 @@ let make = (
             addStmtBelow={_ => ()}
             setShowTabs={_ => ()}
             openFrameExplorer={_ => ()}
+
+            fragmentTransformsText=transformsText
         />
     }
     
@@ -154,7 +176,10 @@ let make = (
     }
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
-        {rndEditorState()}
-        {rndButtons()}
+        <Col>
+            {rndEditorState()}
+            {rndTransformsText()}
+            {rndButtons()}
+        </Col>
     </Paper>
 }
