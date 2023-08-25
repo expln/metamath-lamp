@@ -198,4 +198,44 @@ const trElide = {
     }
 }
 
-return [trInsert1, trInsert2, trElide]
+const trSwap = {
+    displayName: ({selection}) => "Swap: X = Y => Y = X",
+    canApply:({selection}) => selection.children.length === 3 || selection.children.length === 5,
+    createInitialState: ({selection}) => ({}),
+    renderDialog: ({selection, state, setState}) => {
+        const rndResult = () => {
+            if (selection.children.length === 3) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                    ]
+                }
+            } else {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                    ]
+                }
+            }
+        }
+        const resultElem = rndResult()
+        return {cmp:"Col",
+            children:[
+                {cmp:"Text", value: "Initial:"},
+                {cmp:"Text", value: selection.text},
+                {cmp:"Divider"},
+                {cmp:"Text", value: "Result:"},
+                resultElem,
+                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
+            ]
+        }
+    }
+}
+
+return [trInsert1, trInsert2, trElide, trSwap]
