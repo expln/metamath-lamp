@@ -142,4 +142,60 @@ const trInsert2 = {
     }
 }
 
-return [trInsert1, trInsert2]
+const trElide = {
+    displayName: ({selection}) => "Elide: ( X + A ) => X",
+    canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
+    createInitialState: ({selection}) => ({text:"", right:false, paren:NO_PARENS}),
+    renderDialog: ({selection, state, setState}) => {
+        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
+        const rndResult = () => {
+            const [leftParen, rightParen] = getSelectedParens()
+            if (selection.children.length === 3) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: leftParen === "" ? "" : leftParen+nbsp, bkgColor},
+                        {cmp:"Text", value: nbsp+(state.right ? selection.children[2].text : selection.children[0].text)+nbsp},
+                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen, bkgColor},
+                    ]
+                }
+            } else {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: leftParen === "" ? "" : leftParen+nbsp, bkgColor},
+                        {cmp:"Text", value: nbsp+(state.right ? selection.children[3].text : selection.children[1].text)+nbsp},
+                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen, bkgColor},
+                    ]
+                }
+            }
+        }
+        const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
+        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
+        const rndParenCheckbox = paren => {
+            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
+        }
+        const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
+        const resultElem = rndResult()
+        return {cmp:"Col",
+            children:[
+                {cmp:"Text", value: "Initial:"},
+                {cmp:"Text", value: selection.text},
+                {cmp:"Divider"},
+                rndParens(),
+                {cmp:"Divider"},
+                {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
+                {cmp:"Row",
+                    children:[
+                        {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},
+                        {cmp:"Checkbox", checked:state.right, label: "Right", onChange: updateState('right')},
+                    ]
+                },
+                {cmp:"Divider"},
+                {cmp:"Text", value: "Result:"},
+                resultElem,
+                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
+            ]
+        }
+    }
+}
+
+return [trInsert1, trInsert2, trElide]

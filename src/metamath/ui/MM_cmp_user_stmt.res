@@ -1273,6 +1273,14 @@ let make = React.memoCustomCompareProps( ({
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                {
+                    if (readOnly) {React.null} else {
+                        <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
+                            <MM_Icons.ContentPaste/>
+                        </Button>
+                    }
+                }
                 {
                     if (readOnly) {React.null} else {
                         <Button title="Add new step above" onClick={_=>actAddStmtAbove()} ?style> 
@@ -1297,14 +1305,6 @@ let make = React.memoCustomCompareProps( ({
                             ?style
                         > 
                             <MM_Icons.Transform/>
-                        </Button>
-                    }
-                }
-                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
-                {
-                    if (readOnly) {React.null} else {
-                        <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
-                            <MM_Icons.ContentPaste/>
                         </Button>
                     }
                 }
