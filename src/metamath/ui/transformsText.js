@@ -21,30 +21,26 @@ const trInsert1 = {
         const getSelectedParens = () => state.paren == NO_PARENS ? ["", ""] : state.paren.split(" ")
         const composeBody = (init, text, right) => {
             if (text.trim() === "") {
-                return {cmp:"Text", value: init}
+                return [{cmp:"Text", value: " " + init + " "}]
             } else if (right) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: init},
-                        {cmp:"Text", value: " " + text, bkgColor},
-                    ]
-                }
+                return [
+                    {cmp:"Text", value: " " + init + " "},
+                    {cmp:"Text", value: " " + text, bkgColor},
+                ]
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: text + " ", bkgColor},
-                        {cmp:"Text", value: init},
-                    ]
-                }
+                return [
+                    {cmp:"Text", value: " " + text, bkgColor},
+                    {cmp:"Text", value: " " + init + " "},
+                ]
             }
         }
         const rndResult = () => {
             const [leftParen, rightParen] = getSelectedParens()
             return {cmp:"span",
                 children: [
-                    {cmp:"Text", value: leftParen === "" ? "" : leftParen + " ", bkgColor},
-                    {cmp:"Text", value: composeBody(selection.text, state.text, state.right)},
-                    {cmp:"Text", value: rightParen === "" ? "" : " " + rightParen, bkgColor},
+                    {cmp:"Text", value: leftParen === "" ? "" : leftParen, bkgColor},
+                    ...composeBody(selection.text, state.text, state.right),
+                    {cmp:"Text", value: rightParen === "" ? "" : rightParen, bkgColor},
                 ]
             }
         }
