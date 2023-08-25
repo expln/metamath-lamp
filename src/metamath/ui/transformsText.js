@@ -1,4 +1,5 @@
 const bkgColor = "yellow"
+const nbsp = String.fromCharCode(160)
 
 const getAllTextFromComponent = cmp => {
     if (cmp.cmp === 'Col' || cmp.cmp === 'Row' || cmp.cmp === 'Array') {
@@ -13,41 +14,42 @@ const getAllTextFromComponent = cmp => {
 const NO_PARENS = "no parentheses"
 const allParens = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
 
+const appendOnSide = ({init, text, right}) => {
+    if (text.trim() === "") {
+        return [{cmp:"Text", value: nbsp+init+nbsp}]
+    } else if (right) {
+        return [
+            {cmp:"Text", value: nbsp+init+nbsp},
+            {cmp:"Text", value: nbsp+text+nbsp, bkgColor},
+        ]
+    } else {
+        return [
+            {cmp:"Text", value: nbsp+text+nbsp, bkgColor},
+            {cmp:"Text", value: nbsp+init+nbsp},
+        ]
+    }
+}
+
 const trInsert1 = {
     displayName: ({selection}) => "Insert: X => ( X + A )",
     canApply:({selection})=> true,
     createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
     renderDialog: ({selection, state, setState}) => {
-        const getSelectedParens = () => state.paren == NO_PARENS ? ["", ""] : state.paren.split(" ")
-        const composeBody = (init, text, right) => {
-            if (text.trim() === "") {
-                return [{cmp:"Text", value: " " + init + " "}]
-            } else if (right) {
-                return [
-                    {cmp:"Text", value: " " + init + " "},
-                    {cmp:"Text", value: " " + text, bkgColor},
-                ]
-            } else {
-                return [
-                    {cmp:"Text", value: " " + text, bkgColor},
-                    {cmp:"Text", value: " " + init + " "},
-                ]
-            }
-        }
+        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
         const rndResult = () => {
             const [leftParen, rightParen] = getSelectedParens()
             return {cmp:"span",
                 children: [
-                    {cmp:"Text", value: leftParen === "" ? "" : leftParen, bkgColor},
-                    ...composeBody(selection.text, state.text, state.right),
-                    {cmp:"Text", value: rightParen === "" ? "" : rightParen, bkgColor},
+                    {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
+                    ...appendOnSide({init:selection.text, text:state.text, right:state.right}),
+                    {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
                 ]
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
         const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
         const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren == paren, label:paren, onChange:onParenChange(paren)}
+            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
         }
         const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
         const resultElem = rndResult()
@@ -76,30 +78,47 @@ const trInsert1 = {
 
 const trInsert2 = {
     displayName: ({selection}) => "Insert: X = Y => ( X + A ) = ( Y + A )",
-    canApply:({selection}) => selection.children.length == 3 || selection.children.length == 5,
+    canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
     createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
     renderDialog: ({selection, state, setState}) => {
-        const getSelectedParens = () => state.paren == NO_PARENS ? ["", ""] : state.paren.split(" ")
-        const composeBody = (right, init, text) => right ? init + " " + text : text + " " + init
-        const getResult = init => {
+        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
+        const rndResult = () => {
             const [leftParen, rightParen] = getSelectedParens()
-            if (init.length == 3) {
-                const body1 = composeBody(state.right, init[0], state.text)
-                const body2 = composeBody(state.right, init[2], state.text)
-                return leftParen + " " + body1 + " " + rightParen + " " + init[1] + " " + leftParen + " " + body2 + " " + rightParen
+            if (selection.children.length === 3) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
+                        ...appendOnSide({init:selection.children[0].text, text:state.text, right:state.right}),
+                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
+                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
+                        ...appendOnSide({init:selection.children[2].text, text:state.text, right:state.right}),
+                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
+                    ]
+                }
             } else {
-                const body1 = composeBody(state.right, init[1], state.text)
-                const body2 = composeBody(state.right, init[3], state.text)
-                return init[0] + leftParen + " " + body1 + " " + rightParen + " " + init[2] + " " + leftParen + " " + body2 + " " + rightParen + init[4]
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: selection.children[0].text+nbsp},
+                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
+                        ...appendOnSide({init:selection.children[1].text, text:state.text, right:state.right}),
+                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
+                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
+                        ...appendOnSide({init:selection.children[3].text, text:state.text, right:state.right}),
+                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
+                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                    ]
+                }
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
         const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
         const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren == paren, label:paren, onChange:onParenChange(paren)}
+            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
         }
         const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
-        const result = getResult(selection.children.map(ch => ch.text))
+        const resultElem = rndResult()
         return {cmp:"Col",
             children:[
                 {cmp:"Text", value: "Initial:"},
@@ -116,8 +135,8 @@ const trInsert2 = {
                 },
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
-                {cmp:"Text", value: result, bkgColor},
-                {cmp:"ApplyButtons", result},
+                resultElem,
+                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
             ]
         }
     }
