@@ -2,6 +2,8 @@ open Expln_React_Modal
 open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
+open Expln_utils_promise
+open Common
 
 type rec selection = {
     "text": string,
@@ -120,13 +122,13 @@ let optStrExn = (nullable:Js.Nullable.t<'a>, msg:string):option<string> => {
 @react.component
 let make = (
     ~onBack:unit=>unit,
-    ~onCopy:string=>unit,
     ~onApply:string=>unit,
     ~selection:selection,
     ~transform:fragmentTransform,
 ):reElem => {
     let (error, setError) = React.useState(() => None)
     let (state, setState) = React.useState(() => None)
+    let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
     React.useEffect0(() => {
         let state = unsafeFunc("Creating initial state", 
@@ -138,6 +140,21 @@ let make = (
         }
         None
     })
+
+    let actCopyToClipboard = (text) => {
+        copyToClipboard(text)->promiseMap(_ => {
+            setCopiedToClipboard(timerId => {
+                switch timerId {
+                    | None => ()
+                    | Some(timerId) => clearTimeout(timerId)
+                }
+                Some(setTimeout(
+                    () => setCopiedToClipboard(_ => None),
+                    1000
+                ))
+            })
+        })->ignore
+    }
 
     let rec rndCustomElem = (elem:{..}):reElem => {
         if (!isObject(elem)) {
@@ -231,10 +248,31 @@ let make = (
     }
     and rndApplyButtons = (elem:{..}):reElem => {
         let result = reqStrExn(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
-        <Row>
-            <Button title="Back" onClick={_=>onBack()} > <MM_Icons.CancelOutlined/> </Button>
-            <Button title="Copy to the clipboard" onClick={_=>onCopy(result)} > <MM_Icons.ContentCopy/> </Button>
-        </Row>
+            ->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
+        <Col>
+            <Row>
+                <IconButton title="Back" onClick={_=>onBack()} color="primary" > 
+                    <MM_Icons.CancelOutlined/> 
+                </IconButton>
+                <IconButton title="Copy to the clipboard" onClick={_=>actCopyToClipboard(result)} color="primary" > 
+                    <MM_Icons.ContentCopy/> 
+                </IconButton>
+                <IconButton title="Add new step above" onClick={_=>()} color="primary" >
+                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
+                </IconButton>
+                <IconButton title="Add new step below" onClick={_=>()} color="primary" >
+                    <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
+                </IconButton>
+                <IconButton title="Update current step" onClick={_=>()} color="primary" > 
+                    <MM_Icons.Done/> 
+                </IconButton>
+            </Row>
+            {
+                if (copiedToClipboard->Belt.Option.isSome) {
+                    React.string("Copied to the clipboard.")
+                } else {React.null}
+            }
+        </Col>
     }
 
     let rndCustomContent = (state:fragmentTransformState) => {

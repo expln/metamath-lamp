@@ -178,7 +178,6 @@ let make = (
     let rndSelectedTransform = (selectedTransform) => {
         <MM_cmp_single_frag_transf
             onBack=actUnselectTransform
-            onCopy={_=>()}
             onApply={_=>()}
             selection={state.selection}
             transform=selectedTransform

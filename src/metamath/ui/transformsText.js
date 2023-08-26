@@ -2,8 +2,8 @@ const bkgColor = "yellow"
 const nbsp = String.fromCharCode(160)
 
 const getAllTextFromComponent = cmp => {
-    if (cmp.cmp === 'Col' || cmp.cmp === 'Row' || cmp.cmp === 'Array') {
-        return cmp.children?.map(getAllTextFromComponent)?.join()??''
+    if (cmp.cmp === 'Col' || cmp.cmp === 'Row' || cmp.cmp === 'span') {
+        return cmp.children?.map(getAllTextFromComponent)?.join('')??''
     } else if (cmp.cmp === 'Text') {
         return cmp.value??''
     } else {
