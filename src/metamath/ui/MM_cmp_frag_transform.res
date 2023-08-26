@@ -100,6 +100,9 @@ let make = (
     ~onCancel:unit=>unit,
     ~selectedSubtree:childNode,
     ~transformsText:string,
+    ~onInsertAbove:string=>unit,
+    ~onInsertBelow:string=>unit,
+    ~onUpdateCurrent:string=>unit,
 ) => {
     let (state, setState) = React.useState(() => createInitialState(~selectedSubtree))
 
@@ -177,10 +180,12 @@ let make = (
 
     let rndSelectedTransform = (selectedTransform) => {
         <MM_cmp_single_frag_transf
-            onBack=actUnselectTransform
-            onApply={_=>()}
             selection={state.selection}
             transform=selectedTransform
+            onBack=actUnselectTransform
+            onInsertAbove
+            onInsertBelow
+            onUpdateCurrent
         />
     }
 

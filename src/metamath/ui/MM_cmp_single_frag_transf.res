@@ -121,10 +121,12 @@ let optStrExn = (nullable:Js.Nullable.t<'a>, msg:string):option<string> => {
 
 @react.component
 let make = (
-    ~onBack:unit=>unit,
-    ~onApply:string=>unit,
     ~selection:selection,
     ~transform:fragmentTransform,
+    ~onBack:unit=>unit,
+    ~onInsertAbove:string=>unit,
+    ~onInsertBelow:string=>unit,
+    ~onUpdateCurrent:string=>unit,
 ):reElem => {
     let (error, setError) = React.useState(() => None)
     let (state, setState) = React.useState(() => None)
@@ -257,13 +259,13 @@ let make = (
                 <IconButton title="Copy to the clipboard" onClick={_=>actCopyToClipboard(result)} color="primary" > 
                     <MM_Icons.ContentCopy/> 
                 </IconButton>
-                <IconButton title="Add new step above" onClick={_=>()} color="primary" >
+                <IconButton title="Add new step above" onClick={_=>onInsertAbove(result)} color="primary" >
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
                 </IconButton>
-                <IconButton title="Add new step below" onClick={_=>()} color="primary" >
+                <IconButton title="Add new step below" onClick={_=>onInsertBelow(result)} color="primary" >
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </IconButton>
-                <IconButton title="Update current step" onClick={_=>()} color="primary" > 
+                <IconButton title="Update current step" onClick={_=>onUpdateCurrent(result)} color="primary" > 
                     <MM_Icons.Done/> 
                 </IconButton>
             </Row>
