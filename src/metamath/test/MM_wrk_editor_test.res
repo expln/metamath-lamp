@@ -57,6 +57,9 @@ let createEditorState = (
                 useTranDepr:true,
             },
         },
+        useDefaultTransforms:false,
+        useCustomTransforms:false,
+        customTransforms:"",
     }
     let preCtxV = 1
     let preCtx = ctx

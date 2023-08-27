@@ -32,7 +32,10 @@ let createEmptyEditorState = ():editorState => {
                     useDepr:true,
                     useTranDepr:true,
                 },
-            }
+            },
+            useDefaultTransforms:false,
+            useCustomTransforms:false,
+            customTransforms:"",
         }, 
         ~srcs=[],
         ~preCtxV=0, 

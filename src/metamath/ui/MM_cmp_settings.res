@@ -52,6 +52,10 @@ type settingsState = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLengthStr:string,
+
+    useDefaultTransforms:bool,
+    useCustomTransforms:bool,
+    customTransforms:string,
 }
 
 let allColors = [
@@ -162,6 +166,9 @@ let createDefaultSettings = ():settingsState => {
         hideContextSelector:false,
         showVisByDefault:false,
         editorHistMaxLengthStr:editorHistMaxLengthDefault->Belt.Int.toString,
+        useDefaultTransforms:true,
+        useCustomTransforms:false,
+        customTransforms:"",
     }
 }
 
@@ -519,6 +526,9 @@ let stateToSettings = (st:settingsState):settings => {
         showVisByDefault: st.showVisByDefault,
         editorHistMaxLength: 
             st.editorHistMaxLengthStr->Belt_Int.fromString->Belt.Option.getWithDefault(editorHistMaxLengthDefault),
+        useDefaultTransforms: st.useDefaultTransforms,
+        useCustomTransforms: st.useCustomTransforms,
+        customTransforms: st.customTransforms,
     }
 }
 
@@ -568,6 +578,9 @@ let settingsToState = (ls:settings):settingsState => {
         hideContextSelector: ls.hideContextSelector,
         showVisByDefault: ls.showVisByDefault,
         editorHistMaxLengthStr: ls.editorHistMaxLength->Belt.Int.toString,
+        useDefaultTransforms: ls.useDefaultTransforms,
+        useCustomTransforms: ls.useCustomTransforms,
+        customTransforms: ls.customTransforms,
     }
     validateAndCorrectState(res)
 }
@@ -666,6 +679,15 @@ let readStateFromLocStor = ():settingsState => {
                         ~validator = validateEditorHistoryMaxLength,
                         () 
                     )->Belt_Int.toString,
+                    useDefaultTransforms: d->bool( "useDefaultTransforms", 
+                        ~default=()=>defaultSettings.useDefaultTransforms, 
+                        () 
+                    ),
+                    useCustomTransforms: d->bool( "useCustomTransforms", 
+                        ~default=()=>defaultSettings.useCustomTransforms, 
+                        () 
+                    ),
+                    customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms, ()),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -729,6 +751,9 @@ let eqState = (st1, st2) => {
         && st1.hideContextSelector == st2.hideContextSelector
         && st1.showVisByDefault == st2.showVisByDefault
         && st1.editorHistMaxLengthStr == st2.editorHistMaxLengthStr
+        && st1.useDefaultTransforms == st2.useDefaultTransforms
+        && st1.useCustomTransforms == st2.useCustomTransforms
+        && st1.customTransforms == st2.customTransforms
 }
 
 let updateParens = (st,parens) => {
@@ -773,6 +798,9 @@ let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBott
 let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
+let updateUseDefaultTransforms = (st, useDefaultTransforms) => {...st, useDefaultTransforms}
+let updateUseCustomTransforms = (st, useCustomTransforms) => {...st, useCustomTransforms}
+let updateCustomTransforms = (st, customTransforms) => {...st, customTransforms}
 
 let updateUseDiscInSyntax = (st, useDiscInSyntax) => {
     {...st, allowedFrms:{...st.allowedFrms, inSyntax:{...st.allowedFrms.inSyntax, useDisc:useDiscInSyntax}}}
@@ -1033,6 +1061,10 @@ let make = (
     let actUseDeprInEssenChange = (useDeprInEssen) => { setState(updateUseDeprInEssen(_, useDeprInEssen)) }
     let actUseTranDeprInSyntaxChange = (useTranDeprInSyntax) => { setState(updateUseTranDeprInSyntax(_, useTranDeprInSyntax)) }
     let actUseTranDeprInEssenChange = (useTranDeprInEssen) => { setState(updateUseTranDeprInEssen(_, useTranDeprInEssen)) }
+
+    let actUseDefaultTransformsChange = (useDefaultTransforms) => { setState(updateUseDefaultTransforms(_, useDefaultTransforms)) }
+    let actUseCustomTransformsChange = (useCustomTransforms) => { setState(updateUseCustomTransforms(_, useCustomTransforms)) }
+    let actCustomTransformsChange = (customTransforms) => { setState(updateCustomTransforms(_, customTransforms)) }
 
     let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
         let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
@@ -1525,6 +1557,24 @@ let make = (
                 />
             }
             label="Merge similar steps automatically"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.useDefaultTransforms
+                    onChange=evt2bool(actUseDefaultTransformsChange)
+                />
+            }
+            label="Use default transforms"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.useCustomTransforms
+                    onChange=evt2bool(actUseCustomTransformsChange)
+                />
+            }
+            label="Use custom transforms"
         />
         <TextField 
             size=#small

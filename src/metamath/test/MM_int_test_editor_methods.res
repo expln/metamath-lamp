@@ -65,6 +65,9 @@ let createEditorState = (
                 useTranDepr:true,
             },
         },
+        useDefaultTransforms:false,
+        useCustomTransforms:false,
+        customTransforms:"",
     }
 
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
