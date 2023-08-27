@@ -1,6 +1,8 @@
 open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor
+open MM_wrk_pre_ctx_data
+open MM_wrk_editor_json
 open Expln_React_Modal
 open MM_cmp_user_stmt
 open MM_react_common
@@ -19,25 +21,27 @@ let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
     st->updateEditorStateWithPostupdateActions(st => st)
 }
 
-let prepareTestEditorState = (~initState:editorState, ~testStmt:string):editorState => {
-    initState->putSingleStatementToEditor(testStmt)
+let prepareTestEditorState = (~preCtxData:preCtxData, ~testStmt:string):editorState => {
+    createInitialEditorState(~preCtxData, ~stateLocStor=None)->putSingleStatementToEditor(testStmt)
 }
 
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~initEditorState:editorState,
-    ~onClose:unit=>unit,
-    ~viewOptions:viewOptions,
+    ~preCtxData:preCtxData,
+    ~readOnly:bool,
+    ~transformsText:string,
+    ~onSave:string=>unit=?,
+    ~onCancel:unit=>unit,
 ) => {
     let (testStmt, setTestStmt) = useStateFromLocalStorageStr(
         ~key="transform-editor-test-stmt", ~default=defaultTestStmt
     )
     let (editorState, setEditorState) = React.useState(() => {
-        prepareTestEditorState(~initState=initEditorState, ~testStmt)
+        prepareTestEditorState(~preCtxData, ~testStmt)
     })
     let (parenAc, setParenAc) = React.useState(() => true)
-    let (transformsText, setTransformsText) = React.useState(() => "")
+    let (transformsText, setTransformsText) = React.useState(() => transformsText)
 
     let updateEditorState = (update:editorState=>editorState):unit => {
         setEditorState(st => {
@@ -76,13 +80,23 @@ let make = (
             maxRows=10
             value=transformsText
             onChange=evt2str(actTransformsTextUpdated)
-            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose, ())
+            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel, ())
+            disabled=readOnly
         />
     }
 
     let rndButtons = () => {
         <Row alignItems=#center style=ReactDOM.Style.make(~padding="4px", ())>
-            <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
+            {
+                if (readOnly) {
+                    React.null
+                } else {
+                    <Button onClick={_=>onSave->Belt_Option.forEach(onSave => onSave(transformsText))} variant=#contained > 
+                        {React.string("Save")} 
+                    </Button>
+                }
+            }
+            <Button onClick={_=>onCancel()} > {React.string(if (readOnly) {"Close"} else {"Cancel"})} </Button>
         </Row>
     }
 
@@ -107,7 +121,12 @@ let make = (
             preCtxColors=editorState.preCtxColors
             wrkCtxColors=editorState.wrkCtxColors
             viewOptions={
-                {...viewOptions, showCheckbox:false, showLabel:false, showType:false, showJstf:false}
+                showCheckbox:false,
+                showLabel:false,
+                showType:false,
+                showJstf:false,
+                inlineMode:false,
+                smallBtns:false,
             }
             readOnly=false
             parenAc
@@ -196,7 +215,7 @@ let make = (
     }
 
     let rndEditorState = () => {
-        <Col spacing=0. >
+        <Col spacing=0. style=ReactDOM.Style.make(~marginBottom="10px", ())>
             {rndStmts(editorState)}
         </Col>
     }

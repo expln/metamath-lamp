@@ -1131,19 +1131,6 @@ let make = (
         })->ignore
     }
 
-    let actOpenTestTransformsDialog = () => {
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
-            updateModal(modalRef, modalId, () => {
-                <MM_cmp_frag_transform_editor
-                    modalRef
-                    initEditorState=state
-                    onClose={()=>closeModal(modalRef, modalId)}
-                    viewOptions
-                />
-            })
-        })->ignore
-    }
-
     let actShowInfoAboutGettingCompletedProof = (title:string) => {
         openInfoDialog( 
             ~modalRef, 
@@ -1612,7 +1599,6 @@ let make = (
         content={_ => {
             <Col spacing=0. >
                 {rndMainMenu()}
-                { rndSmallTextBtn( ~text="Test transforms", ~onClick=actOpenTestTransformsDialog ) }
                 {rndDescr()}
                 {rndVars()}
                 {rndDisj()}

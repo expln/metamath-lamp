@@ -5,6 +5,7 @@ open Expln_React_Mui
 open Expln_React_Modal
 open Expln_utils_promise
 open MM_wrk_settings
+open MM_wrk_pre_ctx_data
 open MM_react_common
 open MM_cmp_type_settings
 open MM_cmp_web_src_settings
@@ -903,20 +904,18 @@ let updateEditorHistMaxLengthStr = (st, editorHistMaxLengthStr) => {
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~ctx:mmContext, 
-    ~settingsVer:int, 
-    ~settings:settings, 
+    ~preCtxData:preCtxData,
     ~onChange: settings => unit
 ) => {
-    let (state, setState) = React.useState(_ => settings->settingsToState)
+    let (state, setState) = React.useState(_ => preCtxData.settingsV.val->settingsToState)
     let (prevState, setPrevState) = React.useState(_ => state)
 
     React.useEffect1(() => {
-        let newState = settings->settingsToState
+        let newState = preCtxData.settingsV.val->settingsToState
         setState(_ => newState)
         setPrevState(_ => newState)
         None
-    }, [settingsVer])
+    }, [preCtxData.settingsV.ver])
 
     let actApplyChanges = () => {
         let st = validateAndCorrectState(state)
@@ -1147,7 +1146,7 @@ let make = (
         openModal(modalRef, _ => rndFindParensProgress(0., None))->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => rndFindParensProgress(0., Some(modalId)))
             MM_wrk_FindParens.beginFindParens(
-                ~ctx,
+                ~ctx=preCtxData.ctxV.val,
                 ~onProgress = pct => updateModal(modalRef, modalId, () => rndFindParensProgress(pct, Some(modalId))),
                 ~onDone = parens => {
                     actParensChange(parens)
@@ -1167,6 +1166,38 @@ let make = (
                         onSave(regex)
                     }}
                     onCancel={()=> {
+                        closeModal(modalRef, modalId)
+                    }}
+                />
+            })
+        })->ignore
+    }
+
+    let actOpenDefaultTransformsEditor = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_frag_transform_editor
+                    modalRef
+                    preCtxData
+                    readOnly=true
+                    transformsText=MM_frag_transform_default_script.fragmentTransformsDefaultScript
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
+    let actOpenCustomTransformsEditor = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_frag_transform_editor
+                    modalRef
+                    preCtxData
+                    readOnly=false
+                    transformsText=state.customTransforms
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                    onSave={newText => {
+                        actCustomTransformsChange(newText)
                         closeModal(modalRef, modalId)
                     }}
                 />
@@ -1558,24 +1589,30 @@ let make = (
             }
             label="Merge similar steps automatically"
         />
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=state.useDefaultTransforms
-                    onChange=evt2bool(actUseDefaultTransformsChange)
-                />
-            }
-            label="Use default transforms"
-        />
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=state.useCustomTransforms
-                    onChange=evt2bool(actUseCustomTransformsChange)
-                />
-            }
-            label="Use custom transforms"
-        />
+        <Row alignItems=#center spacing=0. >
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.useDefaultTransforms
+                        onChange=evt2bool(actUseDefaultTransformsChange)
+                    />
+                }
+                label="Use default transforms"
+            />
+            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor ) }
+        </Row>
+        <Row alignItems=#center spacing=0. >
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.useCustomTransforms
+                        onChange=evt2bool(actUseCustomTransformsChange)
+                    />
+                }
+                label="Use custom transforms"
+            />
+            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor ) }
+        </Row>
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())
