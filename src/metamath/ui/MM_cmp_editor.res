@@ -1145,7 +1145,7 @@ let make = (
     let actOpenTestTransformsDialog = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
-                <MM_cmp_test_frag_transform
+                <MM_cmp_frag_transform_editor
                     modalRef
                     initEditorState=state
                     onClose={()=>closeModal(modalRef, modalId)}

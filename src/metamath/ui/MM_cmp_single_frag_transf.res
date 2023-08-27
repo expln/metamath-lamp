@@ -254,7 +254,7 @@ let make = (
         <Col>
             <Row>
                 <IconButton title="Back" onClick={_=>onBack()} color="primary" > 
-                    <MM_Icons.CancelOutlined/> 
+                    <MM_Icons.ArrowBack/> 
                 </IconButton>
                 <IconButton title="Copy to the clipboard" onClick={_=>actCopyToClipboard(result)} color="primary" > 
                     <MM_Icons.ContentCopy/> 

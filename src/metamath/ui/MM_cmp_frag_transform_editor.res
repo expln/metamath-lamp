@@ -4,17 +4,23 @@ open MM_wrk_editor
 open Expln_React_Modal
 open MM_cmp_user_stmt
 open MM_react_common
+open Local_storage_utils
 
-let prepareTestEditorState = (st:editorState):editorState => {
+let defaultTestStmt = "|- x = y"
+
+let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
     let st = st->completeDescrEditMode("")
     let st = st->completeVarsEditMode("")
     let st = st->completeDisjEditMode("")
     let st = st->checkAllStmts
     let st = st->deleteCheckedStmts
     let (st,stmtId) = st->addNewStmt
-    // let st = st->completeContEditMode(stmtId,"write a test statement here")
-    let st = st->completeContEditMode(stmtId,"|- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) )")
+    let st = st->completeContEditMode(stmtId, stmt)
     st->updateEditorStateWithPostupdateActions(st => st)
+}
+
+let prepareTestEditorState = (~initState:editorState, ~testStmt:string):editorState => {
+    initState->putSingleStatementToEditor(testStmt)
 }
 
 @react.component
@@ -24,13 +30,33 @@ let make = (
     ~onClose:unit=>unit,
     ~viewOptions:viewOptions,
 ) => {
-    let (editorState, setEditorState) = React.useState(() => prepareTestEditorState(initEditorState))
+    let (testStmt, setTestStmt) = useStateFromLocalStorageStr(
+        ~key="transform-editor-test-stmt", ~default=defaultTestStmt
+    )
+    let (editorState, setEditorState) = React.useState(() => {
+        prepareTestEditorState(~initState=initEditorState, ~testStmt)
+    })
     let (parenAc, setParenAc) = React.useState(() => true)
     let (transformsText, setTransformsText) = React.useState(() => "")
 
     let updateEditorState = (update:editorState=>editorState):unit => {
-        setEditorState(updateEditorStateWithPostupdateActions(_, update))
+        setEditorState(st => {
+            let st = st->updateEditorStateWithPostupdateActions(update)
+            st.stmts->Belt_Array.get(0)->Belt.Option.forEach(stmt => {
+                setTestStmt(_ => stmt.cont->contToStr)
+            })
+            st
+        })
     }
+
+    let testStmtText:option<string> = editorState.stmts->Belt_Array.get(0)->Belt.Option.map(stmt => stmt.cont->contToStr)
+    React.useEffect1(() => {
+        switch testStmtText {
+            | None | Some("") => updateEditorState(putSingleStatementToEditor(_, defaultTestStmt))
+            | Some(_) => ()
+        }
+        None
+    }, [testStmtText])
 
     let actSyntaxTreeUpdated = (stmtId, newStmtCont) => {
         updateEditorState(setStmtCont(_, stmtId, newStmtCont))
@@ -42,7 +68,7 @@ let make = (
     
     let rndTransformsText = () => {
         <TextField
-            label="Transformations"
+            label="Transforms script"
             size=#small
             style=ReactDOM.Style.make(~width="800px", ())
             autoFocus=true
@@ -81,7 +107,7 @@ let make = (
             preCtxColors=editorState.preCtxColors
             wrkCtxColors=editorState.wrkCtxColors
             viewOptions={
-                {...viewOptions, showCheckbox:false}
+                {...viewOptions, showCheckbox:false, showLabel:false, showType:false, showJstf:false}
             }
             readOnly=false
             parenAc
@@ -177,6 +203,7 @@ let make = (
 
     <Paper style=ReactDOM.Style.make( ~padding="10px", () ) >
         <Col>
+            {React.string("Test statement:")}
             {rndEditorState()}
             {rndTransformsText()}
             {rndButtons()}

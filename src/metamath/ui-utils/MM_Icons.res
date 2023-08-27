@@ -3,6 +3,7 @@ open Expln_React_common
 module Add = { @module("@mui/icons-material/Add") @react.component external make: () => React.element = "default" }
 module ArrowDownward = { @module("@mui/icons-material/ArrowDownward") @react.component external make: () => React.element = "default" }
 module ArrowUpward = { @module("@mui/icons-material/ArrowUpward") @react.component external make: () => React.element = "default" }
+module ArrowBack = { @module("@mui/icons-material/ArrowBack") @react.component external make: () => React.element = "default" }
 module AccountTree = { @module("@mui/icons-material/AccountTree") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module CancelOutlined = { @module("@mui/icons-material/CancelOutlined") @react.component external make: () => React.element = "default" }
 module ControlPointDuplicate = { @module("@mui/icons-material/ControlPointDuplicate") @react.component external make: () => React.element = "default" }

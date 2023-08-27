@@ -1,5 +1,4 @@
-let fragmentTransformsDefaultScript = 
-`
+let fragmentTransformsDefaultScript = `
 const bkgColor = "yellow"
 const nbsp = String.fromCharCode(160)
 
