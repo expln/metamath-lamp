@@ -1489,8 +1489,6 @@ let make = (
             addStmtBelow=actAddStmtBelow(stmt.id)
             setShowTabs
             openFrameExplorer
-
-            fragmentTransformsText=""
         />
     }
 

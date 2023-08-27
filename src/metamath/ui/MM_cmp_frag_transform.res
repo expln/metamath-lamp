@@ -5,7 +5,7 @@ open Expln_React_common
 open Expln_React_Mui
 open MM_cmp_single_frag_transf
 
-let transformsTextCache:ref<string> = ref("return [];")
+let transformsTextCache:ref<array<string>> = ref([])
 let allTransformsCache: ref<array<fragmentTransform>> = ref([])
 
 type state = {
@@ -72,6 +72,23 @@ let stringToFragTransforms = (str:string):result<array<fragmentTransform>,string
     }
 }
 
+let arrStrToFragTransforms = (texts:array<string>):result<array<fragmentTransform>,string> => {
+    texts->Js_array2.reduce(
+        (res,text) => {
+            switch res {
+                | Error(_) => res
+                | Ok(arr) => {
+                    switch stringToFragTransforms(text) {
+                        | Error(msg) => Error(msg)
+                        | Ok(newArr) => Ok(arr->Js_array2.concat(newArr))
+                    }
+                }
+            }
+        },
+        Ok([])
+    )
+}
+
 let createInitialState = (
     ~selectedSubtree:childNode,
 ):state => {
@@ -99,7 +116,7 @@ let setSelectedTransform = (st:state,tr:option<fragmentTransform>) => {
 let make = (
     ~onCancel:unit=>unit,
     ~selectedSubtree:childNode,
-    ~transformsText:string,
+    ~transformsText:array<string>,
     ~onInsertAbove:string=>unit,
     ~onInsertBelow:string=>unit,
     ~onUpdateCurrent:string=>unit,
@@ -135,7 +152,7 @@ let make = (
         let param = {"selection":state.selection}
         if (transformsText != transformsTextCache.contents) {
             let allTransformsRef = ref([])
-            let availableTransformsElem = stringToFragTransforms(transformsText)
+            let availableTransformsElem = arrStrToFragTransforms(transformsText)
                 ->Belt.Result.flatMap(allTransforms => {
                     allTransformsRef := allTransforms
                     unsafeFunc(

@@ -160,8 +160,6 @@ let make = (
             addStmtBelow={_ => ()}
             setShowTabs={_ => ()}
             openFrameExplorer={_ => ()}
-
-            fragmentTransformsText=""
         />
     }
 

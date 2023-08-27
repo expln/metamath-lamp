@@ -80,8 +80,6 @@ type props = {
     addStmtBelow:string=>unit,
     setShowTabs:bool=>unit,
     openFrameExplorer:string=>unit,
-
-    fragmentTransformsText: string,
 }
 
 let make: props => React.element
