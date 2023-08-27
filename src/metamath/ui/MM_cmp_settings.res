@@ -1173,12 +1173,34 @@ let make = (
         })->ignore
     }
 
+    let updatePreCtxDataForFragTransformEditor = (
+        ~preCtxData:preCtxData,
+        ~useDefaultTransforms:bool,
+        ~useCustomTransforms:bool,
+    ):preCtxData => {
+        {
+            ...(preCtxData),
+            settingsV: {
+                ...(preCtxData.settingsV),
+                val: {
+                    ...(preCtxData.settingsV.val),
+                    useDefaultTransforms,
+                    useCustomTransforms,
+                }
+            }
+        }
+    }
+
     let actOpenDefaultTransformsEditor = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform_editor
                     modalRef
-                    preCtxData
+                    preCtxData=updatePreCtxDataForFragTransformEditor(
+                        ~preCtxData:preCtxData,
+                        ~useDefaultTransforms=true,
+                        ~useCustomTransforms=false,
+                    )
                     readOnly=true
                     transformsText=MM_frag_transform_default_script.fragmentTransformsDefaultScript
                     onCancel={()=>closeModal(modalRef, modalId)}
@@ -1192,7 +1214,11 @@ let make = (
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_frag_transform_editor
                     modalRef
-                    preCtxData
+                    preCtxData=updatePreCtxDataForFragTransformEditor(
+                        ~preCtxData:preCtxData,
+                        ~useDefaultTransforms=false,
+                        ~useCustomTransforms=true,
+                    )
                     readOnly=false
                     transformsText=state.customTransforms
                     onCancel={()=>closeModal(modalRef, modalId)}
