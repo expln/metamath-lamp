@@ -10,6 +10,7 @@ open MM_wrk_search_asrt
 open MM_wrk_unify
 open MM_statements_dto
 open MM_wrk_editor_json
+open MM_wrk_pre_ctx_data
 open MM_int_test_utils
 open Common
 
@@ -27,7 +28,6 @@ let createEditorState = (
     ()
 ) => {
     let parens = "( ) { } [ ]"
-    let settingsV = 1
     let settings = {
         parens,
         asrtsToSkip: [],
@@ -88,10 +88,8 @@ let createEditorState = (
     }
     ctx->moveConstsToBegin(parens)
     
-    let preCtxV = 1
-    let preCtx = ctx
     let st = createInitialEditorState(
-        ~settingsV, ~settings, ~srcs=[], ~preCtxV, ~preCtx, 
+        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx), ()),
         ~stateLocStor=
             switch editorState {
                 | None => None

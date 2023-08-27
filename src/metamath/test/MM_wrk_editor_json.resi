@@ -22,11 +22,7 @@ type editorStateLocStor = {
 let userStmtLocStorToUserStmt: userStmtLocStor => userStmt
 
 let createInitialEditorState: (
-    ~settingsV:int, 
-    ~settings:settings, 
-    ~srcs:array<mmCtxSrcDto>,
-    ~preCtxV:int, 
-    ~preCtx:mmContext, 
+    ~preCtxData:preCtxData,
     ~stateLocStor:option<editorStateLocStor>
 ) => editorState
 
