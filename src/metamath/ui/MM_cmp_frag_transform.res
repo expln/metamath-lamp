@@ -4,6 +4,7 @@ open MM_react_common
 open Expln_React_common
 open Expln_React_Mui
 open MM_cmp_single_frag_transf
+open MM_wrk_frag_transform
 
 let transformsTextCache:ref<array<string>> = ref([])
 let allTransformsCache: ref<array<fragmentTransform>> = ref([])
@@ -13,80 +14,6 @@ type state = {
     transformsParseErr:option<string>,
     availableTransforms:option<reElem>,
     selectedTransform: option<fragmentTransform>,
-}
-
-let rec syntaxTreeToSelection = (tree:childNode):selection => {
-    let text = tree->syntaxTreeToText
-    {
-        "text": text,
-        "children":
-            switch tree {
-                | Symbol(_) => []
-                | Subtree({children}) => children->Js.Array2.map(syntaxTreeToSelection)
-            },
-    }
-}
-
-let createTransformFromObject = (obj:{..}):fragmentTransform => {
-    {
-        canApply: selection => obj["canApply"](. selection),
-        displayName: selection => obj["displayName"](. selection),
-        createInitialState: selection => obj["createInitialState"](. selection),
-        renderDialog: params => obj["renderDialog"](. params),
-    }
-}
-
-let stringToFragTransformsUnsafe: string => {..} = %raw(`body => new Function("", body)()`)
-
-let stringToFragTransforms = (str:string):result<array<fragmentTransform>,string> => {
-    let transforms = try {
-        Ok(stringToFragTransformsUnsafe(str))
-    } catch {
-        | Js.Exn.Error(exn) => {
-            Error( 
-                exn->Js.Exn.message
-                    ->Belt_Option.mapWithDefault(
-                        "[1] Cannot parse transforms.", 
-                        msg => `[1] Cannot parse transforms: ${msg}`
-                    )
-            )
-        }
-        | _ => Error( "[2] Cannot parse transforms." )
-    }
-    try {
-        switch transforms {
-            | Error(msg) => Error(msg)
-            | Ok(transforms) => Ok(transforms["map"](. createTransformFromObject))
-        }
-    } catch {
-        | Js.Exn.Error(exn) => {
-            Error( 
-                exn->Js.Exn.message
-                    ->Belt_Option.mapWithDefault(
-                        "[3] Cannot parse transforms.", 
-                        msg => `[3] Cannot parse transforms: ${msg}`
-                    )
-            )
-        }
-        | _ => Error( "[4] Cannot parse transforms." )
-    }
-}
-
-let arrStrToFragTransforms = (texts:array<string>):result<array<fragmentTransform>,string> => {
-    texts->Js_array2.reduce(
-        (res,text) => {
-            switch res {
-                | Error(_) => res
-                | Ok(arr) => {
-                    switch stringToFragTransforms(text) {
-                        | Error(msg) => Error(msg)
-                        | Ok(newArr) => Ok(arr->Js_array2.concat(newArr))
-                    }
-                }
-            }
-        },
-        Ok([])
-    )
 }
 
 let createInitialState = (

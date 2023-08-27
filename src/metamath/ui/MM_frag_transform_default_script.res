@@ -32,7 +32,7 @@ const appendOnSide = ({init, text, right}) => {
 }
 
 const trInsert1 = {
-    displayName: ({selection}) => "Insert: X \u2192 ( X + A )",
+    displayName: ({selection}) => "Insert: X => ( X + A )",
     canApply:({selection})=> true,
     createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
     renderDialog: ({selection, state, setState}) => {
@@ -78,7 +78,7 @@ const trInsert1 = {
 }
 
 const trInsert2 = {
-    displayName: ({selection}) => "Insert: X = Y \u2192 ( X + A ) = ( Y + A )",
+    displayName: ({selection}) => "Insert: X = Y => ( X + A ) = ( Y + A )",
     canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
     createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
     renderDialog: ({selection, state, setState}) => {
@@ -144,7 +144,7 @@ const trInsert2 = {
 }
 
 const trElide = {
-    displayName: ({selection}) => "Elide: ( X + A ) \u2192 X",
+    displayName: ({selection}) => "Elide: ( X + A ) => X",
     canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
     createInitialState: ({selection}) => ({text:"", right:false, paren:NO_PARENS}),
     renderDialog: ({selection, state, setState}) => {
@@ -200,7 +200,7 @@ const trElide = {
 }
 
 const trSwap = {
-    displayName: ({selection}) => "Swap: X = Y \u2192 Y = X",
+    displayName: ({selection}) => "Swap: X = Y => Y = X",
     canApply:({selection}) => selection.children.length === 3 || selection.children.length === 5,
     createInitialState: ({selection}) => ({}),
     renderDialog: ({selection, state, setState}) => {
@@ -240,7 +240,7 @@ const trSwap = {
 }
 
 const trAssoc = {
-    displayName: ({selection}) => "Associate: ( A + B ) + C \u2192 A + ( B + C )",
+    displayName: ({selection}) => "Associate: ( A + B ) + C => A + ( B + C )",
     canApply:({selection}) =>
         selection.children.length === 3 && (selection.children[0].children.length === 5 || selection.children[2].children.length === 5)
         || selection.children.length === 5 && (selection.children[1].children.length === 5 || selection.children[3].children.length === 5),
