@@ -30,6 +30,7 @@ let make = (
     ~modalRef:modalRef, 
     ~preCtxData:preCtxData,
     ~readOnly:bool,
+    ~title:string,
     ~transformsText:string,
     ~isCustom:bool,
     ~onSave:string=>unit=?,
@@ -73,7 +74,7 @@ let make = (
     
     let rndTransformsText = () => {
         <TextField
-            label="Transforms script"
+            label=title
             size=#small
             style=ReactDOM.Style.make(~width="800px", ())
             autoFocus=true

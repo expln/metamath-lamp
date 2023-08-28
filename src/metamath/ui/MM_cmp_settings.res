@@ -1203,6 +1203,7 @@ let make = (
                     )
                     readOnly=true
                     isCustom=false
+                    title="Default transforms script"
                     transformsText=MM_frag_transform_default_script.fragmentTransformsDefaultScript
                     onCancel={()=>closeModal(modalRef, modalId)}
                 />
@@ -1222,6 +1223,7 @@ let make = (
                     )
                     readOnly=false
                     isCustom=true
+                    title="Custom transforms script"
                     transformsText=state.customTransforms
                     onCancel={()=>closeModal(modalRef, modalId)}
                     onSave={newText => {

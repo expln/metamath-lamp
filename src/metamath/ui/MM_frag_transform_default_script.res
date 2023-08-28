@@ -1,5 +1,6 @@
 let fragmentTransformsDefaultScript = `
 const bkgColor = "yellow"
+const bkgColorGreen = "#00800047"
 const nbsp = String.fromCharCode(160)
 
 const getAllTextFromComponent = cmp => {
@@ -243,68 +244,329 @@ const trAssoc = {
     canApply:({selection}) =>
         selection.children.length === 3 && (selection.children[0].children.length === 5 || selection.children[2].children.length === 5)
         || selection.children.length === 5 && (selection.children[1].children.length === 5 || selection.children[3].children.length === 5),
-    createInitialState: ({selection}) => ({}),
+    createInitialState: ({selection}) => ({
+        needSideSelector:
+            selection.children.length === 3 && (selection.children[0].children.length === 5 && selection.children[2].children.length === 5)
+            || selection.children.length === 5 && (selection.children[1].children.length === 5 && selection.children[3].children.length === 5),
+        right:false
+    }),
     renderDialog: ({selection, state, setState}) => {
+        const rndInitial = () => {
+            if (
+                selection.children.length === 3
+                && selection.children[0].children.length === 5
+                && selection.children[2].children.length !== 5
+            ) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                    ]
+                }
+            } else if (
+                selection.children.length === 3
+                && selection.children[0].children.length !== 5
+                && selection.children[2].children.length === 5
+            ) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                    ]
+                }
+            } else if (
+                selection.children.length === 3
+                && selection.children[0].children.length === 5
+                && selection.children[2].children.length === 5
+            ) {
+                if (state.right) {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp},
+                        ]
+                    }
+                } else {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                        ]
+                    }
+                }
+            } else if (
+                selection.children.length === 5
+                && selection.children[1].children.length === 5
+                && selection.children[3].children.length !== 5
+            ) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                    ]
+                }
+            } else if (
+                selection.children.length === 5
+                && selection.children[1].children.length !== 5
+                && selection.children[3].children.length === 5
+            ) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                    ]
+                }
+            } else {
+                if (state.right) {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[4].text},
+                        ]
+                    }
+                } else {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp},
+                            {cmp:"Text", value: nbsp+selection.children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[4].text},
+                        ]
+                    }
+                }
+            }
+        }
         const rndResult = () => {
-            if (selection.children.length === 3 && selection.children[0].children.length === 5) {
+            if (
+                selection.children.length === 3
+                && selection.children[0].children.length === 5
+                && selection.children[2].children.length !== 5
+            ) {
                 return {cmp:"span",
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
                     ]
                 }
-            } else if (selection.children.length === 3 && selection.children[2].children.length === 5) {
+            } else if (
+                selection.children.length === 3
+                && selection.children[0].children.length !== 5
+                && selection.children[2].children.length === 5
+            ) {
                 return {cmp:"span",
                     children: [
-                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[0].text},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
                     ]
                 }
-            } else if (selection.children.length === 5 && selection.children[1].children.length === 5) {
+            } else if (
+                selection.children.length === 3
+                && selection.children[0].children.length === 5
+                && selection.children[2].children.length === 5
+            ) {
+                if (state.right) {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                        ]
+                    }
+                } else {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                        ]
+                    }
+                }
+            } else if (
+                selection.children.length === 5
+                && selection.children[1].children.length === 5
+                && selection.children[3].children.length !== 5
+            ) {
                 return {cmp:"span",
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].text},
                         {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[4].text},
                     ]
                 }
-            } else {
+            } else if (
+                selection.children.length === 5
+                && selection.children[1].children.length !== 5
+                && selection.children[3].children.length === 5
+            ) {
                 return {cmp:"span",
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
                         {cmp:"Text", value: nbsp+selection.children[4].text},
                     ]
                 }
+            } else {
+                if (state.right) {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[4].text},
+                        ]
+                    }
+                } else {
+                    return {cmp:"span",
+                        children: [
+                            {cmp:"Text", value: nbsp+selection.children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[4].text},
+                        ]
+                    }
+                }
+            }
+        }
+        const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
+        const rndSideSelector = () => {
+            if (state.needSideSelector) {
+                return [
+                    {cmp:"Divider"},
+                    {cmp:"Row",
+                        children:[
+                            {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},
+                            {cmp:"Checkbox", checked:state.right, label: "Right", onChange: updateState('right')},
+                        ]
+                    },
+                ]
+            } else {
+                return []
             }
         }
         const resultElem = rndResult()
         return {cmp:"Col",
             children:[
                 {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
+                rndInitial(),
+                ...rndSideSelector(),
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
