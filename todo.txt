@@ -1,7 +1,3 @@
-- fragment transforms:
-    - elide: text is missing
-    - assoc: add left/right for ( a + b ) + ( c + d )
-    - prettify the arrow in the transforms selection list
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source
 - add "Search" tab

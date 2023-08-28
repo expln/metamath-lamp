@@ -20,7 +20,6 @@ type fragmentTransform = {
         } => reactElemDto,
 }
 
-external stateToObj: fragmentTransformState => {..} = "%identity"
 external reactElemDtoToObj: reactElemDto => {..} = "%identity"
 external objToObj: {..} => {..} = "%identity"
 external objToFragmentTransformState: {..} => fragmentTransformState = "%identity"

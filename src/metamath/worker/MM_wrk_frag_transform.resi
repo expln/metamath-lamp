@@ -5,9 +5,9 @@ type rec selection = {
     "text": string
 }
 
-type fragmentTransformState = string
+type fragmentTransformState
 
-type reactElemDto = string
+type reactElemDto
 
 type fragmentTransform = {
     canApply: {"selection": selection} => bool,
@@ -20,19 +20,12 @@ type fragmentTransform = {
     } => reactElemDto,
 }
 
-let stateToObj: fragmentTransformState => {..}
 let reactElemDtoToObj: reactElemDto => {..}
 let objToObj: {..} => {..}
 let objToFragmentTransformState: {..} => fragmentTransformState
 
 let unsafeFunc: (string, unit => 'a) => result<'a, string>
-let reqExn: (Js.Nullable.t<'a>, string) => 'a
-let optExn: Js.Nullable.t<'a> => option<'a>
-let isString: 'a => bool
-let isBool: 'a => bool
-let isArray: 'a => bool
 let isObject: 'a => bool
-let isFunction: 'a => bool
 let reqStrExn: (Js.Nullable.t<string>, string) => string
 let reqBoolExn: (Js.Nullable.t<bool>, string) => bool
 let reqArrExn: (Js.Nullable.t<array<'b>>, string) => array<'b>
