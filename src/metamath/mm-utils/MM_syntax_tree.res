@@ -334,3 +334,54 @@ let rec unify = (
     }
 }
 
+let syntaxTreeForEachNode = ( tree:childNode, consumer:childNode=>option<'r>):option<'r> => {
+    let (_, res) = Expln_utils_data.traverseTree(
+        (),
+        tree,
+        (_, node) => {
+            switch node {
+                | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
+                | Symbol(_) => None
+            }
+        },
+        ~process = (_, node) => consumer(node),
+        ()
+    )
+    res
+}
+
+let syntaxTreeGetIdsOfAllChildSymbols = (tree:childNode):Belt_SetInt.t => {
+    let res = []
+    tree->syntaxTreeForEachNode(node => {
+        switch node {
+            | Subtree(_) => ()
+            | Symbol({id}) => res->Js.Array2.push(id)->ignore
+        }
+        None
+    })->ignore
+    Belt_SetInt.fromArray(res)
+}
+
+let syntaxTreeToText = (node:childNode):string => {
+    let res = []
+    node->syntaxTreeForEachNode(node => {
+        switch node {
+            | Subtree(_) => ()
+            | Symbol({sym}) => res->Js.Array2.push(sym)->ignore
+        }
+        None
+    })->ignore
+    res->Js.Array2.joinWith(" ")
+}
+
+let syntaxTreeGetNumberOfSymbols = (node:childNode):int => {
+    let cnt = ref(0)
+    node->syntaxTreeForEachNode(node => {
+        switch node {
+            | Subtree(_) => ()
+            | Symbol(_) => cnt := cnt.contents + 1
+        }
+        None
+    })->ignore
+    cnt.contents
+}

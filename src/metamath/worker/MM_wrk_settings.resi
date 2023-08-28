@@ -49,6 +49,10 @@ type settings = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLength:int,
+
+    useDefaultTransforms:bool,
+    useCustomTransforms:bool,
+    customTransforms:string,
 }
 
 let markUrlAsTrusted: (settings, string) => settings

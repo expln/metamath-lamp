@@ -165,11 +165,7 @@ let make = (
     )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
-        ~settingsV=preCtxData.settingsV.ver, 
-        ~settings=preCtxData.settingsV.val, 
-        ~srcs=preCtxData.srcs,
-        ~preCtxV=preCtxData.ctxV.ver, 
-        ~preCtx=preCtxData.ctxV.val, 
+        ~preCtxData:preCtxData, 
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
     let (hist, setHistPriv) = React.useState(() => {
@@ -1054,14 +1050,7 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
-        setState(_ => createInitialEditorState(
-            ~settingsV=preCtxData.settingsV.ver, 
-            ~settings=preCtxData.settingsV.val, 
-            ~srcs=stateLocStor.srcs,
-            ~preCtxV=preCtxData.ctxV.ver, 
-            ~preCtx=preCtxData.ctxV.val, 
-            ~stateLocStor=Some(stateLocStor)
-        ))
+        setState(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {

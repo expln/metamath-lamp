@@ -210,9 +210,7 @@ let make = () => {
                     | Settings => 
                         <MM_cmp_settings 
                             modalRef
-                            ctx=state.preCtxData.ctxV.val
-                            settingsVer=state.preCtxData.settingsV.ver
-                            settings=state.preCtxData.settingsV.val
+                            preCtxData=state.preCtxData
                             onChange=actSettingsUpdated
                         />
                     | Editor => 

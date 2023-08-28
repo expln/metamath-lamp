@@ -1,6 +1,4 @@
-open MM_context
 open MM_wrk_editor
-open MM_wrk_settings
 open MM_parenCounter
 open MM_wrk_pre_ctx_data
 
@@ -50,21 +48,17 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
 }
 
 let createInitialEditorState = (
-    ~settingsV:int, 
-    ~settings:settings, 
-    ~srcs:array<mmCtxSrcDto>,
-    ~preCtxV:int, 
-    ~preCtx:mmContext, 
-    ~stateLocStor:option<editorStateLocStor>
+    ~preCtxData:preCtxData, 
+    ~stateLocStor:option<editorStateLocStor>,
 ) => {
     let st = {
-        settingsV,
-        settings,
+        settingsV:preCtxData.settingsV.ver,
+        settings:preCtxData.settingsV.val,
         typeColors: Belt_HashMapString.make(~hintSize=0),
 
-        srcs,
-        preCtxV,
-        preCtx,
+        srcs:preCtxData.srcs,
+        preCtxV:preCtxData.ctxV.ver,
+        preCtx:preCtxData.ctxV.val,
         frms: Belt_MapString.empty,
         parenCnt: parenCntMake([], ()),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
@@ -103,13 +97,7 @@ let createInitialEditorState = (
         unifyAllIsRequiredCnt: 0,
         continueMergingStmts: 0,
     }
-    let st = st->setPreCtxData(
-        preCtxDataMake(~settings)->preCtxDataUpdate(
-            ~settings,
-            ~ctx=(srcs,preCtx),
-            ()
-        )
-    )
+    let st = st->setPreCtxData(preCtxData)
     st
 }
 

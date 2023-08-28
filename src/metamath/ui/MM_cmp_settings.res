@@ -1,10 +1,10 @@
 open MM_parser
-open MM_context
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
 open Expln_utils_promise
 open MM_wrk_settings
+open MM_wrk_pre_ctx_data
 open MM_react_common
 open MM_cmp_type_settings
 open MM_cmp_web_src_settings
@@ -52,6 +52,10 @@ type settingsState = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLengthStr:string,
+
+    useDefaultTransforms:bool,
+    useCustomTransforms:bool,
+    customTransforms:string,
 }
 
 let allColors = [
@@ -162,6 +166,9 @@ let createDefaultSettings = ():settingsState => {
         hideContextSelector:false,
         showVisByDefault:false,
         editorHistMaxLengthStr:editorHistMaxLengthDefault->Belt.Int.toString,
+        useDefaultTransforms:true,
+        useCustomTransforms:false,
+        customTransforms:"",
     }
 }
 
@@ -519,6 +526,9 @@ let stateToSettings = (st:settingsState):settings => {
         showVisByDefault: st.showVisByDefault,
         editorHistMaxLength: 
             st.editorHistMaxLengthStr->Belt_Int.fromString->Belt.Option.getWithDefault(editorHistMaxLengthDefault),
+        useDefaultTransforms: st.useDefaultTransforms,
+        useCustomTransforms: st.useCustomTransforms,
+        customTransforms: st.customTransforms,
     }
 }
 
@@ -568,6 +578,9 @@ let settingsToState = (ls:settings):settingsState => {
         hideContextSelector: ls.hideContextSelector,
         showVisByDefault: ls.showVisByDefault,
         editorHistMaxLengthStr: ls.editorHistMaxLength->Belt.Int.toString,
+        useDefaultTransforms: ls.useDefaultTransforms,
+        useCustomTransforms: ls.useCustomTransforms,
+        customTransforms: ls.customTransforms,
     }
     validateAndCorrectState(res)
 }
@@ -666,6 +679,15 @@ let readStateFromLocStor = ():settingsState => {
                         ~validator = validateEditorHistoryMaxLength,
                         () 
                     )->Belt_Int.toString,
+                    useDefaultTransforms: d->bool( "useDefaultTransforms", 
+                        ~default=()=>defaultSettings.useDefaultTransforms, 
+                        () 
+                    ),
+                    useCustomTransforms: d->bool( "useCustomTransforms", 
+                        ~default=()=>defaultSettings.useCustomTransforms, 
+                        () 
+                    ),
+                    customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms, ()),
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -729,6 +751,9 @@ let eqState = (st1, st2) => {
         && st1.hideContextSelector == st2.hideContextSelector
         && st1.showVisByDefault == st2.showVisByDefault
         && st1.editorHistMaxLengthStr == st2.editorHistMaxLengthStr
+        && st1.useDefaultTransforms == st2.useDefaultTransforms
+        && st1.useCustomTransforms == st2.useCustomTransforms
+        && st1.customTransforms == st2.customTransforms
 }
 
 let updateParens = (st,parens) => {
@@ -773,6 +798,9 @@ let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBott
 let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
+let updateUseDefaultTransforms = (st, useDefaultTransforms) => {...st, useDefaultTransforms}
+let updateUseCustomTransforms = (st, useCustomTransforms) => {...st, useCustomTransforms}
+let updateCustomTransforms = (st, customTransforms) => {...st, customTransforms}
 
 let updateUseDiscInSyntax = (st, useDiscInSyntax) => {
     {...st, allowedFrms:{...st.allowedFrms, inSyntax:{...st.allowedFrms.inSyntax, useDisc:useDiscInSyntax}}}
@@ -875,20 +903,18 @@ let updateEditorHistMaxLengthStr = (st, editorHistMaxLengthStr) => {
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~ctx:mmContext, 
-    ~settingsVer:int, 
-    ~settings:settings, 
+    ~preCtxData:preCtxData,
     ~onChange: settings => unit
 ) => {
-    let (state, setState) = React.useState(_ => settings->settingsToState)
+    let (state, setState) = React.useState(_ => preCtxData.settingsV.val->settingsToState)
     let (prevState, setPrevState) = React.useState(_ => state)
 
     React.useEffect1(() => {
-        let newState = settings->settingsToState
+        let newState = preCtxData.settingsV.val->settingsToState
         setState(_ => newState)
         setPrevState(_ => newState)
         None
-    }, [settingsVer])
+    }, [preCtxData.settingsV.ver])
 
     let actApplyChanges = () => {
         let st = validateAndCorrectState(state)
@@ -1034,6 +1060,10 @@ let make = (
     let actUseTranDeprInSyntaxChange = (useTranDeprInSyntax) => { setState(updateUseTranDeprInSyntax(_, useTranDeprInSyntax)) }
     let actUseTranDeprInEssenChange = (useTranDeprInEssen) => { setState(updateUseTranDeprInEssen(_, useTranDeprInEssen)) }
 
+    let actUseDefaultTransformsChange = (useDefaultTransforms) => { setState(updateUseDefaultTransforms(_, useDefaultTransforms)) }
+    let actUseCustomTransformsChange = (useCustomTransforms) => { setState(updateUseCustomTransforms(_, useCustomTransforms)) }
+    let actCustomTransformsChange = (customTransforms) => { setState(updateCustomTransforms(_, customTransforms)) }
+
     let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
         let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
             state
@@ -1115,7 +1145,7 @@ let make = (
         openModal(modalRef, _ => rndFindParensProgress(0., None))->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => rndFindParensProgress(0., Some(modalId)))
             MM_wrk_FindParens.beginFindParens(
-                ~ctx,
+                ~ctx=preCtxData.ctxV.val,
                 ~onProgress = pct => updateModal(modalRef, modalId, () => rndFindParensProgress(pct, Some(modalId))),
                 ~onDone = parens => {
                     actParensChange(parens)
@@ -1135,6 +1165,68 @@ let make = (
                         onSave(regex)
                     }}
                     onCancel={()=> {
+                        closeModal(modalRef, modalId)
+                    }}
+                />
+            })
+        })->ignore
+    }
+
+    let updatePreCtxDataForFragTransformEditor = (
+        ~preCtxData:preCtxData,
+        ~useDefaultTransforms:bool,
+        ~useCustomTransforms:bool,
+    ):preCtxData => {
+        {
+            ...(preCtxData),
+            settingsV: {
+                ...(preCtxData.settingsV),
+                val: {
+                    ...(preCtxData.settingsV.val),
+                    useDefaultTransforms,
+                    useCustomTransforms,
+                }
+            }
+        }
+    }
+
+    let actOpenDefaultTransformsEditor = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_frag_transform_editor
+                    modalRef
+                    preCtxData=updatePreCtxDataForFragTransformEditor(
+                        ~preCtxData:preCtxData,
+                        ~useDefaultTransforms=true,
+                        ~useCustomTransforms=false,
+                    )
+                    readOnly=true
+                    isCustom=false
+                    title="Default transforms script"
+                    transformsText=MM_frag_transform_default_script.fragmentTransformsDefaultScript
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
+    let actOpenCustomTransformsEditor = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <MM_cmp_frag_transform_editor
+                    modalRef
+                    preCtxData=updatePreCtxDataForFragTransformEditor(
+                        ~preCtxData:preCtxData,
+                        ~useDefaultTransforms=false,
+                        ~useCustomTransforms=true,
+                    )
+                    readOnly=false
+                    isCustom=true
+                    title="Custom transforms script"
+                    transformsText=state.customTransforms
+                    onCancel={()=>closeModal(modalRef, modalId)}
+                    onSave={newText => {
+                        actCustomTransformsChange(newText)
                         closeModal(modalRef, modalId)
                     }}
                 />
@@ -1526,6 +1618,30 @@ let make = (
             }
             label="Merge similar steps automatically"
         />
+        <Row alignItems=#center spacing=0. >
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.useDefaultTransforms
+                        onChange=evt2bool(actUseDefaultTransformsChange)
+                    />
+                }
+                label="Use default transforms"
+            />
+            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor ) }
+        </Row>
+        <Row alignItems=#center spacing=0. >
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.useCustomTransforms
+                        onChange=evt2bool(actUseCustomTransformsChange)
+                    />
+                }
+                label="Use custom transforms"
+            />
+            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor ) }
+        </Row>
         <TextField 
             size=#small
             style=ReactDOM.Style.make(~width="200px", ())

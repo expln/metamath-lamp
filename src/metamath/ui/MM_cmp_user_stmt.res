@@ -579,6 +579,7 @@ type props = {
 
 let propsAreSame = (a:props,b:props):bool => {
     a.settingsVer == b.settingsVer
+    && a.settings.customTransforms == b.settings.customTransforms
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
 
@@ -951,10 +952,10 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actCopyToClipboard = () => {
-        switch getSelectedSymbols(stmt.cont) {
+        switch getSelectedText(stmt.cont) {
             | None => ()
-            | Some(syms) => {
-                copyToClipboard(syms->Js_array2.joinWith(" "))->promiseMap(_ => {
+            | Some(selectedText) => {
+                copyToClipboard(selectedText)->promiseMap(_ => {
                     setCopiedToClipboard(timerId => {
                         switch timerId {
                             | None => ()
@@ -1015,21 +1016,25 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    let replaceSelectionWithNewText = (newText:string):option<string> => {
+        switch getSelectedRange() {
+            | None => None
+            | Some((low, high)) =>
+                let currentText = stmt.cont->contToStr
+                Some(
+                    currentText->Js.String2.slice(~from=0, ~to_=low)
+                        ++ newText
+                        ++ currentText->Js.String2.sliceToEnd(~from=high)
+                )
+        }
+    }
+
     let actPasteFromClipboard = () => {
         readFromClipboard()->promiseMap(clipboardContents => {
-            let selectedRangeIndices = getSelectedRange()
-            switch selectedRangeIndices {
-                | None => ()
-                | Some((low, high)) =>
-                    let currentText = stmt.cont->contToStr
-                    let newText = (
-                        currentText->Js.String2.slice(~from=0, ~to_=low) ++
-                        clipboardContents ++
-                        currentText->Js.String2.sliceToEnd(~from=high)
-                    )
-                    // Propagate changes to MM_cmp_editor
-                    onContEditDone(newText)
-            }
+            clipboardContents->replaceSelectionWithNewText->Belt_Option.forEach(newStmtContent => {
+                // Propagate changes to MM_cmp_editor
+                onContEditDone(newStmtContent)
+            })
         })->ignore
     }
 
@@ -1041,6 +1046,56 @@ let make = React.memoCustomCompareProps( ({
     let actOpenFrameExplorer = label => {
         setShowTabs(true)
         openFrameExplorer(label)
+    }
+
+    let actInsertTransformResultAbove = result => {
+        result->replaceSelectionWithNewText->Belt_Option.forEach(addStmtAbove)
+    }
+
+    let actInsertTransformResultBelow = result => {
+        result->replaceSelectionWithNewText->Belt_Option.forEach(addStmtBelow)
+    }
+
+    let actInsertTransformResultToCurrent = result => {
+        result->replaceSelectionWithNewText->Belt_Option.forEach(onContEditDone)
+    }
+
+    let actOpenFragmentTransform = (selectedSubtree:childNode) => {
+        let transformsText = if (settings.useDefaultTransforms) {
+            if (settings.useCustomTransforms) {
+                [MM_frag_transform_default_script.fragmentTransformsDefaultScript, settings.customTransforms]
+            } else {
+                [MM_frag_transform_default_script.fragmentTransformsDefaultScript]
+            }
+        } else {
+            if (settings.useCustomTransforms) {
+                [settings.customTransforms]
+            } else {
+                []
+            }
+        }
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                let closeDialog = ()=>closeModal(modalRef, modalId)
+                <MM_cmp_frag_transform
+                    selectedSubtree
+                    transformsText
+                    onCancel=closeDialog
+                    onInsertAbove={transformedSelectionText => {
+                        actInsertTransformResultAbove(transformedSelectionText)
+                        closeDialog()
+                    }}
+                    onInsertBelow={transformedSelectionText => {
+                        actInsertTransformResultBelow(transformedSelectionText)
+                        closeDialog()
+                    }}
+                    onUpdateCurrent={transformedSelectionText => {
+                        actInsertTransformResultToCurrent(transformedSelectionText)
+                        closeDialog()
+                    }}
+                />
+            })
+        })->ignore
     }
 
     let rndLabel = () => {
@@ -1136,6 +1191,19 @@ let make = React.memoCustomCompareProps( ({
                     if (readOnly) {React.null} else {
                         <Button title="Add new step below" onClick={_=>actAddStmtBelow()} ?style> 
                             <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
+                        </Button>
+                    }
+                }
+                {
+                    if (readOnly) {React.null} else {
+                        <Button 
+                            title="Transform" 
+                            onClick={_=>{
+                                stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
+                            }} 
+                            ?style
+                        > 
+                            <MM_Icons.ShapeLineSharp/>
                         </Button>
                     }
                 }

@@ -2211,39 +2211,16 @@ let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorStat
     }
 }
 
-let getIdsOfAllChildSymbols = (tree:syntaxTreeNode):Belt_SetInt.t => {
-    let res = []
-    Expln_utils_data.traverseTree(
-        (),
-        Subtree(tree),
-        (_, node) => {
-            switch node {
-                | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
-                | Symbol(_) => None
-            }
-        },
-        ~process = (_, node) => {
-            switch node {
-                | Subtree(_) => ()
-                | Symbol({id}) => res->Js.Array2.push(id)->ignore
-            }
-            None
-        },
-        ()
-    )->ignore
-    Belt_SetInt.fromArray(res)
-}
-
-let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_SetInt.t) => {
+let getSelectedSubtree = (treeData:stmtContTreeData):option<childNode> => {
     switch treeData.clickedNodeId {
-        | None => (-1,Belt_SetInt.empty)
+        | None => None
         | Some((nodeId,_)) => {
             switch treeData.root->getNodeById(nodeId) {
-                | None => (-1,Belt_SetInt.empty)
-                | Some(Subtree(_)) => (-1,Belt_SetInt.empty) //this should never happen because a Subtree cannot be clicked
-                | Some(Symbol({parent})) => {
+                | None => None
+                | Some(Subtree(_)) => None //this should never happen because a Subtree cannot be clicked
+                | Some(Symbol({id, parent, sym, color, isVar})) => {
                     if (treeData.expLvl == 0) {
-                        (nodeId,Belt_SetInt.fromArray([nodeId]))
+                        Some(Symbol({id, parent, sym, color, isVar}))
                     } else {
                         let curParent = ref(Some(parent))
                         let curLvl = ref(treeData.expLvl)
@@ -2252,8 +2229,8 @@ let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_Se
                             curParent := (curParent.contents->Belt_Option.getExn).parent
                         }
                         switch curParent.contents {
-                            | Some(parent) => (nodeId,getIdsOfAllChildSymbols(parent))
-                            | None => (nodeId,getIdsOfAllChildSymbols(treeData.root))
+                            | Some(parent) => Some(Subtree(parent))
+                            | None => Some(Subtree(treeData.root))
                         }
                     }
                 }
@@ -2262,15 +2239,35 @@ let getIdsOfSelectedNodesFromTreeData = (treeData:stmtContTreeData):(int,Belt_Se
     }
 }
 
+let getStmtContTreeData = (stmtCont:stmtCont):option<stmtContTreeData> => {
+    switch stmtCont {
+        | Text(_) => None
+        | Tree(treeData) => Some(treeData)
+    }
+}
+
+let getSelectedSubtreeFromStmtCont = (stmtCont:stmtCont):option<childNode> => {
+    stmtCont->getStmtContTreeData->Belt_Option.flatMap(getSelectedSubtree)
+}
+
 let getNumberOfSelectedSymbols = (treeData:stmtContTreeData):int => {
-    let (_, ids) = getIdsOfSelectedNodesFromTreeData(treeData)
-    ids->Belt_SetInt.size
+    treeData->getSelectedSubtree->Belt.Option.map(syntaxTreeGetNumberOfSymbols)->Belt.Option.getWithDefault(0)
 }
 
 let getIdsOfSelectedNodes = (stmtCont:stmtCont):(int,Belt_SetInt.t) => {
     switch stmtCont {
         | Text(_) => (-1,Belt_SetInt.empty)
-        | Tree(treeData) => getIdsOfSelectedNodesFromTreeData(treeData)
+        | Tree(treeData) => {
+            switch treeData.clickedNodeId {
+                | None => (-1,Belt_SetInt.empty)
+                | Some((nodeId,_)) => {
+                    switch getSelectedSubtree(treeData) {
+                        | None => (-1,Belt_SetInt.empty)
+                        | Some(selectedSubtree) => (nodeId,syntaxTreeGetIdsOfAllChildSymbols(selectedSubtree))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2278,68 +2275,20 @@ let getNodeIdBySymIdx = (
     ~symIdx:int,
     ~tree:syntaxTreeNode,
 ):option<int> => {
-    let (_, idOpt) = Expln_utils_data.traverseTree(
-        ref(0),
-        Subtree(tree),
-        (_, node) => {
-            switch node {
-                | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
-                | Symbol(_) => None
-            }
-        },
-        ~process = (cnt, node) => {
-            switch node {
-                | Subtree(_) => None
-                | Symbol({id}) => {
-                    cnt := cnt.contents + 1
-                    if (cnt.contents == symIdx) {
-                        Some(id)
-                    } else {
-                        None
-                    }
+    let cnt = ref(0)
+    syntaxTreeForEachNode(Subtree(tree), node => {
+        switch node {
+            | Subtree(_) => None
+            | Symbol({id}) => {
+                cnt := cnt.contents + 1
+                if (cnt.contents == symIdx) {
+                    Some(id)
+                } else {
+                    None
                 }
             }
-        },
-        ()
-    )
-    idOpt
-}
-
-let getSelectedSymbols = (stmtCont:stmtCont):option<array<string>> => {
-    switch stmtCont {
-        | Text(_) => None
-        | Tree({root}) => {
-            let (_,selectedIds) = getIdsOfSelectedNodes(stmtCont)
-            if (selectedIds->Belt_SetInt.isEmpty) {
-                None
-            } else {
-                let syms = []
-                Expln_utils_data.traverseTree(
-                    (),
-                    Subtree(root),
-                    (_, node) => {
-                        switch node {
-                            | Subtree(syntaxTreeNode) => Some(syntaxTreeNode.children)
-                            | Symbol(_) => None
-                        }
-                    },
-                    ~process = (_, node) => {
-                        switch node {
-                            | Subtree(_) => ()
-                            | Symbol({id,sym}) => {
-                                if (selectedIds->Belt_SetInt.has(id)) {
-                                    syms->Js.Array2.push(sym)->ignore
-                                }
-                            }
-                        }
-                        None
-                    },
-                    ()
-                )->ignore
-                Some(syms)
-            }
         }
-    }
+    })
 }
 
 let hasSelectedText = (stmtCont:stmtCont):bool => {
@@ -2350,7 +2299,10 @@ let hasSelectedText = (stmtCont:stmtCont):bool => {
 }
 
 let getSelectedText = (stmtCont:stmtCont):option<string> => {
-    stmtCont->getSelectedSymbols->Belt.Option.map(Js_array2.joinWith(_, " "))
+    switch stmtCont {
+        | Text(_) => None
+        | Tree(treeData) => treeData->getSelectedSubtree->Belt.Option.map(syntaxTreeToText)
+    }
 }
 
 let incExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
@@ -2407,7 +2359,7 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
                 switch treeData.root->getNodeById(clickedNodeId) {
                     | None => treeData
                     | Some(Symbol({parent})) => {
-                        if (parent->getIdsOfAllChildSymbols->Belt_SetInt.size == 1) {
+                        if (syntaxTreeGetNumberOfSymbols(Subtree(parent)) == 1) {
                             /* if size == 1 then the clicked symbol is a variable in the syntax definition */
                             treeData
                         } else {
