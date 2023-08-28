@@ -1203,7 +1203,7 @@ let make = React.memoCustomCompareProps( ({
                             }} 
                             ?style
                         > 
-                            <MM_Icons.Transform/>
+                            <MM_Icons.ShapeLineSharp/>
                         </Button>
                     }
                 }

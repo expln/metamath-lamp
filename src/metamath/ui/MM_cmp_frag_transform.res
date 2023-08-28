@@ -67,7 +67,7 @@ let make = (
             | Error(msg) => Error(msg)
             | Ok(listItems) => {
                 Ok(
-                    <List>
+                    <List disablePadding=true>
                         listItems
                     </List>
                 )
