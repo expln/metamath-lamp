@@ -38,7 +38,7 @@ let testTransform = (
     let syntaxTree = MM_wrk_editor.textToSyntaxTree(
         ~wrkCtx,
         ~syms=[selectedFragment->getSpaceSeparatedValuesAsArray],
-        ~syntaxTypes=[wrkCtx->ctxSymToIntExn("wff")],
+        ~syntaxTypes=["wff", "class", "setvar"]->Js.Array2.map(wrkCtx->ctxSymToIntExn),
         ~frms=editorState.frms,
         ~frameRestrict=editorState.settings.allowedFrms.inSyntax,
         ~parenCnt=editorState.parenCnt,
@@ -47,9 +47,9 @@ let testTransform = (
     )
     let syntaxTreeNode = switch syntaxTree {
         | Ok([Ok(syntaxTreeNode)]) => syntaxTreeNode
-        | Error(msg) => Js.Exn.raiseError(`[error-1] ${msg}`)
-        | Ok([Error(msg)]) => Js.Exn.raiseError(`[error-2] ${msg}`)
-        | _ => Js.Exn.raiseError(`[error-3]`)
+        | Error(msg) => Js.Exn.raiseError(`[error-1] ${msg}; when building a syntax tree for '${selectedFragment}'`)
+        | Ok([Error(msg)]) => Js.Exn.raiseError(`[error-2] ${msg}; when building a syntax tree for '${selectedFragment}'`)
+        | _ => Js.Exn.raiseError(`[error-3] when building a syntax tree for '${selectedFragment}'`)
     }
     let selection = syntaxTreeToSelection(Subtree(syntaxTreeNode))
     let param = {"selection":selection}
@@ -68,18 +68,192 @@ let testTransform = (
     )
 }
 
+let state = objToFragmentTransformState
+
 describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
     it("Insert: X => ( X + A )", _ => {
-        //given
         setTestDataDir("MM_wrk_frag_transform")
-        let st = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Insert: X => ( X + A )"
 
-        testTransform(
-            ~editorState = st,
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x",
+            ~transformState = state({"text": "", "right": false, "paren": "no parentheses"}),
+            ~expectedResult = "x",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x",
+            ~transformState = state({"text": "1 +", "right": false, "paren": "no parentheses"}),
+            ~expectedResult = "1 + x",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "no parentheses"}),
+            ~expectedResult = "x - 1",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x",
+            ~transformState = state({"text": "1 +", "right": false, "paren": "[ ]"}),
+            ~expectedResult = "[ 1 + x ]",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "{ }"}),
+            ~expectedResult = "{ x - 1 }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x + y",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "{ }"}),
+            ~expectedResult = "{ x + y - 1 }",
+        )
+    })
+
+    it("Insert: X = Y => ( X + A ) = ( Y + A )", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Insert: X = Y => ( X + A ) = ( Y + A )"
+
+        testTransform( ~editorState, ~transformName,
             ~selectedFragment = "x = y",
-            ~transformName = "Insert: X => ( X + A )",
-            ~transformState = objToFragmentTransformState({"text": "=> ph", "right": true, "paren": "( )"}),
-            ~expectedResult = "( x = y => ph )",
+            ~transformState = state({"text": "", "right": false, "paren": "no parentheses"}),
+            ~expectedResult = "x = y",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"text": "1 +", "right": false, "paren": "no parentheses"}),
+            ~expectedResult = "1 + x = 1 + y",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "no parentheses"}),
+            ~expectedResult = "x - 1 = y - 1",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"text": "1 +", "right": false, "paren": "[ ]"}),
+            ~expectedResult = "[ 1 + x ] = [ 1 + y ]",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "{ }"}),
+            ~expectedResult = "{ x - 1 } = { y - 1 }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( x + a ) = ( y + b )",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "{ }"}),
+            ~expectedResult = "{ ( x + a ) - 1 } = { ( y + b ) - 1 }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"text": "", "right": false, "paren": "no parentheses"}),
+            ~expectedResult = "( ph -> ch )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"text": "1 +", "right": false, "paren": "no parentheses"}),
+            ~expectedResult = "( 1 + ph -> 1 + ch )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "no parentheses"}),
+            ~expectedResult = "( ph - 1 -> ch - 1 )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"text": "1 +", "right": false, "paren": "[ ]"}),
+            ~expectedResult = "( [ 1 + ph ] -> [ 1 + ch ] )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "{ }"}),
+            ~expectedResult = "( { ph - 1 } -> { ch - 1 } )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( x = a -> y = b )",
+            ~transformState = state({"text": "- 1", "right": true, "paren": "{ }"}),
+            ~expectedResult = "( { x = a - 1 } -> { y = b - 1 } )",
+        )
+    })
+
+    it("Elide: ( X + A ) => X", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Elide: ( X + A ) => X"
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"right": false, "paren": "no parentheses"}),
+            ~expectedResult = "x",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"right": true, "paren": "no parentheses"}),
+            ~expectedResult = "y",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"right": false, "paren": "[ ]"}),
+            ~expectedResult = "[ x ]",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~expectedResult = "{ y }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( x + a ) = ( y + b )",
+            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~expectedResult = "{ ( y + b ) }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"right": false, "paren": "no parentheses"}),
+            ~expectedResult = "ph",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"right": true, "paren": "no parentheses"}),
+            ~expectedResult = "ch",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"right": false, "paren": "[ ]"}),
+            ~expectedResult = "[ ph ]",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~expectedResult = "{ ch }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( x = a -> y = b )",
+            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~expectedResult = "{ y = b }",
         )
     })
 })
