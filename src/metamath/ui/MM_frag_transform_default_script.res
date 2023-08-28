@@ -146,7 +146,7 @@ const trInsert2 = {
 const trElide = {
     displayName: ({selection}) => "Elide: ( X + A ) => X",
     canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({text:"", right:false, paren:NO_PARENS}),
+    createInitialState: ({selection}) => ({right:false, paren:NO_PARENS}),
     renderDialog: ({selection, state, setState}) => {
         const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
         const rndResult = () => {
@@ -183,7 +183,6 @@ const trElide = {
                 {cmp:"Divider"},
                 rndParens(),
                 {cmp:"Divider"},
-                {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
                 {cmp:"Row",
                     children:[
                         {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},

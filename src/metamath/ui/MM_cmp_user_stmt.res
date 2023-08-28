@@ -579,6 +579,7 @@ type props = {
 
 let propsAreSame = (a:props,b:props):bool => {
     a.settingsVer == b.settingsVer
+    && a.settings.customTransforms == b.settings.customTransforms
     && a.preCtxVer == b.preCtxVer
     && a.varsText == b.varsText
 

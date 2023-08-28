@@ -31,6 +31,7 @@ let make = (
     ~preCtxData:preCtxData,
     ~readOnly:bool,
     ~transformsText:string,
+    ~isCustom:bool,
     ~onSave:string=>unit=?,
     ~onCancel:unit=>unit,
 ) => {
@@ -108,7 +109,16 @@ let make = (
         <MM_cmp_user_stmt
             modalRef
             settingsVer=editorState.settingsV
-            settings=editorState.settings
+            settings={
+                if (isCustom) {
+                    {
+                        ...editorState.settings,
+                        customTransforms: transformsText,
+                    }
+                } else {
+                    editorState.settings
+                }
+            }
             preCtxVer=editorState.preCtxV
             varsText=editorState.varsText
             wrkCtx=editorState.wrkCtx
