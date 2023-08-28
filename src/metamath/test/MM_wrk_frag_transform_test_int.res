@@ -286,4 +286,58 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
             ~expectedResult = "( y = b -> x = a )",
         )
     })
+
+    it("Associate: ( A + B ) + C => A + ( B + C )", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Associate: ( A + B ) + C => A + ( B + C )"
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( a + b ) + c",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "a + ( b + c )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "a + ( b + c )",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "( a + b ) + c",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( a + b ) + ( c + d )",
+            ~transformState = state({"right":false}),
+            ~expectedResult = "( ( a + b ) + c ) + d",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( a + b ) + ( c + d )",
+            ~transformState = state({"right":true}),
+            ~expectedResult = "a + ( b + ( c + d ) )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( a + b ) + c )",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "( a + ( b + c ) )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( a + ( b + c ) )",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "( ( a + b ) + c )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( a + b ) + ( c + d ) )",
+            ~transformState = state({"right":false}),
+            ~expectedResult = "( ( ( a + b ) + c ) + d )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( a + b ) + ( c + d ) )",
+            ~transformState = state({"right":true}),
+            ~expectedResult = "( a + ( b + ( c + d ) ) )",
+        )
+    })
 })
