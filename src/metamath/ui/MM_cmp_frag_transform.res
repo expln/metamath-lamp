@@ -54,7 +54,7 @@ let make = (
         let param = {"selection":state.selection}
         let listItems = unsafeFunc( "Listing available transforms", () => {
             availableTransforms->Js_array2.mapi((availableTransform,i) => {
-                <ListItem key={i->Belt_Int.toString}>
+                <ListItem key={i->Belt_Int.toString} disablePadding=true >
                     <ListItemButton onClick={_=>{setState(setSelectedTransform(_,Some(availableTransform)))}}>
                         <ListItemText>
                             {React.string(availableTransform.displayName(param))}
