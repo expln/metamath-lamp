@@ -1,6 +1,7 @@
 let fragmentTransformsDefaultScript = `
 const bkgColor = "yellow"
 const bkgColorGreen = "#00800047"
+const bkgColorBlue = "rgba(0,59,255,0.16)"
 const nbsp = String.fromCharCode(160)
 
 const getAllTextFromComponent = cmp => {
@@ -149,6 +150,27 @@ const trElide = {
     canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
     createInitialState: ({selection}) => ({right:false, paren:NO_PARENS}),
     renderDialog: ({selection, state, setState}) => {
+        const rndInitial = () => {
+            if (selection.children.length === 3) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, bkgColor:state.right?null:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, bkgColor:state.right?bkgColorGreen:null},
+                    ]
+                }
+            } else {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, bkgColor:state.right?null:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, bkgColor:state.right?bkgColorGreen:null},
+                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
+                    ]
+                }
+            }
+        }
         const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
         const rndResult = () => {
             const [leftParen, rightParen] = getSelectedParens()
@@ -180,7 +202,7 @@ const trElide = {
         return {cmp:"Col",
             children:[
                 {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
+                rndInitial(),
                 {cmp:"Divider"},
                 rndParens(),
                 {cmp:"Divider"},
@@ -204,23 +226,44 @@ const trSwap = {
     canApply:({selection}) => selection.children.length === 3 || selection.children.length === 5,
     createInitialState: ({selection}) => ({}),
     renderDialog: ({selection, state, setState}) => {
-        const rndResult = () => {
+        const rndInitial = () => {
             if (selection.children.length === 3) {
                 return {cmp:"span",
                     children: [
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, bkgColor:bkgColorBlue},
                     ]
                 }
             } else {
                 return {cmp:"span",
                     children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, bkgColor:bkgColorBlue},
+                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
+                    ]
+                }
+            }
+        }
+        const rndResult = () => {
+            if (selection.children.length === 3) {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, bkgColor:bkgColorBlue},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, bkgColor:bkgColorGreen},
+                    ]
+                }
+            } else {
+                return {cmp:"span",
+                    children: [
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, bkgColor:bkgColorBlue},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, bkgColor:bkgColorGreen},
+                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
                     ]
                 }
             }
@@ -229,7 +272,7 @@ const trSwap = {
         return {cmp:"Col",
             children:[
                 {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
+                rndInitial(),
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
@@ -262,7 +305,7 @@ const trAssoc = {
                         {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
@@ -276,11 +319,11 @@ const trAssoc = {
                 return {cmp:"span",
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
                     ]
                 }
@@ -295,7 +338,7 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp},
@@ -313,11 +356,11 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
                             {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         ]
                     }
@@ -329,11 +372,11 @@ const trAssoc = {
             ) {
                 return {cmp:"span",
                     children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[3].text},
@@ -349,11 +392,11 @@ const trAssoc = {
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].text},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[4].text},
                     ]
@@ -362,11 +405,11 @@ const trAssoc = {
                 if (state.right) {
                     return {cmp:"span",
                         children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp},
@@ -386,11 +429,11 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
                             {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[4].text},
                         ]
@@ -407,11 +450,11 @@ const trAssoc = {
                 return {cmp:"span",
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
                     ]
                 }
@@ -425,7 +468,7 @@ const trAssoc = {
                         {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[0].text},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
@@ -440,7 +483,7 @@ const trAssoc = {
                     return {cmp:"span",
                         children: [
                             {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
                             {cmp:"Text", value: nbsp+selection.children[1].text},
@@ -448,7 +491,7 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         ]
                     }
@@ -462,7 +505,7 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
                             {cmp:"Text", value: nbsp+selection.children[0].children[4].text},
                             {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
@@ -478,11 +521,11 @@ const trAssoc = {
                     children: [
                         {cmp:"Text", value: nbsp+selection.children[0].text},
                         {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[4].text},
                     ]
@@ -494,11 +537,11 @@ const trAssoc = {
             ) {
                 return {cmp:"span",
                     children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
+                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[1].text},
                         {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text+nbsp},
                         {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
                         {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
                         {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
@@ -511,7 +554,7 @@ const trAssoc = {
                         children: [
                             {cmp:"Text", value: nbsp+selection.children[0].text},
                             {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
+                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
                             {cmp:"Text", value: nbsp+selection.children[2].text},
@@ -519,7 +562,7 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
                             {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[4].text},
                         ]
@@ -527,7 +570,7 @@ const trAssoc = {
                 } else {
                     return {cmp:"span",
                         children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text},
+                            {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[1].children[0].text},
                             {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
@@ -535,7 +578,7 @@ const trAssoc = {
                             {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
                             {cmp:"Text", value: nbsp+selection.children[1].children[4].text},
                             {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
+                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text+nbsp},
                             {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
                             {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
                             {cmp:"Text", value: nbsp+selection.children[3].children[3].text},

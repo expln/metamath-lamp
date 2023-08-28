@@ -8,7 +8,7 @@ open MM_cmp_user_stmt
 open MM_react_common
 open Local_storage_utils
 
-let defaultTestStmt = "|- x = y"
+let defaultTestStmt = "|- ( ( a + b ) + ( c + d ) ) = 0"
 
 let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
     let st = st->completeDescrEditMode("")
