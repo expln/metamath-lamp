@@ -256,4 +256,34 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
             ~expectedResult = "{ y = b }",
         )
     })
+
+    it("Swap: X = Y => Y = X", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Swap: X = Y => Y = X"
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "x = y",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "y = x",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( x + a ) = ( y + b )",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "( y + b ) = ( x + a )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ph -> ch )",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "( ch -> ph )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( x = a -> y = b )",
+            ~transformState = state({"empty":""}),
+            ~expectedResult = "( y = b -> x = a )",
+        )
+    })
 })
