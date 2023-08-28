@@ -33,7 +33,7 @@ let make = (
     ~title:string,
     ~transformsText:string,
     ~isCustom:bool,
-    ~onSave:string=>unit=?,
+    ~onSave:option<string=>unit>=?,
     ~onCancel:unit=>unit,
 ) => {
     let (testStmt, setTestStmt) = useStateFromLocalStorageStr(
