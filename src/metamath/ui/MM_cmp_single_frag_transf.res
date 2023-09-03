@@ -67,6 +67,7 @@ let make = (
     }
     and childrenToArray = (children:array<Js.Nullable.t<{..}>>, msg:string):reElem => {
         children
+            ->Js.Array2.filter(child => child->Js.Nullable.toOption->Belt.Option.isSome)
             ->Js_array2.mapi((child,i) => {
                 let child = reqObjExn(child, `A child element is not a component object: ${msg}`)
                 rndCustomElem(child)->React.cloneElement({
@@ -114,7 +115,7 @@ let make = (
         <RadioGroup row value onChange=evt2str(str => onChange(. str)) >
             {
                 options
-                    ->Js_array2.mapi((option,i) => {
+                    ->Js_array2.map(option => {
                         let value = option[0]
                         let label = option[1]
                         <FormControlLabel key=value value label control={ <Radio/> } style=ReactDOM.Style.make(~marginRight="30px", ()) />
@@ -139,7 +140,8 @@ let make = (
     and rndText = (elem:{..}):reElem => {
         <span 
             style=ReactDOM.Style.make(
-                ~backgroundColor=?optStrExn(elem["bkgColor"], "optional 'bkgColor' attribute of a 'span' component must be a string"), 
+                ~backgroundColor=?optStrExn(elem["backgroundColor"], "optional 'backgroundColor' attribute of a 'Text' component must be a string"), 
+                ~fontWeight=?optStrExn(elem["fontWeight"], "optional 'fontWeight' attribute of a 'Text' component must be a string"), 
                 ()
             )
         >
@@ -219,7 +221,7 @@ let make = (
             | Some(msg) => {
                 <Col>
                     {React.string(`Error: ${msg}`)}
-                    <Button title="Back" onClick={_=>onBack()} > <MM_Icons.CancelOutlined/> </Button>
+                    <Button title="Back" onClick={_=>onBack()} > <MM_Icons.ArrowBack/> </Button>
                 </Col>
             }
             | None => {
