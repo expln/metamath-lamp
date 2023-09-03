@@ -6,15 +6,6 @@ const RED = "#FFC1C0"
 const BLUE = "rgba(0,59,255,0.16)"
 const nbsp = String.fromCharCode(160)
 
-/*
-Test statements:
-|- ( ( a + b ) + ( c + d ) ) = 0
-class a + b
-wff a = b
-class ( a + b )
-|- ( ph -> ps )
- */
-
 const getAllTextFromComponent = cmp => {
     if (cmp.cmp === 'Col' || cmp.cmp === 'Row' || cmp.cmp === 'span') {
         return cmp.children?.map(getAllTextFromComponent)?.join('')??''
@@ -60,7 +51,7 @@ const mapToTextCmpArr = (arrOfTextParts) => {
     })
 }
 
-const appendOnSideAsArr = ({init, text, right, bkgColor}) => {
+const appendOnSide = ({init, text, right, bkgColor}) => {
     if (text.trim() === "") {
         return [init]
     } else if (right) {
@@ -68,10 +59,6 @@ const appendOnSideAsArr = ({init, text, right, bkgColor}) => {
     } else {
         return [[text,bkgColor], init]
     }
-}
-
-const appendOnSide = ({init, text, right}) => {
-    return mapToTextCmpArr(appendOnSideAsArr({init, text, right, bkgColor:YELLOW}))
 }
 
 const hasNChildren = (selection,n) => selection.children.length === n
@@ -104,11 +91,11 @@ const trInsert = {
                 const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
                 return mapToTextCmpArr([
                     [leftParen,bkgColor],
-                    ...appendOnSideAsArr({init:leftExpr, text:state.text, right:state.right, bkgColor}),
+                    ...appendOnSide({init:leftExpr, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                     operator,
                     [leftParen,bkgColor],
-                    ...appendOnSideAsArr({init:rightExpr, text:state.text, right:state.right, bkgColor}),
+                    ...appendOnSide({init:rightExpr, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                 ])
             } else if (twoSidedUltimate && has5Children(selection)) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
@@ -116,18 +103,18 @@ const trInsert = {
                 return mapToTextCmpArr([
                     begin,
                     [leftParen,bkgColor],
-                    ...appendOnSideAsArr({init:leftExpr, text:state.text, right:state.right, bkgColor}),
+                    ...appendOnSide({init:leftExpr, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                     operator,
                     [leftParen,bkgColor],
-                    ...appendOnSideAsArr({init:rightExpr, text:state.text, right:state.right, bkgColor}),
+                    ...appendOnSide({init:rightExpr, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                     end
                 ])
             } else {//X => [ X + A ] : else
                 return mapToTextCmpArr([
                     [leftParen,bkgColor],
-                    ...appendOnSideAsArr({init:selection.text, text:state.text, right:state.right, bkgColor}),
+                    ...appendOnSide({init:selection.text, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                 ])
             }
@@ -376,39 +363,19 @@ const trSwap = {
         const rndInitial = () => {
             if (has3Children(selection)) {
                 const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
-                return mapToTextCmpArr([
-                    [leftExpr,PURPLE],
-                    operator,
-                    [rightExpr,BLUE],
-                ])
+                return mapToTextCmpArr([[leftExpr,PURPLE], operator, [rightExpr,BLUE],])
             } else {
                 const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
-                return mapToTextCmpArr([
-                    begin,
-                    [leftExpr,PURPLE],
-                    operator,
-                    [rightExpr,BLUE],
-                    end,
-                ])
+                return mapToTextCmpArr([begin, [leftExpr,PURPLE], operator, [rightExpr,BLUE], end,])
             }
         }
         const rndResult = () => {
             if (has3Children(selection)) {
                 const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
-                return mapToTextCmpArr([
-                    [rightExpr,BLUE],
-                    operator,
-                    [leftExpr,PURPLE],
-                ])
+                return mapToTextCmpArr([[rightExpr,BLUE], operator, [leftExpr,PURPLE],])
             } else {
                 const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
-                return mapToTextCmpArr([
-                    begin,
-                    [rightExpr,BLUE],
-                    operator,
-                    [leftExpr,PURPLE],
-                    end,
-                ])
+                return mapToTextCmpArr([begin, [rightExpr,BLUE], operator, [leftExpr,PURPLE], end,])
             }
         }
         const resultElem = {cmp:"span", children: rndResult()}
