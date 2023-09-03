@@ -56,6 +56,7 @@ let make = (
             | "Col" => rndCol(objToObj(elem))
             | "Row" => rndRow(objToObj(elem))
             | "Checkbox" => rndCheckbox(objToObj(elem))
+            | "RadioGroup" => rndRadioGroup(objToObj(elem))
             | "TextField" => rndTextField(objToObj(elem))
             | "Text" => rndText(objToObj(elem))
             | "span" => rndSpan(objToObj(elem))
@@ -91,7 +92,8 @@ let make = (
     }
     and rndCheckbox = (elem:{..}):reElem => {
         let checked = reqBoolExn(elem["checked"], "Each Checkbox must have a boolean attribute 'checked'")
-        let onChange = reqFuncExn(elem["onChange"], "Each Checkbox must have an attribute 'onChange' of type boolean => void")
+        let onChange = reqFuncExn(elem["onChange"], 
+            "Each Checkbox must have an attribute 'onChange' of type boolean => void")
         <FormControlLabel
             control={
                 <Checkbox
@@ -101,6 +103,25 @@ let make = (
             }
             label=reqStrExn(elem["label"], "Each Checkbox must have a string attribute 'label'")
         />
+    }
+    and rndRadioGroup = (elem:{..}):reElem => {
+        let row = reqBoolExn(elem["row"], "Each RadioGroup must have a boolean attribute 'row'")
+        let value = reqStrExn(elem["value"], "Each RadioGroup must have a string attribute 'value'")
+        let onChange = reqFuncExn(elem["onChange"], 
+            "Each RadioGroup must have an attribute 'onChange' of type string => void")
+        let options = reqArrExn(elem["options"], 
+            "Each RadioGroup must have an array attribute 'options' of type array<[value:string,label:string]>")
+        <RadioGroup row value onChange=evt2str(str => onChange(. str)) >
+            {
+                options
+                    ->Js_array2.mapi((option,i) => {
+                        let value = option[0]
+                        let label = option[1]
+                        <FormControlLabel key=value value label control={ <Radio/> } style=ReactDOM.Style.make(~marginRight="30px", ()) />
+                    })
+                    ->React.array
+            }
+        </RadioGroup>
     }
     and rndTextField = (elem:{..}):reElem => {
         let onChange = reqFuncExn(elem["onChange"], "Each TextField must have an attribute 'onChange' of type string => void")

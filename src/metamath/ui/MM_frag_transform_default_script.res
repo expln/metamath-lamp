@@ -50,18 +50,15 @@ const trInsert1 = {
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
-        const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
-        }
-        const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
         const resultElem = rndResult()
         return {cmp:"Col",
             children:[
                 {cmp:"Text", value: "Initial:"},
                 {cmp:"Text", value: selection.text},
                 {cmp:"Divider"},
-                rndParens(),
+                {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
+                    options: allParens.map(paren => [paren,paren])
+                },
                 {cmp:"Divider"},
                 {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
                 {cmp:"Row",
