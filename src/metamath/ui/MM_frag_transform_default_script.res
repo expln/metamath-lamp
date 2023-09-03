@@ -1,6 +1,7 @@
 let fragmentTransformsDefaultScript = `
 const YELLOW = "#efef40"
 const GREEN = "#ABF2BC"
+const PURPLE = "rgba(195,94,255,0.63)"
 const RED = "#FFC1C0"
 const BLUE = "rgba(0,59,255,0.16)"
 const nbsp = String.fromCharCode(160)
@@ -368,57 +369,54 @@ const trElide = {
 }
 
 const trSwap = {
-    displayName: ({selection}) => "Swap: X = Y => Y = X",
-    canApply:({selection}) => selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({}),
+    displayName: () => "Swap: X = Y => Y = X",
+    canApply:({selection}) => has3Children(selection) || has5Children(selection),
+    createInitialState: () => ({}),
     renderDialog: ({selection, state, setState}) => {
         const rndInitial = () => {
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, backgroundColor:BLUE},
-                    ]
-                }
+            if (has3Children(selection)) {
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [leftExpr,PURPLE],
+                    operator,
+                    [rightExpr,BLUE],
+                ])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, backgroundColor:BLUE},
-                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
-                    ]
-                }
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftExpr,PURPLE],
+                    operator,
+                    [rightExpr,BLUE],
+                    end,
+                ])
             }
         }
         const rndResult = () => {
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, backgroundColor:BLUE},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, backgroundColor:GREEN},
-                    ]
-                }
+            if (has3Children(selection)) {
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [rightExpr,BLUE],
+                    operator,
+                    [leftExpr,PURPLE],
+                ])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, backgroundColor:BLUE},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
-                    ]
-                }
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    begin,
+                    [rightExpr,BLUE],
+                    operator,
+                    [leftExpr,PURPLE],
+                    end,
+                ])
             }
         }
-        const resultElem = rndResult()
+        const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col",
             children:[
+                {cmp:"Text", value: "Swap", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                rndInitial(),
+                {cmp:"span", children: rndInitial()},
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
