@@ -83,6 +83,19 @@ let reqBoolExn = (nullable:Js.Nullable.t<'a>, msg:string):bool => {
     }
 }
 
+let optBoolExn = (nullable:Js.Nullable.t<'a>, msg:string):option<bool> => {
+    switch nullable->Js.Nullable.toOption {
+        | None => None
+        | Some(res) => {
+            if (!isBool(res)) {
+                Js_exn.raiseError(`Not a boolean: ${msg}`)
+            } else {
+                Some(res)
+            }
+        }
+    }
+}
+
 let reqArrExn = (nullable:Js.Nullable.t<'a>, msg:string):array<'b> => {
     let res = reqExn(nullable, msg)
     if (!isArray(res)) {

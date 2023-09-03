@@ -93,6 +93,7 @@ let make = (
     }
     and rndCheckbox = (elem:{..}):reElem => {
         let checked = reqBoolExn(elem["checked"], "Each Checkbox must have a boolean attribute 'checked'")
+        let disabled = optBoolExn(elem["disabled"], "optional 'disabled' attribute of a Checkbox must be a boolean")
         let onChange = reqFuncExn(elem["onChange"], 
             "Each Checkbox must have an attribute 'onChange' of type boolean => void")
         <FormControlLabel
@@ -100,6 +101,7 @@ let make = (
                 <Checkbox
                     checked
                     onChange=evt2bool(b => onChange(. b))
+                    ?disabled
                 />
             }
             label=reqStrExn(elem["label"], "Each Checkbox must have a string attribute 'label'")

@@ -77,6 +77,8 @@ const hasNChildren = (selection,n) => selection.children.length === n
 const has3Children = selection => hasNChildren(selection,3)
 const has5Children = selection => hasNChildren(selection,5)
 
+const insertCanBeTwoSided = selection => has3Children(selection) || has5Children(selection)
+
 /**
  * X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
  * { X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
@@ -89,10 +91,10 @@ const trInsert = {
         paren: "( )",
         text: "",
         right: true,
-        twoSided: true,
+        twoSided: insertCanBeTwoSided(selection),
     }),
     renderDialog: ({selection, state, setState}) => {
-        const canBeTwoSided = has3Children(selection) || has5Children(selection)
+        const canBeTwoSided = insertCanBeTwoSided(selection)
         const twoSidedUltimate = canBeTwoSided && state.twoSided
         const rndResult = () => {
             const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
@@ -141,9 +143,7 @@ const trInsert = {
             },
             {cmp:"Divider"},
             {cmp:"Row", children:[
-                canBeTwoSided
-                    ?{cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided')}
-                    :null,
+                {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
                 {cmp:"RadioGroup", row:true, value:state.right+'', onChange: newValue => updateState('right')(newValue==='true'),
                     options: [[false+'', 'Left side'], [true+'', 'Right side']]
                 },
@@ -155,6 +155,17 @@ const trInsert = {
             {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
         ]}
     }
+}
+
+const elideCanBeTwoSided = selection => {
+    return has3Children(selection) && (
+                (has3Children(selection.children[0]) && has3Children(selection.children[2]))
+                || (has5Children(selection.children[0]) && has5Children(selection.children[2]))
+            )
+            || has5Children(selection) && (
+                (has3Children(selection.children[1]) && has3Children(selection.children[3]))
+                || (has5Children(selection.children[1]) && has5Children(selection.children[3]))
+            )
 }
 
 /**
@@ -171,20 +182,12 @@ const trElide = {
     displayName: () => "Elide: ( X + A ) => X",
     canApply:({selection}) => has3Children(selection) || has5Children(selection),
     createInitialState: ({selection}) => ({
-        twoSided:true,
+        twoSided:elideCanBeTwoSided(selection),
         keepLeft:true,
         paren:NO_PARENS
     }),
     renderDialog: ({selection, state, setState}) => {
-        const canBeTwoSided =
-            has3Children(selection) && (
-                (has3Children(selection.children[0]) && has3Children(selection.children[2]))
-                || (has5Children(selection.children[0]) && has5Children(selection.children[2]))
-            )
-            || has5Children(selection) && (
-                (has3Children(selection.children[1]) && has3Children(selection.children[3]))
-                || (has5Children(selection.children[1]) && has5Children(selection.children[3]))
-            )
+        const canBeTwoSided = elideCanBeTwoSided(selection)
         const twoSidedUltimate = canBeTwoSided && state.twoSided
         const keepColor = YELLOW
         const insertColor = GREEN
@@ -350,9 +353,7 @@ const trElide = {
                 },
                 {cmp:"Divider"},
                 {cmp:"Row", children:[
-                    canBeTwoSided
-                        ?{cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided')}
-                        :null,
+                    {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
                     {cmp:"RadioGroup", row:true, value:state.keepLeft+'', onChange: newValue => updateState('keepLeft')(newValue==='true'),
                         options: [[true+'', 'Keep left'], [false+'', 'Keep right']]
                     },
