@@ -56,6 +56,7 @@ let make = (
             | "Col" => rndCol(objToObj(elem))
             | "Row" => rndRow(objToObj(elem))
             | "Checkbox" => rndCheckbox(objToObj(elem))
+            | "RadioGroup" => rndRadioGroup(objToObj(elem))
             | "TextField" => rndTextField(objToObj(elem))
             | "Text" => rndText(objToObj(elem))
             | "span" => rndSpan(objToObj(elem))
@@ -66,6 +67,7 @@ let make = (
     }
     and childrenToArray = (children:array<Js.Nullable.t<{..}>>, msg:string):reElem => {
         children
+            ->Js.Array2.filter(child => child->Js.Nullable.toOption->Belt.Option.isSome)
             ->Js_array2.mapi((child,i) => {
                 let child = reqObjExn(child, `A child element is not a component object: ${msg}`)
                 rndCustomElem(child)->React.cloneElement({
@@ -91,16 +93,43 @@ let make = (
     }
     and rndCheckbox = (elem:{..}):reElem => {
         let checked = reqBoolExn(elem["checked"], "Each Checkbox must have a boolean attribute 'checked'")
-        let onChange = reqFuncExn(elem["onChange"], "Each Checkbox must have an attribute 'onChange' of type boolean => void")
+        let disabled = optBoolExn(elem["disabled"], "optional 'disabled' attribute of a Checkbox must be a boolean")
+        let onChange = reqFuncExn(elem["onChange"], 
+            "Each Checkbox must have an attribute 'onChange' of type boolean => void")
         <FormControlLabel
             control={
                 <Checkbox
                     checked
                     onChange=evt2bool(b => onChange(. b))
+                    ?disabled
                 />
             }
             label=reqStrExn(elem["label"], "Each Checkbox must have a string attribute 'label'")
         />
+    }
+    and rndRadioGroup = (elem:{..}):reElem => {
+        let row = reqBoolExn(elem["row"], "Each RadioGroup must have a boolean attribute 'row'")
+        let value = reqStrExn(elem["value"], "Each RadioGroup must have a string attribute 'value'")
+        let disabled = optBoolExn(elem["disabled"], "optional 'disabled' attribute of a RadioGroup must be a boolean")
+        let onChange = reqFuncExn(elem["onChange"], 
+            "Each RadioGroup must have an attribute 'onChange' of type string => void")
+        let options = reqArrExn(elem["options"], 
+            "Each RadioGroup must have an array attribute 'options' of type array<[value:string,label:string]>")
+        <RadioGroup row value onChange=evt2str(str => onChange(. str)) >
+            {
+                options
+                    ->Js_array2.map(option => {
+                        let value = option[0]
+                        let label = option[1]
+                        <FormControlLabel 
+                            key=value value label control={ <Radio/> } 
+                            style=ReactDOM.Style.make(~marginRight="30px", ())
+                            ?disabled
+                        />
+                    })
+                    ->React.array
+            }
+        </RadioGroup>
     }
     and rndTextField = (elem:{..}):reElem => {
         let onChange = reqFuncExn(elem["onChange"], "Each TextField must have an attribute 'onChange' of type string => void")
@@ -118,7 +147,8 @@ let make = (
     and rndText = (elem:{..}):reElem => {
         <span 
             style=ReactDOM.Style.make(
-                ~backgroundColor=?optStrExn(elem["bkgColor"], "optional 'bkgColor' attribute of a 'span' component must be a string"), 
+                ~backgroundColor=?optStrExn(elem["backgroundColor"], "optional 'backgroundColor' attribute of a 'Text' component must be a string"), 
+                ~fontWeight=?optStrExn(elem["fontWeight"], "optional 'fontWeight' attribute of a 'Text' component must be a string"), 
                 ()
             )
         >
@@ -198,7 +228,7 @@ let make = (
             | Some(msg) => {
                 <Col>
                     {React.string(`Error: ${msg}`)}
-                    <Button title="Back" onClick={_=>onBack()} > <MM_Icons.CancelOutlined/> </Button>
+                    <Button title="Back" onClick={_=>onBack()} > <MM_Icons.ArrowBack/> </Button>
                 </Col>
             }
             | None => {

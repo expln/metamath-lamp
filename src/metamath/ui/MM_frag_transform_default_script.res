@@ -1,7 +1,9 @@
 let fragmentTransformsDefaultScript = `
-const bkgColor = "yellow"
-const bkgColorGreen = "#00800047"
-const bkgColorBlue = "rgba(0,59,255,0.16)"
+const YELLOW = "#efef40"
+const GREEN = "#ABF2BC"
+const PURPLE = "rgba(195,94,255,0.63)"
+const RED = "#FFC1C0"
+const BLUE = "rgba(0,59,255,0.16)"
 const nbsp = String.fromCharCode(160)
 
 const getAllTextFromComponent = cmp => {
@@ -15,203 +17,335 @@ const getAllTextFromComponent = cmp => {
 }
 
 const NO_PARENS = "no parentheses"
-const allParens = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
+const ALL_PARENS = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
 
-const appendOnSide = ({init, text, right}) => {
+const match = (selection, idxs) => {
+    return idxs.map(idx => {
+        if (Array.isArray(idx)) {
+            return selection.children[idx[0]].children.map(ch => ch.text)
+        } else {
+            return selection.children[idx].text
+        }
+    })
+}
+
+const mapToTextCmpArr = (arrOfTextParts) => {
+    return arrOfTextParts.map(part => {
+        if (!Array.isArray(part)) {
+            const text = part
+            if (text.trim() !== "" || text === nbsp) {
+                return {cmp:"Text", value: nbsp+text+nbsp}
+            } else {
+                return {cmp:"Text", value: ""}
+            }
+        } else {
+            const text = part[0]
+            const bkgColor = part[1]
+
+            if (text.trim() !== "" || text === nbsp) {
+                return {cmp:"Text", value: nbsp+text+nbsp, backgroundColor: bkgColor.trim() !== "" ? bkgColor : null}
+            } else {
+                return {cmp:"Text", value: ""}
+            }
+        }
+    })
+}
+
+const appendOnSide = ({init, text, right, bkgColor}) => {
     if (text.trim() === "") {
-        return [{cmp:"Text", value: nbsp+init+nbsp}]
+        return [init]
     } else if (right) {
-        return [
-            {cmp:"Text", value: nbsp+init+nbsp},
-            {cmp:"Text", value: nbsp+text+nbsp, bkgColor},
-        ]
+        return [init, [text,bkgColor]]
     } else {
-        return [
-            {cmp:"Text", value: nbsp+text+nbsp, bkgColor},
-            {cmp:"Text", value: nbsp+init+nbsp},
-        ]
+        return [[text,bkgColor], init]
     }
 }
 
-const trInsert1 = {
-    displayName: ({selection}) => "Insert: X => ( X + A )",
-    canApply:({selection})=> true,
-    createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
+const hasNChildren = (selection,n) => selection.children.length === n
+const has3Children = selection => hasNChildren(selection,3)
+const has5Children = selection => hasNChildren(selection,5)
+
+const insertCanBeTwoSided = selection => has3Children(selection) || has5Children(selection)
+
+/**
+ * X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
+ * { X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
+ * X => [ X + A ] : else
+ */
+const trInsert = {
+    displayName: () => "Insert: X => ( X + A )",
+    canApply: () => true,
+    createInitialState: ({selection}) => ({
+        paren: "( )",
+        text: "",
+        right: true,
+        twoSided: insertCanBeTwoSided(selection),
+    }),
     renderDialog: ({selection, state, setState}) => {
-        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
+        const canBeTwoSided = insertCanBeTwoSided(selection)
+        const twoSidedUltimate = canBeTwoSided && state.twoSided
         const rndResult = () => {
-            const [leftParen, rightParen] = getSelectedParens()
-            return {cmp:"span",
-                children: [
-                    {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
-                    ...appendOnSide({init:selection.text, text:state.text, right:state.right}),
-                    {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
-                ]
+            const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
+            const bkgColor = GREEN
+            if (twoSidedUltimate && has3Children(selection)) {//X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [leftParen,bkgColor],
+                    ...appendOnSide({init:leftExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                    operator,
+                    [leftParen,bkgColor],
+                    ...appendOnSide({init:rightExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                ])
+            } else if (twoSidedUltimate && has5Children(selection)) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftParen,bkgColor],
+                    ...appendOnSide({init:leftExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                    operator,
+                    [leftParen,bkgColor],
+                    ...appendOnSide({init:rightExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                    end
+                ])
+            } else {//X => [ X + A ] : else
+                return mapToTextCmpArr([
+                    [leftParen,bkgColor],
+                    ...appendOnSide({init:selection.text, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                ])
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
-        const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
-        }
-        const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
-        const resultElem = rndResult()
-        return {cmp:"Col",
-            children:[
-                {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
-                {cmp:"Divider"},
-                rndParens(),
-                {cmp:"Divider"},
-                {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
-                {cmp:"Row",
-                    children:[
-                        {cmp:"Checkbox", checked:!state.right, label: "Left side", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                        {cmp:"Checkbox", checked:state.right, label: "Right side", onChange: updateState('right')},
-                    ]
+        const resultElem = {cmp:"span", children: rndResult()}
+        return {cmp:"Col", children:[
+            {cmp:"Text", value: "Insert", fontWeight:"bold"},
+            {cmp:"Text", value: "Initial:"},
+            {cmp:"Text", value: selection.text},
+            {cmp:"Divider"},
+            {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
+                options: ALL_PARENS.map(paren => [paren,paren])
+            },
+            {cmp:"Divider"},
+            {cmp:"Row", children:[
+                {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
+                {cmp:"RadioGroup", row:true, value:state.right+'', onChange: newValue => updateState('right')(newValue==='true'),
+                    options: [[false+'', 'Left side'], [true+'', 'Right side']]
                 },
-                {cmp:"Divider"},
-                {cmp:"Text", value: "Result:"},
-                resultElem,
-                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
-            ]
-        }
+            ]},
+            {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
+            {cmp:"Divider"},
+            {cmp:"Text", value: "Result:"},
+            resultElem,
+            {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
+        ]}
     }
 }
 
-const trInsert2 = {
-    displayName: ({selection}) => "Insert: X = Y => ( X + A ) = ( Y + A )",
-    canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
-    renderDialog: ({selection, state, setState}) => {
-        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
-        const rndResult = () => {
-            const [leftParen, rightParen] = getSelectedParens()
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
-                        ...appendOnSide({init:selection.children[0].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
-                        ...appendOnSide({init:selection.children[2].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
-                    ]
-                }
-            } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: selection.children[0].text+nbsp},
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
-                        ...appendOnSide({init:selection.children[1].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, bkgColor},
-                        ...appendOnSide({init:selection.children[3].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, bkgColor},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
-            }
-        }
-        const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
-        const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
-        }
-        const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
-        const resultElem = rndResult()
-        return {cmp:"Col",
-            children:[
-                {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
-                {cmp:"Divider"},
-                rndParens(),
-                {cmp:"Divider"},
-                {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
-                {cmp:"Row",
-                    children:[
-                        {cmp:"Checkbox", checked:!state.right, label: "Left side", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                        {cmp:"Checkbox", checked:state.right, label: "Right side", onChange: updateState('right')},
-                    ]
-                },
-                {cmp:"Divider"},
-                {cmp:"Text", value: "Result:"},
-                resultElem,
-                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
-            ]
-        }
-    }
+const elideCanBeTwoSided = selection => {
+    return has3Children(selection) && (
+                (has3Children(selection.children[0]) && has3Children(selection.children[2]))
+                || (has5Children(selection.children[0]) && has5Children(selection.children[2]))
+            )
+            || has5Children(selection) && (
+                (has3Children(selection.children[1]) && has3Children(selection.children[3]))
+                || (has5Children(selection.children[1]) && has5Children(selection.children[3]))
+            )
 }
 
+/**
+ * Two-sided:
+ * X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
+ * ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
+ * { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
+ * { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+ * One-sided:
+ * { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+ * X + A => [ X ] : else // test: class X + Y
+ */
 const trElide = {
-    displayName: ({selection}) => "Elide: ( X + A ) => X",
-    canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({right:false, paren:NO_PARENS}),
+    displayName: () => "Elide: ( X + A ) => X",
+    canApply:({selection}) => has3Children(selection) || has5Children(selection),
+    createInitialState: ({selection}) => ({
+        twoSided:elideCanBeTwoSided(selection),
+        keepLeft:true,
+        paren:NO_PARENS
+    }),
     renderDialog: ({selection, state, setState}) => {
+        const canBeTwoSided = elideCanBeTwoSided(selection)
+        const twoSidedUltimate = canBeTwoSided && state.twoSided
+        const keepColor = YELLOW
+        const insertColor = GREEN
         const rndInitial = () => {
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, bkgColor:state.right?null:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, bkgColor:state.right?bkgColorGreen:null},
-                    ]
-                }
+            if (twoSidedUltimate && has3Children(selection) && has3Children(selection.children[0]) && has3Children(selection.children[2])) {
+                // X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
+                const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    [leftExpr0,state.keepLeft?keepColor:""],
+                    operator0,
+                    [rightExpr0,state.keepLeft?"":keepColor],
+                    nbsp,
+                    [operator,keepColor],
+                    nbsp,
+                    [leftExpr2,state.keepLeft?keepColor:""],
+                    operator2,
+                    [rightExpr2,state.keepLeft?"":keepColor],
+                ])
+            } else if (twoSidedUltimate && has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
+                const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    begin0,
+                    [leftExpr0,state.keepLeft?keepColor:""],
+                    operator0,
+                    [rightExpr0,state.keepLeft?"":keepColor],
+                    end0,
+                    [operator,keepColor],
+                    begin2,
+                    [leftExpr2,state.keepLeft?keepColor:""],
+                    operator2,
+                    [rightExpr2,state.keepLeft?"":keepColor],
+                    end2,
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has3Children(selection.children[1]) && has3Children(selection.children[3])) {
+                // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
+                const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftExpr1,state.keepLeft?keepColor:""],
+                    operator1,
+                    [rightExpr1,state.keepLeft?"":keepColor],
+                    nbsp,
+                    [operator,keepColor],
+                    nbsp,
+                    [leftExpr3,state.keepLeft?keepColor:""],
+                    operator3,
+                    [rightExpr3,state.keepLeft?"":keepColor],
+                    end,
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+                const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    begin1,
+                    [leftExpr1,state.keepLeft?keepColor:""],
+                    operator1,
+                    [rightExpr1,state.keepLeft?"":keepColor],
+                    end1,
+                    [operator,keepColor],
+                    begin3,
+                    [leftExpr3,state.keepLeft?keepColor:""],
+                    operator3,
+                    [rightExpr3,state.keepLeft?"":keepColor],
+                    end3,
+                    end,
+                ])
+            } else if (has5Children(selection)) {
+                // { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftExpr,state.keepLeft?keepColor:""],
+                    operator,
+                    [rightExpr,state.keepLeft?"":keepColor],
+                    end,
+                ])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, bkgColor:state.right?null:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, bkgColor:state.right?bkgColorGreen:null},
-                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
-                    ]
-                }
+                // X + A => [ X ] : else // test: class X + Y
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [leftExpr,state.keepLeft?keepColor:""],
+                    operator,
+                    [rightExpr,state.keepLeft?"":keepColor],
+                ])
             }
         }
-        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
         const rndResult = () => {
-            const [leftParen, rightParen] = getSelectedParens()
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: leftParen === "" ? "" : leftParen+nbsp, bkgColor},
-                        {cmp:"Text", value: nbsp+(state.right ? selection.children[2].text : selection.children[0].text)+nbsp},
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen, bkgColor},
-                    ]
-                }
+            const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
+            if (twoSidedUltimate && has3Children(selection) && has3Children(selection.children[0]) && has3Children(selection.children[2])) {
+                // X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
+                const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr0:rightExpr0,
+                    operator,
+                    state.keepLeft?leftExpr2:rightExpr2,
+                    [rightParen,insertColor],
+                ])
+            } else if (twoSidedUltimate && has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
+                const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr0:rightExpr0,
+                    operator,
+                    state.keepLeft?leftExpr2:rightExpr2,
+                    [rightParen,insertColor],
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has3Children(selection.children[1]) && has3Children(selection.children[3])) {
+                // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
+                const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr1:rightExpr1,
+                    operator,
+                    state.keepLeft?leftExpr3:rightExpr3,
+                    [rightParen,insertColor],
+                    end,
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+                const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr1:rightExpr1,
+                    operator,
+                    state.keepLeft?leftExpr3:rightExpr3,
+                    [rightParen,insertColor],
+                    end,
+                ])
+            } else if (has5Children(selection)) {
+                // { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr:rightExpr,
+                    [rightParen,insertColor],
+                ])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: leftParen === "" ? "" : leftParen+nbsp, bkgColor},
-                        {cmp:"Text", value: nbsp+(state.right ? selection.children[3].text : selection.children[1].text)+nbsp},
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen, bkgColor},
-                    ]
-                }
+                // X + A => [ X ] : else // test: class X + Y
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr:rightExpr,
+                    [rightParen,insertColor],
+                ])
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
-        const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
-        }
-        const rndParens = () => ({cmp:"Row", children: allParens.map(rndParenCheckbox)})
-        const resultElem = rndResult()
+        const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col",
             children:[
+                {cmp:"Text", value: "Elide", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                rndInitial(),
+                {cmp:"span", children: rndInitial()},
                 {cmp:"Divider"},
-                rndParens(),
-                {cmp:"Divider"},
-                {cmp:"Row",
-                    children:[
-                        {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                        {cmp:"Checkbox", checked:state.right, label: "Right", onChange: updateState('right')},
-                    ]
+                {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
+                    options: ALL_PARENS.map(paren => [paren,paren])
                 },
+                {cmp:"Divider"},
+                {cmp:"Row", children:[
+                    {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
+                    {cmp:"RadioGroup", row:true, value:state.keepLeft+'', onChange: newValue => updateState('keepLeft')(newValue==='true'),
+                        options: [[true+'', 'Keep left'], [false+'', 'Keep right']]
+                    },
+                ]},
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
@@ -222,57 +356,34 @@ const trElide = {
 }
 
 const trSwap = {
-    displayName: ({selection}) => "Swap: X = Y => Y = X",
-    canApply:({selection}) => selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({}),
+    displayName: () => "Swap: X = Y => Y = X",
+    canApply:({selection}) => has3Children(selection) || has5Children(selection),
+    createInitialState: () => ({}),
     renderDialog: ({selection, state, setState}) => {
         const rndInitial = () => {
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, bkgColor:bkgColorBlue},
-                    ]
-                }
+            if (has3Children(selection)) {
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([[leftExpr,PURPLE], operator, [rightExpr,BLUE],])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, bkgColor:bkgColorBlue},
-                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
-                    ]
-                }
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([begin, [leftExpr,PURPLE], operator, [rightExpr,BLUE], end,])
             }
         }
         const rndResult = () => {
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, bkgColor:bkgColorBlue},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, bkgColor:bkgColorGreen},
-                    ]
-                }
+            if (has3Children(selection)) {
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([[rightExpr,BLUE], operator, [leftExpr,PURPLE],])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, bkgColor:bkgColorBlue},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
-                    ]
-                }
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([begin, [rightExpr,BLUE], operator, [leftExpr,PURPLE], end,])
             }
         }
-        const resultElem = rndResult()
+        const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col",
             children:[
+                {cmp:"Text", value: "Swap", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                rndInitial(),
+                {cmp:"span", children: rndInitial()},
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
@@ -283,333 +394,90 @@ const trSwap = {
 }
 
 const trAssoc = {
-    displayName: ({selection}) => "Associate: ( A + B ) + C => A + ( B + C )",
+    displayName: () => "Associate: ( A + B ) + C => A + ( B + C )",
     canApply:({selection}) =>
-        selection.children.length === 3 && (selection.children[0].children.length === 5 || selection.children[2].children.length === 5)
-        || selection.children.length === 5 && (selection.children[1].children.length === 5 || selection.children[3].children.length === 5),
+        has3Children(selection) && (has5Children(selection.children[0]) || has5Children(selection.children[2]))
+        || has5Children(selection) && (has5Children(selection.children[1]) || has5Children(selection.children[3])),
     createInitialState: ({selection}) => ({
         needSideSelector:
-            selection.children.length === 3 && (selection.children[0].children.length === 5 && selection.children[2].children.length === 5)
-            || selection.children.length === 5 && (selection.children[1].children.length === 5 && selection.children[3].children.length === 5),
-        right:false
+            has3Children(selection) && (has5Children(selection.children[0]) && has5Children(selection.children[2]))
+            || has5Children(selection) && (has5Children(selection.children[1]) && has5Children(selection.children[3])),
+        right:
+            has3Children(selection) && (has5Children(selection.children[0]) && !has5Children(selection.children[2]))
+            || has5Children(selection) && (has5Children(selection.children[1]) && !has5Children(selection.children[3]))
     }),
     renderDialog: ({selection, state, setState}) => {
+        const bkg = YELLOW
         const rndInitial = () => {
-            if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length !== 5
-                && selection.children[2].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length === 5
-            ) {
+            if (has3Children(selection) && has5Children(selection.children[0]) && !has5Children(selection.children[2])) {
+                const [[leftParen, a, op1, b, rightParen], op2, c] = match(selection, [[0],1,2])
+                return mapToTextCmpArr([[leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c])
+            } else if (has3Children(selection) && !has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [a, op1, [leftParen, b, op2, c, rightParen]] = match(selection, [0,1,[2]])
+                return mapToTextCmpArr([a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg]])
+            } else if (has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = match(selection, [[0],1,[2]])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp},
-                        ]
-                    }
+                    return mapToTextCmpArr([[leftParen0,bkg], a, op0, b, [rightParen0,bkg], op1, leftParen2, c, op2, d, rightParen2])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        ]
-                    }
+                    return mapToTextCmpArr([leftParen0, a, op0, b, rightParen0, op1, [leftParen2,bkg], c, op2, d, [rightParen2,bkg]])
                 }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length === 5
-                && selection.children[3].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length !== 5
-                && selection.children[3].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
+            } else if (has5Children(selection) && has5Children(selection.children[1]) && !has5Children(selection.children[3])) {
+                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = match(selection, [0,[1],2,3,4])
+                return mapToTextCmpArr([begin, [leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c, end])
+            } else if (has5Children(selection) && !has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = match(selection, [0,1,2,[3],4])
+                return mapToTextCmpArr([begin, a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg], end])
             } else {
+                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = match(selection, [0,[1],2,[3],4])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, [leftParen1,bkg], a, op1, b, [rightParen1,bkg], op2, leftParen3, c, op3, d, rightParen3, end])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, leftParen1, a, op1, b, rightParen1, op2, [leftParen3,bkg], c, op3, d, [rightParen3,bkg], end])
                 }
             }
         }
         const rndResult = () => {
-            if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length !== 5
-                && selection.children[2].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length === 5
-            ) {
+            if (has3Children(selection) && has5Children(selection.children[0]) && !has5Children(selection.children[2])) {
+                const [[leftParen, a, op1, b, rightParen], op2, c] = match(selection, [[0],1,2])
+                return mapToTextCmpArr([a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg]])
+            } else if (has3Children(selection) && !has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [a, op1, [leftParen, b, op2, c, rightParen]] = match(selection, [0,1,[2]])
+                return mapToTextCmpArr([[leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c])
+            } else if (has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = match(selection, [[0],1,[2]])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        ]
-                    }
+                    return mapToTextCmpArr([a, op0, [leftParen0,bkg], b, op1, leftParen2, c, op2, d, rightParen2, [rightParen0,bkg]])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([[leftParen2,bkg], leftParen0, a, op0, b, rightParen0, op1, c, [rightParen2,bkg], op2, d])
                 }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length === 5
-                && selection.children[3].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length !== 5
-                && selection.children[3].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
+            } else if (has5Children(selection) && has5Children(selection.children[1]) && !has5Children(selection.children[3])) {
+                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = match(selection, [0,[1],2,3,4])
+                return mapToTextCmpArr([begin, a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg], end])
+            } else if (has5Children(selection) && !has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = match(selection, [0,1,2,[3],4])
+                return mapToTextCmpArr([begin, [leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c, end])
             } else {
+                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = match(selection, [0,[1],2,[3],4])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, a, op1, [leftParen1,bkg], b, op2, leftParen3, c, op3, d, rightParen3, [rightParen1,bkg], end])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, bkgColor:bkgColorGreen},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, [leftParen3,bkg], leftParen1, a, op1, b, rightParen1, op2, c, [rightParen3,bkg], op3, d, end])
                 }
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const rndSideSelector = () => {
-            if (state.needSideSelector) {
-                return [
-                    {cmp:"Divider"},
-                    {cmp:"Row",
-                        children:[
-                            {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                            {cmp:"Checkbox", checked:state.right, label: "Right", onChange: updateState('right')},
-                        ]
-                    },
-                ]
-            } else {
-                return []
-            }
-        }
-        const resultElem = rndResult()
+        const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col",
             children:[
+                {cmp:"Text", value: "Associate", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                rndInitial(),
-                ...rndSideSelector(),
+                {cmp:"span", children: rndInitial()},
+                {cmp:"Divider"},
+                {cmp:"RadioGroup", row:true, value:state.right+'', onChange: newValue => updateState('right')(newValue==='true'),
+                    disabled:!state.needSideSelector,
+                    options: [[false+'', 'Left'], [true+'', 'Right']]
+                },
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
@@ -619,5 +487,5 @@ const trAssoc = {
     }
 }
 
-return [trInsert1, trInsert2, trElide, trSwap, trAssoc]
+return [trInsert, trElide, trSwap, trAssoc]
 `

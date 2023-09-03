@@ -27,11 +27,13 @@ let objToFragmentTransformState: {..} => fragmentTransformState
 let unsafeFunc: (string, unit => 'a) => result<'a, string>
 let isObject: 'a => bool
 let reqStrExn: (Js.Nullable.t<string>, string) => string
+let optStrExn: (Js.Nullable.t<string>, string) => option<string>
 let reqBoolExn: (Js.Nullable.t<bool>, string) => bool
+let optBoolExn: (Js.Nullable.t<bool>, string) => option<bool>
 let reqArrExn: (Js.Nullable.t<array<'b>>, string) => array<'b>
 let reqObjExn: (Js.Nullable.t<'a>, string) => 'a
+let optObjExn: (Js.Nullable.t<'a>, string) => option<'a>
 let reqFuncExn: (Js.Nullable.t<'a>, string) => 'a
-let optStrExn: (Js.Nullable.t<string>, string) => option<string>
 
 let syntaxTreeToSelection: childNode => selection
 let arrStrToFragTransforms: array<string> => result<array<fragmentTransform>,string>
