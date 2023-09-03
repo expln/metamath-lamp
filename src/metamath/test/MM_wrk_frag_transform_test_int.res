@@ -195,62 +195,134 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "x = y",
-            ~transformState = state({"right": false, "paren": "no parentheses"}),
+            ~transformState = state({"twoSided": false, "keepLeft": true, "paren": "no parentheses"}),
             ~expectedResult = "x",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "x = y",
-            ~transformState = state({"right": true, "paren": "no parentheses"}),
+            ~transformState = state({"twoSided": false, "keepLeft": false, "paren": "no parentheses"}),
             ~expectedResult = "y",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "x = y",
-            ~transformState = state({"right": false, "paren": "[ ]"}),
+            ~transformState = state({"twoSided": false, "keepLeft": true, "paren": "[ ]"}),
             ~expectedResult = "[ x ]",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "x = y",
-            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~transformState = state({"twoSided": false, "keepLeft": false, "paren": "{ }"}),
             ~expectedResult = "{ y }",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "( x + a ) = ( y + b )",
-            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~transformState = state({"twoSided": false, "keepLeft": false, "paren": "{ }"}),
             ~expectedResult = "{ ( y + b ) }",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "( ph -> ch )",
-            ~transformState = state({"right": false, "paren": "no parentheses"}),
+            ~transformState = state({"twoSided": false, "keepLeft": true, "paren": "no parentheses"}),
             ~expectedResult = "ph",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "( ph -> ch )",
-            ~transformState = state({"right": true, "paren": "no parentheses"}),
+            ~transformState = state({"twoSided": false, "keepLeft": false, "paren": "no parentheses"}),
             ~expectedResult = "ch",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "( ph -> ch )",
-            ~transformState = state({"right": false, "paren": "[ ]"}),
+            ~transformState = state({"twoSided": false, "keepLeft": true, "paren": "[ ]"}),
             ~expectedResult = "[ ph ]",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "( ph -> ch )",
-            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~transformState = state({"twoSided": false, "keepLeft": false, "paren": "{ }"}),
             ~expectedResult = "{ ch }",
         )
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "( x = a -> y = b )",
-            ~transformState = state({"right": true, "paren": "{ }"}),
+            ~transformState = state({"twoSided": false, "keepLeft": false, "paren": "{ }"}),
             ~expectedResult = "{ y = b }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 ) = ( Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": false, "paren": "no parentheses"}),
+            ~expectedResult = "1 = 2",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 ) = ( Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": true, "paren": "no parentheses"}),
+            ~expectedResult = "X = Y",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 ) = ( Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": false, "paren": "[ ]"}),
+            ~expectedResult = "[ 1 = 2 ]",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 ) = ( Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": true, "paren": "{ }"}),
+            ~expectedResult = "{ X = Y }",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 -> Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": false, "paren": "no parentheses"}),
+            ~expectedResult = "( 1 -> 2 )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 -> Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": true, "paren": "no parentheses"}),
+            ~expectedResult = "( X -> Y )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 -> Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": false, "paren": "[ ]"}),
+            ~expectedResult = "( [ 1 -> 2 ] )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( X + 1 -> Y + 2 )",
+            ~transformState = state({"twoSided": true, "keepLeft": true, "paren": "{ }"}),
+            ~expectedResult = "( { X -> Y } )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( ph -> ps ) -> ( th -> ch ) )",
+            ~transformState = state({"twoSided": true, "keepLeft": false, "paren": "no parentheses"}),
+            ~expectedResult = "( ps -> ch )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( ph -> ps ) -> ( th -> ch ) )",
+            ~transformState = state({"twoSided": true, "keepLeft": true, "paren": "no parentheses"}),
+            ~expectedResult = "( ph -> th )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( ph -> ps ) -> ( th -> ch ) )",
+            ~transformState = state({"twoSided": true, "keepLeft": false, "paren": "[ ]"}),
+            ~expectedResult = "( [ ps -> ch ] )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( ( ph -> ps ) -> ( th -> ch ) )",
+            ~transformState = state({"twoSided": true, "keepLeft": true, "paren": "{ }"}),
+            ~expectedResult = "( { ph -> th } )",
         )
     })
 

@@ -1,6 +1,7 @@
 let fragmentTransformsDefaultScript = `
-const YELLOW = "yellow"
+const YELLOW = "#efef40"
 const GREEN = "#ABF2BC"
+const RED = "#FFC1C0"
 const BLUE = "rgba(0,59,255,0.16)"
 const nbsp = String.fromCharCode(160)
 
@@ -39,18 +40,20 @@ const match = (selection, idxs) => {
 const mapToTextCmpArr = (arrOfTextParts) => {
     return arrOfTextParts.map(part => {
         if (!Array.isArray(part)) {
-            if (part.trim() === "") {
-                return {cmp:"Text", value: ""}
+            const text = part
+            if (text.trim() !== "" || text === nbsp) {
+                return {cmp:"Text", value: nbsp+text+nbsp}
             } else {
-                return {cmp:"Text", value: nbsp+part+nbsp}
+                return {cmp:"Text", value: ""}
             }
         } else {
             const text = part[0]
-            const backgroundColor = part[1]
-            if (text.trim() === "") {
-                return {cmp:"Text", value: ""}
+            const bkgColor = part[1]
+
+            if (text.trim() !== "" || text === nbsp) {
+                return {cmp:"Text", value: nbsp+text+nbsp, backgroundColor: bkgColor.trim() !== "" ? bkgColor : null}
             } else {
-                return {cmp:"Text", value: nbsp+text+nbsp, backgroundColor}
+                return {cmp:"Text", value: ""}
             }
         }
     })
@@ -75,9 +78,9 @@ const has3Children = selection => hasNChildren(selection,3)
 const has5Children = selection => hasNChildren(selection,5)
 
 /**
- * X => [ X + A ] : else
  * X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
  * { X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
+ * X => [ X + A ] : else
  */
 const trInsert = {
     displayName: () => "Insert: X => ( X + A )",
@@ -155,91 +158,205 @@ const trInsert = {
 }
 
 /**
- * One-sided:
- * X + A => [ X ]
- * { X + A } => [ X ]
  * Two-sided:
- * X + 1 = Y + 1 => [ X = Y ]
- * ( X + 1 ) = ( Y + 1 ) => [ X = Y ]
- * { X + 1 = Y + 1 } => { [ X = Y ] }
- * { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] }
+ * X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
+ * ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
+ * { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
+ * { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+ * One-sided:
+ * { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+ * X + A => [ X ] : else // test: class X + Y
  */
 const trElide = {
     displayName: () => "Elide: ( X + A ) => X",
     canApply:({selection}) => has3Children(selection) || has5Children(selection),
     createInitialState: ({selection}) => ({
         twoSided:true,
-        right:false,
+        keepLeft:true,
         paren:NO_PARENS
     }),
     renderDialog: ({selection, state, setState}) => {
         const canBeTwoSided =
             has3Children(selection) && (
                 (has3Children(selection.children[0]) && has3Children(selection.children[2]))
-                && (has3Children(selection.children[2]) || has5Children(selection.children[2]))
+                || (has5Children(selection.children[0]) && has5Children(selection.children[2]))
             )
+            || has5Children(selection) && (
+                (has3Children(selection.children[1]) && has3Children(selection.children[3]))
+                || (has5Children(selection.children[1]) && has5Children(selection.children[3]))
+            )
+        const twoSidedUltimate = canBeTwoSided && state.twoSided
+        const keepColor = YELLOW
+        const insertColor = GREEN
         const rndInitial = () => {
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp, backgroundColor:state.right?null:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp, backgroundColor:state.right?GREEN:null},
-                    ]
-                }
+            if (twoSidedUltimate && has3Children(selection) && has3Children(selection.children[0]) && has3Children(selection.children[2])) {
+                // X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
+                const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    [leftExpr0,state.keepLeft?keepColor:""],
+                    operator0,
+                    [rightExpr0,state.keepLeft?"":keepColor],
+                    nbsp,
+                    [operator,keepColor],
+                    nbsp,
+                    [leftExpr2,state.keepLeft?keepColor:""],
+                    operator2,
+                    [rightExpr2,state.keepLeft?"":keepColor],
+                ])
+            } else if (twoSidedUltimate && has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
+                const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    begin0,
+                    [leftExpr0,state.keepLeft?keepColor:""],
+                    operator0,
+                    [rightExpr0,state.keepLeft?"":keepColor],
+                    end0,
+                    [operator,keepColor],
+                    begin2,
+                    [leftExpr2,state.keepLeft?keepColor:""],
+                    operator2,
+                    [rightExpr2,state.keepLeft?"":keepColor],
+                    end2,
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has3Children(selection.children[1]) && has3Children(selection.children[3])) {
+                // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
+                const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftExpr1,state.keepLeft?keepColor:""],
+                    operator1,
+                    [rightExpr1,state.keepLeft?"":keepColor],
+                    nbsp,
+                    [operator,keepColor],
+                    nbsp,
+                    [leftExpr3,state.keepLeft?keepColor:""],
+                    operator3,
+                    [rightExpr3,state.keepLeft?"":keepColor],
+                    end,
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+                const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    begin1,
+                    [leftExpr1,state.keepLeft?keepColor:""],
+                    operator1,
+                    [rightExpr1,state.keepLeft?"":keepColor],
+                    end1,
+                    [operator,keepColor],
+                    begin3,
+                    [leftExpr3,state.keepLeft?keepColor:""],
+                    operator3,
+                    [rightExpr3,state.keepLeft?"":keepColor],
+                    end3,
+                    end,
+                ])
+            } else if (has5Children(selection)) {
+                // { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftExpr,state.keepLeft?keepColor:""],
+                    operator,
+                    [rightExpr,state.keepLeft?"":keepColor],
+                    end,
+                ])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp, backgroundColor:state.right?null:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp, backgroundColor:state.right?GREEN:null},
-                        {cmp:"Text", value: nbsp+selection.children[4].text+nbsp},
-                    ]
-                }
+                // X + A => [ X ] : else // test: class X + Y
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [leftExpr,state.keepLeft?keepColor:""],
+                    operator,
+                    [rightExpr,state.keepLeft?"":keepColor],
+                ])
             }
         }
-        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
         const rndResult = () => {
-            const [leftParen, rightParen] = getSelectedParens()
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: leftParen === "" ? "" : leftParen+nbsp, backgroundColor:YELLOW},
-                        {cmp:"Text", value: nbsp+(state.right ? selection.children[2].text : selection.children[0].text)+nbsp},
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen, backgroundColor:YELLOW},
-                    ]
-                }
+            const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
+            if (twoSidedUltimate && has3Children(selection) && has3Children(selection.children[0]) && has3Children(selection.children[2])) {
+                // X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
+                const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr0:rightExpr0,
+                    operator,
+                    state.keepLeft?leftExpr2:rightExpr2,
+                    [rightParen,insertColor],
+                ])
+            } else if (twoSidedUltimate && has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
+                const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = match(selection, [[0],1,[2]])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr0:rightExpr0,
+                    operator,
+                    state.keepLeft?leftExpr2:rightExpr2,
+                    [rightParen,insertColor],
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has3Children(selection.children[1]) && has3Children(selection.children[3])) {
+                // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
+                const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr1:rightExpr1,
+                    operator,
+                    state.keepLeft?leftExpr3:rightExpr3,
+                    [rightParen,insertColor],
+                    end,
+                ])
+            } else if (twoSidedUltimate && has5Children(selection) && has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+                const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = match(selection, [0,[1],2,[3],4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr1:rightExpr1,
+                    operator,
+                    state.keepLeft?leftExpr3:rightExpr3,
+                    [rightParen,insertColor],
+                    end,
+                ])
+            } else if (has5Children(selection)) {
+                // { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr:rightExpr,
+                    [rightParen,insertColor],
+                ])
             } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: leftParen === "" ? "" : leftParen+nbsp, backgroundColor:YELLOW},
-                        {cmp:"Text", value: nbsp+(state.right ? selection.children[3].text : selection.children[1].text)+nbsp},
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen, backgroundColor:YELLOW},
-                    ]
-                }
+                // X + A => [ X ] : else // test: class X + Y
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+                return mapToTextCmpArr([
+                    [leftParen,insertColor],
+                    state.keepLeft?leftExpr:rightExpr,
+                    [rightParen,insertColor],
+                ])
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
-        const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
-        }
-        const rndParens = () => ({cmp:"Row", children: ALL_PARENS.map(rndParenCheckbox)})
-        const resultElem = rndResult()
+        const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col",
             children:[
+                {cmp:"Text", value: "Elide", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                rndInitial(),
+                {cmp:"span", children: rndInitial()},
                 {cmp:"Divider"},
-                rndParens(),
-                {cmp:"Divider"},
-                {cmp:"Row",
-                    children:[
-                        {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                        {cmp:"Checkbox", checked:state.right, label: "Right", onChange: updateState('right')},
-                    ]
+                {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
+                    options: ALL_PARENS.map(paren => [paren,paren])
                 },
+                {cmp:"Divider"},
+                {cmp:"Row", children:[
+                    canBeTwoSided
+                        ?{cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided')}
+                        :null,
+                    {cmp:"RadioGroup", row:true, value:state.keepLeft+'', onChange: newValue => updateState('keepLeft')(newValue==='true'),
+                        options: [[true+'', 'Keep left'], [false+'', 'Keep right']]
+                    },
+                ]},
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
