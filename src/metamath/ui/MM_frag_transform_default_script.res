@@ -56,24 +56,28 @@ const mapToTextCmpArr = (arrOfTextParts) => {
     })
 }
 
-const appendOnSideAsArr = ({init, text, right, backgroundColor}) => {
+const appendOnSideAsArr = ({init, text, right, bkgColor}) => {
     if (text.trim() === "") {
         return [init]
     } else if (right) {
-        return [init, [text,backgroundColor]]
+        return [init, [text,bkgColor]]
     } else {
-        return [[text,backgroundColor], init]
+        return [[text,bkgColor], init]
     }
 }
 
 const appendOnSide = ({init, text, right}) => {
-    return mapToTextCmpArr(appendOnSideAsArr({init, text, right, backgroundColor:YELLOW}))
+    return mapToTextCmpArr(appendOnSideAsArr({init, text, right, bkgColor:YELLOW}))
 }
 
+const hasNChildren = (selection,n) => selection.children.length === n
+const has3Children = selection => hasNChildren(selection,3)
+const has5Children = selection => hasNChildren(selection,5)
+
 /**
- * X => ( X + A )
- * X = Y => ( X + A ) = ( Y + A )
- * { X = Y } => { ( X + A ) = ( Y + A ) }
+ * X => [ X + A ] : else
+ * X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
+ * { X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
  */
 const trInsert = {
     displayName: () => "Insert: X => ( X + A )",
@@ -82,59 +86,44 @@ const trInsert = {
         paren: "( )",
         text: "",
         right: true,
-        twoSided: selection.children.length === 3 || selection.children.length === 5,
+        twoSided: true,
     }),
     renderDialog: ({selection, state, setState}) => {
-        const canBeTwoSided = selection.children.length === 3 || selection.children.length === 5
+        const canBeTwoSided = has3Children(selection) || has5Children(selection)
+        const twoSidedUltimate = canBeTwoSided && state.twoSided
         const rndResult = () => {
             const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
-            const backgroundColor = GREEN
-            if (selection.children.length !== 3 && selection.children.length !== 5) {
+            const bkgColor = GREEN
+            if (twoSidedUltimate && has3Children(selection)) {//X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
+                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
                 return mapToTextCmpArr([
-                    [leftParen,backgroundColor],
-                    ...appendOnSideAsArr({init:selection.text, text:state.text, right:state.right, backgroundColor}),
-                    [rightParen,backgroundColor],
+                    [leftParen,bkgColor],
+                    ...appendOnSideAsArr({init:leftExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                    operator,
+                    [leftParen,bkgColor],
+                    ...appendOnSideAsArr({init:rightExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
                 ])
-            } else if (selection.children.length === 3) {
-                if (!state.twoSided) {
-                    return mapToTextCmpArr([
-                        [leftParen,backgroundColor],
-                        ...appendOnSideAsArr({init:selection.text, text:state.text, right:state.right, backgroundColor}),
-                        [rightParen,backgroundColor],
-                    ])
-                } else {
-                    const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
-                    return mapToTextCmpArr([
-                        [leftParen,backgroundColor],
-                        ...appendOnSideAsArr({init:leftExpr, text:state.text, right:state.right, backgroundColor}),
-                        [rightParen,backgroundColor],
-                        operator,
-                        [leftParen,backgroundColor],
-                        ...appendOnSideAsArr({init:rightExpr, text:state.text, right:state.right, backgroundColor}),
-                        [rightParen,backgroundColor],
-                    ])
-                }
-            } else { //selection.children.length === 5
-                if (!state.twoSided) {
-                    return mapToTextCmpArr([
-                        [leftParen,backgroundColor],
-                        ...appendOnSideAsArr({init:selection.text, text:state.text, right:state.right, backgroundColor}),
-                        [rightParen,backgroundColor],
-                    ])
-                } else {
-                    const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
-                    return mapToTextCmpArr([
-                        begin,
-                        [leftParen,backgroundColor],
-                        ...appendOnSideAsArr({init:leftExpr, text:state.text, right:state.right, backgroundColor}),
-                        [rightParen,backgroundColor],
-                        operator,
-                        [leftParen,backgroundColor],
-                        ...appendOnSideAsArr({init:rightExpr, text:state.text, right:state.right, backgroundColor}),
-                        [rightParen,backgroundColor],
-                        end
-                    ])
-                }
+            } else if (twoSidedUltimate && has5Children(selection)) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
+                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+                return mapToTextCmpArr([
+                    begin,
+                    [leftParen,bkgColor],
+                    ...appendOnSideAsArr({init:leftExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                    operator,
+                    [leftParen,bkgColor],
+                    ...appendOnSideAsArr({init:rightExpr, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                    end
+                ])
+            } else {//X => [ X + A ] : else
+                return mapToTextCmpArr([
+                    [leftParen,bkgColor],
+                    ...appendOnSideAsArr({init:selection.text, text:state.text, right:state.right, bkgColor}),
+                    [rightParen,bkgColor],
+                ])
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
@@ -165,120 +154,30 @@ const trInsert = {
     }
 }
 
-const trInsert1 = {
-    displayName: ({selection}) => "Insert: X => ( X + A )",
-    canApply:({selection})=> true,
-    createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
-    renderDialog: ({selection, state, setState}) => {
-        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
-        const rndResult = () => {
-            const [leftParen, rightParen] = getSelectedParens()
-            return {cmp:"span",
-                children: [
-                    {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, backgroundColor:YELLOW},
-                    ...appendOnSide({init:selection.text, text:state.text, right:state.right}),
-                    {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, backgroundColor:YELLOW},
-                ]
-            }
-        }
-        const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const resultElem = rndResult()
-        return {cmp:"Col",
-            children:[
-                {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
-                {cmp:"Divider"},
-                {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
-                    options: ALL_PARENS.map(paren => [paren,paren])
-                },
-                {cmp:"Divider"},
-                {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
-                {cmp:"Row",
-                    children:[
-                        {cmp:"Checkbox", checked:!state.right, label: "Left side", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                        {cmp:"Checkbox", checked:state.right, label: "Right side", onChange: updateState('right')},
-                    ]
-                },
-                {cmp:"Divider"},
-                {cmp:"Text", value: "Result:"},
-                resultElem,
-                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
-            ]
-        }
-    }
-}
-
-const trInsert2 = {
-    displayName: ({selection}) => "Insert: X = Y => ( X + A ) = ( Y + A )",
-    canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({text:"", right:true, paren:"( )"}),
-    renderDialog: ({selection, state, setState}) => {
-        const getSelectedParens = () => state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
-        const rndResult = () => {
-            const [leftParen, rightParen] = getSelectedParens()
-            if (selection.children.length === 3) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, backgroundColor:YELLOW},
-                        ...appendOnSide({init:selection.children[0].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, backgroundColor:YELLOW},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, backgroundColor:YELLOW},
-                        ...appendOnSide({init:selection.children[2].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, backgroundColor:YELLOW},
-                    ]
-                }
-            } else {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: selection.children[0].text+nbsp},
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, backgroundColor:YELLOW},
-                        ...appendOnSide({init:selection.children[1].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, backgroundColor:YELLOW},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: leftParen === "" ? "" : nbsp+leftParen+nbsp, backgroundColor:YELLOW},
-                        ...appendOnSide({init:selection.children[3].text, text:state.text, right:state.right}),
-                        {cmp:"Text", value: rightParen === "" ? "" : nbsp+rightParen+nbsp, backgroundColor:YELLOW},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
-            }
-        }
-        const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const onParenChange = paren => checked => updateState('paren')(checked ? paren : NO_PARENS)
-        const rndParenCheckbox = paren => {
-            return {cmp:"Checkbox", checked: state.paren === paren, label:paren, onChange:onParenChange(paren)}
-        }
-        const rndParens = () => ({cmp:"Row", children: ALL_PARENS.map(rndParenCheckbox)})
-        const resultElem = rndResult()
-        return {cmp:"Col",
-            children:[
-                {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
-                {cmp:"Divider"},
-                rndParens(),
-                {cmp:"Divider"},
-                {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
-                {cmp:"Row",
-                    children:[
-                        {cmp:"Checkbox", checked:!state.right, label: "Left side", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                        {cmp:"Checkbox", checked:state.right, label: "Right side", onChange: updateState('right')},
-                    ]
-                },
-                {cmp:"Divider"},
-                {cmp:"Text", value: "Result:"},
-                resultElem,
-                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
-            ]
-        }
-    }
-}
-
+/**
+ * One-sided:
+ * X + A => [ X ]
+ * { X + A } => [ X ]
+ * Two-sided:
+ * X + 1 = Y + 1 => [ X = Y ]
+ * ( X + 1 ) = ( Y + 1 ) => [ X = Y ]
+ * { X + 1 = Y + 1 } => { [ X = Y ] }
+ * { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] }
+ */
 const trElide = {
-    displayName: ({selection}) => "Elide: ( X + A ) => X",
-    canApply:({selection})=> selection.children.length === 3 || selection.children.length === 5,
-    createInitialState: ({selection}) => ({right:false, paren:NO_PARENS}),
+    displayName: () => "Elide: ( X + A ) => X",
+    canApply:({selection}) => has3Children(selection) || has5Children(selection),
+    createInitialState: ({selection}) => ({
+        twoSided:true,
+        right:false,
+        paren:NO_PARENS
+    }),
     renderDialog: ({selection, state, setState}) => {
+        const canBeTwoSided =
+            has3Children(selection) && (
+                (has3Children(selection.children[0]) && has3Children(selection.children[2]))
+                && (has3Children(selection.children[2]) || has5Children(selection.children[2]))
+            )
         const rndInitial = () => {
             if (selection.children.length === 3) {
                 return {cmp:"span",
