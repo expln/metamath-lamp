@@ -110,6 +110,7 @@ let make = (
     and rndRadioGroup = (elem:{..}):reElem => {
         let row = reqBoolExn(elem["row"], "Each RadioGroup must have a boolean attribute 'row'")
         let value = reqStrExn(elem["value"], "Each RadioGroup must have a string attribute 'value'")
+        let disabled = optBoolExn(elem["disabled"], "optional 'disabled' attribute of a RadioGroup must be a boolean")
         let onChange = reqFuncExn(elem["onChange"], 
             "Each RadioGroup must have an attribute 'onChange' of type string => void")
         let options = reqArrExn(elem["options"], 
@@ -120,7 +121,11 @@ let make = (
                     ->Js_array2.map(option => {
                         let value = option[0]
                         let label = option[1]
-                        <FormControlLabel key=value value label control={ <Radio/> } style=ReactDOM.Style.make(~marginRight="30px", ()) />
+                        <FormControlLabel 
+                            key=value value label control={ <Radio/> } 
+                            style=ReactDOM.Style.make(~marginRight="30px", ())
+                            ?disabled
+                        />
                     })
                     ->React.array
             }

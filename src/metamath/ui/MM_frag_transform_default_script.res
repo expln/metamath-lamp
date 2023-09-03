@@ -427,333 +427,90 @@ const trSwap = {
 }
 
 const trAssoc = {
-    displayName: ({selection}) => "Associate: ( A + B ) + C => A + ( B + C )",
+    displayName: () => "Associate: ( A + B ) + C => A + ( B + C )",
     canApply:({selection}) =>
-        selection.children.length === 3 && (selection.children[0].children.length === 5 || selection.children[2].children.length === 5)
-        || selection.children.length === 5 && (selection.children[1].children.length === 5 || selection.children[3].children.length === 5),
+        has3Children(selection) && (has5Children(selection.children[0]) || has5Children(selection.children[2]))
+        || has5Children(selection) && (has5Children(selection.children[1]) || has5Children(selection.children[3])),
     createInitialState: ({selection}) => ({
         needSideSelector:
-            selection.children.length === 3 && (selection.children[0].children.length === 5 && selection.children[2].children.length === 5)
-            || selection.children.length === 5 && (selection.children[1].children.length === 5 && selection.children[3].children.length === 5),
-        right:false
+            has3Children(selection) && (has5Children(selection.children[0]) && has5Children(selection.children[2]))
+            || has5Children(selection) && (has5Children(selection.children[1]) && has5Children(selection.children[3])),
+        right:
+            has3Children(selection) && (has5Children(selection.children[0]) && !has5Children(selection.children[2]))
+            || has5Children(selection) && (has5Children(selection.children[1]) && !has5Children(selection.children[3]))
     }),
     renderDialog: ({selection, state, setState}) => {
+        const bkg = YELLOW
         const rndInitial = () => {
-            if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length !== 5
-                && selection.children[2].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, backgroundColor:GREEN},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length === 5
-            ) {
+            if (has3Children(selection) && has5Children(selection.children[0]) && !has5Children(selection.children[2])) {
+                const [[leftParen, a, op1, b, rightParen], op2, c] = match(selection, [[0],1,2])
+                return mapToTextCmpArr([[leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c])
+            } else if (has3Children(selection) && !has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [a, op1, [leftParen, b, op2, c, rightParen]] = match(selection, [0,1,[2]])
+                return mapToTextCmpArr([a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg]])
+            } else if (has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = match(selection, [[0],1,[2]])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp},
-                        ]
-                    }
+                    return mapToTextCmpArr([[leftParen0,bkg], a, op0, b, [rightParen0,bkg], op1, leftParen2, c, op2, d, rightParen2])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, backgroundColor:GREEN},
-                        ]
-                    }
+                    return mapToTextCmpArr([leftParen0, a, op0, b, rightParen0, op1, [leftParen2,bkg], c, op2, d, [rightParen2,bkg]])
                 }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length === 5
-                && selection.children[3].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length !== 5
-                && selection.children[3].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
+            } else if (has5Children(selection) && has5Children(selection.children[1]) && !has5Children(selection.children[3])) {
+                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = match(selection, [0,[1],2,3,4])
+                return mapToTextCmpArr([begin, [leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c, end])
+            } else if (has5Children(selection) && !has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = match(selection, [0,1,2,[3],4])
+                return mapToTextCmpArr([begin, a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg], end])
             } else {
+                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = match(selection, [0,[1],2,[3],4])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, [leftParen1,bkg], a, op1, b, [rightParen1,bkg], op2, leftParen3, c, op3, d, rightParen3, end])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, leftParen1, a, op1, b, rightParen1, op2, [leftParen3,bkg], c, op3, d, [rightParen3,bkg], end])
                 }
             }
         }
         const rndResult = () => {
-            if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, backgroundColor:GREEN},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length !== 5
-                && selection.children[2].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 3
-                && selection.children[0].children.length === 5
-                && selection.children[2].children.length === 5
-            ) {
+            if (has3Children(selection) && has5Children(selection.children[0]) && !has5Children(selection.children[2])) {
+                const [[leftParen, a, op1, b, rightParen], op2, c] = match(selection, [[0],1,2])
+                return mapToTextCmpArr([a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg]])
+            } else if (has3Children(selection) && !has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [a, op1, [leftParen, b, op2, c, rightParen]] = match(selection, [0,1,[2]])
+                return mapToTextCmpArr([[leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c])
+            } else if (has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
+                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = match(selection, [[0],1,[2]])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text+nbsp, backgroundColor:GREEN},
-                        ]
-                    }
+                    return mapToTextCmpArr([a, op0, [leftParen0,bkg], b, op1, leftParen2, c, op2, d, rightParen2, [rightParen0,bkg]])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[2].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[0].children[4].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[1].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[4].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].children[3].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([[leftParen2,bkg], leftParen0, a, op0, b, rightParen0, op1, c, [rightParen2,bkg], op2, d])
                 }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length === 5
-                && selection.children[3].children.length !== 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[2].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
-            } else if (
-                selection.children.length === 5
-                && selection.children[1].children.length !== 5
-                && selection.children[3].children.length === 5
-            ) {
-                return {cmp:"span",
-                    children: [
-                        {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[1].text},
-                        {cmp:"Text", value: nbsp+selection.children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[1].text+nbsp},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, backgroundColor:GREEN},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                        {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                        {cmp:"Text", value: nbsp+selection.children[4].text},
-                    ]
-                }
+            } else if (has5Children(selection) && has5Children(selection.children[1]) && !has5Children(selection.children[3])) {
+                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = match(selection, [0,[1],2,3,4])
+                return mapToTextCmpArr([begin, a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg], end])
+            } else if (has5Children(selection) && !has5Children(selection.children[1]) && has5Children(selection.children[3])) {
+                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = match(selection, [0,1,2,[3],4])
+                return mapToTextCmpArr([begin, [leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c, end])
             } else {
+                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = match(selection, [0,[1],2,[3],4])
                 if (state.right) {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, a, op1, [leftParen1,bkg], b, op2, leftParen3, c, op3, d, rightParen3, [rightParen1,bkg], end])
                 } else {
-                    return {cmp:"span",
-                        children: [
-                            {cmp:"Text", value: nbsp+selection.children[0].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[0].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[0].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[1].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[1].children[4].text},
-                            {cmp:"Text", value: nbsp+selection.children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[1].text+nbsp},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[4].text+nbsp, backgroundColor:GREEN},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[2].text},
-                            {cmp:"Text", value: nbsp+selection.children[3].children[3].text},
-                            {cmp:"Text", value: nbsp+selection.children[4].text},
-                        ]
-                    }
+                    return mapToTextCmpArr([begin, [leftParen3,bkg], leftParen1, a, op1, b, rightParen1, op2, c, [rightParen3,bkg], op3, d, end])
                 }
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
-        const rndSideSelector = () => {
-            if (state.needSideSelector) {
-                return [
-                    {cmp:"Divider"},
-                    {cmp:"Row",
-                        children:[
-                            {cmp:"Checkbox", checked:!state.right, label: "Left", onChange: newValue => setState(st => ({...st, right: !newValue}))},
-                            {cmp:"Checkbox", checked:state.right, label: "Right", onChange: updateState('right')},
-                        ]
-                    },
-                ]
-            } else {
-                return []
-            }
-        }
-        const resultElem = rndResult()
+        const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col",
             children:[
+                {cmp:"Text", value: "Associate", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                rndInitial(),
-                ...rndSideSelector(),
+                {cmp:"span", children: rndInitial()},
+                {cmp:"Divider"},
+                {cmp:"RadioGroup", row:true, value:state.right+'', onChange: newValue => updateState('right')(newValue==='true'),
+                    disabled:!state.needSideSelector,
+                    options: [[false+'', 'Left'], [true+'', 'Right']]
+                },
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
