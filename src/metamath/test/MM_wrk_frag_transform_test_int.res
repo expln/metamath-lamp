@@ -83,7 +83,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Insert: X => ( X + A )"
         let prepareState = params => {
             st => state({
-                "selShape":fromState(st)["selShape"], 
+                "selMatch":fromState(st)["selMatch"], 
                 "twoSided":params["twoSided"], 
                 "text": params["text"], 
                 "right": params["right"], 
@@ -206,7 +206,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Elide: ( X + A ) => X"
         let prepareState = params => {
             st => state({
-                "selShape":fromState(st)["selShape"], 
+                "selMatch":fromState(st)["selMatch"], 
                 "twoSided":params["twoSided"], 
                 "keepLeft": params["keepLeft"], 
                 "paren": params["paren"], 
