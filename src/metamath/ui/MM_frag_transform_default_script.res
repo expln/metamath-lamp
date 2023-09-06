@@ -159,10 +159,6 @@ const trInsert = {
             {cmp:"Text", value: "Initial:"},
             {cmp:"Text", value: selection.text},
             {cmp:"Divider"},
-            {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
-                options: ALL_PARENS.map(paren => [paren,paren])
-            },
-            {cmp:"Divider"},
             {cmp:"Row", children:[
                 {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
                 {cmp:"RadioGroup", row:true, value:state.right+'', onChange: newValue => updateState('right')(newValue==='true'),
@@ -170,6 +166,10 @@ const trInsert = {
                 },
             ]},
             {cmp:"TextField", value:state.text, label: "Insert text", onChange: updateState('text'), width:'300px'},
+            {cmp:"Divider"},
+            {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
+                options: ALL_PARENS.map(paren => [paren,paren])
+            },
             {cmp:"Divider"},
             {cmp:"Text", value: "Result:"},
             resultElem,
@@ -372,16 +372,16 @@ const trElide = {
                 {cmp:"Text", value: "Initial:"},
                 {cmp:"span", children: rndInitial()},
                 {cmp:"Divider"},
-                {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
-                    options: ALL_PARENS.map(paren => [paren,paren])
-                },
-                {cmp:"Divider"},
                 {cmp:"Row", children:[
                     {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
                     {cmp:"RadioGroup", row:true, value:state.keepLeft+'', onChange: newValue => updateState('keepLeft')(newValue==='true'),
                         options: [[true+'', 'Keep left'], [false+'', 'Keep right']]
                     },
                 ]},
+                {cmp:"Divider"},
+                {cmp:"RadioGroup", row:true, value:state.paren, onChange:updateState('paren'),
+                    options: ALL_PARENS.map(paren => [paren,paren])
+                },
                 {cmp:"Divider"},
                 {cmp:"Text", value: "Result:"},
                 resultElem,
