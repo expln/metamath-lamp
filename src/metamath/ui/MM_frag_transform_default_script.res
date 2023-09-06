@@ -6,30 +6,10 @@ const RED = "#FFC1C0"
 const BLUE = "rgba(0,59,255,0.16)"
 const nbsp = String.fromCharCode(160)
 
-const getAllTextFromComponent = cmp => {
-    if (cmp.cmp === 'Col' || cmp.cmp === 'Row' || cmp.cmp === 'span') {
-        return cmp.children?.map(getAllTextFromComponent)?.join('')??''
-    } else if (cmp.cmp === 'Text') {
-        return cmp.value??''
-    } else {
-        return ''
-    }
-}
-
 const NO_PARENS = "no parentheses"
 const ALL_PARENS = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
 
-const match = (selection, idxs) => {
-    return idxs.map(idx => {
-        if (Array.isArray(idx)) {
-            return selection.children[idx[0]].children.map(ch => ch.text)
-        } else {
-            return selection.children[idx].text
-        }
-    })
-}
-
-const match2 = (selection, pattern) => {
+const match = (selection, pattern) => {
     if (selection.children.length !== pattern.length) {
         return undefined
     } else {
@@ -40,7 +20,7 @@ const match2 = (selection, pattern) => {
             if (typeof pat === 'function') {
                 result.push(pat(ch))
             } else if (Array.isArray(pat)) {
-                const subMatchResult = match2(ch,pat)
+                const subMatchResult = match(ch,pat)
                 if (subMatchResult === undefined) {
                     return undefined
                 } else {
@@ -60,15 +40,13 @@ const match2 = (selection, pattern) => {
 
 const findMatch = (selection,patterns) => {
     for (const pattern of patterns) {
-        const foundMatch = match2(selection,pattern)
+        const foundMatch = match(selection,pattern)
         if (foundMatch != undefined) {
             return {pattern, match:foundMatch}
         }
     }
     return undefined
 }
-
-const matches = (selection, pattern) => match2(selection, pattern) !== undefined
 
 const mapToTextCmpArr = (arrOfTextParts) => {
     return arrOfTextParts.map(part => {
@@ -102,14 +80,20 @@ const appendOnSide = ({init, text, right, bkgColor}) => {
     }
 }
 
-const hasNChildren = (selection,n) => selection.children.length === n
-const has3Children = selection => hasNChildren(selection,3)
-const has5Children = selection => hasNChildren(selection,5)
+const getAllTextFromComponent = cmp => {
+    if (cmp.cmp === 'Col' || cmp.cmp === 'Row' || cmp.cmp === 'span') {
+        return cmp.children?.map(getAllTextFromComponent)?.join('')??''
+    } else if (cmp.cmp === 'Text') {
+        return cmp.value??''
+    } else {
+        return ''
+    }
+}
 
-const insertSelShape1 = ['', '', '']
-const insertSelShape2 = ['', '', '', '', '']
-const insertSelShapes = [insertSelShape1,insertSelShape2]
-const insertCanBeTwoSided = selection => findMatch(selection,insertSelShapes) !== undefined
+const insertSelPat1 = ['', '', '']
+const insertSelPat2 = ['', '', '', '', '']
+const insertSelPatterns = [insertSelPat1,insertSelPat2]
+const insertCanBeTwoSided = selection => findMatch(selection,insertSelPatterns) !== undefined
 
 /**
  * X = Y => [ X + A ] = [ Y + A ] : twoSided && insertSelShape1 = ['', '', '']
@@ -120,7 +104,7 @@ const trInsert = {
     displayName: () => "Insert: X => ( X + A )",
     canApply: () => true,
     createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,insertSelShapes),
+        selMatch: findMatch(selection,insertSelPatterns),
         paren: "( )",
         text: "",
         right: true,
@@ -132,7 +116,7 @@ const trInsert = {
         const rndResult = () => {
             const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
             const bkgColor = GREEN
-            if (twoSidedUltimate && state.selMatch?.pattern === insertSelShape1) {//X = Y => [ X + A ] = [ Y + A ] : twoSided && insertSelShape1 = ['', '', '']
+            if (twoSidedUltimate && state.selMatch?.pattern === insertSelPat1) {//X = Y => [ X + A ] = [ Y + A ] : twoSided && insertSelShape1 = ['', '', '']
                 const [leftExpr, operator, rightExpr] = state.selMatch.match
                 return mapToTextCmpArr([
                     [leftParen,bkgColor],
@@ -143,7 +127,7 @@ const trInsert = {
                     ...appendOnSide({init:rightExpr, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === insertSelShape2) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && insertSelShape2 = ['', '', '', '', '']
+            } else if (twoSidedUltimate && state.selMatch?.pattern === insertSelPat2) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && insertSelShape2 = ['', '', '', '', '']
                 const [begin, leftExpr, operator, rightExpr, end] = state.selMatch.match
                 return mapToTextCmpArr([
                     begin,
@@ -190,12 +174,12 @@ const trInsert = {
     }
 }
 
-const elideSelShape1 = [['', '', ''], '', ['', '', '']]
-const elideSelShape2 = [['', '', '', '', ''], '', ['', '', '', '', '']]
-const elideSelShape3 = ['', ['', '', ''], '', ['', '', ''], '']
-const elideSelShape4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], '']
-const elideSelShapes = [elideSelShape1, elideSelShape2, elideSelShape3, elideSelShape4]
-const elideCanBeTwoSided = selection => findMatch(selection,elideSelShapes) !== undefined
+const elideSelPat1 = [['', '', ''], '', ['', '', '']]
+const elideSelPat2 = [['', '', '', '', ''], '', ['', '', '', '', '']]
+const elideSelPat3 = ['', ['', '', ''], '', ['', '', ''], '']
+const elideSelPat4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], '']
+const elideSelPatterns = [elideSelPat1, elideSelPat2, elideSelPat3, elideSelPat4]
+const elideCanBeTwoSided = selection => findMatch(selection,elideSelPatterns) !== undefined
 
 /**
  * Two-sided:
@@ -209,9 +193,9 @@ const elideCanBeTwoSided = selection => findMatch(selection,elideSelShapes) !== 
  */
 const trElide = {
     displayName: () => "Elide: ( X + A ) => X",
-    canApply:({selection}) => matches(selection,['','','']) || matches(selection,['','','','','']),
+    canApply:({selection}) => findMatch(selection,[['', '', ''], ['', '', '', '', '']]) !== undefined,
     createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,elideSelShapes),
+        selMatch: findMatch(selection,elideSelPatterns),
         twoSided:elideCanBeTwoSided(selection),
         keepLeft:true,
         paren:NO_PARENS
@@ -222,7 +206,7 @@ const trElide = {
         const keepColor = YELLOW
         const insertColor = GREEN
         const rndInitial = () => {
-            if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape1) {
+            if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat1) {
                 // X + 1 = Y + 1 => [ X = Y ] : twoSided && elideSelShape1 = [['', '', ''], '', ['', '', '']] // no test stmt
                 const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -236,7 +220,7 @@ const trElide = {
                     operator2,
                     [rightExpr2,state.keepLeft?"":keepColor],
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape2) {
+            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat2) {
                 // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && elideSelShape2 = [['', '', '', '', ''], '', ['', '', '', '', '']] // test: |- ( X + 1 ) = ( Y + 1 )
                 const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -252,7 +236,7 @@ const trElide = {
                     [rightExpr2,state.keepLeft?"":keepColor],
                     end2,
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape3) {
+            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat3) {
                 // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && elideSelShape3 = ['', ['', '', ''], '', ['', '', ''], ''] // test: |- ( X + 1 -> Y + 1 )
                 const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -268,7 +252,7 @@ const trElide = {
                     [rightExpr3,state.keepLeft?"":keepColor],
                     end,
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape4) {
+            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat4) {
                 // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && elideSelShape4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], ''] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
                 const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -286,29 +270,32 @@ const trElide = {
                     end3,
                     end,
                 ])
-            } else if (matches(selection, ['','','','',''])) {
-                // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
-                const [begin, leftExpr, operator, rightExpr, end] = match2(selection, ['','','','',''])
-                return mapToTextCmpArr([
-                    begin,
-                    [leftExpr,state.keepLeft?keepColor:""],
-                    operator,
-                    [rightExpr,state.keepLeft?"":keepColor],
-                    end,
-                ])
             } else {
-                // X + A => [ X ] : else // test: class X + Y
-                const [leftExpr, operator, rightExpr] = match2(selection, ['','',''])
-                return mapToTextCmpArr([
-                    [leftExpr,state.keepLeft?keepColor:""],
-                    operator,
-                    [rightExpr,state.keepLeft?"":keepColor],
-                ])
+                const match5 = match(selection, ['','','','',''])
+                if (match5 !== undefined) {
+                    // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
+                    const [begin, leftExpr, operator, rightExpr, end] = match5
+                    return mapToTextCmpArr([
+                        begin,
+                        [leftExpr,state.keepLeft?keepColor:""],
+                        operator,
+                        [rightExpr,state.keepLeft?"":keepColor],
+                        end,
+                    ])
+                } else {
+                    // X + A => [ X ] : else // test: class X + Y
+                    const [leftExpr, operator, rightExpr] = match(selection, ['','',''])
+                    return mapToTextCmpArr([
+                        [leftExpr,state.keepLeft?keepColor:""],
+                        operator,
+                        [rightExpr,state.keepLeft?"":keepColor],
+                    ])
+                }
             }
         }
         const rndResult = () => {
             const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
-            if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape1) {
+            if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat1) {
                 // X + 1 = Y + 1 => [ X = Y ] : twoSided && elideSelShape1 = [['', '', ''], '', ['', '', '']] // no test stmt
                 const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -318,7 +305,7 @@ const trElide = {
                     state.keepLeft?leftExpr2:rightExpr2,
                     [rightParen,insertColor],
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape2) {
+            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat2) {
                 // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && elideSelShape2 = [['', '', '', '', ''], '', ['', '', '', '', '']] // test: |- ( X + 1 ) = ( Y + 1 )
                 const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -328,7 +315,7 @@ const trElide = {
                     state.keepLeft?leftExpr2:rightExpr2,
                     [rightParen,insertColor],
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape3) {
+            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat3) {
                 // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && elideSelShape3 = ['', ['', '', ''], '', ['', '', ''], ''] // test: |- ( X + 1 -> Y + 1 )
                 const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -340,7 +327,7 @@ const trElide = {
                     [rightParen,insertColor],
                     end,
                 ])
-            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelShape4) {
+            } else if (twoSidedUltimate && state.selMatch?.pattern === elideSelPat4) {
                 // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && elideSelShape4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], ''] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
                 const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = state.selMatch.match
                 return mapToTextCmpArr([
@@ -352,22 +339,25 @@ const trElide = {
                     [rightParen,insertColor],
                     end,
                 ])
-            } else if (matches(selection, ['','','','',''])) {
-                // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
-                const [begin, leftExpr, operator, rightExpr, end] = match2(selection, ['','','','',''])
-                return mapToTextCmpArr([
-                    [leftParen,insertColor],
-                    state.keepLeft?leftExpr:rightExpr,
-                    [rightParen,insertColor],
-                ])
             } else {
-                // X + A => [ X ] : else // test: class X + Y
-                const [leftExpr, operator, rightExpr] = match2(selection, ['','',''])
-                return mapToTextCmpArr([
-                    [leftParen,insertColor],
-                    state.keepLeft?leftExpr:rightExpr,
-                    [rightParen,insertColor],
-                ])
+                const match5 = match(selection, ['','','','',''])
+                if (match5 !== undefined) {
+                    // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
+                    const [begin, leftExpr, operator, rightExpr, end] = match5
+                    return mapToTextCmpArr([
+                        [leftParen,insertColor],
+                        state.keepLeft?leftExpr:rightExpr,
+                        [rightParen,insertColor],
+                    ])
+                } else {
+                    // X + A => [ X ] : else // test: class X + Y
+                    const [leftExpr, operator, rightExpr] = match(selection, ['','',''])
+                    return mapToTextCmpArr([
+                        [leftParen,insertColor],
+                        state.keepLeft?leftExpr:rightExpr,
+                        [rightParen,insertColor],
+                    ])
+                }
             }
         }
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
@@ -397,19 +387,19 @@ const trElide = {
     }
 }
 
-const swapSelShape1 = ['', '', '']
-const swapSelShape2 = ['', '', '', '', '']
-const swapSelShapes = [swapSelShape1, swapSelShape2]
+const swapSelPat1 = ['', '', '']
+const swapSelPat2 = ['', '', '', '', '']
+const swapSelPatterns = [swapSelPat1, swapSelPat2]
 
 const trSwap = {
     displayName: () => "Swap: X = Y => Y = X",
-    canApply:({selection}) => findMatch(selection,swapSelShapes) !== undefined,
+    canApply:({selection}) => findMatch(selection,swapSelPatterns) !== undefined,
     createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,swapSelShapes)
+        selMatch: findMatch(selection,swapSelPatterns)
     }),
     renderDialog: ({selection, state, setState}) => {
         const rndInitial = () => {
-            if (state.selMatch?.pattern === swapSelShape1) {
+            if (state.selMatch?.pattern === swapSelPat1) {
                 const [leftExpr, operator, rightExpr] = state.selMatch.match
                 return mapToTextCmpArr([[leftExpr,PURPLE], operator, [rightExpr,BLUE],])
             } else {
@@ -418,7 +408,7 @@ const trSwap = {
             }
         }
         const rndResult = () => {
-            if (state.selMatch?.pattern === swapSelShape1) {
+            if (state.selMatch?.pattern === swapSelPat1) {
                 const [leftExpr, operator, rightExpr] = state.selMatch.match
                 return mapToTextCmpArr([[rightExpr,BLUE], operator, [leftExpr,PURPLE],])
             } else {
@@ -441,46 +431,46 @@ const trSwap = {
     }
 }
 
-const assocSelShape355 = [['','','','',''],'',['','','','','']]
-const assocSelShape35_ = [['','','','',''],'','']
-const assocSelShape3_5 = ['','',['','','','','']]
-const assocSelShape555 = ['',['','','','',''],'',['','','','',''],'']
-const assocSelShape55_ = ['',['','','','',''],'','','']
-const assocSelShape5_5 = ['','','',['','','','',''],'']
-const assocSelShapes = [assocSelShape355, assocSelShape555, assocSelShape35_, assocSelShape3_5, assocSelShape55_, assocSelShape5_5]
+const assocSelPat355 = [['','','','',''],'',['','','','','']]
+const assocSelPat35_ = [['','','','',''],'','']
+const assocSelPat3_5 = ['','',['','','','','']]
+const assocSelPat555 = ['',['','','','',''],'',['','','','',''],'']
+const assocSelPat55_ = ['',['','','','',''],'','','']
+const assocSelPat5_5 = ['','','',['','','','',''],'']
+const assocSelPatterns = [assocSelPat355, assocSelPat555, assocSelPat35_, assocSelPat3_5, assocSelPat55_, assocSelPat5_5]
 
 const trAssoc = {
     displayName: () => "Associate: ( A + B ) + C => A + ( B + C )",
-    canApply:({selection}) => assocSelShapes.some(shape => matches(selection,shape)),
+    canApply:({selection}) => findMatch(selection,assocSelPatterns) !== undefined,
     createInitialState: ({selection}) => ({
-        selShape: assocSelShapes.find(shape => matches(selection,shape)),
-        needSideSelector: [assocSelShape355, assocSelShape555].some(shape => matches(selection,shape)),
-        right: [assocSelShape35_, assocSelShape55_].some(shape => matches(selection,shape))
+        selMatch: findMatch(selection,assocSelPatterns),
+        needSideSelector: findMatch(selection,[assocSelPat355, assocSelPat555]) !== undefined,
+        right: findMatch(selection,[assocSelPat35_, assocSelPat55_]) !== undefined
     }),
     renderDialog: ({selection, state, setState}) => {
         const bkg = YELLOW
         const rndInitial = () => {
-            if (has3Children(selection) && has5Children(selection.children[0]) && !has5Children(selection.children[2])) {
-                const [[leftParen, a, op1, b, rightParen], op2, c] = match(selection, [[0],1,2])
+            if (state.selMatch?.pattern === assocSelPat35_) {
+                const [[leftParen, a, op1, b, rightParen], op2, c] = state.selMatch.match
                 return mapToTextCmpArr([[leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c])
-            } else if (has3Children(selection) && !has5Children(selection.children[0]) && has5Children(selection.children[2])) {
-                const [a, op1, [leftParen, b, op2, c, rightParen]] = match(selection, [0,1,[2]])
+            } else if (state.selMatch?.pattern === assocSelPat3_5) {
+                const [a, op1, [leftParen, b, op2, c, rightParen]] = state.selMatch.match
                 return mapToTextCmpArr([a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg]])
-            } else if (has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
-                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = match(selection, [[0],1,[2]])
+            } else if (state.selMatch?.pattern === assocSelPat355) {
+                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = state.selMatch.match
                 if (state.right) {
                     return mapToTextCmpArr([[leftParen0,bkg], a, op0, b, [rightParen0,bkg], op1, leftParen2, c, op2, d, rightParen2])
                 } else {
                     return mapToTextCmpArr([leftParen0, a, op0, b, rightParen0, op1, [leftParen2,bkg], c, op2, d, [rightParen2,bkg]])
                 }
-            } else if (has5Children(selection) && has5Children(selection.children[1]) && !has5Children(selection.children[3])) {
-                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = match(selection, [0,[1],2,3,4])
+            } else if (state.selMatch?.pattern === assocSelPat55_) {
+                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = state.selMatch.match
                 return mapToTextCmpArr([begin, [leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c, end])
-            } else if (has5Children(selection) && !has5Children(selection.children[1]) && has5Children(selection.children[3])) {
-                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = match(selection, [0,1,2,[3],4])
+            } else if (state.selMatch?.pattern === assocSelPat5_5) {
+                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = state.selMatch.match
                 return mapToTextCmpArr([begin, a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg], end])
             } else {
-                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = match(selection, [0,[1],2,[3],4])
+                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = state.selMatch.match
                 if (state.right) {
                     return mapToTextCmpArr([begin, [leftParen1,bkg], a, op1, b, [rightParen1,bkg], op2, leftParen3, c, op3, d, rightParen3, end])
                 } else {
@@ -489,27 +479,27 @@ const trAssoc = {
             }
         }
         const rndResult = () => {
-            if (has3Children(selection) && has5Children(selection.children[0]) && !has5Children(selection.children[2])) {
-                const [[leftParen, a, op1, b, rightParen], op2, c] = match(selection, [[0],1,2])
+            if (state.selMatch?.pattern === assocSelPat35_) {
+                const [[leftParen, a, op1, b, rightParen], op2, c] = state.selMatch.match
                 return mapToTextCmpArr([a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg]])
-            } else if (has3Children(selection) && !has5Children(selection.children[0]) && has5Children(selection.children[2])) {
-                const [a, op1, [leftParen, b, op2, c, rightParen]] = match(selection, [0,1,[2]])
+            } else if (state.selMatch?.pattern === assocSelPat3_5) {
+                const [a, op1, [leftParen, b, op2, c, rightParen]] = state.selMatch.match
                 return mapToTextCmpArr([[leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c])
-            } else if (has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
-                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = match(selection, [[0],1,[2]])
+            } else if (state.selMatch?.pattern === assocSelPat355) {
+                const [[leftParen0, a, op0, b, rightParen0], op1, [leftParen2, c, op2, d, rightParen2]] = state.selMatch.match
                 if (state.right) {
                     return mapToTextCmpArr([a, op0, [leftParen0,bkg], b, op1, leftParen2, c, op2, d, rightParen2, [rightParen0,bkg]])
                 } else {
                     return mapToTextCmpArr([[leftParen2,bkg], leftParen0, a, op0, b, rightParen0, op1, c, [rightParen2,bkg], op2, d])
                 }
-            } else if (has5Children(selection) && has5Children(selection.children[1]) && !has5Children(selection.children[3])) {
-                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = match(selection, [0,[1],2,3,4])
+            } else if (state.selMatch?.pattern === assocSelPat55_) {
+                const [begin, [leftParen, a, op1, b, rightParen], op2, c, end] = state.selMatch.match
                 return mapToTextCmpArr([begin, a, op1, [leftParen,bkg], b, op2, c, [rightParen,bkg], end])
-            } else if (has5Children(selection) && !has5Children(selection.children[1]) && has5Children(selection.children[3])) {
-                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = match(selection, [0,1,2,[3],4])
+            } else if (state.selMatch?.pattern === assocSelPat5_5) {
+                const [begin, a, op1, [leftParen, b, op2, c, rightParen], end] = state.selMatch.match
                 return mapToTextCmpArr([begin, [leftParen,bkg], a, op1, b, [rightParen,bkg], op2, c, end])
             } else {
-                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = match(selection, [0,[1],2,[3],4])
+                const [begin, [leftParen1, a, op1, b, rightParen1], op2, [leftParen3, c, op3, d, rightParen3], end] = state.selMatch.match
                 if (state.right) {
                     return mapToTextCmpArr([begin, a, op1, [leftParen1,bkg], b, op2, leftParen3, c, op3, d, rightParen3, [rightParen1,bkg], end])
                 } else {

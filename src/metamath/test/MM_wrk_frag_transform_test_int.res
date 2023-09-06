@@ -382,6 +382,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Associate: ( A + B ) + C => A + ( B + C )"
         let prepareState = params => {
             st => state({
+                "selMatch":fromState(st)["selMatch"], 
                 "right":params["right"], 
             })
         }
