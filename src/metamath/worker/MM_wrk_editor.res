@@ -452,10 +452,14 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
         0
     )
+    let defaultStmtLabel = st.settings.defaultStmtLabel->Js.String2.trim
     let newLabel = 
-        if (pCnt == 0 
-                && st.settings.defaultStmtLabel->Js.String2.trim->Js.String2.length > 0) {
-            st.settings.defaultStmtLabel->Js.String2.trim
+        if (pCnt == 0 && defaultStmtLabel->Js.String2.length > 0) {
+            if (st.stmts->Js.Array2.some(stmt => stmt.label == defaultStmtLabel)) {
+                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=false, ())
+            } else {
+                defaultStmtLabel
+            }
         } else {
             createNewLabel(st, ~prefix="", ~forHyp=false, ())
         }

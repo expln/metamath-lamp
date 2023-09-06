@@ -1190,6 +1190,23 @@ describe("defaults for G steps", _ => {
         assertEqMsg( editorGetStmtByIdExn(st,s1).label, "qed", "s1.label")
     })
 
+    it("if there is a hyp step labeled qed then the newly added step is labeled qed1 when the setting is qed", _ => {
+        //given
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
+        let (st, h1) = addNewStmt(st)
+        let st = st->completeTypEditMode(h1,E,false)
+        assertEqMsg( editorGetStmtByIdExn(st,h1).typ, E, "h1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,h1).isGoal, false, "h1.isGoal")
+
+        //when
+        let (st, s1) = addNewStmt(st)
+
+        //then
+        assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).isGoal, true , "s1.isGoal")
+        assertEqMsg( editorGetStmtByIdExn(st,s1).label, "qed1", "s1.label")
+    })
+
     it("if there is another P step then the newly added step is not marked G when the setting is true", _ => {
         //given
         let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
