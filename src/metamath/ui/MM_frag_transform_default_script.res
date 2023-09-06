@@ -72,11 +72,15 @@ const mapToTextCmpArr = (arrOfTextParts) => {
 
 const appendOnSide = ({init, text, right, bkgColor}) => {
     if (text.trim() === "") {
-        return [init]
+        if (right) {
+            return [init, [nbsp,bkgColor], nbsp]
+        } else {
+            return [nbsp, [nbsp,bkgColor], init]
+        }
     } else if (right) {
-        return [init, [text,bkgColor]]
+        return [init, [text,bkgColor], nbsp]
     } else {
-        return [[text,bkgColor], init]
+        return [nbsp, [text,bkgColor], init]
     }
 }
 
