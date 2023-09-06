@@ -29,6 +29,37 @@ const match = (selection, idxs) => {
     })
 }
 
+const match2 = (selection, pattern) => {
+    if (selection.children.length !== pattern.length) {
+        return undefined
+    } else {
+        const result = []
+        for (let i = 0; i < selection.children.length; i++) {
+            const pat = pattern[i]
+            const ch = selection.children[i]
+            if (typeof pat === 'function') {
+                result.push(pat(ch))
+            } else if (Array.isArray(pat)) {
+                const subMatchResult = match2(ch,pat)
+                if (subMatchResult === undefined) {
+                    return undefined
+                } else {
+                    result.push(subMatchResult)
+                }
+            } else {
+                if (pat === '' || pat === ch.text) {
+                    result.push(ch.text)
+                } else {
+                    return undefined
+                }
+            }
+        }
+        return result
+    }
+}
+
+const matches = (selection, pattern) => match2(selection, pattern) !== undefined
+
 const mapToTextCmpArr = (arrOfTextParts) => {
     return arrOfTextParts.map(part => {
         if (!Array.isArray(part)) {
@@ -66,16 +97,19 @@ const has3Children = selection => hasNChildren(selection,3)
 const has5Children = selection => hasNChildren(selection,5)
 
 const insertCanBeTwoSided = selection => has3Children(selection) || has5Children(selection)
+const insertSelShape1 = ['', '', '']
+const insertSelShape2 = ['', '', '', '', '']
 
 /**
- * X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
- * { X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
+ * X = Y => [ X + A ] = [ Y + A ] : twoSided && insertSelShape1 = ['', '', '']
+ * { X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && insertSelShape2 = ['', '', '', '', '']
  * X => [ X + A ] : else
  */
 const trInsert = {
     displayName: () => "Insert: X => ( X + A )",
     canApply: () => true,
     createInitialState: ({selection}) => ({
+        selShape: [insertSelShape1,insertSelShape2].find(shape => matches(selection,shape)),
         paren: "( )",
         text: "",
         right: true,
@@ -87,8 +121,8 @@ const trInsert = {
         const rndResult = () => {
             const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
             const bkgColor = GREEN
-            if (twoSidedUltimate && has3Children(selection)) {//X = Y => [ X + A ] = [ Y + A ] : twoSided && has3Children
-                const [leftExpr, operator, rightExpr] = match(selection, [0,1,2])
+            if (twoSidedUltimate && state.selShape === insertSelShape1) {//X = Y => [ X + A ] = [ Y + A ] : twoSided && insertSelShape1 = ['', '', '']
+                const [leftExpr, operator, rightExpr] = match2(selection, state.selShape)
                 return mapToTextCmpArr([
                     [leftParen,bkgColor],
                     ...appendOnSide({init:leftExpr, text:state.text, right:state.right, bkgColor}),
@@ -98,8 +132,8 @@ const trInsert = {
                     ...appendOnSide({init:rightExpr, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                 ])
-            } else if (twoSidedUltimate && has5Children(selection)) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && has5Children
-                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+            } else if (twoSidedUltimate && state.selShape === insertSelShape2) {//{ X = Y } => { [ X + A ] = [ Y + A ] } : twoSided && insertSelShape2 = ['', '', '', '', '']
+                const [begin, leftExpr, operator, rightExpr, end] = match2(selection, state.selShape)
                 return mapToTextCmpArr([
                     begin,
                     [leftParen,bkgColor],
