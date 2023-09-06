@@ -189,21 +189,26 @@ const elideCanBeTwoSided = selection => {
                 || (has5Children(selection.children[1]) && has5Children(selection.children[3]))
             )
 }
+const elideSelShape1 = [['', '', ''], '', ['', '', '']]
+const elideSelShape2 = [['', '', '', '', ''], '', ['', '', '', '', '']]
+const elideSelShape3 = ['', ['', '', ''], '', ['', '', ''], '']
+const elideSelShape4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], '']
 
 /**
  * Two-sided:
- * X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
- * ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
- * { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
- * { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+ * X + 1 = Y + 1 => [ X = Y ] : twoSided && elideSelShape1 = [['', '', ''], '', ['', '', '']] // no test stmt
+ * ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && elideSelShape2 = [['', '', '', '', ''], '', ['', '', '', '', '']] // test: |- ( X + 1 ) = ( Y + 1 )
+ * { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && elideSelShape3 = ['', ['', '', ''], '', ['', '', ''], ''] // test: |- ( X + 1 -> Y + 1 )
+ * { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && elideSelShape4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], ''] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
  * One-sided:
- * { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
+ * { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
  * X + A => [ X ] : else // test: class X + Y
  */
 const trElide = {
     displayName: () => "Elide: ( X + A ) => X",
     canApply:({selection}) => has3Children(selection) || has5Children(selection),
     createInitialState: ({selection}) => ({
+        selShape: [elideSelShape1,elideSelShape2,elideSelShape3,elideSelShape4].find(shape => matches(selection,shape)),
         twoSided:elideCanBeTwoSided(selection),
         keepLeft:true,
         paren:NO_PARENS
@@ -214,9 +219,9 @@ const trElide = {
         const keepColor = YELLOW
         const insertColor = GREEN
         const rndInitial = () => {
-            if (twoSidedUltimate && has3Children(selection) && has3Children(selection.children[0]) && has3Children(selection.children[2])) {
-                // X + 1 = Y + 1 => [ X = Y ] : twoSided && 3[3,3] // no test stmt
-                const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = match(selection, [[0],1,[2]])
+            if (twoSidedUltimate && state.selShape === elideSelShape1) {
+                // X + 1 = Y + 1 => [ X = Y ] : twoSided && elideSelShape1 = [['', '', ''], '', ['', '', '']] // no test stmt
+                const [[leftExpr0, operator0, rightExpr0], operator, [leftExpr2, operator2, rightExpr2]] = match2(selection, state.selShape)
                 return mapToTextCmpArr([
                     [leftExpr0,state.keepLeft?keepColor:""],
                     operator0,
@@ -228,9 +233,9 @@ const trElide = {
                     operator2,
                     [rightExpr2,state.keepLeft?"":keepColor],
                 ])
-            } else if (twoSidedUltimate && has3Children(selection) && has5Children(selection.children[0]) && has5Children(selection.children[2])) {
-                // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && 3[5,5] // test: |- ( X + 1 ) = ( Y + 1 )
-                const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = match(selection, [[0],1,[2]])
+            } else if (twoSidedUltimate && state.selShape === elideSelShape2) {
+                // ( X + 1 ) = ( Y + 1 ) => [ X = Y ] : twoSided && elideSelShape2 = [['', '', '', '', ''], '', ['', '', '', '', '']] // test: |- ( X + 1 ) = ( Y + 1 )
+                const [[begin0, leftExpr0, operator0, rightExpr0, end0], operator, [begin2, leftExpr2, operator2, rightExpr2, end2]] = match2(selection, state.selShape)
                 return mapToTextCmpArr([
                     begin0,
                     [leftExpr0,state.keepLeft?keepColor:""],
@@ -244,9 +249,9 @@ const trElide = {
                     [rightExpr2,state.keepLeft?"":keepColor],
                     end2,
                 ])
-            } else if (twoSidedUltimate && has5Children(selection) && has3Children(selection.children[1]) && has3Children(selection.children[3])) {
-                // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && 5[3,3] // test: |- ( X + 1 -> Y + 1 )
-                const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = match(selection, [0,[1],2,[3],4])
+            } else if (twoSidedUltimate && state.selShape === elideSelShape3) {
+                // { X + 1 = Y + 1 } => { [ X = Y ] } : twoSided && elideSelShape3 = ['', ['', '', ''], '', ['', '', ''], ''] // test: |- ( X + 1 -> Y + 1 )
+                const [begin, [leftExpr1, operator1, rightExpr1], operator, [leftExpr3, operator3, rightExpr3], end] = match2(selection, state.selShape)
                 return mapToTextCmpArr([
                     begin,
                     [leftExpr1,state.keepLeft?keepColor:""],
@@ -260,9 +265,9 @@ const trElide = {
                     [rightExpr3,state.keepLeft?"":keepColor],
                     end,
                 ])
-            } else if (twoSidedUltimate && has5Children(selection) && has5Children(selection.children[1]) && has5Children(selection.children[3])) {
-                // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && 5[5,5] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
-                const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = match(selection, [0,[1],2,[3],4])
+            } else if (twoSidedUltimate && state.selShape === elideSelShape4) {
+                // { ( X + 1 ) = ( Y + 1 ) } => { [ X ] = [ Y ] } : twoSided && elideSelShape4 = ['', ['', '', '', '', ''], '', ['', '', '', '', ''], ''] // test: |- ( ( ph -> ps ) -> ( th -> ch ) )
+                const [begin, [begin1, leftExpr1, operator1, rightExpr1, end1], operator, [begin3, leftExpr3, operator3, rightExpr3, end3], end] = match2(selection, state.selShape)
                 return mapToTextCmpArr([
                     begin,
                     begin1,
@@ -278,9 +283,9 @@ const trElide = {
                     end3,
                     end,
                 ])
-            } else if (has5Children(selection)) {
-                // { X + A } => [ X ] : 5[] // test: |- ( ph -> ps )
-                const [begin, leftExpr, operator, rightExpr, end] = match(selection, [0,1,2,3,4])
+            } else if (matches(selection, ['','','','',''])) {
+                // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
+                const [begin, leftExpr, operator, rightExpr, end] = match2(selection, ['','','','',''])
                 return mapToTextCmpArr([
                     begin,
                     [leftExpr,state.keepLeft?keepColor:""],
