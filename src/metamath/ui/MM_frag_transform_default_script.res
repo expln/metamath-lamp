@@ -17,9 +17,7 @@ const match = (selection, pattern) => {
         for (let i = 0; i < selection.children.length; i++) {
             const pat = pattern[i]
             const ch = selection.children[i]
-            if (typeof pat === 'function') {
-                result.push(pat(ch))
-            } else if (Array.isArray(pat)) {
+            if (Array.isArray(pat)) {
                 const subMatchResult = match(ch,pat)
                 if (subMatchResult === undefined) {
                     return undefined

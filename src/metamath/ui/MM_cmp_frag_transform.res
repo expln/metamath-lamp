@@ -134,9 +134,15 @@ let make = (
     let rndContent = () => {
         switch state.transformsParseErr {
             | Some(msg) => {
-                <span>
-                    {React.string(`Error: ${msg}`)}
-                </span>
+                <Col>
+                    <span>
+                        {React.string(`Error: ${msg}`)}
+                    </span>
+                    <span>
+                        {React.string(`Please make sure the custom transforms script is non-blank and valid or `
+                                                ++ `the "Use custom transforms" setting is unchecked.`)}
+                    </span>
+                </Col>
             }
             | None => {
                 switch state.selectedTransform {
