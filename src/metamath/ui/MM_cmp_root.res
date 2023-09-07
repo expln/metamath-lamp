@@ -56,6 +56,9 @@ let mainTheme = ThemeProvider.createTheme(
             },
             "pastelred": {
                 "main": "#FAA0A0",
+            },
+            "orange": {
+                "main": "#FF7900",
             }
         }
     }

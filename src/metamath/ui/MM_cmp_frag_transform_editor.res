@@ -7,6 +7,7 @@ open Expln_React_Modal
 open MM_cmp_user_stmt
 open MM_react_common
 open Local_storage_utils
+open Expln_utils_promise
 
 let defaultTestStmt = "|- ( ( a + b ) + ( c + d ) ) = 0"
 
@@ -23,6 +24,58 @@ let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
 
 let prepareTestEditorState = (~preCtxData:preCtxData, ~testStmt:string):editorState => {
     createInitialEditorState(~preCtxData, ~stateLocStor=None)->putSingleStatementToEditor(testStmt)
+}
+
+module CustomJsWarning = {
+    let warningText = `
+        Please be careful with what JavaScript code you use for the custom transforms. 
+        This code will be executed by your browser "as is" meaning no safety measures will be taken to protect your browser from hurmful code.
+        Before putting any code into this dialog please make sure you understand what that code does or make sure the code is not harmful.
+    `
+    @react.component
+    let make = (
+        ~hideInit:bool,
+        ~onHideChange:bool=>unit,
+        ~onClose:unit=>unit,
+    ) => {
+        let (hide, setHide) = React.useState(() => hideInit)
+
+        let actHideChange = newHide => {
+            setHide(_ => newHide)
+            onHideChange(newHide)
+        }
+
+        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+            <Col spacing=1.>
+                <span style=ReactDOM.Style.make( ~fontWeight="bold", ~color="#FF7900", () ) >
+                    {"Security warning"->React.string}
+                </span>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <span style=ReactDOM.Style.make(~color="#FF7900", () ) >
+                                    <MM_Icons.Warning/>
+                                </span>
+                            </td>
+                            <td style=ReactDOM.Style.make(~padding="10px", () )>
+                                {warningText->React.string}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <Row alignItems=#center>
+                    <Button onClick={_=>onClose()} variant=#contained >
+                        {React.string("Ok")}
+                    </Button>
+                    <FormControlLabel
+                        control={ <Checkbox checked=hide onChange=evt2bool(actHideChange) /> }
+                        label="Don't show again"
+                    />
+                </Row>
+            </Col>
+        </Paper>
+    }
 }
 
 @react.component
@@ -44,8 +97,30 @@ let make = (
     })
     let (parenAc, setParenAc) = React.useState(() => true)
     let (transformsText, setTransformsText) = React.useState(() => transformsText)
+    let (hideWarning, setHideWarning) = useStateFromLocalStorageBool(
+        ~key="custom-transforms-js-warning-hide", ~default=false
+    )
 
-    let updateEditorState = (update:editorState=>editorState):unit => {
+    let actShowWarning = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <CustomJsWarning
+                    hideInit=hideWarning
+                    onHideChange = {b => setHideWarning(_ => b)}
+                    onClose={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
+    React.useEffect0(() => {
+        if (!hideWarning) {
+            actShowWarning()
+        }
+        None
+    })
+
+    let actUpdateEditorState = (update:editorState=>editorState):unit => {
         setEditorState(st => {
             let st = st->updateEditorStateWithPostupdateActions(update)
             st.stmts->Belt_Array.get(0)->Belt.Option.forEach(stmt => {
@@ -58,14 +133,14 @@ let make = (
     let testStmtText:option<string> = editorState.stmts->Belt_Array.get(0)->Belt.Option.map(stmt => stmt.cont->contToStr)
     React.useEffect1(() => {
         switch testStmtText {
-            | None | Some("") => updateEditorState(putSingleStatementToEditor(_, defaultTestStmt))
+            | None | Some("") => actUpdateEditorState(putSingleStatementToEditor(_, defaultTestStmt))
             | Some(_) => ()
         }
         None
     }, [testStmtText])
 
     let actSyntaxTreeUpdated = (stmtId, newStmtCont) => {
-        updateEditorState(setStmtCont(_, stmtId, newStmtCont))
+        actUpdateEditorState(setStmtCont(_, stmtId, newStmtCont))
     }
 
     let actTransformsTextUpdated = (newTransformsText) => {
@@ -73,18 +148,37 @@ let make = (
     }
     
     let rndTransformsText = () => {
-        <TextField
-            label=title
-            size=#small
-            style=ReactDOM.Style.make(~width="800px", ())
-            autoFocus=true
-            multiline=true
-            maxRows=10
-            value=transformsText
-            onChange=evt2str(actTransformsTextUpdated)
-            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel, ())
-            disabled=readOnly
-        />
+        <table>
+            <tbody>
+                <tr>
+                    {
+                        if (readOnly) {
+                            React.null
+                        } else {
+                            <td>
+                                <IconButton title="Security warning" onClick={_=>actShowWarning()} color="orange" >
+                                    <MM_Icons.Warning/>
+                                </IconButton>
+                            </td>
+                        }
+                    }
+                    <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                        <TextField
+                            label=title
+                            size=#small
+                            style=ReactDOM.Style.make(~width="800px", ())
+                            autoFocus=true
+                            multiline=true
+                            maxRows=10
+                            value=transformsText
+                            onChange=evt2str(actTransformsTextUpdated)
+                            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel, ())
+                            disabled=readOnly
+                        />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     }
 
     let rndButtons = () => {
@@ -155,8 +249,8 @@ let make = (
             onTypEditRequested={() => ()}
             onTypEditDone={(_,_) => ()}
 
-            onContEditRequested={() => updateEditorState(setContEditMode(_,stmt.id))}
-            onContEditDone={newContText => updateEditorState(completeContEditMode(_,stmt.id,newContText))}
+            onContEditRequested={() => actUpdateEditorState(setContEditMode(_,stmt.id))}
+            onContEditDone={newContText => actUpdateEditorState(completeContEditMode(_,stmt.id,newContText))}
             onContEditCancel={_ => ()}
             onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(stmt.id,newStmtCont)}
             
