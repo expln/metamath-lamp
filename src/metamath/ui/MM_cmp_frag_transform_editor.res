@@ -114,7 +114,7 @@ let make = (
     }
 
     React.useEffect0(() => {
-        if (!hideWarning) {
+        if (!readOnly && !hideWarning) {
             actShowWarning()
         }
         None
