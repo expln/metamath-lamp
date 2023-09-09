@@ -1,0 +1,13 @@
+  proveSyntaxTypes
+2023-09-09T11:00:07.641Z started proving syntax (from = 1, to = 10)
+2023-09-09T11:00:22.413Z proving syntax: 10% - 14 sec
+2023-09-09T11:00:31.023Z proving syntax: 20% - 8 sec
+2023-09-09T11:00:54.746Z proving syntax: 30% - 23 sec
+2023-09-09T11:01:01.547Z proving syntax: 40% - 6 sec
+2023-09-09T11:01:08.024Z proving syntax: 50% - 6 sec
+2023-09-09T11:01:13.893Z proving syntax: 60% - 5 sec
+2023-09-09T11:01:25.127Z proving syntax: 70% - 11 sec
+2023-09-09T11:01:25.167Z proving syntax: 80% - 0 sec
+2023-09-09T11:01:25.248Z proving syntax: 90% - 0 sec
+2023-09-09T11:01:25.248Z proving syntax: 100% - 0 sec
+2023-09-09T11:01:25.249Z Overall duration (sec): 77

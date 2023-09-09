@@ -8,6 +8,7 @@ open MM_provers
 open MM_substitution
 open MM_parenCounter
 open Common
+open MM_proof_tree
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
 
@@ -31,6 +32,7 @@ describe("proveSyntaxTypes", _ => {
 
         let ctx = ast->loadContext(
             ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
+            // ~debug=true,
             ()
         )
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b"
@@ -100,33 +102,44 @@ describe("proveSyntaxTypes", _ => {
             )->ignore
             None
         })->ignore
-        asrtExprs->Js.Array2.sortInPlaceWith((a,b) => a->Js_array2.length - b->Js_array2.length)->ignore
+        asrtExprs->Js.Array2.sortInPlaceWith((a,b) => b->Js_array2.length - a->Js_array2.length)->ignore
 
-        // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
-        // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
+        let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
-        log(`started proving syntax`)
-        proveSyntaxTypes(
+        let numOfExpr = 100000
+        let from = 0
+        let to_ = from + numOfExpr
+        let syntaxTypes = ctx->ctxStrToIntsExn("wff class setvar")
+        log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
+        let proofTree = proveSyntaxTypes(
             ~wrkCtx=ctx,
-            ~frms=prepareFrmSubsData(~ctx, ()),
+            ~frms=
+                prepareFrmSubsData(~ctx, ())
+                    ->Belt_MapString.toArray
+                    ->Js_array2.filter(((_,frm)) => syntaxTypes->Js.Array2.includes(frm.frame.asrt[0]))
+                    ->Belt_MapString.fromArray
+            ,
             ~frameRestrict={
                 useDisc:false,
                 useDepr:true,
                 useTranDepr:true,
             },
             ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
-            ~exprs=asrtExprs->Js_array2.map(expr => expr->Js_array2.sliceFrom(1)),
-            ~syntaxTypes=ctx->ctxStrToIntsExn("wff class setvar"),
+            ~exprs=asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
+                            ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1)),
+            ~syntaxTypes,
             ~onProgress=pct=>{
                 let currMs = getCurrMillis()
                 log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
                 lastPct := currMs
             },
             ()
-        )->ignore
+        )
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
+        proofTree->ptPrintStats
     })
 })

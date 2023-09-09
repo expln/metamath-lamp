@@ -74,3 +74,5 @@ let pnSetDist: (proofNode,int) => unit
 let pnGetDbg: proofNode => option<proofNodeDbg>
 
 let jstfEqSrc: (array<expr>, string, exprSrc) => bool
+
+let ptPrintStats: proofTree => unit

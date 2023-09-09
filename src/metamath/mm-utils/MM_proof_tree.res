@@ -349,3 +349,14 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
         }
     }
 }
+
+let ptPrintStats = (tree:proofTree) => {
+    let nodes = tree.nodes->Belt_HashMap.toArray->Js.Array2.map(((_,node)) => node)
+    let nodeCnt = nodes->Js.Array2.length
+    let nodeCntFl = nodeCnt->Belt.Int.toFloat
+    Js.Console.log2(`nodeCnt`, nodeCnt)
+    let provedNodeCnt = nodes->Js.Array2.filter(node => node.proof->Belt_Option.isSome)->Js.Array2.length
+    Js.Console.log3(`provedNodeCnt`, provedNodeCnt, Common.floatToPctStr(provedNodeCnt->Belt_Int.toFloat /. nodeCntFl))
+    let invalidFloatingCnt = nodes->Js.Array2.filter(node => node.isInvalidFloating)->Js.Array2.length
+    Js.Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
+}
