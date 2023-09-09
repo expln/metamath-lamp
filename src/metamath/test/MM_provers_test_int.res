@@ -4,9 +4,18 @@ open MM_proof_table
 open MM_context
 open MM_proof_verifier
 open MM_int_test_utils
+open MM_provers
+open MM_substitution
+open MM_parenCounter
 open Common
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
+
+let getCurrMillis = () => Js.Date.make()->Js.Date.getTime
+let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Float.toInt
+let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
+
+let log = msg => Js.Console.log(`${currTimeStr()} ${msg}`)
 
 describe("proveSyntaxTypes", _ => {
 
@@ -24,6 +33,8 @@ describe("proveSyntaxTypes", _ => {
             ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
             ()
         )
+        let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b"
+        ctx->moveConstsToBegin(parens)
         ctx->openChildContext
 
         let typToLocVars: Belt_HashMapInt.t<array<int>> = Belt_HashMapInt.make(~hintSize=4)
@@ -90,7 +101,32 @@ describe("proveSyntaxTypes", _ => {
             None
         })->ignore
         asrtExprs->Js.Array2.sortInPlaceWith((a,b) => a->Js_array2.length - b->Js_array2.length)->ignore
-        let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
-        Expln_utils_files.writeStringToFile(asrtExprStr, "temp/asrtExprStr.txt")
+
+        // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
+
+        let startMs = getCurrMillis()
+        let lastPct = ref(startMs)
+        log(`started proving syntax`)
+        proveSyntaxTypes(
+            ~wrkCtx=ctx,
+            ~frms=prepareFrmSubsData(~ctx, ()),
+            ~frameRestrict={
+                useDisc:false,
+                useDepr:true,
+                useTranDepr:true,
+            },
+            ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
+            ~exprs=asrtExprs->Js_array2.map(expr => expr->Js_array2.sliceFrom(1)),
+            ~syntaxTypes=ctx->ctxStrToIntsExn("wff class setvar"),
+            ~onProgress=pct=>{
+                let currMs = getCurrMillis()
+                log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
+                lastPct := currMs
+            },
+            ()
+        )->ignore
+        let endMs = getCurrMillis()
+        log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
     })
 })

@@ -4,6 +4,7 @@ open MM_wrk_editor
 open MM_statements_dto
 open MM_progress_tracker
 open MM_editor_history
+open Common
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
 let failOnMismatch = true
@@ -238,7 +239,7 @@ let testProgressTrackerMake = (
         ~step, 
         ~maxCnt,
         ~onProgress = pct => {
-            Js.Console.log2(Js.Date.make()->Js.Date.toISOString, (pct *. 100.)->Js_math.round->Belt_Float.toString ++ "%")
+            Js.Console.log2(Js.Date.make()->Js.Date.toISOString, pct->floatToPctStr)
         }, 
         ()
     )
