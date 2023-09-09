@@ -1165,7 +1165,7 @@ let loadContext = (
 let generateNewVarNames = (
     ~ctx:mmContext, 
     ~types:array<int>, 
-    ~typeToPrefix:Belt_MapString.t<string>,
+    ~typeToPrefix:Belt_MapString.t<string>=Belt_MapString.empty,
     ~reservedNames:option<Belt_HashSetString.t>=?,
     ()
 ): array<string> => {
