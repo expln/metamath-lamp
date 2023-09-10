@@ -8,7 +8,7 @@ open MM_parenCounter
 open MM_substitution
 open MM_provers
 
-let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~syntaxTypes, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
+let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
     let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
         [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
@@ -16,7 +16,6 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~syntaxTypes, ~frameRe
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms,
-        ~syntaxTypes,
         ~frameRestrict,
         ~floatingsToProve=typesToProve,
         ~parenCnt,
@@ -350,7 +349,6 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                                 ~parenCnt=st.parenCnt, 
                                 ~ctx=wrkCtx, 
                                 ~frms=st.frms, 
-                                ~syntaxTypes=st.syntaxTypes,
                                 ~frameRestrict=st.settings.allowedFrms.inSyntax,
                                 ~wrkSubs
                             )

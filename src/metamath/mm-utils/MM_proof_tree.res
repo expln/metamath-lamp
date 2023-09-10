@@ -41,7 +41,6 @@ and exprSrc =
 
 and proofTree = {
     frms: Belt_MapString.t<frmSubsData>,
-    syntaxFrms: Belt_MapString.t<frmSubsData>,
     hypsByExpr: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     hypsByLabel: Belt_HashMapString.t<hypothesis>,
     ctxMaxVar:int,
@@ -102,7 +101,6 @@ let pnSetDist = (node,dist) => node.dist = Some(dist)
 let pnGetDbg = node => node.pnDbg
 
 let ptGetFrms = tree => tree.frms
-let ptGetSyntaxFrms = tree => tree.syntaxFrms
 let ptGetParenCnt = tree => tree.parenCnt
 let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
 let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_HashSet.has(expr)
@@ -118,7 +116,6 @@ let ptGetDisj = tree => tree.disj
 
 let ptMake = (
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~syntaxTypes: array<int>,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
     ~disj: disjMutable,
@@ -128,10 +125,6 @@ let ptMake = (
     let hypsArr = hyps->Belt_MapString.toArray
     {
         frms,
-        syntaxFrms: frms
-            ->Belt_MapString.toArray
-            ->Js_array2.filter(((_,frm)) => syntaxTypes->Js.Array2.includes(frm.frame.asrt[0]))
-            ->Belt_MapString.fromArray,
         hypsByLabel: hypsArr->Belt_HashMapString.fromArray,
         hypsByExpr: hypsArr
                     ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))

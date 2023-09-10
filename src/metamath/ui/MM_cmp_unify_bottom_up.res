@@ -532,7 +532,6 @@ let make = (
     ~preCtxVer: int,
     ~preCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
-    ~syntaxTypes: array<int>,
     ~parenCnt: parenCnt,
     ~varsText: string,
     ~disjText: string,
@@ -669,7 +668,7 @@ let make = (
                             useTranDepr:state.useTranDepr,
                         }
                     },
-                    ~syntaxTypes,
+                    ~syntaxTypes=None,
                     ~exprsToSyntaxCheck=None,
                     ~debugLevel = st.debugLevel,
                     ~onProgress = msg => updateModal( 

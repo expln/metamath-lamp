@@ -381,7 +381,6 @@ let unifyBottomUp = (
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
-                ~syntaxTypes = st.syntaxTypes,
                 ~wrkCtx,
                 ~rootStmts,
                 ~bottomUpProverParams = {

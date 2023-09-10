@@ -893,7 +893,7 @@ let make = (
                                     settings=state.settings
                                     preCtxVer=state.preCtxV
                                     preCtx=state.preCtx
-                                    frms=state.frms syntaxTypes=state.syntaxTypes parenCnt=state.parenCnt
+                                    frms=state.frms parenCnt=state.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
                                     reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
@@ -931,7 +931,7 @@ let make = (
                                 ~rootStmts,
                                 ~bottomUpProverParams=None,
                                 ~allowedFrms=state.settings.allowedFrms,
-                                ~syntaxTypes=state.syntaxTypes,
+                                ~syntaxTypes=Some(state.syntaxTypes),
                                 ~exprsToSyntaxCheck=
                                     if (state.settings.checkSyntax) {
                                         Some(state->getAllExprsToSyntaxCheck(rootStmts))
