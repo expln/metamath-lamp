@@ -710,6 +710,8 @@ let proveSyntaxTypes = (
     if (syntaxTypes->Js_array2.length == 0) {
         tree
     } else {
+        //Expln_test.startProfile()
+
         let lastType = ref(syntaxTypes[0])
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs[ei]
@@ -735,6 +737,9 @@ let proveSyntaxTypes = (
                 (ei+1)->Belt_Int.toFloat /. exprs->Js_array2.length->Belt_Int.toFloat
             )
         }
+
+        //Expln_test.stopProfile()
+
         tree
     }
 }
