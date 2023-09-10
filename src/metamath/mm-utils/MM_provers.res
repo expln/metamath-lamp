@@ -65,12 +65,12 @@ let findAsrtParentsWithoutNewVars = (
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
     ~frameRestrict:frameRestrict,
-):array<exprSrc> => {
+    ~onResult: exprSrc => unit,
+):unit => {
     let exprLen = expr->Js_array2.length
-    let foundParents = []
-    tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
-        let frmExpr = frm.frame.asrt
-        if (frmExpr[0] == expr[0] && frm.frame->frameIsAllowed(frameRestrict)) {
+    tree->ptGetFrms(expr[0])->Js.Array2.forEach(frm => {
+        if (frm.frame->frameIsAllowed(frameRestrict)) {
+            let frmExpr = frm.frame.asrt
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
@@ -113,9 +113,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( 
-                                Assertion({ args, frame:frm.frame })
-                            )->ignore
+                            onResult( Assertion({ args, frame:frm.frame }) )
                         }
                     }
                     Continue
@@ -123,7 +121,6 @@ let findAsrtParentsWithoutNewVars = (
             )->ignore
         }
     })
-    foundParents
 }
 
 let proveFloating = (
@@ -164,6 +161,7 @@ let proveFloating = (
 
         let rootNode = node
         saveNodeToCreateParentsFor(rootNode)
+
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
             let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
             if (curNode->pnGetProof->Belt.Option.isNone) {
@@ -175,11 +173,12 @@ let proveFloating = (
                             | Some(parent) => curNode->pnAddParent(parent, false, false)
                             | None => {
                                 findAsrtParentsWithoutNewVars(
-                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict
-                                )->Js.Array2.forEach(parent => {
-                                    curNode->pnAddParent(parent, false, false)
-                                    saveArgs(parent)
-                                })
+                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict,
+                                    ~onResult = parent => {
+                                        curNode->pnAddParent(parent, false, false)
+                                        saveArgs(parent)
+                                    }
+                                )
                             }
                         }
                     }
@@ -218,7 +217,7 @@ let findAsrtParentsWithNewVars = (
     let maxVarBeforeSearch = tree->ptGetMaxVar
     applyAssertions(
         ~maxVar = maxVarBeforeSearch,
-        ~frms = tree->ptGetFrms,
+        ~frms = tree->ptGetFrms(expr[0]),
         ~isDisjInCtx = tree->ptIsDisj,
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = args,
@@ -251,13 +250,7 @@ let findAsrtParentsWithNewVars = (
     )
     let foundParents = []
     applResults->Js_array2.forEach(applResult => {
-        let frame = switch tree->ptGetFrms->Belt_MapString.get(applResult.asrtLabel) {
-            | None => 
-                raise(MmException({
-                    msg:`Cannot find an assertion with label ${applResult.asrtLabel} in findAsrtParentsWithNewVars.`
-                }))
-            | Some(frm) => frm.frame
-        }
+        let frame = applResult.frame
         switch applResult.err {
             | Some(NoUnifForAsrt(_)) | Some(NoUnifForArg(_)) | Some(NewVarsAreDisabled(_)) => {
                 if (debugLevel != 0) {
@@ -708,6 +701,8 @@ let proveSyntaxTypes = (
     if (syntaxTypes->Js_array2.length == 0) {
         tree
     } else {
+        //Expln_test.startProfile()
+
         let lastType = ref(syntaxTypes[0])
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs[ei]
@@ -733,6 +728,9 @@ let proveSyntaxTypes = (
                 (ei+1)->Belt_Int.toFloat /. exprs->Js_array2.length->Belt_Int.toFloat
             )
         }
+
+        //Expln_test.stopProfile()
+
         tree
     }
 }

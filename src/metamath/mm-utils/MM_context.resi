@@ -134,7 +134,7 @@ let moveConstsToBegin: (mmContext, string) => unit
 let generateNewVarNames: ( 
     ~ctx: mmContext, 
     ~types: array<int>, 
-    ~typeToPrefix: Belt_MapString.t<string>, 
+    ~typeToPrefix: Belt_MapString.t<string>=?, 
     ~reservedNames: Belt_HashSetString.t=?, 
     unit
 ) => array<string>

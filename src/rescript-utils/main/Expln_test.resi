@@ -10,3 +10,6 @@ let assertEqNumMsg: (float, float, float, string) => unit
 
 let fail: () => 'a
 let failMsg: string => 'a
+
+let startProfile: unit => unit
+let stopProfile: unit => unit
