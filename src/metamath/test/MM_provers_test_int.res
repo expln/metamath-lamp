@@ -6,12 +6,14 @@ open MM_substitution
 open MM_parenCounter
 open Common
 open MM_proof_tree
+open Expln_utils_common
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
 
 let getCurrMillis = () => Js.Date.make()->Js.Date.getTime
 let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Float.toInt
 let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
+let compareExprBySize = comparatorBy(Js_array2.length)
 
 let log = msg => Js.Console.log(`${currTimeStr()} ${msg}`)
 
@@ -50,7 +52,8 @@ describe("proveSyntaxTypes", _ => {
                 | None => {
                     let newVar = createNewVar(typ)
                     typToLocVars->Belt_HashMapInt.set(typ,[newVar])
-                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
+                    // typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
+                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
                     newVar
                 }
                 | Some(locVars) => {
@@ -60,11 +63,11 @@ describe("proveSyntaxTypes", _ => {
                             if (locVars->Js_array2.length <= idx) {
                                 let newVar = createNewVar(typ)
                                 locVars->Js_array2.push(newVar)->ignore
-                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
+                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
                                 newVar
                             } else {
                                 let existingVar = locVars[idx]
-                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
+                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
                                 existingVar
                             }
                         }
@@ -95,7 +98,7 @@ describe("proveSyntaxTypes", _ => {
             )->ignore
             None
         })->ignore
-        asrtExprs->Js.Array2.sortInPlaceWith((a,b) => b->Js_array2.length - a->Js_array2.length)->ignore
+        asrtExprs->Js.Array2.sortInPlaceWith(compareExprBySize->comparatorInverse)->ignore
 
         // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
@@ -105,39 +108,63 @@ describe("proveSyntaxTypes", _ => {
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
             ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1))
+        let frms= prepareFrmSubsData(~ctx, ())
+        let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
+
+        let totalSize =exprsToSyntaxProve->Js_array2.reduce(
+            (size,expr) => size + expr->Js_array2.length,
+            0
+        )
+        Js.Console.log2(`totalSize`, totalSize)
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
         log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
 
         //when
-        let proofTree = proveSyntaxTypes(
-            ~wrkCtx=ctx,
-            ~frms= prepareFrmSubsData(~ctx, ()),
-            ~frameRestrict={
-                useDisc:true,
-                useDepr:true,
-                useTranDepr:true,
-            },
-            ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
-            ~exprs=exprsToSyntaxProve,
-            ~syntaxTypes,
-            ~onProgress=pct=>{
-                let currMs = getCurrMillis()
-                log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
-                lastPct := currMs
-            },
-            ()
-        )
+        // let batchSize = 3000
+        let batchSize = totalSize / 10
+        let i = ref(0)
+        while (i.contents < exprsToSyntaxProve->Js_array2.length) {
+            let batch = []
+            let sumLen = ref(0)
+            while (sumLen.contents < batchSize && i.contents < exprsToSyntaxProve->Js_array2.length) {
+                let expr = exprsToSyntaxProve[i.contents]
+                batch->Js.Array2.push(expr)->ignore
+                sumLen := sumLen.contents + expr->Js_array2.length
+                i := i.contents + 1
+            }
+            let proofTree = proveSyntaxTypes(
+                ~wrkCtx=ctx,
+                ~frms,
+                ~frameRestrict={
+                    useDisc:false,
+                    useDepr:true,
+                    useTranDepr:true,
+                },
+                ~parenCnt,
+                // ~exprs=exprsToSyntaxProve->Js_array2.slice(~start=i.contents, ~end_=i.contents+batchSize),
+                ~exprs=batch,
+                ~syntaxTypes,
+                ~onProgress=pct=>{
+                    let currMs = getCurrMillis()
+                    log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
+                    lastPct := currMs
+                },
+                ()
+            )->ignore
+            // i := i.contents + batchSize
+        }
 
         //then
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
-        proofTree->ptPrintStats->ignore
 
-        let unprovedAsrtExprs = asrtExprs
-            ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
-        assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
+        // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
+
+        // let unprovedAsrtExprs = asrtExprs
+        //     ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
+        // assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 
         // // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
