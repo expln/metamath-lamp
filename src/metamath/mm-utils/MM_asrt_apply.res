@@ -9,18 +9,18 @@ type applyAssertionResult = {
     newVars: array<int>,
     newVarTypes: array<int>,
     newDisj:disjMutable,
-    asrtLabel: string,
+    frame: frame,
     subs: subs,
     err:option<unifErr>,
 }
 
 let applyAssertionResultEq = (a:applyAssertionResult, b:applyAssertionResult):bool => {
-    a.err->Belt_Option.isNone && b.err->Belt_Option.isNone && a.asrtLabel == b.asrtLabel && subsEq(a.subs, b.subs)
+    a.err->Belt_Option.isNone && b.err->Belt_Option.isNone && a.frame.label == b.frame.label && subsEq(a.subs, b.subs)
 }
 
 let applyAssertionResultHash = (a:applyAssertionResult):int => {
     Expln_utils_common.hash2(
-        Expln_utils_common.hashStr(a.asrtLabel),
+        Expln_utils_common.hashStr(a.frame.label),
         subsHash(a.subs)
     )
 }
@@ -416,7 +416,7 @@ let iterateSubstitutionsForResult = (
 
 let applyAssertions = (
     ~maxVar:int,
-    ~frms:Belt_MapString.t<frmSubsData>,
+    ~frms:array<frmSubsData>,
     ~isDisjInCtx:(int,int)=>bool,
     ~statements:array<expr>,
     ~exactOrderOfStmts:bool=false,
@@ -431,7 +431,7 @@ let applyAssertions = (
     ~onProgress:option<float=>unit>=?,
     ()
 ):unit => {
-    let sendNoUnifForAsrt = (frm):contunieInstruction => {
+    let sendNoUnifForAsrt = (frm:frmSubsData):contunieInstruction => {
         switch result {
             | None => Continue
             | Some(expr) => {
@@ -440,7 +440,7 @@ let applyAssertions = (
                         newVars: [],
                         newVarTypes: [],
                         newDisj: disjMake(),
-                        asrtLabel: frm.frame.label,
+                        frame: frm.frame,
                         subs: subsClone(frm.subs),
                         err:Some(NoUnifForAsrt({asrtExpr:frm.frame.asrt, expr}))
                     }
@@ -450,12 +450,12 @@ let applyAssertions = (
     }
 
     let numOfStmts = statements->Js_array2.length
-    let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
+    let numOfFrames = frms->Js_array2.length->Belt_Int.toFloat
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
-    frms->Belt_MapString.forEach((_,frm) => {
+    frms->Js_array2.forEach(frm => {
         if ( continueInstr.contents == Continue && frameFilter(frm.frame) ) {
             if (result->Belt.Option.map(result => result[0] != frm.frame.asrt[0])->Belt_Option.getWithDefault(false)) {
                 if (debugLevel >= 2) {
@@ -498,7 +498,7 @@ let applyAssertions = (
                                         newVars: [],
                                         newVarTypes: [],
                                         newDisj: disjMake(),
-                                        asrtLabel: frm.frame.label,
+                                        frame: frm.frame,
                                         subs: subsClone(frm.subs),
                                         err: Some(err)
                                     }
@@ -520,7 +520,7 @@ let applyAssertions = (
                                                 newVars: [],
                                                 newVarTypes: [],
                                                 newDisj: disjMake(),
-                                                asrtLabel: frm.frame.label,
+                                                frame: frm.frame,
                                                 subs: subsClone(frm.subs),
                                                 err: Some(err)
                                             }
@@ -540,7 +540,7 @@ let applyAssertions = (
                                                     newVars: workVars.newVars->Js.Array2.copy,
                                                     newVarTypes: workVars.newVarTypes->Js.Array2.copy,
                                                     newDisj,
-                                                    asrtLabel: frm.frame.label,
+                                                    frame: frm.frame,
                                                     subs: subsClone(frm.subs),
                                                     err:None
                                                 }
@@ -559,7 +559,7 @@ let applyAssertions = (
                                                         newVars: workVars.newVars->Js.Array2.copy,
                                                         newVarTypes: workVars.newVarTypes->Js.Array2.copy,
                                                         newDisj: disjMake(),
-                                                        asrtLabel: frm.frame.label,
+                                                        frame: frm.frame,
                                                         subs: subsClone(frm.subs),
                                                         err:Some(err)
                                                     }

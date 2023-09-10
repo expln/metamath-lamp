@@ -40,7 +40,7 @@ let ptMake: (
     ~exprToStr: option<expr=>string>,
 ) => proofTree
 
-let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
+let ptGetFrms: (proofTree,int) => array<frmSubsData>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
 let ptGetMaxVar: proofTree => int

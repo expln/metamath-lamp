@@ -11,6 +11,27 @@ type labeledExpr = {
     expr:expr
 }
 
+let createEmptyFrame = (label:string):frame => {
+    {
+        ord:0,
+        isAxiom:false,
+        disj: Belt_MapInt.empty,
+        hyps: [],
+        asrt: [],
+        label,
+        frameVarToSymb: [],
+        varTypes: [],
+        numOfVars: 0,
+        numOfArgs: 0,
+        descr:None,
+        proof:None,
+        isDisc:false,
+        isDepr:false,
+        isTranDepr:false,
+        dbg: None,
+    }
+}
+
 describe("iterateCombinations", _ => {
     it("iterates all possible combinations", _ => {
         //given
@@ -183,7 +204,7 @@ let testApplyAssertions = (
         })
         let args = []
         let argLabels = []
-        let frame = workCtx->getFrame(res.asrtLabel)->Belt_Option.getExn
+        let frame = res.frame
         frame.hyps->Js_array2.forEach(hyp => {
             if (hyp.typ == E) {
                 let argExpr = applySubs(
@@ -232,7 +253,7 @@ let testApplyAssertions = (
         } else {
             ""
         }
-        let proofStr = `:${argLabels->Js_array2.joinWith(",")}:${res.asrtLabel}`
+        let proofStr = `:${argLabels->Js_array2.joinWith(",")}:${res.frame.label}`
         `------------------------\n` ++ 
             `Work variables:\n${workVarsStr}\nDisjoints:\n${disjStr}\nArguments:\n${argsStr}\nProof:\n    ${proofStr}\n` ++
             `Result:\n    ${asrtExprStr}\n\n`
@@ -246,7 +267,7 @@ let testApplyAssertions = (
     preCtx->moveConstsToBegin(parens)
     additionalStatements->Js_array2.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
     let workCtx = createContext(~parent=preCtx, ())
-    let frms = prepareFrmSubsData(~ctx=workCtx, ())
+    let frms = prepareFrmSubsData(~ctx=workCtx, ())->Belt_MapString.toArray->Js.Array2.map(((_,frm)) => frm)
     let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
@@ -268,9 +289,9 @@ let testApplyAssertions = (
         ~frameFilter,
         ~result=?result->Belt_Option.map(str => str->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(workCtx,_)),
         ~onMatchFound = res => {
-            switch actualResults->Belt_MutableMapString.get(res.asrtLabel) {
+            switch actualResults->Belt_MutableMapString.get(res.frame.label) {
                 | None => {
-                    actualResults->Belt_MutableMapString.set(res.asrtLabel, [printApplyAssertionResult(workCtx, statements, res)])
+                    actualResults->Belt_MutableMapString.set(res.frame.label, [printApplyAssertionResult(workCtx, statements, res)])
                 }
                 | Some(arr) => {
                     arr->Js.Array2.push(printApplyAssertionResult(workCtx, statements, res))->ignore
@@ -388,7 +409,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "",
+                    frame: createEmptyFrame(""),
                     subs: {
                         size: 0,
                         begins: [],
@@ -402,7 +423,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "",
+                    frame: createEmptyFrame(""),
                     subs: {
                         size: 0,
                         begins: [],
@@ -423,7 +444,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "",
+                    frame: createEmptyFrame(""),
                     subs: {
                         size: 0,
                         begins: [],
@@ -437,7 +458,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "",
+                    frame: createEmptyFrame(""),
                     subs: {
                         size: 0,
                         begins: [],
@@ -456,7 +477,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "",
+                    frame: createEmptyFrame(""),
                     subs: {
                         size: 0,
                         begins: [],
@@ -470,7 +491,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "",
+                    frame: createEmptyFrame(""),
                     subs: {
                         size: 0,
                         begins: [],
@@ -491,7 +512,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "a",
+                    frame: createEmptyFrame("a"),
                     subs: {
                         size: 0,
                         begins: [],
@@ -505,7 +526,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "bc",
+                    frame: createEmptyFrame("bc"),
                     subs: {
                         size: 0,
                         begins: [],
@@ -526,7 +547,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
                         begins: [1,2],
@@ -540,7 +561,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,90,10,11;
                         begins: [1,2],
@@ -561,7 +582,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
                         begins: [1,2],
@@ -575,7 +596,7 @@ describe("applyAssertionResultEq", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
                         begins: [0,4],
@@ -599,7 +620,7 @@ describe("applyAssertionResultHash", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
                         begins: [1,2],
@@ -618,7 +639,7 @@ describe("applyAssertionResultHash", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
                         begins: [0,4],
@@ -639,7 +660,7 @@ describe("applyAssertionResultHash", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,9,10,11;
                         begins: [1,2],
@@ -658,7 +679,7 @@ describe("applyAssertionResultHash", _ => {
                     newVars: [],
                     newVarTypes: [],
                     newDisj:disjMake(),
-                    asrtLabel: "asrt",
+                    frame: createEmptyFrame("asrt"),
                     subs: {
                         size: 2, //2,3,4; 8,90,10,11;
                         begins: [0,4],

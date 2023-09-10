@@ -68,9 +68,9 @@ let findAsrtParentsWithoutNewVars = (
 ):array<exprSrc> => {
     let exprLen = expr->Js_array2.length
     let foundParents = []
-    tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
+    tree->ptGetFrms(expr[0])->Js.Array2.forEach(frm => {
         let frmExpr = frm.frame.asrt
-        if (frmExpr[0] == expr[0] && frm.frame->frameIsAllowed(frameRestrict)) {
+        if (frm.frame->frameIsAllowed(frameRestrict)) {
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
@@ -228,7 +228,7 @@ let findAsrtParentsWithNewVars = (
     let maxVarBeforeSearch = tree->ptGetMaxVar
     applyAssertions(
         ~maxVar = maxVarBeforeSearch,
-        ~frms = tree->ptGetFrms,
+        ~frms = tree->ptGetFrms(expr[0]),
         ~isDisjInCtx = tree->ptIsDisj,
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = args,
@@ -261,13 +261,7 @@ let findAsrtParentsWithNewVars = (
     )
     let foundParents = []
     applResults->Js_array2.forEach(applResult => {
-        let frame = switch tree->ptGetFrms->Belt_MapString.get(applResult.asrtLabel) {
-            | None => 
-                raise(MmException({
-                    msg:`Cannot find an assertion with label ${applResult.asrtLabel} in findAsrtParentsWithNewVars.`
-                }))
-            | Some(frm) => frm.frame
-        }
+        let frame = applResult.frame
         switch applResult.err {
             | Some(NoUnifForAsrt(_)) | Some(NoUnifForArg(_)) | Some(NewVarsAreDisabled(_)) => {
                 if (debugLevel != 0) {

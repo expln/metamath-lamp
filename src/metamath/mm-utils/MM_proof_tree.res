@@ -40,7 +40,7 @@ and exprSrc =
     | AssertionWithErr({args:array<proofNode>, frame:frame, err:unifErr})
 
 and proofTree = {
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: Belt_HashMapInt.t<array<frmSubsData>>,
     hypsByExpr: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     hypsByLabel: Belt_HashMapString.t<hypothesis>,
     ctxMaxVar:int,
@@ -100,7 +100,8 @@ let pnGetDist = node => node.dist
 let pnSetDist = (node,dist) => node.dist = Some(dist)
 let pnGetDbg = node => node.pnDbg
 
-let ptGetFrms = tree => tree.frms
+let emptyFrmArr = []
+let ptGetFrms = (tree,int) => tree.frms->Belt_HashMapInt.get(int)->Belt.Option.getWithDefault(emptyFrmArr)
 let ptGetParenCnt = tree => tree.parenCnt
 let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
 let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_HashSet.has(expr)
@@ -124,7 +125,17 @@ let ptMake = (
 ) => {
     let hypsArr = hyps->Belt_MapString.toArray
     {
-        frms,
+        frms: frms->Belt_MapString.toArray->Js.Array2.reduce(
+            (map, (_,frm)) => {
+                let typ = frm.frame.asrt[0]
+                switch map->Belt_HashMapInt.get(typ) {
+                    | None => map->Belt_HashMapInt.set(typ, [frm])
+                    | Some(frms) => frms->Js_array2.push(frm)->ignore
+                }
+                map
+            },
+            Belt_HashMapInt.make(~hintSize=4)
+        ),
         hypsByLabel: hypsArr->Belt_HashMapString.fromArray,
         hypsByExpr: hypsArr
                     ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
