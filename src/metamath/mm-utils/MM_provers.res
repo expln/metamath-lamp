@@ -60,7 +60,7 @@ let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSrc> => {
     }
 }
 
-let findAsrtParentsWithoutNewVars = ( 
+let findSyntaxAsrtParents = ( 
     ~tree, 
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
@@ -68,7 +68,7 @@ let findAsrtParentsWithoutNewVars = (
 ):array<exprSrc> => {
     let exprLen = expr->Js_array2.length
     let foundParents = []
-    tree->ptGetFrms->Belt_MapString.forEach((_,frm) => {
+    tree->ptGetSyntaxFrms->Belt_MapString.forEach((_,frm) => {
         let frmExpr = frm.frame.asrt
         if (frmExpr[0] == expr[0] && frm.frame->frameIsAllowed(frameRestrict)) {
             iterateSubstitutions(
@@ -99,7 +99,7 @@ let findAsrtParentsWithoutNewVars = (
                                 ~frmExpr = hyps[argIdx.contents].expr, 
                                 ~subs,
                                 ~createWorkVar = _ => raise(MmException({
-                                    msg:`Work variables are not supported in findAsrtParentsWithoutNewVars().`
+                                    msg:`Work variables are not supported in findSyntaxAsrtParents().`
                                 }))
                             )
                             argsAreCorrect.contents = switch restrictExprLen {
@@ -184,7 +184,7 @@ let proveFloating = (
                         switch findNonAsrtParent(~tree, ~expr=curExpr) {
                             | Some(parent) => curNode->pnAddParent(parent, false, false)
                             | None => {
-                                findAsrtParentsWithoutNewVars(
+                                findSyntaxAsrtParents(
                                     ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict
                                 )->Js.Array2.forEach(parent => {
                                     curNode->pnAddParent(parent, false, false)
@@ -639,12 +639,14 @@ let makeExprToStr = (ctx, ctxMaxVar) => {
 let createProofTree = (
     ~proofCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~syntaxTypes: array<int>,
     ~parenCnt: parenCnt,
 ) => {
     let ctxMaxVar = proofCtx->getNumOfVars - 1
     let hyps = proofCtx->getAllHyps
     let tree = ptMake(
         ~frms, 
+        ~syntaxTypes,
         ~hyps, 
         ~ctxMaxVar, 
         ~disj=proofCtx->getAllDisj, 
@@ -669,6 +671,7 @@ let createProofTree = (
 let proveFloatings = (
     ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~syntaxTypes: array<int>,
     ~frameRestrict:frameRestrict,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
@@ -676,6 +679,7 @@ let proveFloatings = (
     let tree = createProofTree(
         ~proofCtx=wrkCtx,
         ~frms,
+        ~syntaxTypes,
         ~parenCnt,
     )
 
@@ -711,6 +715,7 @@ let proveSyntaxTypes = (
             createProofTree(
                 ~proofCtx=wrkCtx->Belt_Option.getExn,
                 ~frms=frms->Belt_Option.getExn,
+                ~syntaxTypes,
                 ~parenCnt=parenCnt->Belt_Option.getExn,
             )
         }
@@ -764,7 +769,7 @@ let unifyAll = (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~allowedFrms:allowedFrms,
-    ~syntaxTypes:option<array<int>>=?,
+    ~syntaxTypes:array<int>,
     ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
     ~onProgress:option<string=>unit>=?,
@@ -783,28 +788,24 @@ let unifyAll = (
     let tree = createProofTree(
         ~proofCtx,
         ~frms,
+        ~syntaxTypes,
         ~parenCnt,
     )
 
-    switch syntaxTypes {
-        | None => ()
-        | Some(syntaxTypes) => {
-            if (syntaxTypes->Js_array2.length > 0) {
-                switch exprsToSyntaxCheck {
-                    | None => ()
-                    | Some(exprsToSyntaxCheck) => {
-                        proveSyntaxTypes(
-                            ~proofTree=tree,
-                            ~syntaxTypes,
-                            ~exprs=exprsToSyntaxCheck,
-                            ~frameRestrict = allowedFrms.inSyntax,
-                            ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
-                                pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
-                            }),
-                            ()
-                        )->ignore
-                    }
-                }
+    if (syntaxTypes->Js_array2.length > 0) {
+        switch exprsToSyntaxCheck {
+            | None => ()
+            | Some(exprsToSyntaxCheck) => {
+                proveSyntaxTypes(
+                    ~proofTree=tree,
+                    ~syntaxTypes,
+                    ~exprs=exprsToSyntaxCheck,
+                    ~frameRestrict = allowedFrms.inSyntax,
+                    ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
+                        pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
+                    }),
+                    ()
+                )->ignore
             }
         }
     }

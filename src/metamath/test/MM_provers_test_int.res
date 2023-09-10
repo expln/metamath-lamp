@@ -38,6 +38,7 @@ describe("proveSyntaxTypes", _ => {
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b"
         ctx->moveConstsToBegin(parens)
         ctx->openChildContext
+        let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
 
         let typToLocVars: Belt_HashMapInt.t<array<int>> = Belt_HashMapInt.make(~hintSize=4)
         let typToNextLocVarIdx: Belt_HashMapInt.t<int> = Belt_HashMapInt.make(~hintSize=16)
@@ -104,32 +105,30 @@ describe("proveSyntaxTypes", _ => {
         })->ignore
         asrtExprs->Js.Array2.sortInPlaceWith((a,b) => b->Js_array2.length - a->Js_array2.length)->ignore
 
-        let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
-        Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
+        // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
-        let startMs = getCurrMillis()
-        let lastPct = ref(startMs)
         let numOfExpr = 100000
         let from = 0
         let to_ = from + numOfExpr
-        let syntaxTypes = ctx->ctxStrToIntsExn("wff class setvar")
+        let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
+            ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1))
+
+        let startMs = getCurrMillis()
+        let lastPct = ref(startMs)
         log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
+
+        //when
         let proofTree = proveSyntaxTypes(
             ~wrkCtx=ctx,
-            ~frms=
-                prepareFrmSubsData(~ctx, ())
-                    ->Belt_MapString.toArray
-                    ->Js_array2.filter(((_,frm)) => syntaxTypes->Js.Array2.includes(frm.frame.asrt[0]))
-                    ->Belt_MapString.fromArray
-            ,
+            ~frms= prepareFrmSubsData(~ctx, ()),
             ~frameRestrict={
-                useDisc:false,
+                useDisc:true,
                 useDepr:true,
                 useTranDepr:true,
             },
             ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
-            ~exprs=asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
-                            ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1)),
+            ~exprs=exprsToSyntaxProve,
             ~syntaxTypes,
             ~onProgress=pct=>{
                 let currMs = getCurrMillis()
@@ -138,8 +137,15 @@ describe("proveSyntaxTypes", _ => {
             },
             ()
         )
+
+        //then
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
         proofTree->ptPrintStats
+
+        let unprovedAsrtExprs = asrtExprs->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
+        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
+        assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
     })
 })

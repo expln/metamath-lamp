@@ -17,11 +17,13 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     ctx->moveConstsToBegin(parens)
     let expr = ctx->ctxStrToIntsExn(exprStr)
     let frms = prepareFrmSubsData(~ctx, ())
+    let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
 
     //when
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms,
+        ~syntaxTypes,
         ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
         ~floatingsToProve = [expr],
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),

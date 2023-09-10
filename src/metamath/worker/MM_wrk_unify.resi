@@ -19,7 +19,7 @@ let unify: (
     ~rootStmts: array<rootStmt>,
     ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
-    ~syntaxTypes:option<array<int>>,
+    ~syntaxTypes:array<int>,
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress: string => unit,

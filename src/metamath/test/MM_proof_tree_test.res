@@ -6,6 +6,7 @@ open MM_parenCounter
 let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string):exprSrc => {
     let proofTree = ptMake(
         ~frms = Belt_MapString.empty,
+        ~syntaxTypes=[],
         ~hyps = Belt_MapString.empty,
         ~ctxMaxVar = 0,
         ~disj = disjMake(),

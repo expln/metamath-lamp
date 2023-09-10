@@ -33,6 +33,7 @@ type proofTree
 
 let ptMake: (
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~syntaxTypes: array<int>,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
     ~disj: disjMutable,
@@ -41,6 +42,7 @@ let ptMake: (
 ) => proofTree
 
 let ptGetFrms: proofTree => Belt_MapString.t<frmSubsData>
+let ptGetSyntaxFrms: proofTree => Belt_MapString.t<frmSubsData>
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
 let ptGetMaxVar: proofTree => int

@@ -56,10 +56,12 @@ let buildSyntaxTreeForTest = (
     let parens = "( ) { } [ ]"
     ctx->moveConstsToBegin(parens)
     let ctx = ctxUpdate->Belt_Option.map(update => update(ctx))->Belt.Option.getWithDefault(ctx)
+    let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
     let expr = exprStr->Js_array2.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
+        ~syntaxTypes,
         ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
         ~floatingsToProve = expr,
         ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),

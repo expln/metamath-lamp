@@ -36,6 +36,7 @@ let createProofCtx: (mmContext, array<rootStmt>) => mmContext
 let proveFloatings: (
     ~wrkCtx: mmContext,
     ~frms: Belt_MapString.t<frmSubsData>,
+    ~syntaxTypes: array<int>,
     ~frameRestrict:frameRestrict,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
@@ -61,7 +62,7 @@ let unifyAll: (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~allowedFrms:allowedFrms,
-    ~syntaxTypes:array<int>=?,
+    ~syntaxTypes:array<int>,
     ~exprsToSyntaxCheck:array<expr>=?,
     ~debugLevel:int=?,
     ~onProgress: string=>unit=?,
