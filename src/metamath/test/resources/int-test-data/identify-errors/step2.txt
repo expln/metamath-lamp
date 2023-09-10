@@ -98,11 +98,11 @@ ready
 
 --- p -------------------------------------------------------------------------------
 stmt11
-: cvv
+: elex
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er A <-> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A ) )
 jstfIsIncorrect
 Unif Error: Could not find a match for assertion:
-class _V
+|- ( A e. B -> A e. _V )
 →
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er A <-> { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A ) )
 

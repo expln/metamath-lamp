@@ -520,7 +520,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
-        let st = st->updateStmt(st->getStmtId(~label="stmt11", ()), ~jstf=": cvv", ())
+        let st = st->updateStmt(st->getStmtId(~label="stmt11", ()), ~jstf=": elex", ())
         let st = st->unifyAll
         assertEditorState(st, "step2")
 
