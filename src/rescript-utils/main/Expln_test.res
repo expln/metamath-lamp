@@ -65,3 +65,6 @@ let assertEqNumMsg = (actual: float, expected: float, precision: float, msg:stri
 
 let fail = () => exn("Test failed.")
 let failMsg = str => exn("Test failed: " ++ str)
+
+let startProfile: unit => unit = %raw(`() => console.profile()`)
+let stopProfile: unit => unit = %raw(`() => console.profileEnd()`)

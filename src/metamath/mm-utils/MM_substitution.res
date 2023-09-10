@@ -345,15 +345,7 @@ let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:e
                 grp.exprEndIdx = constParts.begins[grp.leftConstPartIdx+1]-1
             }
         })
-        varGroups->Js.Array2.sortInPlaceWith((g1,g2) => {
-            if (g1.numOfVars < g2.numOfVars) {
-                -1
-            } else if (g1.numOfVars == g2.numOfVars) {
-                0
-            } else {
-                1
-            }
-        })->ignore
+        varGroups->Js.Array2.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
     }
 }
 
