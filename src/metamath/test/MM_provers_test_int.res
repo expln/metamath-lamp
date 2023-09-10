@@ -116,7 +116,6 @@ describe("proveSyntaxTypes", _ => {
         log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
 
         //when
-        startProfile()
         let proofTree = proveSyntaxTypes(
             ~wrkCtx=ctx,
             ~frms= prepareFrmSubsData(~ctx, ()),
@@ -135,7 +134,6 @@ describe("proveSyntaxTypes", _ => {
             },
             ()
         )
-        stopProfile()
 
         //then
         let endMs = getCurrMillis()

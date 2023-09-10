@@ -65,12 +65,12 @@ let findAsrtParentsWithoutNewVars = (
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
     ~frameRestrict:frameRestrict,
-):array<exprSrc> => {
+    ~onResult: exprSrc => unit,
+):unit => {
     let exprLen = expr->Js_array2.length
-    let foundParents = []
     tree->ptGetFrms(expr[0])->Js.Array2.forEach(frm => {
-        let frmExpr = frm.frame.asrt
         if (frm.frame->frameIsAllowed(frameRestrict)) {
+            let frmExpr = frm.frame.asrt
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
@@ -113,9 +113,7 @@ let findAsrtParentsWithoutNewVars = (
                             argIdx.contents = argIdx.contents + 1
                         }
                         if (argsAreCorrect.contents) {
-                            foundParents->Js_array2.push( 
-                                Assertion({ args, frame:frm.frame })
-                            )->ignore
+                            onResult( Assertion({ args, frame:frm.frame }) )
                         }
                     }
                     Continue
@@ -123,7 +121,6 @@ let findAsrtParentsWithoutNewVars = (
             )->ignore
         }
     })
-    foundParents
 }
 
 let proveFloating = (
@@ -185,11 +182,12 @@ let proveFloating = (
                             | Some(parent) => curNode->pnAddParent(parent, false, false)
                             | None => {
                                 findAsrtParentsWithoutNewVars(
-                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict
-                                )->Js.Array2.forEach(parent => {
-                                    curNode->pnAddParent(parent, false, false)
-                                    saveArgs(parent)
-                                })
+                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict,
+                                    ~onResult = parent => {
+                                        curNode->pnAddParent(parent, false, false)
+                                        saveArgs(parent)
+                                    }
+                                )
                             }
                         }
                     }
