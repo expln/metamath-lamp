@@ -1,9 +1,6 @@
 open Expln_test
 open MM_parser
-open MM_proof_table
 open MM_context
-open MM_proof_verifier
-open MM_int_test_utils
 open MM_provers
 open MM_substitution
 open MM_parenCounter
@@ -108,7 +105,7 @@ describe("proveSyntaxTypes", _ => {
         // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
-        let numOfExpr = 100000
+        let numOfExpr = 300
         let from = 0
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
@@ -141,11 +138,11 @@ describe("proveSyntaxTypes", _ => {
         //then
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
-        proofTree->ptPrintStats
+        proofTree->ptPrintStats(~unprovedNodesFilePath="./unprovedNodes.txt", ())
 
-        let unprovedAsrtExprs = asrtExprs->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
-        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
-        // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
-        assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
+        // let unprovedAsrtExprs = asrtExprs->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
+        // // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
+        // assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
     })
 })

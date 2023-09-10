@@ -77,4 +77,8 @@ let pnGetDbg: proofNode => option<proofNodeDbg>
 
 let jstfEqSrc: (array<expr>, string, exprSrc) => bool
 
-let ptPrintStats: proofTree => unit
+let ptPrintStats: (
+    proofTree,
+    ~unprovedNodesFilePath:string=?,
+    ()
+) => unit
