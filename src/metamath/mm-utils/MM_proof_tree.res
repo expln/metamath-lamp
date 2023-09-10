@@ -101,7 +101,7 @@ let pnSetDist = (node,dist) => node.dist = Some(dist)
 let pnGetDbg = node => node.pnDbg
 
 let emptyFrmArr = []
-let ptGetFrms = (tree,int) => tree.frms->Belt_HashMapInt.get(int)->Belt.Option.getWithDefault(emptyFrmArr)
+let ptGetFrms = (tree,typ) => tree.frms->Belt_HashMapInt.get(typ)->Belt.Option.getWithDefault(emptyFrmArr)
 let ptGetParenCnt = tree => tree.parenCnt
 let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
 let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_HashSet.has(expr)

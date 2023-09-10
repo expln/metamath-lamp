@@ -22,11 +22,6 @@ describe("proveSyntaxTypes", _ => {
         let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
 
-        // let progressTracker = testProgressTrackerMake(
-        //     ~step=0.01, 
-        //     ~maxCnt = countFrames(ast, ()),
-        // )
-
         let ctx = ast->loadContext(
             ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
             // ~debug=true,

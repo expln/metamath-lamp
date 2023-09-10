@@ -138,8 +138,6 @@ let proveFloating = (
     */
     if (node->pnGetProof->Belt.Option.isNone && !(node->pnIsInvalidFloating)) {
         let nodesToCreateParentsFor = Belt_MutableQueue.make()
-        // let nodesToCreateParentsFor = Belt_MutableStack.make()
-
         let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 16 )
 
         let saveNodeToCreateParentsFor = node => {
@@ -148,10 +146,7 @@ let proveFloating = (
                 | None => {
                     if (!(savedNodes->Belt_HashSet.has(node->pnGetExpr))) {
                         savedNodes->Belt_HashSet.add(node->pnGetExpr)
-
                         nodesToCreateParentsFor->Belt_MutableQueue.add(node)
-                        // nodesToCreateParentsFor->Belt_MutableStack.push(node)
-
                     }
                 }
             }
@@ -168,11 +163,7 @@ let proveFloating = (
         saveNodeToCreateParentsFor(rootNode)
 
         while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
-        // while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableStack.isEmpty)) {
-
             let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
-            // let curNode = nodesToCreateParentsFor->Belt_MutableStack.pop->Belt_Option.getExn
-
             if (curNode->pnGetProof->Belt.Option.isNone) {
                 switch curNode->pnGetFParents {
                     | Some(fParents) => fParents->Js_array2.forEach(saveArgs)
