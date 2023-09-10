@@ -138,7 +138,7 @@ describe("proveSyntaxTypes", _ => {
         //then
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
-        proofTree->ptPrintStats(~unprovedNodesFilePath="./unprovedNodes.txt", ())
+        proofTree->ptPrintStats->ignore
 
         let unprovedAsrtExprs = asrtExprs
             ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)

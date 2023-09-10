@@ -361,11 +361,7 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
     }
 }
 
-let ptPrintStats = (
-    tree:proofTree,
-    ~unprovedNodesFilePath:option<string>=?,
-    ()
-) => {
+let ptPrintStats = ( tree:proofTree ):string => {
     let nodes = tree.nodes->Belt_HashMap.toArray->Js.Array2.map(((_,node)) => node)
     let nodeCnt = nodes->Js.Array2.length
     let nodeCntFl = nodeCnt->Belt.Int.toFloat
@@ -375,24 +371,18 @@ let ptPrintStats = (
     let invalidFloatingCnt = nodes->Js.Array2.filter(node => node.isInvalidFloating)->Js.Array2.length
     Js.Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
     switch tree.ptDbg {
-        | None => ()
+        | None => "Debug is off"
         | Some(dbg) => {
-            switch unprovedNodesFilePath {
-                | None => ()
-                | Some(unprovedNodesFilePath) => {
-                    let unprovedNodes = nodes
-                        ->Js.Array2.filter(node => 
-                            node.proof->Belt_Option.isNone 
-                        && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
-                        )
-                    unprovedNodes->Js.Array2.sortInPlaceWith((a,b) => 
-                        a.expr->Js_array2.length - b.expr->Js_array2.length
-                    )->ignore
-                    let unprovedExprs = unprovedNodes->Js.Array2.map(node => node.expr)
-                    let unprovedExprStr = unprovedExprs->Js.Array2.map(dbg.exprToStr)->Js.Array2.joinWith("\n")
-                    Expln_utils_files.writeStringToFile(unprovedExprStr, unprovedNodesFilePath)
-                }
-            }
+            let unprovedNodes = nodes
+                ->Js.Array2.filter(node => 
+                    node.proof->Belt_Option.isNone 
+                && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
+                )
+            unprovedNodes->Js.Array2.sortInPlaceWith((a,b) => 
+                a.expr->Js_array2.length - b.expr->Js_array2.length
+            )->ignore
+            let unprovedExprs = unprovedNodes->Js.Array2.map(node => node.expr)
+            unprovedExprs->Js.Array2.map(dbg.exprToStr)->Js.Array2.joinWith("\n")
         }
     }
 }
