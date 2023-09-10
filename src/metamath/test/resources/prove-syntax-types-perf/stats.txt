@@ -1,7 +1,0 @@
-Stack:
-nodeCnt 2445
-provedNodeCnt 336
-
-Queue:
-nodeCnt 2445
-provedNodeCnt 336
