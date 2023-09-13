@@ -101,9 +101,7 @@ type rec mmContextContents = {
     mutable lastComment: option<string>,
     frames: Belt_HashMapString.t<frame>,
     mutable totalNumOfFrames:int,
-    discFrms:Belt_HashSetString.t,
-    deprFrms:Belt_HashSetString.t,
-    tranDeprFrms:Belt_HashSetString.t,
+    deprOrTranDeprFrms:Belt_HashSetString.t,
     debug:bool,
 }
 
@@ -715,9 +713,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
                 | None => 0
                 | Some(parentCtx) => parentCtx.totalNumOfFrames
             },
-            discFrms: Belt_HashSetString.make(~hintSize=1),
-            deprFrms: Belt_HashSetString.make(~hintSize=1),
-            tranDeprFrms: Belt_HashSetString.make(~hintSize=1),
+            deprOrTranDeprFrms: Belt_HashSetString.make(~hintSize=1),
             debug: pCtxContentsOpt->Belt_Option.map(pCtx => pCtx.debug)->Belt.Option.getWithDefault(debug),
         }
     )
@@ -739,9 +735,7 @@ let closeChildContext = (ctx:mmContext):unit => {
         | Some(parent) => {
             parent.totalNumOfFrames = parent.totalNumOfFrames + childCtx.frames->Belt_HashMapString.size
             childCtx.frames->Belt_HashMapString.forEach((k,v) => parent.frames->Belt_HashMapString.set(k,v))
-            childCtx.discFrms->Belt_HashSetString.forEach(parent.discFrms->Belt_HashSetString.add)
-            childCtx.deprFrms->Belt_HashSetString.forEach(parent.deprFrms->Belt_HashSetString.add)
-            childCtx.tranDeprFrms->Belt_HashSetString.forEach(parent.tranDeprFrms->Belt_HashSetString.add)
+            childCtx.deprOrTranDeprFrms->Belt_HashSetString.forEach(parent.deprOrTranDeprFrms->Belt_HashSetString.add)
             parent
         }
     }
@@ -903,16 +897,6 @@ let isMatch = (
         || label->matchesOptRegex(labelRegexToMatch)
 }
 
-let atLeastOneLabelIsDeprOrTranDepr = (
-    ~labels:array<string>,
-    ~deprFrms:Belt_HashSetString.t,
-    ~tranDeprFrms:Belt_HashSetString.t,
-):bool => {
-    labels->Js_array2.some(label => {
-        deprFrms->Belt_HashSetString.has(label) || tranDeprFrms->Belt_HashSetString.has(label)
-    })
-}
-
 let isTranDepr = (
     ~ctx:mmContext,
     ~proof:option<proof>,
@@ -924,9 +908,9 @@ let isTranDepr = (
                 | Uncompressed({labels}) | Compressed({labels}) => {
                     ctx.contents->forEachCtxInDeclarationOrder(ctx => {
                         if (
-                            atLeastOneLabelIsDeprOrTranDepr(
-                                ~labels, ~deprFrms=ctx.deprFrms, ~tranDeprFrms=ctx.tranDeprFrms
-                            )
+                            labels->Js_array2.some(label => {
+                                ctx.deprOrTranDeprFrms->Belt_HashSetString.has(label)
+                            })
                         ) {
                             Some(true)
                         } else {
@@ -1036,14 +1020,8 @@ let addAssertion = (
     )
     currCtx.frames->Belt_HashMapString.set( label, frame )
     currCtx.totalNumOfFrames = currCtx.totalNumOfFrames + 1
-    if (frame.isDisc) {
-        currCtx.discFrms->Belt_HashSetString.add(label)
-    }
-    if (frame.isDepr) {
-        currCtx.deprFrms->Belt_HashSetString.add(label)
-    }
-    if (frame.isTranDepr) {
-        currCtx.tranDeprFrms->Belt_HashSetString.add(label)
+    if (frame.isDepr || frame.isTranDepr) {
+        currCtx.deprOrTranDeprFrms->Belt_HashSetString.add(label)
     }
 }
 
@@ -1307,9 +1285,7 @@ let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, m
                 | None => ctx.frames->Belt_HashMapString.size
                 | Some(parent) => parent.totalNumOfFrames + ctx.frames->Belt_HashMapString.size
             },
-            discFrms:Belt_HashSetString.make(~hintSize=0),
-            deprFrms:Belt_HashSetString.make(~hintSize=0),
-            tranDeprFrms:Belt_HashSetString.make(~hintSize=0),
+            deprOrTranDeprFrms:Belt_HashSetString.make(~hintSize=0),
         }
     }
 
