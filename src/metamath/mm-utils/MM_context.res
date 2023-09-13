@@ -1239,35 +1239,23 @@ let renumberConstsInExpr = (constRenum:Belt_HashMapInt.t<int>, expr:expr):unit =
 
 let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
     let rootCtx = ctx.contents.root->Belt_Option.getExn
-    let constsToMove = constsStr->getSpaceSeparatedValuesAsArray
+    let newConstOrder:array<int> = constsStr->getSpaceSeparatedValuesAsArray
         ->Js_array2.map(ctx->ctxSymToInt)
         ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
         ->Js.Array2.map(Belt_Option.getExn)
-        ->Belt_HashSetInt.fromArray
-    let constsLen = constsToMove->Belt_HashSetInt.size
-
-    let constToMoveFar = ref(-1)
-    let getConstToMoveFar = () => {
-        while (constsToMove->Belt_HashSetInt.has(constToMoveFar.contents)) {
-            constToMoveFar.contents = constToMoveFar.contents - 1
+    for i in -1 downto -(rootCtx.consts->Js_array2.length-1) {
+        if (!(newConstOrder->Js_array2.includes(i))) {
+            newConstOrder->Js_array2.push(i)->ignore
         }
-        let res = constToMoveFar.contents
-        constToMoveFar.contents = constToMoveFar.contents - 1
-        res
     }
-    
-    let constRenum = Belt_HashMapInt.make(~hintSize=constsLen)
-    constsToMove->Belt_HashSetInt.forEach(constToMoveClose => {
-        if (constToMoveClose < -constsLen) {
-            let constToMoveFar = getConstToMoveFar()
-            constRenum->Belt_HashMapInt.set(constToMoveClose, constToMoveFar)
-            constRenum->Belt_HashMapInt.set(constToMoveFar, constToMoveClose)
-            let symTmp = rootCtx.consts[-constToMoveClose]
-            rootCtx.consts[-constToMoveClose] = rootCtx.consts[-constToMoveFar]
-            rootCtx.consts[-constToMoveFar] = symTmp
-            rootCtx.symToInt->Belt_HashMapString.set(rootCtx.consts[-constToMoveClose], constToMoveClose)
-            rootCtx.symToInt->Belt_HashMapString.set(rootCtx.consts[-constToMoveFar], constToMoveFar)
-        }
+    let oldConstOrder:array<string> = rootCtx.consts->Js.Array2.copy
+    let constRenum = Belt_HashMapInt.make(~hintSize=rootCtx.consts->Js.Array2.length)
+    newConstOrder->Js_array2.forEachi((symOldInt,i) => {
+        let sym = oldConstOrder[-symOldInt]
+        let symNewInt = -(i+1)
+        constRenum->Belt_HashMapInt.set(symOldInt, symNewInt)
+        rootCtx.consts[-symNewInt] = sym
+        rootCtx.symToInt->Belt_HashMapString.set(sym, symNewInt)
     })
 
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
