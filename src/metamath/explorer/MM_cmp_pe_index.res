@@ -114,7 +114,11 @@ let make = React.memoCustomCompareProps(({
 
         let preCtx = preCtxData.ctxV.val
         setPreCtxVer(_ => preCtxData.ctxV.ver)
-        let allLabels = preCtx->getAllFrameLabels->Js.Array2.mapi((label,i) => (i+1, label))
+        let allFrames = preCtx->getAllFrames
+        let allLabels = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
+        allFrames->Belt_MapString.forEach((_,frame) => {
+            allLabels[frame.ord] = (frame.ord+1, frame.label)
+        })
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
 
