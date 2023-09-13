@@ -14,7 +14,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
+    let ctx = ctx->ctxOptimizeForProver(~parens, ())
     let expr = ctx->ctxStrToIntsExn(exprStr)
     let frms = prepareFrmSubsData(~ctx, ())
 

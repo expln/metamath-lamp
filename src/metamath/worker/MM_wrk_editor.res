@@ -735,8 +735,10 @@ let updateColorsInAllStmts = st => {
 }
 
 let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
-    let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver
     let settings = preCtxData.settingsV.val
+    let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver(
+        ~parens=settings.parens, ~removeAsrtDescr=true, ~removeProofs=true, ()
+    )
     let parenInts = prepareParenInts(preCtx, settings.parens)
     let numOfParens = parenInts->Js_array2.length / 2
     let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)

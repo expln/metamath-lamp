@@ -86,7 +86,6 @@ let createEditorState = (
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext
     }
-    ctx->moveConstsToBegin(parens)
     
     let st = createInitialEditorState(
         ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx), ()),

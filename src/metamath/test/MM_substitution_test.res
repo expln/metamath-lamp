@@ -9,9 +9,9 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
-    let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
     ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->Js_string2.split(" ")}), ())
+    let parens = "( ) { } [ ]"
+    let ctx = ctx->ctxOptimizeForProver(~parens, ())
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateConstParts.")
@@ -32,9 +32,9 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
-    let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
     ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}), ())
+    let parens = "( ) { } [ ]"
+    let ctx = ctx->ctxOptimizeForProver(~parens, ())
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateSubstitutions.")

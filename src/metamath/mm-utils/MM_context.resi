@@ -70,7 +70,13 @@ let loadContext: (
     ~debug:bool=?, 
     ()
 ) => mmContext
-let ctxOptimizeForProver: mmContext => mmContext
+let ctxOptimizeForProver: (
+    mmContext,
+    ~parens:string,
+    ~removeAsrtDescr:bool=?,
+    ~removeProofs:bool=?,
+    ()
+) => mmContext
 
 let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool
@@ -127,8 +133,6 @@ let createFrame: (
     ~labelRegexToDepr:Js_re.t=?,
     ()
 ) => frame
-
-let moveConstsToBegin: (mmContext, string) => unit
 
 let generateNewVarNames: ( 
     ~ctx: mmContext, 

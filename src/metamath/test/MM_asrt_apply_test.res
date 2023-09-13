@@ -263,9 +263,9 @@ let testApplyAssertions = (
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
-    let parens = "( ) { } [ ]"
-    preCtx->moveConstsToBegin(parens)
     additionalStatements->Js_array2.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
+    let parens = "( ) { } [ ]"
+    let preCtx = preCtx->ctxOptimizeForProver(~parens, ())
     let workCtx = createContext(~parent=preCtx, ())
     let frms = prepareFrmSubsData(~ctx=workCtx, ())->Belt_MapString.toArray->Js.Array2.map(((_,frm)) => frm)
     let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())

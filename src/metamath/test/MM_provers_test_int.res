@@ -30,7 +30,7 @@ describe("proveSyntaxTypes", _ => {
             ()
         )
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b"
-        ctx->moveConstsToBegin(parens)
+        let ctx = ctx->ctxOptimizeForProver(~parens, ())
         ctx->openChildContext
         let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
 

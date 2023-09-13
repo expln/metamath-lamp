@@ -80,8 +80,9 @@ let preCtxDataUpdate = (
         ((srcs,ctx)) => (srcs, preCtxData.ctxV->versionSet(ctx))
     )
 
-    ctxV.val->moveConstsToBegin(settingsV.val.parens)
-    let ctxV = ctxV->versionSet(ctxV.val)
+    let ctxV = ctxV->versionSet(
+        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
+    )
     let frms = prepareFrmSubsData(
         ~ctx=ctxV.val, ()
     )

@@ -1216,12 +1216,9 @@ let renumberConstsInExpr = (constRenum:Belt_HashMapInt.t<int>, expr:expr):unit =
     }
 }
 
-let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
+let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
     let rootCtx = ctx.contents.root->Belt_Option.getExn
-    let newConstOrder:array<int> = constsStr->getSpaceSeparatedValuesAsArray
-        ->Js_array2.map(ctx->ctxSymToInt)
-        ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
-        ->Js.Array2.map(Belt_Option.getExn)
+    let newConstOrder:array<int> = firstConsts->Js_array2.copy
     for i in -1 downto -(rootCtx.consts->Js_array2.length-1) {
         if (!(newConstOrder->Js_array2.includes(i))) {
             newConstOrder->Js_array2.push(i)->ignore
@@ -1262,23 +1259,31 @@ let moveConstsToBegin = (ctx:mmContext, constsStr:string):unit => {
     })->ignore
 }
 
-let frameOptimizeForProver = (frame:frame):frame => {
+let frameOptimizeForProver = (
+    frame:frame,
+    ~removeAsrtDescr:bool,
+    ~removeProofs:bool,
+):frame => {
     {
         ...frame,
-        descr:None,
-        proof:None,
+        descr: if (removeAsrtDescr) {None} else {frame.descr},
+        proof: if (removeProofs) {None} else {frame.proof},
     }
 }
 
-let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, mmContextContents) => {
+let rec ctxOptimizeForProverPriv = (
+    ctx:mmContextContents,
+    ~removeAsrtDescr:bool,
+    ~removeProofs:bool,
+):(mmContextContents, mmContextContents) => {
     let removeRedundantData = ctx => {
         {
             ...ctx,
-            lastComment: None,
+            lastComment: if (removeAsrtDescr) {None} else {ctx.lastComment},
             frames: ctx.frames->Belt_HashMapString.toArray->Js_array2.map(((label,frame)) => {
                 (
                     label,
-                    frame->frameOptimizeForProver
+                    frame->frameOptimizeForProver(~removeAsrtDescr, ~removeProofs)
                 )
             })->Belt_HashMapString.fromArray,
             totalNumOfFrames: switch ctx.parent {
@@ -1296,7 +1301,7 @@ let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, m
             (res, res)
         }
         | Some(parent) => {
-            let (newRoot, newParent) = ctxOptimizeForProverPriv(parent)
+            let (newRoot, newParent) = ctxOptimizeForProverPriv(parent, ~removeAsrtDescr, ~removeProofs)
             let res = {
                 ...removeRedundantData(ctx),
                 root: Some(newRoot),
@@ -1307,7 +1312,19 @@ let rec ctxOptimizeForProverPriv = (ctx:mmContextContents):(mmContextContents, m
     }
 }
 
-let ctxOptimizeForProver = (ctx:mmContext):mmContext => {
-    let (_,res) = ctx.contents->ctxOptimizeForProverPriv
-    ref(res)
+let ctxOptimizeForProver = (
+    ctx:mmContext,
+    ~parens:string,
+    ~removeAsrtDescr:bool=true,
+    ~removeProofs:bool=true,
+    ()
+):mmContext => {
+    let (_,optimizedCtx) = ctx.contents->ctxOptimizeForProverPriv( ~removeAsrtDescr, ~removeProofs, )
+    let ctx = ref(optimizedCtx)
+    let parenInts = parens->getSpaceSeparatedValuesAsArray
+        ->Js_array2.map(ctx->ctxSymToInt)
+        ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
+        ->Js.Array2.map(Belt_Option.getExn)
+    moveConstsToBegin(ctx, parenInts)
+    ctx
 }
