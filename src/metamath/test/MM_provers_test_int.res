@@ -111,11 +111,32 @@ describe("proveSyntaxTypes", _ => {
         let frms= prepareFrmSubsData(~ctx, ())
         let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
 
+        let allConsts = Belt_HashSetInt.make(~hintSize=1000)
+        let firstConsts = Belt_HashSetInt.make(~hintSize=1000)
+        let lastConsts = Belt_HashSetInt.make(~hintSize=1000)
         let totalSize =exprsToSyntaxProve->Js_array2.reduce(
-            (size,expr) => size + expr->Js_array2.length,
+            (size,expr) => {
+                expr->Js_array2.forEach(allConsts->Belt_HashSetInt.add)
+                firstConsts->Belt_HashSetInt.add(expr[0])
+                let len = expr->Js_array2.length
+                if (len > 2) {
+                    lastConsts->Belt_HashSetInt.add(expr[len-1])
+                }
+                size + len
+            },
             0
         )
+        let neverFirst = allConsts->Belt_HashSetInt.toArray
+            ->Js.Array2.filter(c => !(firstConsts->Belt_HashSetInt.has(c)))
+            ->Belt_HashSetInt.fromArray
+        let neverLast = allConsts->Belt_HashSetInt.toArray
+            ->Js.Array2.filter(c => !(lastConsts->Belt_HashSetInt.has(c)))
+            ->Belt_HashSetInt.fromArray
         Js.Console.log2(`totalSize`, totalSize)
+        Js.Console.log2(`firstConsts\n`, ctx->ctxIntsToStrExn(firstConsts->Belt_HashSetInt.toArray))
+        Js.Console.log2(`neverFirst\n`, ctx->ctxIntsToStrExn(neverFirst->Belt_HashSetInt.toArray))
+        Js.Console.log2(`lastConsts\n`, ctx->ctxIntsToStrExn(lastConsts->Belt_HashSetInt.toArray))
+        Js.Console.log2(`neverLast\n`, ctx->ctxIntsToStrExn(neverLast->Belt_HashSetInt.toArray))
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
@@ -123,17 +144,17 @@ describe("proveSyntaxTypes", _ => {
 
         //when
         // let batchSize = 3000
-        let batchSize = totalSize / 10
-        let i = ref(0)
-        while (i.contents < exprsToSyntaxProve->Js_array2.length) {
-            let batch = []
-            let sumLen = ref(0)
-            while (sumLen.contents < batchSize && i.contents < exprsToSyntaxProve->Js_array2.length) {
-                let expr = exprsToSyntaxProve[i.contents]
-                batch->Js.Array2.push(expr)->ignore
-                sumLen := sumLen.contents + expr->Js_array2.length
-                i := i.contents + 1
-            }
+        // let batchSize = totalSize / 10
+        // let i = ref(0)
+        // while (i.contents < exprsToSyntaxProve->Js_array2.length) {
+        //     let batch = []
+        //     let sumLen = ref(0)
+        //     while (sumLen.contents < batchSize && i.contents < exprsToSyntaxProve->Js_array2.length) {
+        //         let expr = exprsToSyntaxProve[i.contents]
+        //         batch->Js.Array2.push(expr)->ignore
+        //         sumLen := sumLen.contents + expr->Js_array2.length
+        //         i := i.contents + 1
+        //     }
             let proofTree = proveSyntaxTypes(
                 ~wrkCtx=ctx,
                 ~frms,
@@ -144,7 +165,8 @@ describe("proveSyntaxTypes", _ => {
                 },
                 ~parenCnt,
                 // ~exprs=exprsToSyntaxProve->Js_array2.slice(~start=i.contents, ~end_=i.contents+batchSize),
-                ~exprs=batch,
+                // ~exprs=batch,
+                ~exprs=exprsToSyntaxProve->Js_array2.slice(~start=0, ~end_=1),
                 ~syntaxTypes,
                 ~onProgress=pct=>{
                     let currMs = getCurrMillis()
@@ -152,9 +174,9 @@ describe("proveSyntaxTypes", _ => {
                     lastPct := currMs
                 },
                 ()
-            )->ignore
+            )
             // i := i.contents + batchSize
-        }
+        // }
 
         //then
         let endMs = getCurrMillis()
@@ -166,7 +188,7 @@ describe("proveSyntaxTypes", _ => {
         //     ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
         // assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 
-        // // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
-        // // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
+        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
     })
 })
