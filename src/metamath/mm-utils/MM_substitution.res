@@ -197,38 +197,44 @@ let rec iterateConstParts = (
     if (exprLen < frmExprLen) {
         Continue
     } else if (idxToMatch == frmConstParts.length) {
-        if (frmConstParts.length > 0 && constParts.ends[idxToMatch-1] != exprLen-1) {
-            if (frmConstParts.ends[idxToMatch-1] == frmExprLen-1) {
-                Continue
-            } else {
-                let frmRemainingGapLength = lengthOfGap2(idxToMatch-1, frmConstParts, frmExprLen)
-                let remainingGapLength = lengthOfGap2(idxToMatch-1, constParts, exprLen)
-                if (remainingGapLength < frmRemainingGapLength) {
+        if (frmConstParts.length > 0) {
+            if (constParts.ends[idxToMatch-1] != exprLen-1) {
+                if (frmConstParts.ends[idxToMatch-1] == frmExprLen-1) {
                     Continue
                 } else {
-                    if (
-                        !(parenCnt->parenCntCanBeFirst(expr[constParts.ends[idxToMatch-1]+1]))
-                        || !(parenCnt->parenCntCanBeLast(expr[exprLen-1]))
-                    ) {
+                    let frmRemainingGapLength = lengthOfGap2(idxToMatch-1, frmConstParts, frmExprLen)
+                    let remainingGapLength = lengthOfGap2(idxToMatch-1, constParts, exprLen)
+                    if (remainingGapLength < frmRemainingGapLength) {
                         Continue
                     } else {
-                        parenCnt->parenCntReset
-                        let pState = ref(Balanced)
-                        let i = ref(constParts.ends[idxToMatch-1]+1)
-                        while (i.contents < exprLen && pState.contents != Failed) {
-                            pState.contents = parenCnt->parenCntPut(expr[i.contents])
-                            i.contents = i.contents + 1
-                        }
-                        if (pState.contents == Balanced) {
-                            consumer(constParts)
-                        } else {
+                        if (
+                            !(parenCnt->parenCntCanBeFirst(expr[constParts.ends[idxToMatch-1]+1]))
+                            || !(parenCnt->parenCntCanBeLast(expr[exprLen-1]))
+                        ) {
                             Continue
+                        } else {
+                            parenCnt->parenCntReset
+                            let pState = ref(Balanced)
+                            let i = ref(constParts.ends[idxToMatch-1]+1)
+                            while (i.contents < exprLen && pState.contents != Failed) {
+                                pState.contents = parenCnt->parenCntPut(expr[i.contents])
+                                i.contents = i.contents + 1
+                            }
+                            if (pState.contents == Balanced) {
+                                consumer(constParts)
+                            } else {
+                                Continue
+                            }
                         }
                     }
                 }
+            } else {
+                consumer(constParts)
             }
-        } else {
+        } else if (parenCnt->parenCntCanBeFirst(expr[0]) && parenCnt->parenCntCanBeLast(expr[exprLen-1])) {
             consumer(constParts)
+        } else {
+            Continue
         }
     } else if (idxToMatch == 0 && frmConstParts.begins[0] == 0) {
         if (exprLen-1 < frmConstParts.ends[0]) {
@@ -246,9 +252,13 @@ let rec iterateConstParts = (
             switch res.contents {
                 | Some(instr) => instr
                 | None => {
-                    constParts.begins[0] = 0
-                    constParts.ends[0] = maxI
-                    invokeNext()
+                    if (maxI == exprLen-1 || parenCnt->parenCntCanBeFirst(expr[maxI+1])) {
+                        constParts.begins[0] = 0
+                        constParts.ends[0] = maxI
+                        invokeNext()
+                    } else {
+                        Continue
+                    }
                 }
             }
         }
