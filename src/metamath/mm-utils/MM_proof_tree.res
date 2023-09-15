@@ -376,7 +376,7 @@ let ptPrintStats = ( tree:proofTree ):string => {
             let unprovedNodes = nodes
                 ->Js.Array2.filter(node => 
                     node.proof->Belt_Option.isNone 
-                    && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
+                    // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
                 )
             unprovedNodes->Js.Array2.sortInPlaceWith((a,b) => 
                 a.expr->Js_array2.length - b.expr->Js_array2.length

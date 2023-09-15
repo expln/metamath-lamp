@@ -1325,6 +1325,10 @@ let rec ctxRemoveRedundantText = (
     }
 }
 
+let sortBySym = (ctx:mmContext, expr:array<int>):array<int> => {
+    ctx->ctxIntsToSymsExn(expr)->Js.Array2.sortInPlace->ctxSymsToIntsExn(ctx, _)
+}
+
 let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConstsOrder => {
     let allConsts = Belt_HashSetInt.fromArray( ctx->ctxSymsToIntsExn( ctx->getAllConsts ) )
     let numOfConsts = allConsts->Belt_HashSetInt.size
@@ -1367,10 +1371,10 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
 
     let newConstsOrder = Belt_Array.concatMany([
         parenInts,
-        canBeFirst->Belt_HashSetInt.toArray,
-        canBeFirstAndLast->Belt_HashSetInt.toArray,
-        canBeLast->Belt_HashSetInt.toArray,
-        remainingConsts->Belt_HashSetInt.toArray,
+        canBeFirst->Belt_HashSetInt.toArray->sortBySym(ctx,_),
+        canBeFirstAndLast->Belt_HashSetInt.toArray->sortBySym(ctx,_),
+        canBeLast->Belt_HashSetInt.toArray->sortBySym(ctx,_),
+        remainingConsts->Belt_HashSetInt.toArray->sortBySym(ctx,_),
     ])
 
     let parenMin = -(parenInts->Js.Array2.length)
