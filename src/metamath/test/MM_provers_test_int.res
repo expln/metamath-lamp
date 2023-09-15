@@ -3,7 +3,6 @@ open MM_parser
 open MM_context
 open MM_provers
 open MM_substitution
-open MM_parenCounter
 open Common
 open MM_proof_tree
 open Expln_utils_common
@@ -103,7 +102,7 @@ describe("proveSyntaxTypes", _ => {
         // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
-        let numOfExpr = 100000
+        let numOfExpr = asrtExprs->Js.Array2.length
         let from = 0
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
@@ -133,10 +132,10 @@ describe("proveSyntaxTypes", _ => {
             ->Js.Array2.filter(c => !(lastConsts->Belt_HashSetInt.has(c)))
             ->Belt_HashSetInt.fromArray
         Js.Console.log2(`totalSize`, totalSize)
-        Js.Console.log2(`firstConsts\n`, ctx->ctxIntsToStrExn(firstConsts->Belt_HashSetInt.toArray))
-        Js.Console.log2(`neverFirst\n`, ctx->ctxIntsToStrExn(neverFirst->Belt_HashSetInt.toArray))
-        Js.Console.log2(`lastConsts\n`, ctx->ctxIntsToStrExn(lastConsts->Belt_HashSetInt.toArray))
-        Js.Console.log2(`neverLast\n`, ctx->ctxIntsToStrExn(neverLast->Belt_HashSetInt.toArray))
+        // Js.Console.log2(`firstConsts\n`, ctx->ctxIntsToStrExn(firstConsts->Belt_HashSetInt.toArray))
+        // Js.Console.log2(`neverFirst\n`, ctx->ctxIntsToStrExn(neverFirst->Belt_HashSetInt.toArray))
+        // Js.Console.log2(`lastConsts\n`, ctx->ctxIntsToStrExn(lastConsts->Belt_HashSetInt.toArray))
+        // Js.Console.log2(`neverLast\n`, ctx->ctxIntsToStrExn(neverLast->Belt_HashSetInt.toArray))
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
@@ -159,14 +158,14 @@ describe("proveSyntaxTypes", _ => {
                 ~wrkCtx=ctx,
                 ~frms,
                 ~frameRestrict={
-                    useDisc:false,
+                    useDisc:true,
                     useDepr:true,
                     useTranDepr:true,
                 },
                 ~parenCnt,
                 // ~exprs=exprsToSyntaxProve->Js_array2.slice(~start=i.contents, ~end_=i.contents+batchSize),
                 // ~exprs=batch,
-                ~exprs=exprsToSyntaxProve->Js_array2.slice(~start=0, ~end_=1),
+                ~exprs=exprsToSyntaxProve,
                 ~syntaxTypes,
                 ~onProgress=pct=>{
                     let currMs = getCurrMillis()
@@ -184,9 +183,9 @@ describe("proveSyntaxTypes", _ => {
 
         // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
-        // let unprovedAsrtExprs = asrtExprs
-        //     ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
-        // assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
+        let unprovedAsrtExprs = asrtExprs
+            ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
+        assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 
         // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")

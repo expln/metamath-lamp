@@ -206,17 +206,24 @@ let rec iterateConstParts = (
                 if (remainingGapLength < frmRemainingGapLength) {
                     Continue
                 } else {
-                    parenCnt->parenCntReset
-                    let pState = ref(Balanced)
-                    let i = ref(constParts.ends[idxToMatch-1]+1)
-                    while (i.contents < exprLen && pState.contents != Failed) {
-                        pState.contents = parenCnt->parenCntPut(expr[i.contents])
-                        i.contents = i.contents + 1
-                    }
-                    if (pState.contents == Balanced) {
-                        consumer(constParts)
-                    } else {
+                    if (
+                        false /* !(parenCnt->parenCntCanBeFirst(expr[constParts.ends[idxToMatch-1]+1]))
+                        || !(parenCnt->parenCntCanBeLast(expr[exprLen-1])) */
+                    ) {
                         Continue
+                    } else {
+                        parenCnt->parenCntReset
+                        let pState = ref(Balanced)
+                        let i = ref(constParts.ends[idxToMatch-1]+1)
+                        while (i.contents < exprLen && pState.contents != Failed) {
+                            pState.contents = parenCnt->parenCntPut(expr[i.contents])
+                            i.contents = i.contents + 1
+                        }
+                        if (pState.contents == Balanced) {
+                            consumer(constParts)
+                        } else {
+                            Continue
+                        }
                     }
                 }
             }
@@ -265,9 +272,14 @@ let rec iterateConstParts = (
                     cmpRes.contents = frmExpr[frmConstParts.begins[idxToMatch]+matchedLen.contents] == expr[begin.contents+matchedLen.contents]
                     matchedLen.contents = matchedLen.contents + 1
                 }
-                if (matchedLen.contents == partLen && cmpRes.contents) {
+                let end = begin.contents+partLen-1
+                if (
+                    matchedLen.contents == partLen && cmpRes.contents
+                    /* && parenCnt->parenCntCanBeLast(expr[begin.contents-1])
+                    && (end == exprLen-1 || parenCnt->parenCntCanBeFirst(expr[end+1])) */
+                ) {
                     constParts.begins[idxToMatch] = begin.contents
-                    constParts.ends[idxToMatch] = begin.contents+partLen-1
+                    constParts.ends[idxToMatch] = end
                     instr.contents = invokeNext()
                     parenCnt->parenCntReset
                 }

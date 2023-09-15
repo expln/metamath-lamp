@@ -872,5 +872,5 @@ let makeParenCnt = (
         raise(MmException({msg:`allConsts.remaining != allConstsActual.remaining`}))
     }
 
-    parenCntMake(~parenMin)
+    parenCntMake(~parenMin, ~canBeFirstMin, ~canBeFirstMax, ~canBeLastMin, ~canBeLastMax, )
 }

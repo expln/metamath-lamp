@@ -14,7 +14,6 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
     let ctx = ctx->ctxOptimizeForProver(~parens, ())
-    let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let expr = ctx->ctxStrToIntsExn(exprStr)
     let frms = prepareFrmSubsData(~ctx, ())
 

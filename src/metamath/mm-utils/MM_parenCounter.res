@@ -3,10 +3,14 @@ open MM_parser
 type state = Balanced | Opened | Failed
 
 type parenCnt = {
-    parenMin:int,
     stack: array<int>,
     mutable len:int,
-    mutable failed: bool
+    mutable failed: bool,
+    parenMin:int,
+    canBeFirstMin:int,
+    canBeFirstMax:int,
+    canBeLastMin:int,
+    canBeLastMax:int,
 }
 
 let parenCntStackPush = (cnt:parenCnt, i:int):unit => {
@@ -21,15 +25,23 @@ let parenCntStackPush = (cnt:parenCnt, i:int):unit => {
 
 let parenCntMake = (
     ~parenMin:int,
+    ~canBeFirstMin:int,
+    ~canBeFirstMax:int,
+    ~canBeLastMin:int,
+    ~canBeLastMax:int,
 ):parenCnt => {
     if (mod(parenMin, 2)  != 0) {
         raise(MmException({msg:`mod(parenMin, 2)  != 0 in parenCntMake`}))
     } else {
         {
-            parenMin,
             stack: Expln_utils_common.createArray(1000),
             len:0,
             failed: false,
+            parenMin,
+            canBeFirstMin,
+            canBeFirstMax,
+            canBeLastMin,
+            canBeLastMax,
         }
     }
 }
@@ -65,4 +77,16 @@ let parenCntPut = (cnt:parenCnt, i:int):state => {
             Opened
         }
     }
+}
+
+let parenCntCanBeFirst = (cnt:parenCnt, i:int):bool => {
+    0 <= i /* is not a constant */
+    || (cnt.parenMin < i && mod(i,2) == -1) /* is open paren */
+    || (cnt.canBeFirstMin <= i && i <= cnt.canBeFirstMax)
+}
+
+let parenCntCanBeLast = (cnt:parenCnt, i:int):bool => {
+    0 <= i /* is not a constant */
+    || (cnt.parenMin <= i && mod(i,2) == 0) /* is close paren */
+    || (cnt.canBeFirstMin <= i && i <= cnt.canBeFirstMax)
 }
