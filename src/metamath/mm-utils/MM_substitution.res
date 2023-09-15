@@ -411,7 +411,7 @@ let rec iterateVarGroups = (
         if (curVarIdx == grp.numOfVars-1) {
             subs.ends[frmVar] = grp.exprEndIdx
             continueInstr.contents = invokeNext(maxSubExprLength)
-        } else {
+        } else if (parenCnt->parenCntCanBeFirst(expr[subExprBeginIdx])) {
             let subExprLength = ref(1)
             let end = ref(subExprBeginIdx)
             parenCnt->parenCntReset
@@ -419,7 +419,7 @@ let rec iterateVarGroups = (
             while (subExprLength.contents <= maxSubExprLength && continueInstr.contents == Continue && pStatus.contents != Failed) {
                 subs.ends[frmVar] = end.contents
                 pStatus.contents = parenCnt->parenCntPut(expr[end.contents])
-                if (pStatus.contents == Balanced) {
+                if (pStatus.contents == Balanced && parenCnt->parenCntCanBeLast(expr[end.contents])) {
                     continueInstr.contents = invokeNext(subExprLength.contents)
                     parenCnt->parenCntReset
                 }
