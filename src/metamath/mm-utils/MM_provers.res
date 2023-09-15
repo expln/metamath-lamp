@@ -824,3 +824,53 @@ let unifyAll = (
 
     tree
 }
+
+let getOrderedSubarray = (arr:array<string>, start:int, end:int):array<string> => {
+    arr->Js.Array2.slice(~start, ~end_=end)->Js.Array2.sortInPlace
+}
+
+let compareUnorderedSubArrays = (arr1:array<string>, arr2:array<string>, start:int, end:int):bool => {
+    arr1->getOrderedSubarray(start, end) == arr2->getOrderedSubarray(start, end)
+}
+
+let makeParenCnt = (
+    ~ctx:mmContext,
+    ~parens:string,
+):parenCnt => {
+    let {
+        allConsts,
+        parenMin,
+        canBeFirstMin,
+        canBeFirstMax,
+        canBeLastMin,
+        canBeLastMax,
+    } = ctx->ctxGetOptimizedConstsOrder(~parens)
+    let allConstsActual = ctx->getAllConsts
+    if (allConsts->Js.Array2.length != allConstsActual->Js.Array2.length) {
+        raise(MmException({msg:`allConsts.length != allConstsActual.length`}))
+    }
+    if (parenMin < 0) {
+        if (
+            allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin) 
+            != 
+            allConstsActual->Js.Array2.slice(~start=0, ~end_=-parenMin)
+        ) {
+            raise(MmException({msg:`allConsts.parens != allConstsActual.parens`}))
+        }
+    }
+    if (canBeFirstMin <= canBeFirstMax) {
+        if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeFirstMax-1), -canBeFirstMin)) {
+            raise(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
+        }
+    }
+    if (canBeLastMin <= canBeLastMax) {
+        if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeLastMax-1), -canBeLastMin)) {
+            raise(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))
+        }
+    }
+    if (!compareUnorderedSubArrays(allConsts, allConstsActual, 0, allConsts->Js_array2.length)) {
+        raise(MmException({msg:`allConsts.remaining != allConstsActual.remaining`}))
+    }
+
+    parenCntMake(~parenMin)
+}

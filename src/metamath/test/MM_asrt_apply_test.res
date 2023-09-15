@@ -265,10 +265,10 @@ let testApplyAssertions = (
     let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
     additionalStatements->Js_array2.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
     let parens = "( ) { } [ ]"
-    let preCtx = preCtx->ctxOptimizeForProver(~parens, ())
     let workCtx = createContext(~parent=preCtx, ())
+    let workCtx = workCtx->ctxOptimizeForProver(~parens, ())
     let frms = prepareFrmSubsData(~ctx=workCtx, ())->Belt_MapString.toArray->Js.Array2.map(((_,frm)) => frm)
-    let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
     let stmtsForAppl = statements->Js_array2.map(((_,exprStr)) => ctxStrToIntsExn(workCtx,exprStr))

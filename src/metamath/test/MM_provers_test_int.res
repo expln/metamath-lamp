@@ -109,7 +109,7 @@ describe("proveSyntaxTypes", _ => {
         let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
             ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1))
         let frms= prepareFrmSubsData(~ctx, ())
-        let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
+        let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
 
         let allConsts = Belt_HashSetInt.make(~hintSize=1000)
         let firstConsts = Belt_HashSetInt.make(~hintSize=1000)

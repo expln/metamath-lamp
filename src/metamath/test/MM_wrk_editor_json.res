@@ -60,7 +60,7 @@ let createInitialEditorState = (
         preCtxV:preCtxData.ctxV.ver,
         preCtx:preCtxData.ctxV.val,
         frms: Belt_MapString.empty,
-        parenCnt: parenCntMake([], ()),
+        parenCnt: parenCntMake(~parenMin=0),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
         allTypes: [],
         syntaxTypes: [],

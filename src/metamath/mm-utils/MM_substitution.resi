@@ -75,5 +75,5 @@ let verifyDisjoints: (
 
 //------------------------- TEST ---------------------------
 
-let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => (array<(int,int)>, array<array<(int,int)>>)
-let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => array<array<expr>>
+let test_iterateConstParts: (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt) => (array<(int,int)>, array<array<(int,int)>>)
+let test_iterateSubstitutions: (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt) => array<array<expr>>

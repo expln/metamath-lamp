@@ -42,6 +42,15 @@ type frame = {
     dbg: option<frameDbg>,
 }
 
+type optimizedConstsOrder = {
+    allConsts:array<string>,
+    parenMin:int,
+    canBeFirstMin:int,
+    canBeFirstMax:int,
+    canBeLastMin:int,
+    canBeLastMax:int,
+}
+
 let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
 let applySingleStmt: (
     mmContext, 
@@ -70,7 +79,8 @@ let loadContext: (
     ~debug:bool=?, 
     ()
 ) => mmContext
-let ctxOptimizeForProver: (
+
+let ctxOptimizeForProver: ( 
     mmContext,
     ~parens:string,
     ~removeAsrtDescr:bool=?,
@@ -78,12 +88,15 @@ let ctxOptimizeForProver: (
     ()
 ) => mmContext
 
+let ctxGetOptimizedConstsOrder: (mmContext, ~parens:string) => optimizedConstsOrder
+
 let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool
 let isVar: (mmContext,string) => bool
 let isHyp: (mmContext,string) => bool
 let isAsrt: (mmContext,string) => bool
 let isDisj: (mmContext,int,int) => bool
+let getAllConsts: mmContext => array<string>
 let getHypothesis: (mmContext,string) => option<hypothesis>
 let getHypByExpr: (mmContext, expr) => option<hypothesis>
 let getMandHyps: (mmContext, expr) => array<hypothesis>

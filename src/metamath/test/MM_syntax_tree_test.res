@@ -1,7 +1,6 @@
 open Expln_test
 open MM_parser
 open MM_context
-open MM_parenCounter
 open MM_syntax_tree
 open MM_substitution
 open MM_proof_tree_dto
@@ -53,16 +52,17 @@ let buildSyntaxTreeForTest = (
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
-    let parens = "( ) { } [ ]"
     let ctx = ctxUpdate->Belt_Option.map(update => update(ctx))->Belt.Option.getWithDefault(ctx)
+    let parens = "( ) { } [ ]"
     let ctx = ctx->ctxOptimizeForProver(~parens, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let expr = exprStr->Js_array2.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
         ~frameRestrict = { useDisc:true, useDepr:true, useTranDepr:true },
         ~floatingsToProve = expr,
-        ~parenCnt=parenCntMake(ctx->ctxStrToIntsExn(parens), ()),
+        ~parenCnt,
     )
     let proofTreeDto = proofTreeToDto(proofTree, expr)
     let nodes = expr->Js.Array2.map(e => {

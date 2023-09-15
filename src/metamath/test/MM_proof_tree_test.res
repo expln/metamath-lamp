@@ -9,7 +9,7 @@ let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string)
         ~hyps = Belt_MapString.empty,
         ~ctxMaxVar = 0,
         ~disj = disjMake(),
-        ~parenCnt = parenCntMake([], ()),
+        ~parenCnt = parenCntMake(~parenMin=0),
         ~exprToStr = None,
     )
     Assertion({

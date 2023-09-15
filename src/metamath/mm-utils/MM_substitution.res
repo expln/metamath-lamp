@@ -669,11 +669,10 @@ let verifyDisjoints = (
 
 //------------------------- TEST ---------------------------
 
-let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => (array<(int,int)>, array<array<(int,int)>>) = (~ctx,~frmExpr,~expr, ~parens) => {
+let test_iterateConstParts = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):(array<(int,int)>, array<array<(int,int)>>) => {
     let constPartsToArr = (constParts:constParts) => {
         constParts.begins->Js_array2.mapi((b,i)=>(b,constParts.ends[i]))
     }
-    let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
     let frmConstParts = createConstParts(frmExpr)
     let constParts = createMatchingConstParts(frmConstParts)
     let matchingConstParts = []
@@ -697,8 +696,7 @@ let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:
     )
 }
 
-let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => array<array<expr>> = (~ctx, ~frmExpr, ~expr, ~parens) => {
-    let parenCnt = parenCntMake(ctx->ctxStrToIntsExn(parens), ())
+let test_iterateSubstitutions = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):array<array<expr>> => {
     let frmConstParts = createConstParts(frmExpr)
     let constParts = createMatchingConstParts(frmConstParts)
     let varGroups = createVarGroups(~frmExpr, ~frmConstParts)

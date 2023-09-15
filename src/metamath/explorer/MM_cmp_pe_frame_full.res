@@ -6,7 +6,6 @@ open Expln_React_common
 open MM_wrk_pre_ctx_data
 open MM_wrk_editor
 open MM_wrk_LoadCtx
-open MM_wrk_ctx_data
 open MM_parser
 open MM_proof_table
 open MM_substitution
@@ -167,7 +166,7 @@ let createInitialState = (
 ):state => {
     let frmCtx = frmCtx->ctxOptimizeForProver(~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
     let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
-    let parenCnt = parenCntMake(prepareParenInts(frmCtx, settings.parens), ~checkParensOptimized=true, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx=frmCtx, ~parens=settings.parens)
     let (_, syntaxTypes) = findTypes(frmCtx)
 
     let frmIntToCtxInt = (i:int):int => {

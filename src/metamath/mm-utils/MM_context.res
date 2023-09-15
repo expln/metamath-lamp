@@ -107,6 +107,15 @@ type rec mmContextContents = {
 
 type mmContext = ref<mmContextContents>
 
+type optimizedConstsOrder = {
+    allConsts:array<string>,
+    parenMin:int,
+    canBeFirstMin:int,
+    canBeFirstMax:int,
+    canBeLastMin:int,
+    canBeLastMax:int,
+}
+
 let disjAddPair = (disjMap:disjMutable, n, m) => {
     if (n != m) {
         let min = if (n <= m) {n} else {m}
@@ -532,6 +541,10 @@ let extractMandatoryHypotheses = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t
     res
 }
 
+let getAllConsts = (ctx:mmContext):array<string> => {
+    Belt_Option.getExn(ctx.contents.root).consts->Js_array2.sliceFrom(1)
+}
+
 let getMandHyps = (ctx:mmContext, expr:expr):array<hypothesis> => {
     let mandatoryVars = extractMandatoryVariables(ctx, expr, ())
     extractMandatoryHypotheses(ctx, mandatoryVars, ())
@@ -593,7 +606,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
     }
 
     let checkValidParens = (allExprs, openSym, closeSym):bool => {
-        open MM_parenCounter
+        open MM_parenCounter_unoptimized
         let res = ref(true)
         let openUsed = ref(false)
         let closeUsed = ref(false)
@@ -1259,7 +1272,7 @@ let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
     })->ignore
 }
 
-let frameOptimizeForProver = (
+let frameRemoveRedundantText = (
     frame:frame,
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
@@ -1271,7 +1284,7 @@ let frameOptimizeForProver = (
     }
 }
 
-let rec ctxOptimizeForProverPriv = (
+let rec ctxRemoveRedundantText = (
     ctx:mmContextContents,
     ~removeAsrtDescr:bool,
     ~removeProofs:bool,
@@ -1283,7 +1296,7 @@ let rec ctxOptimizeForProverPriv = (
             frames: ctx.frames->Belt_HashMapString.toArray->Js_array2.map(((label,frame)) => {
                 (
                     label,
-                    frame->frameOptimizeForProver(~removeAsrtDescr, ~removeProofs)
+                    frame->frameRemoveRedundantText(~removeAsrtDescr, ~removeProofs)
                 )
             })->Belt_HashMapString.fromArray,
             totalNumOfFrames: switch ctx.parent {
@@ -1301,7 +1314,7 @@ let rec ctxOptimizeForProverPriv = (
             (res, res)
         }
         | Some(parent) => {
-            let (newRoot, newParent) = ctxOptimizeForProverPriv(parent, ~removeAsrtDescr, ~removeProofs)
+            let (newRoot, newParent) = ctxRemoveRedundantText(parent, ~removeAsrtDescr, ~removeProofs)
             let res = {
                 ...removeRedundantData(ctx),
                 root: Some(newRoot),
@@ -1312,19 +1325,85 @@ let rec ctxOptimizeForProverPriv = (
     }
 }
 
-let ctxOptimizeForProver = (
+let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConstsOrder => {
+    let allConsts = Belt_HashSetInt.fromArray( ctx->ctxSymsToIntsExn( ctx->getAllConsts ) )
+    let numOfConsts = allConsts->Belt_HashSetInt.size
+
+    let canBeFirst = Belt_HashSetInt.make(~hintSize=numOfConsts)
+    let canBeLast = Belt_HashSetInt.make(~hintSize=numOfConsts)
+    ctx->forEachFrame(frame => {
+        let first = frame.asrt[1]
+        if (first < 0) {
+            canBeFirst->Belt_HashSetInt.add(first)
+        }
+        let last = frame.asrt[frame.asrt->Js_array2.length-1]
+        if (last < 0) {
+            canBeLast->Belt_HashSetInt.add(last)
+        }
+        None
+    })->ignore
+    let canBeFirstAndLast = canBeFirst->Belt_HashSetInt.toArray
+        ->Js.Array2.filter(canBeLast->Belt_HashSetInt.has)
+        ->Belt_HashSetInt.fromArray
+    canBeFirstAndLast->Belt_HashSetInt.forEach(canBeFirst->Belt_HashSetInt.remove)
+    canBeFirstAndLast->Belt_HashSetInt.forEach(canBeLast->Belt_HashSetInt.remove)
+
+    let parenInts = parens->getSpaceSeparatedValuesAsArray
+        ->Js_array2.map(ctx->ctxSymToInt)
+        ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
+        ->Js.Array2.map(Belt_Option.getExn)
+    parenInts->Js.Array2.forEach(i => {
+        canBeFirst->Belt_HashSetInt.remove(i)
+        canBeFirstAndLast->Belt_HashSetInt.remove(i)
+        canBeLast->Belt_HashSetInt.remove(i)
+    })
+
+    let remainingConsts = allConsts->Belt_HashSetInt.toArray->Js.Array2.filter(i => {
+        !(parenInts->Js.Array2.includes(i))
+        && !(canBeFirst->Belt_HashSetInt.has(i))
+        && !(canBeFirstAndLast->Belt_HashSetInt.has(i))
+        && !(canBeLast->Belt_HashSetInt.has(i))
+    })->Belt_HashSetInt.fromArray
+
+    let newConstsOrder = Belt_Array.concatMany([
+        parenInts,
+        canBeFirst->Belt_HashSetInt.toArray,
+        canBeFirstAndLast->Belt_HashSetInt.toArray,
+        canBeLast->Belt_HashSetInt.toArray,
+        remainingConsts->Belt_HashSetInt.toArray,
+    ])
+
+    let parenMin = -(parenInts->Js.Array2.length)
+
+    let canBeFirstMax = parenMin-1
+    let canBeFirstMin = canBeFirstMax - canBeFirst->Belt_HashSetInt.size + 1
+
+    let canBeFirstAndLastMax = canBeFirstMin-1
+    let canBeFirstAndLastMin = canBeFirstAndLastMax - canBeFirstAndLast->Belt_HashSetInt.size + 1
+
+    let canBeLastMax = canBeFirstAndLastMin-1
+    let canBeLastMin = canBeLastMax - canBeLast->Belt_HashSetInt.size + 1
+
+    {
+        allConsts:ctx->ctxIntsToSymsExn(newConstsOrder),
+        parenMin,
+        canBeFirstMin:canBeFirstAndLastMin,
+        canBeFirstMax:canBeFirstMax,
+        canBeLastMin,
+        canBeLastMax:canBeFirstAndLastMax,
+    }
+}
+
+let ctxOptimizeForProver = ( 
     ctx:mmContext,
     ~parens:string,
     ~removeAsrtDescr:bool=true,
     ~removeProofs:bool=true,
     ()
 ):mmContext => {
-    let (_,optimizedCtx) = ctx.contents->ctxOptimizeForProverPriv( ~removeAsrtDescr, ~removeProofs, )
-    let ctx = ref(optimizedCtx)
-    let parenInts = parens->getSpaceSeparatedValuesAsArray
-        ->Js_array2.map(ctx->ctxSymToInt)
-        ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
-        ->Js.Array2.map(Belt_Option.getExn)
-    moveConstsToBegin(ctx, parenInts)
-    ctx
+    let (_,ctx) = ctx.contents->ctxRemoveRedundantText( ~removeAsrtDescr, ~removeProofs, )
+    let resCtx = ref(ctx)
+    let {allConsts} = resCtx->ctxGetOptimizedConstsOrder(~parens)
+    resCtx->moveConstsToBegin(resCtx->ctxSymsToIntsExn(allConsts))
+    resCtx
 }

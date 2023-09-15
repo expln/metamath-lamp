@@ -1,5 +1,4 @@
 open MM_context
-open MM_wrk_ctx_data
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
@@ -34,7 +33,7 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
         srcs: [],
         ctxV: versionMake(createContext(())),
         frms: Belt_MapString.empty,
-        parenCnt: parenCntMake([], ()),
+        parenCnt: parenCntMake(~parenMin=0),
         allTypes:[],
         syntaxTypes:[],
     }
@@ -86,7 +85,7 @@ let preCtxDataUpdate = (
     let frms = prepareFrmSubsData(
         ~ctx=ctxV.val, ()
     )
-    let parenCnt = parenCntMake(prepareParenInts(ctxV.val, settingsV.val.parens), ~checkParensOptimized=true, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx=ctxV.val, ~parens=settingsV.val.parens)
     let (allTypes, syntaxTypes) = findTypes(ctxV.val)
 
     {

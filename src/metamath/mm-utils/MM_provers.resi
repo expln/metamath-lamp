@@ -68,3 +68,4 @@ let unifyAll: (
     (),
 ) => proofTree
 
+let makeParenCnt: ( ~ctx:mmContext, ~parens:string, ) => parenCnt

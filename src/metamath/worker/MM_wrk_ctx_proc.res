@@ -89,7 +89,7 @@ let frmsCache = cacheMake(
 )
 
 let parenCntCache = cacheMake(
-    ~recalc = ((settings,ctx)) => parenCntMake(prepareParenInts(ctx, settings.parens), ()),
+    ~recalc = ((settings,ctx)) => MM_provers.makeParenCnt(~ctx, ~parens=settings.parens),
     ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
 )
 
