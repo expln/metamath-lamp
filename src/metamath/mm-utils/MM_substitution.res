@@ -207,8 +207,8 @@ let rec iterateConstParts = (
                     Continue
                 } else {
                     if (
-                        false /* !(parenCnt->parenCntCanBeFirst(expr[constParts.ends[idxToMatch-1]+1]))
-                        || !(parenCnt->parenCntCanBeLast(expr[exprLen-1])) */
+                        !(parenCnt->parenCntCanBeFirst(expr[constParts.ends[idxToMatch-1]+1]))
+                        || !(parenCnt->parenCntCanBeLast(expr[exprLen-1]))
                     ) {
                         Continue
                     } else {
@@ -275,8 +275,8 @@ let rec iterateConstParts = (
                 let end = begin.contents+partLen-1
                 if (
                     matchedLen.contents == partLen && cmpRes.contents
-                    /* && parenCnt->parenCntCanBeLast(expr[begin.contents-1])
-                    && (end == exprLen-1 || parenCnt->parenCntCanBeFirst(expr[end+1])) */
+                    && parenCnt->parenCntCanBeLast(expr[begin.contents-1])
+                    && (end == exprLen-1 || parenCnt->parenCntCanBeFirst(expr[end+1]))
                 ) {
                     constParts.begins[idxToMatch] = begin.contents
                     constParts.ends[idxToMatch] = end

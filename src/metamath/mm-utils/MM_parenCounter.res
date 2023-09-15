@@ -88,5 +88,5 @@ let parenCntCanBeFirst = (cnt:parenCnt, i:int):bool => {
 let parenCntCanBeLast = (cnt:parenCnt, i:int):bool => {
     0 <= i /* is not a constant */
     || (cnt.parenMin <= i && mod(i,2) == 0) /* is close paren */
-    || (cnt.canBeFirstMin <= i && i <= cnt.canBeFirstMax)
+    || (cnt.canBeLastMin <= i && i <= cnt.canBeLastMax)
 }
