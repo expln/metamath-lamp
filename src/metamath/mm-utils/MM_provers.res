@@ -123,6 +123,14 @@ let findAsrtParentsWithoutNewVars = (
     })
 }
 
+let isNotInvalidFloating = (src:exprSrc):bool => {
+    switch src {
+        | Assertion({args}) => args->Js.Array2.every(arg => !(arg->pnIsInvalidFloating))
+        | AssertionWithErr(_) => false
+        | VarType | Hypothesis(_) => true
+    }
+}
+
 let proveFloating = (
     ~tree:proofTree, 
     ~node:proofNode,
@@ -138,14 +146,18 @@ let proveFloating = (
     */
     if (node->pnGetProof->Belt.Option.isNone && !(node->pnIsInvalidFloating)) {
         let nodesToCreateParentsFor = Belt_MutableQueue.make()
-        let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 16 )
+        let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 128 )
 
         let saveNodeToCreateParentsFor = node => {
             switch node->pnGetProof {
                 | Some(_) => ()
                 | None => {
-                    if (!(savedNodes->Belt_HashSet.has(node->pnGetExpr))) {
-                        savedNodes->Belt_HashSet.add(node->pnGetExpr)
+                    let expr = node->pnGetExpr
+                    if (savedNodes->Belt_HashSet.has(expr)) {
+                        node->pnIncIsNeededCnt
+                    } else {
+                        node->pnSetIsNeededCnt(1)
+                        savedNodes->Belt_HashSet.add(expr)
                         nodesToCreateParentsFor->Belt_MutableQueue.add(node)
                     }
                 }
@@ -159,31 +171,65 @@ let proveFloating = (
             }
         }
 
+        let getNextNodeToProve = ():option<proofNode> => {
+            let nextNodeRef = ref(nodesToCreateParentsFor->Belt_MutableQueue.pop)
+            while (
+                nextNodeRef.contents->Belt_Option.mapWithDefault(false, nextNode => {
+                    nextNode->pnGetProof->Belt.Option.isSome
+                    || nextNode->pnIsInvalidFloating
+                    || if (nextNode->pnGetIsNeededCnt <= 0) {
+                        savedNodes->Belt_HashSet.remove(nextNode->pnGetExpr)
+                        true
+                    } else {
+                        false
+                    }
+                })
+            ) {
+                nextNodeRef := nodesToCreateParentsFor->Belt_MutableQueue.pop
+            }
+            nextNodeRef.contents
+        }
+
         let rootNode = node
         saveNodeToCreateParentsFor(rootNode)
 
-        while (rootNode->pnGetProof->Belt_Option.isNone && !(nodesToCreateParentsFor->Belt_MutableQueue.isEmpty)) {
-            let curNode = nodesToCreateParentsFor->Belt_MutableQueue.pop->Belt_Option.getExn
-            if (curNode->pnGetProof->Belt.Option.isNone) {
-                switch curNode->pnGetFParents {
-                    | Some(fParents) => fParents->Js_array2.forEach(saveArgs)
-                    | None => {
-                        let curExpr = curNode->pnGetExpr
-                        switch findNonAsrtParent(~tree, ~expr=curExpr) {
-                            | Some(parent) => curNode->pnAddParent(parent, false, false)
-                            | None => {
-                                findAsrtParentsWithoutNewVars(
-                                    ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict,
-                                    ~onResult = parent => {
+        let parentFound = ref(false)
+        let currNodeRef = ref(getNextNodeToProve())
+        while (rootNode->pnGetProof->Belt_Option.isNone && currNodeRef.contents->Belt_Option.isSome) {
+            let curNode = currNodeRef.contents->Belt_Option.getExn
+            switch curNode->pnGetFParents {
+                | Some(fParents) => fParents->Js_array2.forEach(parent => {
+                    if (parent->isNotInvalidFloating) {
+                        saveArgs(parent)
+                    }
+                })
+                | None => {
+                    let curExpr = curNode->pnGetExpr
+                    switch findNonAsrtParent(~tree, ~expr=curExpr) {
+                        | Some(parent) => {
+                            curNode->pnAddParent(parent, false, false)
+                        }
+                        | None => {
+                            parentFound := false
+                            findAsrtParentsWithoutNewVars(
+                                ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict,
+                                ~onResult = parent => {
+                                    if (parent->isNotInvalidFloating) {
                                         curNode->pnAddParent(parent, false, false)
                                         saveArgs(parent)
+                                        parentFound := true
                                     }
-                                )
+                                }
+                            )
+                            if (!parentFound.contents) {
+                                curNode->pnSetInvalidFloating
+                                curNode->pnDecIsNeededCntForSiblingArgs
                             }
                         }
                     }
                 }
             }
+            currNodeRef := getNextNodeToProve()
         }
         if (rootNode->pnGetProof->Belt.Option.isNone) {
             rootNode->pnSetInvalidFloating
