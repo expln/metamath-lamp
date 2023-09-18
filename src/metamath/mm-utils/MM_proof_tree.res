@@ -23,7 +23,8 @@ type proofTreeDbg = {
 }
 
 type rec proofNode = {
-    expr:expr,
+    id: int,
+    expr: expr,
     mutable fParents: option<array<exprSrc>>,
     mutable eParents: array<exprSrc>,
     mutable children: array<proofNode>,
@@ -49,6 +50,7 @@ and proofTree = {
     newVars: Belt_HashSet.t<expr,ExprHash.identity>,
     disj: disjMutable,
     parenCnt:parenCnt,
+    mutable nextNodeId: int,
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
     rootStmts:array<rootStmt>,
     syntaxProofs: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
@@ -74,7 +76,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
                 | Assertion({ args:bArgs, frame:bFrame, }) => {
                     aFrame.label == bFrame.label
                     && aArgs->Js.Array2.length == bArgs->Js.Array2.length
-                    && aArgs->Js.Array2.everyi((aArg,idx) => exprEq(aArg.expr, bArgs[idx].expr))
+                    && aArgs->Js.Array2.everyi((aArg,idx) => aArg.id == bArgs[idx].id)
                 }
                 | _ => false
             }
@@ -91,6 +93,7 @@ let exprSrcIsProved = (exprSrc:exprSrc): bool => {
     }
 }
 
+let pnGetId = node => node.id
 let pnGetExpr = node => node.expr
 let pnGetProof = node => node.proof
 let pnGetFParents = node => node.fParents
@@ -146,6 +149,7 @@ let ptMake = (
         newVars: Belt_HashSet.make(~id=module(ExprHash), ~hintSize=16),
         disj,
         parenCnt,
+        nextNodeId: 0,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=500_000),
         rootStmts: [],
         syntaxProofs: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=50_000),
@@ -171,6 +175,7 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
         | Some(node) => node
         | None => {
             let node = {
+                id: tree.nextNodeId,
                 expr,
                 fParents: None,
                 eParents: [],
@@ -186,6 +191,7 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
                 })
             }
             tree.nodes->Belt_HashMap.set(expr, node)->ignore
+            tree.nextNodeId = tree.nextNodeId + 1
             node
         }
     }
@@ -232,19 +238,19 @@ let pnDecIsNeededCnt = (node:proofNode):unit => {
     }
 }
 
-let pnDecIsNeededCntForFParents = (node:proofNode):unit => {
-    switch node.fParents {
-        | None => ()
-        | Some(parents) => {
-            parents->Js_array2.forEach(parent => {
-                switch parent {
-                    | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
-                    | Assertion({args}) => args->Js_array2.forEach(pnDecIsNeededCnt)
-                }
-            })
-        }
-    }
-}
+// let pnDecIsNeededCntForFParents = (node:proofNode):unit => {
+//     switch node.fParents {
+//         | None => ()
+//         | Some(parents) => {
+//             parents->Js_array2.forEach(parent => {
+//                 switch parent {
+//                     | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
+//                     | Assertion({args}) => args->Js_array2.forEach(pnDecIsNeededCnt)
+//                 }
+//             })
+//         }
+//     }
+// }
 
 let pnMarkProved = ( node:proofNode ):unit => {
     if (node.proof->Belt_Option.isNone) {
@@ -252,7 +258,7 @@ let pnMarkProved = ( node:proofNode ):unit => {
             | None => ()
             | Some(nodeProof) => {
                 node.proof = Some(nodeProof)
-                node->pnDecIsNeededCntForFParents
+                // node->pnDecIsNeededCntForFParents
                 let nodesToMarkProved = node.children->Belt_MutableQueue.fromArray
                 while (!(nodesToMarkProved->Belt_MutableQueue.isEmpty)) {
                     let curNode = nodesToMarkProved->Belt_MutableQueue.pop->Belt_Option.getExn
@@ -262,7 +268,7 @@ let pnMarkProved = ( node:proofNode ):unit => {
                             | Some(curNodeProof) => {
                                 curNode.proof = Some(curNodeProof)
                                 curNode.children->Js_array2.forEach( nodesToMarkProved->Belt_MutableQueue.add )
-                                curNode->pnDecIsNeededCntForFParents
+                                // curNode->pnDecIsNeededCntForFParents
                             }
                         }
                     }
@@ -273,8 +279,8 @@ let pnMarkProved = ( node:proofNode ):unit => {
 }
 
 let pnAddChild = (node, child): unit => {
-    if (!exprEq(node.expr, child.expr)) {
-        switch node.children->Js.Array2.find(existingChild => exprEq(existingChild.expr,child.expr)) {
+    if (node.id != child.id) {
+        switch node.children->Js.Array2.find(existingChild => existingChild.id  == child.id) {
             | None => node.children->Js_array2.push(child)->ignore
             | Some(_) => ()
         }

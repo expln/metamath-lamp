@@ -108,7 +108,9 @@ let findAsrtParentsWithoutNewVars = (
                                 | Less => newExpr->Js_array2.length < exprLen
                             }
                             if (argsAreCorrect.contents) {
-                                args[argIdx.contents] = tree->ptGetNode(newExpr)
+                                let node = tree->ptGetNode(newExpr)
+                                args[argIdx.contents] = node
+                                argsAreCorrect := !(node->pnIsInvalidFloating)
                             }
                             argIdx.contents = argIdx.contents + 1
                         }
@@ -123,13 +125,58 @@ let findAsrtParentsWithoutNewVars = (
     })
 }
 
-let isNotInvalidFloating = (src:exprSrc):bool => {
-    switch src {
-        | Assertion({args}) => args->Js.Array2.every(arg => !(arg->pnIsInvalidFloating))
-        | AssertionWithErr(_) => false
-        | VarType | Hypothesis(_) => true
+// let isNotInvalidFloating = (src:exprSrc):bool => {
+//     switch src {
+//         | Assertion({args}) => args->Js.Array2.every(arg => !(arg->pnIsInvalidFloating))
+//         | AssertionWithErr(_) => false
+//         | VarType | Hypothesis(_) => true
+//     }
+// }
+
+type arrayQueue<'a> = {
+    mutable begin:int,
+    mutable end:int,
+    mutable maxEnd:int,
+    mutable data: array<'a>,
+}
+
+let arrayQueueMake = ():arrayQueue<'a> => {
+    let data = Expln_utils_common.createArray(1000)
+    {
+        begin:0,
+        end:-1,
+        maxEnd: data->Js.Array2.length-1,
+        data,
     }
 }
+
+let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
+    if (q.end == q.maxEnd) {
+        Js.Console.log(`q.end == q.maxEnd`)
+        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Js_array2.length))
+        q.maxEnd = q.data->Js.Array2.length-1
+    }
+    q.end = q.end + 1
+    q.data[q.end] = elem
+}
+
+let arrayQueuePop = (q:arrayQueue<'a>):option<'a> => {
+    if (q.begin <= q.end) {
+        let res = q.data[q.begin]
+        q.begin = q.begin + 1
+        Some(res)
+    } else {
+        None
+    }
+    
+}
+
+let arrayQueueReset = (q:arrayQueue<'a>):unit => {
+    q.begin = 0
+    q.end = -1
+}
+
+let nodesToCreateParentsFor = arrayQueueMake()
 
 let proveFloating = (
     ~tree:proofTree, 
@@ -145,20 +192,21 @@ let proveFloating = (
         parents even if the root node becomes proved.
     */
     if (node->pnGetProof->Belt.Option.isNone && !(node->pnIsInvalidFloating)) {
-        let nodesToCreateParentsFor = Belt_MutableQueue.make()
-        let savedNodes = Belt_HashSet.make( ~id=module(ExprHash), ~hintSize = 128 )
+        nodesToCreateParentsFor->arrayQueueReset
+        let savedNodes = Belt_HashSetInt.make( ~hintSize = 1000 )
 
         let saveNodeToCreateParentsFor = node => {
             switch node->pnGetProof {
                 | Some(_) => ()
                 | None => {
-                    let expr = node->pnGetExpr
-                    if (savedNodes->Belt_HashSet.has(expr)) {
-                        node->pnIncIsNeededCnt
+                    let nodeId = node->pnGetId
+                    if (savedNodes->Belt_HashSetInt.has(nodeId)) {
+                        // node->pnIncIsNeededCnt
+                        ()
                     } else {
-                        node->pnSetIsNeededCnt(1)
-                        savedNodes->Belt_HashSet.add(expr)
-                        nodesToCreateParentsFor->Belt_MutableQueue.add(node)
+                        // node->pnSetIsNeededCnt(1)
+                        savedNodes->Belt_HashSetInt.add(nodeId)
+                        nodesToCreateParentsFor->arrayQueueAdd(node)
                     }
                 }
             }
@@ -172,20 +220,20 @@ let proveFloating = (
         }
 
         let getNextNodeToProve = ():option<proofNode> => {
-            let nextNodeRef = ref(nodesToCreateParentsFor->Belt_MutableQueue.pop)
+            let nextNodeRef = ref(nodesToCreateParentsFor->arrayQueuePop)
             while (
                 nextNodeRef.contents->Belt_Option.mapWithDefault(false, nextNode => {
                     nextNode->pnGetProof->Belt.Option.isSome
                     || nextNode->pnIsInvalidFloating
-                    || if (nextNode->pnGetIsNeededCnt <= 0) {
-                        savedNodes->Belt_HashSet.remove(nextNode->pnGetExpr)
-                        true
-                    } else {
-                        false
-                    }
+                    // || if (nextNode->pnGetIsNeededCnt <= 0) {
+                    //     savedNodes->Belt_HashSetInt.remove(nextNode->pnGetId)
+                    //     true
+                    // } else {
+                    //     false
+                    // }
                 })
             ) {
-                nextNodeRef := nodesToCreateParentsFor->Belt_MutableQueue.pop
+                nextNodeRef := nodesToCreateParentsFor->arrayQueuePop
             }
             nextNodeRef.contents
         }
@@ -199,9 +247,9 @@ let proveFloating = (
             let curNode = currNodeRef.contents->Belt_Option.getExn
             switch curNode->pnGetFParents {
                 | Some(fParents) => fParents->Js_array2.forEach(parent => {
-                    if (parent->isNotInvalidFloating) {
+                    // if (parent->isNotInvalidFloating) {
                         saveArgs(parent)
-                    }
+                    // }
                 })
                 | None => {
                     let curExpr = curNode->pnGetExpr
@@ -214,16 +262,14 @@ let proveFloating = (
                             findAsrtParentsWithoutNewVars(
                                 ~tree, ~expr=curExpr, ~restrictExprLen=LessEq, ~frameRestrict,
                                 ~onResult = parent => {
-                                    if (parent->isNotInvalidFloating) {
-                                        curNode->pnAddParent(parent, false, false)
-                                        saveArgs(parent)
-                                        parentFound := true
-                                    }
+                                    curNode->pnAddParent(parent, false, false)
+                                    saveArgs(parent)
+                                    parentFound := true
                                 }
                             )
                             if (!parentFound.contents) {
                                 curNode->pnSetInvalidFloating
-                                curNode->pnDecIsNeededCntForSiblingArgs
+                                // curNode->pnDecIsNeededCntForSiblingArgs
                             }
                         }
                     }

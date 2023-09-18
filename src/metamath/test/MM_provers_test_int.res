@@ -25,6 +25,7 @@ describe("proveSyntaxTypes", _ => {
 
         let ctx = ast->loadContext(
             ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
+            // ~stopBefore="mathbox",
             // ~debug=true,
             ()
         )
@@ -163,7 +164,7 @@ describe("proveSyntaxTypes", _ => {
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
 
-        // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
+        Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
         let unprovedAsrtExprs = asrtExprs
             ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)

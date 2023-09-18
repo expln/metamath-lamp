@@ -62,6 +62,7 @@ let ptGetDbg: proofTree => option<proofTreeDbg>
 let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetDisj: proofTree => disjMutable
 
+let pnGetId: proofNode => int
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSrc>
 let pnGetFParents: proofNode => option<array<exprSrc>>
