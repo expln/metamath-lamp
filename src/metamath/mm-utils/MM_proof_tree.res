@@ -354,7 +354,7 @@ let pnDecIsNeededCntForSiblingArgs = (node:proofNode):unit => {
                     switch parent {
                         | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
                         | Assertion({args}) => {
-                            if (args->Js_array2.some(arg => arg.expr->exprEq(node.expr))) {
+                            if (args->Js_array2.some(arg => arg.id == node.id)) {
                                 args->Js_array2.forEach(pnDecIsNeededCnt)
                             }
                         }

@@ -160,6 +160,10 @@ let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
     q.data[q.end] = elem
 }
 
+let arrayQueueRemoveLast = (q:arrayQueue<'a>, cnt:int):unit => {
+    q.end = q.end - cnt
+}
+
 let arrayQueuePop = (q:arrayQueue<'a>):option<'a> => {
     if (q.begin <= q.end) {
         let res = q.data[q.begin]
@@ -195,18 +199,19 @@ let proveFloating = (
         nodesToCreateParentsFor->arrayQueueReset
         let savedNodes = Belt_HashSetInt.make( ~hintSize = 1000 )
 
-        let saveNodeToCreateParentsFor = node => {
+        let saveNodeToCreateParentsFor = (node):bool => {
             switch node->pnGetProof {
-                | Some(_) => ()
+                | Some(_) => false
                 | None => {
                     let nodeId = node->pnGetId
                     if (savedNodes->Belt_HashSetInt.has(nodeId)) {
                         // node->pnIncIsNeededCnt
-                        ()
+                        false
                     } else {
                         // node->pnSetIsNeededCnt(1)
                         savedNodes->Belt_HashSetInt.add(nodeId)
                         nodesToCreateParentsFor->arrayQueueAdd(node)
+                        true
                     }
                 }
             }
@@ -214,7 +219,25 @@ let proveFloating = (
 
         let saveArgs = (src:exprSrc) => {
             switch src {
-                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
+                | Assertion({args}) => {
+                    // let cnt = ref(0)
+                    // let isInvalidFloating = ref(false)
+                    // let i = ref(0)
+                    // let maxI = args->Js_array2.length-1
+                    // while (i.contents <= maxI && !isInvalidFloating.contents) {
+                    //     let arg = args[i.contents]
+                    //     isInvalidFloating := arg->pnIsInvalidFloating
+                    //     if (saveNodeToCreateParentsFor(arg)) {
+                    //         cnt := cnt.contents + 1
+                    //     }
+                    //     i := i.contents + 1
+                    // }
+                    // if (isInvalidFloating.contents) {
+                    //     nodesToCreateParentsFor->arrayQueueRemoveLast(cnt.contents)
+                    // }
+
+                    args->Js_array2.forEach(arg => arg->saveNodeToCreateParentsFor->ignore)
+                }
                 | _ => ()
             }
         }
@@ -239,7 +262,7 @@ let proveFloating = (
         }
 
         let rootNode = node
-        saveNodeToCreateParentsFor(rootNode)
+        saveNodeToCreateParentsFor(rootNode)->ignore
 
         let parentFound = ref(false)
         let currNodeRef = ref(getNextNodeToProve())
@@ -269,7 +292,6 @@ let proveFloating = (
                             )
                             if (!parentFound.contents) {
                                 curNode->pnSetInvalidFloating
-                                // curNode->pnDecIsNeededCntForSiblingArgs
                             }
                         }
                     }
