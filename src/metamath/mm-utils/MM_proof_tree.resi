@@ -72,11 +72,6 @@ let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: proofNode => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode,int) => unit
-let pnSetIsNeededCnt: (proofNode, int) => unit
-let pnGetIsNeededCnt: proofNode => int
-let pnIncIsNeededCnt: proofNode => unit
-let pnDecIsNeededCnt: proofNode => unit
-let pnDecIsNeededCntForSiblingArgs: proofNode => unit
 let pnGetDbg: proofNode => option<proofNodeDbg>
 
 let jstfEqSrc: (array<expr>, string, exprSrc) => bool

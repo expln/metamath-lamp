@@ -30,7 +30,6 @@ type rec proofNode = {
     mutable children: array<proofNode>,
     mutable proof: option<exprSrc>,
     mutable isInvalidFloating: bool,
-    mutable isNeededCnt: int,
     mutable dist: option<int>,
     pnDbg: option<proofNodeDbg>,
 }
@@ -182,7 +181,6 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
                 proof: None,
                 children: [],
                 isInvalidFloating: false,
-                isNeededCnt: 0,
                 dist: None,
                 pnDbg: tree.ptDbg->Belt_Option.map(dbg => {
                     {
@@ -231,26 +229,6 @@ let pnGetProofFromParents = (node):option<exprSrc> => {
         node.eParents->Js_array2.find(exprSrcIsProved)
     }
 }
-
-let pnDecIsNeededCnt = (node:proofNode):unit => {
-    if (node.isNeededCnt > 0) {
-        node.isNeededCnt = node.isNeededCnt - 1
-    }
-}
-
-// let pnDecIsNeededCntForFParents = (node:proofNode):unit => {
-//     switch node.fParents {
-//         | None => ()
-//         | Some(parents) => {
-//             parents->Js_array2.forEach(parent => {
-//                 switch parent {
-//                     | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
-//                     | Assertion({args}) => args->Js_array2.forEach(pnDecIsNeededCnt)
-//                 }
-//             })
-//         }
-//     }
-// }
 
 let pnMarkProved = ( node:proofNode ):unit => {
     if (node.proof->Belt_Option.isNone) {
@@ -331,38 +309,6 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bo
             }
         }
     }
-}
-
-let pnSetIsNeededCnt = (node:proofNode, isNeededCnt:int):unit => {
-    node.isNeededCnt = isNeededCnt
-}
-
-let pnGetIsNeededCnt = (node:proofNode):int => {
-    node.isNeededCnt
-}
-
-let pnIncIsNeededCnt = (node:proofNode):unit => {
-    node.isNeededCnt = node.isNeededCnt + 1
-}
-
-let pnDecIsNeededCntForSiblingArgs = (node:proofNode):unit => {
-    node.children->Js.Array2.forEach(child => {
-        switch child.fParents {
-            | None => raise(MmException({msg:`child.fParents == None`}))
-            | Some(parents) => {
-                parents->Js_array2.forEach(parent => {
-                    switch parent {
-                        | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
-                        | Assertion({args}) => {
-                            if (args->Js_array2.some(arg => arg.id == node.id)) {
-                                args->Js_array2.forEach(pnDecIsNeededCnt)
-                            }
-                        }
-                    }
-                })
-            }
-        }
-    })
 }
 
 let ptAddNewVar = (tree, typ):int => {

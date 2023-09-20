@@ -121,3 +121,46 @@ let versionSet = (version:version<'a>, newVal:'a):version<'a> => {
         val:newVal
     }
 }
+
+type arrayQueue<'a> = {
+    mutable begin:int,
+    mutable end:int,
+    mutable maxEnd:int,
+    mutable data: array<'a>,
+}
+
+let arrayQueueMake = (initSize:int):arrayQueue<'a> => {
+    let data = Expln_utils_common.createArray(initSize)
+    {
+        begin:0,
+        end:-1,
+        maxEnd: data->Js.Array2.length-1,
+        data,
+    }
+}
+
+let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
+    if (q.end == q.maxEnd) {
+        Js.Console.log(`q.end == q.maxEnd`)
+        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Js_array2.length))
+        q.maxEnd = q.data->Js.Array2.length-1
+    }
+    q.end = q.end + 1
+    q.data[q.end] = elem
+}
+
+let arrayQueuePop = (q:arrayQueue<'a>):option<'a> => {
+    if (q.begin <= q.end) {
+        let res = q.data[q.begin]
+        q.begin = q.begin + 1
+        Some(res)
+    } else {
+        None
+    }
+    
+}
+
+let arrayQueueReset = (q:arrayQueue<'a>):unit => {
+    q.begin = 0
+    q.end = -1
+}

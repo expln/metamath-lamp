@@ -125,67 +125,11 @@ let findAsrtParentsWithoutNewVars = (
     })
 }
 
-// let isNotInvalidFloating = (src:exprSrc):bool => {
-//     switch src {
-//         | Assertion({args}) => args->Js.Array2.every(arg => !(arg->pnIsInvalidFloating))
-//         | AssertionWithErr(_) => false
-//         | VarType | Hypothesis(_) => true
-//     }
-// }
-
-type arrayQueue<'a> = {
-    mutable begin:int,
-    mutable end:int,
-    mutable maxEnd:int,
-    mutable data: array<'a>,
-}
-
-let arrayQueueMake = ():arrayQueue<'a> => {
-    let data = Expln_utils_common.createArray(1000)
-    {
-        begin:0,
-        end:-1,
-        maxEnd: data->Js.Array2.length-1,
-        data,
-    }
-}
-
-let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
-    if (q.end == q.maxEnd) {
-        Js.Console.log(`q.end == q.maxEnd`)
-        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Js_array2.length))
-        q.maxEnd = q.data->Js.Array2.length-1
-    }
-    q.end = q.end + 1
-    q.data[q.end] = elem
-}
-
-let arrayQueueRemoveLast = (q:arrayQueue<'a>, cnt:int):unit => {
-    q.end = q.end - cnt
-}
-
-let arrayQueuePop = (q:arrayQueue<'a>):option<'a> => {
-    if (q.begin <= q.end) {
-        let res = q.data[q.begin]
-        q.begin = q.begin + 1
-        Some(res)
-    } else {
-        None
-    }
-    
-}
-
-let arrayQueueReset = (q:arrayQueue<'a>):unit => {
-    q.begin = 0
-    q.end = -1
-}
-
-let nodesToCreateParentsFor = arrayQueueMake()
-
 let proveFloating = (
     ~tree:proofTree, 
     ~node:proofNode,
     ~frameRestrict:frameRestrict,
+    ~nodesToCreateParentsFor:arrayQueue<proofNode>,
 ) => {
     /*
     If a node has a proof, no need to prove it again.
@@ -199,19 +143,14 @@ let proveFloating = (
         nodesToCreateParentsFor->arrayQueueReset
         let savedNodes = Belt_HashSetInt.make( ~hintSize = 1000 )
 
-        let saveNodeToCreateParentsFor = (node):bool => {
+        let saveNodeToCreateParentsFor = node => {
             switch node->pnGetProof {
-                | Some(_) => false
+                | Some(_) => ()
                 | None => {
                     let nodeId = node->pnGetId
-                    if (savedNodes->Belt_HashSetInt.has(nodeId)) {
-                        // node->pnIncIsNeededCnt
-                        false
-                    } else {
-                        // node->pnSetIsNeededCnt(1)
+                    if (!(savedNodes->Belt_HashSetInt.has(nodeId))) {
                         savedNodes->Belt_HashSetInt.add(nodeId)
                         nodesToCreateParentsFor->arrayQueueAdd(node)
-                        true
                     }
                 }
             }
@@ -219,25 +158,7 @@ let proveFloating = (
 
         let saveArgs = (src:exprSrc) => {
             switch src {
-                | Assertion({args}) => {
-                    // let cnt = ref(0)
-                    // let isInvalidFloating = ref(false)
-                    // let i = ref(0)
-                    // let maxI = args->Js_array2.length-1
-                    // while (i.contents <= maxI && !isInvalidFloating.contents) {
-                    //     let arg = args[i.contents]
-                    //     isInvalidFloating := arg->pnIsInvalidFloating
-                    //     if (saveNodeToCreateParentsFor(arg)) {
-                    //         cnt := cnt.contents + 1
-                    //     }
-                    //     i := i.contents + 1
-                    // }
-                    // if (isInvalidFloating.contents) {
-                    //     nodesToCreateParentsFor->arrayQueueRemoveLast(cnt.contents)
-                    // }
-
-                    args->Js_array2.forEach(arg => arg->saveNodeToCreateParentsFor->ignore)
-                }
+                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
                 | _ => ()
             }
         }
@@ -246,14 +167,7 @@ let proveFloating = (
             let nextNodeRef = ref(nodesToCreateParentsFor->arrayQueuePop)
             while (
                 nextNodeRef.contents->Belt_Option.mapWithDefault(false, nextNode => {
-                    nextNode->pnGetProof->Belt.Option.isSome
-                    || nextNode->pnIsInvalidFloating
-                    // || if (nextNode->pnGetIsNeededCnt <= 0) {
-                    //     savedNodes->Belt_HashSetInt.remove(nextNode->pnGetId)
-                    //     true
-                    // } else {
-                    //     false
-                    // }
+                    nextNode->pnGetProof->Belt.Option.isSome || nextNode->pnIsInvalidFloating
                 })
             ) {
                 nextNodeRef := nodesToCreateParentsFor->arrayQueuePop
@@ -269,11 +183,7 @@ let proveFloating = (
         while (rootNode->pnGetProof->Belt_Option.isNone && currNodeRef.contents->Belt_Option.isSome) {
             let curNode = currNodeRef.contents->Belt_Option.getExn
             switch curNode->pnGetFParents {
-                | Some(fParents) => fParents->Js_array2.forEach(parent => {
-                    // if (parent->isNotInvalidFloating) {
-                        saveArgs(parent)
-                    // }
-                })
+                | Some(fParents) => fParents->Js_array2.forEach(saveArgs)
                 | None => {
                     let curExpr = curNode->pnGetExpr
                     switch findNonAsrtParent(~tree, ~expr=curExpr) {
@@ -320,6 +230,7 @@ let findAsrtParentsWithNewVars = (
     ~onProgress:option<int=>unit>=?,
     ()
 ):array<exprSrc> => {
+    let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
     let applResults = []
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
@@ -419,6 +330,7 @@ let findAsrtParentsWithNewVars = (
                             ~tree, 
                             ~node=argNode,
                             ~frameRestrict=allowedFrms.inSyntax,
+                            ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
                         )
                         if (argNode->pnGetProof->Belt.Option.isNone) {
                             unprovedFloating.contents = Some(argNode->pnGetExpr)
@@ -775,9 +687,15 @@ let proveFloatings = (
         ~frms,
         ~parenCnt,
     )
+    let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
 
     floatingsToProve->Js.Array2.forEach(expr => {
-        proveFloating( ~tree, ~node=tree->ptGetNode(expr), ~frameRestrict)
+        proveFloating( 
+            ~tree, 
+            ~node=tree->ptGetNode(expr), 
+            ~frameRestrict, 
+            ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor
+        )
     })
     tree
 }
@@ -815,20 +733,29 @@ let proveSyntaxTypes = (
     if (syntaxTypes->Js_array2.length == 0) {
         tree
     } else {
-        //Expln_test.startProfile()
-
+        let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
         let lastType = ref(syntaxTypes[0])
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs[ei]
             let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
-            proveFloating( ~tree, ~node=node.contents, ~frameRestrict )
+            proveFloating( 
+                ~tree, 
+                ~node=node.contents, 
+                ~frameRestrict,
+                ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
+            )
             let ti = ref(0)
             while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Js_array2.length ) {
                 let typ = syntaxTypes[ti.contents]
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
                     node := tree->ptGetNode([typ]->Js.Array2.concat(expr))
-                    proveFloating( ~tree, ~node=node.contents, ~frameRestrict )
+                    proveFloating( 
+                        ~tree, 
+                        ~node=node.contents, 
+                        ~frameRestrict,
+                        ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
+                    )
                 }
             }
             switch node.contents->pnGetProof {
@@ -842,8 +769,6 @@ let proveSyntaxTypes = (
                 (ei+1)->Belt_Int.toFloat /. exprs->Js_array2.length->Belt_Int.toFloat
             )
         }
-
-        //Expln_test.stopProfile()
 
         tree
     }
