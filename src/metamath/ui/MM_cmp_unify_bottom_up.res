@@ -97,14 +97,14 @@ let exprMayMatchAsrt = (
 }
 
 let getAvailableAsrtLabels = (
-    ~frms: Belt_MapString.t<frmSubsData>, 
+    ~frms: frms, 
     ~parenCnt: parenCnt, 
     ~exprToProve:expr,
 ) => {
     let availableAsrtLabels = []
-    frms->Belt_MapString.forEach((label,frm) => {
+    frms->frmsForEach(frm => {
         if ( exprMayMatchAsrt(~expr=exprToProve, ~frm, ~parenCnt) ) {
-            availableAsrtLabels->Js_array2.push(label)->ignore
+            availableAsrtLabels->Js_array2.push(frm.frame.label)->ignore
         }
     })
     availableAsrtLabels
@@ -112,7 +112,7 @@ let getAvailableAsrtLabels = (
 
 let makeInitialState = (
     ~rootUserStmts: array<userStmt>,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~parenCnt: parenCnt,
     ~initialParams: option<bottomUpProverParams>,
     ~initialDebugLevel: option<int>,
@@ -531,7 +531,7 @@ let make = (
     ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~parenCnt: parenCnt,
     ~varsText: string,
     ~disjText: string,
@@ -590,7 +590,7 @@ let make = (
     }
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
-        switch frms->Belt_MapString.get(label) {
+        switch frms->frmsGetByLabel(label) {
             | None => None
             | Some(frm) => {
                 MM_react_common.getFrmLabelBkgColor(frm.frame, settings)

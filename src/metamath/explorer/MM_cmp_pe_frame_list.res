@@ -16,7 +16,7 @@ type props = {
 
     settings:settings,
     preCtx:mmContext,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     syntaxTypes:array<int>,
 

@@ -533,7 +533,7 @@ type props = {
     preCtxVer:int,
     varsText:string,
     wrkCtx:option<mmContext>,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     syntaxTypes:array<int>,
     parensMap:Belt_HashMapString.t<string>,
@@ -1498,7 +1498,7 @@ let make = React.memoCustomCompareProps( ({
         && stmt.src->Belt.Option.isSome
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
-        switch frms->Belt_MapString.get(label) {
+        switch frms->frmsGetByLabel(label) {
             | None => None
             | Some(frm) => MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
         }

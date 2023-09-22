@@ -1382,7 +1382,7 @@ let make = (
                     ~title="Restore previous state", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
-                        ~active=generalModificationActionIsEnabled && state.frms->Belt_MapString.size > 0,
+                        ~active=generalModificationActionIsEnabled && state.frms->MM_substitution.frmsSize > 0,
                         ~title="Add new steps from existing assertions (and place before selected steps if any)", 
                         ~smallBtns, ()
                     ) 

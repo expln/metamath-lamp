@@ -32,7 +32,7 @@ type exprSrc =
 type proofTree
 
 let ptMake: (
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
     ~disj: disjMutable,

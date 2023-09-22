@@ -44,6 +44,8 @@ type frmSubsData = {
     subs:subs,
 }
 
+type frms
+
 let subsClone: subs => subs
 let subsEq: (subs, subs) => bool
 let subsHash: subs => int
@@ -54,7 +56,7 @@ let prepareFrmSubsDataForFrame: frame => frmSubsData
 let prepareFrmSubsData: (
     ~ctx:mmContext,
     ()
-) => Belt_MapString.t<frmSubsData>
+) => frms
 let iterateSubstitutions: (
     ~frmExpr:expr, 
     ~expr:expr, 
@@ -72,6 +74,13 @@ let verifyDisjoints: (
     ~isDisjInCtx:(int,int)=>bool,
     ~debugLevel:int,
 ) => option<unifErr>
+
+let frmsEmpty: unit => frms
+let frmsSize: frms => int
+let frmsForEach: (frms, ~typ:int=?, frmSubsData=>unit) => unit
+let frmsGetByLabel: (frms, string) => option<frmSubsData>
+let frmsSelect: (frms, ~typ:int=?, ~label:string=?, ()) => array<frmSubsData>
+let frmsGetAllTypes: frms => array<int>
 
 //------------------------- TEST ---------------------------
 

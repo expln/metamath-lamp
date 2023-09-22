@@ -108,7 +108,7 @@ describe("proveSyntaxTypes", _ => {
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
             ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1))
-        let frms= prepareFrmSubsData(~ctx, ())
+        let frms = prepareFrmSubsData(~ctx, ())
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
 
         let totalSize =exprsToSyntaxProve->Js_array2.reduce(

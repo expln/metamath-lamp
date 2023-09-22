@@ -20,7 +20,7 @@ type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
     ctxV: version<mmContext>,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
     syntaxTypes:array<int>,
@@ -32,7 +32,7 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
 
         srcs: [],
         ctxV: versionMake(createContext(())),
-        frms: Belt_MapString.empty,
+        frms: frmsEmpty(),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         allTypes:[],
         syntaxTypes:[],

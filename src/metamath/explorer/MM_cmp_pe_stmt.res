@@ -31,7 +31,7 @@ type props = {
 
     ctx:mmContext,
     syntaxTypes:array<int>,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     frameRestrict:frameRestrict,
     parenCnt: parenCnt,
 

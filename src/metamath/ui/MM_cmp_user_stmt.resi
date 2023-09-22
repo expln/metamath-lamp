@@ -38,7 +38,7 @@ type props = {
     preCtxVer:int,
     varsText:string,
     wrkCtx:option<mmContext>,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     syntaxTypes:array<int>,
     parensMap:Belt_HashMapString.t<string>,

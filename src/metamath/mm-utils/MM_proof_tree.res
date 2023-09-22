@@ -119,7 +119,7 @@ let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
 let ptGetDisj = tree => tree.disj
 
 let ptMake = (
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
     ~disj: disjMutable,
@@ -128,17 +128,7 @@ let ptMake = (
 ) => {
     let hypsArr = hyps->Belt_MapString.toArray
     {
-        frms: frms->Belt_MapString.toArray->Js.Array2.reduce(
-            (map, (_,frm)) => {
-                let typ = frm.frame.asrt[0]
-                switch map->Belt_HashMapInt.get(typ) {
-                    | None => map->Belt_HashMapInt.set(typ, [frm])
-                    | Some(frms) => frms->Js_array2.push(frm)->ignore
-                }
-                map
-            },
-            Belt_HashMapInt.make(~hintSize=4)
-        ),
+        frms: frms->frmsGetAllTypes->Js_array2.map(typ => (typ, frms->frmsSelect(~typ, ())))->Belt_HashMapInt.fromArray,
         hypsByLabel: hypsArr->Belt_HashMapString.fromArray,
         hypsByExpr: hypsArr
                     ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))

@@ -43,7 +43,7 @@ let respToStr = resp => {
 }
 
 type wrkPrecalcData = {
-    wrkFrms: Belt_MapString.t<frmSubsData>,
+    wrkFrms: frms,
     wrkParenCnt: parenCnt,
     wrkCtx: mmContext,
 }

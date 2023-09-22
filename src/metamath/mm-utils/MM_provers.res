@@ -647,7 +647,7 @@ let makeExprToStr = (ctx, ctxMaxVar) => {
 
 let createProofTree = (
     ~proofCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~parenCnt: parenCnt,
 ) => {
     let ctxMaxVar = proofCtx->getNumOfVars - 1
@@ -677,7 +677,7 @@ let createProofTree = (
 
 let proveFloatings = (
     ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
@@ -703,7 +703,7 @@ let proveFloatings = (
 let proveSyntaxTypes = (
     ~proofTree:option<proofTree>=?,
     ~wrkCtx: option<mmContext>=?,
-    ~frms: option<Belt_MapString.t<frmSubsData>>=?,
+    ~frms: option<frms>=?,
     ~frameRestrict:frameRestrict,
     ~parenCnt: option<parenCnt>=?,
     ~exprs: array<expr>,
@@ -786,7 +786,7 @@ let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => 
 
 let unifyAll = (
     ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,

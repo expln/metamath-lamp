@@ -45,6 +45,12 @@ type frmSubsData = {
     subs:subs,
 }
 
+type frms = {
+    all: array<frmSubsData>,
+    byType:Belt_HashMapInt.t<array<frmSubsData>>,
+    byLabel:Belt_HashMapString.t<frmSubsData>,
+}
+
 let subsClone = subs => {
     {
         size: subs.size,
@@ -527,24 +533,6 @@ let createSubs = (~numOfVars:int) => {
     }
 }
 
-//let numberOfStates = (numOfVars, subExprLength) => {
-    //let n = subExprLen - 1
-    //let k = numOfVars - 1
-
-    //let res = ref(1)
-    //let rem = ref(2)
-    //let minI = n-k+1
-    //for i in minI to n {
-        //res.contents = Js.Math.imul(res.contents, i)
-    //}
-//}
-
-//let numberOfStates = varGroup => {
-    //let subExprLen = varGroup.exprEndIdx-varGroup.exprBeginIdx+1
-    //let n = subExprLen - 1
-    //let k = 
-//}
-
 let prepareFrmSubsDataForFrame = (frame):frmSubsData => {
     let hypsE = frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)
 
@@ -581,15 +569,28 @@ let prepareFrmSubsDataForFrame = (frame):frmSubsData => {
 }
 
 let prepareFrmSubsData = (
-    ~ctx:mmContext, 
+    ~ctx:mmContext,
     ()
-):Belt_MapString.t<frmSubsData> => {
-    let frms = []
+):frms => {
+    let all = []
+    let byLabel = Belt_HashMapString.make(~hintSize=1000)
+    let byType = Belt_HashMapInt.make(~hintSize=16)
     ctx->forEachFrame(frame => {
-        frms->Js_array2.push(prepareFrmSubsDataForFrame(frame))->ignore
+        let frm = prepareFrmSubsDataForFrame(frame)
+        all->Js_array2.push(frm)->ignore
+        byLabel->Belt_HashMapString.set(frame.label, frm)
+        let typ = frame.asrt[0]
+        switch byType->Belt_HashMapInt.get(typ) {
+            | None => byType->Belt_HashMapInt.set(typ,[frm])
+            | Some(arr) => arr->Js_array2.push(frm)->ignore
+        }
         None
     })->ignore
-    Belt_MapString.fromArray(frms->Js_array2.map(frm => (frm.frame.label, frm)))
+    {
+        all,
+        byLabel,
+        byType,
+    }
 }
 
 let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
@@ -688,6 +689,56 @@ let verifyDisjoints = (
     })
     res.contents
 }
+
+let frmsEmpty = ():frms => {
+    {
+        all: [],
+        byType: Belt_HashMapInt.make(~hintSize=0),
+        byLabel:Belt_HashMapString.make(~hintSize=0),
+    }
+}
+let frmsSize = frms => frms.all->Js_array2.length
+let frmsForEach = (frms:frms, ~typ:option<int>=?, consumer:frmSubsData=>unit):unit => {
+    switch typ {
+        | None => frms.all->Js_array2.forEach(consumer)
+        | Some(typ) => frms.byType->Belt_HashMapInt.get(typ)->Belt.Option.forEach(Js_array2.forEach(_, consumer))
+    }
+}
+let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):array<frmSubsData> => {
+    switch typ {
+        | None => {
+            switch label {
+                | None => frms.all->Js.Array2.copy
+                | Some(label) => {
+                    switch frms.byLabel ->Belt_HashMapString.get(label) {
+                        | None => []
+                        | Some(frm) => [frm]
+                    }
+                }
+            }
+        }
+        | Some(typ) => {
+            switch label {
+                | None => {
+                    switch frms.byType->Belt_HashMapInt.get(typ) {
+                        | None => []
+                        | Some(arr) => arr->Js_array2.copy
+                    }
+                }
+                | Some(label) => {
+                    switch frms.byLabel->Belt_HashMapString.get(label)->Belt.Option.keep(frm=>frm.frame.asrt[0]==typ) {
+                        | None => []
+                        | Some(frm) => [frm]
+                    }
+                }
+            }
+        }
+    }
+}
+let frmsGetByLabel = (frms:frms, label:string):option<frmSubsData> => {
+    frms.byLabel->Belt_HashMapString.get(label)
+}
+let frmsGetAllTypes = (frms):array<int> => frms.byType->Belt_HashMapInt.keysToArray
 
 //------------------------- TEST ---------------------------
 
