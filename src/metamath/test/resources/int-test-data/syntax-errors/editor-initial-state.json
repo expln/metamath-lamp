@@ -57,6 +57,12 @@
       "jstfText": " : fveq2"
     },
     {
+      "label": "stmt6.1",
+      "typ": "p",
+      "cont": "|- ( u = x -> ( A ` u ) = ( A ` x ) )",
+      "jstfText": " : fveq2"
+    },
+    {
       "label": "stmt7",
       "typ": "p",
       "cont": "|- ( v = y -> ( F ` v ) = ( F ` y ) )",

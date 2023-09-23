@@ -23,7 +23,7 @@ let beginWorkerInteractionUsingCtx: (
 
 let getWrkCtxExn: () => mmContext
 let getWrkParenCntExn: () => parenCnt
-let getWrkFrmsExn: () => Belt_MapString.t<frmSubsData>
+let getWrkFrmsExn: () => frms
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 

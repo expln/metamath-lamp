@@ -553,8 +553,9 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
-        let st = st->updateStmt(st->getStmtId(~label="stmt9-opabex2.11", ()), ~content="|- ( A e. _V -> -> A e. _V )", ())
+        let st = st->updateStmt(st->getStmtId(~label="stmt9-opabex2.11", ()), ~content="|- ( A e. _V -> psi A e. _V )", ())
         let st = st->updateStmt(st->getStmtId(~label="stmt4", ()), ~content="|- ( ( u = x /\ v = y ) -> ( F ` u ) = ( F ` x ) ) ]", ())
+        let st = st->updateStmt(st->getStmtId(~label="stmt6.1", ()), ~content="|- ( u = x -> ( psi A ` u ) = ( psi A ` x ) )", ())
         let st = st->unifyAll
         assertEditorState(st, "step2")
 

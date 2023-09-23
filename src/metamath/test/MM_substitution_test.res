@@ -9,9 +9,10 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
-    let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
     ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->Js_string2.split(" ")}), ())
+    let parens = "( ) { } [ ]"
+    let ctx = ctx->ctxOptimizeForProver(~parens, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateConstParts.")
@@ -20,7 +21,7 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
     let expr = ctx->ctxSymsToIntsExn(exprStr->Js_string2.split(" "))
 
     //when
-    let (actualConstParts, actualMatchingConstParts) = test_iterateConstParts(~ctx, ~frmExpr, ~expr, ~parens)
+    let (actualConstParts, actualMatchingConstParts) = test_iterateConstParts(~frmExpr, ~expr, ~parenCnt)
 
     //then
     assertEqMsg(actualConstParts, expectedConstParts, "expectedConstParts")
@@ -32,9 +33,10 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
-    let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
     ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}), ())
+    let parens = "( ) { } [ ]"
+    let ctx = ctx->ctxOptimizeForProver(~parens, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateSubstitutions.")
@@ -43,7 +45,7 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
     let expr = ctx->ctxStrToIntsExn(exprStr)
 
     //when
-    let actualSubs = test_iterateSubstitutions(~ctx, ~frmExpr, ~expr, ~parens)
+    let actualSubs = test_iterateSubstitutions(~frmExpr, ~expr, ~parenCnt)
 
     //then
     let actualSubsStr = actualSubs

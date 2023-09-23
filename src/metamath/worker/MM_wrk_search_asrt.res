@@ -87,7 +87,7 @@ let searchAssertions = (
 //todo: review this function
 let doSearchAssertions = (
     ~wrkCtx:mmContext,
-    ~frms:Belt_MapString.t<frmSubsData>,
+    ~frms:frms,
     ~label:string, 
     ~typ:int, 
     ~pattern:array<int>, 
@@ -96,10 +96,10 @@ let doSearchAssertions = (
 ):array<stmtsDto> => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
-    let numOfFrames = frms->Belt_MapString.size->Belt_Int.toFloat
+    let numOfFrames = frms->frmsSize->Belt_Int.toFloat
 
     let results = []
-    let framesInDeclarationOrder = frms->Belt_MapString.valuesToArray
+    let framesInDeclarationOrder = frms->frmsSelect(())
         ->Js.Array2.sortInPlaceWith((a,b) => a.frame.ord - b.frame.ord)
     framesInDeclarationOrder->Js.Array2.forEach(frm => {
         let frame = frm.frame

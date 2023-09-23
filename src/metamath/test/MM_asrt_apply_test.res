@@ -2,7 +2,6 @@ open Expln_test
 open MM_parser
 open MM_context
 open MM_substitution
-open MM_parenCounter
 open MM_asrt_apply
 open Common
 
@@ -263,12 +262,12 @@ let testApplyAssertions = (
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
-    let parens = "( ) { } [ ]"
-    preCtx->moveConstsToBegin(parens)
     additionalStatements->Js_array2.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
+    let parens = "( ) { } [ ]"
     let workCtx = createContext(~parent=preCtx, ())
-    let frms = prepareFrmSubsData(~ctx=workCtx, ())->Belt_MapString.toArray->Js.Array2.map(((_,frm)) => frm)
-    let parenCnt = parenCntMake(workCtx->ctxStrToIntsExn(parens), ())
+    let workCtx = workCtx->ctxOptimizeForProver(~parens, ())
+    let frms = prepareFrmSubsData(~ctx=workCtx, ())->frmsSelect(())
+    let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
     let stmtsForAppl = statements->Js_array2.map(((_,exprStr)) => ctxStrToIntsExn(workCtx,exprStr))

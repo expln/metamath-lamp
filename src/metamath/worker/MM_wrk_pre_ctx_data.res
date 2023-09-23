@@ -1,5 +1,4 @@
 open MM_context
-open MM_wrk_ctx_data
 open MM_wrk_settings
 open MM_substitution
 open MM_parenCounter
@@ -21,7 +20,7 @@ type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
     ctxV: version<mmContext>,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
     syntaxTypes:array<int>,
@@ -33,8 +32,8 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
 
         srcs: [],
         ctxV: versionMake(createContext(())),
-        frms: Belt_MapString.empty,
-        parenCnt: parenCntMake([], ()),
+        frms: frmsEmpty(),
+        parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         allTypes:[],
         syntaxTypes:[],
     }
@@ -80,12 +79,13 @@ let preCtxDataUpdate = (
         ((srcs,ctx)) => (srcs, preCtxData.ctxV->versionSet(ctx))
     )
 
-    ctxV.val->moveConstsToBegin(settingsV.val.parens)
-    let ctxV = ctxV->versionSet(ctxV.val)
+    let ctxV = ctxV->versionSet(
+        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
+    )
     let frms = prepareFrmSubsData(
         ~ctx=ctxV.val, ()
     )
-    let parenCnt = parenCntMake(prepareParenInts(ctxV.val, settingsV.val.parens), ~checkParensOptimized=true, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx=ctxV.val, ~parens=settingsV.val.parens)
     let (allTypes, syntaxTypes) = findTypes(ctxV.val)
 
     {

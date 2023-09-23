@@ -191,7 +191,7 @@ type editorState = {
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     preCtxColors: Belt_HashMapString.t<string>,
     allTypes: array<int>,
@@ -735,8 +735,10 @@ let updateColorsInAllStmts = st => {
 }
 
 let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
-    let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver
     let settings = preCtxData.settingsV.val
+    let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver(
+        ~parens=settings.parens, ~removeAsrtDescr=true, ~removeProofs=true, ()
+    )
     let parenInts = prepareParenInts(preCtx, settings.parens)
     let numOfParens = parenInts->Js_array2.length / 2
     let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
@@ -963,7 +965,7 @@ let validateStmtJstf = (
     stmt:userStmt, 
     wrkCtx:mmContext, 
     definedUserLabels:Belt_HashSetString.t,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
 ):userStmt => {
     if (userStmtHasErrors(stmt)) {
         stmt
@@ -979,7 +981,7 @@ let validateStmtJstf = (
                         if (!(wrkCtx->isAsrt(label))) {
                             {...stmt, stmtErr:Some({code:someStmtErrCode, msg:`The label '${label}' doesn't refer to any assertion.`})}
                         } else {
-                            switch frms->Belt_MapString.get(label) {
+                            switch frms->frmsGetByLabel(label) {
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
                                 | Some(frm) => {
                                     let expectedNumberOfArgs = frm.numOfHypsE
@@ -2439,7 +2441,7 @@ let textToSyntaxProofTable = (
     ~wrkCtx:mmContext,
     ~syms:array<array<string>>,
     ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,
@@ -2516,7 +2518,7 @@ let textToSyntaxTree = (
     ~wrkCtx:mmContext,
     ~syms:array<array<string>>,
     ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~lastSyntaxType:option<string>,

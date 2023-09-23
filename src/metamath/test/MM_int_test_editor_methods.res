@@ -32,7 +32,7 @@ let createEditorState = (
         parens,
         asrtsToSkip: [],
         descrRegexToDisc: "",
-        labelRegexToDisc: "^ax-frege54c$",
+        labelRegexToDisc: "^(ax-frege54c)|(.+OLD)|(.+ALT)$",
         descrRegexToDepr: "",
         labelRegexToDepr: "",
         discColor:"",
@@ -86,7 +86,6 @@ let createEditorState = (
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext
     }
-    ctx->moveConstsToBegin(parens)
     
     let st = createInitialEditorState(
         ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx), ()),

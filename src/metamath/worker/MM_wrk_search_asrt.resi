@@ -10,7 +10,7 @@ type response
 
 let doSearchAssertions: (
     ~wrkCtx:mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~label: string,
     ~typ: int,
     ~pattern: array<int>,

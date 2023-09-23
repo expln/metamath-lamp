@@ -196,7 +196,7 @@ let makeCannotBuildSyntaxTreeError = (expr:expr, msg:string, ctx:mmContext):stri
 let buildSyntaxTreesOfSameType = (
     ~wrkCtx:mmContext, 
     ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~expr1:expr, 
@@ -279,7 +279,7 @@ let findPossibleSubsByUnif = (
     ~wrkCtx:mmContext, 
     ~allTypes:array<int>,
     ~syntaxTypes:array<int>,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~parenCnt: parenCnt,
     ~expr1:expr, 

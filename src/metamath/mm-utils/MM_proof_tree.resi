@@ -32,7 +32,7 @@ type exprSrc =
 type proofTree
 
 let ptMake: (
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
     ~disj: disjMutable,
@@ -62,6 +62,7 @@ let ptGetDbg: proofTree => option<proofTreeDbg>
 let ptGetCopyOfNewVars: proofTree => array<expr>
 let ptGetDisj: proofTree => disjMutable
 
+let pnGetId: proofNode => int
 let pnGetExpr: proofNode => expr
 let pnGetProof: proofNode => option<exprSrc>
 let pnGetFParents: proofNode => option<array<exprSrc>>

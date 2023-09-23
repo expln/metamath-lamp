@@ -31,3 +31,9 @@ type version<'a> = {
 }
 let versionMake: 'a => version<'a>
 let versionSet: (version<'a>, 'a) => version<'a>
+
+type arrayQueue<'a>
+let arrayQueueMake: int => arrayQueue<'a>
+let arrayQueueAdd: (arrayQueue<'a>, 'a) => unit
+let arrayQueuePop: arrayQueue<'a> => option<'a>
+let arrayQueueReset: arrayQueue<'a> => unit

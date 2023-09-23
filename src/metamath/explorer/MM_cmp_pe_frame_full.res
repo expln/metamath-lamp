@@ -6,7 +6,6 @@ open Expln_React_common
 open MM_wrk_pre_ctx_data
 open MM_wrk_editor
 open MM_wrk_LoadCtx
-open MM_wrk_ctx_data
 open MM_parser
 open MM_proof_table
 open MM_substitution
@@ -34,7 +33,7 @@ type state = {
     settings:settings,
     frmMmScopes:array<mmScope>,
     frmCtx:mmContext,
-    frms: Belt_MapString.t<frmSubsData>,
+    frms: frms,
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
     frame:frame,
@@ -165,9 +164,9 @@ let createInitialState = (
     ~frmCtx:mmContext, 
     ~frame:frame
 ):state => {
-    frmCtx->moveConstsToBegin(settings.parens)
+    let frmCtx = frmCtx->ctxOptimizeForProver(~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
     let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
-    let parenCnt = parenCntMake(prepareParenInts(frmCtx, settings.parens), ~checkParensOptimized=true, ())
+    let parenCnt = MM_provers.makeParenCnt(~ctx=frmCtx, ~parens=settings.parens)
     let (_, syntaxTypes) = findTypes(frmCtx)
 
     let frmIntToCtxInt = (i:int):int => {
@@ -715,7 +714,7 @@ let make = React.memoCustomCompareProps(({
     }, [numberOfRowsInProofTable])
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
-        switch preCtxData.frms->Belt_MapString.get(label) {
+        switch preCtxData.frms->frmsGetByLabel(label) {
             | None => None
             | Some(frm) => MM_react_common.getFrmLabelBkgColor(frm.frame, preCtxData.settingsV.val)
         }
@@ -758,7 +757,7 @@ let make = React.memoCustomCompareProps(({
                 <span 
                     style=ReactDOM.Style.make(~fontFamily="Arial Narrow", ~fontSize="x-small", ~color="grey", ~marginLeft="5px", ())
                 >
-                    { (" " ++ (state.frms->Belt_MapString.size+1)->Belt_Int.toString)->React.string }
+                    { (" " ++ (state.frms->frmsSize+1)->Belt_Int.toString)->React.string }
                 </span>
             </span>
             { 

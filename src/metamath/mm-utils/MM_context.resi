@@ -42,6 +42,15 @@ type frame = {
     dbg: option<frameDbg>,
 }
 
+type optimizedConstsOrder = {
+    allConsts:array<string>,
+    parenMin:int,
+    canBeFirstMin:int,
+    canBeFirstMax:int,
+    canBeLastMin:int,
+    canBeLastMax:int,
+}
+
 let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
 let applySingleStmt: (
     mmContext, 
@@ -70,7 +79,16 @@ let loadContext: (
     ~debug:bool=?, 
     ()
 ) => mmContext
-let ctxOptimizeForProver: mmContext => mmContext
+
+let ctxOptimizeForProver: ( 
+    mmContext,
+    ~parens:string,
+    ~removeAsrtDescr:bool=?,
+    ~removeProofs:bool=?,
+    ()
+) => mmContext
+
+let ctxGetOptimizedConstsOrder: (mmContext, ~parens:string) => optimizedConstsOrder
 
 let isDebug: mmContext => bool
 let isConst: (mmContext,string) => bool
@@ -78,12 +96,13 @@ let isVar: (mmContext,string) => bool
 let isHyp: (mmContext,string) => bool
 let isAsrt: (mmContext,string) => bool
 let isDisj: (mmContext,int,int) => bool
+let getAllConsts: mmContext => array<string>
 let getHypothesis: (mmContext,string) => option<hypothesis>
 let getHypByExpr: (mmContext, expr) => option<hypothesis>
 let getMandHyps: (mmContext, expr) => array<hypothesis>
 let getAllHyps: mmContext => Belt_MapString.t<hypothesis>
 let getAllFrames: mmContext => Belt_MapString.t<frame>
-let getAllFrameLabels: mmContext => array<string>
+let getAllFramesArr: mmContext => array<frame>
 let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>
@@ -128,8 +147,6 @@ let createFrame: (
     ~labelRegexToDepr:Js_re.t=?,
     ()
 ) => frame
-
-let moveConstsToBegin: (mmContext, string) => unit
 
 let generateNewVarNames: ( 
     ~ctx: mmContext, 

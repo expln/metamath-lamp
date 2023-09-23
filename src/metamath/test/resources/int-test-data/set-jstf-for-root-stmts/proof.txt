@@ -1,1 +1,1 @@
-sgn0e0 $p |- ( sgn ` 0 ) = 0 $= ( cc0 csgn cfv wceq clt wbr c1 cneg cif wb cxr wcel wi eqid iftruei eqeq12i sgnval 0xr a1i biimp embantd mp2 ) AZBCZUCUCDZUCUCUCEFGZHUFIZIZDZUDUCDZJZUCKLZUIMUJUD UDUHUCUDNUEUCUGUCNOPUCQUKULUIUJULUKRSUIUJTUAUB $.
+sgn0e0 $p |- ( sgn ` 0 ) = 0 $= ( cc0 csgn cfv wceq clt wbr c1 cneg cif wb cxr wcel wi eqid iftruei eqeq2i sgnval 0xr a1i biimp embantd mp2 ) AZBCZUCUCDZUCUCUCEFGZHUFIZIZDZUDUCDZJZUCKLZUIMUJUH UCUDUEUCUGUCNOPUCQUKULUIUJULUKRSUIUJTUAUB $.

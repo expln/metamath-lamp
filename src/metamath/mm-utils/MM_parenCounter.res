@@ -2,82 +2,91 @@ open MM_parser
 
 type state = Balanced | Opened | Failed
 
-type rec paren = {
-    code: int,
-    isOpen: bool,
-    opposite: int,
-}
-
 type parenCnt = {
-    min:int,
-    parens: array<paren>,
-    parentStack: array<paren>,
-    mutable failed: bool
+    stack: array<int>,
+    mutable len:int,
+    mutable failed: bool,
+    parenMin:int,
+    canBeFirstMin:int,
+    canBeFirstMax:int,
+    canBeLastMin:int,
+    canBeLastMax:int,
 }
 
-let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
-    let parenLen = parentheses->Js_array2.length
-    if (mod(parenLen, 2)  != 0) {
-        raise(MmException({msg:`mod(parenLen, 2)  != 0 in parenCntMake`}))
-    } else if (parenLen == 0) {
-        {
-            min: 0,
-            parens:[],
-            parentStack: [],
-            failed: false,
+let parenCntStackPush = (cnt:parenCnt, i:int):unit => {
+    if (cnt.stack->Js_array2.length == cnt.len) {
+        for _ in 1 to 1000 {
+            cnt.stack->Js_array2.push(0)->ignore
         }
+    }
+    cnt.stack[cnt.len] = i
+    cnt.len = cnt.len + 1
+}
+
+let parenCntMake = (
+    ~parenMin:int,
+    ~canBeFirstMin:int,
+    ~canBeFirstMax:int,
+    ~canBeLastMin:int,
+    ~canBeLastMax:int,
+):parenCnt => {
+    if (mod(parenMin, 2)  != 0) {
+        raise(MmException({msg:`mod(parenMin, 2)  != 0 in parenCntMake`}))
     } else {
-        let parens = []
-        let maxI = parenLen / 2 - 1
-        for i in 0 to maxI {
-            let openCode = parentheses[i*2]
-            let closeCode = parentheses[i*2+1]
-            parens->Js_array2.push({code: openCode, isOpen: true, opposite: closeCode})->ignore
-            parens->Js_array2.push({code: closeCode, isOpen: false, opposite: openCode})->ignore
-        }
-        let min = parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses[0])
-        if (checkParensOptimized && Js.Math.abs_int(min) != parenLen) {
-            Js.Console.log("Warning: parentheses are not optimized (this may slow down the unification process).")
-        }
         {
-            min,
-            parens,
-            parentStack: [],
+            stack: Expln_utils_common.createArray(1000),
+            len:0,
             failed: false,
+            parenMin,
+            canBeFirstMin,
+            canBeFirstMax,
+            canBeLastMin,
+            canBeLastMax,
         }
     }
 }
 
-let parenCntReset: parenCnt => unit = cnt => {
-    cnt.parentStack->Expln_utils_common.clearArray
+let parenCntReset = (cnt:parenCnt):unit => {
+    cnt.len = 0
     cnt.failed = false
 }
 
-let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
-    if (!cnt.failed && cnt.min <= i && i < 0) {
-        switch cnt.parens->Js_array2.find(({code}) => code == i) {
-            | Some(paren) => {
-                if (paren.isOpen) {
-                    cnt.parentStack->Js_array2.push(paren)->ignore
-                } else {
-                    switch cnt.parentStack->Js_array2.pop {
-                        | None => cnt.failed = true
-                        | Some(lastParen) => {
-                            if (lastParen.opposite != paren.code) {
-                                cnt.failed = true
-                            }
-                        }
-                    }
-                }
-            }
-            | None => ()
-        }
-    }
+let parenCntPut = (cnt:parenCnt, i:int):state => {
     if (cnt.failed) {
         Failed
-    } else if (cnt.parentStack->Js_array2.length == 0) {
-        Balanced
+    } else if (cnt.parenMin <= i && i < 0) {
+        let isOpen = mod(i, 2) == -1
+        if (isOpen) {
+            cnt->parenCntStackPush(i)
+            Opened
+        } else if (cnt.len == 0 || cnt.stack[cnt.len-1] != i+1) {
+            cnt.failed = true
+            Failed
+        } else {
+            cnt.len = cnt.len - 1
+            if (cnt.len == 0) {
+                Balanced
+            } else {
+                Opened
+            }
+        }
     } else {
-        Opened
+        if (cnt.len == 0) {
+            Balanced
+        } else {
+            Opened
+        }
     }
+}
+
+let parenCntCanBeFirst = (cnt:parenCnt, i:int):bool => {
+    0 <= i /* is not a constant */
+    || (cnt.parenMin < i && mod(i,2) == -1) /* is open paren */
+    || (cnt.canBeFirstMin <= i && i <= cnt.canBeFirstMax)
+}
+
+let parenCntCanBeLast = (cnt:parenCnt, i:int):bool => {
+    0 <= i /* is not a constant */
+    || (cnt.parenMin <= i && mod(i,2) == 0) /* is close paren */
+    || (cnt.canBeLastMin <= i && i <= cnt.canBeLastMax)
 }

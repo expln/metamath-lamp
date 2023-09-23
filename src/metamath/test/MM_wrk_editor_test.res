@@ -18,7 +18,6 @@ let createEditorState = (
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
     let ctx = loadContext(ast, ())
     let parens = "( ) { } [ ]"
-    ctx->moveConstsToBegin(parens)
     let settingsV = 1
     let settings = {
         parens,
@@ -72,7 +71,7 @@ let createEditorState = (
         preCtxV,
         preCtx,
         frms: prepareFrmSubsData(~ctx, ()),
-        parenCnt: parenCntMake([], ()),
+        parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
         allTypes: [],
         syntaxTypes: [],

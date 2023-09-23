@@ -68,3 +68,6 @@ let failMsg = str => exn("Test failed: " ++ str)
 
 let startProfile: unit => unit = %raw(`() => console.profile()`)
 let stopProfile: unit => unit = %raw(`() => console.profileEnd()`)
+
+let startTimer: string => unit = %raw(`label => console.time(label)`)
+let stopTimer: string => unit = %raw(`label => console.timeEnd(label)`)

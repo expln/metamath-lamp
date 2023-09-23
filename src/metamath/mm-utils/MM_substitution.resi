@@ -44,6 +44,8 @@ type frmSubsData = {
     subs:subs,
 }
 
+type frms
+
 let subsClone: subs => subs
 let subsEq: (subs, subs) => bool
 let subsHash: subs => int
@@ -54,7 +56,7 @@ let prepareFrmSubsDataForFrame: frame => frmSubsData
 let prepareFrmSubsData: (
     ~ctx:mmContext,
     ()
-) => Belt_MapString.t<frmSubsData>
+) => frms
 let iterateSubstitutions: (
     ~frmExpr:expr, 
     ~expr:expr, 
@@ -73,7 +75,14 @@ let verifyDisjoints: (
     ~debugLevel:int,
 ) => option<unifErr>
 
+let frmsEmpty: unit => frms
+let frmsSize: frms => int
+let frmsForEach: (frms, ~typ:int=?, frmSubsData=>unit) => unit
+let frmsGetByLabel: (frms, string) => option<frmSubsData>
+let frmsSelect: (frms, ~typ:int=?, ~label:string=?, ()) => array<frmSubsData>
+let frmsGetAllTypes: frms => array<int>
+
 //------------------------- TEST ---------------------------
 
-let test_iterateConstParts: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => (array<(int,int)>, array<array<(int,int)>>)
-let test_iterateSubstitutions: (~ctx:mmContext, ~frmExpr:expr, ~expr:expr, ~parens:string) => array<array<expr>>
+let test_iterateConstParts: (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt) => (array<(int,int)>, array<array<(int,int)>>)
+let test_iterateSubstitutions: (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt) => array<array<expr>>

@@ -35,7 +35,7 @@ let createProofCtx: (mmContext, array<rootStmt>) => mmContext
 
 let proveFloatings: (
     ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~frameRestrict:frameRestrict,
     ~floatingsToProve: array<expr>,
     ~parenCnt: parenCnt,
@@ -44,7 +44,7 @@ let proveFloatings: (
 let proveSyntaxTypes: (
     ~proofTree:proofTree=?,
     ~wrkCtx:mmContext=?,
-    ~frms:Belt_MapString.t<frmSubsData>=?,
+    ~frms:frms=?,
     ~frameRestrict:frameRestrict,
     ~parenCnt:parenCnt=?,
     ~exprs: array<expr>,
@@ -56,7 +56,7 @@ let proveSyntaxTypes: (
 
 let unifyAll: (
     ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
@@ -68,3 +68,4 @@ let unifyAll: (
     (),
 ) => proofTree
 
+let makeParenCnt: ( ~ctx:mmContext, ~parens:string, ) => parenCnt

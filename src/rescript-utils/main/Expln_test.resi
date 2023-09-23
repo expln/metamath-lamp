@@ -13,3 +13,6 @@ let failMsg: string => 'a
 
 let startProfile: unit => unit
 let stopProfile: unit => unit
+
+let startTimer: string => unit
+let stopTimer: string => unit

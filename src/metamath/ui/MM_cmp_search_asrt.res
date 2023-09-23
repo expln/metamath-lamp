@@ -28,16 +28,10 @@ type state = {
 }
 
 let makeInitialState = (frms, initialTyp:option<int>) => {
-    if (frms->Belt_MapString.size == 0) {
+    if (frms->frmsSize == 0) {
         raise(MmException({msg:`Cannot search assertions when frms are empty.`}))
     }
-    let allTypes = []
-    frms->Belt_MapString.forEach((_,frm) => {
-        let typ = frm.frame.asrt[0]
-        if (!(allTypes->Js_array2.includes(typ))) {
-            allTypes->Js_array2.push(typ)->ignore
-        }
-    })
+    let allTypes = frms->frmsGetAllTypes
     {
         label: "",
         allTypes,
@@ -174,7 +168,7 @@ let make = (
     ~varsText: string,
     ~disjText: string,
     ~wrkCtx: mmContext,
-    ~frms: Belt_MapString.t<frmSubsData>,
+    ~frms: frms,
     ~initialTyp:option<int>,
     ~onTypChange:int=>unit,
     ~onCanceled:unit=>unit,
@@ -183,7 +177,7 @@ let make = (
     let (state, setState) = React.useState(() => makeInitialState(frms, initialTyp))
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
-        switch frms->Belt_MapString.get(label) {
+        switch frms->frmsGetByLabel(label) {
             | None => None
             | Some(frm) => {
                 MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
