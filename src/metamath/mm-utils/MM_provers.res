@@ -141,7 +141,7 @@ let proveFloating = (
     */
     if (node->pnGetProof->Belt.Option.isNone && !(node->pnIsInvalidFloating)) {
         nodesToCreateParentsFor->arrayQueueReset
-        let savedNodes = Belt_HashSetInt.make( ~hintSize = 1000 )
+        let savedNodes = Belt_HashSetInt.make( ~hintSize = 128 )
 
         let saveNodeToCreateParentsFor = node => {
             switch node->pnGetProof {
@@ -187,9 +187,7 @@ let proveFloating = (
                 | None => {
                     let curExpr = curNode->pnGetExpr
                     switch findNonAsrtParent(~tree, ~expr=curExpr) {
-                        | Some(parent) => {
-                            curNode->pnAddParent(parent, false, false)
-                        }
+                        | Some(parent) => curNode->pnAddParent(parent, false, false)
                         | None => {
                             parentFound := false
                             findAsrtParentsWithoutNewVars(

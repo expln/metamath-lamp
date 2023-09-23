@@ -139,9 +139,9 @@ let ptMake = (
         disj,
         parenCnt,
         nextNodeId: 0,
-        nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=500_000),
+        nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=128),
         rootStmts: [],
-        syntaxProofs: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=50_000),
+        syntaxProofs: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=128),
         ptDbg: exprToStr->Belt_Option.map(exprToStr => {
             {
                 newVars: [],
