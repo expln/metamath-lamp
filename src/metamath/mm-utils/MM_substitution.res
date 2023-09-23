@@ -572,20 +572,18 @@ let prepareFrmSubsData = (
     ~ctx:mmContext,
     ()
 ):frms => {
-    let all = []
+    let frmCmp = Expln_utils_common.comparatorBy(frm => frm.hypsE->Js_array2.length)
+    let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Js_array2.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)
-    ctx->forEachFrame(frame => {
-        let frm = prepareFrmSubsDataForFrame(frame)
-        all->Js_array2.push(frm)->ignore
-        byLabel->Belt_HashMapString.set(frame.label, frm)
-        let typ = frame.asrt[0]
+    all->Js_array2.forEach(frm => {
+        byLabel->Belt_HashMapString.set(frm.frame.label, frm)
+        let typ = frm.frame.asrt[0]
         switch byType->Belt_HashMapInt.get(typ) {
             | None => byType->Belt_HashMapInt.set(typ,[frm])
             | Some(arr) => arr->Js_array2.push(frm)->ignore
         }
-        None
-    })->ignore
+    })
     {
         all,
         byLabel,

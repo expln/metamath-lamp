@@ -102,6 +102,7 @@ let getHypByExpr: (mmContext, expr) => option<hypothesis>
 let getMandHyps: (mmContext, expr) => array<hypothesis>
 let getAllHyps: mmContext => Belt_MapString.t<hypothesis>
 let getAllFrames: mmContext => Belt_MapString.t<frame>
+let getAllFramesArr: mmContext => array<frame>
 let getAllDisj: mmContext => disjMutable
 let getLocalDisj: mmContext => disjMutable
 let getFrame: (mmContext,string) => option<frame>

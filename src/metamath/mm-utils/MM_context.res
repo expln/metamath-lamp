@@ -559,6 +559,15 @@ let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
     Belt_MapString.fromArray(hyps->Js_array2.map(hyp => (hyp.label, hyp)))
 }
 
+let getAllFramesArr = (ctx:mmContext):array<frame> => {
+    let frames = []
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        frames->Js.Array2.pushMany(ctx.frames->Belt_HashMapString.valuesToArray)->ignore
+        None
+    })->ignore
+    frames
+}
+
 let getAllFrames = (ctx:mmContext):Belt_MapString.t<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {
