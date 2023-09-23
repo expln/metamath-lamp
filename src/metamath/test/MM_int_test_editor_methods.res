@@ -32,7 +32,7 @@ let createEditorState = (
         parens,
         asrtsToSkip: [],
         descrRegexToDisc: "",
-        labelRegexToDisc: "^ax-frege54c$",
+        labelRegexToDisc: "^(ax-frege54c)|(.+OLD)|(.+ALT)$",
         descrRegexToDepr: "",
         labelRegexToDepr: "",
         discColor:"",
