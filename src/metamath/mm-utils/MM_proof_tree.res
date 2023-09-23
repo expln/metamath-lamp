@@ -226,7 +226,6 @@ let pnMarkProved = ( node:proofNode ):unit => {
             | None => ()
             | Some(nodeProof) => {
                 node.proof = Some(nodeProof)
-                // node->pnDecIsNeededCntForFParents
                 let nodesToMarkProved = node.children->Belt_MutableQueue.fromArray
                 while (!(nodesToMarkProved->Belt_MutableQueue.isEmpty)) {
                     let curNode = nodesToMarkProved->Belt_MutableQueue.pop->Belt_Option.getExn
@@ -236,7 +235,6 @@ let pnMarkProved = ( node:proofNode ):unit => {
                             | Some(curNodeProof) => {
                                 curNode.proof = Some(curNodeProof)
                                 curNode.children->Js_array2.forEach( nodesToMarkProved->Belt_MutableQueue.add )
-                                // curNode->pnDecIsNeededCntForFParents
                             }
                         }
                     }
