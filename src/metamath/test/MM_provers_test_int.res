@@ -124,52 +124,35 @@ describe("proveSyntaxTypes", _ => {
         log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
 
         //when
-        // let batchSize = 3000
-        // let batchSize = totalSize / 10
-        // let i = ref(0)
-        // while (i.contents < exprsToSyntaxProve->Js_array2.length) {
-        //     let batch = []
-        //     let sumLen = ref(0)
-        //     while (sumLen.contents < batchSize && i.contents < exprsToSyntaxProve->Js_array2.length) {
-        //         let expr = exprsToSyntaxProve[i.contents]
-        //         batch->Js.Array2.push(expr)->ignore
-        //         sumLen := sumLen.contents + expr->Js_array2.length
-        //         i := i.contents + 1
-        //     }
-            let proofTree = proveSyntaxTypes(
-                ~wrkCtx=ctx,
-                ~frms,
-                ~frameRestrict={
-                    useDisc:true,
-                    useDepr:true,
-                    useTranDepr:true,
-                },
-                ~parenCnt,
-                // ~exprs=exprsToSyntaxProve->Js_array2.slice(~start=i.contents, ~end_=i.contents+batchSize),
-                // ~exprs=batch,
-                // ~exprs=[ctx->ctxStrToIntsExn("(| class1 |) =/= (/)")],
-                ~exprs=exprsToSyntaxProve,
-                ~syntaxTypes,
-                ~onProgress=pct=>{
-                    let currMs = getCurrMillis()
-                    log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
-                    lastPct := currMs
-                },
-                ()
-            )
-            // i := i.contents + batchSize
-        // }
+        let proofTree = proveSyntaxTypes(
+            ~wrkCtx=ctx,
+            ~frms,
+            ~frameRestrict={
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+            ~parenCnt,
+            ~exprs=exprsToSyntaxProve,
+            ~syntaxTypes,
+            ~onProgress=pct=>{
+                let currMs = getCurrMillis()
+                log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
+                lastPct := currMs
+            },
+            ()
+        )
 
         //then
         let endMs = getCurrMillis()
         log(`Overall duration (sec): ${durationToSecondsStr(startMs, endMs)}` )
 
-        Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
+        // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
         let unprovedAsrtExprs = asrtExprs
             ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
-        let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
-        Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
+        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
         assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 
     })
