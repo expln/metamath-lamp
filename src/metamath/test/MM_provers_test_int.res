@@ -29,7 +29,7 @@ describe("proveSyntaxTypes", _ => {
             // ~debug=true,
             ()
         )
-        let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b"
+        let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
         let ctx = ctx->ctxOptimizeForProver(~parens, ())
         ctx->openChildContext
         let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
@@ -52,8 +52,7 @@ describe("proveSyntaxTypes", _ => {
                 | None => {
                     let newVar = createNewVar(typ)
                     typToLocVars->Belt_HashMapInt.set(typ,[newVar])
-                    // typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
-                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
+                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
                     newVar
                 }
                 | Some(locVars) => {
@@ -63,11 +62,11 @@ describe("proveSyntaxTypes", _ => {
                             if (locVars->Js_array2.length <= idx) {
                                 let newVar = createNewVar(typ)
                                 locVars->Js_array2.push(newVar)->ignore
-                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
                                 newVar
                             } else {
                                 let existingVar = locVars[idx]
-                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
                                 existingVar
                             }
                         }
@@ -77,28 +76,40 @@ describe("proveSyntaxTypes", _ => {
         }
 
         let resetCtxLocVars = () => {
-            typToNextLocVarIdx->Belt_HashMapInt.toArray->Js.Array2.forEach(((typ,_)) => {
+            typToNextLocVarIdx->Belt_HashMapInt.keysToArray->Js.Array2.forEach(typ => {
                 typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
             })
         }
 
-        let asrtIntToCtxInt = (i,frame):int => {
+        let asrtVarsToLocVars = (asrtVarTypes:array<int>):array<int> => {
+            asrtVarTypes->Js_array2.map(getCtxLocVar)
+        }
+
+        let asrtIntToCtxInt = (i:int,asrtVarToLocVar:array<int>):int => {
             if (i < 0) {
                 i
             } else {
-                getCtxLocVar(frame.varTypes[i])
+                asrtVarToLocVar[i]
             }
         }
+
+        let maxNumOfVars = ref(0)
 
         let asrtExprs:array<expr> = []
         ctx->forEachFrame(frame => {
             resetCtxLocVars()
+            let asrtVarToLocVar = asrtVarsToLocVars(frame.varTypes)
             asrtExprs->Js.Array2.push(
-                frame.asrt->Js_array2.map(asrtIntToCtxInt(_,frame))
+                frame.asrt->Js_array2.map(asrtIntToCtxInt(_,asrtVarToLocVar))
             )->ignore
+            if (maxNumOfVars.contents < frame.numOfVars) {
+                maxNumOfVars := frame.numOfVars
+            }
             None
         })->ignore
         asrtExprs->Js.Array2.sortInPlaceWith(compareExprBySize->comparatorInverse)->ignore
+
+        Js.Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
 
         // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
