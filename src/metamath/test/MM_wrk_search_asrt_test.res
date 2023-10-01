@@ -12,6 +12,7 @@ let createFrame = (asrt:expr, varTypes:array<int>):frame => {
         label: "",
         frameVarToSymb: [],
         varTypes,
+        varHyps: [],
         numOfVars: varTypes->Js.Array2.length,
         numOfArgs: 0,
         descr: None,

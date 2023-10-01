@@ -32,6 +32,7 @@ type frame = {
     label: string,
     frameVarToSymb: array<string>,
     varTypes: array<int>,
+    varHyps: array<int>,
     numOfVars: int,
     numOfArgs: int,
     descr:option<string>,
