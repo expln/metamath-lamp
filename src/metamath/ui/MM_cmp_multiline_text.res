@@ -52,7 +52,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let (newTextCursorPosition, setNewTextCursorPosition) = React.useState(() => None)
-    let stmtTextFieldRef = React.useRef(Js.Nullable.null)
+    let textFieldRef = React.useRef(Js.Nullable.null)
 
     let {
         onClick, 
@@ -102,7 +102,7 @@ let make = (
             | None => ()
             | Some(newTextCursorPosition) => {
                 setNewTextCursorPosition(_ => None)
-                switch stmtTextFieldRef.current->Js.Nullable.toOption {
+                switch textFieldRef.current->Js.Nullable.toOption {
                     | None => ()
                     | Some(domElem) => {
                         let input = ReactDOM.domElementToObj(domElem)
@@ -128,7 +128,7 @@ let make = (
     }
     
     let actStartNewLine = () => {
-        switch stmtTextFieldRef.current->Js.Nullable.toOption {
+        switch textFieldRef.current->Js.Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 let input = ReactDOM.domElementToObj(domElem)
@@ -137,8 +137,7 @@ let make = (
                 let after = state.newText->Js.String2.substringToEnd(~from=selectionStart)
                 actNewTextUpdated(before ++ "\n" ++ after)
                 input["focus"](.)->ignore
-                let newSelectionStart = selectionStart+1
-                setNewTextCursorPosition(_ => Some(newSelectionStart))
+                setNewTextCursorPosition(_ => Some(selectionStart+1))
             }
         }
     }
@@ -180,7 +179,7 @@ let make = (
             }
             <Col>
                 <TextField
-                    inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
+                    inputRef=ReactDOM.Ref.domRef(textFieldRef)
                     size=#small
                     style=ReactDOM.Style.make(~width = width->Belt_Int.toString ++ "px", ())
                     autoFocus=true
