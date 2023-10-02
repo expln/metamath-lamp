@@ -572,7 +572,8 @@ let prepareFrmSubsData = (
     ~ctx:mmContext,
     ()
 ):frms => {
-    let frmCmp = Expln_utils_common.comparatorBy(frm => frm.hypsE->Js_array2.length)
+    let frmCmp = comparatorBy(frm => frm.hypsE->Js_array2.length)
+        ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
     let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Js_array2.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)
