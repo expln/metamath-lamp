@@ -1519,7 +1519,6 @@ let make = (
                         <Static_XML_to_HTML xmlStr=str />
                     }}
                     fullWidth=true
-                    buttonDirHor=false
                     onHelp={() => {
                         openModal(modalRef, () => React.null)->promiseMap(modalId => {
                             updateModal(modalRef, modalId, () => {

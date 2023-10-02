@@ -47,7 +47,6 @@ let make = (
     ~renderer:option<string=>reElem>=?,
     ~width:int=600,
     ~fullWidth:bool=false,
-    ~buttonDirHor:bool=true,
     ~onHelp:option<unit=>unit>=?,
     ~onDelete:option<unit=>unit>=?,
 ) => {
@@ -166,12 +165,9 @@ let make = (
             }
         }
         let newLineBtn = rndIconButton(
-            ~icon=<MM_Icons.KeyboardReturn/>, ~active=true,  ~onClick=actStartNewLine, ~title="Start new line, Shift+Enter", ())
-        if (buttonDirHor) {
-            <Row spacing=0.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
-        } else {
-            <Col spacing=0.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Col>
-        }
+            ~icon=<MM_Icons.KeyboardReturn/>, ~active=true,  ~onClick=actStartNewLine, 
+            ~title="Start new line, Shift+Enter", ~color=None, ())
+        <Row spacing=0.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
     }
 
     let rndText = () => {
@@ -182,7 +178,7 @@ let make = (
             } else {
                 width
             }
-            <Row>
+            <Col>
                 <TextField
                     inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
@@ -196,10 +192,9 @@ let make = (
                         kbrdClbkMake(~key=keyEsc, ~act=actEditCancel, ()),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
-                    minRows={if (buttonDirHor) {1} else {6} }
                 />
                 {rndButtons()}
-            </Row>
+            </Col>
         } else {
             let style = if (text->Js.String2.trim == "") {
                 ReactDOM.Style.make(~padding="4px", ())
