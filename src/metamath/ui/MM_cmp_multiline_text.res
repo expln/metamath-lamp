@@ -52,6 +52,8 @@ let make = (
     ~onDelete:option<unit=>unit>=?,
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
+    let (newTextCursorPosition, setNewTextCursorPosition) = React.useState(() => None)
+    let stmtTextFieldRef = React.useRef(Js.Nullable.null)
 
     let {
         onClick, 
@@ -96,6 +98,24 @@ let make = (
         None
     }, [editMode])
 
+    React.useEffect1(() => {
+        switch newTextCursorPosition {
+            | None => ()
+            | Some(newTextCursorPosition) => {
+                setNewTextCursorPosition(_ => None)
+                switch stmtTextFieldRef.current->Js.Nullable.toOption {
+                    | None => ()
+                    | Some(domElem) => {
+                        let input = ReactDOM.domElementToObj(domElem)
+                        input["selectionStart"]=newTextCursorPosition
+                        input["selectionEnd"]=newTextCursorPosition
+                    }
+                }
+            }
+        }
+        None
+    }, [newTextCursorPosition])
+
     let actNewTextUpdated = newText => {
         setState(setNewText(_, newText))
     }
@@ -106,6 +126,22 @@ let make = (
     
     let actEditCancel = () => {
         onEditCancel(state.newText->Js_string2.trim)
+    }
+    
+    let actStartNewLine = () => {
+        switch stmtTextFieldRef.current->Js.Nullable.toOption {
+            | None => ()
+            | Some(domElem) => {
+                let input = ReactDOM.domElementToObj(domElem)
+                let selectionStart = input["selectionStart"]
+                let before = state.newText->Js.String2.substring(~from=0,~to_=selectionStart)
+                let after = state.newText->Js.String2.substringToEnd(~from=selectionStart)
+                actNewTextUpdated(before ++ "\n" ++ after)
+                input["focus"](.)->ignore
+                let newSelectionStart = selectionStart+1
+                setNewTextCursorPosition(_ => Some(newSelectionStart))
+            }
+        }
     }
 
     let rndButtons = () => {
@@ -129,10 +165,12 @@ let make = (
                 )
             }
         }
+        let newLineBtn = rndIconButton(
+            ~icon=<MM_Icons.KeyboardReturn/>, ~active=true,  ~onClick=actStartNewLine, ~title="Start new line, Shift+Enter", ())
         if (buttonDirHor) {
-            <Row spacing=0.> saveBtn cancelBtn helpBtn deleteBtn </Row>
+            <Row spacing=0.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
         } else {
-            <Col spacing=0.> saveBtn cancelBtn helpBtn deleteBtn </Col>
+            <Col spacing=0.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Col>
         }
     }
 
@@ -146,6 +184,7 @@ let make = (
             }
             <Row>
                 <TextField
+                    inputRef=ReactDOM.Ref.domRef(stmtTextFieldRef)
                     size=#small
                     style=ReactDOM.Style.make(~width = width->Belt_Int.toString ++ "px", ())
                     autoFocus=true
