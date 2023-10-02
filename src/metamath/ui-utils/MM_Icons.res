@@ -22,6 +22,7 @@ module FilterAltOff = { @module("@mui/icons-material/FilterAltOff") @react.compo
 module Hub = { @module("@mui/icons-material/Hub") @react.component external make: () => React.element = "default" }
 module HelpOutline = { @module("@mui/icons-material/HelpOutline") @react.component external make: () => React.element = "default" }
 module IosShare = { @module("@mui/icons-material/IosShare") @react.component external make: () => React.element = "default" }
+module KeyboardReturn = { @module("@mui/icons-material/KeyboardReturn") @react.component external make: () => React.element = "default" }
 module Logout = { @module("@mui/icons-material/Logout") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module MergeType = { @module("@mui/icons-material/MergeType") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module Menu = { @module("@mui/icons-material/Menu") @react.component external make: (~style: reStyle=?) => React.element = "default" }
