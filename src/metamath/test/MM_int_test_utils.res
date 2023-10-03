@@ -8,7 +8,7 @@ open Common
 
 let setMmPath = "./src/metamath/test/resources/set-no-proofs._mm"
 let failOnMismatch = true
-let debug = false
+let debug = true
 
 let curTestDataDir = ref("")
 

@@ -1357,7 +1357,7 @@ let insertStmt = (
                     switch getUserStmtByExpr(st,expr) {
                         | None => insertNewStmt(st,None)
                         | Some(existingStmt) => {
-                            if (existingStmt.typ == E) {
+                            if (existingStmt.typ == E || jstf->Belt.Option.isNone) {
                                 (st, existingStmt.label)
                             } else {
                                 switch parseJstf(existingStmt.jstfText) {
