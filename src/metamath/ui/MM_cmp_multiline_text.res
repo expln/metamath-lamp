@@ -166,7 +166,7 @@ let make = (
         let newLineBtn = rndIconButton(
             ~icon=<MM_Icons.KeyboardReturn/>, ~active=true,  ~onClick=actStartNewLine, 
             ~title="Start new line, Shift+Enter", ~color=None, ())
-        <Row spacing=0.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
+        <Row spacing=1.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
     }
 
     let rndText = () => {
