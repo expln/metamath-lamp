@@ -16,7 +16,6 @@ type proofNodeDbgDto = {
 
 type proofTreeDbgDto = {
     newVars: array<string>,
-    disj: array<string>,
 }
 
 type proofNodeDto = {
@@ -28,7 +27,6 @@ type proofNodeDto = {
 
 type proofTreeDto = {
     newVars: array<expr>,
-    disj: disjMutable,
     nodes: array<proofNodeDto>,
     syntaxProofs: array<(expr,proofNodeDto)>,
     dbg: option<proofTreeDbgDto>,
@@ -139,13 +137,11 @@ let proofTreeToDto = (
 
     {
         newVars: tree->ptGetCopyOfNewVars,
-        disj: tree->ptGetDisj,
         nodes,
         syntaxProofs: createSyntaxProofsDto( ~tree, ~exprToIdx, ~nodes, ),
         dbg: tree->ptGetDbg->Belt_Option.map(dbg => {
             {
                 newVars: dbg.newVars,
-                disj: dbg.disj,
             }
         })
     }

@@ -2,8 +2,6 @@
 Work variables:
     workVar1 class class1
     workVar2 class class2
-Disjoints:
-
 Arguments:
     provable1: |- class1 = class2
     provable2: |- 4 = class1
@@ -17,8 +15,6 @@ Result:
 ------------------------
 Work variables:
     workVar1 class class1
-Disjoints:
-
 Arguments:
     provable1: |- class1 = ( 2 + ( 1 + 1 ) )
     provable2: |- 4 = class1
@@ -32,8 +28,6 @@ Result:
 ------------------------
 Work variables:
     workVar1 class class1
-Disjoints:
-
 Arguments:
     provable1: |- ( ( 2 + 1 ) + 1 ) = class1
     [8]
@@ -46,8 +40,6 @@ Result:
 
 ------------------------
 Work variables:
-
-Disjoints:
 
 Arguments:
     provable1: |- ( ( 2 + 1 ) + 1 ) = ( 2 + ( 1 + 1 ) )
@@ -62,8 +54,6 @@ Result:
 ------------------------
 Work variables:
 
-Disjoints:
-
 Arguments:
     [8]
     provable1: |- 4 = 4
@@ -76,8 +66,6 @@ Result:
 
 ------------------------
 Work variables:
-
-Disjoints:
 
 Arguments:
     [4]

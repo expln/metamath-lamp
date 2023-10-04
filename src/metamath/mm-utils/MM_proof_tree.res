@@ -18,7 +18,6 @@ type proofNodeDbg = {
 
 type proofTreeDbg = {
     newVars: array<string>,
-    disj: array<string>,
     exprToStr: expr=>string,
 }
 
@@ -45,9 +44,9 @@ and proofTree = {
     hypsByExpr: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     hypsByLabel: Belt_HashMapString.t<hypothesis>,
     ctxMaxVar:int,
+    ctxDisj: disjMutable,
     mutable maxVar:int,
     newVars: Belt_HashSet.t<expr,ExprHash.identity>,
-    disj: disjMutable,
     parenCnt:parenCnt,
     mutable nextNodeId: int,
     nodes: Belt_HashMap.t<expr,proofNode,ExprHash.identity>,
@@ -106,7 +105,7 @@ let pnGetDbg = node => node.pnDbg
 let emptyFrmArr = []
 let ptGetFrms = (tree,typ) => tree.frms->Belt_HashMapInt.get(typ)->Belt.Option.getWithDefault(emptyFrmArr)
 let ptGetParenCnt = tree => tree.parenCnt
-let ptIsDisj = (tree:proofTree, n, m) => tree.disj->disjContains(n,m)
+let ptIsDisjInCtx = (tree:proofTree, n, m) => tree.ctxDisj->disjContains(n,m)
 let ptIsNewVarDef = (tree:proofTree, expr) => tree.newVars->Belt_HashSet.has(expr)
 let ptGetHypByExpr = ( tree:proofTree, expr:expr ):option<hypothesis> => tree.hypsByExpr->Belt_HashMap.get(expr)
 let ptGetHypByLabel = ( tree:proofTree, label:string ):option<hypothesis> => 
@@ -116,13 +115,13 @@ let ptGetCtxMaxVar = tree => tree.ctxMaxVar
 let ptGetRootStmts = tree => tree.rootStmts
 let ptGetDbg = (tree:proofTree) => tree.ptDbg
 let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
-let ptGetDisj = tree => tree.disj
+let ptGetCtxDisj = tree => tree.ctxDisj
 
 let ptMake = (
     ~frms: frms,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
-    ~disj: disjMutable,
+    ~ctxDisj: disjMutable,
     ~parenCnt: parenCnt,
     ~exprToStr: option<expr=>string>,
 ) => {
@@ -136,7 +135,7 @@ let ptMake = (
         ctxMaxVar,
         maxVar:ctxMaxVar,
         newVars: Belt_HashSet.make(~id=module(ExprHash), ~hintSize=16),
-        disj,
+        ctxDisj,
         parenCnt,
         nextNodeId: 0,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=128),
@@ -145,7 +144,6 @@ let ptMake = (
         ptDbg: exprToStr->Belt_Option.map(exprToStr => {
             {
                 newVars: [],
-                disj: [],
                 exprToStr,
             }
         })
@@ -308,14 +306,6 @@ let ptAddNewVar = (tree, typ):int => {
         | Some({exprToStr, newVars}) => newVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
     }
     newVar
-}
-
-let ptAddDisjPair = (tree, n, m) => {
-    tree.disj->disjAddPair( n,m )
-    switch tree.ptDbg {
-        | None => ()
-        | Some({exprToStr, disj}) => disj->Js.Array2.push(exprToStr([n,m]))->ignore
-    }
 }
 
 let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {

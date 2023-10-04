@@ -8,7 +8,6 @@ open MM_parser
 type applyAssertionResult = {
     newVars: array<int>,
     newVarTypes: array<int>,
-    newDisj:disjMutable,
     frame: frame,
     subs: subs,
     err:option<unifErr>,
@@ -368,26 +367,17 @@ let checkDisj = (
     ~allowNewDisjForExistingVars:bool,
     ~isDisjInCtx:(int,int)=>bool,
     ~debugLevel:int,
-):result<disjMutable,unifErr> => {
-    let resultDisj = disjMake()
-    let verifRes = verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
-        if (n <= maxCtxVar && m <= maxCtxVar) {
-            if (isDisjInCtx(n,m)) {
-                true
-            } else if (allowNewDisjForExistingVars) {
-                resultDisj->disjAddPair(n,m)
-                true
+):option<unifErr> => {
+    if (allowNewDisjForExistingVars) {
+        None
+    } else {
+        verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
+            if (n <= maxCtxVar && m <= maxCtxVar) {
+                isDisjInCtx(n,m)
             } else {
-                false
+                true
             }
-        } else {
-            resultDisj->disjAddPair(n,m)
-            true
-        }
-    })
-    switch verifRes {
-        | None => Ok(resultDisj)
-        | Some(err) => Error(err)
+        })
     }
 }
 
@@ -439,7 +429,6 @@ let applyAssertions = (
                     {
                         newVars: [],
                         newVarTypes: [],
-                        newDisj: disjMake(),
                         frame: frm.frame,
                         subs: subsClone(frm.subs),
                         err:Some(NoUnifForAsrt({asrtExpr:frm.frame.asrt, expr}))
@@ -497,7 +486,6 @@ let applyAssertions = (
                                     {
                                         newVars: [],
                                         newVarTypes: [],
-                                        newDisj: disjMake(),
                                         frame: frm.frame,
                                         subs: subsClone(frm.subs),
                                         err: Some(err)
@@ -519,7 +507,6 @@ let applyAssertions = (
                                             {
                                                 newVars: [],
                                                 newVarTypes: [],
-                                                newDisj: disjMake(),
                                                 frame: frm.frame,
                                                 subs: subsClone(frm.subs),
                                                 err: Some(err)
@@ -535,11 +522,10 @@ let applyAssertions = (
                                             ~allowNewDisjForExistingVars,
                                             ~debugLevel,
                                         ) {
-                                            | Ok(newDisj) => {
+                                            | None => {
                                                 let res = {
                                                     newVars: workVars.newVars->Js.Array2.copy,
                                                     newVarTypes: workVars.newVarTypes->Js.Array2.copy,
-                                                    newDisj,
                                                     frame: frm.frame,
                                                     subs: subsClone(frm.subs),
                                                     err:None
@@ -551,14 +537,13 @@ let applyAssertions = (
                                                     Continue
                                                 }
                                             }
-                                            | Error(err) => {
+                                            | Some(err) => {
                                                 if (debugLevel == 0) {
                                                     Continue
                                                 } else {
                                                     let res = {
                                                         newVars: workVars.newVars->Js.Array2.copy,
                                                         newVarTypes: workVars.newVarTypes->Js.Array2.copy,
-                                                        newDisj: disjMake(),
                                                         frame: frm.frame,
                                                         subs: subsClone(frm.subs),
                                                         err:Some(err)
