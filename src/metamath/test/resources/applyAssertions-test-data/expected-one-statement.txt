@@ -3,8 +3,6 @@ Work variables:
     workVar1 term term1
     workVar2 term term2
     workVar3 term term3
-Disjoints:
-
 Arguments:
 
 Proof:
@@ -16,8 +14,6 @@ Result:
 ------------------------
 Work variables:
     workVar1 term term1
-Disjoints:
-
 Arguments:
 
 Proof:
@@ -30,8 +26,6 @@ Result:
 Work variables:
     workVar1 wff wff1
     workVar2 wff wff2
-Disjoints:
-
 Arguments:
     provable1: |- wff1
     provable2: |- ( wff1 -> wff2 )
@@ -44,8 +38,6 @@ Result:
 ------------------------
 Work variables:
     workVar1 wff wff1
-Disjoints:
-
 Arguments:
     [p1]
     provable1: |- ( ( t + 0 ) = t -> wff1 )
@@ -58,8 +50,6 @@ Result:
 ------------------------
 Work variables:
     workVar1 term term1
-Disjoints:
-
 Arguments:
 
 Proof:
@@ -72,8 +62,6 @@ Result:
 Work variables:
     workVar1 term term1
     workVar2 term term2
-Disjoints:
-
 Arguments:
 
 Proof:
@@ -84,8 +72,6 @@ Result:
 
 ------------------------
 Work variables:
-
-Disjoints:
 
 Arguments:
 
@@ -99,8 +85,6 @@ Result:
 Work variables:
     workVar1 term term1
     workVar2 term term2
-Disjoints:
-
 Arguments:
 
 Proof:
@@ -113,8 +97,6 @@ Result:
 Work variables:
     workVar1 wff wff1
     workVar2 wff wff2
-Disjoints:
-
 Arguments:
 
 Proof:

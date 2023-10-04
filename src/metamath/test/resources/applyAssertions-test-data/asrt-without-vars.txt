@@ -3,8 +3,6 @@ Work variables:
     workVar1 term term1
     workVar2 term term2
     workVar3 term term3
-Disjoints:
-
 Arguments:
     provable1: |- ( term1 = term2 )
     provable2: |- ( term2 = term3 )

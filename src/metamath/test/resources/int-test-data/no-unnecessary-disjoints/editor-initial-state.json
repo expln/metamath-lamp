@@ -1,0 +1,106 @@
+{
+  "srcs": [],
+  "descr": "https://github.com/expln/metamath-lamp/issues/166",
+  "varsText": "",
+  "disjText": "",
+  "stmts": [
+    {
+      "label": "vtocl2d2.1",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> A e. V )",
+      "jstfText": ""
+    },
+    {
+      "label": "vtocl2d2.2",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> B e. W )",
+      "jstfText": ""
+    },
+    {
+      "label": "vtocl2d2.3",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( ( x = A /\\ y = B ) -> ( ps <-> ch ) ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "vtocl2d2.4",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> ps )",
+      "jstfText": ""
+    },
+    {
+      "label": "1",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( y = B -> ps ) )",
+      "jstfText": "vtocl2d2.4 : a1d"
+    },
+    {
+      "label": "2",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ph /\\ y = B ) -> ps )",
+      "jstfText": "vtocl2d2.4 : adantr"
+    },
+    {
+      "label": "3",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ph /\\ x = A /\\ y = B ) -> ( ps <-> ch ) )",
+      "jstfText": "vtocl2d2.3 : 3impib"
+    },
+    {
+      "label": "4",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ( ph /\\ x = A ) /\\ y = B ) -> ( ps <-> ch ) )",
+      "jstfText": "3 : 3expa"
+    },
+    {
+      "label": "5",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ph /\\ x = A ) -> ( ( y = B -> ps ) <-> ( y = B -> ch ) ) )",
+      "jstfText": "4 : pm5.74da"
+    },
+    {
+      "label": "6",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( y = B -> ch ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "7",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ph /\\ y = B ) -> ch )",
+      "jstfText": "6 : imp"
+    },
+    {
+      "label": "8",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ph /\\ y = B ) -> ( ps <-> ch ) )",
+      "jstfText": "2 7 : 2thd"
+    },
+    {
+      "label": "9",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( y = B -> ( ps <-> ch ) ) )",
+      "jstfText": "8 : ex"
+    },
+    {
+      "label": "vtocl2d2",
+      "typ": "p",
+      "isGoal": true,
+      "cont": "|- ( ph -> ch )",
+      "jstfText": ""
+    }
+  ]
+}

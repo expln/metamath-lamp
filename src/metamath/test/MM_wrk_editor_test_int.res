@@ -513,6 +513,23 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step10-disj-restored")
 
     })
+    
+    it("bottom-up prover does not add unnecessary disjoints", _ => {
+        setTestDataDir("no-unnecessary-disjoints")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step0")
+
+        let (st, stmts) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="vtocl2d2", ()),
+            ~maxSearchDepth=4,
+            ~allowNewStmts=false,
+            ()
+        )
+        let st = st->addNewStmts(stmts, ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+    })
 
     it("unify-all identifies some types of unification errors", _ => {
         setTestDataDir("identify-errors")
