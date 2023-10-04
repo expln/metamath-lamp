@@ -894,12 +894,19 @@ let renumberVarsInHypothesis = (ctxToFrameRenum: Belt_HashMapInt.t<int>, hyp: hy
 }
 
 let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMutable): Belt_MapInt.t<Belt_SetInt.t> => {
-    disj
+    let res = disjMake()
+    disj->disjForEach((n,m) => {
+        res->disjAddPair(
+            ctxToFrameRenum->ctxIntToFrameInt(n),
+            ctxToFrameRenum->ctxIntToFrameInt(m)
+        )
+    })
+    res
         ->Belt_HashMapInt.toArray
         ->Js.Array2.map(((n,ms)) => {
             (
-                ctxToFrameRenum->ctxIntToFrameInt(n),
-                ctxToFrameRenum->renumberVarsInExpr(ms->Belt_HashSetInt.toArray)->Belt_SetInt.fromArray
+                n,
+                ms->Belt_HashSetInt.toArray->Belt_SetInt.fromArray
             )
         })
         ->Belt_MapInt.fromArray
