@@ -181,7 +181,6 @@ let testApplyAssertions = (
 ) => {
     let printApplyAssertionResult = (workCtx, statements:array<labeledExpr>, res:applyAssertionResult):string => {
         workCtx->openChildContext
-        let maxWorkCtxVar = workCtx->getNumOfVars - 1
         let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length, ())
         let workVarTypes = res.newVarTypes->Js_array2.map(workCtx->ctxIntToSymExn)
         let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
