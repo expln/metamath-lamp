@@ -91,7 +91,7 @@ ready
 
 --- p -------------------------------------------------------------------------------
 stmt3-brab2a.21
-: axfrege54c
+: eqid
 |- { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
 ready
 
@@ -130,9 +130,9 @@ stmt12
 stmt13 : 2ralbidv
 |- ( r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
-Unif Error: Missing disjoint r,y:
-ph → r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
+Unif Error: Missing disjoint y,r:
 y → y
+ph → r = { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
 
 --- p -------------------------------------------------------------------------------
 stmt2-spcgv.11
@@ -146,7 +146,7 @@ stmt10 stmt2-spcgv.11 : spcev
 |- ( ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
 Unif Error: Missing disjoint u,r:
-ps → ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) )
+A → { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
 x → r
 
 --- p -------------------------------------------------------------------------------

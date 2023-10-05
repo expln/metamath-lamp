@@ -15,7 +15,6 @@ type proofNodeDbgDto = {
 
 type proofTreeDbgDto = {
     newVars: array<string>,
-    disj: array<string>,
 }
 
 type proofNodeDto = {
@@ -27,7 +26,6 @@ type proofNodeDto = {
 
 type proofTreeDto = {
     newVars: array<expr>,
-    disj: disjMutable,
     nodes: array<proofNodeDto>,
     syntaxProofs: array<(expr,proofNodeDto)>,
     dbg: option<proofTreeDbgDto>,

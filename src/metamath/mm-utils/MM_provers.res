@@ -84,7 +84,7 @@ let findAsrtParentsWithoutNewVars = (
                         && verifyDisjoints(
                                 ~frmDisj=frm.frame.disj, 
                                 ~subs, 
-                                ~isDisjInCtx=tree->ptIsDisj, 
+                                ~isDisjInCtx=tree->ptIsDisjInCtx, 
                                 ~debugLevel=0
                             )->Belt.Option.isNone
                     ) {
@@ -241,7 +241,7 @@ let findAsrtParentsWithNewVars = (
     applyAssertions(
         ~maxVar = maxVarBeforeSearch,
         ~frms = tree->ptGetFrms(expr[0]),
-        ~isDisjInCtx = tree->ptIsDisj,
+        ~isDisjInCtx = tree->ptIsDisjInCtx,
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = args,
         ~exactOrderOfStmts = exactOrderOfArgs,
@@ -288,12 +288,6 @@ let findAsrtParentsWithNewVars = (
                     let newVarType = applResult.newVarTypes[i]
                     let treeNewVar = tree->ptAddNewVar(newVarType)
                     applNewVarToTreeNewVar->Belt_MutableMapInt.set(applResNewVar,treeNewVar)
-                })
-                applResult.newDisj->disjForEach((n,m) => {
-                    tree->ptAddDisjPair(
-                        applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(n, n),
-                        applNewVarToTreeNewVar->Belt_MutableMapInt.getWithDefault(m, m),
-                    )
                 })
                 let numOfArgs = frame.hyps->Js_array2.length
                 let args = Expln_utils_common.createArray(numOfArgs)
@@ -654,7 +648,7 @@ let createProofTree = (
         ~frms, 
         ~hyps, 
         ~ctxMaxVar, 
-        ~disj=proofCtx->getAllDisj, 
+        ~ctxDisj=proofCtx->getAllDisj,
         ~parenCnt, 
         ~exprToStr=makeExprToStr(proofCtx, ctxMaxVar),
     )

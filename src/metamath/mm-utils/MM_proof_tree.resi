@@ -17,7 +17,6 @@ type proofNodeDbg = {
 
 type proofTreeDbg = {
     newVars: array<string>,
-    disj: array<string>,
     exprToStr: expr=>string,
 }
 
@@ -35,7 +34,7 @@ let ptMake: (
     ~frms: frms,
     ~hyps: Belt_MapString.t<hypothesis>,
     ~ctxMaxVar: int,
-    ~disj: disjMutable,
+    ~ctxDisj: disjMutable,
     ~parenCnt: parenCnt,
     ~exprToStr: option<expr=>string>,
 ) => proofTree
@@ -46,12 +45,11 @@ let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
 let ptGetMaxVar: proofTree => int
 let ptGetCtxMaxVar: proofTree => int
 let ptGetParenCnt: proofTree => parenCnt
-let ptIsDisj: (proofTree, int, int) => bool
+let ptIsDisjInCtx: (proofTree, int, int) => bool
 let ptIsNewVarDef: (proofTree, expr) => bool
 let ptGetRootStmts: proofTree => array<rootStmt>
 let ptGetNode: (proofTree, expr) => proofNode
 let ptAddNewVar: (proofTree, int) => int
-let ptAddDisjPair: (proofTree, int, int) => unit
 let ptAddRootStmt: (proofTree, rootStmt) => unit
 let ptAddSyntaxProof: (proofTree, expr, proofNode) => unit
 let ptGetSyntaxProof: (proofTree, expr) => option<proofNode>
@@ -60,7 +58,7 @@ let ptClearDists: proofTree => unit
 let ptGetDbg: proofTree => option<proofTreeDbg>
 
 let ptGetCopyOfNewVars: proofTree => array<expr>
-let ptGetDisj: proofTree => disjMutable
+let ptGetCtxDisj: proofTree => disjMutable
 
 let pnGetId: proofNode => int
 let pnGetExpr: proofNode => expr

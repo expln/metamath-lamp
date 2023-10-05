@@ -1,5 +1,6 @@
 open MM_parser
 open MM_context
+open MM_unification_debug
 
 type proofNodeDbg = {
     exprStr: string,
@@ -21,3 +22,9 @@ let verifyProof: (
 let compressedProofBlockToArray: string => array<string>
 let compressedProofStrToInt: string => int
 let intToCompressedProofStr: int => string
+
+let verifyDisjoints: ( 
+    ~subs:array<expr>,
+    ~frmDisj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~isDisjInCtx: (int,int) => bool,
+) => option<unifErr>

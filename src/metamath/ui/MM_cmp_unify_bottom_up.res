@@ -266,7 +266,7 @@ let isStmtToShow = (
         | Some(None) => stmt.jstf->Belt_Option.isSome
         | Some(Some(rootJstf)) => {
             switch stmt.jstf {
-                | None => true
+                | None => false
                 | Some(foundJstf) => !(rootJstf->jstfEq(foundJstf))
             }
         }

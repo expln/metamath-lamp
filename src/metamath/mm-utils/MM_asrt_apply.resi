@@ -6,7 +6,6 @@ open MM_unification_debug
 type applyAssertionResult = {
     newVars: array<int>,
     newVarTypes: array<int>,
-    newDisj:disjMutable,
     frame: frame,
     subs: subs,
     err:option<unifErr>,

@@ -135,7 +135,7 @@ stmt2
 |- ( ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er A /\ A. x e. A A. y e. A ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
 jstfIsIncorrect
 Unif Error: Missing disjoint A,r:
-ps → ( { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } Er A /\ A. x e. A A. y e. A ( x { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) )
+A → { <. u , v >. | ( ( u e. A /\ v e. A ) /\ ( F ` u ) = ( F ` v ) ) }
 x → r
 
 --- p -------------------------------------------------------------------------------

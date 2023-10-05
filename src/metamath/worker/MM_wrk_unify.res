@@ -7,6 +7,7 @@ open MM_proof_tree_dto
 open MM_provers
 open MM_statements_dto
 open MM_wrk_settings
+open MM_proof_verifier
 
 let procName = "MM_wrk_unify"
 
@@ -117,6 +118,16 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
             sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))))
         }
     }
+}
+
+let extractSubstitution = (~frame:frame, ~args:array<int>, ~tree:proofTreeDto):array<expr> => {
+    let subs = Expln_utils_common.createArray(frame.numOfVars)
+    frame.hyps->Js_array2.forEachi((hyp,i) => {
+        if (hyp.typ == F) {
+            subs[hyp.expr[1]] = tree.nodes[args[i]].expr
+        }
+    })
+    subs
 }
 
 let srcToNewStmts = (
@@ -300,7 +311,18 @@ let srcToNewStmts = (
                                     hasAsrtWithErr.contents = true
                                     Some(())
                                 }
-                                | Some(Assertion(_)) => {
+                                | Some(Assertion({args,label})) => {
+                                    let frame = getFrame(label)
+                                    verifyDisjoints(
+                                        ~subs = extractSubstitution(~frame, ~args, ~tree),
+                                        ~frmDisj = frame.disj,
+                                        ~isDisjInCtx = (n,m) => {
+                                            if (!(ctx->isDisj(n,m))) {
+                                                res.newDisj->disjAddPair(n,m)
+                                            }
+                                            true
+                                        },
+                                    )->ignore
                                     addExprToResult(
                                         ~label = createLabelForExpr(node.expr, ""),
                                         ~expr = node.expr, 
@@ -335,12 +357,16 @@ let srcToNewStmts = (
                     ~src = Some(src),
                     ~isProved = args->Js_array2.every(idx => tree.nodes[idx].proof->Belt_Option.isSome)
                 )
-                let varIsUsed = v => v <= maxCtxVar || res.newVars->Js.Array2.includes(v)
-                tree.disj->disjForEach((n,m) => {
-                    if (varIsUsed(n) && varIsUsed(m) && !(ctx->isDisj(n,m))) {
-                        res.newDisj->disjAddPair(n,m)
-                    }
-                })
+                verifyDisjoints(
+                    ~subs = extractSubstitution(~frame, ~args, ~tree),
+                    ~frmDisj = frame.disj,
+                    ~isDisjInCtx = (n,m) => {
+                        if (!(ctx->isDisj(n,m))) {
+                            res.newDisj->disjAddPair(n,m)
+                        }
+                        true
+                    },
+                )->ignore
                 res.newDisj->disjForEachArr(disjArr => {
                     res.newDisjStr->Js.Array2.push(
                         `$d ${disjArr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")} $.`

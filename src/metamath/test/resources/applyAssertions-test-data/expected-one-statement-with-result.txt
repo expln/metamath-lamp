@@ -1,8 +1,6 @@
 ------------------------
 Work variables:
     workVar1 wff wff1
-Disjoints:
-
 Arguments:
     provable1: |- wff1
     provable2: |- ( wff1 -> P )
@@ -14,8 +12,6 @@ Result:
 
 ------------------------
 Work variables:
-
-Disjoints:
 
 Arguments:
     [p1]
