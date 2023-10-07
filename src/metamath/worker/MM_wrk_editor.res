@@ -2224,9 +2224,9 @@ let getSelectedSubtree = (treeData:stmtContTreeData):option<childNode> => {
             switch treeData.root->getNodeById(nodeId) {
                 | None => None
                 | Some(Subtree(_)) => None //this should never happen because a Subtree cannot be clicked
-                | Some(Symbol({id, parent, sym, color, isVar})) => {
+                | Some(Symbol({id, parent, symInt, sym, color, isVar})) => {
                     if (treeData.expLvl == 0) {
-                        Some(Symbol({id, parent, sym, color, isVar}))
+                        Some(Symbol({id, parent, symInt, sym, color, isVar}))
                     } else {
                         let curParent = ref(Some(parent))
                         let curLvl = ref(treeData.expLvl)

@@ -11,7 +11,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool})
+    | Symbol({id:int, parent:syntaxTreeNode, symInt:int, sym:string, color:option<string>, isVar:bool})
 
 let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 
@@ -38,6 +38,8 @@ let syntaxTreeToText: childNode => string
 let syntaxTreeGetNumberOfSymbols: childNode => int
 
 type unifSubs = Belt_HashMapString.t<array<string>>
+
+let isVar: (syntaxTreeNode, string=>bool) => option<(int,string)>
 
 let unify: (
     syntaxTreeNode, 

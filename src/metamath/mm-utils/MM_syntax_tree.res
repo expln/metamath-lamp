@@ -11,7 +11,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, sym:string, color:option<string>, isVar:bool})
+    | Symbol({id:int, parent:syntaxTreeNode, symInt:int, sym:string, color:option<string>, isVar:bool})
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
@@ -74,6 +74,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                 this.children[i-1] = Symbol({
                     id: idSeq(),
                     parent:this,
+                    symInt: r.expr[i],
                     sym: ctx->ctxIntToSymExn(r.expr[i]),
                     isVar: r.expr[i] >= 0,
                     color: None,
@@ -106,6 +107,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                         this.children[i-1] = Symbol({
                                             id: idSeq(),
                                             parent:this,
+                                            symInt: s,
                                             sym: ctx->ctxIntToSymExn(s),
                                             isVar: false,
                                             color: None,
@@ -211,13 +213,13 @@ let buildSyntaxTreeFromProofTreeDto = (
 
 type unifSubs = Belt_HashMapString.t<array<string>>
 
-let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<string> => {
+let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> => {
     @warning("-8")
     switch expr.children->Js.Array2.length {
         | 1 => {
             switch expr.children[0] {
                 | Subtree(_) => None
-                | Symbol({isVar,sym}) => if (isVar && isMetavar(sym)) { Some(sym) } else { None }
+                | Symbol({isVar,symInt,sym}) => if (isVar && isMetavar(sym)) { Some((symInt,sym)) } else { None }
             }
         }
         | _ => None
@@ -280,9 +282,9 @@ let rec unify = (
         continue := false
     } else {
         switch a->isVar(isMetavar) {
-            | Some(aVar) => {
+            | Some((_,aVar)) => {
                 switch b->isVar(isMetavar) {
-                    | Some(bVar) => {
+                    | Some((_,bVar)) => {
                         if (aVar != bVar) {
                             continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
                         }
@@ -294,7 +296,7 @@ let rec unify = (
             }
             | None => {
                 switch b->isVar(isMetavar) {
-                    | Some(bVar) => {
+                    | Some((_,bVar)) => {
                         continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                     }
                     | None => {
