@@ -211,3 +211,27 @@ let rec unify = (
         }
     }
 }
+
+let unifyMayBePossible = ( 
+    ~asrtExpr:asrtSyntaxTreeNode, 
+    ~ctxExpr:MM_syntax_tree.syntaxTreeNode, 
+    ~isMetavar:string=>bool, 
+):bool => {
+    if (asrtExpr.typ != ctxExpr.typ) {
+        false
+    } else {
+        switch asrtExpr->isVar {
+            | Some(asrtVar) => true
+            | None => {
+                switch ctxExpr->MM_syntax_tree.isVar(isMetavar) {
+                    | Some((ctxVar,_)) => true
+                    | None => asrtExpr.children->Js.Array2.length == ctxExpr.children->Js.Array2.length
+                }
+            }
+        }
+    }
+}
+
+let unifSubsMake = () => Belt_HashMap.make(~hintSize=16, ~id=module(SymHash))
+let unifSubsGet = Belt_HashMap.get
+let unifSubsSize = Belt_HashMap.size

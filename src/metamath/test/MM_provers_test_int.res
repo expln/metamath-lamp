@@ -140,17 +140,18 @@ describe("proveSyntaxTypes", _ => {
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
+        let frameRestrict:MM_wrk_settings.frameRestrict = {
+            useDisc:true,
+            useDepr:true,
+            useTranDepr:true,
+        }
         log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
 
         //when
         let proofTree = proveSyntaxTypes(
             ~wrkCtx=ctx,
             ~frms,
-            ~frameRestrict={
-                useDisc:true,
-                useDepr:true,
-                useTranDepr:true,
-            },
+            ~frameRestrict,
             ~parenCnt,
             ~exprs=exprsToSyntaxProve,
             ~syntaxTypes,
@@ -196,6 +197,51 @@ describe("proveSyntaxTypes", _ => {
             }
         })
         Js.Console.log2(`syntaxTrees->Belt_HashMapString.size`, syntaxTrees->Belt_HashMapString.size)
-
+        // let asrtToPrint = "sylcom"
+        // Js.Console.log2(`${asrtToPrint}:`, syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Expln_utils_common.stringify)
+        let ctxExprStr = "( ( ch -> ph ) -> th )"
+        Expln_test.startTimer("find match")
+        switch MM_wrk_editor.textToSyntaxTree(
+            ~wrkCtx=ctx,
+            ~syms=[ctxExprStr->getSpaceSeparatedValuesAsArray],
+            ~syntaxTypes,
+            ~frms,
+            ~frameRestrict,
+            ~parenCnt,
+            ~lastSyntaxType=None,
+            ~onLastSyntaxTypeChange= _ => (),
+        ) {
+            | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+            | Ok(arr) => {
+                switch arr[0] {
+                    | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+                    | Ok(ctxSyntaxTree) => {
+                        syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {
+                            if (
+                                MM_asrt_syntax_tree.unifyMayBePossible(
+                                    ~asrtExpr=asrtTree,
+                                    ~ctxExpr=ctxSyntaxTree,
+                                    ~isMetavar = _ => true,
+                                )
+                            ) {
+                                let continue = ref(true)
+                                let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
+                                MM_asrt_syntax_tree.unify(
+                                    ~asrtExpr=asrtTree,
+                                    ~ctxExpr=ctxSyntaxTree,
+                                    ~isMetavar = _ => true,
+                                    ~foundSubs,
+                                    ~continue,
+                                )
+                                if (continue.contents && foundSubs->MM_asrt_syntax_tree.unifSubsSize > 1) {
+                                    Js.Console.log(`found match: ${label}`)
+                                }
+                            }
+                        })
+                    }
+                }
+            }
+        }
+        Expln_test.stopTimer("find match")
     })
 })
