@@ -370,11 +370,7 @@ let checkDisj = (
 ):option<unifErr> => {
     verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
         if (n <= maxCtxVar && m <= maxCtxVar) {
-            if (isDisjInCtx(n,m)) {
-                true
-            } else {
-                allowNewDisjForExistingVars
-            }
+            isDisjInCtx(n,m) || allowNewDisjForExistingVars
         } else {
             true
         }
