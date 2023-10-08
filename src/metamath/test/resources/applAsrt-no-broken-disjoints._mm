@@ -1,0 +1,13 @@
+$c |- = + ( ) { } [ ] 1 2 4 setvar wff E. -> $.
+$v ph ps x y $.
+var1 $f wff ph $.
+var2 $f wff ps $.
+var3 $f setvar x $.
+var4 $f setvar y $.
+
+${
+    $d y ps $.
+    $d x ps $.
+   exlimivv.1 $e |- ( ph -> ps ) $.
+   exlimivv  $a |- ( E. x E. y ph -> ps ) $.
+$}

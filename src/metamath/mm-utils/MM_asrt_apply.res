@@ -368,17 +368,17 @@ let checkDisj = (
     ~isDisjInCtx:(int,int)=>bool,
     ~debugLevel:int,
 ):option<unifErr> => {
-    if (allowNewDisjForExistingVars) {
-        None
-    } else {
-        verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
-            if (n <= maxCtxVar && m <= maxCtxVar) {
-                isDisjInCtx(n,m)
-            } else {
+    verifyDisjoints(~frmDisj, ~subs, ~debugLevel, ~isDisjInCtx = (n,m) => {
+        if (n <= maxCtxVar && m <= maxCtxVar) {
+            if (isDisjInCtx(n,m)) {
                 true
+            } else {
+                allowNewDisjForExistingVars
             }
-        })
-    }
+        } else {
+            true
+        }
+    })
 }
 
 let iterateSubstitutionsForResult = (
