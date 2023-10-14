@@ -106,13 +106,6 @@ let make = () => {
         }
     }
 
-    let isExplorerTab = (tabData:tabData):bool => {
-        switch tabData {
-            | ExplorerIndex(_) => true
-            | _ => false
-        }
-    }
-
     let isEditorTab = (tabData:tabData):bool => {
         switch tabData {
             | Editor => true
