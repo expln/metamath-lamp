@@ -187,10 +187,8 @@ let make = () => {
 
     let openExplorer = (~initPatternFilterStr:string):unit => {
         updateTabs(tabsSt => {
-            let numOfOpenedExplorers = tabsSt->Expln_React_UseTabs.getTabs
-                ->Js.Array2.filter(tab => isExplorerTab(tab.data))->Js.Array2.length
             let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                ~label=`EXPLORER[${numOfOpenedExplorers->Belt.Int.toString}]`, 
+                ~label=`EXPLORER ${initPatternFilterStr->Js_string2.substring(~from=0, ~to_=40)}`, 
                 ~closable=true, 
                 ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
                 ~doOpen=true, 

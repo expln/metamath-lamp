@@ -213,8 +213,8 @@ let make = React.memoCustomCompareProps(({
 
     let (isFirstRender, setIsFirstRender) = React.useState(() => true)
     React.useEffect5(() => {
+        setIsFirstRender(_ => false)
         if (!isFirstRender) {
-            setIsFirstRender(_ => false)
             actApplyFilters()
         }
         None
