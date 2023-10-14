@@ -221,10 +221,10 @@ let unifyMayBePossible = (
         false
     } else {
         switch asrtExpr->isVar {
-            | Some(asrtVar) => true
+            | Some(_) => true
             | None => {
                 switch ctxExpr->MM_syntax_tree.isVar(isMetavar) {
-                    | Some((ctxVar,_)) => true
+                    | Some(_) => true
                     | None => asrtExpr.children->Js.Array2.length == ctxExpr.children->Js.Array2.length
                 }
             }
