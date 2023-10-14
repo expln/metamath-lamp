@@ -6,6 +6,7 @@ open MM_substitution
 open Common
 open MM_proof_tree
 open Expln_utils_common
+open MM_asrt_syntax_tree
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
 
@@ -29,7 +30,7 @@ describe("proveSyntaxTypes", _ => {
             // ~debug=true,
             ()
         )
-        let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( )) [b /b"
+        let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
         let ctx = ctx->ctxOptimizeForProver(~parens, ())
         ctx->openChildContext
         let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
@@ -52,8 +53,7 @@ describe("proveSyntaxTypes", _ => {
                 | None => {
                     let newVar = createNewVar(typ)
                     typToLocVars->Belt_HashMapInt.set(typ,[newVar])
-                    // typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
-                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
+                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
                     newVar
                 }
                 | Some(locVars) => {
@@ -63,11 +63,11 @@ describe("proveSyntaxTypes", _ => {
                             if (locVars->Js_array2.length <= idx) {
                                 let newVar = createNewVar(typ)
                                 locVars->Js_array2.push(newVar)->ignore
-                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
                                 newVar
                             } else {
                                 let existingVar = locVars[idx]
-                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
                                 existingVar
                             }
                         }
@@ -77,36 +77,55 @@ describe("proveSyntaxTypes", _ => {
         }
 
         let resetCtxLocVars = () => {
-            typToNextLocVarIdx->Belt_HashMapInt.toArray->Js.Array2.forEach(((typ,_)) => {
+            typToNextLocVarIdx->Belt_HashMapInt.keysToArray->Js.Array2.forEach(typ => {
                 typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
             })
         }
 
-        let asrtIntToCtxInt = (i,frame):int => {
+        let asrtVarsToLocVars = (asrtVarTypes:array<int>):array<int> => {
+            asrtVarTypes->Js_array2.map(getCtxLocVar)
+        }
+
+        let asrtIntToCtxInt = (i:int,asrtVarToLocVar:array<int>):int => {
             if (i < 0) {
                 i
             } else {
-                getCtxLocVar(frame.varTypes[i])
+                asrtVarToLocVar[i]
             }
         }
 
-        let asrtExprs:array<expr> = []
+        let maxNumOfVars = ref(0)
+
+        let asrtExprs:Belt_HashMapString.t<{"ctxExpr":array<int>, "ctxVarToAsrtVar":Belt_HashMapInt.t<int>}> = Belt_HashMapString.make(~hintSize=1000)
         ctx->forEachFrame(frame => {
             resetCtxLocVars()
-            asrtExprs->Js.Array2.push(
-                frame.asrt->Js_array2.map(asrtIntToCtxInt(_,frame))
-            )->ignore
+            let asrtVarToLocVar = asrtVarsToLocVars(frame.varTypes)
+            asrtExprs->Belt_HashMapString.set(
+                frame.label,
+                {
+                    "ctxExpr": frame.asrt->Js_array2.map(asrtIntToCtxInt(_,asrtVarToLocVar)),
+                    "ctxVarToAsrtVar": 
+                        asrtVarToLocVar->Js_array2.mapi((ctxVar,asrtVar) => (ctxVar,asrtVar))->Belt_HashMapInt.fromArray
+                }
+            )            
+            if (maxNumOfVars.contents < frame.numOfVars) {
+                maxNumOfVars := frame.numOfVars
+            }
             None
         })->ignore
-        asrtExprs->Js.Array2.sortInPlaceWith(compareExprBySize->comparatorInverse)->ignore
+        let asrtExprsToProve = asrtExprs->Belt_HashMapString.valuesToArray
+            ->Js.Array2.map(obj => obj["ctxExpr"])
+            ->Js.Array2.sortInPlaceWith(compareExprBySize->comparatorInverse)
+
+        Js.Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
 
         // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
-        let numOfExpr = asrtExprs->Js.Array2.length
+        let numOfExpr = asrtExprsToProve->Js.Array2.length
         let from = 0
         let to_ = from + numOfExpr
-        let exprsToSyntaxProve = asrtExprs->Js.Array2.slice(~start=from,~end_=to_)
+        let exprsToSyntaxProve = asrtExprsToProve->Js.Array2.slice(~start=from,~end_=to_)
             ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1))
         let frms = prepareFrmSubsData(~ctx, ())
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
@@ -121,17 +140,18 @@ describe("proveSyntaxTypes", _ => {
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
+        let frameRestrict:MM_wrk_settings.frameRestrict = {
+            useDisc:true,
+            useDepr:true,
+            useTranDepr:true,
+        }
         log(`started proving syntax (from = ${from->Belt.Int.toString}, to = ${(to_-1)->Belt.Int.toString})`)
 
         //when
         let proofTree = proveSyntaxTypes(
             ~wrkCtx=ctx,
             ~frms,
-            ~frameRestrict={
-                useDisc:true,
-                useDepr:true,
-                useTranDepr:true,
-            },
+            ~frameRestrict,
             ~parenCnt,
             ~exprs=exprsToSyntaxProve,
             ~syntaxTypes,
@@ -149,11 +169,79 @@ describe("proveSyntaxTypes", _ => {
 
         // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
-        let unprovedAsrtExprs = asrtExprs
+        let unprovedAsrtExprs = asrtExprsToProve
             ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
         // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
         assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 
+        let ctxIntToAsrtInt = label => {
+            let ctxVarToAsrtVar = (asrtExprs->Belt_HashMapString.get(label)->Belt.Option.getExn)["ctxVarToAsrtVar"]
+            i => {
+                if (i < 0) {
+                    i
+                } else {
+                    ctxVarToAsrtVar->Belt_HashMapInt.get(i)->Belt.Option.getExn
+                }
+            }
+        }
+
+        let syntaxTrees:Belt_HashMapString.t<asrtSyntaxTreeNode> = 
+            Belt_HashMapString.make(~hintSize=asrtExprs->Belt_HashMapString.size)
+        asrtExprs->Belt_HashMapString.forEach((label,obj) => {
+            switch buildAsrtSyntaxTree(proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Js_array2.sliceFrom(1))->Belt_Option.getExn, ctxIntToAsrtInt(label)) {
+                | Error(msg) => Js.Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
+                | Ok(syntaxTree) => {
+                    syntaxTrees->Belt_HashMapString.set(label, syntaxTree)
+                }
+            }
+        })
+        Js.Console.log2(`syntaxTrees->Belt_HashMapString.size`, syntaxTrees->Belt_HashMapString.size)
+        // let asrtToPrint = "sylcom"
+        // Js.Console.log2(`${asrtToPrint}:`, syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Expln_utils_common.stringify)
+        let ctxExprStr = "( ( ch -> ph ) -> th )"
+        Expln_test.startTimer("find match")
+        switch MM_wrk_editor.textToSyntaxTree(
+            ~wrkCtx=ctx,
+            ~syms=[ctxExprStr->getSpaceSeparatedValuesAsArray],
+            ~syntaxTypes,
+            ~frms,
+            ~frameRestrict,
+            ~parenCnt,
+            ~lastSyntaxType=None,
+            ~onLastSyntaxTypeChange= _ => (),
+        ) {
+            | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+            | Ok(arr) => {
+                switch arr[0] {
+                    | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+                    | Ok(ctxSyntaxTree) => {
+                        syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {
+                            if (
+                                MM_asrt_syntax_tree.unifyMayBePossible(
+                                    ~asrtExpr=asrtTree,
+                                    ~ctxExpr=ctxSyntaxTree,
+                                    ~isMetavar = _ => true,
+                                )
+                            ) {
+                                let continue = ref(true)
+                                let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
+                                MM_asrt_syntax_tree.unify(
+                                    ~asrtExpr=asrtTree,
+                                    ~ctxExpr=ctxSyntaxTree,
+                                    ~isMetavar = _ => true,
+                                    ~foundSubs,
+                                    ~continue,
+                                )
+                                if (continue.contents && foundSubs->MM_asrt_syntax_tree.unifSubsSize > 1) {
+                                    Js.Console.log(`found match: ${label}`)
+                                }
+                            }
+                        })
+                    }
+                }
+            }
+        }
+        Expln_test.stopTimer("find match")
     })
 })

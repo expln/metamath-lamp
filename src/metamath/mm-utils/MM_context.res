@@ -74,6 +74,7 @@ type frame = {
     label: string,
     frameVarToSymb: array<string>,
     varTypes: array<int>,
+    varHyps: array<int>,
     numOfVars: int,
     numOfArgs: int,
     descr:option<string>,
@@ -952,6 +953,25 @@ let isTranDepr = (
     }
 }
 
+let getAsrtVarHyps = (numOfVars:int, asrtHyps:array<hypothesis>):array<int> => {
+    let varHyps = Belt_Array.make(numOfVars, -1)
+    asrtHyps->Js_array2.forEachi((hyp,i) => {
+        if (hyp.typ == F) {
+            let asrtVarNum = hyp.expr[1]
+            if (asrtVarNum >= numOfVars) {
+                raise(MmException({msg:`Internal error: hyp.expr[1] >= numOfVars`}))
+            } else {
+                varHyps[asrtVarNum] = i
+            }
+        }
+    })
+    if (varHyps->Js.Array2.some(idx => idx < 0)) {
+        raise(MmException({msg:`Internal error: varHyps->Js.Array2.some(idx => idx < 0)`}))
+    } else {
+        varHyps
+    }
+}
+
 let createFrame = (
     ~ctx:mmContext,
     ~ord:int,
@@ -986,16 +1006,19 @@ let createFrame = (
                                         ->Js_array2.mapi((cv,fv) => (cv,fv))
                                         ->Belt_HashMapInt.fromArray
                 let descr = ctx.contents.lastComment
+                let hyps = mandatoryHypotheses->Js_array2.map(ctxToFrameRenum->renumberVarsInHypothesis)
+                let numOfVars = mandatoryVarsArr->Js_array2.length
                 let frame = {
                     ord,
                     isAxiom,
                     disj: ctxToFrameRenum->renumberVarsInDisj(mandatoryDisj),
-                    hyps: mandatoryHypotheses->Js_array2.map(ctxToFrameRenum->renumberVarsInHypothesis),
+                    hyps,
                     asrt: ctxToFrameRenum->renumberVarsInExpr(asrt),
                     label,
                     frameVarToSymb: mandatoryVarsArr->Js_array2.map(ctx->ctxIntToSymExn),
                     varTypes: mandatoryVarsArr->Js_array2.map(ctx->getTypeOfVarExn),
-                    numOfVars: mandatoryVarsArr->Js_array2.length,
+                    varHyps: getAsrtVarHyps(numOfVars, hyps),
+                    numOfVars,
                     numOfArgs: mandatoryHypotheses->Js_array2.length,
                     descr,
                     proof,

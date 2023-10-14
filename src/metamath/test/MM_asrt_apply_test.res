@@ -20,6 +20,7 @@ let createEmptyFrame = (label:string):frame => {
         label,
         frameVarToSymb: [],
         varTypes: [],
+        varHyps: [],
         numOfVars: 0,
         numOfArgs: 0,
         descr:None,

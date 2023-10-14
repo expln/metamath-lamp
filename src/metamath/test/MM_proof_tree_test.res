@@ -23,6 +23,7 @@ let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string)
             label,
             frameVarToSymb: [],
             varTypes: [],
+            varHyps: [],
             numOfVars: 0,
             numOfArgs: 0,
             descr: None,
