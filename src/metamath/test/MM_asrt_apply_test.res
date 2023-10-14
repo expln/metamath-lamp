@@ -176,6 +176,8 @@ let testApplyAssertions = (
     ~additionalStatements:array<stmt>=[],
     ~statements:array<(string,string)>,
     ~frameFilter:frame=>bool=_=>true,
+    ~allowEmptyArgs:bool=true,
+    ~allowNewDisjForExistingVars:bool=false,
     ~result:option<string>=?,
     ~fileWithExpectedResult:string,
     ()
@@ -275,6 +277,8 @@ let testApplyAssertions = (
         ~statements = stmtsForAppl,
         ~parenCnt,
         ~frameFilter,
+        ~allowEmptyArgs,
+        ~allowNewDisjForExistingVars,
         ~result=?result->Belt_Option.map(str => str->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(workCtx,_)),
         ~onMatchFound = res => {
             switch actualResults->Belt_MutableMapString.get(res.frame.label) {
@@ -384,6 +388,20 @@ describe("applyAssertions", _ => {
             ],
             ~result="|- ( 2 + 2 ) = 4",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt",
+            ()
+        )
+    })
+    it("does not introduce broken disjoints", _ => {
+        //https://github.com/expln/metamath-lamp/issues/166#issuecomment-1751814880
+        testApplyAssertions(
+            ~mmFilePath = "./src/metamath/test/resources/applAsrt-no-broken-disjoints._mm",
+            ~statements = [
+                ("1", "|- ( x = y -> x = y )"),
+            ],
+            ~result="|- ( E. x E. y x = y -> x = y )",
+            ~allowEmptyArgs=false,
+            ~allowNewDisjForExistingVars=true,
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/no-broken-disjoints.txt",
             ()
         )
     })
