@@ -112,8 +112,7 @@ let make = React.memoCustomCompareProps(({
         None
     }, [applyFiltersRequested])
 
-    let actPreCtxDataChanged = () => {
-        Js.Console.log(`actPreCtxDataChanged`)
+    let actPreCtxDataChanged = (~isFirstInvocation:bool) => {
         let settings = preCtxData.settingsV.val
         setTypeColors(_ => settings->settingsGetTypeColors)
 
@@ -124,7 +123,6 @@ let make = React.memoCustomCompareProps(({
         allFrames->Belt_MapString.forEach((_,frame) => {
             allLabels[frame.ord] = (frame.ord+1, frame.label)
         })
-        Js.Console.log2(`allLabels`, allLabels)
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
 
@@ -140,11 +138,17 @@ let make = React.memoCustomCompareProps(({
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
 
-        actClearFilters(~applyFilters=false)
+        if (isFirstInvocation) {
+            setApplyFiltersRequested(_ => true)
+        } else {
+            actClearFilters(~applyFilters=false)
+        }
     }
 
+    let (preCtxDataHasChangedPreviously, setPreCtxDataHasChangedPreviously) = React.useState(() => false)
     React.useEffect1(() => {
-        actPreCtxDataChanged()
+        actPreCtxDataChanged(~isFirstInvocation=!preCtxDataHasChangedPreviously)
+        setPreCtxDataHasChangedPreviously(_ => true)
         None
     }, [preCtxData])
 
@@ -207,8 +211,12 @@ let make = React.memoCustomCompareProps(({
         setTranDeprFilter(_ => newTranDeprFilter)
     }
 
+    let (isFirstRender, setIsFirstRender) = React.useState(() => true)
     React.useEffect5(() => {
-        actApplyFilters()
+        if (!isFirstRender) {
+            setIsFirstRender(_ => false)
+            actApplyFilters()
+        }
         None
     }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter))
 
@@ -430,7 +438,6 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    Js.Console.log2(`filteredLabels`, filteredLabels)
     <Col style=ReactDOM.Style.make(~margin="15px", ())>
         {rndFilters()}
         {rndPatternError()}

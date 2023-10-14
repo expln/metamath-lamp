@@ -49,7 +49,6 @@ let make = React.memoCustomCompareProps(({
     openExplorer,
     asrtsPerPage,
 }) => {
-    Js.Console.log2(`labels`, labels)
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
 
