@@ -13,8 +13,10 @@ type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
+    openExplorer:(~initPatternFilterStr:string)=>unit,
     toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
+    initPatternFilterStr:string,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -25,8 +27,10 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
     openFrameExplorer,
+    openExplorer,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
+    initPatternFilterStr,
 }:props) => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
@@ -41,7 +45,7 @@ let make = React.memoCustomCompareProps(({
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
-    let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
+    let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (discFilter, setDiscFilter) = React.useState(() => false)
     let (deprFilter, setDeprFilter) = React.useState(() => false)
@@ -108,7 +112,7 @@ let make = React.memoCustomCompareProps(({
         None
     }, [applyFiltersRequested])
 
-    let actPreCtxDataChanged = () => {
+    let actPreCtxDataChanged = (~isFirstInvocation:bool) => {
         let settings = preCtxData.settingsV.val
         setTypeColors(_ => settings->settingsGetTypeColors)
 
@@ -134,11 +138,17 @@ let make = React.memoCustomCompareProps(({
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
 
-        actClearFilters(~applyFilters=false)
+        if (isFirstInvocation) {
+            setApplyFiltersRequested(_ => true)
+        } else {
+            actClearFilters(~applyFilters=false)
+        }
     }
 
+    let (preCtxDataHasChangedPreviously, setPreCtxDataHasChangedPreviously) = React.useState(() => false)
     React.useEffect1(() => {
-        actPreCtxDataChanged()
+        actPreCtxDataChanged(~isFirstInvocation=!preCtxDataHasChangedPreviously)
+        setPreCtxDataHasChangedPreviously(_ => true)
         None
     }, [preCtxData])
 
@@ -201,8 +211,12 @@ let make = React.memoCustomCompareProps(({
         setTranDeprFilter(_ => newTranDeprFilter)
     }
 
+    let (isFirstRender, setIsFirstRender) = React.useState(() => true)
     React.useEffect5(() => {
-        actApplyFilters()
+        setIsFirstRender(_ => false)
+        if (!isFirstRender) {
+            actApplyFilters()
+        }
         None
     }, (isAxiomFilter, stmtTypeFilter, discFilter, deprFilter, tranDeprFilter))
 
@@ -440,6 +454,7 @@ let make = React.memoCustomCompareProps(({
             syntaxTypes=preCtxData.syntaxTypes
             labels=filteredLabels
             openFrameExplorer
+            openExplorer
             asrtsPerPage
         />
     </Col>

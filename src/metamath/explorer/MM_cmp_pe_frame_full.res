@@ -332,6 +332,7 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
+    openExplorer:(~initPatternFilterStr:string)=>unit,
     loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
     focusEditorTab: unit=>unit,
     toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
@@ -418,6 +419,7 @@ let make = React.memoCustomCompareProps(({
     preCtxData,
     label,
     openFrameExplorer,
+    openExplorer,
     loadEditorState,
     focusEditorTab,
     toggleCtxSelector,
@@ -828,6 +830,7 @@ let make = React.memoCustomCompareProps(({
                                         symColors=state.symColors
                                         symRename=None
                                         editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                                        openExplorer
                                     /> 
                                 </td>
                             </tr>
@@ -847,6 +850,7 @@ let make = React.memoCustomCompareProps(({
                             symColors=state.symColors
                             symRename=None
                             editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                            openExplorer
                         /> 
                     </td>
                 </tr>
@@ -973,6 +977,7 @@ let make = React.memoCustomCompareProps(({
             symColors=state.symColors
             symRename=None
             editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+            openExplorer
         />
     }
 

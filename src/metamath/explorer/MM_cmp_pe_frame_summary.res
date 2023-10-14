@@ -26,6 +26,7 @@ type props = {
     frame:frame,
     order:int,
     openFrameExplorer:string=>unit,
+    openExplorer:(~initPatternFilterStr:string)=>unit,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -49,6 +50,7 @@ let make = React.memoCustomCompareProps( ({
     frame,
     order,
     openFrameExplorer,
+    openExplorer,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
 
@@ -176,6 +178,7 @@ let make = React.memoCustomCompareProps( ({
                                         symColors=state.symColors
                                         symRename=state.symRename
                                         editStmtsByLeftClick
+                                        openExplorer
                                     />
                                 </td>
                             </tr>
@@ -199,6 +202,7 @@ let make = React.memoCustomCompareProps( ({
                 symColors=state.symColors
                 symRename=state.symRename
                 editStmtsByLeftClick
+                openExplorer
             />
         </div>
     }
