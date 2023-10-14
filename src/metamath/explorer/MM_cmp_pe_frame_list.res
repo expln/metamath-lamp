@@ -22,6 +22,7 @@ type props = {
 
     labels:array<(int,string)>,
     openFrameExplorer:string=>unit,
+    openExplorer:(~initPatternFilterStr:string)=>unit,
     asrtsPerPage:int,
 }
 
@@ -45,8 +46,10 @@ let make = React.memoCustomCompareProps(({
     parenCnt,
     labels,
     openFrameExplorer,
+    openExplorer,
     asrtsPerPage,
 }) => {
+    Js.Console.log2(`labels`, labels)
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
 
@@ -115,6 +118,7 @@ let make = React.memoCustomCompareProps(({
                     typeColors
                     editStmtsByLeftClick
                     openFrameExplorer
+                    openExplorer
                 />
             }
         }

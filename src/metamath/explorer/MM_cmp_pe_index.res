@@ -13,8 +13,10 @@ type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
+    openExplorer:(~initPatternFilterStr:string)=>unit,
     toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
+    initPatternFilterStr:string,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -25,8 +27,10 @@ let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
     openFrameExplorer,
+    openExplorer,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
+    initPatternFilterStr,
 }:props) => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
@@ -41,7 +45,7 @@ let make = React.memoCustomCompareProps(({
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
     let (labelFilter, setLabelFilter) = React.useState(() => "")
-    let (patternFilterStr, setPatternFilterStr) = React.useState(() => "")
+    let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (discFilter, setDiscFilter) = React.useState(() => false)
     let (deprFilter, setDeprFilter) = React.useState(() => false)
@@ -109,6 +113,7 @@ let make = React.memoCustomCompareProps(({
     }, [applyFiltersRequested])
 
     let actPreCtxDataChanged = () => {
+        Js.Console.log(`actPreCtxDataChanged`)
         let settings = preCtxData.settingsV.val
         setTypeColors(_ => settings->settingsGetTypeColors)
 
@@ -119,6 +124,7 @@ let make = React.memoCustomCompareProps(({
         allFrames->Belt_MapString.forEach((_,frame) => {
             allLabels[frame.ord] = (frame.ord+1, frame.label)
         })
+        Js.Console.log2(`allLabels`, allLabels)
         setAllLabels(_ => allLabels)
         setFilteredLabels(_ => allLabels)
 
@@ -424,6 +430,7 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    Js.Console.log2(`filteredLabels`, filteredLabels)
     <Col style=ReactDOM.Style.make(~margin="15px", ())>
         {rndFilters()}
         {rndPatternError()}
@@ -440,6 +447,7 @@ let make = React.memoCustomCompareProps(({
             syntaxTypes=preCtxData.syntaxTypes
             labels=filteredLabels
             openFrameExplorer
+            openExplorer
             asrtsPerPage
         />
     </Col>

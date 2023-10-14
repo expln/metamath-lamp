@@ -10,7 +10,7 @@ open MM_react_common
 type tabData =
     | Settings
     | Editor
-    | ExplorerIndex
+    | ExplorerIndex({initPatternFilterStr:string})
     | ExplorerFrame({label:string})
 
 type state = {
@@ -106,6 +106,13 @@ let make = () => {
         }
     }
 
+    let isExplorerTab = (tabData:tabData):bool => {
+        switch tabData {
+            | ExplorerIndex(_) => true
+            | _ => false
+        }
+    }
+
     let isEditorTab = (tabData:tabData):bool => {
         switch tabData {
             | Editor => true
@@ -167,7 +174,6 @@ let make = () => {
                                 let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
                                     ~label, ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true, ()
                                 )
-                                let tabsSt = tabsSt->Expln_React_UseTabs.openTab(tabId)
                                 tabsSt
                             }
                         }
@@ -176,6 +182,21 @@ let make = () => {
                 }
             }
             st
+        })
+    }
+
+    let openExplorer = (~initPatternFilterStr:string):unit => {
+        updateTabs(tabsSt => {
+            let numOfOpenedExplorers = tabsSt->Expln_React_UseTabs.getTabs
+                ->Js.Array2.filter(tab => isExplorerTab(tab.data))->Js.Array2.length
+            let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
+                ~label=`EXPLORER[${numOfOpenedExplorers->Belt.Int.toString}]`, 
+                ~closable=true, 
+                ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
+                ~doOpen=true, 
+                ()
+            )
+            tabsSt
         })
     }
 
@@ -197,7 +218,9 @@ let make = () => {
                     ~color=?(if (tempMode.contents) {Some("orange")} else {None}), 
                     ()
                 )
-                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Explorer", ~closable=false, ~data=ExplorerIndex, ())
+                let (st, _) = st->Expln_React_UseTabs.addTab(
+                    ~label="Explorer", ~closable=false, ~data=ExplorerIndex({initPatternFilterStr:""}), ()
+                )
                 st
             } else {
                 st
@@ -231,13 +254,15 @@ let make = () => {
                             setShowTabs={b=>setShowTabs(_ => b)}
                             openFrameExplorer
                         />
-                    | ExplorerIndex => 
+                    | ExplorerIndex({initPatternFilterStr}) => 
                         <MM_cmp_pe_index
                             modalRef
                             preCtxData=state.preCtxData
                             openFrameExplorer
+                            openExplorer
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
+                            initPatternFilterStr
                         />
                     | ExplorerFrame({label}) => 
                         <MM_cmp_pe_frame_full
@@ -246,6 +271,7 @@ let make = () => {
                             preCtxData=state.preCtxData
                             label
                             openFrameExplorer
+                            openExplorer
                             loadEditorState
                             focusEditorTab
                             toggleCtxSelector

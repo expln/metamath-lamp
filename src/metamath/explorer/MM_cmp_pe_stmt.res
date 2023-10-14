@@ -39,6 +39,7 @@ type props = {
     symColors:Belt_HashMapString.t<string>,
     symRename:option<Belt_HashMapString.t<string>>,
     editStmtsByLeftClick:bool,
+    openExplorer:(~initPatternFilterStr:string)=>unit,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -60,6 +61,7 @@ let make = React.memoCustomCompareProps( ({
     symColors,
     symRename,
     editStmtsByLeftClick,
+    openExplorer,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~ctx, ~stmt, ~symColors))
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
@@ -187,6 +189,11 @@ let make = React.memoCustomCompareProps( ({
                 <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Search in a new Explorer tab" 
+                    onClick={_=>openExplorer(~initPatternFilterStr="")}
+                > 
+                    <MM_Icons.Search/>
+                </Button>
                 <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {
