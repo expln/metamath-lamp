@@ -135,6 +135,22 @@ let make = React.memoCustomCompareProps( ({
         }
     }
 
+    let actSearchSelectedInNewExplorer = () => {
+        switch getSelectedText(state.cont) {
+            | None => ()
+            | Some(selectedText) => {
+                let searchPattern = ctx->ctxStrToIntsExn(selectedText)->Js.Array2.map(s => {
+                    if (s < 0) {
+                        s
+                    } else {
+                        ctx->getTypeOfVarExn(s)
+                    }
+                })->(ctxIntsToStrExn(ctx, _))
+                openExplorer(~initPatternFilterStr=searchPattern)
+            }
+        }
+    }
+
     let actBuildSyntaxTree = (clickedIdx:int):unit => {
         switch state.cont {
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
@@ -190,7 +206,7 @@ let make = React.memoCustomCompareProps( ({
                 <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
                 <Button title="Search in a new Explorer tab" 
-                    onClick={_=>openExplorer(~initPatternFilterStr="")}
+                    onClick={_=>actSearchSelectedInNewExplorer()}
                 > 
                     <MM_Icons.Search/>
                 </Button>
