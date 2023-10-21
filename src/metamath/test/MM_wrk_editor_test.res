@@ -34,6 +34,7 @@ let createEditorState = (
         defaultStmtLabel,
         defaultStmtType: "",
         unifMetavarPrefix: "&",
+        sortDisjByType: "",
         checkSyntax: true,
         stickGoalToBottom: true,
         autoMergeStmts: false,

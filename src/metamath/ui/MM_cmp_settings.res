@@ -42,6 +42,7 @@ type settingsState = {
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
     unifMetavarPrefix:string,
+    sortDisjByType:string,
 
     webSrcNextId: int,
     webSrcSettings: array<webSrcSettingsState>,
@@ -125,6 +126,7 @@ let createDefaultSettings = ():settingsState => {
         defaultStmtLabel:"qed",
         defaultStmtType:"|-",
         unifMetavarPrefix:"&",
+        sortDisjByType:"class wff",
         checkSyntax: true,
         stickGoalToBottom:true,
         autoMergeStmts:false,
@@ -506,6 +508,7 @@ let stateToSettings = (st:settingsState):settings => {
         defaultStmtLabel:st.defaultStmtLabel,
         defaultStmtType:st.defaultStmtType,
         unifMetavarPrefix:st.unifMetavarPrefix,
+        sortDisjByType:st.sortDisjByType,
         checkSyntax:st.checkSyntax,
         stickGoalToBottom:st.stickGoalToBottom,
         autoMergeStmts:st.autoMergeStmts,
@@ -554,6 +557,7 @@ let settingsToState = (ls:settings):settingsState => {
         defaultStmtLabel:ls.defaultStmtLabel,
         defaultStmtType:ls.defaultStmtType,
         unifMetavarPrefix:ls.unifMetavarPrefix,
+        sortDisjByType:ls.sortDisjByType,
         checkSyntax:ls.checkSyntax,
         stickGoalToBottom:ls.stickGoalToBottom,
         autoMergeStmts:ls.autoMergeStmts,
@@ -641,6 +645,7 @@ let readStateFromLocStor = ():settingsState => {
                     ),
                     defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
                     unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix, ()),
+                    sortDisjByType: d->str("sortDisjByType", ~default=()=>defaultSettings.sortDisjByType, ()),
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
                     stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
                     autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts,()),
@@ -739,6 +744,7 @@ let eqState = (st1, st2) => {
         && st1.defaultStmtLabel == st2.defaultStmtLabel
         && st1.defaultStmtType == st2.defaultStmtType
         && st1.unifMetavarPrefix == st2.unifMetavarPrefix
+        && st1.sortDisjByType == st2.sortDisjByType
         && st1.checkSyntax == st2.checkSyntax
         && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.autoMergeStmts == st2.autoMergeStmts
@@ -793,6 +799,7 @@ let updateInitStmtIsGoal = (st, initStmtIsGoal) => {...st, initStmtIsGoal}
 let updateDefaultStmtLabel = (st, defaultStmtLabel) => {...st, defaultStmtLabel}
 let updateDefaultStmtType = (st, defaultStmtType) => {...st, defaultStmtType}
 let updateUnifMetavarPrefix = (st, unifMetavarPrefix) => {...st, unifMetavarPrefix}
+let updateSortDisjByType = (st, sortDisjByType) => {...st, sortDisjByType}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
 let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
@@ -979,6 +986,10 @@ let make = (
 
     let actUnifMetavarPrefixChange = unifMetavarPrefix => {
         setState(updateUnifMetavarPrefix(_, unifMetavarPrefix))
+    }
+
+    let actSortDisjByTypeChange = sortDisjByType => {
+        setState(updateSortDisjByType(_, sortDisjByType))
     }
 
     let actLongClickDelayMsStrChange = longClickDelayMsStr => {
@@ -1660,6 +1671,14 @@ let make = (
             value=state.unifMetavarPrefix
             onChange=evt2str(actUnifMetavarPrefixChange)
             title="All variables with names starting with this prefix will be considered as metavariables during the unification process."
+        />
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="310px", ())
+            label="Sort disjoint variables by type" 
+            value=state.sortDisjByType
+            onChange=evt2str(actSortDisjByTypeChange)
+            title="All variables in disjoint groups will be sorted by type according to this space separated list of types."
         />
         <MM_cmp_type_settings
             typeSettings=state.typeSettings
