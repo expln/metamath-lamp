@@ -527,6 +527,17 @@ let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
     }
 }
 
+let getTypesOfVarsMap = (ctx:mmContext, vars:Belt_HashSetInt.t):Belt_HashMapInt.t<int> => {
+    let res = Belt_HashMapInt.make(~hintSize=vars->Belt_HashSetInt.size)
+    vars->Belt_HashSetInt.forEach(i => {
+        switch ctx->getTypeOfVar(i) {
+            | Some(typ) => res->Belt_HashMapInt.set(i,typ)
+            | None => ()
+        }
+    })
+    res
+}
+
 let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipEssentials:bool=false, ()):Belt_HashSetInt.t => {
     let res = Belt_HashSetInt.make(~hintSize=16)
     if (!skipEssentials) {

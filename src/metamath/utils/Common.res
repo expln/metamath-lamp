@@ -165,6 +165,35 @@ let arrayQueueReset = (q:arrayQueue<'a>):unit => {
     q.end = -1
 }
 
+let createVarTypeComparator = (
+    ~varTypes:Belt_HashMapInt.t<int>, 
+    ~typeOrder:Belt_HashMapInt.t<int>
+): Expln_utils_common.comparator<int> => {
+    let varOrderByType = Belt_HashMapInt.make(~hintSize=varTypes->Belt_HashMapInt.size)
+    varTypes->Belt_HashMapInt.forEach((var,typ) => {
+        switch typeOrder->Belt_HashMapInt.get(typ) {
+            | Some(tOrder) => varOrderByType->Belt_HashMapInt.set(var,tOrder)
+            | None => ()
+        }
+    })
+    (a:int,b:int) => {
+        switch varOrderByType->Belt_HashMapInt.get(a) {
+            | None => {
+                switch varOrderByType->Belt_HashMapInt.get(b) {
+                    | None => 0
+                    | Some(_) => 1
+                }
+            }
+            | Some(aTypOrder) => {
+                switch varOrderByType->Belt_HashMapInt.get(b) {
+                    | None => -1
+                    | Some(bTypOrder) => Expln_utils_common.intCmp(aTypOrder,bTypOrder)
+                }
+            }
+        }
+    }
+}
+
 let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_common.comparator<int> => {
     (a:int,b:int) => {
         switch varNames->Belt_HashMapInt.get(a) {

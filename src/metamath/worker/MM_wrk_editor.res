@@ -197,6 +197,7 @@ type editorState = {
     allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
 
     descr: string,
     descrEditMode: bool,
@@ -748,6 +749,13 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
             preCtx->ctxIntToSymExn(parenInts[2*i+1])
         )
     }
+    let typeOrderInDisj = Belt_HashMapInt.make(~hintSize=preCtxData.allTypes->Js.Array2.length)
+    settings.sortDisjByType->getSpaceSeparatedValuesAsArray->Js.Array2.forEach(typStr => {
+        switch preCtx->ctxSymToInt(typStr) {
+            | Some(i) => typeOrderInDisj->Belt_HashMapInt.set(i,typeOrderInDisj->Belt_HashMapInt.size)
+            | None => ()
+        }
+    })
     let st = {
         ...st, 
         settingsV:preCtxData.settingsV.ver, 
@@ -760,6 +768,7 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
         allTypes:preCtxData.allTypes,
         syntaxTypes:preCtxData.syntaxTypes,
         parensMap,
+        typeOrderInDisj,
     }
     let st = recalcTypeColors(st)
     let st = recalcPreCtxColors(st)
@@ -1490,8 +1499,11 @@ let removeUnusedVars = (st:editorState):editorState => {
                 }
             })
             let allDisjVars = newDisj->disjGetAllVars
+            let allDisjVarTypes = wrkCtx->getTypesOfVarsMap(allDisjVars)
             let allDisjVarNames = wrkCtx->ctxIntsToSymsMap(allDisjVars)
-            let newDisjText = newDisj->disjToArr(~sortBy=createVarNameComparator(allDisjVarNames), ())
+            let varTypeCmp = createVarTypeComparator( ~varTypes=allDisjVarTypes, ~typeOrder=st.typeOrderInDisj, )
+            let varNameCmp = createVarNameComparator(allDisjVarNames)
+            let newDisjText = newDisj->disjToArr(~sortBy=varTypeCmp->Expln_utils_common.comparatorAndThen(varNameCmp), ())
                 ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
                 ->Js.Array2.joinWith("\n")
             let st = if (st.disjText != newDisjText) {

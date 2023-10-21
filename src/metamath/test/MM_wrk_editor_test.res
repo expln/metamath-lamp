@@ -77,6 +77,7 @@ let createEditorState = (
         allTypes: [],
         syntaxTypes: [],
         parensMap:Belt_HashMapString.make(~hintSize=0),
+        typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
 
         descr: "",
         descrEditMode: false,

@@ -118,6 +118,7 @@ let getNestingLevel: mmContext => int
 let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int>
 let getTypeOfVar: (mmContext, int) => option<int>
 let getTypeOfVarExn: (mmContext, int) => int
+let getTypesOfVarsMap: (mmContext, Belt_HashSetInt.t) => Belt_HashMapInt.t<int>
 let getTokenType: (mmContext, string) => option<tokenType>
 
 let ctxSymToInt: (mmContext, string) => option<int>
