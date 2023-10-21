@@ -164,3 +164,22 @@ let arrayQueueReset = (q:arrayQueue<'a>):unit => {
     q.begin = 0
     q.end = -1
 }
+
+let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_common.comparator<int> => {
+    (a:int,b:int) => {
+        switch varNames->Belt_HashMapInt.get(a) {
+            | None => {
+                switch varNames->Belt_HashMapInt.get(b) {
+                    | None => 0
+                    | Some(_) => 1
+                }
+            }
+            | Some(aStr) => {
+                switch varNames->Belt_HashMapInt.get(b) {
+                    | None => -1
+                    | Some(bStr) => aStr->Js_string2.localeCompare(bStr)->Belt.Float.toInt
+                }
+            }
+        }
+    }
+}

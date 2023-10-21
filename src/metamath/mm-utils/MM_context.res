@@ -235,7 +235,22 @@ let disjForEach = (disjMutable, consumer) => {
     })
 }
 
-let disjToArr = (disj) => {
+let disjGetAllVars = (disj:disjMutable):Belt_HashSetInt.t => {
+    let res = Belt_HashSetInt.make(~hintSize=100)
+    disj->Belt_HashMapInt.forEach((n,ms) => {
+        res->Belt_HashSetInt.add(n)
+        ms->Belt_HashSetInt.forEach(m => {
+            res->Belt_HashSetInt.add(m)
+        })
+    })
+    res
+}
+
+let disjToArr = (
+    disj:disjMutable, 
+    ~sortBy:Expln_utils_common.comparator<int>=Expln_utils_common.intCmp, 
+    ()
+):array<array<int>> => {
     let res = []
     disj->disjForEach((n,m) => res->Js_array2.push([n,m])->ignore)
 
@@ -292,12 +307,16 @@ let disjToArr = (disj) => {
     }
 
     res->Js.Array2.forEach(d =>
-        d->Js_array2.sortInPlaceWith(Expln_utils_common.intCmp)->ignore
+        d->Js_array2.sortInPlaceWith(sortBy)->ignore
     )
     res->Js_array2.sortInPlaceWith(exprCmp)
 }
 
-let disjForEachArr = (disj, consumer) => disj->disjToArr->Js_array2.forEach(consumer)
+let disjForEachArr = (
+    disj:disjMutable, 
+    ~sortBy:Expln_utils_common.comparator<int>=Expln_utils_common.intCmp, 
+    consumer:array<int> => unit
+) => disj->disjToArr(~sortBy, ())->Js_array2.forEach(consumer)
 
 let disjIsEmpty = disjMutable => {
     disjMutable->Belt_HashMapInt.size == 0
@@ -454,6 +473,17 @@ let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
 }
 
 let ctxIntsToSymsExn = (ctx,expr) => expr->Js_array2.map(ctxIntToSymExn(ctx, _))
+
+let ctxIntsToSymsMap = (ctx:mmContext,ctxInts:Belt_HashSetInt.t):Belt_HashMapInt.t<string> => {
+    let res = Belt_HashMapInt.make(~hintSize=ctxInts->Belt_HashSetInt.size)
+    ctxInts->Belt_HashSetInt.forEach(i => {
+        switch ctxIntToSym(ctx,i) {
+            | Some(str) => res->Belt_HashMapInt.set(i,str)
+            | None => ()
+        }
+    })
+    res
+}
 
 let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
     expr->Js_array2.map(ctxIntToSymExn(ctx, _))->Js_array2.joinWith(" ")
@@ -1032,7 +1062,7 @@ let createFrame = (
                     dbg:
                         if (ctx.contents.debug) {
                             Some({
-                                disj: mandatoryDisj->disjToArr->Js_array2.map(ctx->ctxIntsToStrExn),
+                                disj: mandatoryDisj->disjToArr()->Js_array2.map(ctx->ctxIntsToStrExn),
                                 hyps: mandatoryHypotheses->Js_array2.map(hyp => ctx->ctxIntsToStrExn(hyp.expr)),
                                 asrt: ctx->ctxIntsToStrExn(asrt),
                             })

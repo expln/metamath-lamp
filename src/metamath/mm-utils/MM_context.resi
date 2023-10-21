@@ -128,6 +128,7 @@ let ctxStrToIntsExn: (mmContext, string) => expr
 let ctxIntToSymExn: (mmContext, int) => string
 let ctxIntsToSymsExn: (mmContext, expr) => array<string>
 let ctxIntsToStrExn: (mmContext, expr) => string
+let ctxIntsToSymsMap: (mmContext, Belt_HashSetInt.t) => Belt_HashMapInt.t<string>
 let frmIntToSym: (mmContext, frame, int) => option<string>
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string
@@ -170,11 +171,12 @@ let disjMake: unit => disjMutable
 let disjAddPair: (disjMutable, int, int) => unit
 let disjContains: (disjMutable, int, int) => bool
 let disjImmContains: (Belt_MapInt.t<Belt_SetInt.t>, int, int) => bool
-let disjToArr: disjMutable => array<array<int>>
-let disjForEachArr: (disjMutable, array<int> => unit) => unit
+let disjToArr: (disjMutable, ~sortBy:Expln_utils_common.comparator<int>=?, ()) => array<array<int>>
+let disjForEachArr: (disjMutable, ~sortBy:Expln_utils_common.comparator<int>=?, array<int> => unit) => unit
 let disjForEach: (disjMutable, (int,int) => unit) => unit
 let disjIsEmpty: disjMutable => bool
 let disjMutToDisjImm: disjMutable => Belt_MapInt.t<Belt_SetInt.t>
+let disjGetAllVars: disjMutable => Belt_HashSetInt.t
 
 let exprEq: (expr,expr) => bool
 

@@ -37,3 +37,5 @@ let arrayQueueMake: int => arrayQueue<'a>
 let arrayQueueAdd: (arrayQueue<'a>, 'a) => unit
 let arrayQueuePop: arrayQueue<'a> => option<'a>
 let arrayQueueReset: arrayQueue<'a> => unit
+
+let createVarNameComparator: Belt_HashMapInt.t<string> => Expln_utils_common.comparator<int>

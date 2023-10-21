@@ -1489,7 +1489,9 @@ let removeUnusedVars = (st:editorState):editorState => {
                     newDisj->disjAddPair(n,m)
                 }
             })
-            let newDisjText = newDisj->disjToArr
+            let allDisjVars = newDisj->disjGetAllVars
+            let allDisjVarNames = wrkCtx->ctxIntsToSymsMap(allDisjVars)
+            let newDisjText = newDisj->disjToArr(~sortBy=createVarNameComparator(allDisjVarNames), ())
                 ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
                 ->Js.Array2.joinWith("\n")
             let st = if (st.disjText != newDisjText) {
