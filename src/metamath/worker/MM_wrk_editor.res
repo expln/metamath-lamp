@@ -1497,8 +1497,8 @@ let removeUnusedVars = (st:editorState):editorState => {
             })
             let newDisjText = newDisj->disjToArr(
                 ~sortByTypeAndName=true,
-                ~ctx=wrkCtx,
-                ~intToStr=wrkCtx->ctxIntToSym,
+                ~varIntToVarName=wrkCtx->ctxIntToSym,
+                ~varIntToVarType=wrkCtx->getTypeOfVar,
                 ~typeOrder=st.typeOrderInDisj,
                 ()
             )

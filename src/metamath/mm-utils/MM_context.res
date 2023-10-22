@@ -286,22 +286,11 @@ let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
     }
 }
 
-let getTypesOfVarsMap = (ctx:mmContext, vars:Belt_HashSetInt.t):Belt_HashMapInt.t<int> => {
-    let res = Belt_HashMapInt.make(~hintSize=vars->Belt_HashSetInt.size)
-    vars->Belt_HashSetInt.forEach(i => {
-        switch ctx->getTypeOfVar(i) {
-            | Some(typ) => res->Belt_HashMapInt.set(i,typ)
-            | None => ()
-        }
-    })
-    res
-}
-
 let disjToArr = (
     disj:disjMutable, 
     ~sortByTypeAndName:bool=false,
-    ~ctx:option<mmContext>=?,
-    ~intToStr:option<int=>option<string>>=?,
+    ~varIntToVarName:option<int=>option<string>>=?,
+    ~varIntToVarType:option<int=>option<int>>=?,
     ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
     ()
 ):array<array<int>> => {
@@ -361,20 +350,24 @@ let disjToArr = (
     }
 
     let sortBy = if (sortByTypeAndName) {
-        switch ctx {
+        switch varIntToVarType {
             | None => Expln_utils_common.intCmp
-            | Some(ctx) => {
+            | Some(varIntToVarType) => {
                 switch typeOrder {
                     | None => Expln_utils_common.intCmp
                     | Some(typeOrder) => {
-                        switch intToStr {
+                        switch varIntToVarName {
                             | None => Expln_utils_common.intCmp
-                            | Some(intToStr) => {
+                            | Some(varIntToVarName) => {
                                 let allDisjVars = disj->disjGetAllVars
-                                let allDisjVarTypes = ctx->getTypesOfVarsMap(allDisjVars)
+                                let allDisjVarTypes = Belt_HashMapInt.make(~hintSize=allDisjVars->Belt_HashSetInt.size)
                                 let allDisjVarNames = Belt_HashMapInt.make(~hintSize=allDisjVars->Belt_HashSetInt.size)
                                 allDisjVars->Belt_HashSetInt.forEach(i => {
-                                    switch intToStr(i) {
+                                    switch varIntToVarType(i) {
+                                        | Some(typ) => allDisjVarTypes->Belt_HashMapInt.set(i,typ)
+                                        | None => ()
+                                    }
+                                    switch varIntToVarName(i) {
                                         | Some(str) => allDisjVarNames->Belt_HashMapInt.set(i,str)
                                         | None => ()
                                     }
@@ -403,15 +396,15 @@ let disjToArr = (
 let disjForEachArr = (
     disj:disjMutable, 
     ~sortByTypeAndName:bool=false,
-    ~ctx:option<mmContext>=?,
-    ~intToStr:option<int=>option<string>>=?,
+    ~varIntToVarName:option<int=>option<string>>=?,
+    ~varIntToVarType:option<int=>option<int>>=?,
     ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
     consumer:array<int> => unit
 ) => {
     disj->disjToArr(
         ~sortByTypeAndName,
-        ~ctx?,
-        ~intToStr?,
+        ~varIntToVarName?,
+        ~varIntToVarType?,
         ~typeOrder?,
         ()
     )->Js_array2.forEach(consumer)

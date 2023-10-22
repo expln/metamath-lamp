@@ -140,7 +140,7 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
                         st.symColors->Belt_HashMapString.get(sym)
                     )
                 },
-                ~ctx=frmCtx,
+                ~intToTyp=frmCtx->getTypeOfVar,
                 ~typeOrder=st.typeOrderInDisj,
             )
         )
@@ -212,8 +212,8 @@ let createInitialState = (
                         symColors->Belt_HashMapString.get(sym)
                     )
                 },
-                ~ctx=frmCtx,
-                ~typeOrder=typeOrderInDisj,
+                ~intToTyp = i => frmCtx->getTypeOfVar(frmIntToCtxInt(i)),
+                ~typeOrder = typeOrderInDisj,
             )
         )
     } else {

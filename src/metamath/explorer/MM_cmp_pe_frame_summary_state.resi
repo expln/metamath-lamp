@@ -20,7 +20,7 @@ let toggleDescrIsExpanded: state => state
 let createDisjGroups: (
     ~disj:Belt_MapInt.t<Belt_SetInt.t>,
     ~intToSym: int => (string,option<string>),
-    ~ctx:MM_context.mmContext,
+    ~intToTyp: int => option<int>,
     ~typeOrder:Belt_HashMapInt.t<int>,
 ) => array<array<(string,option<string>)>>
 

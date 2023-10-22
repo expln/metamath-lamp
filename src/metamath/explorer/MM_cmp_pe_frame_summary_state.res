@@ -14,7 +14,7 @@ type state = {
 let createDisjGroups = (
     ~disj:Belt_MapInt.t<Belt_SetInt.t>,
     ~intToSym: int => (string,option<string>),
-    ~ctx:mmContext,
+    ~intToTyp: int => option<int>,
     ~typeOrder:Belt_HashMapInt.t<int>,
 ):array<array<(string,option<string>)>> => {
     let disjMut = disjMake()
@@ -26,11 +26,11 @@ let createDisjGroups = (
     let resArr = []
     disjMut->disjForEachArr(
         ~sortByTypeAndName=true,
-        ~ctx,
-        ~intToStr = i => {
+        ~varIntToVarName = i => {
             let (sym,_) = intToSym(i)
             Some(sym)
         },
+        ~varIntToVarType=intToTyp,
         ~typeOrder,
         grp => {
             resArr->Js.Array2.push( grp->Js_array2.map(intToSym) )->ignore
@@ -124,8 +124,8 @@ let makeInitialState = (
                         symColors->Belt_HashMapString.get(sym)
                     )
                 },
-                ~ctx=frmCtx,
-                ~typeOrder=typeOrderInDisj,
+                ~intToTyp = i => frmCtx->getTypeOfVar(frameIntToCtxInt(i)),
+                ~typeOrder = typeOrderInDisj,
             )
         )
     } else {
