@@ -212,3 +212,14 @@ let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_
         }
     }
 }
+
+let createTypeOrderFromStr = (~sortDisjByType:string, ~typeNameToInt:string=>option<int>):Belt_HashMapInt.t<int> => {
+    let typeOrderInDisj = Belt_HashMapInt.make(~hintSize=4)
+    sortDisjByType->getSpaceSeparatedValuesAsArray->Js.Array2.forEach(typStr => {
+        switch typeNameToInt(typStr) {
+            | Some(i) => typeOrderInDisj->Belt_HashMapInt.set(i,typeOrderInDisj->Belt_HashMapInt.size)
+            | None => ()
+        }
+    })
+    typeOrderInDisj
+}

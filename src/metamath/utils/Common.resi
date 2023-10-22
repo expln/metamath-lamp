@@ -43,3 +43,4 @@ let createVarTypeComparator: (
     ~typeOrder:Belt_HashMapInt.t<int>
 ) => Expln_utils_common.comparator<int>
 let createVarNameComparator: Belt_HashMapInt.t<string> => Expln_utils_common.comparator<int>
+let createTypeOrderFromStr: (~sortDisjByType:string, ~typeNameToInt:string=>option<int>) => Belt_HashMapInt.t<int>

@@ -14,6 +14,8 @@ type state = {
 let createDisjGroups = (
     ~disj:Belt_MapInt.t<Belt_SetInt.t>,
     ~intToSym: int => (string,option<string>),
+    ~ctx:mmContext,
+    ~typeOrder:Belt_HashMapInt.t<int>,
 ):array<array<(string,option<string>)>> => {
     let disjMut = disjMake()
     disj->Belt_MapInt.forEach((n,ms) => {
@@ -22,13 +24,27 @@ let createDisjGroups = (
         })
     })
     let resArr = []
-    disjMut->disjForEachArr(grp => {
-        resArr->Js.Array2.push( grp->Js_array2.map(intToSym) )->ignore
-    })
+    disjMut->disjForEachArr(
+        ~sortByTypeAndName=true,
+        ~ctx,
+        ~intToStr = i => {
+            let (sym,_) = intToSym(i)
+            Some(sym)
+        },
+        ~typeOrder,
+        grp => {
+            resArr->Js.Array2.push( grp->Js_array2.map(intToSym) )->ignore
+        }
+    )
     resArr
 }
 
-let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMapString.t<string>):state => {
+let makeInitialState = (
+    ~preCtx:mmContext, 
+    ~frame:frame, 
+    ~typeColors:Belt_HashMapString.t<string>,
+    ~typeOrderInDisj:Belt_HashMapInt.t<int>,
+):state => {
     let frmCtx = createContext(~parent=preCtx, ())
     let symRename = ref(None)
     let frmVarIntToCtxInt = []
@@ -108,6 +124,8 @@ let makeInitialState = (~preCtx:mmContext, ~frame:frame, ~typeColors:Belt_HashMa
                         symColors->Belt_HashMapString.get(sym)
                     )
                 },
+                ~ctx=frmCtx,
+                ~typeOrder=typeOrderInDisj,
             )
         )
     } else {

@@ -36,6 +36,7 @@ type state = {
     frms: frms,
     parenCnt: parenCnt,
     syntaxTypes: array<int>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
     frame:frame,
     disjStr: option<array<array<(string,option<string>)>>>,
     dummyVarDisj: option<disjMutable>,
@@ -139,6 +140,8 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
                         st.symColors->Belt_HashMapString.get(sym)
                     )
                 },
+                ~ctx=frmCtx,
+                ~typeOrder=st.typeOrderInDisj,
             )
         )
     } else {
@@ -193,6 +196,11 @@ let createInitialState = (
     let symColors = createSymbolColors(~ctx=frmCtx, ~typeColors)
     let asrt = frame.asrt->frmExprToCtxExpr
 
+    let typeOrderInDisj = createTypeOrderFromStr(
+        ~sortDisjByType=settings.sortDisjByType, 
+        ~typeNameToInt=frmCtx->ctxSymToInt
+    )
+
     let disjStr = if (frame.disj->Belt_MapInt.size > 0) {
         Some(
             MM_cmp_pe_frame_summary_state.createDisjGroups(
@@ -204,6 +212,8 @@ let createInitialState = (
                         symColors->Belt_HashMapString.get(sym)
                     )
                 },
+                ~ctx=frmCtx,
+                ~typeOrder=typeOrderInDisj,
             )
         )
     } else {
@@ -217,6 +227,7 @@ let createInitialState = (
         frms,
         parenCnt,
         syntaxTypes,
+        typeOrderInDisj,
         frame,
         disjStr,
         dummyVarDisj:None,

@@ -749,13 +749,10 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
             preCtx->ctxIntToSymExn(parenInts[2*i+1])
         )
     }
-    let typeOrderInDisj = Belt_HashMapInt.make(~hintSize=preCtxData.allTypes->Js.Array2.length)
-    settings.sortDisjByType->getSpaceSeparatedValuesAsArray->Js.Array2.forEach(typStr => {
-        switch preCtx->ctxSymToInt(typStr) {
-            | Some(i) => typeOrderInDisj->Belt_HashMapInt.set(i,typeOrderInDisj->Belt_HashMapInt.size)
-            | None => ()
-        }
-    })
+    let typeOrderInDisj = createTypeOrderFromStr(
+        ~sortDisjByType=settings.sortDisjByType, 
+        ~typeNameToInt=preCtx->ctxSymToInt
+    )
     let st = {
         ...st, 
         settingsV:preCtxData.settingsV.ver, 
@@ -1498,12 +1495,13 @@ let removeUnusedVars = (st:editorState):editorState => {
                     newDisj->disjAddPair(n,m)
                 }
             })
-            let allDisjVars = newDisj->disjGetAllVars
-            let allDisjVarTypes = wrkCtx->getTypesOfVarsMap(allDisjVars)
-            let allDisjVarNames = wrkCtx->ctxIntsToSymsMap(allDisjVars)
-            let varTypeCmp = createVarTypeComparator( ~varTypes=allDisjVarTypes, ~typeOrder=st.typeOrderInDisj, )
-            let varNameCmp = createVarNameComparator(allDisjVarNames)
-            let newDisjText = newDisj->disjToArr(~sortBy=varTypeCmp->Expln_utils_common.comparatorAndThen(varNameCmp), ())
+            let newDisjText = newDisj->disjToArr(
+                ~sortByTypeAndName=true,
+                ~ctx=wrkCtx,
+                ~intToStr=wrkCtx->ctxIntToSym,
+                ~typeOrder=st.typeOrderInDisj,
+                ()
+            )
                 ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
                 ->Js.Array2.joinWith("\n")
             let st = if (st.disjText != newDisjText) {

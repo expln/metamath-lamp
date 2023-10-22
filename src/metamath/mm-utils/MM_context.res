@@ -246,9 +246,63 @@ let disjGetAllVars = (disj:disjMutable):Belt_HashSetInt.t => {
     res
 }
 
+let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
+    if (i < 0) {
+        (ctx.contents.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
+    } else {
+        ctx.contents->forEachCtxInReverseOrder(ctx => {
+            if (i < ctx.varsBaseIdx) {
+                None
+            } else {
+                Some(ctx.vars[i-ctx.varsBaseIdx])
+            }
+        })
+    }
+}
+
+let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
+    switch ctxIntToSym(ctx,i) {
+        | Some(str) => str
+        | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
+    }
+}
+
+let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.varTypes->Belt_HashMapInt.get(varInt)
+    })
+}
+
+let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
+    switch ctx->getTypeOfVar(varInt) {
+        | None => {
+            let varName = switch ctx->ctxIntToSym(varInt) {
+                | None => varInt->Belt_Int.toString
+                | Some(sym) => `'${sym}'`
+            }
+            raise(MmException({msg:`Cannot determine type of the variable ${varName}`}))
+        }
+        | Some(typ) => typ
+    }
+}
+
+let getTypesOfVarsMap = (ctx:mmContext, vars:Belt_HashSetInt.t):Belt_HashMapInt.t<int> => {
+    let res = Belt_HashMapInt.make(~hintSize=vars->Belt_HashSetInt.size)
+    vars->Belt_HashSetInt.forEach(i => {
+        switch ctx->getTypeOfVar(i) {
+            | Some(typ) => res->Belt_HashMapInt.set(i,typ)
+            | None => ()
+        }
+    })
+    res
+}
+
 let disjToArr = (
     disj:disjMutable, 
-    ~sortBy:Expln_utils_common.comparator<int>=Expln_utils_common.intCmp, 
+    ~sortByTypeAndName:bool=false,
+    ~ctx:option<mmContext>=?,
+    ~intToStr:option<int=>option<string>>=?,
+    ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
     ()
 ):array<array<int>> => {
     let res = []
@@ -306,6 +360,40 @@ let disjToArr = (
         }
     }
 
+    let sortBy = if (sortByTypeAndName) {
+        switch ctx {
+            | None => Expln_utils_common.intCmp
+            | Some(ctx) => {
+                switch typeOrder {
+                    | None => Expln_utils_common.intCmp
+                    | Some(typeOrder) => {
+                        switch intToStr {
+                            | None => Expln_utils_common.intCmp
+                            | Some(intToStr) => {
+                                let allDisjVars = disj->disjGetAllVars
+                                let allDisjVarTypes = ctx->getTypesOfVarsMap(allDisjVars)
+                                let allDisjVarNames = Belt_HashMapInt.make(~hintSize=allDisjVars->Belt_HashSetInt.size)
+                                allDisjVars->Belt_HashSetInt.forEach(i => {
+                                    switch intToStr(i) {
+                                        | Some(str) => allDisjVarNames->Belt_HashMapInt.set(i,str)
+                                        | None => ()
+                                    }
+                                })
+                                let varTypeCmp = createVarTypeComparator( 
+                                    ~varTypes=allDisjVarTypes, 
+                                    ~typeOrder, 
+                                )
+                                let varNameCmp = createVarNameComparator(allDisjVarNames)
+                                varTypeCmp->Expln_utils_common.comparatorAndThen(varNameCmp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Expln_utils_common.intCmp
+    }
     res->Js.Array2.forEach(d =>
         d->Js_array2.sortInPlaceWith(sortBy)->ignore
     )
@@ -314,9 +402,20 @@ let disjToArr = (
 
 let disjForEachArr = (
     disj:disjMutable, 
-    ~sortBy:Expln_utils_common.comparator<int>=Expln_utils_common.intCmp, 
+    ~sortByTypeAndName:bool=false,
+    ~ctx:option<mmContext>=?,
+    ~intToStr:option<int=>option<string>>=?,
+    ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
     consumer:array<int> => unit
-) => disj->disjToArr(~sortBy, ())->Js_array2.forEach(consumer)
+) => {
+    disj->disjToArr(
+        ~sortByTypeAndName,
+        ~ctx?,
+        ~intToStr?,
+        ~typeOrder?,
+        ()
+    )->Js_array2.forEach(consumer)
+}
 
 let disjIsEmpty = disjMutable => {
     disjMutable->Belt_HashMapInt.size == 0
@@ -451,27 +550,6 @@ let ctxSymsToIntsExn = (ctx:mmContext, symbols:array<string>):expr => {
 
 let ctxStrToIntsExn = (ctx, str) => ctxSymsToIntsExn(ctx, str->getSpaceSeparatedValuesAsArray)
 
-let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
-    if (i < 0) {
-        (ctx.contents.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
-    } else {
-        ctx.contents->forEachCtxInReverseOrder(ctx => {
-            if (i < ctx.varsBaseIdx) {
-                None
-            } else {
-                Some(ctx.vars[i-ctx.varsBaseIdx])
-            }
-        })
-    }
-}
-
-let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
-    switch ctxIntToSym(ctx,i) {
-        | Some(str) => str
-        | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
-    }
-}
-
 let ctxIntsToSymsExn = (ctx,expr) => expr->Js_array2.map(ctxIntToSymExn(ctx, _))
 
 let ctxIntsToSymsMap = (ctx:mmContext,ctxInts:Belt_HashSetInt.t):Belt_HashMapInt.t<string> => {
@@ -506,36 +584,6 @@ let frmIntsToSymsExn = (ctx:mmContext, frame:frame, expr:expr):array<string> => 
 
 let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
     frmIntsToSymsExn(ctx, frame, expr)->Js_array2.joinWith(" ")
-}
-
-let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
-    ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.varTypes->Belt_HashMapInt.get(varInt)
-    })
-}
-
-let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
-    switch ctx->getTypeOfVar(varInt) {
-        | None => {
-            let varName = switch ctx->ctxIntToSym(varInt) {
-                | None => varInt->Belt_Int.toString
-                | Some(sym) => `'${sym}'`
-            }
-            raise(MmException({msg:`Cannot determine type of the variable ${varName}`}))
-        }
-        | Some(typ) => typ
-    }
-}
-
-let getTypesOfVarsMap = (ctx:mmContext, vars:Belt_HashSetInt.t):Belt_HashMapInt.t<int> => {
-    let res = Belt_HashMapInt.make(~hintSize=vars->Belt_HashSetInt.size)
-    vars->Belt_HashSetInt.forEach(i => {
-        switch ctx->getTypeOfVar(i) {
-            | Some(typ) => res->Belt_HashMapInt.set(i,typ)
-            | None => ()
-        }
-    })
-    res
 }
 
 let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipEssentials:bool=false, ()):Belt_HashSetInt.t => {
