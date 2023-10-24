@@ -128,7 +128,6 @@ let ctxStrToIntsExn: (mmContext, string) => expr
 let ctxIntToSymExn: (mmContext, int) => string
 let ctxIntsToSymsExn: (mmContext, expr) => array<string>
 let ctxIntsToStrExn: (mmContext, expr) => string
-let ctxIntsToSymsMap: (mmContext, Belt_HashSetInt.t) => Belt_HashMapInt.t<string>
 let frmIntToSym: (mmContext, frame, int) => option<string>
 let frmIntToSymExn: (mmContext, frame, int) => string
 let frmIntsToStrExn: (mmContext, frame, expr) => string

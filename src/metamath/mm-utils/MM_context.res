@@ -246,46 +246,6 @@ let disjGetAllVars = (disj:disjMutable):Belt_HashSetInt.t => {
     res
 }
 
-let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
-    if (i < 0) {
-        (ctx.contents.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
-    } else {
-        ctx.contents->forEachCtxInReverseOrder(ctx => {
-            if (i < ctx.varsBaseIdx) {
-                None
-            } else {
-                Some(ctx.vars[i-ctx.varsBaseIdx])
-            }
-        })
-    }
-}
-
-let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
-    switch ctxIntToSym(ctx,i) {
-        | Some(str) => str
-        | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
-    }
-}
-
-let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
-    ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.varTypes->Belt_HashMapInt.get(varInt)
-    })
-}
-
-let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
-    switch ctx->getTypeOfVar(varInt) {
-        | None => {
-            let varName = switch ctx->ctxIntToSym(varInt) {
-                | None => varInt->Belt_Int.toString
-                | Some(sym) => `'${sym}'`
-            }
-            raise(MmException({msg:`Cannot determine type of the variable ${varName}`}))
-        }
-        | Some(typ) => typ
-    }
-}
-
 let disjToArr = (
     disj:disjMutable, 
     ~sortByTypeAndName:bool=false,
@@ -543,18 +503,28 @@ let ctxSymsToIntsExn = (ctx:mmContext, symbols:array<string>):expr => {
 
 let ctxStrToIntsExn = (ctx, str) => ctxSymsToIntsExn(ctx, str->getSpaceSeparatedValuesAsArray)
 
-let ctxIntsToSymsExn = (ctx,expr) => expr->Js_array2.map(ctxIntToSymExn(ctx, _))
-
-let ctxIntsToSymsMap = (ctx:mmContext,ctxInts:Belt_HashSetInt.t):Belt_HashMapInt.t<string> => {
-    let res = Belt_HashMapInt.make(~hintSize=ctxInts->Belt_HashSetInt.size)
-    ctxInts->Belt_HashSetInt.forEach(i => {
-        switch ctxIntToSym(ctx,i) {
-            | Some(str) => res->Belt_HashMapInt.set(i,str)
-            | None => ()
-        }
-    })
-    res
+let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
+    if (i < 0) {
+        (ctx.contents.root->Belt.Option.getExn).consts->Belt_Array.get(-i)
+    } else {
+        ctx.contents->forEachCtxInReverseOrder(ctx => {
+            if (i < ctx.varsBaseIdx) {
+                None
+            } else {
+                Some(ctx.vars[i-ctx.varsBaseIdx])
+            }
+        })
+    }
 }
+
+let ctxIntToSymExn = (ctx:mmContext,i:int):string => {
+    switch ctxIntToSym(ctx,i) {
+        | Some(str) => str
+        | None => raise(MmException({msg:`Cannot convert ${i->Belt_Int.toString} to a symbol.`}))
+    }
+}
+
+let ctxIntsToSymsExn = (ctx,expr) => expr->Js_array2.map(ctxIntToSymExn(ctx, _))
 
 let ctxIntsToStrExn = (ctx:mmContext, expr:expr):string => {
     expr->Js_array2.map(ctxIntToSymExn(ctx, _))->Js_array2.joinWith(" ")
@@ -577,6 +547,25 @@ let frmIntsToSymsExn = (ctx:mmContext, frame:frame, expr:expr):array<string> => 
 
 let frmIntsToStrExn = (ctx:mmContext, frame:frame, expr:expr):string => {
     frmIntsToSymsExn(ctx, frame, expr)->Js_array2.joinWith(" ")
+}
+
+let getTypeOfVar = (ctx:mmContext, varInt:int):option<int> => {
+    ctx.contents->forEachCtxInReverseOrder(ctx => {
+        ctx.varTypes->Belt_HashMapInt.get(varInt)
+    })
+}
+
+let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
+    switch ctx->getTypeOfVar(varInt) {
+        | None => {
+            let varName = switch ctx->ctxIntToSym(varInt) {
+                | None => varInt->Belt_Int.toString
+                | Some(sym) => `'${sym}'`
+            }
+            raise(MmException({msg:`Cannot determine type of the variable ${varName}`}))
+        }
+        | Some(typ) => typ
+    }
 }
 
 let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipEssentials:bool=false, ()):Belt_HashSetInt.t => {
@@ -1114,7 +1103,7 @@ let createFrame = (
                     dbg:
                         if (ctx.contents.debug) {
                             Some({
-                                disj: mandatoryDisj->disjToArr()->Js_array2.map(ctx->ctxIntsToStrExn),
+                                disj: mandatoryDisj->disjToArr(())->Js_array2.map(ctx->ctxIntsToStrExn),
                                 hyps: mandatoryHypotheses->Js_array2.map(hyp => ctx->ctxIntsToStrExn(hyp.expr)),
                                 asrt: ctx->ctxIntsToStrExn(asrt),
                             })
