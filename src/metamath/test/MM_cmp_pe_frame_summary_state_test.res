@@ -14,7 +14,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
         let typeColors = Belt_HashMapString.fromArray([("term", "t-color"),("wff", "w-color")])
 
         //when
-        let state = makeInitialState(~preCtx=ctx, ~frame, ~typeColors)
+        let state = makeInitialState(~preCtx=ctx, ~frame, ~typeColors, ~typeOrderInDisj=Belt_HashMapInt.make(~hintSize=0))
 
         
         //then
@@ -45,7 +45,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
         let typeColors = Belt_HashMapString.fromArray([("term", "t-color"),("wff", "w-color")])
 
         //when
-        let state = makeInitialState(~preCtx=ctx, ~frame, ~typeColors)
+        let state = makeInitialState(~preCtx=ctx, ~frame, ~typeColors, ~typeOrderInDisj=Belt_HashMapInt.make(~hintSize=0))
 
         
         //then
@@ -76,7 +76,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
         let typeColors = Belt_HashMapString.fromArray([("term", "t-color"),("wff", "w-color")])
 
         //when
-        let state = makeInitialState(~preCtx=ctx, ~frame, ~typeColors)
+        let state = makeInitialState(~preCtx=ctx, ~frame, ~typeColors, ~typeOrderInDisj=Belt_HashMapInt.make(~hintSize=0))
 
         
         //then

@@ -235,7 +235,25 @@ let disjForEach = (disjMutable, consumer) => {
     })
 }
 
-let disjToArr = (disj) => {
+let disjGetAllVars = (disj:disjMutable):Belt_HashSetInt.t => {
+    let res = Belt_HashSetInt.make(~hintSize=100)
+    disj->Belt_HashMapInt.forEach((n,ms) => {
+        res->Belt_HashSetInt.add(n)
+        ms->Belt_HashSetInt.forEach(m => {
+            res->Belt_HashSetInt.add(m)
+        })
+    })
+    res
+}
+
+let disjToArr = (
+    disj:disjMutable, 
+    ~sortByTypeAndName:bool=false,
+    ~varIntToVarName:option<int=>option<string>>=?,
+    ~varIntToVarType:option<int=>option<int>>=?,
+    ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
+    ()
+):array<array<int>> => {
     let res = []
     disj->disjForEach((n,m) => res->Js_array2.push([n,m])->ignore)
 
@@ -291,13 +309,66 @@ let disjToArr = (disj) => {
         }
     }
 
+    let sortBy = if (sortByTypeAndName) {
+        switch varIntToVarType {
+            | None => Expln_utils_common.intCmp
+            | Some(varIntToVarType) => {
+                switch typeOrder {
+                    | None => Expln_utils_common.intCmp
+                    | Some(typeOrder) => {
+                        switch varIntToVarName {
+                            | None => Expln_utils_common.intCmp
+                            | Some(varIntToVarName) => {
+                                let allDisjVars = disj->disjGetAllVars
+                                let allDisjVarTypes = Belt_HashMapInt.make(~hintSize=allDisjVars->Belt_HashSetInt.size)
+                                let allDisjVarNames = Belt_HashMapInt.make(~hintSize=allDisjVars->Belt_HashSetInt.size)
+                                allDisjVars->Belt_HashSetInt.forEach(i => {
+                                    switch varIntToVarType(i) {
+                                        | Some(typ) => allDisjVarTypes->Belt_HashMapInt.set(i,typ)
+                                        | None => ()
+                                    }
+                                    switch varIntToVarName(i) {
+                                        | Some(str) => allDisjVarNames->Belt_HashMapInt.set(i,str)
+                                        | None => ()
+                                    }
+                                })
+                                let varTypeCmp = createVarTypeComparator( 
+                                    ~varTypes=allDisjVarTypes, 
+                                    ~typeOrder, 
+                                )
+                                let varNameCmp = createVarNameComparator(allDisjVarNames)
+                                varTypeCmp->Expln_utils_common.comparatorAndThen(varNameCmp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Expln_utils_common.intCmp
+    }
     res->Js.Array2.forEach(d =>
-        d->Js_array2.sortInPlaceWith(Expln_utils_common.intCmp)->ignore
+        d->Js_array2.sortInPlaceWith(sortBy)->ignore
     )
     res->Js_array2.sortInPlaceWith(exprCmp)
 }
 
-let disjForEachArr = (disj, consumer) => disj->disjToArr->Js_array2.forEach(consumer)
+let disjForEachArr = (
+    disj:disjMutable, 
+    ~sortByTypeAndName:bool=false,
+    ~varIntToVarName:option<int=>option<string>>=?,
+    ~varIntToVarType:option<int=>option<int>>=?,
+    ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
+    consumer:array<int> => unit
+) => {
+    disj->disjToArr(
+        ~sortByTypeAndName,
+        ~varIntToVarName?,
+        ~varIntToVarType?,
+        ~typeOrder?,
+        ()
+    )->Js_array2.forEach(consumer)
+}
 
 let disjIsEmpty = disjMutable => {
     disjMutable->Belt_HashMapInt.size == 0
@@ -1032,7 +1103,7 @@ let createFrame = (
                     dbg:
                         if (ctx.contents.debug) {
                             Some({
-                                disj: mandatoryDisj->disjToArr->Js_array2.map(ctx->ctxIntsToStrExn),
+                                disj: mandatoryDisj->disjToArr(())->Js_array2.map(ctx->ctxIntsToStrExn),
                                 hyps: mandatoryHypotheses->Js_array2.map(hyp => ctx->ctxIntsToStrExn(hyp.expr)),
                                 asrt: ctx->ctxIntsToStrExn(asrt),
                             })

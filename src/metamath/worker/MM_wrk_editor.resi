@@ -112,6 +112,7 @@ type editorState = {
     allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
 
     descr: string,
     descrEditMode: bool,

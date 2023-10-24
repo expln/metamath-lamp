@@ -43,6 +43,7 @@ type settings = {
     autoMergeStmts:bool,
     typeSettings: array<typeSettings>,
     unifMetavarPrefix:string,
+    sortDisjByType:string,
     webSrcSettings: array<webSrcSettings>,
     longClickEnabled:bool,
     longClickDelayMs:int,

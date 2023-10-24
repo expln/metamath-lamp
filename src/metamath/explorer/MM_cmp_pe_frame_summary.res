@@ -16,6 +16,7 @@ type props = {
     modalRef:modalRef,
     typeColors:Belt_HashMapString.t<string>,
     editStmtsByLeftClick:bool,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
 
     settings:settings,
     preCtx:mmContext,
@@ -32,6 +33,7 @@ type props = {
 let propsAreSame = (a:props,b:props):bool => {
     a.typeColors === b.typeColors
     && a.editStmtsByLeftClick === b.editStmtsByLeftClick
+    && a.typeOrderInDisj === b.typeOrderInDisj
     && a.settings === b.settings
     && a.preCtx === b.preCtx
     && a.frame === b.frame
@@ -41,6 +43,7 @@ let propsAreSame = (a:props,b:props):bool => {
 let make = React.memoCustomCompareProps( ({
     modalRef,
     typeColors,
+    typeOrderInDisj,
     editStmtsByLeftClick,
     settings,
     preCtx,
@@ -52,12 +55,12 @@ let make = React.memoCustomCompareProps( ({
     openFrameExplorer,
     openExplorer,
 }:props) =>  {
-    let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
+    let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
 
-    React.useEffect5(() => {
-        setState(_ => makeInitialState(~preCtx, ~frame, ~typeColors))
+    React.useEffect6(() => {
+        setState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
         None
-    }, (typeColors, editStmtsByLeftClick, preCtx, frame, order))
+    }, (typeColors, editStmtsByLeftClick, typeOrderInDisj, preCtx, frame, order))
 
     let actToggleDescrIsExpanded = () => {
         setState(toggleDescrIsExpanded)

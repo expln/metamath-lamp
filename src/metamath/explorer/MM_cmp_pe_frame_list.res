@@ -19,6 +19,7 @@ type props = {
     frms: frms,
     parenCnt: parenCnt,
     syntaxTypes:array<int>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
 
     labels:array<(int,string)>,
     openFrameExplorer:string=>unit,
@@ -42,6 +43,7 @@ let make = React.memoCustomCompareProps(({
     settings,
     preCtx,
     syntaxTypes,
+    typeOrderInDisj,
     frms,
     parenCnt,
     labels,
@@ -115,6 +117,7 @@ let make = React.memoCustomCompareProps(({
                     frame
                     order
                     typeColors
+                    typeOrderInDisj
                     editStmtsByLeftClick
                     openFrameExplorer
                     openExplorer

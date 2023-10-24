@@ -41,6 +41,7 @@ let make = React.memoCustomCompareProps(({
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
+    let (typeOrderInDisj, setTypeOrderInDisj) = React.useState(() => Belt_HashMapInt.make(~hintSize=0))
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
@@ -137,6 +138,12 @@ let make = React.memoCustomCompareProps(({
         let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
+
+        let typeOrderInDisj = createTypeOrderFromStr(
+            ~sortDisjByType=settings.sortDisjByType, 
+            ~typeNameToInt=preCtx->ctxSymToInt
+        )
+        setTypeOrderInDisj(_ => typeOrderInDisj)
 
         if (isFirstInvocation) {
             setApplyFiltersRequested(_ => true)
@@ -456,6 +463,7 @@ let make = React.memoCustomCompareProps(({
             openFrameExplorer
             openExplorer
             asrtsPerPage
+            typeOrderInDisj
         />
     </Col>
 

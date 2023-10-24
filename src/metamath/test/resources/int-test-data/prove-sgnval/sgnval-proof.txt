@@ -1,4 +1,4 @@
 ${
-$d x A $.
+$d A x $.
 sgnval $p |- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) ) $= ( vx cv cc0 wceq clt wbr c1 cneg cif cxr csgn eqeq1 breq1 ifbid ifbieq2d df-sgn cvv c0ex negex 1ex ifcli fvmpt ) BABCZDZEZUEUDUEFZGZHZIZUIJZJAUEEZUEAUEUGGZUJUIJZJK LUDAEZUFULUKUNUEUDAUEMUOUHUMUJUIUDAUEUGNOPBQULUEUN RZSUMUJUIUPUITUAUBUBUC $.
 $}

@@ -2,8 +2,8 @@ Variables:
 .var1 class width
 
 Disjoints:
-x,y,v,u,F,r
-x,y,v,u,r,width
+F,r,u,v,x,y
+width,r,u,v,x,y
 
 
 --- e -------------------------------------------------------------------------------

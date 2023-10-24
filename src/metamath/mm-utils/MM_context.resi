@@ -170,11 +170,26 @@ let disjMake: unit => disjMutable
 let disjAddPair: (disjMutable, int, int) => unit
 let disjContains: (disjMutable, int, int) => bool
 let disjImmContains: (Belt_MapInt.t<Belt_SetInt.t>, int, int) => bool
-let disjToArr: disjMutable => array<array<int>>
-let disjForEachArr: (disjMutable, array<int> => unit) => unit
+let disjToArr: (
+    disjMutable, 
+    ~sortByTypeAndName:bool=?,
+    ~varIntToVarName:int=>option<string>=?,
+    ~varIntToVarType:int=>option<int>=?,
+    ~typeOrder:Belt_HashMapInt.t<int>=?,
+    ()
+) => array<array<int>>
+let disjForEachArr: (
+    disjMutable, 
+    ~sortByTypeAndName:bool=?,
+    ~varIntToVarName:int=>option<string>=?,
+    ~varIntToVarType:int=>option<int>=?,
+    ~typeOrder:Belt_HashMapInt.t<int>=?,
+    array<int> => unit
+) => unit
 let disjForEach: (disjMutable, (int,int) => unit) => unit
 let disjIsEmpty: disjMutable => bool
 let disjMutToDisjImm: disjMutable => Belt_MapInt.t<Belt_SetInt.t>
+let disjGetAllVars: disjMutable => Belt_HashSetInt.t
 
 let exprEq: (expr,expr) => bool
 

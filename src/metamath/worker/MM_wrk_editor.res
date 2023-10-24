@@ -197,6 +197,7 @@ type editorState = {
     allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
 
     descr: string,
     descrEditMode: bool,
@@ -748,6 +749,10 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
             preCtx->ctxIntToSymExn(parenInts[2*i+1])
         )
     }
+    let typeOrderInDisj = createTypeOrderFromStr(
+        ~sortDisjByType=settings.sortDisjByType, 
+        ~typeNameToInt=preCtx->ctxSymToInt
+    )
     let st = {
         ...st, 
         settingsV:preCtxData.settingsV.ver, 
@@ -760,6 +765,7 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
         allTypes:preCtxData.allTypes,
         syntaxTypes:preCtxData.syntaxTypes,
         parensMap,
+        typeOrderInDisj,
     }
     let st = recalcTypeColors(st)
     let st = recalcPreCtxColors(st)
@@ -1489,7 +1495,13 @@ let removeUnusedVars = (st:editorState):editorState => {
                     newDisj->disjAddPair(n,m)
                 }
             })
-            let newDisjText = newDisj->disjToArr
+            let newDisjText = newDisj->disjToArr(
+                ~sortByTypeAndName=true,
+                ~varIntToVarName=wrkCtx->ctxIntToSym,
+                ~varIntToVarType=wrkCtx->getTypeOfVar,
+                ~typeOrder=st.typeOrderInDisj,
+                ()
+            )
                 ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
                 ->Js.Array2.joinWith("\n")
             let st = if (st.disjText != newDisjText) {
@@ -1793,6 +1805,7 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
 
 let proofToText = (
     ~wrkCtx:mmContext,
+    ~typeOrderInDisj:Belt_HashMapInt.t<int>,
     ~newHyps:array<hypothesis>,
     ~newDisj:disjMutable,
     ~descr:string,
@@ -1819,9 +1832,15 @@ let proofToText = (
                     result->Js.Array2.push(hyp.label ++ " $f " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
                 }
             })
-            newDisj->disjForEachArr(vars => {
-                result->Js.Array2.push("$d " ++ wrkCtx->ctxIntsToStrExn(vars) ++ " $.")->ignore
-            })
+            newDisj->disjForEachArr(
+                ~sortByTypeAndName=true,
+                ~varIntToVarType=wrkCtx->getTypeOfVar,
+                ~varIntToVarName=wrkCtx->ctxIntToSym,
+                ~typeOrder=typeOrderInDisj,
+                vars => {
+                    result->Js.Array2.push("$d " ++ wrkCtx->ctxIntsToStrExn(vars) ++ " $.")->ignore
+                }
+            )
             newHyps->Js.Array2.forEach(hyp => {
                 if (hyp.typ == E) {
                     result->Js.Array2.push(hyp.label ++ " $e " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
@@ -1918,7 +1937,8 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                     
                                     Some((
                                         proofToText( 
-                                            ~wrkCtx=wrkCtx, ~newHyps, ~newDisj, ~descr=st.descr, ~stmt, ~proof 
+                                            ~wrkCtx=wrkCtx, ~typeOrderInDisj=st.typeOrderInDisj,
+                                            ~newHyps, ~newDisj, ~descr=st.descr, ~stmt, ~proof 
                                         ),
                                         MM_proof_table.proofTableToStr(wrkCtx, proofTableWithTypes, stmt.label),
                                         MM_proof_table.proofTableToStr(wrkCtx, proofTableWithoutTypes, stmt.label),
