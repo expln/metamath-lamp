@@ -34,7 +34,7 @@ let createEditorState = (
         defaultStmtLabel,
         defaultStmtType: "",
         unifMetavarPrefix: "&",
-        sortDisjByType: "",
+        sortDisjByType: "class wff",
         checkSyntax: true,
         stickGoalToBottom: true,
         autoMergeStmts: false,

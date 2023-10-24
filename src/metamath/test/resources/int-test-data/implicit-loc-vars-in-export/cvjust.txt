@@ -1,6 +1,6 @@
 ${
 $v any $.
 .any $f setvar any $.
-$d x y any $.
+$d any x y $.
 cvjust $p |- x = { y | y e. x } $= ( cv wel cab wceq .any wcel wb dfcleq wsb df-clab elsb3 bitr2i mpgbir ) ACZBADZBEZFGADZGCRHZIGGPRJTQBGKSQGBLGBAMNO $.
 $}

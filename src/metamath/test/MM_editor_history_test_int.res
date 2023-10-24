@@ -16,7 +16,7 @@ let createEmptyEditorState = ():editorState => {
         asrtsToSkip: [],
         discColor:"", deprColor:"", tranDeprColor:"",
         editStmtsByLeftClick:false, defaultStmtType:"", 
-        unifMetavarPrefix:"&", sortDisjByType:"", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false, 
+        unifMetavarPrefix:"&", sortDisjByType:"class wff", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false,
         stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
         webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 
         showVisByDefault:false, editorHistMaxLength:1000,
