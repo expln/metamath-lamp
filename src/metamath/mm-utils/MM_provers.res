@@ -223,6 +223,7 @@ let findAsrtParentsWithNewVars = (
     ~allowNewVars:bool,
     ~allowNewDisjForExistingVars:bool,
     ~allowedFrms:allowedFrms,
+    ~combCntMax:int,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
     ~onProgress:option<int=>unit>=?,
@@ -250,6 +251,7 @@ let findAsrtParentsWithNewVars = (
         ~result = expr,
         ~frameFilter,
         ~allowNewDisjForExistingVars,
+        ~combCntMax,
         ~debugLevel,
         ~onMatchFound = res => {
             applResults->Js_array2.push(res)->ignore
@@ -281,6 +283,11 @@ let findAsrtParentsWithNewVars = (
                         AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
                     )->ignore
                 }
+            }
+            | Some(TooManyCombinations(_)) => {
+                foundParents->Js.Array2.push( 
+                    AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
+                )->ignore
             }
             | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
                 let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
@@ -350,7 +357,7 @@ let findAsrtParentsWithNewVars = (
     foundParents
 }
 
-let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allowedFrms):proofNode => {
+let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allowedFrms, ~combCntMax:int,):proofNode => {
     let node = tree->ptGetNode(expr)
     if (node->pnGetProof->Belt.Option.isNone) {
         let parents = findAsrtParentsWithNewVars(
@@ -362,6 +369,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allow
             ~allowNewVars=false,
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
+            ~combCntMax,
             () 
         )
         parents->Expln_utils_common.arrForEach(parent => {
@@ -403,6 +411,7 @@ let proveWithJustification = (
     ~expr:expr, 
     ~jstf: jstf,
     ~allowedFrms:allowedFrms,
+    ~combCntMax:int,
 ):proofNode => {
     let findAsrtParents = (args,debugLevel) => {
         findAsrtParentsWithNewVars(
@@ -415,6 +424,7 @@ let proveWithJustification = (
             ~asrtLabel=jstf.label,
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
+            ~combCntMax,
             ~debugLevel,
             ()
         )
@@ -542,6 +552,7 @@ let proveStmtBottomUp = (
     ~expr:expr, 
     ~params:bottomUpProverParams,
     ~allowedFrms:allowedFrms,
+    ~combCntMax:int,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
@@ -557,6 +568,7 @@ let proveStmtBottomUp = (
             ~allowNewVars = dist == 0 && params.allowNewVars,
             ~allowNewDisjForExistingVars=params.allowNewDisjForExistingVars,
             ~allowedFrms,
+            ~combCntMax,
             ~debugLevel,
             ~maxNumberOfResults=?params.maxNumberOfBranches,
             ~onProgress?,
@@ -608,15 +620,18 @@ let proveStmt = (
     ~jstf:option<jstf>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
+    ~combCntMax:int,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ) => {
     switch bottomUpProverParams {
-        | Some(params) => proveStmtBottomUp( ~tree, ~expr, ~params, ~allowedFrms, ~debugLevel, ~onProgress, )->ignore
+        | Some(params) => {
+            proveStmtBottomUp( ~tree, ~expr, ~params, ~allowedFrms, ~combCntMax, ~debugLevel, ~onProgress, )->ignore
+        }
         | None => {
             switch jstf {
-                | None => proveWithoutJustification( ~tree, ~expr, ~allowedFrms )->ignore
-                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, ~allowedFrms )->ignore
+                | None => proveWithoutJustification( ~tree, ~expr, ~allowedFrms, ~combCntMax )->ignore
+                | Some(jstf) => proveWithJustification( ~tree, ~expr, ~jstf, ~allowedFrms, ~combCntMax )->ignore
             }
         }
     }
@@ -783,6 +798,7 @@ let unifyAll = (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~allowedFrms:allowedFrms,
+    ~combCntMax:int,
     ~syntaxTypes:option<array<int>>=?,
     ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
@@ -838,6 +854,7 @@ let unifyAll = (
             ~jstf=stmt.jstf,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
             ~allowedFrms,
+            ~combCntMax,
             ~debugLevel,
             ~onProgress =
                 if (stmtIdx != maxStmtIdx || bottomUpProverParams->Belt.Option.isNone) {

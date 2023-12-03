@@ -50,6 +50,7 @@ type settings = {
     hideContextSelector:bool,
     showVisByDefault:bool,
     editorHistMaxLength:int,
+    combCntMax:int,
 
     useDefaultTransforms:bool,
     useCustomTransforms:bool,

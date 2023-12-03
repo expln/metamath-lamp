@@ -8,6 +8,7 @@ type unifErr =
   | NoUnifForAsrt({asrtExpr: MM_context.expr, expr: MM_context.expr})
   | NoUnifForArg({args: array<MM_context.expr>, errArgIdx: int})
   | NewVarsAreDisabled({args: array<MM_context.expr>, errArgIdx: int})
+  | TooManyCombinations({frmLabels:option<array<string>>})
 
 
 let unifErrToStr: (

@@ -279,6 +279,8 @@ let stmtsDtoToResultRendered = (
     ~isStmtToShow:stmtDto=>bool,
     ~getFrmLabelBkgColor: string=>option<string>,
 ):resultRendered => {
+    let maxI = stmtsDto.stmts->Js.Array2.length - 1
+    let stmtsToShow = stmtsDto.stmts->Js.Array2.filteri((stmt,i) => i == maxI || isStmtToShow(stmt))
     let elem = 
         <Col>
             {
@@ -291,52 +293,49 @@ let stmtsDtoToResultRendered = (
             <table>
                 <tbody>
                     {
-                        let maxI = stmtsDto.stmts->Js.Array2.length - 1
-                        stmtsDto.stmts
-                            ->Js.Array2.filteri((stmt,i) => i == maxI || isStmtToShow(stmt))
-                            ->Js.Array2.map(stmt => {
-                                <tr key=stmt.exprStr>
-                                    <td>
-                                        { React.string(stmt.label) }
-                                    </td>
-                                    <td style=ReactDOM.Style.make(~textAlign="right", ())>
-                                        <nobr>
-                                        {
-                                            switch stmt.jstf {
-                                                | None => React.null
-                                                | Some({args, label}) => {
-                                                    <>
-                                                        <span>
-                                                            {React.string("[" ++ args->Js_array2.joinWith(" ") ++ " : ")}
-                                                        </span>
-                                                        <span
-                                                            style=ReactDOM.Style.make(
-                                                                ~backgroundColor=?getFrmLabelBkgColor(label), 
-                                                                ~borderRadius="3px",
-                                                                ()
-                                                            )
-                                                        >
-                                                            {React.string(label)}
-                                                        </span>
-                                                        <span>
-                                                            {React.string(" ]")}
-                                                        </span>
-                                                    </>
-                                                }
+                        stmtsToShow->Js.Array2.map(stmt => {
+                            <tr key=stmt.exprStr>
+                                <td>
+                                    { React.string(stmt.label) }
+                                </td>
+                                <td style=ReactDOM.Style.make(~textAlign="right", ())>
+                                    <nobr>
+                                    {
+                                        switch stmt.jstf {
+                                            | None => React.null
+                                            | Some({args, label}) => {
+                                                <>
+                                                    <span>
+                                                        {React.string("[" ++ args->Js_array2.joinWith(" ") ++ " : ")}
+                                                    </span>
+                                                    <span
+                                                        style=ReactDOM.Style.make(
+                                                            ~backgroundColor=?getFrmLabelBkgColor(label), 
+                                                            ~borderRadius="3px",
+                                                            ()
+                                                        )
+                                                    >
+                                                        {React.string(label)}
+                                                    </span>
+                                                    <span>
+                                                        {React.string(" ]")}
+                                                    </span>
+                                                </>
                                             }
                                         }
-                                        </nobr>
-                                    </td>
-                                    <td style=ReactDOM.Style.make(~color= if (stmt.isProved) {"green"} else {"#565656"},
-                                                ~fontWeight="bold", ())>
-                                        {React.string( if (stmt.isProved) {"\u2713"} else {"?"} )}
-                                    </td>
-                                    <td> 
-                                        {React.string(stmt.exprStr)}
-                                    </td>
-                                </tr>
-                            })
-                            ->React.array
+                                    }
+                                    </nobr>
+                                </td>
+                                <td style=ReactDOM.Style.make(~color= if (stmt.isProved) {"green"} else {"#565656"},
+                                            ~fontWeight="bold", ())>
+                                    {React.string( if (stmt.isProved) {"\u2713"} else {"?"} )}
+                                </td>
+                                <td> 
+                                    {React.string(stmt.exprStr)}
+                                </td>
+                            </tr>
+                        })
+                        ->React.array
                     }
                 </tbody>
             </table>
@@ -352,7 +351,7 @@ let stmtsDtoToResultRendered = (
             0
         ),
         isProved: lastStmt.isProved,
-        numOfStmts: stmtsDto.stmts->Js.Array2.length,
+        numOfStmts: stmtsToShow->Js.Array2.length,
     }
 }
 

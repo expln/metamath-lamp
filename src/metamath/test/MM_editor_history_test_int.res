@@ -35,6 +35,7 @@ let createEmptyEditorState = ():editorState => {
         useDefaultTransforms:false,
         useCustomTransforms:false,
         customTransforms:"",
+        combCntMax:10000,
     }
     createInitialEditorState(
         ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(())), ()),

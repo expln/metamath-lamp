@@ -61,6 +61,7 @@ let unifyAll: (
     ~parenCnt: parenCnt,
     ~bottomUpProverParams:bottomUpProverParams=?,
     ~allowedFrms:allowedFrms,
+    ~combCntMax:int,
     ~syntaxTypes:array<int>=?,
     ~exprsToSyntaxCheck:array<expr>=?,
     ~debugLevel:int=?,

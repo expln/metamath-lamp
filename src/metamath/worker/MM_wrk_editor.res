@@ -1594,7 +1594,34 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
         | Some(proofNode) => {...stmt, proofStatus:Some(Ready), src:proofNode.proof}
         | None => {
             switch stmt.jstf {
-                | None => {...stmt, proofStatus:Some(NoJstf)}
+                | None => {
+                    let partialAsrtLabels = proofNode.parents->Js.Array2.map(src => {
+                        switch src {
+                            | VarType | Hypothesis(_) | Assertion(_) => None
+                            | AssertionWithErr({label, err}) => {
+                                switch err {
+                                    | UnifErr | DisjCommonVar(_) | Disj(_) | UnprovedFloating(_) 
+                                                | NoUnifForAsrt(_) | NoUnifForArg(_) | NewVarsAreDisabled(_) => None
+                                    | TooManyCombinations(_) => Some(label)
+                                }
+                            }
+                        }
+                    })->Js.Array2.filter(Belt_Option.isSome)->Js.Array2.map(Belt_Option.getExn)
+                    let unifErr = if (partialAsrtLabels->Js.Array2.length > 0) {
+                        Some(unifErrToStr(
+                            TooManyCombinations({frmLabels:Some(partialAsrtLabels)}),
+                            ~exprToStr = wrkCtx->ctxIntsToStrExn,
+                            ~frmExprToStr = _ => "<frmExprToStr is not defined>"
+                        ))
+                    } else {
+                        None
+                    }
+                    {
+                        ...stmt, 
+                        proofStatus:Some(NoJstf),
+                        unifErr: stmt.unifErr->Belt.Option.orElse(unifErr)
+                    }
+                }
                 | Some(jstf) => {
                     switch proofNode.parents->Js.Array2.find(srcEqJstf(_, jstf)) {
                         | Some(src) => {...stmt, proofStatus:Some(Waiting), src:Some(src)}
@@ -1605,16 +1632,19 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                                     | AssertionWithErr({label, err}) => Some((label,err))
                                 }
                             })->Js.Array2.filter(Belt_Option.isSome)->Js.Array2.map(Belt_Option.getExn)
-                            let unifErr = switch errors {
-                                | [(asrtLabel,err)] => {
-                                    Some(unifErrToStr(
-                                        err,
-                                        ~exprToStr = wrkCtx->ctxIntsToStrExn,
-                                        ~frmExprToStr = 
-                                            expr => wrkCtx->frmIntsToStrExn(wrkCtx->getFrameExn(asrtLabel),expr)
-                                    ))
-                                }
-                                | _ => None
+                            let unifErr = if (errors->Js.Array2.length > 0) {
+                                Some(
+                                    errors->Js_array2.map(((asrtLabel,err)) => {
+                                        unifErrToStr(
+                                            err,
+                                            ~exprToStr = wrkCtx->ctxIntsToStrExn,
+                                            ~frmExprToStr = 
+                                                expr => wrkCtx->frmIntsToStrExn(wrkCtx->getFrameExn(asrtLabel),expr)
+                                        )
+                                    })->Js.Array2.joinWith("\n\n")
+                                )
+                            } else {
+                                None
                             }
                             {
                                 ...stmt, 

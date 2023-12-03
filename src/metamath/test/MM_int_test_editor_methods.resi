@@ -83,6 +83,7 @@ let unifyBottomUp: (
     ~useDisc: bool=?,
     ~useDepr: bool=?,
     ~useTranDepr: bool=?,
+    ~combCntMax:int=?,
     ~chooseLabel: string=?,
     ~chooseResult: stmtsDto=>bool =?,
     (),

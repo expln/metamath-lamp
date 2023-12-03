@@ -1,0 +1,103 @@
+Variables:
+
+
+Disjoints:
+
+
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.1
+
+|- V = ( Vtx ` G )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.2
+
+|- I = ( iEdg ` G )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.3
+
+|- ( ph -> G e. W )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.4
+
+|- ( ph -> Fun I )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.5
+
+|- ( ph -> A =/= B )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.6
+
+|- ( ph -> E. f E. p ( f ( A ( SPathsOn ` G ) B ) p /\ -. J e. ran f ) )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.7
+
+|- ( ph -> <. J , E >. e. I )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.8
+
+|- ( ph -> J e. X )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.9
+
+|- ( ph -> E e. ~P V )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.10
+
+|- ( ph -> A e. E )
+None
+
+--- e -------------------------------------------------------------------------------
+edgnelspthcyc.11
+
+|- ( ph -> B e. E )
+None
+
+--- p -------------------------------------------------------------------------------
+1
+
+|- ( ( ( G e. W /\ Fun I /\ A =/= B ) /\ ( E. f E. p ( f ( A ( SPathsOn ` G ) B ) p /\ -. J e. ran f ) /\ <. J , E >. e. I /\ J e. X ) /\ ( E e. ~P V /\ A e. E /\ B e. E ) ) -> E. h E. q ( h ( Cycles ` G ) q /\ h =/= (/) ) )
+noJstf
+
+--- p -------------------------------------------------------------------------------
+2
+edgnelspthcyc.3 edgnelspthcyc.4 edgnelspthcyc.5 : 3jca
+|- ( ph -> ( G e. W /\ Fun I /\ A =/= B ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+3
+edgnelspthcyc.6 edgnelspthcyc.7 edgnelspthcyc.8 : 3jca
+|- ( ph -> ( E. f E. p ( f ( A ( SPathsOn ` G ) B ) p /\ -. J e. ran f ) /\ <. J , E >. e. I /\ J e. X ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+4
+edgnelspthcyc.9 edgnelspthcyc.10 edgnelspthcyc.11 : 3jca
+|- ( ph -> ( E e. ~P V /\ A e. E /\ B e. E ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+5
+
+|- ( ph -> E. h E. q ( h ( Cycles ` G ) q /\ h =/= (/) ) )
+noJstf
+Unif Error: Some assertions produce too big search space. Only part of that search space was examined. Those assertions are: syl13anc, syl31anc, syl112anc, syl121anc, syl211anc, syl122anc, syl212anc, syl221anc, syl113anc, syl131anc, syl311anc, syl222anc, syl123anc, syl132anc, syl213anc, syl231anc, syl312anc, syl321anc, syl133anc, syl313anc, syl331anc, syl223anc, syl232anc, syl322anc, syl233anc, syl323anc, syl332anc, syl333anc .

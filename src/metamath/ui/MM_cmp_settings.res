@@ -57,6 +57,8 @@ type settingsState = {
     useDefaultTransforms:bool,
     useCustomTransforms:bool,
     customTransforms:string,
+
+    combCntMaxStr:string,
 }
 
 let allColors = [
@@ -81,6 +83,7 @@ let longClickDelayMsMax = 3000
 let editorHistMaxLengthDefault = 20
 let editorHistMaxLengthMin = 0
 let editorHistMaxLengthMax = 1000
+let combCntMaxDefault = 10000
 
 let setmm = createDefaultWebSrcSettingState("set.mm:latest","https://us.metamath.org/metamath/set.mm")
 let isetmm = createDefaultWebSrcSettingState("iset.mm:latest","https://us.metamath.org/metamath/iset.mm")
@@ -171,6 +174,7 @@ let createDefaultSettings = ():settingsState => {
         useDefaultTransforms:true,
         useCustomTransforms:false,
         customTransforms:"",
+        combCntMaxStr:combCntMaxDefault->Belt.Int.toString,
     }
 }
 
@@ -436,6 +440,14 @@ let validateLongClickDelayMs = (ms:int):result<int,string> => {
     }
 }
 
+let validateCombCntMax = (combCntMax:int):result<int,string> => {
+    if (combCntMax < 1) {
+        Ok(1)
+    } else {
+        Ok(combCntMax)
+    }
+}
+
 let validateAndCorrectLongClickSettings = (st:settingsState):settingsState => {
     {
         ...st,
@@ -446,6 +458,22 @@ let validateAndCorrectLongClickSettings = (st:settingsState):settingsState => {
                     switch validateLongClickDelayMs(ms) {
                         | Ok(ms) => ms->Belt.Int.toString
                         | Error(_) => longClickDelayMsDefault->Belt.Int.toString
+                    }
+                }
+            }
+    }
+}
+
+let validateAndCorrectCombCntMax = (st:settingsState):settingsState => {
+    {
+        ...st,
+        combCntMaxStr:
+            switch st.combCntMaxStr->Belt_Int.fromString {
+                | None => combCntMaxDefault->Belt.Int.toString
+                | Some(combCntMax) => {
+                    switch validateCombCntMax(combCntMax) {
+                        | Ok(combCntMax) => combCntMax->Belt.Int.toString
+                        | Error(_) => combCntMaxDefault->Belt.Int.toString
                     }
                 }
             }
@@ -488,6 +516,7 @@ let validateAndCorrectState = (st:settingsState):settingsState => {
     let st = validateAndCorrectLongClickSettings(st)
     let st = validateAndCorrectDefaultStmtLabel(st)
     let st = validateAndCorrectEditorHistoryMaxLengthSetting(st)
+    let st = validateAndCorrectCombCntMax(st)
     st
 }
 
@@ -532,6 +561,8 @@ let stateToSettings = (st:settingsState):settings => {
         useDefaultTransforms: st.useDefaultTransforms,
         useCustomTransforms: st.useCustomTransforms,
         customTransforms: st.customTransforms,
+        combCntMax: 
+            st.combCntMaxStr->Belt_Int.fromString->Belt.Option.getWithDefault(combCntMaxDefault),
     }
 }
 
@@ -585,6 +616,7 @@ let settingsToState = (ls:settings):settingsState => {
         useDefaultTransforms: ls.useDefaultTransforms,
         useCustomTransforms: ls.useCustomTransforms,
         customTransforms: ls.customTransforms,
+        combCntMaxStr: ls.combCntMax->Belt.Int.toString,
     }
     validateAndCorrectState(res)
 }
@@ -693,6 +725,11 @@ let readStateFromLocStor = ():settingsState => {
                         () 
                     ),
                     customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms, ()),
+                    combCntMaxStr: d->int( "combCntMax", 
+                        ~default = () => combCntMaxDefault,
+                        ~validator = validateCombCntMax,
+                        () 
+                    )->Belt_Int.toString,
                 }
             }, ()), ~default=()=>defaultSettings, ())
             switch parseResult {
@@ -760,6 +797,7 @@ let eqState = (st1, st2) => {
         && st1.useDefaultTransforms == st2.useDefaultTransforms
         && st1.useCustomTransforms == st2.useCustomTransforms
         && st1.customTransforms == st2.customTransforms
+        && st1.combCntMaxStr == st2.combCntMaxStr
 }
 
 let updateParens = (st,parens) => {
@@ -903,6 +941,10 @@ let updateLongClickDelayMsStr = (st, longClickDelayMsStr) => {
     { ...st, longClickDelayMsStr: longClickDelayMsStr }
 }
 
+let updateCombCntMaxStr = (st, str) => {
+    { ...st, combCntMaxStr: str }
+}
+
 let updateEditorHistMaxLengthStr = (st, editorHistMaxLengthStr) => {
     { ...st, editorHistMaxLengthStr: editorHistMaxLengthStr }
 }
@@ -994,6 +1036,10 @@ let make = (
 
     let actLongClickDelayMsStrChange = longClickDelayMsStr => {
         setState(updateLongClickDelayMsStr(_, longClickDelayMsStr))
+    }
+
+    let actCombCntMaxStrChange = str => {
+        setState(updateCombCntMaxStr(_, str))
     }
 
     let actEditorHistMaxLengthStrChange = editorHistMaxLengthStr => {
@@ -1660,6 +1706,14 @@ let make = (
             value=state.editorHistMaxLengthStr
             onChange=evt2str(actEditorHistMaxLengthStrChange)
             title="How many previous editor states to store."
+        />
+        <TextField 
+            size=#small
+            style=ReactDOM.Style.make(~width="200px", ())
+            label="Max number of combinations" 
+            value=state.combCntMaxStr
+            onChange=evt2str(actCombCntMaxStrChange)
+            title="Max number of distinct combinations of arguments to check per assertion in \"Unify All\" and when proving bottom-up."
         />
         <Divider/>
         {rndDiscAsrtsSettings()}
