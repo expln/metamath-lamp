@@ -1,0 +1,130 @@
+{
+  "srcs": [
+    {
+      "typ": "Local",
+      "fileName": "set.mm",
+      "url": "",
+      "readInstr": "ReadAll",
+      "label": "",
+      "resetNestingLevel": true,
+      "allLabels": []
+    }
+  ],
+  "descr": "",
+  "varsText": "",
+  "disjText": "",
+  "stmts": [
+    {
+      "label": "edgnelspthcyc.1",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- V = ( Vtx ` G )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.2",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- I = ( iEdg ` G )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.3",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> G e. W )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.4",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> Fun I )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.5",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> A =/= B )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.6",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> E. f E. p ( f ( A ( SPathsOn ` G ) B ) p /\\ -. J e. ran f ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.7",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> <. J , E >. e. I )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.8",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> J e. X )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.9",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> E e. ~P V )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.10",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> A e. E )",
+      "jstfText": ""
+    },
+    {
+      "label": "edgnelspthcyc.11",
+      "typ": "e",
+      "isGoal": false,
+      "cont": "|- ( ph -> B e. E )",
+      "jstfText": ""
+    },
+    {
+      "label": "1",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ( ( G e. W /\\ Fun I /\\ A =/= B ) /\\ ( E. f E. p ( f ( A ( SPathsOn ` G ) B ) p /\\ -. J e. ran f ) /\\ <. J , E >. e. I /\\ J e. X ) /\\ ( E e. ~P V /\\ A e. E /\\ B e. E ) ) -> E. h E. q ( h ( Cycles ` G ) q /\\ h =/= (/) ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "2",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( G e. W /\\ Fun I /\\ A =/= B ) )",
+      "jstfText": "edgnelspthcyc.3 edgnelspthcyc.4 edgnelspthcyc.5 : 3jca"
+    },
+    {
+      "label": "3",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( E. f E. p ( f ( A ( SPathsOn ` G ) B ) p /\\ -. J e. ran f ) /\\ <. J , E >. e. I /\\ J e. X ) )",
+      "jstfText": "edgnelspthcyc.6 edgnelspthcyc.7 edgnelspthcyc.8 : 3jca"
+    },
+    {
+      "label": "4",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> ( E e. ~P V /\\ A e. E /\\ B e. E ) )",
+      "jstfText": "edgnelspthcyc.9 edgnelspthcyc.10 edgnelspthcyc.11 : 3jca"
+    },
+    {
+      "label": "5",
+      "typ": "p",
+      "isGoal": false,
+      "cont": "|- ( ph -> E. h E. q ( h ( Cycles ` G ) q /\\ h =/= (/) ) )",
+      "jstfText": ""
+    }
+  ]
+}

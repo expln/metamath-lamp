@@ -36,28 +36,36 @@ let rec iterateCombinationsRec = (
     ~hypIdx:int,
     ~skipCombinationsWithEmptyArgs:bool,
     ~skipCombinationsWithoutEmptyArgs:bool,
+    ~combCnt:ref<int>,
+    ~combCntMax:int,
+    ~onCombCntMaxReached:unit=>contunieInstruction,
     ~combinationConsumer:array<int>=>contunieInstruction,
 ):contunieInstruction => {
     if (hypIdx == comb->Js.Array2.length) {
-        let thereIsEmptyArg = comb->Js.Array2.some(a => a == -1)
-        if (thereIsEmptyArg) {
-            if (skipCombinationsWithEmptyArgs) {
-                Continue
-            } else {
-                combinationConsumer(comb)
-            }
+        combCnt := combCnt.contents + 1
+        if (combCnt.contents > combCntMax) {
+            onCombCntMaxReached()
         } else {
-            if (skipCombinationsWithoutEmptyArgs) {
-                Continue
+            let thereIsEmptyArg = comb->Js.Array2.some(a => a == -1)
+            if (thereIsEmptyArg) {
+                if (skipCombinationsWithEmptyArgs) {
+                    Continue
+                } else {
+                    combinationConsumer(comb)
+                }
             } else {
-                combinationConsumer(comb)
+                if (skipCombinationsWithoutEmptyArgs) {
+                    Continue
+                } else {
+                    combinationConsumer(comb)
+                }
             }
         }
     } else {
         let res = ref(Continue)
         let c = ref(0)
         let maxC = candidatesPerHyp[hypIdx]->Js.Array2.length-1
-        while (res.contents == Continue && c.contents <= maxC) {
+        while (res.contents == Continue && c.contents <= maxC && combCnt.contents <= combCntMax) {
             comb[hypIdx] = candidatesPerHyp[hypIdx][c.contents]
             if (!(comb[hypIdx] == -1 && skipCombinationsWithEmptyArgs)) {
                 res.contents = iterateCombinationsRec(
@@ -66,6 +74,9 @@ let rec iterateCombinationsRec = (
                     ~hypIdx = hypIdx+1,
                     ~skipCombinationsWithEmptyArgs,
                     ~skipCombinationsWithoutEmptyArgs,
+                    ~combCnt,
+                    ~combCntMax,
+                    ~onCombCntMaxReached,
                     ~combinationConsumer
                 )
             }
@@ -96,12 +107,20 @@ let iterateCombinations = (
     switch candidatesPerHyp->Js_array2.findIndex(candidates => candidates->Js_array2.length == 0) {
         | -1 => {
             let comb = Belt_Array.make(numOfHyps, 0)
+            let combCntMax = 10000
+            let tooBigSearchSpaceDetected = ref(false)
             let continue = iterateCombinationsRec(
                 ~candidatesPerHyp,
                 ~comb,
                 ~hypIdx = 0,
                 ~skipCombinationsWithEmptyArgs=true,
                 ~skipCombinationsWithoutEmptyArgs=false,
+                ~combCnt=ref(0),
+                ~combCntMax,
+                ~onCombCntMaxReached = () => {
+                    tooBigSearchSpaceDetected := true
+                    errConsumer(TooManyCombinations({frmLabels:None}))
+                },
                 ~combinationConsumer
             )
             if (continue == Continue) {
@@ -111,6 +130,15 @@ let iterateCombinations = (
                     ~hypIdx = 0,
                     ~skipCombinationsWithEmptyArgs=false,
                     ~skipCombinationsWithoutEmptyArgs=true,
+                    ~combCnt=ref(0),
+                    ~combCntMax,
+                    ~onCombCntMaxReached = () => {
+                        if (!tooBigSearchSpaceDetected.contents) {
+                            errConsumer(TooManyCombinations({frmLabels:None}))
+                        } else {
+                            Continue
+                        }
+                    },
                     ~combinationConsumer
                 )
             } else {

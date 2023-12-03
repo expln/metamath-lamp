@@ -1241,7 +1241,7 @@ let make = (
     let rndError = (msgOpt,color) => {
         switch msgOpt {
             | None => <></>
-            | Some(msg) => <pre style=ReactDOM.Style.make(~color, ())>{React.string(msg)}</pre>
+            | Some(msg) => <pre style=ReactDOM.Style.make(~color, ~whiteSpace="pre-wrap", ())>{React.string(msg)}</pre>
         }
     }
 

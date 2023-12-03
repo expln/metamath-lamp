@@ -153,7 +153,7 @@ module rec ProofNodeDtoCmp: {
                         | UnifErr | DisjCommonVar(_) | Disj(_) | UnprovedFloating(_) => {
                             args->Js_array2.length == 0
                         }
-                        | NoUnifForAsrt(_) | NoUnifForArg(_) | NewVarsAreDisabled(_) => false
+                        | NoUnifForAsrt(_) | NoUnifForArg(_) | NewVarsAreDisabled(_) | TooManyCombinations(_) => false
                     }
                 }
             }

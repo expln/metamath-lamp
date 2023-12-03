@@ -8,6 +8,7 @@ type unifErr =
     | NoUnifForAsrt({asrtExpr:expr, expr:expr})
     | NoUnifForArg({args:array<expr>, errArgIdx:int})
     | NewVarsAreDisabled({args:array<expr>, errArgIdx:int})
+    | TooManyCombinations({frmLabels:option<array<string>>})
 
 let argsToString = (args:array<expr>, exprToStr:expr=>string):string => {
     args->Js_array2.mapi((arg,i) => {
@@ -23,6 +24,15 @@ let unifErrToStr = (
 
     switch err {
         | UnifErr => "Details of the error were not stored."
+        | TooManyCombinations({frmLabels}) => {
+            switch frmLabels {
+                | None => "This assertion produces too big search space." 
+                                ++ " Only part of that search space was examined."
+                | Some(frmLabels) => "Some assertions produce too big search space." 
+                                ++ " Only part of that search space was examined."
+                                ++ " Those assertions are: " ++ frmLabels->Js_array2.joinWith(", ") ++ " ."
+            }
+        }
         | DisjCommonVar({frmVar1, expr1, frmVar2, expr2, commonVar}) => {
             let arrow = Js_string2.fromCharCode(8594)
             `Unsatisfied disjoint, common variable ${exprToStr([commonVar])}:\n`

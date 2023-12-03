@@ -778,6 +778,13 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step11")
     })
 
+    it("175-Unify-hangs-for-certain-statements", _ => {
+        setTestDataDir("175-Unify-hangs-for-certain-statements")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ~stopBefore="mathbox", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+    })
+
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {
     // })
 })

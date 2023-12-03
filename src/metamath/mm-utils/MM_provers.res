@@ -282,6 +282,11 @@ let findAsrtParentsWithNewVars = (
                     )->ignore
                 }
             }
+            | Some(TooManyCombinations(_)) => {
+                foundParents->Js.Array2.push( 
+                    AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
+                )->ignore
+            }
             | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
                 let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
                 applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
