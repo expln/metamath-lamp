@@ -60,6 +60,7 @@ let createEditorState = (
         useDefaultTransforms:false,
         useCustomTransforms:false,
         customTransforms:"",
+        combCntMax:10000,
     }
     let preCtxV = 1
     let preCtx = ctx

@@ -90,6 +90,7 @@ let iterateCombinations = (
     ~numOfStmts:int,
     ~numOfHyps:int,
     ~stmtCanMatchHyp:(int,int)=>bool,
+    ~combCntMax:int,
     ~debugLevel:int,
     ~combinationConsumer:array<int>=>contunieInstruction,
     ~errConsumer:unifErr=>contunieInstruction,
@@ -107,7 +108,6 @@ let iterateCombinations = (
     switch candidatesPerHyp->Js_array2.findIndex(candidates => candidates->Js_array2.length == 0) {
         | -1 => {
             let comb = Belt_Array.make(numOfHyps, 0)
-            let combCntMax = 10000
             let tooBigSearchSpaceDetected = ref(false)
             let continue = iterateCombinationsRec(
                 ~candidatesPerHyp,
@@ -440,6 +440,7 @@ let applyAssertions = (
     ~parenCnt:parenCnt,
     ~frameFilter:frame=>bool=_=>true,
     ~allowNewDisjForExistingVars:bool=false,
+    ~combCntMax:int=10000,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=0,
     ~onProgress:option<float=>unit>=?,
@@ -504,6 +505,7 @@ let applyAssertions = (
                                     )
                                 }
                             },
+                            ~combCntMax:int,
                             ~debugLevel,
                             ~errConsumer = err => {
                                 onMatchFound(

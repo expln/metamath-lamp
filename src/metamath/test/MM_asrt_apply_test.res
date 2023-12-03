@@ -47,6 +47,7 @@ describe("iterateCombinations", _ => {
                 res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
                 Continue
             },
+            ~combCntMax=10000,
             ~errConsumer = _ => Continue
         )->ignore
 
@@ -84,6 +85,7 @@ describe("iterateCombinations", _ => {
             ~numOfHyps=2,
             ~stmtCanMatchHyp = (_,_)=>true,
             ~debugLevel=0,
+            ~combCntMax=10000,
             ~combinationConsumer = comb => {
                 res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
                 if (comb[0] == 1 && comb[1] == -1) {
@@ -128,6 +130,7 @@ describe("iterateCombinations", _ => {
             ~numOfHyps=2,
             ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Js.Math.abs_int, 2) == 1,
             ~debugLevel=0,
+            ~combCntMax=10000,
             ~combinationConsumer = comb => {
                 res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
                 Continue
@@ -157,6 +160,7 @@ describe("iterateCombinations", _ => {
             ~numOfHyps=2,
             ~stmtCanMatchHyp = (_,h) => h != 0,
             ~debugLevel=0,
+            ~combCntMax=10000,
             ~combinationConsumer = comb => {
                 res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
                 Continue

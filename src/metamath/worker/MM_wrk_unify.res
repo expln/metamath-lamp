@@ -16,6 +16,7 @@ type request =
         rootStmts: array<rootStmt>, 
         bottomUpProverParams:option<bottomUpProverParams>,
         allowedFrms:allowedFrms,
+        combCntMax:int,
         syntaxTypes:option<array<int>>,
         exprsToSyntaxCheck:option<array<expr>>,
         debugLevel:int,
@@ -80,6 +81,7 @@ let unify = (
                 rootStmts:rootStmts, 
                 bottomUpProverParams, 
                 allowedFrms,
+                combCntMax:settings.combCntMax,
                 syntaxTypes,
                 exprsToSyntaxCheck,
                 debugLevel,
@@ -101,7 +103,7 @@ let unify = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | Unify({rootStmts, bottomUpProverParams, allowedFrms, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
+        | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),
@@ -109,6 +111,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~rootStmts,
                 ~bottomUpProverParams?,
                 ~allowedFrms,
+                ~combCntMax,
                 ~syntaxTypes?, 
                 ~exprsToSyntaxCheck?,
                 ~debugLevel,

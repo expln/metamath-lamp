@@ -69,6 +69,7 @@ let createEditorState = (
         useDefaultTransforms:false,
         useCustomTransforms:false,
         customTransforms:"",
+        combCntMax:10000,
     }
 
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
@@ -331,6 +332,7 @@ let unifyAll = (st):editorState => {
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
                 ~allowedFrms = st.settings.allowedFrms,
+                ~combCntMax = st.settings.combCntMax,
                 ~wrkCtx,
                 ~rootStmts,
                 ~syntaxTypes=st.syntaxTypes,
@@ -366,6 +368,7 @@ let unifyBottomUp = (
     ~useDisc: option<bool>=?,
     ~useDepr: option<bool>=?,
     ~useTranDepr: option<bool>=?,
+    ~combCntMax:int=10000,
     ~chooseLabel:option<string>=?,
     ~chooseResult:option<stmtsDto => bool>=?,
     ()
@@ -402,6 +405,7 @@ let unifyBottomUp = (
                         useTranDepr: useTranDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useTranDepr),
                     }
                 },
+                ~combCntMax,
                 //~onProgress = msg => Js.Console.log(msg),
                 ()
             )
