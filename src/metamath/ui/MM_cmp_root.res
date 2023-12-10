@@ -59,6 +59,9 @@ let mainTheme = ThemeProvider.createTheme(
             },
             "orange": {
                 "main": "#FF7900",
+            },
+            "yellow": {
+                "main": "#FFE143",
             }
         }
     }

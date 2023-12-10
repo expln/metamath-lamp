@@ -52,6 +52,7 @@ type state = {
     maxNumberOfBranchesStr:string,
 
     tree: option<proofTreeDto>,
+    warnings:array<string>,
     results: option<array<stmtsDto>>,
     resultsRendered: option<array<resultRendered>>,
     sortBy: sortBy,
@@ -178,6 +179,7 @@ let makeInitialState = (
             params.maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault(""),
 
         tree: None,
+        warnings: [],
         results: None,
         resultsRendered: None,
         sortBy: UnprovedStmtsNum,
@@ -381,6 +383,24 @@ let sortResultsRendered = (resultsRendered, sortBy) => {
     )
 }
 
+let isTruncatedSearchErr = (src:exprSrcDto):bool => {
+    switch src {
+        | AssertionWithErr({err:TooManyCombinations(_)}) => true
+        | _ => false
+    }
+}
+
+let findWarnings = (tree:proofTreeDto):array<string> => {
+    if (tree.nodes->Js.Array2.some(n => n.parents->Js_array2.some(isTruncatedSearchErr))) {
+        [
+            "The search space was truncated due to some assertions produce too big search space. " ++ 
+                "Use Logging level = 2 and then click 'Show Proof Tree' button to find those assertions."
+        ]
+    } else {
+        []
+    }
+}
+
 let setResults = (
     st,
     ~tree: option<proofTreeDto>,
@@ -392,6 +412,7 @@ let setResults = (
             {
                 ...st,
                 tree: None,
+                warnings:[],
                 results,
                 resultsRendered: None,
                 resultsSorted: None,
@@ -413,6 +434,7 @@ let setResults = (
             {
                 ...st,
                 tree,
+                warnings:tree->Belt_Option.map(findWarnings)->Belt.Option.getWithDefault([]),
                 results:Some(results),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
@@ -975,6 +997,41 @@ let make = (
         }
     }
 
+    let actOpenWarningsDialog = ( warnings:array<string>, ) => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                    <Col>
+                        <ol>
+                            {
+                                warnings->Js_array2.mapi((msg,i) => {
+                                    <li key={i->Belt_Int.toString}>{React.string(msg)}</li>
+                                })->React.array
+                            }
+                        </ol>
+                        <Button onClick={_=>modalRef->closeModal(modalId)} variant=#contained >
+                            {React.string("Close")}
+                        </Button>
+                    </Col>
+                </Paper>
+            })
+        })->ignore
+    }
+
+    let rndWarningsBtn = (warnings:array<string>) => {
+        if (warnings->Js_array2.length == 0) {
+            React.null
+        } else {
+            <IconButton 
+                title="There are warnings, click to see details" 
+                onClick={_=>actOpenWarningsDialog(warnings)} 
+                color="yellow" 
+            >
+                <MM_Icons.Warning/>
+            </IconButton>
+        }
+    }
+
     let rndResults = () => {
         switch state.resultsSorted {
             | None => React.null
@@ -986,6 +1043,7 @@ let make = (
                         <Row>
                             {React.string("Nothing found.")}
                             {rndShowProofTreeBtn()}
+                            {rndWarningsBtn(state.warnings)}
                         </Row>
                     </Col>
                 } else {
@@ -998,6 +1056,7 @@ let make = (
                             {rndSortBySelector()}
                             {rndPagination(totalNumOfResults)}
                             {rndShowProofTreeBtn()}
+                            {rndWarningsBtn(state.warnings)}
                         </Row>
                         {
                             items->Js_array2.map(item => {
