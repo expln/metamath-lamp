@@ -394,7 +394,7 @@ let findWarnings = (tree:proofTreeDto):array<string> => {
     if (tree.nodes->Js.Array2.some(n => n.parents->Js_array2.some(isTruncatedSearchErr))) {
         [
             "The search space was truncated due to some assertions produce too big search space. " ++ 
-                "Use Logging level = 2 and then click 'Show Proof Tree' button to find those assertions."
+                "Use Logging level = 1 and then click 'Show Proof Tree' button to find those assertions."
         ]
     } else {
         []
@@ -404,6 +404,7 @@ let findWarnings = (tree:proofTreeDto):array<string> => {
 let setResults = (
     st,
     ~tree: option<proofTreeDto>,
+    ~warnings:array<string>,
     ~results: option<array<stmtsDto>>,
     ~getFrmLabelBkgColor: string=>option<string>,
 ) => {
@@ -412,7 +413,7 @@ let setResults = (
             {
                 ...st,
                 tree: None,
-                warnings:[],
+                warnings,
                 results,
                 resultsRendered: None,
                 resultsSorted: None,
@@ -434,7 +435,7 @@ let setResults = (
             {
                 ...st,
                 tree,
-                warnings:tree->Belt_Option.map(findWarnings)->Belt.Option.getWithDefault([]),
+                warnings,
                 results:Some(results),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
@@ -619,7 +620,7 @@ let make = (
         }
     }
 
-    let actOnResultsReady = (treeDto) => {
+    let actOnResultsReady = (treeDto:proofTreeDto) => {
         let rootExprToLabel = state.rootStmts
             ->Js_array2.map(stmt => (stmt.expr,stmt.label))
             ->Belt_HashMap.fromArray(~id=module(ExprHash))
@@ -634,6 +635,7 @@ let make = (
         setState(st => {
             st->setResults(
                 ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
+                ~warnings=findWarnings(treeDto),
                 ~results=Some(results), 
                 ~getFrmLabelBkgColor
             )
