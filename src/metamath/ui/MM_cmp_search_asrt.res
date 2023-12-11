@@ -367,6 +367,7 @@ let make = (
                 }
                 let totalNumOfResults = resultsForRender->Js.Array2.length
                 <Col>
+                    {rndResultButtons()}
                     {rndPagination(totalNumOfResults)}
                     {
                         items->Js_array2.mapi((item,i) => {
