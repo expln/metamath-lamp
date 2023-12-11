@@ -138,16 +138,7 @@ let make = React.memoCustomCompareProps( ({
     let actSearchSelectedInNewExplorer = () => {
         switch getSelectedText(state.cont) {
             | None => ()
-            | Some(selectedText) => {
-                let searchPattern = ctx->ctxStrToIntsExn(selectedText)->Js.Array2.map(s => {
-                    if (s < 0) {
-                        s
-                    } else {
-                        ctx->getTypeOfVarExn(s)
-                    }
-                })->(ctxIntsToStrExn(ctx, _))
-                openExplorer(~initPatternFilterStr=searchPattern)
-            }
+            | Some(selectedText) => openExplorer(~initPatternFilterStr=selectedText)
         }
     }
 

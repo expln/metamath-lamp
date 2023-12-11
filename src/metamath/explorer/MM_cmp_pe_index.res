@@ -76,13 +76,27 @@ let make = React.memoCustomCompareProps(({
 
     let actApplyFilters = () => {
         let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
-        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => !(preCtxData.ctxV.val->isConst(sym)))
+        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => {
+            preCtxData.ctxV.val->ctxSymToInt(sym)->Belt.Option.isNone
+        })
         switch incorrectSymbol {
-            | Some(sym) => setPatternFilterErr(_ => Some(`'${sym}' - is not a constant.`))
+            | Some(sym) => setPatternFilterErr(_ => Some(`'${sym}' - is not a constant or a variable.`))
             | None => {
                 setPatternFilterErr(_ => None)
-                let patternFilterInts = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
-                let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesPattern(_, patternFilterInts)
+                let varPat = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
+                let constPat = varPat->Js.Array2.map(sym => {
+                    if (sym < 0) {
+                        sym
+                    } else {
+                        preCtxData.ctxV.val->getTypeOfVarExn(sym)
+                    }
+                })
+                let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesVarPattern(
+                    _, 
+                    ~varPat,
+                    ~constPat,
+                    ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
+                )
                 setFilteredLabels(_ => {
                     allLabels->Js.Array2.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
