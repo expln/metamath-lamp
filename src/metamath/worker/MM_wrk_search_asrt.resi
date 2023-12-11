@@ -33,7 +33,12 @@ let searchAssertions: (
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 
-let frameMatchesPattern: (frame, array<int>) => bool
+let frameMatchesVarPattern: (
+    frame, 
+    ~varPat:array<int>, 
+    ~constPat:array<int>,
+    ~mapping:Belt_HashMapInt.t<int>
+) => bool
 
 let reqToStr: request => string
 let respToStr: response => string

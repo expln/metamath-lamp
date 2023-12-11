@@ -30,21 +30,93 @@ let respToStr = resp => {
     }
 }
 
-let frameMatchesPattern = (frm:frame, pat:array<int>):bool => {
+let frameMatchesConstPattern = (frm:frame, pat:array<int>):bool => {
     let patLen = pat->Js.Array2.length
     let asrtLen = frm.asrt->Js.Array2.length
     let pIdx = ref(0)
     let aIdx = ref(0)
     while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
+        let asrtSym = frm.asrt[aIdx.contents]
         if (
-            frm.asrt[aIdx.contents] < 0 && frm.asrt[aIdx.contents] == pat[pIdx.contents]
-            || frm.asrt[aIdx.contents] >= 0 && frm.varTypes[frm.asrt[aIdx.contents]] == pat[pIdx.contents]
+            asrtSym < 0 && asrtSym == pat[pIdx.contents]
+            || asrtSym >= 0 && frm.varTypes[asrtSym] == pat[pIdx.contents]
         ) {
             pIdx.contents = pIdx.contents + 1
         }
         aIdx.contents = aIdx.contents + 1
     }
     pIdx.contents == patLen
+}
+
+let rec frameMatchesVarPatternRec = (
+    ~frm:frame, 
+    ~varPat:array<int>, 
+    ~constPat:array<int>,
+    ~mapping:Belt_HashMapInt.t<int>,
+    ~pIdx:int,
+    ~minAIdx:int,
+):bool => {
+    if (pIdx == varPat->Js_array2.length) {
+        true
+    } else {
+        let aIdx = ref(minAIdx)
+        let remainingMatches = ():bool => {
+            frameMatchesVarPatternRec(
+                ~frm, 
+                ~varPat, 
+                ~constPat,
+                ~mapping,
+                ~pIdx=pIdx+1,
+                ~minAIdx=aIdx.contents+1,
+            )
+        }
+
+        let found = ref(false)
+        let maxAIdx = frm.asrt->Js_array2.length - (varPat->Js_array2.length - pIdx)
+        while (!found.contents && aIdx.contents <= maxAIdx) {
+            let asrtSym = frm.asrt[aIdx.contents]
+            let varPatSym = varPat[pIdx]
+            if ( asrtSym < 0 && asrtSym == varPatSym ) {
+                found := remainingMatches()
+            } else if ( asrtSym >= 0 && frm.varTypes[asrtSym] == constPat[pIdx] ) {
+                if ( varPatSym < 0 ) {
+                    found := remainingMatches()
+                } else {
+                    switch mapping->Belt_HashMapInt.get(varPatSym) {
+                        | None => {
+                            mapping->Belt_HashMapInt.set(varPatSym, asrtSym)
+                            found := remainingMatches()
+                            mapping->Belt_HashMapInt.remove(varPatSym)
+                        }
+                        | Some(asrtVar) => {
+                            if (asrtVar == asrtSym) {
+                                found := remainingMatches()
+                            }
+                        }
+                    }
+                }
+            }
+            aIdx.contents = aIdx.contents + 1
+        }
+        found.contents
+    }
+}
+
+let frameMatchesVarPattern = (
+    frm:frame, 
+    ~varPat:array<int>, 
+    ~constPat:array<int>,
+    ~mapping:Belt_HashMapInt.t<int>
+):bool => {
+    frameMatchesConstPattern(frm,constPat) && 
+        frameMatchesVarPatternRec(
+            ~frm, 
+            ~varPat, 
+            ~constPat,
+            ~mapping:Belt_HashMapInt.t<int>,
+            ~pIdx=0,
+            ~minAIdx=0,
+        )
 }
 
 let searchAssertions = (
@@ -97,6 +169,20 @@ let doSearchAssertions = (
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let numOfFrames = frms->frmsSize->Belt_Int.toFloat
+    let varPat = pattern
+    let constPat = varPat->Js.Array2.map(sym => {
+        if (sym < 0) {
+            sym
+        } else {
+            wrkCtx->getTypeOfVarExn(sym)
+        }
+    })
+    let frameMatchesPattern = frameMatchesVarPattern(
+        _, 
+        ~varPat,
+        ~constPat,
+        ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
+    )
 
     let results = []
     let framesInDeclarationOrder = frms->frmsSelect(())
@@ -106,7 +192,7 @@ let doSearchAssertions = (
         if (
             frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
             && frame.asrt[0] == typ 
-            && frameMatchesPattern(frame, pattern)
+            && frameMatchesPattern(frame)
         ) {
             let newDisj = disjMake()
             frame.disj->Belt_MapInt.forEach((n,ms) => {

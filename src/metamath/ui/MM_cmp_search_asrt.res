@@ -198,10 +198,12 @@ let make = (
 
     let actSearch = () => {
         onTypChange(state.typ)
-        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Js_array2.find(sym => !(wrkCtx->isConst(sym)))
+        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Js_array2.find(sym => {
+            wrkCtx->ctxSymToInt(sym)->Belt.Option.isNone
+        })
         switch incorrectSymbol {
             | Some(sym) => {
-                setState(setPatternErr(_, Some(`'${sym}' - is not a constant.`)))
+                setState(setPatternErr(_, Some(`'${sym}' - is not a constant or a variable.`)))
                 actResultsRetrieved([])
             }
             | None => {
