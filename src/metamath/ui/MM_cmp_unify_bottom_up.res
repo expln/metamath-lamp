@@ -129,7 +129,7 @@ let makeInitialState = (
         | Some(params) => params
         | None => {
             bottomUpProverParamsMake(
-                ~args0 = possibleArgs,
+                ~args0 = possibleArgs, ~allowNewVars=false,
                 ()
             )
         }

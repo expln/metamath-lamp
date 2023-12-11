@@ -881,7 +881,16 @@ let make = (
                             | None => {
                                 switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
                                     | None => None
-                                    | Some((args0,asrtLabel)) => Some(bottomUpProverParamsMake(~asrtLabel, ~args0, ()))
+                                    | Some((args0,asrtLabel)) => {
+                                        Some(
+                                            bottomUpProverParamsMake(
+                                                ~asrtLabel, 
+                                                ~args0, 
+                                                ~allowNewVars=false,
+                                                ()
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
