@@ -108,9 +108,7 @@ let frameMatchesVarPattern = (
     ~constPat:array<int>,
     ~mapping:Belt_HashMapInt.t<int>
 ):bool => {
-    if (!frameMatchesConstPattern(frm,constPat)) {
-        false
-    } else {
+    frameMatchesConstPattern(frm,constPat) && 
         frameMatchesVarPatternRec(
             ~frm, 
             ~varPat, 
@@ -119,7 +117,6 @@ let frameMatchesVarPattern = (
             ~pIdx=0,
             ~minAIdx=0,
         )
-    }
 }
 
 let searchAssertions = (
