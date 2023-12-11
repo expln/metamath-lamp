@@ -16,7 +16,7 @@ open MM_parenCounter
 open MM_wrk_settings
 open MM_cmp_root_stmts
 
-type sortBy = UnprovedStmtsNum | NumOfNewVars | AsrtLabel
+type sortBy = NewStmtsNum | UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
 type resultRendered = {
     idx:int,
@@ -182,7 +182,7 @@ let makeInitialState = (
         warnings: [],
         results: None,
         resultsRendered: None,
-        sortBy: UnprovedStmtsNum,
+        sortBy: NewStmtsNum,
         resultsSorted: None,
         resultsPerPage: 20,
         resultsMaxPage: 0,
@@ -361,12 +361,14 @@ let compareByIsProved = Expln_utils_common.comparatorBy((res:resultRendered) => 
 let compareByNumberOfStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 
 let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfUnprovedStmts)
+let compareByNumOfNewStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
 let compareByAsrtLabel = (a,b) => a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
 
 let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> => {
     open Expln_utils_common
     let mainCmp = switch sortBy {
+        | NewStmtsNum => compareByNumOfNewStmts
         | UnprovedStmtsNum => compareByNumOfUnprovedStmts
         | NumOfNewVars => compareByNumOfNewVars
         | AsrtLabel => compareByAsrtLabel
@@ -509,6 +511,7 @@ let lengthRestrictFromStr = str => {
 
 let sortByToStr = sortBy => {
     switch sortBy {
+        | NewStmtsNum => "NewStmtsNum"
         | UnprovedStmtsNum => "UnprovedStmtsNum"
         | NumOfNewVars => "NumOfNewVars"
         | AsrtLabel => "AsrtLabel"
@@ -517,6 +520,7 @@ let sortByToStr = sortBy => {
 
 let sortByFromStr = str => {
     switch str {
+        | "NewStmtsNum" => NewStmtsNum
         | "UnprovedStmtsNum" => UnprovedStmtsNum
         | "NumOfNewVars" => NumOfNewVars
         | "AsrtLabel" => AsrtLabel
@@ -804,6 +808,7 @@ let make = (
                             label="Sort results by"
                             onChange=evt2str(str => actSortByChange(sortByFromStr(str)))
                         >
+                            <MenuItem value="NewStmtsNum">{React.string("Number of new steps")}</MenuItem>
                             <MenuItem value="UnprovedStmtsNum">{React.string("Number of unproved steps")}</MenuItem>
                             <MenuItem value="NumOfNewVars">{React.string("Number of new variables")}</MenuItem>
                             <MenuItem value="AsrtLabel">{React.string("Assertion label")}</MenuItem>
