@@ -217,8 +217,8 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<(stmtId,Js_date.t)>,
 
-    unifyAllIsRequiredCnt: int,
-    continueMergingStmts: int,
+    unifyAllIsRequired: bool,
+    continueMergingStmts: bool,
 }
 
 type wrkSubsErr =
@@ -648,17 +648,17 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
-let incUnifyAllIsRequiredCnt = st => {
+let setUnifyAllIsRequired = (st:editorState, required:bool) => {
     {
         ...st,
-        unifyAllIsRequiredCnt: st.unifyAllIsRequiredCnt + 1
+        unifyAllIsRequired: required
     }
 }
 
-let incContinueMergingStmts = st => {
+let setContinueMergingStmts = (st:editorState, continue:bool) => {
     {
         ...st,
-        continueMergingStmts: st.continueMergingStmts + 1
+        continueMergingStmts: continue
     }
 }
 

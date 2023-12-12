@@ -17,8 +17,6 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
 
-let unifyAllIsRequiredCnt = ref(0)
-
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
         locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
@@ -189,7 +187,7 @@ let make = (
                 stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
             })
             if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
-                st->incUnifyAllIsRequiredCnt
+                st->setUnifyAllIsRequired(true)
             } else {
                 st
             }
@@ -636,7 +634,7 @@ let make = (
         setState(st => {
             let st = st->addNewStatements(selectedResult)
             let st = st->uncheckAllStmts
-            let st = st->incUnifyAllIsRequiredCnt
+            let st = st->setUnifyAllIsRequired(true)
             st
         })
     }
@@ -653,7 +651,7 @@ let make = (
                     if (continueMergingStmts) {
                         let st = st->updateEditorStateWithPostupdateActions(st => st)
                         if (st->editorStateHasDuplicatedStmts) {
-                            st->incContinueMergingStmts
+                            st->setContinueMergingStmts(true)
                         } else {
                             st
                         }
@@ -732,8 +730,11 @@ let make = (
     }
 
     React.useEffect1(() => {
-        if (state->editorStateHasDuplicatedStmts) {
-            actMergeStmts()
+        if (state.continueMergingStmts) {
+            setStatePriv(setContinueMergingStmts(_,false))
+            if (state->editorStateHasDuplicatedStmts) {
+                actMergeStmts()
+            }
         }
         None
     }, [state.continueMergingStmts])
@@ -977,14 +978,14 @@ let make = (
     }
 
     React.useEffect1(() => {
-        if (unifyAllIsRequiredCnt.contents < state.unifyAllIsRequiredCnt) {
-            unifyAllIsRequiredCnt.contents = state.unifyAllIsRequiredCnt
+        if (state.unifyAllIsRequired) {
+            setStatePriv(setUnifyAllIsRequired(_,false))
             if (!editorStateHasErrors(state)) {
                 actUnify(())
             }
         }
         None
-    }, [state.unifyAllIsRequiredCnt])
+    }, [state.unifyAllIsRequired])
 
     let actExportProof = (stmtId) => {
         switch generateCompressedProof(state, stmtId) {
@@ -1071,7 +1072,7 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
-        setState(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
+        setStatePriv(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
