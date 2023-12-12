@@ -201,6 +201,7 @@ let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
+let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
 
 let getSelectedSubtree: stmtContTreeData => option<childNode>
 let getSelectedSubtreeFromStmtCont: stmtCont => option<childNode>

@@ -1178,6 +1178,17 @@ let make = (
         }
     }
 
+    let actDeleteUnrelatedSteps = () => {
+        notifyEditInTempMode(() => {
+            switch state->deleteUnrelatedSteps(
+                ~stepIdsToKeep=state.checkedStmtIds->Js_array2.map(((id,_)) => id)
+            ) {
+                | Ok(state) => setState(_ => state)
+                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+            }
+        })
+    }
+
     let actRenumberSteps = () => {
         notifyEditInTempMode(() => {
             switch state->renumberProvableSteps {
@@ -1362,6 +1373,14 @@ let make = (
                             }}
                         >
                             {"Show completed proof"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actDeleteUnrelatedSteps()
+                            }}
+                        >
+                            {"Delete unrelated steps"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

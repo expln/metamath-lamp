@@ -275,7 +275,10 @@ let unselectStmt = (stmt:userStmt):userStmt => {
     }
 }
 
-let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
+let editorGetStmtById = (st:editorState,id:stmtId):option<userStmt> => st.stmts->Js_array2.find(stmt => stmt.id == id)
+let editorGetStmtByLabel = (st:editorState,label:string):option<userStmt> => {
+    st.stmts->Js_array2.find(stmt => stmt.label == label)
+}
 
 let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
     switch editorGetStmtById(st,id) {
@@ -341,6 +344,16 @@ let deleteStmt = (st:editorState, stmtId:stmtId):editorState => {
         ...st,
         stmts: st.stmts->Js_array2.filter(stmt => stmt.id != stmtId),
         checkedStmtIds: st.checkedStmtIds->Js_array2.filter(((checkedId,_)) => checkedId != stmtId),
+    }
+}
+
+let deleteStmts = (st:editorState, stmtIds:array<stmtId>):editorState => {
+    {
+        ...st,
+        stmts: st.stmts->Js_array2.filter(stmt => !(stmtIds->Js_array2.includes(stmt.id))),
+        checkedStmtIds: st.checkedStmtIds->Js_array2.filter(((checkedId,_)) => {
+            !(stmtIds->Js_array2.includes(checkedId))
+        }),
     }
 }
 
@@ -2630,5 +2643,49 @@ let resetEditorContent = (st:editorState):editorState => {
 
         stmts: [],
         checkedStmtIds: [],
+    }
+}
+
+let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):result<editorState, string> => {
+    let state = state->prepareEditorForUnification
+    if (state->editorStateHasErrors) {
+        Error(
+            `Cannot perform deletion because there is an error in the editor content.`
+                ++ ` Please resolve the error before deleting steps.`
+        )
+    } else {
+        let unprocessedIds = Belt.MutableQueue.fromArray(stepIdsToKeep)
+        state.stmts->Js.Array2.forEach(stmt => {
+            if (stmt.typ == E || stmt.isGoal) {
+                unprocessedIds->Belt_MutableQueue.add(stmt.id)
+            }
+        })
+        let idsToKeep = Belt_HashSetString.make(~hintSize = stepIdsToKeep->Js_array2.length*5)
+        while (!(unprocessedIds->Belt_MutableQueue.isEmpty)) {
+            let idToKeep = unprocessedIds->Belt.MutableQueue.pop->Belt.Option.getExn
+            if (!(idsToKeep->Belt_HashSetString.has(idToKeep))) {
+                idsToKeep->Belt_HashSetString.add(idToKeep)
+                switch state->editorGetStmtById(idToKeep) {
+                    | None => ()
+                    | Some(stmtToProcess) => {
+                        switch stmtToProcess.jstf {
+                            | None => ()
+                            | Some({args}) => {
+                                args->Js.Array2.forEach(label => {
+                                    switch state->editorGetStmtByLabel(label) {
+                                        | None => ()
+                                        | Some(stmt) => unprocessedIds->Belt_MutableQueue.add(stmt.id)
+                                    }
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let idsToRemove = state.stmts
+            ->Js_array2.map(stmt => stmt.id)
+            ->Js.Array2.filter(id => !(idsToKeep->Belt_HashSetString.has(id)))
+        Ok(state->deleteStmts(idsToRemove))
     }
 }

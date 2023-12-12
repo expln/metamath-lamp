@@ -96,14 +96,14 @@ let make = (
                     } 
                 </Button>
                 <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
-                <TextField 
-                    size=#small
-                    style=ReactDOM.Style.make(~width="0px", ~height="0px", ~opacity="0", ())
-                    onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose, ())
-                    autoFocus=true
-                    autoComplete="off"
-                />
             </Row>
+            <TextField 
+                size=#small
+                style=ReactDOM.Style.make(~width="0px", ~height="0px", ~opacity="0", ())
+                onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose, ())
+                autoFocus=true
+                autoComplete="off"
+            />
             <pre style=ReactDOM.Style.make(~overflowWrap="break-word", ~whiteSpace="pre-wrap", ())>
                 {React.string(proofText)}
             </pre>
