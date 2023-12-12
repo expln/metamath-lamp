@@ -143,7 +143,7 @@ let make = (
             onContEditRequested={() => ()}
             onContEditDone={_ => ()}
             onContEditCancel={_ => ()}
-            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(stmt.id,newStmtCont)}
+            onSyntaxTreeUpdatedWithoutContentChange={newStmtCont => actSyntaxTreeUpdated(stmt.id,newStmtCont)}
             
             onJstfEditRequested={() => ()}
             onJstfEditDone={_ => ()}

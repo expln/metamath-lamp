@@ -2616,3 +2616,32 @@ let resetEditorContent = (st:editorState):editorState => {
         checkedStmtIds: [],
     }
 }
+
+let hasDiffInStmtContent = (stmt1:userStmt, stmt2:userStmt):bool => {
+    stmt1.cont->contToStr != stmt2.cont->contToStr
+    || stmt1.jstfText != stmt2.jstfText
+    || stmt1.label != stmt2.label
+}
+
+let hasDiffInStmtsContent = (stmts1:array<userStmt>, stmts2:array<userStmt>):bool => {
+    let stmts1Len = stmts1->Js_array2.length
+    if (stmts1Len != stmts2->Js_array2.length) {
+        true
+    } else {
+        let res = ref(false)
+        let i = ref(0)
+        while (i.contents < stmts1Len && !res.contents) {
+            let stmt1 = stmts1[i.contents]
+            let stmt2 = stmts2[i.contents]
+            res := stmt1.id != stmt2.id || hasDiffInStmtContent(stmt1,stmt2)
+            i := i.contents + 1
+        }
+        res.contents
+    }
+}
+
+let hasDiffInContent = (st1:editorState, st2:editorState):bool => {
+    hasDiffInStmtsContent(st1.stmts, st2.stmts)
+    || st1.varsText != st2.varsText
+    || st1.disjText != st2.disjText
+}

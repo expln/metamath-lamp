@@ -111,6 +111,126 @@ let createEditorState = (
     st
 }
 
+let createEditorStateForHasDiffInContentTest = (
+    ~varsText:string, 
+    ~disjText:string, 
+    ~stmts:array<(string,string,string,string)>, 
+):editorState => {
+    let parens = ""
+    let settingsV = 1
+    let settings = {
+        parens,
+        asrtsToSkip: [],
+        descrRegexToDisc: "",
+        labelRegexToDisc: "",
+        descrRegexToDepr: "",
+        labelRegexToDepr: "",
+        discColor:"",
+        deprColor:"",
+        tranDeprColor:"",
+        editStmtsByLeftClick:true,
+        initStmtIsGoal:false,
+        defaultStmtLabel:"",
+        defaultStmtType: "",
+        unifMetavarPrefix: "&",
+        sortDisjByType: "class wff",
+        checkSyntax: true,
+        stickGoalToBottom: true,
+        autoMergeStmts: false,
+        typeSettings: [ ],
+        webSrcSettings: [ ],
+        longClickEnabled: true,
+        longClickDelayMs: 500,
+        hideContextSelector: false,
+        showVisByDefault:false,
+        editorHistMaxLength:0,
+        allowedFrms: {
+            inSyntax: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+            inEssen: {
+                useDisc:true,
+                useDepr:true,
+                useTranDepr:true,
+            },
+        },
+        useDefaultTransforms:false,
+        useCustomTransforms:false,
+        customTransforms:"",
+        combCntMax:10000,
+    }
+    let preCtxV = 1
+    let ctx = createContext(())
+    let preCtx = ctx
+    let st = {
+        settingsV,
+        settings,
+        typeColors: Belt_HashMapString.make(~hintSize=0),
+
+        srcs: [],
+        preCtxV,
+        preCtx,
+        frms: prepareFrmSubsData(~ctx, ()),
+        parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
+        preCtxColors: Belt_HashMapString.make(~hintSize=0),
+        allTypes: [],
+        syntaxTypes: [],
+        parensMap:Belt_HashMapString.make(~hintSize=0),
+        typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
+
+        descr: "",
+        descrEditMode: false,
+
+        varsText,
+        varsEditMode: false,
+        varsErr: None,
+        wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
+
+        disjText,
+        disjEditMode: false,
+        disjErr: None,
+
+        wrkCtx: None,
+
+        nextStmtId: 0,
+        stmts: stmts->Js.Array2.map(((id,label,jstfText,text)) => {
+            {
+                id,
+
+                label,
+                labelEditMode: false,
+                typ: P,
+                typEditMode: false,
+                isGoal: false,
+                cont: Text({text, syms:[]}),
+                contEditMode: false,
+                isDuplicated: false,
+                
+                jstfText,
+                jstfEditMode: false,
+
+                stmtErr: None,
+
+                expr: None,
+                jstf: None,
+                proofTreeDto: None,
+                src: None,
+                proof: None,
+                proofStatus: None,
+                unifErr: None,
+                syntaxErr: None,
+            }
+        }),
+        checkedStmtIds: [],
+
+        unifyAllIsRequiredCnt: 0,
+        continueMergingStmts: 0,
+    }
+    st
+}
+
 let getVarType = (ctx:mmContext, vName:string) => {
     let varInt = (ctx->ctxSymsToIntsExn([vName]))[0]
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
@@ -1084,8 +1204,6 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     })
 })
 
-
-
 describe("defaults for G steps", _ => {
     it("the very first step is not marked G when the setting is false", _ => {
         //given
@@ -1262,5 +1380,232 @@ describe("defaults for G steps", _ => {
         assertEqMsg( st.stmts[1].typ, P , "st.stmts[1].typ")
         assertEqMsg( st.stmts[1].isGoal, true , "st.stmts[1].isGoal")
         assertEqMsg( st.stmts[1].label, "qed" , "st.stmts[1].label")
+    })
+})
+
+describe("hasDiffInContent", _ => {
+    it("corectly identifies presense of difference", _ => {
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[]
+                )
+            ), 
+            false, 
+            "no diff when empty stmts"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                )
+            ), 
+            false, 
+            "no diff when non-empty stmts"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123+", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in vars"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456+",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in disj"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1+","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in label"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2+","stmt2"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in jstf"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2+"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in stmt content"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2+","s2","j2","stmt2"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in ids"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("2","s2","j2","stmt2"),
+                        ("1","s1","j1","stmt1"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in stmt order"
+        )
+
+        assertEqMsg(
+            hasDiffInContent(
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                        ("2","s2","j2","stmt2"),
+                    ]
+                ),
+                createEditorStateForHasDiffInContentTest(
+                    ~varsText="123", 
+                    ~disjText="456",
+                    ~stmts=[
+                        ("1","s1","j1","stmt1"),
+                    ]
+                )
+            ), 
+            true, 
+            "diff in number of stmts"
+        )
     })
 })

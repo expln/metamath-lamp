@@ -180,12 +180,24 @@ let make = (
         })
     }
 
+    let markStateToAutoUnifyAllIfAllowed = (st:editorState):editorState => {
+        let editIsActive = st->isEditMode
+        let thereAreSyntaxErrors = st->editorStateHasErrors
+        let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
+        let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => stmt.proofStatus->Belt_Option.isNone)
+        if (!(editIsActive || thereAreSyntaxErrors || atLeastOneStmtIsChecked) && proofStatusIsMissing) {
+            st->incUnifyAllIsRequiredCnt
+        } else {
+            st
+        }
+    }
+
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
             let st = updateEditorStateWithPostupdateActions(st, update)
             editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
             setHist(ht => ht->editorHistAddSnapshot(st))
-            st
+            st->markStateToAutoUnifyAllIfAllowed
         })
     }
 
@@ -207,7 +219,6 @@ let make = (
     }
 
     let editIsActive = state->isEditMode
-
     let thereAreSyntaxErrors = editorStateHasErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
@@ -290,11 +301,7 @@ let make = (
         })->ignore
     }
     let actToggleStmtChecked = id => {
-        setStatePriv(st => {
-            let st = toggleStmtChecked(st,id)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            st
-        })
+        setStatePriv(st => toggleStmtChecked(st,id))
     }
     let actToggleMainCheckbox = () => {
         let action = switch mainCheckboxState {
@@ -303,8 +310,7 @@ let make = (
         }
         setStatePriv(st => {
             let st = action(st)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            st
+            st->markStateToAutoUnifyAllIfAllowed
         })
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
@@ -388,8 +394,8 @@ let make = (
         setState(completeDisjEditMode(_,newText))
     }
 
-    let actSyntaxTreeUpdated = (setter:editorState=>editorState) => {
-        setState(setter)
+    let actSyntaxTreeUpdatedWithoutContentChange = (setter:editorState=>editorState) => {
+        setStatePriv(setter)
     }
 
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
@@ -1481,7 +1487,8 @@ let make = (
             onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
             onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
             onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
-            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
+            onSyntaxTreeUpdatedWithoutContentChange=
+                {newStmtCont => actSyntaxTreeUpdatedWithoutContentChange(setStmtCont(_,stmt.id,newStmtCont))}
             
             onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
             onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}

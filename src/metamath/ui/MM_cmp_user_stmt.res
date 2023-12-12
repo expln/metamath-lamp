@@ -560,7 +560,7 @@ type props = {
     onContEditRequested:unit=>unit, 
     onContEditDone:string=>unit, 
     onContEditCancel:string=>unit,
-    onSyntaxTreeUpdated:stmtCont=>unit,
+    onSyntaxTreeUpdatedWithoutContentChange:stmtCont=>unit,
     onJstfEditRequested:unit=>unit, 
     onJstfEditDone:string=>unit, 
     onJstfEditCancel:string=>unit,
@@ -630,7 +630,7 @@ let make = React.memoCustomCompareProps( ({
     onContEditRequested,
     onContEditDone,
     onContEditCancel,
-    onSyntaxTreeUpdated,
+    onSyntaxTreeUpdatedWithoutContentChange,
     onJstfEditRequested,
     onJstfEditDone,
     onJstfEditCancel,
@@ -767,7 +767,7 @@ let make = React.memoCustomCompareProps( ({
                                                                 ->Belt.Option.map(id => (id,Js_date.make())),
                                             expLvl:0,
                                         }
-                                        onSyntaxTreeUpdated(Tree(stmtContTreeData->incExpLvlIfConstClicked))
+                                        onSyntaxTreeUpdatedWithoutContentChange(Tree(stmtContTreeData->incExpLvlIfConstClicked))
                                     }
                                 }
                             }
@@ -902,31 +902,31 @@ let make = React.memoCustomCompareProps( ({
         onJstfEditDone("")
     }
 
-    let actUpdateSyntaxTree = (update:stmtContTreeData=>stmtContTreeData):unit => {
+    let actUpdateSyntaxTreeWithoutContentChange = (update:stmtContTreeData=>stmtContTreeData):unit => {
         switch stmt.cont {
             | Text(_) => ()
             | Tree(treeData) => {
-                onSyntaxTreeUpdated(Tree(treeData->update))
+                onSyntaxTreeUpdatedWithoutContentChange(Tree(treeData->update))
             }
         }
     }
 
     let actTreeNodeClicked = (nodeId) => {
-        actUpdateSyntaxTree(treeData => {
+        actUpdateSyntaxTreeWithoutContentChange(treeData => {
             {...treeData, clickedNodeId:Some((nodeId,Js_date.make())), expLvl:0}->incExpLvlIfConstClicked
         })
     }
 
     let actUnselect = () => {
-        actUpdateSyntaxTree(treeData => {...treeData, clickedNodeId:None})
+        actUpdateSyntaxTreeWithoutContentChange(treeData => {...treeData, clickedNodeId:None})
     }
 
     let actExpandSelection = () => {
-        actUpdateSyntaxTree(updateExpLevel(_,true))
+        actUpdateSyntaxTreeWithoutContentChange(updateExpLevel(_,true))
     }
 
     let actShrinkSelection = () => {
-        actUpdateSyntaxTree(updateExpLevel(_,false))
+        actUpdateSyntaxTreeWithoutContentChange(updateExpLevel(_,false))
     }
 
     let actAddStmtAbove = () => {
