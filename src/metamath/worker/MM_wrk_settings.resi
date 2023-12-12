@@ -41,6 +41,7 @@ type settings = {
     checkSyntax:bool,
     stickGoalToBottom:bool,
     autoMergeStmts:bool,
+    autoUnifyAll:bool,
     typeSettings: array<typeSettings>,
     unifMetavarPrefix:string,
     sortDisjByType:string,

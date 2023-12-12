@@ -38,6 +38,7 @@ let createEditorState = (
         checkSyntax: true,
         stickGoalToBottom: true,
         autoMergeStmts: false,
+        autoUnifyAll: false,
         typeSettings: [ ],
         webSrcSettings: [ ],
         longClickEnabled: true,
