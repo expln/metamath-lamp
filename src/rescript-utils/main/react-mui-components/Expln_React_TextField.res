@@ -21,6 +21,7 @@ external make: (
     ~inputProps:{..}=?,
     ~disabled:bool=?,
     ~autoFocus:bool=?,
+    ~autoComplete:string=?,
     ~title:string=?,
     ~error:bool=?,
 ) => reElem = "default"

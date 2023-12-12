@@ -185,7 +185,9 @@ let make = (
             let editIsActive = st->isEditMode
             let thereAreSyntaxErrors = st->editorStateHasErrors
             let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
-            let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => stmt.proofStatus->Belt_Option.isNone)
+            let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
+                stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
+            })
             if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
                 st->incUnifyAllIsRequiredCnt
             } else {

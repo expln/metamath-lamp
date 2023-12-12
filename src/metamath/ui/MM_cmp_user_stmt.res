@@ -1176,10 +1176,14 @@ let make = React.memoCustomCompareProps( ({
         } else {
             None
         }
+        let clickedTimeStr = switch stmt.cont {
+            | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
+            | _ => "1"
+        }
         <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
-                <Button title="Expand selection" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
-                <Button title="Shrink selection" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Expand selection, W" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
+                <Button title="Shrink selection, S" onClick={_=>actShrinkSelection()} ?style> <MM_Icons.ZoomInMap/> </Button>
                 {
                     if (readOnly) {React.null} else {
                         <Button title="Add new step above" onClick={_=>actAddStmtAbove()} ?style> 
@@ -1220,13 +1224,25 @@ let make = React.memoCustomCompareProps( ({
                         <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
                     }
                 }
-                <Button title="Unselect" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
+                <Button title="Unselect, Esc" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {
                 if (copiedToClipboard->Belt.Option.isSome) {
                     React.string("Copied to the clipboard.")
                 } else {React.null}
             }
+            <TextField 
+                key=clickedTimeStr
+                size=#small
+                style=ReactDOM.Style.make(~width="0px", ~height="0px", ~opacity="0", ())
+                onKeyDown=kbrdHnd3(
+                    kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
+                    kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
+                    kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
+                )
+                autoFocus=true
+                autoComplete="off"
+            />
         </Row>
     }
 
