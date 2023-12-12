@@ -1599,6 +1599,12 @@ let make = (
         </Col>
     }
 
+    let rndFooter = () => {
+        Belt_Array.range(1,12)->Js.Array2.map(i => {
+            <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
+        })->React.array
+    }
+
     <Expln_React_ContentWithStickyHeader
         top
         header={rndButtons()}
@@ -1609,6 +1615,7 @@ let make = (
                 {rndVars()}
                 {rndDisj()}
                 {rndStmts()}
+                {rndFooter()}
             </Col>
         }}
     />
