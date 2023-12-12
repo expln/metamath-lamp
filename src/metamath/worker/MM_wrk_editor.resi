@@ -201,7 +201,6 @@ let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
-let hasDiffInContent: (editorState, editorState) => bool
 
 let getSelectedSubtree: stmtContTreeData => option<childNode>
 let getSelectedSubtreeFromStmtCont: stmtCont => option<childNode>
