@@ -196,12 +196,25 @@ let make = (
         }
     }
 
+    let commonPreSaveActions = (st:editorState):editorState => {
+        let st = st->updateEditorStateWithPostupdateActions(st=>st)
+        editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+        setHist(ht => ht->editorHistAddSnapshot(st))
+        st
+    }
+
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
-            let st = updateEditorStateWithPostupdateActions(st, update)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            setHist(ht => ht->editorHistAddSnapshot(st))
-            st->markStateToAutoUnifyAllIfAllowed
+            let st = st->update->commonPreSaveActions
+            let st = st->markStateToAutoUnifyAllIfAllowed
+            st
+        })
+    }
+
+    let setStateWithoutUnifyAll = (update:editorState=>editorState) => {
+        setStatePriv(st => {
+            let st = st->update->commonPreSaveActions
+            st
         })
     }
 
@@ -1072,7 +1085,7 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
-        setStatePriv(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
+        setStateWithoutUnifyAll(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
