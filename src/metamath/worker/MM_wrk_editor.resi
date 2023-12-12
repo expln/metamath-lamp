@@ -229,7 +229,8 @@ let getColorForSymbol: (
 
 let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>
 
-let renumberSteps: editorState => result<editorState, string>
+let renumberProvableSteps: editorState => result<editorState, string>
+let renumberHypothesisSteps: (editorState, ~goalLabel:string) => result<editorState, string>
 
 let textToSyntaxProofTable: (
     ~wrkCtx:mmContext,

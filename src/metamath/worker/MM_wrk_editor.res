@@ -2431,7 +2431,7 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
     }
 }
 
-let renumberSteps = (state:editorState):result<editorState, string> => {
+let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefix:string, ~forHyp:bool):result<editorState, string> => {
     let state = state->prepareEditorForUnification
     if (state->editorStateHasErrors) {
         Error(
@@ -2439,9 +2439,9 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
                 ++ ` Please resolve the error before renumbering.`
         )
     } else {
-        let prefix = "###tmp###"
+        let tmpPrefix = "###tmp###"
         let idsToRenumberArr = state.stmts
-            ->Js.Array2.filter(stmt => stmt.typ == P && stmt.label->containsOnlyDigits)
+            ->Js.Array2.filter(isStmtToRenumber)
             ->Js.Array2.map(stmt => stmt.id)
         let idsToRenumberSet = idsToRenumberArr->Belt_HashSetString.fromArray
 
@@ -2451,7 +2451,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
                 switch res {
                     | Ok(st) => {
                         if (idsToRenumberSet->Belt_HashSetString.has(stmt.id)) {
-                            st->renameStmt(stmt.id, prefix ++ stmt.label)
+                            st->renameStmt(stmt.id, tmpPrefix ++ stmt.label)
                         } else {
                             Ok(st)
                         }
@@ -2466,7 +2466,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
         let res = idsToRenumberArr->Js.Array2.reduce(
             (res,stmtId) => {
                 switch res {
-                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix="", ~forHyp=false, ()))
+                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix, ~forHyp, ()))
                     | err => err
                 }
             },
@@ -2485,6 +2485,22 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
             }
         }
     }
+}
+
+let renumberProvableSteps = (state:editorState):result<editorState, string> => {
+    state->renumberSteps(
+        ~isStmtToRenumber = stmt => stmt.typ == P && stmt.label->containsOnlyDigits,
+        ~prefix="",
+        ~forHyp=false,
+    )
+}
+
+let renumberHypothesisSteps = (state:editorState, ~goalLabel:string):result<editorState, string> => {
+    state->renumberSteps(
+        ~isStmtToRenumber = stmt => stmt.typ == E,
+        ~prefix=goalLabel ++ ".",
+        ~forHyp=true,
+    )
 }
 
 let textToSyntaxProofTable = (

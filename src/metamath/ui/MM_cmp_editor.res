@@ -1180,9 +1180,30 @@ let make = (
 
     let actRenumberSteps = () => {
         notifyEditInTempMode(() => {
-            switch state->renumberSteps {
+            switch state->renumberProvableSteps {
                 | Ok(state) => setState(_ => state)
                 | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+            }
+        })
+    }
+
+    let actRenameHypotheses = () => {
+        notifyEditInTempMode(() => {
+            switch state.stmts->Js.Array2.find(stmt => stmt.isGoal) {
+                | None => {
+                    openInfoDialog( 
+                        ~modalRef, 
+                        ~title="Cannot rename hypotheses",
+                        ~text=`The goal step is not set. Please mark one of the steps as the goal step.`, 
+                        () 
+                    )
+                }
+                | Some(goalStmt) => {
+                    switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
+                        | Ok(state) => setState(_ => state)
+                        | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+                    }
+                }
             }
         })
     }
@@ -1341,6 +1362,14 @@ let make = (
                             }}
                         >
                             {"Show completed proof"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenameHypotheses()
+                            }}
+                        >
+                            {"Rename hypotheses"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

@@ -26,7 +26,7 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         assertEditorState(st, "simple_case_given")
 
         //when/then
-        switch MM_wrk_editor.renumberSteps(st) {
+        switch MM_wrk_editor.renumberProvableSteps(st) {
             | Error(msg) => failMsg(msg)
             | Ok(st) => assertEditorState(st, "simple_case_then")
         }
@@ -43,7 +43,7 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         assertEditorState(st, "hyps_no_renum_given")
 
         //when/then
-        switch MM_wrk_editor.renumberSteps(st) {
+        switch MM_wrk_editor.renumberProvableSteps(st) {
             | Error(msg) => failMsg(msg)
             | Ok(st) => assertEditorState(st, "hyps_no_renum_then")
         }
@@ -60,7 +60,7 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         assertEditorState(st, "bad_prefix_given")
 
         //when/then
-        switch MM_wrk_editor.renumberSteps(st) {
+        switch MM_wrk_editor.renumberProvableSteps(st) {
             | Error(msg) => failMsg(msg)
             | Ok(st) => assertEditorState(st, "bad_prefix_then")
         }
