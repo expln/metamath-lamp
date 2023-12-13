@@ -1231,18 +1231,17 @@ let make = React.memoCustomCompareProps( ({
                     React.string("Copied to the clipboard.")
                 } else {React.null}
             }
-            <TextField 
-                key=clickedTimeStr
-                size=#small
-                style=ReactDOM.Style.make(~width="0px", ~height="0px", ~opacity="0", ())
-                onKeyDown=kbrdHnd3(
-                    kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
-                    kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
-                    kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
+            {
+                rndHiddenTextField(
+                    ~key=clickedTimeStr,
+                    ~onKeyDown=kbrdHnd3(
+                        kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
+                        kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
+                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
+                    ),
+                    ()
                 )
-                autoFocus=true
-                autoComplete="off"
-            />
+            }
         </Row>
     }
 
