@@ -191,22 +191,37 @@ let make = React.memoCustomCompareProps( ({
     }, [syntaxTreeWasRequested])
 
     let rndSelectionButtons = () => {
+        let clickedTimeStr = switch state.cont {
+            | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
+            | _ => "1"
+        }
         <Row alignItems=#center>
             <ButtonGroup variant=#outlined size=#small >
-                <Button title="Expand selection" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
-                <Button title="Shrink selection" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
+                <Button title="Expand selection, W" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
+                <Button title="Shrink selection, S" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
                 <Button title="Search in a new Explorer tab" 
                     onClick={_=>actSearchSelectedInNewExplorer()}
                 > 
                     <MM_Icons.Search/>
                 </Button>
-                <Button title="Unselect" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
+                <Button title="Unselect, Esc" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {
                 if (copiedToClipboard->Belt.Option.isSome) {
                     React.string("Copied to the clipboard.")
                 } else {React.null}
+            }
+            {
+                rndHiddenTextField(
+                    ~key=clickedTimeStr,
+                    ~onKeyDown=kbrdHnd3(
+                        kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
+                        kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
+                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
+                    ),
+                    ()
+                )
             }
         </Row>
     }
