@@ -108,10 +108,11 @@ const getAllTextFromComponent = cmp => {
 const makeSimpleTransform = ({displayName, pattern, makeInitial, makeResult, isDebug}) => {
     return {
         displayName: ({selection}) => displayName,
-        canApply: ({selection}) => {
+        canApply: (params) => {
             if (isDebug) {
-                console.log("selection = " + JSON.stringify(selection));
+                console.log(displayName + ': params = ' + JSON.stringify(params));
             }
+            const {selection} = params
             return undefined !== match(selection, pattern)
         },
         createInitialState: ({selection}) => ({}),
@@ -570,8 +571,15 @@ const trAssoc = {
     }
 }
 
-allTransforms = [
+const allTransforms = [
     trInsert, trElide, trSwap, trAssoc,
+    makeSimpleTransform({
+        // isDebug:true,
+        displayName: 'X => ( ph -> X )',
+        pattern: [],
+        makeInitial: ([x]) => [[x, YELLOW]],
+        makeResult:  ([x]) => ['( ph ->', [x, YELLOW], ')'],
+    }),
 ]
 
 return allTransforms
