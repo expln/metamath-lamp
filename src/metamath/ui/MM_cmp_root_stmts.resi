@@ -13,9 +13,10 @@ type rootStmtRendered = {
 
 @react.component
 let make: (
-  ~title: string,
-  ~rootStmtsRendered: array<rootStmtRendered>,
-  ~proofStatusesAreAvailable: bool,
-  ~flags: array<bool>,
-  ~onClose: array<bool> => unit,
+    ~title: string,
+    ~stmtToProve:reElem,
+    ~rootStmtsRendered: array<rootStmtRendered>,
+    ~proofStatusesAreAvailable: bool,
+    ~flags: array<bool>,
+    ~onClose: array<bool> => unit,
 ) => React.element

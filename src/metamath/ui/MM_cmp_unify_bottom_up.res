@@ -1110,6 +1110,7 @@ let make = (
 
     let actOpenRootStmtsDialog = (
         ~title:string,
+        ~stmtToProve:reElem,
         ~getFlags: state => array<bool>,
         ~setFlags: array<bool> => unit,
     ) => {
@@ -1122,6 +1123,7 @@ let make = (
             updateModal(modalRef, modalId, () => {
                 <MM_cmp_root_stmts 
                     title
+                    stmtToProve
                     rootStmtsRendered=state.rootStmtsRendered
                     proofStatusesAreAvailable
                     flags=getFlags(state)
@@ -1137,6 +1139,7 @@ let make = (
     let rndRootStmtsForLevelShort = (
         ~title: string, 
         ~dialogTitle: string,
+        ~stmtToProve:reElem,
         ~getFlags: state => array<bool>,
         ~setFlags: array<bool> => unit,
     ) => {
@@ -1160,7 +1163,7 @@ let make = (
         <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
             {React.string(title)}
             <span
-                onClick={_=> { actOpenRootStmtsDialog( ~title = dialogTitle, ~getFlags, ~setFlags, ) }}
+                onClick={_=> { actOpenRootStmtsDialog( ~title = dialogTitle, ~stmtToProve, ~getFlags, ~setFlags, ) }}
                 style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
             >
                 {React.string(numberOfSelected)}
@@ -1189,6 +1192,7 @@ let make = (
                     rndRootStmtsForLevelShort(
                         ~title = "first level", 
                         ~dialogTitle = "Select steps to derive from on level 0", 
+                        ~stmtToProve = state.title,
                         ~getFlags = state => state.args0,
                         ~setFlags = newFlags => setState(updateArgs0(_, newFlags)),
                     )
@@ -1197,6 +1201,7 @@ let make = (
                     rndRootStmtsForLevelShort(
                         ~title = "other levels", 
                         ~dialogTitle = "Select steps to derive from on other levels", 
+                        ~stmtToProve = state.title,
                         ~getFlags = state => state.args1,
                         ~setFlags = newFlags => setState(updateArgs1(_, newFlags)),
                     )
