@@ -49,6 +49,7 @@ let updateFlags = (st:state, update:array<bool>=>array<bool>):state => {flags: u
 @react.component
 let make = (
     ~title:string,
+    ~stmtToProve:reElem,
     ~rootStmtsRendered: array<rootStmtRendered>,
     ~proofStatusesAreAvailable:bool,
     ~flags: array<bool>,
@@ -145,12 +146,14 @@ let make = (
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1. >
+            stmtToProve
             <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                 {React.string(title)}
             </span>
             {rndButtons()}
             {rndStmts()}
             {rndButtons()}
+            stmtToProve
         </Col>
     </Paper>
 }
