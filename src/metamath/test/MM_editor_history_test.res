@@ -12,7 +12,7 @@ let createEditorState = ():editorState => {
         discColor:"", deprColor:"", tranDeprColor:"",
         editStmtsByLeftClick:false, defaultStmtType:"", 
         unifMetavarPrefix:"&", sortDisjByType:"class wff", defaultStmtLabel:"", initStmtIsGoal:false, checkSyntax:false,
-        stickGoalToBottom:false, autoMergeStmts:false, typeSettings: [], 
+        stickGoalToBottom:false, autoMergeStmts:false, autoUnifyAll:false, typeSettings: [], 
         webSrcSettings: [], longClickEnabled:false, longClickDelayMs:0, hideContextSelector:false, 
         showVisByDefault:false, editorHistMaxLength:1000,
         allowedFrms: {

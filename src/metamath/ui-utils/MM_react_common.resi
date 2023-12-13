@@ -4,6 +4,8 @@ open MM_wrk_settings
 
 let rndProgress: (~text:string, ~pct:float=?, ~onTerminate:unit=>unit=?, ()) => reElem
 
+let rndHiddenTextField: (~key:string=?, ~onKeyDown:reKeyboardHnd, ()) => reElem
+
 let openInfoDialog: (
     ~modalRef: Expln_React_Modal.modalRef,
     ~text: string,

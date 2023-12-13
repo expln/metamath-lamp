@@ -9,8 +9,15 @@ const nbsp = String.fromCharCode(160)
 const NO_PARENS = "no parentheses"
 const ALL_PARENS = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
 
+const isObj = x => x !== undefined && x !== null && typeof x === 'object' && !Array.isArray(x)
+
+const ANY = 'any'
+const any = options => ({matcherType:ANY,options})
+
 const match = (selection, pattern) => {
-    if (selection.children.length !== pattern.length) {
+    if (pattern.length === 0) {
+        return [selection.text]
+    } else if (selection.children.length !== pattern.length) {
         return undefined
     } else {
         const result = []
@@ -23,6 +30,12 @@ const match = (selection, pattern) => {
                     return undefined
                 } else {
                     result.push(subMatchResult)
+                }
+            } else if (isObj(pat)) {
+                if (pat.matcherType === ANY && pat.options.includes(ch.text)) {
+                    result.push(ch.text)
+                } else {
+                    return undefined
                 }
             } else {
                 if (pat === '' || pat === ch.text) {
@@ -39,7 +52,7 @@ const match = (selection, pattern) => {
 const findMatch = (selection,patterns) => {
     for (const pattern of patterns) {
         const foundMatch = match(selection,pattern)
-        if (foundMatch != undefined) {
+        if (foundMatch !== undefined) {
             return {pattern, match:foundMatch}
         }
     }
@@ -89,6 +102,34 @@ const getAllTextFromComponent = cmp => {
         return cmp.value??''
     } else {
         return ''
+    }
+}
+
+const makeSimpleTransform = ({displayName, pattern, makeInitial, makeResult, isDebug}) => {
+    return {
+        displayName: ({selection}) => displayName,
+        canApply: (params) => {
+            if (isDebug) {
+                console.log(displayName + ': params = ' + JSON.stringify(params));
+            }
+            const {selection} = params
+            return undefined !== match(selection, pattern)
+        },
+        createInitialState: ({selection}) => ({}),
+        renderDialog: ({selection, state, setState}) => {
+            const matched = match(selection, pattern)
+            const resultElem = {cmp: "span", children: mapToTextCmpArr(makeResult(matched))}
+            return {
+                cmp: "Col",
+                children: [
+                    {cmp:"Text", value: "Initial:"},
+                    {cmp:"span", children: mapToTextCmpArr(makeInitial(matched))},
+                    {cmp: "Text", value: "Result:"},
+                    resultElem,
+                    {cmp: "ApplyButtons", result: getAllTextFromComponent(resultElem)},
+                ]
+            }
+        }
     }
 }
 
@@ -530,5 +571,16 @@ const trAssoc = {
     }
 }
 
-return [trInsert, trElide, trSwap, trAssoc]
+const allTransforms = [
+    trInsert, trElide, trSwap, trAssoc,
+    makeSimpleTransform({
+        // isDebug:true,
+        displayName: 'X => ( ph -> X )',
+        pattern: [],
+        makeInitial: ([x]) => [[x, YELLOW]],
+        makeResult:  ([x]) => ['( ph ->', [x, YELLOW], ')'],
+    }),
+]
+
+return allTransforms
 `

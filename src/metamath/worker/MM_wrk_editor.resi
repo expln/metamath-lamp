@@ -132,8 +132,8 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<(stmtId,Js_date.t)>,
 
-    unifyAllIsRequiredCnt: int,
-    continueMergingStmts: int,
+    unifyAllIsRequired: bool,
+    continueMergingStmts: bool,
 }
 
 type wrkSubsErr = 
@@ -178,8 +178,8 @@ let setTypEditMode: (editorState, stmtId) => editorState
 let completeTypEditMode: (editorState, stmtId, userStmtType, bool) => editorState
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, stmtId, string) => editorState
-let incUnifyAllIsRequiredCnt: editorState => editorState
-let incContinueMergingStmts: editorState => editorState
+let setUnifyAllIsRequired: (editorState,bool) => editorState
+let setContinueMergingStmts: (editorState,bool) => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
 let editorStateHasDuplicatedStmts: editorState => bool
@@ -201,6 +201,7 @@ let parseJstf: string => result<option<jstf>,string>
 let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
+let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
 
 let getSelectedSubtree: stmtContTreeData => option<childNode>
 let getSelectedSubtreeFromStmtCont: stmtCont => option<childNode>
@@ -229,7 +230,8 @@ let getColorForSymbol: (
 
 let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>
 
-let renumberSteps: editorState => result<editorState, string>
+let renumberProvableSteps: editorState => result<editorState, string>
+let renumberHypothesisSteps: (editorState, ~goalLabel:string) => result<editorState, string>
 
 let textToSyntaxProofTable: (
     ~wrkCtx:mmContext,

@@ -217,8 +217,8 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<(stmtId,Js_date.t)>,
 
-    unifyAllIsRequiredCnt: int,
-    continueMergingStmts: int,
+    unifyAllIsRequired: bool,
+    continueMergingStmts: bool,
 }
 
 type wrkSubsErr =
@@ -275,7 +275,10 @@ let unselectStmt = (stmt:userStmt):userStmt => {
     }
 }
 
-let editorGetStmtById = (st,id) => st.stmts->Js_array2.find(stmt => stmt.id == id)
+let editorGetStmtById = (st:editorState,id:stmtId):option<userStmt> => st.stmts->Js_array2.find(stmt => stmt.id == id)
+let editorGetStmtByLabel = (st:editorState,label:string):option<userStmt> => {
+    st.stmts->Js_array2.find(stmt => stmt.label == label)
+}
 
 let editorGetStmtByIdExn = (st:editorState,id:stmtId):userStmt => {
     switch editorGetStmtById(st,id) {
@@ -341,6 +344,16 @@ let deleteStmt = (st:editorState, stmtId:stmtId):editorState => {
         ...st,
         stmts: st.stmts->Js_array2.filter(stmt => stmt.id != stmtId),
         checkedStmtIds: st.checkedStmtIds->Js_array2.filter(((checkedId,_)) => checkedId != stmtId),
+    }
+}
+
+let deleteStmts = (st:editorState, stmtIds:array<stmtId>):editorState => {
+    {
+        ...st,
+        stmts: st.stmts->Js_array2.filter(stmt => !(stmtIds->Js_array2.includes(stmt.id))),
+        checkedStmtIds: st.checkedStmtIds->Js_array2.filter(((checkedId,_)) => {
+            !(stmtIds->Js_array2.includes(checkedId))
+        }),
     }
 }
 
@@ -648,17 +661,17 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
-let incUnifyAllIsRequiredCnt = st => {
+let setUnifyAllIsRequired = (st:editorState, required:bool) => {
     {
         ...st,
-        unifyAllIsRequiredCnt: st.unifyAllIsRequiredCnt + 1
+        unifyAllIsRequired: required
     }
 }
 
-let incContinueMergingStmts = st => {
+let setContinueMergingStmts = (st:editorState, continue:bool) => {
     {
         ...st,
-        continueMergingStmts: st.continueMergingStmts + 1
+        continueMergingStmts: continue
     }
 }
 
@@ -2431,7 +2444,7 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
     }
 }
 
-let renumberSteps = (state:editorState):result<editorState, string> => {
+let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefix:string, ~forHyp:bool):result<editorState, string> => {
     let state = state->prepareEditorForUnification
     if (state->editorStateHasErrors) {
         Error(
@@ -2439,9 +2452,9 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
                 ++ ` Please resolve the error before renumbering.`
         )
     } else {
-        let prefix = "###tmp###"
+        let tmpPrefix = "###tmp###"
         let idsToRenumberArr = state.stmts
-            ->Js.Array2.filter(stmt => stmt.typ == P && stmt.label->containsOnlyDigits)
+            ->Js.Array2.filter(isStmtToRenumber)
             ->Js.Array2.map(stmt => stmt.id)
         let idsToRenumberSet = idsToRenumberArr->Belt_HashSetString.fromArray
 
@@ -2451,7 +2464,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
                 switch res {
                     | Ok(st) => {
                         if (idsToRenumberSet->Belt_HashSetString.has(stmt.id)) {
-                            st->renameStmt(stmt.id, prefix ++ stmt.label)
+                            st->renameStmt(stmt.id, tmpPrefix ++ stmt.label)
                         } else {
                             Ok(st)
                         }
@@ -2466,7 +2479,7 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
         let res = idsToRenumberArr->Js.Array2.reduce(
             (res,stmtId) => {
                 switch res {
-                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix="", ~forHyp=false, ()))
+                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix, ~forHyp, ()))
                     | err => err
                 }
             },
@@ -2485,6 +2498,22 @@ let renumberSteps = (state:editorState):result<editorState, string> => {
             }
         }
     }
+}
+
+let renumberProvableSteps = (state:editorState):result<editorState, string> => {
+    state->renumberSteps(
+        ~isStmtToRenumber = stmt => stmt.typ == P && stmt.label->containsOnlyDigits,
+        ~prefix="",
+        ~forHyp=false,
+    )
+}
+
+let renumberHypothesisSteps = (state:editorState, ~goalLabel:string):result<editorState, string> => {
+    state->renumberSteps(
+        ~isStmtToRenumber = stmt => stmt.typ == E,
+        ~prefix=goalLabel ++ ".",
+        ~forHyp=true,
+    )
 }
 
 let textToSyntaxProofTable = (
@@ -2614,5 +2643,49 @@ let resetEditorContent = (st:editorState):editorState => {
 
         stmts: [],
         checkedStmtIds: [],
+    }
+}
+
+let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):result<editorState, string> => {
+    let state = state->prepareEditorForUnification
+    if (state->editorStateHasErrors) {
+        Error(
+            `Cannot perform deletion because there is an error in the editor content.`
+                ++ ` Please resolve the error before deleting steps.`
+        )
+    } else {
+        let unprocessedIds = Belt.MutableQueue.fromArray(stepIdsToKeep)
+        state.stmts->Js.Array2.forEach(stmt => {
+            if (stmt.typ == E || stmt.isGoal) {
+                unprocessedIds->Belt_MutableQueue.add(stmt.id)
+            }
+        })
+        let idsToKeep = Belt_HashSetString.make(~hintSize = stepIdsToKeep->Js_array2.length*5)
+        while (!(unprocessedIds->Belt_MutableQueue.isEmpty)) {
+            let idToKeep = unprocessedIds->Belt.MutableQueue.pop->Belt.Option.getExn
+            if (!(idsToKeep->Belt_HashSetString.has(idToKeep))) {
+                idsToKeep->Belt_HashSetString.add(idToKeep)
+                switch state->editorGetStmtById(idToKeep) {
+                    | None => ()
+                    | Some(stmtToProcess) => {
+                        switch stmtToProcess.jstf {
+                            | None => ()
+                            | Some({args}) => {
+                                args->Js.Array2.forEach(label => {
+                                    switch state->editorGetStmtByLabel(label) {
+                                        | None => ()
+                                        | Some(stmt) => unprocessedIds->Belt_MutableQueue.add(stmt.id)
+                                    }
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let idsToRemove = state.stmts
+            ->Js_array2.map(stmt => stmt.id)
+            ->Js.Array2.filter(id => !(idsToKeep->Belt_HashSetString.has(id)))
+        Ok(state->deleteStmts(idsToRemove))
     }
 }

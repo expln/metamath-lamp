@@ -38,6 +38,7 @@ type settingsState = {
     checkSyntax: bool,
     stickGoalToBottom:bool,
     autoMergeStmts:bool,
+    autoUnifyAll:bool,
 
     typeNextId: int,
     typeSettings: array<typeSettingsState>,
@@ -133,6 +134,7 @@ let createDefaultSettings = ():settingsState => {
         checkSyntax: true,
         stickGoalToBottom:true,
         autoMergeStmts:false,
+        autoUnifyAll:true,
         typeNextId: 4,
         typeSettings: [
             {
@@ -541,6 +543,7 @@ let stateToSettings = (st:settingsState):settings => {
         checkSyntax:st.checkSyntax,
         stickGoalToBottom:st.stickGoalToBottom,
         autoMergeStmts:st.autoMergeStmts,
+        autoUnifyAll:st.autoUnifyAll,
         typeSettings: st.typeSettings->Js_array2.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
@@ -592,6 +595,7 @@ let settingsToState = (ls:settings):settingsState => {
         checkSyntax:ls.checkSyntax,
         stickGoalToBottom:ls.stickGoalToBottom,
         autoMergeStmts:ls.autoMergeStmts,
+        autoUnifyAll:ls.autoUnifyAll,
         typeNextId: 0,
         typeSettings: ls.typeSettings->Js_array2.map(lts => {
             id: "0",
@@ -681,6 +685,7 @@ let readStateFromLocStor = ():settingsState => {
                     checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
                     stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
                     autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts,()),
+                    autoUnifyAll: d->bool( "autoUnifyAll", ~default=()=>defaultSettings.autoUnifyAll,()),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
@@ -785,6 +790,7 @@ let eqState = (st1, st2) => {
         && st1.checkSyntax == st2.checkSyntax
         && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.autoMergeStmts == st2.autoMergeStmts
+        && st1.autoUnifyAll == st2.autoUnifyAll
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
         && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
@@ -841,6 +847,7 @@ let updateSortDisjByType = (st, sortDisjByType) => {...st, sortDisjByType}
 let updateCheckSyntax = (st, checkSyntax) => {...st, checkSyntax}
 let updateStickGoalToBottom = (st, stickGoalToBottom) => {...st, stickGoalToBottom}
 let updateAutoMergeStmts = (st, autoMergeStmts) => {...st, autoMergeStmts}
+let updateAutoUnifyAll = (st, autoUnifyAll) => {...st, autoUnifyAll}
 let updateHideContextSelector = (st, hideContextSelector) => {...st, hideContextSelector}
 let updateShowVisByDefault = (st, showVisByDefault) => {...st, showVisByDefault}
 let updateUseDefaultTransforms = (st, useDefaultTransforms) => {...st, useDefaultTransforms}
@@ -1064,6 +1071,10 @@ let make = (
 
     let actAutoMergeStmtsChange = autoMergeStmts => {
         setState(updateAutoMergeStmts(_, autoMergeStmts))
+    }
+
+    let actAutoUnifyAllChange = autoUnifyAll => {
+        setState(updateAutoUnifyAll(_, autoUnifyAll))
     }
 
     let actLongClickEnabledChange = (longClickEnabled) => {
@@ -1673,7 +1684,16 @@ let make = (
                     onChange=evt2bool(actAutoMergeStmtsChange)
                 />
             }
-            label="Merge similar steps automatically"
+            label="Automatically merge similar steps"
+        />
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked=state.autoUnifyAll
+                    onChange=evt2bool(actAutoUnifyAllChange)
+                />
+            }
+            label="Automatically \"Unify All\""
         />
         <Row alignItems=#center spacing=0. >
             <FormControlLabel

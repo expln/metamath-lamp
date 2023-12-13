@@ -252,7 +252,7 @@ let make = (
             onContEditRequested={() => actUpdateEditorState(setContEditMode(_,stmt.id))}
             onContEditDone={newContText => actUpdateEditorState(completeContEditMode(_,stmt.id,newContText))}
             onContEditCancel={_ => ()}
-            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(stmt.id,newStmtCont)}
+            onSyntaxTreeUpdatedWithoutContentChange={newStmtCont => actSyntaxTreeUpdated(stmt.id,newStmtCont)}
             
             onJstfEditRequested={() => ()}
             onJstfEditDone={_ => ()}

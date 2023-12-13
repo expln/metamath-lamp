@@ -95,8 +95,8 @@ let createInitialEditorState = (
                 ->Belt.Option.getWithDefault([]),
         checkedStmtIds: [],
 
-        unifyAllIsRequiredCnt: 0,
-        continueMergingStmts: 0,
+        unifyAllIsRequired: false,
+        continueMergingStmts: false,
     }
     let st = st->setPreCtxData(preCtxData)
     st

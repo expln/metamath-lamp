@@ -14,12 +14,15 @@ type client = {
     traceEnabled: bool,
 }
 
+let clients = []
+
 let terminateWorker = () => {
     switch webworkerRef.contents {
         | None => ()
         | Some(webworker) => {
             webworker["terminate"](.)
             webworkerRef.contents = None
+            clients->Js.Array2.spliceInPlace(~pos=0, ~remove=clients->Js_array2.length, ~add=[])->ignore
         }
     }
 }
@@ -30,8 +33,6 @@ let getNextClientId = () => {
     nextClientId.contents = nextClientId.contents + 1
     nextClientId.contents - 1
 }
-
-let clients = []
 
 let regClient = (~callback:clientCallback, ~enableTrace:bool) => {
     let id = getNextClientId()

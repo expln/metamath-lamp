@@ -28,129 +28,6 @@ let readFromClipboard = ():promise<string> => {
     }
 }
 
-let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
-    <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
-        <Row alignItems=#center spacing=1.>
-            <span style=ReactDOM.Style.make(~paddingLeft="10px", ())>
-                {
-                    switch pct {
-                        | Some(pct) => `${text}: ${(pct *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`
-                        | None => text
-                    }->React.string
-                }
-            </span>
-            {
-                switch onTerminate {
-                    | None => React.null
-                    | Some(onTerminate) => {
-                        <IconButton onClick={_ => onTerminate()}>
-                            <MM_Icons.CancelOutlined/>
-                        </IconButton>
-                    }
-                }
-            }
-        </Row>
-    </Paper>
-}
-
-let rndInfoDialog = (~text:string, ~onOk:unit=>unit, ~title:option<string>=?, ()) => {
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-        <Col spacing=1.>
-            <span 
-                style=ReactDOM.Style.make(
-                    ~fontWeight="bold", 
-                    ~display=?{if (title->Belt_Option.isNone) {Some("none")} else {None}}, 
-                    ()
-                )
-            >
-                {title->Belt_Option.getWithDefault("")->React.string}
-            </span>
-            <span>
-                {text->React.string}
-            </span>
-            <Button onClick={_=>onOk()} variant=#contained >
-                {React.string("Ok")}
-            </Button>
-        </Col>
-    </Paper>
-}
-
-let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>=?, ~title:option<string>=?, ()) => {
-    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-        updateModal(modalRef, modalId, () => {
-            rndInfoDialog(
-                ~text, 
-                ~onOk = () => {
-                    closeModal(modalRef, modalId)
-                    onOk->Belt_Option.forEach(clbk => clbk())
-                },
-                ~title?,
-                ()
-            )
-        })
-    })->ignore
-}
-
-let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
-    <span
-        onClick={_=> onClick() }
-        style=ReactDOM.Style.make( 
-            ~cursor="pointer", 
-            ~color="grey", 
-            ~fontSize="0.7em", 
-            ~padding="2px",
-            ~borderRadius="3px",
-            () 
-        )
-        className="grey-bkg-on-hover"
-    >
-        {React.string(text)}
-    </span>
-}
-
-let rndColorSelect = (
-    ~availableColors:array<string>, 
-    ~selectedColor:string, 
-    ~onNewColorSelected:string=>unit,
-    ~label:option<string>=?,
-    ()
-):React.element => {
-    <FormControl size=#small >
-        {
-            switch label {
-                | Some(label) => <InputLabel id="label-for-color-select">label</InputLabel>
-                | None => React.null
-            }
-        }
-        <Select 
-            labelId="label-for-color-select"
-            ?label
-            value=selectedColor
-            onChange=evt2str(onNewColorSelected)
-        >
-            {
-                React.array(availableColors->Js_array2.map(color => {
-                    <MenuItem key=color value=color>
-                        <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
-                    </MenuItem>
-                }))
-            }
-        </Select>
-    </FormControl>
-}
-
-let getFrmLabelBkgColor = (frame:frame, settings:settings):option<string> => {
-    if (frame.isDisc) {
-        Some(settings.discColor)
-    } else if (frame.isDepr) {
-        Some(settings.deprColor)
-    } else if (frame.isTranDepr) {
-        Some(settings.tranDeprColor)
-    } else {
-        None
-    }
-}
-
 type mouseButton = Left | Middle | Right
 
 type clickCallback = {
@@ -288,5 +165,150 @@ let kbrdHnd3 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, clbk3:kbrdCallback, ):(
         runKbrdCallback(evt,clbk1)
         runKbrdCallback(evt,clbk2)
         runKbrdCallback(evt,clbk3)
+    }
+}
+
+let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
+    <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
+        <Row alignItems=#center spacing=1.>
+            <span style=ReactDOM.Style.make(~paddingLeft="10px", ())>
+                {
+                    switch pct {
+                        | Some(pct) => `${text}: ${(pct *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`
+                        | None => text
+                    }->React.string
+                }
+            </span>
+            {
+                switch onTerminate {
+                    | None => React.null
+                    | Some(onTerminate) => {
+                        <IconButton onClick={_ => onTerminate()}>
+                            <MM_Icons.CancelOutlined/>
+                        </IconButton>
+                    }
+                }
+            }
+        </Row>
+    </Paper>
+}
+
+let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd, ()):reElem => {
+    <TextField 
+        key=?key
+        size=#small
+        style=ReactDOM.Style.make(~width="0px", ~height="0px", ~opacity="0", ())
+        onKeyDown
+        autoFocus=true
+        autoComplete="off"
+    />
+}
+
+let rndInfoDialog = (~text:string, ~onOk:unit=>unit, ~title:option<string>=?, ()) => {
+    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+        <Col spacing=1.>
+            <span 
+                style=ReactDOM.Style.make(
+                    ~fontWeight="bold", 
+                    ~display=?{if (title->Belt_Option.isNone) {Some("none")} else {None}}, 
+                    ()
+                )
+            >
+                {title->Belt_Option.getWithDefault("")->React.string}
+            </span>
+            <span>
+                {text->React.string}
+            </span>
+            <Row>
+                <Button onClick={_=>onOk()} variant=#contained >
+                    {React.string("Ok")}
+                </Button>
+                {
+                    rndHiddenTextField(
+                        ~onKeyDown=kbrdHnd2(
+                            kbrdClbkMake(~key=keyEnter, ~act=onOk, ()),
+                            kbrdClbkMake(~key=keyEsc, ~act=onOk, ()),
+                        ),
+                        ()
+                    )
+                }
+            </Row>
+        </Col>
+    </Paper>
+}
+
+let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>=?, ~title:option<string>=?, ()) => {
+    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+        updateModal(modalRef, modalId, () => {
+            rndInfoDialog(
+                ~text, 
+                ~onOk = () => {
+                    closeModal(modalRef, modalId)
+                    onOk->Belt_Option.forEach(clbk => clbk())
+                },
+                ~title?,
+                ()
+            )
+        })
+    })->ignore
+}
+
+let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
+    <span
+        onClick={_=> onClick() }
+        style=ReactDOM.Style.make( 
+            ~cursor="pointer", 
+            ~color="grey", 
+            ~fontSize="0.7em", 
+            ~padding="2px",
+            ~borderRadius="3px",
+            () 
+        )
+        className="grey-bkg-on-hover"
+    >
+        {React.string(text)}
+    </span>
+}
+
+let rndColorSelect = (
+    ~availableColors:array<string>, 
+    ~selectedColor:string, 
+    ~onNewColorSelected:string=>unit,
+    ~label:option<string>=?,
+    ()
+):React.element => {
+    <FormControl size=#small >
+        {
+            switch label {
+                | Some(label) => <InputLabel id="label-for-color-select">label</InputLabel>
+                | None => React.null
+            }
+        }
+        <Select 
+            labelId="label-for-color-select"
+            ?label
+            value=selectedColor
+            onChange=evt2str(onNewColorSelected)
+        >
+            {
+                React.array(availableColors->Js_array2.map(color => {
+                    <MenuItem key=color value=color>
+                        <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
+                    </MenuItem>
+                }))
+            }
+        </Select>
+    </FormControl>
+}
+
+let getFrmLabelBkgColor = (frame:frame, settings:settings):option<string> => {
+    if (frame.isDisc) {
+        Some(settings.discColor)
+    } else if (frame.isDepr) {
+        Some(settings.deprColor)
+    } else if (frame.isTranDepr) {
+        Some(settings.tranDeprColor)
+    } else {
+        None
     }
 }

@@ -17,8 +17,6 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
 
-let unifyAllIsRequiredCnt = ref(0)
-
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
         locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
@@ -180,11 +178,42 @@ let make = (
         })
     }
 
+    let markStateToAutoUnifyAllIfAllowed = (st:editorState):editorState => {
+        if (st.settings.autoUnifyAll) {
+            let editIsActive = st->isEditMode
+            let thereAreSyntaxErrors = st->editorStateHasErrors
+            let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
+            let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
+                stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
+            })
+            if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
+                st->setUnifyAllIsRequired(true)
+            } else {
+                st
+            }
+        } else {
+            st
+        }
+    }
+
+    let commonPreSaveActions = (st:editorState):editorState => {
+        let st = st->updateEditorStateWithPostupdateActions(st=>st)
+        editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+        setHist(ht => ht->editorHistAddSnapshot(st))
+        st
+    }
+
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
-            let st = updateEditorStateWithPostupdateActions(st, update)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            setHist(ht => ht->editorHistAddSnapshot(st))
+            let st = st->update->commonPreSaveActions
+            let st = st->markStateToAutoUnifyAllIfAllowed
+            st
+        })
+    }
+
+    let setStateWithoutUnifyAll = (update:editorState=>editorState) => {
+        setStatePriv(st => {
+            let st = st->update->commonPreSaveActions
             st
         })
     }
@@ -207,7 +236,6 @@ let make = (
     }
 
     let editIsActive = state->isEditMode
-
     let thereAreSyntaxErrors = editorStateHasErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
@@ -290,11 +318,7 @@ let make = (
         })->ignore
     }
     let actToggleStmtChecked = id => {
-        setStatePriv(st => {
-            let st = toggleStmtChecked(st,id)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            st
-        })
+        setStatePriv(st => toggleStmtChecked(st,id))
     }
     let actToggleMainCheckbox = () => {
         let action = switch mainCheckboxState {
@@ -303,8 +327,7 @@ let make = (
         }
         setStatePriv(st => {
             let st = action(st)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            st
+            st->markStateToAutoUnifyAllIfAllowed
         })
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
@@ -388,8 +411,8 @@ let make = (
         setState(completeDisjEditMode(_,newText))
     }
 
-    let actSyntaxTreeUpdated = (setter:editorState=>editorState) => {
-        setState(setter)
+    let actSyntaxTreeUpdatedWithoutContentChange = (setter:editorState=>editorState) => {
+        setStatePriv(setter)
     }
 
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
@@ -624,7 +647,7 @@ let make = (
         setState(st => {
             let st = st->addNewStatements(selectedResult)
             let st = st->uncheckAllStmts
-            let st = st->incUnifyAllIsRequiredCnt
+            let st = st->setUnifyAllIsRequired(true)
             st
         })
     }
@@ -641,7 +664,7 @@ let make = (
                     if (continueMergingStmts) {
                         let st = st->updateEditorStateWithPostupdateActions(st => st)
                         if (st->editorStateHasDuplicatedStmts) {
-                            st->incContinueMergingStmts
+                            st->setContinueMergingStmts(true)
                         } else {
                             st
                         }
@@ -720,8 +743,11 @@ let make = (
     }
 
     React.useEffect1(() => {
-        if (state->editorStateHasDuplicatedStmts) {
-            actMergeStmts()
+        if (state.continueMergingStmts) {
+            setStatePriv(setContinueMergingStmts(_,false))
+            if (state->editorStateHasDuplicatedStmts) {
+                actMergeStmts()
+            }
         }
         None
     }, [state.continueMergingStmts])
@@ -965,14 +991,14 @@ let make = (
     }
 
     React.useEffect1(() => {
-        if (unifyAllIsRequiredCnt.contents < state.unifyAllIsRequiredCnt) {
-            unifyAllIsRequiredCnt.contents = state.unifyAllIsRequiredCnt
+        if (state.unifyAllIsRequired) {
+            setStatePriv(setUnifyAllIsRequired(_,false))
             if (!editorStateHasErrors(state)) {
                 actUnify(())
             }
         }
         None
-    }, [state.unifyAllIsRequiredCnt])
+    }, [state.unifyAllIsRequired])
 
     let actExportProof = (stmtId) => {
         switch generateCompressedProof(state, stmtId) {
@@ -1059,7 +1085,7 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
-        setState(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
+        setStateWithoutUnifyAll(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
@@ -1165,11 +1191,43 @@ let make = (
         }
     }
 
-    let actRenumberSteps = () => {
+    let actDeleteUnrelatedSteps = () => {
         notifyEditInTempMode(() => {
-            switch state->renumberSteps {
+            switch state->deleteUnrelatedSteps(
+                ~stepIdsToKeep=state.checkedStmtIds->Js_array2.map(((id,_)) => id)
+            ) {
                 | Ok(state) => setState(_ => state)
                 | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+            }
+        })
+    }
+
+    let actRenumberSteps = () => {
+        notifyEditInTempMode(() => {
+            switch state->renumberProvableSteps {
+                | Ok(state) => setState(_ => state)
+                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+            }
+        })
+    }
+
+    let actRenameHypotheses = () => {
+        notifyEditInTempMode(() => {
+            switch state.stmts->Js.Array2.find(stmt => stmt.isGoal) {
+                | None => {
+                    openInfoDialog( 
+                        ~modalRef, 
+                        ~title="Cannot rename hypotheses",
+                        ~text=`The goal step is not set. Please mark one of the steps as the goal step.`, 
+                        () 
+                    )
+                }
+                | Some(goalStmt) => {
+                    switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
+                        | Ok(state) => setState(_ => state)
+                        | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+                    }
+                }
             }
         })
     }
@@ -1332,6 +1390,22 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
+                                actDeleteUnrelatedSteps()
+                            }}
+                        >
+                            {"Delete unrelated steps"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenameHypotheses()
+                            }}
+                        >
+                            {"Rename hypotheses"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
                                 actRenumberSteps()
                             }}
                         >
@@ -1481,7 +1555,8 @@ let make = (
             onContEditRequested={() => actBeginEdit(setContEditMode,stmt.id)}
             onContEditDone={newContText => actCompleteEdit(completeContEditMode(_,stmt.id,newContText))}
             onContEditCancel={newContText => actCancelEditCont(stmt.id,newContText)}
-            onSyntaxTreeUpdated={newStmtCont => actSyntaxTreeUpdated(setStmtCont(_,stmt.id,newStmtCont))}
+            onSyntaxTreeUpdatedWithoutContentChange=
+                {newStmtCont => actSyntaxTreeUpdatedWithoutContentChange(setStmtCont(_,stmt.id,newStmtCont))}
             
             onJstfEditRequested={() => actBeginEdit(setJstfEditMode,stmt.id)}
             onJstfEditDone={newJstf => actCompleteEdit(completeJstfEditMode(_,stmt.id,newJstf))}
