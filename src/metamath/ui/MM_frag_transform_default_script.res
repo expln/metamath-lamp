@@ -575,10 +575,10 @@ const allTransforms = [
     trInsert, trElide, trSwap, trAssoc,
     makeSimpleTransform({
         // isDebug:true,
-        displayName: 'X => ( ph -> X )',
+        displayName: 'X => X = X',
         pattern: [],
         makeInitial: ([x]) => [[x, YELLOW]],
-        makeResult:  ([x]) => ['( ph ->', [x, YELLOW], ')'],
+        makeResult:  ([x]) => [[x, YELLOW], '=', [x, YELLOW]],
     }),
 ]
 
