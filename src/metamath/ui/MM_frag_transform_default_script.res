@@ -573,13 +573,13 @@ const trAssoc = {
 
 const allTransforms = [
     trInsert, trElide, trSwap, trAssoc,
-    makeSimpleTransform({
-        // isDebug:true,
-        displayName: 'X => X = X',
-        pattern: [],
-        makeInitial: ([x]) => [[x, YELLOW]],
-        makeResult:  ([x]) => [[x, YELLOW], '=', [x, YELLOW]],
-    }),
+    // makeSimpleTransform({
+    //     // isDebug:true,
+    //     displayName: 'X => X = X',
+    //     pattern: [],
+    //     makeInitial: ([x]) => [[x, YELLOW]],
+    //     makeResult:  ([x]) => [[x, YELLOW], '=', [x, YELLOW]],
+    // }),
 ]
 
 return allTransforms
