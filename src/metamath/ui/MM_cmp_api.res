@@ -5,17 +5,42 @@ type api = (string,Js.Json.t) => Js_json.t
 let apiRef:ref<option<api>> = ref(None)
 let api = ():option<api> => apiRef.contents
 
-let funcNameGetAllLabels = "editor.getAllLabels"
+let funcNameGetAllSteps = "editor.getAllSteps"
 let funcNameProveBottomUp = "editor.proveBottomUp"
 let fun = {
     "editor": {
-        "getAllLabels": funcNameGetAllLabels, 
+        "getAllSteps": funcNameGetAllSteps, 
         "proveBottomUp": funcNameProveBottomUp,
     }
 }
 
-let getAllLabels = (~state:editorState):Js_json.t => {
-    state.stmts->Js.Array2.map(stmt => stmt.label->Js.Json.string)->Js.Json.array
+let getAllSteps = (~state:editorState):Js_json.t => {
+    state.stmts->Js.Array2.map(stmt => {
+        Js_dict.fromArray([
+            ("id", stmt.id->Js_json.string),
+            ("label", stmt.label->Js_json.string),
+            ("isHyp", (stmt.typ == E)->Js_json.boolean),
+            ("jstf", stmt.jstfText->Js_json.string),
+            (
+                "jstfParsed", 
+                stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
+                    Js_json.null, 
+                    (jstf:option<MM_statements_dto.jstf>) => {
+                        switch jstf {
+                            | None => Js_json.null
+                            | Some(jstf) => {
+                                Js_dict.fromArray([
+                                    ("args", jstf.args->Js_array2.map(Js_json.string)->Js_json.array),
+                                    ("asrt", jstf.label->Js_json.string),
+                                ])->Js_json.object_
+                            }
+                        }
+                    }
+                )
+            ),
+            ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
+        ])->Js_json.object_
+    })->Js.Json.array
 }
 
 let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_context.expr>,string> => {
@@ -148,8 +173,8 @@ let makeEditorApi = (
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>unit,
 ):api => (funcName,paramsJson) => {
-    if (funcName == funcNameGetAllLabels) {
-        getAllLabels(~state)
+    if (funcName == funcNameGetAllSteps) {
+        getAllSteps(~state)
     } else if (funcName == funcNameProveBottomUp) {
         proveBottomUp(
             ~paramsJson, 

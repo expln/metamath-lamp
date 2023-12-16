@@ -4,7 +4,7 @@ let api: unit => option<api>
 
 let fun: {
     "editor" : {
-        "getAllLabels": string, 
+        "getAllSteps": string, 
         "proveBottomUp": string
     }
 }
