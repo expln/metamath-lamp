@@ -121,6 +121,9 @@ let editingInTempModeText =
         ++ ` 2) open a new tab (or switch to an already opened tab) with metamath-lamp in regular mode;`
         ++ ` 3) use "Import from JSON" to load the copied editor state from the clipboard.`
 
+let apiRef = ref(None)
+let api = () => apiRef.contents
+
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -1679,6 +1682,27 @@ let make = (
             <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
         })->React.array
     }
+
+    apiRef := Some(
+        (funcName:string,params:Js.Json.t):Js.Json.t => {
+            switch funcName {
+                | "getAllLabels" => state.stmts->Js.Array2.map(stmt => stmt.label->Js.Json.string)->Js.Json.array
+                | "proveBottomUp" => {
+                    open Expln_utils_jsonParse
+                    switch fromJson(params, asObj(_,d=>{
+                        {
+                            "asrtsToUse": d->strOpt("asrtsToUse", ())
+                        }
+                    }, ()), ()) {
+                        | Error(msg) => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ())
+                        | Ok(parsedParams) => Js.Console.log2(`parsedParams`, parsedParams)
+                    }
+                    Js.Json.null
+                }
+                | _ => Js.Json.null
+            }
+        }
+    )
 
     <Expln_React_ContentWithStickyHeader
         top
