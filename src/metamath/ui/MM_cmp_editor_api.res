@@ -56,6 +56,7 @@ let proveBottomUp = (
                                     stmtId: stmt.id,
                                     bottomUpProverParams: {
                                         asrtLabel: None,
+                                        frmsToUse: None,
                                         maxSearchDepth: 4,
                                         lengthRestrict: Less,
                                         allowNewDisjForExistingVars: true,

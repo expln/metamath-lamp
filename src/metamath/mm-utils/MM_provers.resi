@@ -8,6 +8,7 @@ type lengthRestrict = No | LessEq | Less
 
 type bottomUpProverParams = {
     asrtLabel: option<string>,
+    frmsToUse: option<array<string>>,
     maxSearchDepth: int,
     lengthRestrict: lengthRestrict,
     allowNewDisjForExistingVars: bool,
@@ -20,6 +21,7 @@ type bottomUpProverParams = {
 
 let bottomUpProverParamsMake: (
     ~asrtLabel: string=?,
+    ~frmsToUse: array<string>=?,
     ~maxSearchDepth: int=?,
     ~lengthRestrict: lengthRestrict=?,
     ~allowNewDisjForExistingVars: bool=?,

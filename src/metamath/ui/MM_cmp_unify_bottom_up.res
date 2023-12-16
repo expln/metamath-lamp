@@ -31,6 +31,7 @@ type resultRendered = {
 type actualProverParams = {
     stepToProve:string,
     asrtLabel:option<string>,
+    frmsToUse:option<array<string>>,
     maxSearchDepth: int,
     lengthRestrict: string,
     allowNewDisjForExistingVars: bool,
@@ -53,6 +54,7 @@ type state = {
     args1: array<bool>,
     availableLabels: array<string>,
     label:option<string>,
+    frmsToUse:option<array<string>>,
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
@@ -183,6 +185,7 @@ let makeInitialState = (
         }),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label: params.asrtLabel,
+        frmsToUse: params.frmsToUse,
         depthStr: params.maxSearchDepth->Belt_Int.toString,
         depth: params.maxSearchDepth,
         lengthRestrict: params.lengthRestrict,
@@ -682,6 +685,7 @@ let make = (
             }
 
             let asrtLabel = st.label
+            let frmsToUse = st.frmsToUse
             let maxSearchDepth = st.depth
             let lengthRestrict = st.lengthRestrict
             let allowNewDisjForExistingVars = st.allowNewDisjForExistingVars
@@ -705,6 +709,7 @@ let make = (
                 actualProverParams: Some({
                     stepToProve: st.rootStmts[st.rootStmts->Js_array2.length-1].label,
                     asrtLabel:asrtLabel,
+                    frmsToUse,
                     maxSearchDepth,
                     lengthRestrict:lengthRestrict->lengthRestrictToStr,
                     allowNewDisjForExistingVars,
@@ -727,6 +732,7 @@ let make = (
                     ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~rootStmts=state.rootStmts,
                     ~bottomUpProverParams=Some({
                         asrtLabel,
+                        frmsToUse,
                         maxSearchDepth,
                         lengthRestrict,
                         allowNewDisjForExistingVars,
