@@ -16,32 +16,71 @@ let getAllLabels = (~state:editorState):Js_json.t => {
     state.stmts->Js.Array2.map(stmt => stmt.label->Js.Json.string)->Js.Json.array
 }
 
+type proveBottomUpParams = {
+    stepLabel:option<string>,
+}
 let proveBottomUp = (
     ~paramsJson:Js_json.t,
+    ~state:editorState,
     ~showError:string=>unit,
+    ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
 ):Js_json.t => {
     open Expln_utils_jsonParse
     let parseResult = fromJson(paramsJson, asObj(_,d=>{
         {
-            "asrtsToUse": d->strOpt("asrtsToUse", ())
+            stepLabel: d->strOpt("stepLabel", ())
         }
     }, ()), ())
     switch parseResult {
         | Error(msg) => showError(msg)
-        | Ok(parsedParams) => Js.Console.log2(`parsedParams`, parsedParams)
+        | Ok(params) => {
+            switch params.stepLabel {
+                | None => showError(`"stepLabel" parameter must not be empty.`)
+                | Some(stepLabel) => {
+                    switch state.stmts->Js.Array2.find(stmt => stmt.label == stepLabel) {
+                        | None => showError(`Cannot find a step with label '${stepLabel}'`)
+                        | Some(stmt) => {
+                            startProvingBottomUp(
+                                stmt.id,
+                                {
+                                    asrtLabel: None,
+                                    maxSearchDepth: 4,
+                                    lengthRestrict: Less,
+                                    allowNewDisjForExistingVars: true,
+                                    allowNewStmts: true,
+                                    allowNewVars: false,
+                                    args0: [],
+                                    args1: [],
+                                    maxNumberOfBranches: None,
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
     Js.Json.null
 }
 
+let makeShowError = (funcName, showError:string=>unit):(string=>unit) => msg => {
+    showError(`${funcName}: ${msg}`)
+}
+
 let makeEditorApi = (
     ~state:editorState,
-    // ~setState:(editorState=>editorState)=>unit,
     ~showError:string=>unit,
+    ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
 ):api => (funcName,paramsJson) => {
     if (funcName == getAllLabelsStr) {
         getAllLabels(~state)
     } else if (funcName == proveBottomUpStr) {
-        proveBottomUp(~paramsJson, ~showError)
+        proveBottomUp(
+            ~paramsJson, 
+            ~state, 
+            ~showError=makeShowError(funcName,showError),
+            ~startProvingBottomUp,
+        )
     } else {
         showError(`Unknown api function ${funcName}`)
         Js.Json.null
@@ -50,14 +89,14 @@ let makeEditorApi = (
 
 let updateEditorApi = (
     ~state:editorState,
-    // ~setState:(editorState=>editorState)=>unit,
     ~showError:string=>unit,
+    ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
 ):unit => {
     apiRef := Some(
         makeEditorApi(
             ~state,
-            // ~setState,
             ~showError,
+            ~startProvingBottomUp,
         )
     )
 }

@@ -1684,6 +1684,7 @@ let make = (
         ~state,
         // ~setState,
         ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
+        ~startProvingBottomUp = (stmtId, params) => actUnify( ~stmtId=stmtId, ~params, ~initialDebugLevel=0, ())
     )
 
     <Expln_React_ContentWithStickyHeader

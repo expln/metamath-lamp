@@ -9,6 +9,6 @@ let fun: {
 
 let updateEditorApi: (
   ~state: MM_wrk_editor.editorState,
-//   ~setState: (MM_wrk_editor.editorState => MM_wrk_editor.editorState) => unit,
   ~showError: string => unit,
+  ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
 ) => unit
