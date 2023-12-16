@@ -879,6 +879,7 @@ let make = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
+        ~isApiCall:bool=false,
         ()
     ) => {
         switch state.wrkCtx {
@@ -938,6 +939,7 @@ let make = (
                                         )
                                     }
                                     initialParams=?initialParams
+                                    isApiCall
                                     initialDebugLevel=?initialDebugLevel
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
@@ -1682,9 +1684,19 @@ let make = (
 
     MM_cmp_editor_api.updateEditorApi(
         ~state,
-        // ~setState,
         ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
-        ~startProvingBottomUp = (stmtId, params) => actUnify( ~stmtId=stmtId, ~params, ~initialDebugLevel=0, ())
+        ~canStartProvingBottomUp=generalModificationActionIsEnabled,
+        ~startProvingBottomUp = (stmtId, params) => {
+            if (generalModificationActionIsEnabled) {
+                actUnify( 
+                    ~stmtId=stmtId, 
+                    ~params, 
+                    ~initialDebugLevel=0,
+                    ~isApiCall=true,
+                    ()
+                )
+            }
+        }
     )
 
     <Expln_React_ContentWithStickyHeader
