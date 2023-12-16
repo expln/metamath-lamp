@@ -29,6 +29,7 @@ type resultRendered = {
 }
 
 type actualProverParams = {
+    stepToProve:string,
     asrtLabel:option<string>,
     maxSearchDepth: int,
     lengthRestrict: string,
@@ -589,6 +590,7 @@ let make = (
     ~initialParams: option<bottomUpProverParams>=?,
     ~initialDebugLevel: option<int>=?,
     ~isApiCall: bool,
+    ~delayBeforeStartMs:int,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
@@ -701,6 +703,7 @@ let make = (
             let st = {
                 ...st,
                 actualProverParams: Some({
+                    stepToProve: st.rootStmts[st.rootStmts->Js_array2.length-1].label,
                     asrtLabel:asrtLabel,
                     maxSearchDepth,
                     lengthRestrict:lengthRestrict->lengthRestrictToStr,
@@ -767,7 +770,7 @@ let make = (
 
     React.useEffect0(() => {
         if (isApiCall) {
-            Common.setTimeout(() => actProve(), 1000)->ignore
+            Common.setTimeout(() => actProve(), delayBeforeStartMs)->ignore
         }
         None
     })

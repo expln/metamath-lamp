@@ -880,6 +880,7 @@ let make = (
         ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
+        ~delayBeforeStartMs:int=0,
         ()
     ) => {
         switch state.wrkCtx {
@@ -940,6 +941,7 @@ let make = (
                                     }
                                     initialParams=?initialParams
                                     isApiCall
+                                    delayBeforeStartMs
                                     initialDebugLevel=?initialDebugLevel
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
@@ -1686,13 +1688,14 @@ let make = (
         ~state,
         ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
-        ~startProvingBottomUp = (stmtId, params) => {
+        ~startProvingBottomUp = (params) => {
             if (generalModificationActionIsEnabled) {
                 actUnify( 
-                    ~stmtId=stmtId, 
-                    ~params, 
+                    ~stmtId=params.stmtId, 
+                    ~params=params.bottomUpProverParams, 
                     ~initialDebugLevel=0,
                     ~isApiCall=true,
+                    ~delayBeforeStartMs=params.delayBeforeStartMs,
                     ()
                 )
             }

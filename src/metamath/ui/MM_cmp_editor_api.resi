@@ -7,9 +7,15 @@ let fun: {
     "proveBottomUp": string
 }
 
+type proverParams = {
+    delayBeforeStartMs:int,
+    stmtId: MM_wrk_editor.stmtId,
+    bottomUpProverParams: MM_provers.bottomUpProverParams,
+}
+
 let updateEditorApi: (
   ~state: MM_wrk_editor.editorState,
   ~showError: string => unit,
   ~canStartProvingBottomUp:bool,
-  ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
+  ~startProvingBottomUp:proverParams=>unit,
 ) => unit

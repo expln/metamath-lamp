@@ -16,15 +16,21 @@ let getAllLabels = (~state:editorState):Js_json.t => {
     state.stmts->Js.Array2.map(stmt => stmt.label->Js.Json.string)->Js.Json.array
 }
 
-type proveBottomUpParams = {
+type proveBottomUpInputParams = {
+    delayBeforeStartMs:int,
     stepLabel:option<string>,
+}
+type proverParams = {
+    delayBeforeStartMs:int,
+    stmtId: MM_wrk_editor.stmtId,
+    bottomUpProverParams: MM_provers.bottomUpProverParams,
 }
 let proveBottomUp = (
     ~paramsJson:Js_json.t,
     ~state:editorState,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
+    ~startProvingBottomUp:proverParams=>unit,
 ):Js_json.t => {
     if (!canStartProvingBottomUp) {
         showError("Cannot start proving bottom-up because either there are syntax errors in the editor or edit is in progress.")
@@ -32,21 +38,23 @@ let proveBottomUp = (
         open Expln_utils_jsonParse
         let parseResult = fromJson(paramsJson, asObj(_,d=>{
             {
-                stepLabel: d->strOpt("stepLabel", ())
+                delayBeforeStartMs: d->int("delayBeforeStartMs", ~default=()=>1000, ()),
+                stepLabel: d->strOpt("stepLabel", ()),
             }
         }, ()), ())
         switch parseResult {
             | Error(msg) => showError(msg)
-            | Ok(params) => {
-                switch params.stepLabel {
+            | Ok(inputParams) => {
+                switch inputParams.stepLabel {
                     | None => showError(`"stepLabel" parameter must not be empty.`)
                     | Some(stepLabel) => {
                         switch state.stmts->Js.Array2.find(stmt => stmt.label == stepLabel) {
                             | None => showError(`Cannot find a step with label '${stepLabel}'`)
                             | Some(stmt) => {
-                                startProvingBottomUp(
-                                    stmt.id,
-                                    {
+                                startProvingBottomUp({
+                                    delayBeforeStartMs:inputParams.delayBeforeStartMs,
+                                    stmtId: stmt.id,
+                                    bottomUpProverParams: {
                                         asrtLabel: None,
                                         maxSearchDepth: 4,
                                         lengthRestrict: Less,
@@ -56,8 +64,8 @@ let proveBottomUp = (
                                         args0: [],
                                         args1: [],
                                         maxNumberOfBranches: None,
-                                    }
-                                )
+                                    },
+                                })
                             }
                         }
                     }
@@ -76,7 +84,7 @@ let makeEditorApi = (
     ~state:editorState,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
+    ~startProvingBottomUp:proverParams=>unit,
 ):api => (funcName,paramsJson) => {
     if (funcName == getAllLabelsStr) {
         getAllLabels(~state)
@@ -98,7 +106,7 @@ let updateEditorApi = (
     ~state:editorState,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:(MM_wrk_editor.stmtId, MM_provers.bottomUpProverParams)=>unit,
+    ~startProvingBottomUp:proverParams=>unit,
 ):unit => {
     apiRef := Some(
         makeEditorApi(
