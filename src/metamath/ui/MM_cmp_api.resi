@@ -3,13 +3,16 @@ type api = (string, Js.Json.t) => Js_json.t
 let api: unit => option<api>
 
 let fun: {
-    "getAllLabels": string, 
-    "proveBottomUp": string
+    "editor" : {
+        "getAllLabels": string, 
+        "proveBottomUp": string
+    }
 }
 
 type proverParams = {
     delayBeforeStartMs:int,
     stmtId: MM_wrk_editor.stmtId,
+    debugLevel:int,
     bottomUpProverParams: MM_provers.bottomUpProverParams,
 }
 

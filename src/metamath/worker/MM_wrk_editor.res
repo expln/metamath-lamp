@@ -1290,6 +1290,10 @@ let getUserStmtByExpr = (st, expr):option<userStmt> => {
     })
 }
 
+let editorGetStmtByLabel = (st, label):option<userStmt> => {
+    st.stmts->Js_array2.find(stmt => stmt.label == label)
+}
+
 let insertStmt = (
     st:editorState, 
     ~expr:expr, 

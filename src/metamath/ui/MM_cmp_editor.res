@@ -1684,7 +1684,7 @@ let make = (
         })->React.array
     }
 
-    MM_cmp_editor_api.updateEditorApi(
+    MM_cmp_api.updateEditorApi(
         ~state,
         ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
@@ -1693,7 +1693,7 @@ let make = (
                 actUnify( 
                     ~stmtId=params.stmtId, 
                     ~params=params.bottomUpProverParams, 
-                    ~initialDebugLevel=0,
+                    ~initialDebugLevel=params.debugLevel,
                     ~isApiCall=true,
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
                     ()

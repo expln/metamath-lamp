@@ -52,6 +52,28 @@ let bottomUpProverParamsMake = (
     }
 }
 
+let lengthRestrictToStr = (len:lengthRestrict) => {
+    switch len {
+        | No => "No"
+        | LessEq => "LessEq"
+        | Less => "Less"
+    }
+}
+let lengthRestrictFromStr = (str:string):option<lengthRestrict> => {
+    switch str {
+        | "No" => Some(No)
+        | "LessEq" => Some(LessEq)
+        | "Less" => Some(Less)
+        | _ => None
+    }
+}
+let lengthRestrictFromStrExn = (str:string):lengthRestrict => {
+    switch lengthRestrictFromStr(str) {
+        | Some(v) => v
+        | None => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
+    }
+}
+
 let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSrc> => {
     if (tree->ptIsNewVarDef(expr)) {
         Some(VarType)

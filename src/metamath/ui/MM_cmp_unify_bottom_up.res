@@ -518,22 +518,6 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
-let lengthRestrictToStr = (len:lengthRestrict) => {
-    switch len {
-        | No => "No"
-        | LessEq => "LessEq"
-        | Less => "Less"
-    }
-}
-let lengthRestrictFromStr = str => {
-    switch str {
-        | "No" => No
-        | "LessEq" => LessEq
-        | "Less" => Less
-        | _ => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
-    }
-}
-
 let sortByToStr = sortBy => {
     switch sortBy {
         | NewStmtsNum => "NewStmtsNum"
@@ -852,7 +836,7 @@ let make = (
                 labelId="length-restrict-select-label"
                 value={lengthRestrictToStr(value)}
                 label="Statement length restriction"
-                onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStr(str)))
+                onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStrExn(str)))
             >
                 <MenuItem value="No">{React.string("Unrestricted")}</MenuItem>
                 <MenuItem value="LessEq">{React.string("LessEq")}</MenuItem>

@@ -193,6 +193,7 @@ let updateColorsInAllStmts: editorState => editorState
 let getTheOnlyCheckedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, stmtId) => option<userStmt>
 let editorGetStmtByIdExn: (editorState, stmtId) => userStmt
+let editorGetStmtByLabel: (editorState, string) => option<userStmt>
 let getAllExprsToSyntaxCheck: (editorState, array<rootStmt>) => array<expr>
 let mergeStmts: (editorState, stmtId, stmtId) => result<editorState, string>
 let renameStmt: (editorState, stmtId, string) => result<editorState, string>

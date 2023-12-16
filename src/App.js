@@ -1,6 +1,6 @@
 import './App.css';
 import {make as MM_cmp_root} from "./metamath/ui/MM_cmp_root.bs";
-import {fun, api} from "./metamath/ui/MM_cmp_editor_api.bs";
+import {fun, api} from "./metamath/ui/MM_cmp_api.bs";
 
 window.fun = fun
 window.api = api

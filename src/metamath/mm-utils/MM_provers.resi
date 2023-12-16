@@ -33,6 +33,10 @@ let bottomUpProverParamsMake: (
     ()
 ) => bottomUpProverParams
 
+let lengthRestrictToStr: lengthRestrict => string
+let lengthRestrictFromStr: string => option<lengthRestrict>
+let lengthRestrictFromStrExn: string => lengthRestrict
+
 let createProofCtx: (mmContext, array<rootStmt>) => mmContext
 
 let proveFloatings: (
