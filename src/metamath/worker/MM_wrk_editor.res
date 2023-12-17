@@ -1208,8 +1208,6 @@ let getTheOnlyCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-// let createVariableForExpr = (st:editorState, varType:int, varName:string)
-
 let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
@@ -1290,10 +1288,6 @@ let getUserStmtByExpr = (st, expr):option<userStmt> => {
             | Some(stmtExpr) => stmtExpr->exprEq(expr)
         }
     })
-}
-
-let editorGetStmtByLabel = (st, label):option<userStmt> => {
-    st.stmts->Js_array2.find(stmt => stmt.label == label)
 }
 
 let insertStmt = (
@@ -2208,7 +2202,15 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
             let contStr = stmt1.cont->contToStr
             switch st.stmts->Js.Array2.find(stmt => stmt.id != stmt1.id && stmt.cont->contToStr == contStr) {
                 | None => Error("[2] Cannot find another step to merge with.")
-                | Some(stmt2) => Ok((stmt1, stmt2))
+                | Some(stmt2) => {
+                    let idx1 = st.stmts->Js.Array2.findIndex(stmt => stmt.id == stmt1.id)
+                    let idx2 = st.stmts->Js.Array2.findIndex(stmt => stmt.id == stmt2.id)
+                    if (idx1 < idx2) {
+                        Ok((stmt1, stmt2))
+                    } else {
+                        Ok((stmt2, stmt1))
+                    }
+                }
             }
         }
     }

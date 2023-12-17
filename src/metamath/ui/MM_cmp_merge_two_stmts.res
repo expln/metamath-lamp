@@ -8,6 +8,12 @@ let make = (
     ~onCancel:unit=>unit,
     ~onStmtSelected:(userStmt,userStmt)=>unit
 ) => {
+
+    let rndStmt = (stmt:userStmt) => {
+        let jstf = if (stmt.typ == E) {"HYP"} else {"[ " ++ stmt.jstfText ++ " ]"}
+        React.string(stmt.label ++ " " ++ jstf)
+    }
+
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
             <Row>
@@ -27,9 +33,7 @@ let make = (
                             </Button>
                         </td>
                         <td>
-                            {
-                                React.string(stmt1.label ++ " [ " ++ stmt1.jstfText ++ " ]")
-                            }
+                            { rndStmt(stmt1) }
                         </td>
                     </tr>
                     <tr>
@@ -39,9 +43,7 @@ let make = (
                             </Button>
                         </td>
                         <td>
-                            {
-                                React.string(stmt2.label ++ " [ " ++ stmt2.jstfText ++ " ]")
-                            }
+                            { rndStmt(stmt2) }
                         </td>
                     </tr>
                 </tbody>

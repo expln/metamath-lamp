@@ -715,13 +715,7 @@ let make = (
 
     let actMergeStmts = () => {
         switch state->findStmtsToMerge {
-            | Error(msg) => {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~text=msg,
-                    ()
-                )
-            }
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
             | Ok((stmt1,stmt2)) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
