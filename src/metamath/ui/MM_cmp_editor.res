@@ -940,7 +940,7 @@ let make = (
                                         )
                                     }
                                     initialParams=?initialParams
-                                    isApiCall
+                                    apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
                                     delayBeforeStartMs
                                     initialDebugLevel=?initialDebugLevel
                                     onResultSelected={newStmtsDto => {

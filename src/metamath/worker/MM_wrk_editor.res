@@ -1208,6 +1208,8 @@ let getTheOnlyCheckedStmt = (st):option<userStmt> => {
     }
 }
 
+// let createVariableForExpr = (st:editorState, varType:int, varName:string)
+
 let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
@@ -1786,16 +1788,16 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                 ->Js_array2.map(node => (node.expr,node))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let exprToUserStmt = st.stmts
-                                    ->Js_array2.map(stmt => {
-                                        switch stmt.expr {
-                                            | None => 
-                                                raise(MmException({
-                                                    msg:`Cannot applyUnifyAllResults without stmt.expr [1].`
-                                                }))
-                                            | Some(expr) => (expr, stmt)
-                                        }
-                                    })
-                                    ->Belt_HashMap.fromArray(~id=module(ExprHash))
+                ->Js_array2.map(stmt => {
+                    switch stmt.expr {
+                        | None => 
+                            raise(MmException({
+                                msg:`Cannot applyUnifyAllResults without stmt.expr [1].`
+                            }))
+                        | Some(expr) => (expr, stmt)
+                    }
+                })
+                ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let syntaxNodes = proofTreeDto.syntaxProofs->Belt_HashMap.fromArray(~id=module(ExprHash))
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {

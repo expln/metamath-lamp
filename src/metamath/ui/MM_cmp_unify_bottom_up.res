@@ -78,6 +78,8 @@ type state = {
     resultsMaxPage:int,
     resultsPage:int,
     checkedResultIdx: option<int>,
+
+    showApiParams:bool,
 }
 
 let getProofStatus = (stmt:rootStmtRendered):option<proofStatus> => {
@@ -211,6 +213,8 @@ let makeInitialState = (
         resultsMaxPage: 0,
         resultsPage: 0,
         checkedResultIdx: None,
+
+        showApiParams:false,
     }
 }
 
@@ -264,6 +268,13 @@ let setDebugLevel = (st,debugLevel) => {
     {
         ...st,
         debugLevel: if (0 <= debugLevel && debugLevel <= 2) {debugLevel} else {0}
+    }
+}
+
+let toggleShowApiParams = (st) => {
+    {
+        ...st,
+        showApiParams: !st.showApiParams
     }
 }
 
@@ -559,6 +570,8 @@ let rndCheckboxWithLabelAndBorder = (
     />
 }
 
+let startedForApiCalls:array<string> = []
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -576,7 +589,7 @@ let make = (
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialParams: option<bottomUpProverParams>=?,
     ~initialDebugLevel: option<int>=?,
-    ~isApiCall: bool,
+    ~apiCallStartTime:option<Js_date.t>,
     ~delayBeforeStartMs:int,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
@@ -585,6 +598,8 @@ let make = (
         ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel, 
         ~allowedFrms=settings.allowedFrms
     ))
+
+    let isApiCall = apiCallStartTime->Belt.Option.isSome
 
     let onlyOneResultIsAvailable = switch state.results {
         | None => false
@@ -759,8 +774,19 @@ let make = (
     }
 
     React.useEffect0(() => {
-        if (isApiCall) {
-            Common.setTimeout(() => actProve(), delayBeforeStartMs)->ignore
+        switch apiCallStartTime {
+            | None => ()
+            | Some(apiCallStartTime) => {
+                let apiCallStartTimeStr = apiCallStartTime->Js_date.toISOString
+                if (!(startedForApiCalls->Js_array2.includes(apiCallStartTimeStr))) {
+                    startedForApiCalls->Js_array2.push(apiCallStartTimeStr)->ignore
+                    startedForApiCalls->Js_array2.removeCountInPlace(
+                        ~pos=0, 
+                        ~count=startedForApiCalls->Js_array2.length - 5
+                    )->ignore
+                    Common.setTimeout(() => actProve(), delayBeforeStartMs)->ignore
+                }
+            }
         }
         None
     })
@@ -1030,26 +1056,39 @@ let make = (
         }
     }
 
+    let actToggleShowApiParams = () => {
+        setState(toggleShowApiParams)
+    }
+
     let rndParamsForApiCall = () => {
         <Col>
             {
                 switch state.actualProverParams {
                     | None => "Starting..."->React.string
                     | Some(actualProverParams) => {
-                        <TextField
-                            label="Actual prover params"
-                            size=#small
-                            style=ReactDOM.Style.make(~width="800px", ())
-                            autoFocus=false
-                            multiline=true
-                            maxRows=10
-                            value=Expln_utils_common.stringify(actualProverParams)
-                            disabled=true
-                        />
+                        if (state.showApiParams) {
+                            <TextField
+                                label="Actual prover params"
+                                size=#small
+                                style=ReactDOM.Style.make(~width="800px", ())
+                                autoFocus=false
+                                multiline=true
+                                rows=10
+                                value=Expln_utils_common.stringify(actualProverParams)
+                                disabled=true
+                            />
+                        } else {
+                            React.null
+                        }
                     }
                 }
             }
-            <Button onClick={_=>onCancel()}> {React.string("Close")} </Button>
+            <Row>
+                <Button onClick={_=>actToggleShowApiParams()}> 
+                    { React.string(if (state.showApiParams) { "Hide parameters" } else { "Show parameters" }) } 
+                </Button>
+                <Button onClick={_=>onCancel()}> {React.string("Close")} </Button>
+            </Row>
         </Col>
     }
 
