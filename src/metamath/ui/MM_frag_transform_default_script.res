@@ -571,8 +571,32 @@ const trAssoc = {
     }
 }
 
+const trReplace = {
+    displayName: () => "Replace",
+    canApply: () => true,
+    createInitialState: ({selection}) => ({
+        text: "",
+    }),
+    renderDialog: ({selection, state, setState}) => {
+        const rndResult = () => mapToTextCmpArr([state.text])
+        const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
+        const resultElem = {cmp:"span", children: rndResult()}
+        return {cmp:"Col", children:[
+                {cmp:"Text", value: "Replace", fontWeight:"bold"},
+                {cmp:"Text", value: "Initial:"},
+                {cmp:"Text", value: selection.text},
+                {cmp:"Divider"},
+                {cmp:"TextField", autoFocus:true, value:state.text, label: "Replace with", onChange: updateState('text'), width:'300px'},
+                {cmp:"Divider"},
+                {cmp:"Text", value: "Result:"},
+                resultElem,
+                {cmp:"ApplyButtons", result: getAllTextFromComponent(resultElem)},
+            ]}
+    }
+}
+
 const allTransforms = [
-    trInsert, trElide, trSwap, trAssoc,
+    trInsert, trElide, trSwap, trAssoc, trReplace,
     // makeSimpleTransform({
     //     // isDebug:true,
     //     displayName: 'X => X = X',

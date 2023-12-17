@@ -14,6 +14,7 @@ type lengthRestrict = No | LessEq | Less
 
 type bottomUpProverParams = {
     asrtLabel: option<string>,
+    frmsToUse: option<array<string>>,
     maxSearchDepth: int,
     lengthRestrict: lengthRestrict,
     allowNewDisjForExistingVars: bool,
@@ -26,6 +27,7 @@ type bottomUpProverParams = {
 
 let bottomUpProverParamsMake = (
     ~asrtLabel: option<string>=?,
+    ~frmsToUse: option<array<string>>=?,
     ~maxSearchDepth: int=4,
     ~lengthRestrict: lengthRestrict=Less,
     ~allowNewDisjForExistingVars: bool=true,
@@ -38,6 +40,7 @@ let bottomUpProverParamsMake = (
 ):bottomUpProverParams => {
     {
         asrtLabel,
+        frmsToUse,
         maxSearchDepth,
         lengthRestrict,
         allowNewDisjForExistingVars,
@@ -46,6 +49,28 @@ let bottomUpProverParamsMake = (
         args0,
         args1,
         maxNumberOfBranches,
+    }
+}
+
+let lengthRestrictToStr = (len:lengthRestrict) => {
+    switch len {
+        | No => "No"
+        | LessEq => "LessEq"
+        | Less => "Less"
+    }
+}
+let lengthRestrictFromStr = (str:string):option<lengthRestrict> => {
+    switch str {
+        | "No" => Some(No)
+        | "LessEq" => Some(LessEq)
+        | "Less" => Some(Less)
+        | _ => None
+    }
+}
+let lengthRestrictFromStrExn = (str:string):lengthRestrict => {
+    switch lengthRestrictFromStr(str) {
+        | Some(v) => v
+        | None => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
     }
 }
 
@@ -218,10 +243,11 @@ let findAsrtParentsWithNewVars = (
     ~expr:expr,
     ~args:array<expr>,
     ~exactOrderOfArgs:bool,
-    ~asrtLabel:option<string>=?,
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
     ~allowNewDisjForExistingVars:bool,
+    ~asrtLabel:option<string>=?,
+    ~frmsToUse:option<Belt_HashSetString.t>=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int=0,
@@ -234,8 +260,13 @@ let findAsrtParentsWithNewVars = (
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
     let frameFilter = switch asrtLabel {
-        | None => (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
         | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel
+        | None => {
+            switch frmsToUse {
+                | Some(frmsToUse) => (frame:frame) => frmsToUse->Belt_HashSetString.has(frame.label)
+                | None => (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
+            }
+        }
     }
 
     let maxVarBeforeSearch = tree->ptGetMaxVar
@@ -551,6 +582,7 @@ let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
     ~params:bottomUpProverParams,
+    ~frmsToUse:option<Belt_HashSetString.t>,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int,
@@ -564,6 +596,7 @@ let proveStmtBottomUp = (
             ~args = if (dist == 0) {params.args0} else {params.args1},
             ~exactOrderOfArgs=false,
             ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
+            ~frmsToUse?,
             ~allowEmptyArgs = params.allowNewStmts,
             ~allowNewVars = dist == 0 && params.allowNewVars,
             ~allowNewDisjForExistingVars=params.allowNewDisjForExistingVars,
@@ -619,6 +652,7 @@ let proveStmt = (
     ~expr:expr, 
     ~jstf:option<jstf>,
     ~bottomUpProverParams:option<bottomUpProverParams>,
+    ~frmsToUse:option<Belt_HashSetString.t>,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int,
@@ -626,7 +660,9 @@ let proveStmt = (
 ) => {
     switch bottomUpProverParams {
         | Some(params) => {
-            proveStmtBottomUp( ~tree, ~expr, ~params, ~allowedFrms, ~combCntMax, ~debugLevel, ~onProgress, )->ignore
+            proveStmtBottomUp( 
+                ~tree, ~expr, ~params, ~frmsToUse, ~allowedFrms, ~combCntMax, ~debugLevel, ~onProgress, 
+            )->ignore
         }
         | None => {
             switch jstf {
@@ -846,6 +882,9 @@ let unifyAll = (
 
     let rootProvables = rootStmts->Js_array2.filter(stmt => !stmt.isHyp)
     let numOfStmts = rootProvables->Js_array2.length
+    let frmsToUse = bottomUpProverParams->Belt_Option.flatMap(params => {
+        params.frmsToUse->Belt_Option.map(Belt_HashSetString.fromArray)
+    })
     let maxStmtIdx = numOfStmts - 1
     rootProvables->Js.Array2.forEachi((stmt,stmtIdx) => {
         proveStmt(
@@ -853,6 +892,7 @@ let unifyAll = (
             ~expr=stmt.expr, 
             ~jstf=stmt.jstf,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
+            ~frmsToUse,
             ~allowedFrms,
             ~combCntMax,
             ~debugLevel,

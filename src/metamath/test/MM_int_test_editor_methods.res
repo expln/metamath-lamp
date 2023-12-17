@@ -361,6 +361,7 @@ let unifyBottomUp = (
     ~args0:rootStmtsToUse=AllStmts,
     ~args1:rootStmtsToUse=NoneStmts,
     ~asrtLabel:option<string>=?,
+    ~frmsToUse: option<array<string>>=?,
     ~maxSearchDepth:int=4, 
     ~lengthRestrict:lengthRestrict=Less,
     ~allowNewDisjForExistingVars:bool=true,
@@ -389,6 +390,7 @@ let unifyBottomUp = (
                 ~rootStmts,
                 ~bottomUpProverParams = {
                     asrtLabel,
+                    frmsToUse,
                     maxSearchDepth,
                     lengthRestrict,
                     allowNewDisjForExistingVars,

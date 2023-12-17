@@ -28,6 +28,21 @@ type resultRendered = {
     numOfStmts: int,
 }
 
+type actualProverParams = {
+    stepToProve:string,
+    asrtLabel:option<string>,
+    frmsToUse:option<array<string>>,
+    maxSearchDepth: int,
+    lengthRestrict: string,
+    allowNewDisjForExistingVars: bool,
+    allowNewStmts: bool,
+    allowNewVars: bool,
+    args0: array<string>,
+    args1: array<string>,
+    maxNumberOfBranches: option<int>,
+    debugLevel:int,
+}
+
 type state = {
     rootUserStmts: array<userStmt>,
     rootStmts: array<rootStmt>,
@@ -39,6 +54,7 @@ type state = {
     args1: array<bool>,
     availableLabels: array<string>,
     label:option<string>,
+    frmsToUse:option<array<string>>,
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
@@ -51,6 +67,7 @@ type state = {
     debugLevel:int,
     maxNumberOfBranchesStr:string,
 
+    actualProverParams:option<actualProverParams>,
     tree: option<proofTreeDto>,
     warnings:array<string>,
     results: option<array<stmtsDto>>,
@@ -61,6 +78,8 @@ type state = {
     resultsMaxPage:int,
     resultsPage:int,
     checkedResultIdx: option<int>,
+
+    showApiParams:bool,
 }
 
 let getProofStatus = (stmt:rootStmtRendered):option<proofStatus> => {
@@ -160,10 +179,15 @@ let makeInitialState = (
                 { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts[maxRootStmtIdx].cont, ()) }
             </span>,
 
-        args0: possibleArgs->Js_array2.map(params.args0->Js_array2.includes),
-        args1: possibleArgs->Js_array2.map(params.args1->Js_array2.includes),
+        args0: possibleArgs->Js_array2.map(possibleArg => {
+            params.args0->Js_array2.some(arg0 => arg0->exprEq(possibleArg))
+        }),
+        args1: possibleArgs->Js_array2.map(possibleArg => {
+            params.args1->Js_array2.some(arg1 => arg1->exprEq(possibleArg))
+        }),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label: params.asrtLabel,
+        frmsToUse: params.frmsToUse,
         depthStr: params.maxSearchDepth->Belt_Int.toString,
         depth: params.maxSearchDepth,
         lengthRestrict: params.lengthRestrict,
@@ -178,6 +202,7 @@ let makeInitialState = (
         maxNumberOfBranchesStr: 
             params.maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault(""),
 
+        actualProverParams: None,
         tree: None,
         warnings: [],
         results: None,
@@ -188,6 +213,8 @@ let makeInitialState = (
         resultsMaxPage: 0,
         resultsPage: 0,
         checkedResultIdx: None,
+
+        showApiParams:false,
     }
 }
 
@@ -241,6 +268,13 @@ let setDebugLevel = (st,debugLevel) => {
     {
         ...st,
         debugLevel: if (0 <= debugLevel && debugLevel <= 2) {debugLevel} else {0}
+    }
+}
+
+let toggleShowApiParams = (st) => {
+    {
+        ...st,
+        showApiParams: !st.showApiParams
     }
 }
 
@@ -363,7 +397,9 @@ let compareByNumberOfStmts = Expln_utils_common.comparatorBy(res => res.numOfStm
 let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.numOfUnprovedStmts)
 let compareByNumOfNewStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
-let compareByAsrtLabel = (a,b) => a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
+let compareByAsrtLabel = (a:resultRendered,b:resultRendered) => {
+    a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
+}
 
 let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> => {
     open Expln_utils_common
@@ -493,22 +529,6 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
-let lengthRestrictToStr = (len:lengthRestrict) => {
-    switch len {
-        | No => "No"
-        | LessEq => "LessEq"
-        | Less => "Less"
-    }
-}
-let lengthRestrictFromStr = str => {
-    switch str {
-        | "No" => No
-        | "LessEq" => LessEq
-        | "Less" => Less
-        | _ => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
-    }
-}
-
 let sortByToStr = sortBy => {
     switch sortBy {
         | NewStmtsNum => "NewStmtsNum"
@@ -550,6 +570,8 @@ let rndCheckboxWithLabelAndBorder = (
     />
 }
 
+let startedForApiCalls:array<string> = []
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -567,6 +589,8 @@ let make = (
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialParams: option<bottomUpProverParams>=?,
     ~initialDebugLevel: option<int>=?,
+    ~apiCallStartTime:option<Js_date.t>,
+    ~delayBeforeStartMs:int,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
@@ -574,6 +598,8 @@ let make = (
         ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel, 
         ~allowedFrms=settings.allowedFrms
     ))
+
+    let isApiCall = apiCallStartTime->Belt.Option.isSome
 
     let onlyOneResultIsAvailable = switch state.results {
         | None => false
@@ -657,6 +683,44 @@ let make = (
                 {...st, depth, depthStr}
             }
 
+            let asrtLabel = st.label
+            let frmsToUse = st.frmsToUse
+            let maxSearchDepth = st.depth
+            let lengthRestrict = st.lengthRestrict
+            let allowNewDisjForExistingVars = st.allowNewDisjForExistingVars
+            let allowNewStmts = st.allowNewStmts
+            let allowNewVars = st.allowNewVars
+            let args0 = st.rootStmtsRendered
+                ->Js_array2.filteri((_,i) => st.args0[i])
+                ->Js_array2.map(stmt => stmt.label)
+            let args1 = st.rootStmtsRendered
+                                ->Js_array2.filteri((_,i) => st.args1[i])
+                                ->Js_array2.map(stmt => stmt.label)
+            let maxNumberOfBranches = 
+                if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
+                    None
+                } else {
+                    state.maxNumberOfBranchesStr->Belt_Int.fromString
+                }
+            let debugLevel = st.debugLevel
+            let st = {
+                ...st,
+                actualProverParams: Some({
+                    stepToProve: st.rootStmts[st.rootStmts->Js_array2.length-1].label,
+                    asrtLabel:asrtLabel,
+                    frmsToUse,
+                    maxSearchDepth,
+                    lengthRestrict:lengthRestrict->lengthRestrictToStr,
+                    allowNewDisjForExistingVars,
+                    allowNewStmts,
+                    allowNewVars,
+                    args0,
+                    args1,
+                    maxNumberOfBranches,
+                    debugLevel,
+                })
+            }
+
             openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0., ()))->promiseMap(modalId => {
                 updateModal( 
                     modalRef, modalId, () => rndProgress(
@@ -666,12 +730,13 @@ let make = (
                 unify(
                     ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~rootStmts=state.rootStmts,
                     ~bottomUpProverParams=Some({
-                        asrtLabel: st.label,
-                        maxSearchDepth: st.depth,
-                        lengthRestrict: st.lengthRestrict,
-                        allowNewDisjForExistingVars: st.allowNewDisjForExistingVars,
-                        allowNewStmts: st.allowNewStmts,
-                        allowNewVars: st.allowNewVars,
+                        asrtLabel,
+                        frmsToUse,
+                        maxSearchDepth,
+                        lengthRestrict,
+                        allowNewDisjForExistingVars,
+                        allowNewStmts,
+                        allowNewVars,
                         args0: 
                             st.rootStmtsRendered
                                 ->Js_array2.filteri((_,i) => st.args0[i])
@@ -680,12 +745,7 @@ let make = (
                             st.rootStmtsRendered
                                 ->Js_array2.filteri((_,i) => st.args1[i])
                                 ->Js_array2.map(stmt => stmt.expr),
-                        maxNumberOfBranches: 
-                            if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
-                                None
-                            } else {
-                                state.maxNumberOfBranchesStr->Belt_Int.fromString
-                            },
+                        maxNumberOfBranches,
                     }),
                     ~allowedFrms={
                         inSyntax: settings.allowedFrms.inSyntax,
@@ -697,7 +757,7 @@ let make = (
                     },
                     ~syntaxTypes=None,
                     ~exprsToSyntaxCheck=None,
-                    ~debugLevel = st.debugLevel,
+                    ~debugLevel,
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
                             ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
@@ -712,6 +772,24 @@ let make = (
             st
         })
     }
+
+    React.useEffect0(() => {
+        switch apiCallStartTime {
+            | None => ()
+            | Some(apiCallStartTime) => {
+                let apiCallStartTimeStr = apiCallStartTime->Js_date.toISOString
+                if (!(startedForApiCalls->Js_array2.includes(apiCallStartTimeStr))) {
+                    startedForApiCalls->Js_array2.push(apiCallStartTimeStr)->ignore
+                    startedForApiCalls->Js_array2.removeCountInPlace(
+                        ~pos=0, 
+                        ~count=startedForApiCalls->Js_array2.length - 5
+                    )->ignore
+                    Common.setTimeout(() => actProve(), delayBeforeStartMs)->ignore
+                }
+            }
+        }
+        None
+    })
 
     let actSortByChange = sortBy => {
         setState(setSortBy(_, sortBy))
@@ -784,7 +862,7 @@ let make = (
                 labelId="length-restrict-select-label"
                 value={lengthRestrictToStr(value)}
                 label="Statement length restriction"
-                onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStr(str)))
+                onChange=evt2str(str => actLengthRestrictUpdated(lengthRestrictFromStrExn(str)))
             >
                 <MenuItem value="No">{React.string("Unrestricted")}</MenuItem>
                 <MenuItem value="LessEq">{React.string("LessEq")}</MenuItem>
@@ -834,7 +912,7 @@ let make = (
         </Row>
     }
 
-    let rndParams = () => {
+    let rndParamsForUsualCall = () => {
         if (state.availableLabels->Js.Array2.length == 0) {
             <Col>
                 {
@@ -975,6 +1053,50 @@ let make = (
                     <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
                 </Row>
             </Col>
+        }
+    }
+
+    let actToggleShowApiParams = () => {
+        setState(toggleShowApiParams)
+    }
+
+    let rndParamsForApiCall = () => {
+        <Col>
+            {
+                switch state.actualProverParams {
+                    | None => "Starting..."->React.string
+                    | Some(actualProverParams) => {
+                        if (state.showApiParams) {
+                            <TextField
+                                label="Actual prover params"
+                                size=#small
+                                style=ReactDOM.Style.make(~width="800px", ())
+                                autoFocus=false
+                                multiline=true
+                                rows=10
+                                value=Expln_utils_common.stringify(actualProverParams)
+                                disabled=true
+                            />
+                        } else {
+                            React.null
+                        }
+                    }
+                }
+            }
+            <Row>
+                <Button onClick={_=>actToggleShowApiParams()}> 
+                    { React.string(if (state.showApiParams) { "Hide parameters" } else { "Show parameters" }) } 
+                </Button>
+                <Button onClick={_=>onCancel()}> {React.string("Close")} </Button>
+            </Row>
+        </Col>
+    }
+
+    let rndParams = () => {
+        if (isApiCall) {
+            rndParamsForApiCall()
+        } else {
+            rndParamsForUsualCall()
         }
     }
 
@@ -1213,7 +1335,7 @@ let make = (
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.5>
             {rndTitle()}
-            {rndRootStmts()}
+            {if (!isApiCall) {rndRootStmts()} else {React.null}}
             {rndParams()}
             {rndResults()}
         </Col>

@@ -19,7 +19,7 @@ let pathToStr = path => {
     }
 }
 
-let jsonToAny = (json,path):jsonAny => {
+let jsonToAny = (json:Js.Json.t, path:path):jsonAny => {
     switch json->Js.Json.classify {
         | JSONNull => JsonNull(path)
         | JSONFalse => JsonBool(false,path)
@@ -66,7 +66,7 @@ let anyToStr = (jsonAny):result<option<string>,string> => {
     switch jsonAny {
         | JsonNull(_) => Ok(None)
         | JsonStr(val,_) => Ok(Some(val))
-        | _ => Error(`a number value was expected at '${jsonAny->getPath->pathToStr}'.`)
+        | _ => Error(`a string value was expected at '${jsonAny->getPath->pathToStr}'.`)
     }
 }
 
@@ -301,6 +301,32 @@ let obj = (
     }
 }
 
+let fromJson = (
+    json:Js.Json.t, 
+    mapper:jsonAny=>'a, 
+    ~validator:option<validator<'a>>=?, 
+    ~default:option<default<'a>>=?, 
+    ()
+):result<'a,string> => {
+    try {
+        let jsonAny = jsonToAny(json, rootPath)
+        Ok(validate(mapper(jsonAny), validator))
+    } catch {
+        | ex => {
+            switch default {
+                | Some(default) => Ok(default())
+                | None => {
+                    let msg = ex 
+                        -> Js.Exn.asJsExn
+                        -> Belt.Option.flatMap(Js.Exn.message)
+                        -> Belt.Option.getWithDefault("no message was provided.")
+                    Error("Parse error: " ++ msg)
+                }
+            }
+        }
+    }
+}
+
 let parseJson = (
     jsonStr:string, 
     mapper:jsonAny=>'a, 
@@ -309,8 +335,7 @@ let parseJson = (
     ()
 ):result<'a,string> => {
     try {
-        let jsonAny = jsonToAny(jsonStr->Js.Json.parseExn, rootPath)
-        Ok(validate(mapper(jsonAny), validator))
+        fromJson(jsonStr->Js.Json.parseExn, mapper, ~validator?, ~default?, ())
     } catch {
         | ex => {
             switch default {

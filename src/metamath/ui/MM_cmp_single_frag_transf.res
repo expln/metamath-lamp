@@ -141,6 +141,7 @@ let make = (
                 ()
             )
             value=reqStrExn(elem["value"], "Each TextField must have a string attribute 'value'")
+            autoFocus=?optBoolExn(elem["autoFocus"], "optional 'autoFocus' attribute of a TextField must be a boolean")
             onChange=evt2str(str => onChange(. str))
         />
     }

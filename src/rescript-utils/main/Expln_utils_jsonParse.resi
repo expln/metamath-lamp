@@ -34,6 +34,7 @@ let objOpt: (jsonAny, string, jsonAny => 'a, ~validator:validator<option<'a>>=?,
 let obj: (jsonAny, string, jsonAny => 'a, ~validator:validator<'a>=?, ~default:default<'a>=?, ()) => 'a
 
 let parseJson: (string, jsonAny => 'a, ~validator: validator<'a>=?, ~default: default<'a>=?, ()) => result<'a, string>
+let fromJson: (Js.Json.t, jsonAny => 'a, ~validator: validator<'a>=?, ~default: default<'a>=?, ()) => result<'a, string>
 
 
 

@@ -715,13 +715,7 @@ let make = (
 
     let actMergeStmts = () => {
         switch state->findStmtsToMerge {
-            | Error(msg) => {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~text=msg,
-                    ()
-                )
-            }
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
             | Ok((stmt1,stmt2)) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
@@ -879,6 +873,8 @@ let make = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
+        ~isApiCall:bool=false,
+        ~delayBeforeStartMs:int=0,
         ()
     ) => {
         switch state.wrkCtx {
@@ -938,6 +934,8 @@ let make = (
                                         )
                                     }
                                     initialParams=?initialParams
+                                    apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
+                                    delayBeforeStartMs
                                     initialDebugLevel=?initialDebugLevel
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
@@ -1679,6 +1677,24 @@ let make = (
             <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
         })->React.array
     }
+
+    MM_cmp_api.updateEditorApi(
+        ~state,
+        ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
+        ~canStartProvingBottomUp=generalModificationActionIsEnabled,
+        ~startProvingBottomUp = (params) => {
+            if (generalModificationActionIsEnabled) {
+                actUnify( 
+                    ~stmtId=params.stmtId, 
+                    ~params=params.bottomUpProverParams, 
+                    ~initialDebugLevel=params.debugLevel,
+                    ~isApiCall=true,
+                    ~delayBeforeStartMs=params.delayBeforeStartMs,
+                    ()
+                )
+            }
+        }
+    )
 
     <Expln_React_ContentWithStickyHeader
         top
