@@ -556,15 +556,25 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let pRecIdxToLabel = (state, proofTable, pRecIdx:int):string => {
+    let pRecIdxToLabel = (state, proofTable, pRecIdx:int, maxUsedStepNum:option<int>):string => {
         switch proofTable[pRecIdx].proof {
             | Hypothesis({label}) => label
-            | Assertion(_) => getStepNum(state,pRecIdx)->Belt_Int.toString
+            | Assertion(_) => {
+                let stepNum = getStepNum(state,pRecIdx)
+                if (
+                    maxUsedStepNum->Belt_Option.map(maxUsedStepNum => stepNum <= maxUsedStepNum)
+                        ->Belt_Option.getWithDefault(false)
+                ) {
+                    maxUsedStepNum->Belt_Option.getExn + 1
+                } else {
+                    stepNum
+                }->Belt_Int.toString
+            }
         }
     }
 
     let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
-        loadEditorState.current->Js.Nullable.toOption ->Belt.Option.forEach(loadEditorState => {
+        loadEditorState.current->Js.Nullable.toOption->Belt.Option.forEach(loadEditorState => {
             let vars = []
             state.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
                 if (hyp.typ == F) {
@@ -601,9 +611,18 @@ let make = React.memoCustomCompareProps(({
                 }
             }
             
+            let maxUsedStepNum = ref(0)
             let stmts = []
             state.frame.hyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == E) {
+                    switch Belt_Int.fromString(hyp.label) {
+                        | None => ()
+                        | Some(i) => {
+                            if (maxUsedStepNum.contents < i) {
+                                maxUsedStepNum := i
+                            }
+                        }
+                    }
                     stmts->Js.Array2.push(
                         {
                             label: hyp.label, 
@@ -618,12 +637,13 @@ let make = React.memoCustomCompareProps(({
             switch state.proofTable {
                 | None => ()
                 | Some(proofTable) => {
+                    let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Js_array2.length)
                     proofTable
                         ->Js_array2.mapi((pRec,idx) => (pRec,idx))
                         ->Js_array2.filter(((_,idx)) => state.essIdxs->Belt_HashSetInt.has(idx))
                         ->Js.Array2.forEach(((pRec,idx)) => {
                             switch pRec.proof {
-                                | Hypothesis(_) => ()
+                                | Hypothesis({label}) => idxToLabel->Belt_HashMapInt.set(idx,label)
                                 | Assertion({args,label}) => {
                                     let isGoal = idx == proofTable->Js_array2.length - 1
                                     if (loadSteps || isGoal) {
@@ -631,7 +651,11 @@ let make = React.memoCustomCompareProps(({
                                         for i in 0 to args->Js.Array2.length-1 {
                                             let argIdx = args[i]
                                             if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
-                                                jstfArgs->Js.Array2.push(pRecIdxToLabel(state,proofTable,argIdx))->ignore
+                                                let label = switch idxToLabel->Belt_HashMapInt.get(argIdx) {
+                                                    | None => "err_" ++ argIdx->Belt_Int.toString
+                                                    | Some(str) => str
+                                                }
+                                                jstfArgs->Js.Array2.push(label)->ignore
                                             }
                                         }
                                         let jstfText = if (loadSteps) {
@@ -639,9 +663,23 @@ let make = React.memoCustomCompareProps(({
                                         } else {
                                             ""
                                         }
+                                        let label = if (isGoal) {
+                                            state.frame.label
+                                        } else {
+                                            pRecIdxToLabel(state,proofTable,idx,Some(maxUsedStepNum.contents))
+                                        }
+                                        idxToLabel->Belt_HashMapInt.set(idx,label)
+                                        switch Belt_Int.fromString(label) {
+                                            | None => ()
+                                            | Some(i) => {
+                                                if (maxUsedStepNum.contents < i) {
+                                                    maxUsedStepNum := i
+                                                }
+                                            }
+                                        }
                                         stmts->Js.Array2.push(
                                             {
-                                                label: if (isGoal) {state.frame.label} else {pRecIdxToLabel(state,proofTable,idx)}, 
+                                                label, 
                                                 typ: userStmtTypeToStr(P), 
                                                 isGoal,
                                                 cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
