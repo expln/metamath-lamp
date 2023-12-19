@@ -3,7 +3,12 @@ open MM_wrk_editor
 type api = (string,Js.Json.t) => Js_json.t
 
 let apiRef:ref<option<api>> = ref(None)
-let api = ():option<api> => apiRef.contents
+let apiEntry = (funcName:string, params:Js_json.t):Js_json.t => {
+    switch apiRef.contents {
+        | None => Js_json.null
+        | Some(api) => api(funcName, params)
+    }
+}
 
 let funcNameGetAllSteps = "editor.getAllSteps"
 let funcNameProveBottomUp = "editor.proveBottomUp"

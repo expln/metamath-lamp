@@ -1,6 +1,6 @@
 type api = (string, Js.Json.t) => Js_json.t
 
-let api: unit => option<api>
+let apiEntry: api
 
 let fun: {
     "editor" : {
