@@ -14,6 +14,7 @@ type proverParams = {
     stmtId: MM_wrk_editor.stmtId,
     debugLevel:int,
     bottomUpProverParams: MM_provers.bottomUpProverParams,
+    selectFirstFoundProof:bool,
 }
 
 let updateEditorApi: (

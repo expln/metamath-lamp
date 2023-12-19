@@ -875,6 +875,7 @@ let make = (
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
+        ~selectFirstFoundProof:bool=false,
         ()
     ) => {
         switch state.wrkCtx {
@@ -937,6 +938,7 @@ let make = (
                                     apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
                                     delayBeforeStartMs
                                     initialDebugLevel=?initialDebugLevel
+                                    selectFirstFoundProof
                                     onResultSelected={newStmtsDto => {
                                         closeModal(modalRef, modalId)
                                         actBottomUpResultSelected(newStmtsDto)
@@ -1690,6 +1692,7 @@ let make = (
                     ~initialDebugLevel=params.debugLevel,
                     ~isApiCall=true,
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
+                    ~selectFirstFoundProof=params.selectFirstFoundProof,
                     ()
                 )
             }

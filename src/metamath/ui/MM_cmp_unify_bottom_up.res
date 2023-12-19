@@ -78,6 +78,7 @@ type state = {
     resultsMaxPage:int,
     resultsPage:int,
     checkedResultIdx: option<int>,
+    resultHasBeenSelected: bool,
 
     showApiParams:bool,
 }
@@ -213,6 +214,7 @@ let makeInitialState = (
         resultsMaxPage: 0,
         resultsPage: 0,
         checkedResultIdx: None,
+        resultHasBeenSelected: false,
 
         showApiParams:false,
     }
@@ -275,6 +277,13 @@ let toggleShowApiParams = (st) => {
     {
         ...st,
         showApiParams: !st.showApiParams
+    }
+}
+
+let setResultHasBeenSelected = (st) => {
+    {
+        ...st,
+        resultHasBeenSelected: true
     }
 }
 
@@ -591,6 +600,7 @@ let make = (
     ~initialDebugLevel: option<int>=?,
     ~apiCallStartTime:option<Js_date.t>,
     ~delayBeforeStartMs:int,
+    ~selectFirstFoundProof:bool,
     ~onResultSelected:stmtsDto=>unit,
     ~onCancel:unit=>unit
 ) => {
@@ -803,21 +813,47 @@ let make = (
         setState(toggleResultChecked(_,idx))
     }
 
-    let actChooseSelected = () => {
+    let actChooseSelected = (idxToSelect:option<int>) => {
         switch state.results {
             | None => ()
             | Some(results) => {
                 if (onlyOneResultIsAvailable) {
+                    setState(setResultHasBeenSelected)
                     onResultSelected(results[0])
                 } else {
-                    switch state.checkedResultIdx {
-                        | None => ()
-                        | Some(checkedResultIdx) => onResultSelected(results[checkedResultIdx])
+                    switch idxToSelect {
+                        | Some(checkedResultIdx) => {
+                            setState(setResultHasBeenSelected)
+                            onResultSelected(results[checkedResultIdx])
+                        }
+                        | None => {
+                            switch state.checkedResultIdx {
+                                | None => ()
+                                | Some(checkedResultIdx) => {
+                                    setState(setResultHasBeenSelected)
+                                    onResultSelected(results[checkedResultIdx])
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+
+    React.useEffect1(() => {
+        if (selectFirstFoundProof) {
+            switch state.resultsSorted {
+                | None => ()
+                | Some(resultsSorted) => {
+                    if (resultsSorted->Js_array2.length > 0 && resultsSorted[0].isProved) {
+                        actChooseSelected(Some(resultsSorted[0].idx))
+                    }
+                }
+            }
+        }
+        None
+    }, [state.resultsSorted])
 
     let actShowProofTree = () => {
         switch state.tree {
@@ -1109,7 +1145,7 @@ let make = (
     }
 
     let rndApplyButton = () => {
-        <Button onClick={_=>actChooseSelected()} variant=#contained 
+        <Button onClick={_=>actChooseSelected(None)} variant=#contained 
                 disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
             {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
         </Button>

@@ -91,12 +91,14 @@ type proveBottomUpApiParams = {
     allowNewVars:bool,
     allowNewDisjForExistingVars:bool,
     maxNumberOfBranches:option<int>,
+    selectFirstFoundProof:option<bool>,
 }
 type proverParams = {
     delayBeforeStartMs:int,
     stmtId: MM_wrk_editor.stmtId,
     debugLevel:int,
     bottomUpProverParams: MM_provers.bottomUpProverParams,
+    selectFirstFoundProof:bool,
 }
 let proveBottomUp = (
     ~paramsJson:Js_json.t,
@@ -128,6 +130,7 @@ let proveBottomUp = (
                 allowNewVars: d->bool("allowNewVars", ()),
                 allowNewDisjForExistingVars: d->bool("allowNewDisjForExistingVars", ()),
                 maxNumberOfBranches: d->intOpt("maxNumberOfBranches", ()),
+                selectFirstFoundProof: d->boolOpt("selectFirstFoundProof", ()),
             }
         }, ()), ())
         switch parseResult {
@@ -160,6 +163,8 @@ let proveBottomUp = (
                                                 allowNewVars: apiParams.allowNewVars,
                                                 maxNumberOfBranches: apiParams.maxNumberOfBranches,
                                             },
+                                            selectFirstFoundProof:
+                                                apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
                                         })
                                         promise(resolve => resolve(Js_json.null))
                                     }
@@ -183,20 +188,22 @@ let makeEditorApi = (
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>unit,
-):api => (funcName,paramsJson) => {
-    if (funcName == funcNameGetAllSteps) {
-        getAllSteps(~state)
-    } else if (funcName == funcNameProveBottomUp) {
-        proveBottomUp(
-            ~paramsJson, 
-            ~state, 
-            ~showError=makeShowError(funcName,showError),
-            ~canStartProvingBottomUp,
-            ~startProvingBottomUp,
-        )
-    } else {
-        showError(`Unknown api function ${funcName}`)
-        promise(resolve => resolve(Js_json.null))
+):api => {
+    (funcName,paramsJson) => {
+        if (funcName == funcNameGetAllSteps) {
+            getAllSteps(~state)
+        } else if (funcName == funcNameProveBottomUp) {
+            proveBottomUp(
+                ~paramsJson, 
+                ~state, 
+                ~showError=makeShowError(funcName,showError),
+                ~canStartProvingBottomUp,
+                ~startProvingBottomUp,
+            )
+        } else {
+            showError(`Unknown api function ${funcName}`)
+            promise(resolve => resolve(Js_json.null))
+        }
     }
 }
 
