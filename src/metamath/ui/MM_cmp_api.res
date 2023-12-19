@@ -1,11 +1,12 @@
 open MM_wrk_editor
+open Expln_utils_promise
 
-type api = (string,Js.Json.t) => Js_json.t
+type api = (string,Js.Json.t) => promise<Js_json.t>
 
 let apiRef:ref<option<api>> = ref(None)
-let apiEntry = (funcName:string, params:Js_json.t):Js_json.t => {
+let apiEntry = (funcName:string, params:Js_json.t):promise<Js_json.t> => {
     switch apiRef.contents {
-        | None => Js_json.null
+        | None => promise(resolve => resolve(Js_json.null))
         | Some(api) => api(funcName, params)
     }
 }
@@ -19,33 +20,37 @@ let fun = {
     }
 }
 
-let getAllSteps = (~state:editorState):Js_json.t => {
-    state.stmts->Js.Array2.map(stmt => {
-        Js_dict.fromArray([
-            ("id", stmt.id->Js_json.string),
-            ("label", stmt.label->Js_json.string),
-            ("isHyp", (stmt.typ == E)->Js_json.boolean),
-            ("jstf", stmt.jstfText->Js_json.string),
-            (
-                "jstfParsed", 
-                stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
-                    Js_json.null, 
-                    (jstf:option<MM_statements_dto.jstf>) => {
-                        switch jstf {
-                            | None => Js_json.null
-                            | Some(jstf) => {
-                                Js_dict.fromArray([
-                                    ("args", jstf.args->Js_array2.map(Js_json.string)->Js_json.array),
-                                    ("asrt", jstf.label->Js_json.string),
-                                ])->Js_json.object_
+let getAllSteps = (~state:editorState):promise<Js_json.t> => {
+    promise(resolve => {
+        resolve(
+            state.stmts->Js.Array2.map(stmt => {
+                Js_dict.fromArray([
+                    ("id", stmt.id->Js_json.string),
+                    ("label", stmt.label->Js_json.string),
+                    ("isHyp", (stmt.typ == E)->Js_json.boolean),
+                    ("jstf", stmt.jstfText->Js_json.string),
+                    (
+                        "jstfParsed", 
+                        stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
+                            Js_json.null, 
+                            (jstf:option<MM_statements_dto.jstf>) => {
+                                switch jstf {
+                                    | None => Js_json.null
+                                    | Some(jstf) => {
+                                        Js_dict.fromArray([
+                                            ("args", jstf.args->Js_array2.map(Js_json.string)->Js_json.array),
+                                            ("asrt", jstf.label->Js_json.string),
+                                        ])->Js_json.object_
+                                    }
+                                }
                             }
-                        }
-                    }
-                )
-            ),
-            ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
-        ])->Js_json.object_
-    })->Js.Json.array
+                        )
+                    ),
+                    ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
+                ])->Js_json.object_
+            })->Js.Json.array
+        )
+    })
 }
 
 let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_context.expr>,string> => {
@@ -96,10 +101,10 @@ type proverParams = {
 let proveBottomUp = (
     ~paramsJson:Js_json.t,
     ~state:editorState,
-    ~showError:string=>unit,
+    ~showError:string=>promise<Js_json.t>,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>unit,
-):Js_json.t => {
+):promise<Js_json.t> => {
     if (!canStartProvingBottomUp) {
         showError("Cannot start proving bottom-up because either there are syntax errors in the editor or edit is in progress.")
     } else {
@@ -156,6 +161,7 @@ let proveBottomUp = (
                                                 maxNumberOfBranches: apiParams.maxNumberOfBranches,
                                             },
                                         })
+                                        promise(resolve => resolve(Js_json.null))
                                     }
                                 }
                             }
@@ -165,11 +171,11 @@ let proveBottomUp = (
             }
         }
     }
-    Js.Json.null
 }
 
-let makeShowError = (funcName, showError:string=>unit):(string=>unit) => msg => {
+let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.t>) => msg => {
     showError(`${funcName}: ${msg}`)
+    promise(resolve => resolve(Js_json.null))
 }
 
 let makeEditorApi = (
@@ -190,7 +196,7 @@ let makeEditorApi = (
         )
     } else {
         showError(`Unknown api function ${funcName}`)
-        Js.Json.null
+        promise(resolve => resolve(Js_json.null))
     }
 }
 

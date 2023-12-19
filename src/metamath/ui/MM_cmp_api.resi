@@ -1,4 +1,4 @@
-type api = (string, Js.Json.t) => Js_json.t
+type api = (string, Js.Json.t) => promise<Js_json.t>
 
 let apiEntry: api
 
