@@ -4,7 +4,7 @@ let apiEntry: api
 
 let fun: {
     "editor" : {
-        "getAllSteps": string, 
+        "getState": string, 
         "proveBottomUp": string
     }
 }
