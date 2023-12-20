@@ -25,11 +25,25 @@ let getAllSteps = (~state:editorState):Js_json.t => {
     state.stmts->Js.Array2.map(stmt => {
         Js_dict.fromArray([
             ("id", stmt.id->Js_json.string),
+            ("status", 
+                switch stmt.proofStatus {
+                    | None => Js_json.null
+                    | Some(proofStatus) => {
+                        switch proofStatus {
+                            | Ready => "v"
+                            | Waiting => "~"
+                            | NoJstf => "?"
+                            | JstfIsIncorrect => "x"
+                        }->Js_json.string
+                    }
+                }
+            ),
             ("label", stmt.label->Js_json.string),
             ("isHyp", (stmt.typ == E)->Js_json.boolean),
-            ("jstf", stmt.jstfText->Js_json.string),
+            ("isGoal", stmt.isGoal->Js_json.boolean),
+            ("jstfText", stmt.jstfText->Js_json.string),
             (
-                "jstfParsed", 
+                "jstf", 
                 stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
                     Js_json.null, 
                     (jstf:option<MM_statements_dto.jstf>) => {
@@ -46,6 +60,19 @@ let getAllSteps = (~state:editorState):Js_json.t => {
                 )
             ),
             ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
+            ("stmtErr", 
+                switch stmt.stmtErr {
+                    | None => Js_json.null
+                    | Some({ code, msg }) => {
+                        Js_dict.fromArray([
+                            ("code", code->Belt.Int.toFloat->Js_json.number),
+                            ("msg", msg->Js_json.string),
+                        ])->Js_json.object_
+                    }
+                }
+            ),
+            ("unifErr", stmt.unifErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
+            ("syntaxErr", stmt.syntaxErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
         ])->Js_json.object_
     })->Js.Json.array
 }
@@ -72,7 +99,7 @@ let getEditorState = (~state:editorState):promise<Js_json.t> => {
                 ),
                 ("disjText", state.disjText->Js_json.string),
                 ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
-                ("disj", 
+                ("disj",
                     state.disjText->multilineTextToNonEmptyLines->Js_array2.map(disjLine => {
                         disjLine->Js.String2.split(",")
                             ->Js_array2.map(Js_string2.trim)
