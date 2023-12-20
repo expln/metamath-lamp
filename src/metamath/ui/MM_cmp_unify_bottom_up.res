@@ -601,7 +601,7 @@ let make = (
     ~apiCallStartTime:option<Js_date.t>,
     ~delayBeforeStartMs:int,
     ~selectFirstFoundProof:bool,
-    ~onResultSelected:stmtsDto=>unit,
+    ~onResultSelected:option<stmtsDto>=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
@@ -819,19 +819,19 @@ let make = (
             | Some(results) => {
                 if (onlyOneResultIsAvailable) {
                     setState(setResultHasBeenSelected)
-                    onResultSelected(results[0])
+                    onResultSelected(Some(results[0]))
                 } else {
                     switch idxToSelect {
                         | Some(checkedResultIdx) => {
                             setState(setResultHasBeenSelected)
-                            onResultSelected(results[checkedResultIdx])
+                            onResultSelected(Some(results[checkedResultIdx]))
                         }
                         | None => {
                             switch state.checkedResultIdx {
                                 | None => ()
                                 | Some(checkedResultIdx) => {
                                     setState(setResultHasBeenSelected)
-                                    onResultSelected(results[checkedResultIdx])
+                                    onResultSelected(Some(results[checkedResultIdx]))
                                 }
                             }
                         }
@@ -842,12 +842,15 @@ let make = (
     }
 
     React.useEffect1(() => {
-        if (selectFirstFoundProof) {
+        if (selectFirstFoundProof && !state.resultHasBeenSelected) {
             switch state.resultsSorted {
                 | None => ()
                 | Some(resultsSorted) => {
+                    setState(setResultHasBeenSelected)
                     if (resultsSorted->Js_array2.length > 0 && resultsSorted[0].isProved) {
                         actChooseSelected(Some(resultsSorted[0].idx))
+                    } else {
+                        onResultSelected(None)
                     }
                 }
             }

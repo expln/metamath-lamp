@@ -183,6 +183,11 @@ type userStmt = {
     syntaxErr: option<string>,
 }
 
+type editorStateAction = 
+    | UnifyAll({nextAction:unit=>unit})
+    | MergeNextDuplicate
+    | Action(unit=>unit)
+
 type editorState = {
     settingsV:int,
     settings:settings,
@@ -217,8 +222,7 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<(stmtId,Js_date.t)>,
 
-    unifyAllIsRequired: bool,
-    continueMergingStmts: bool,
+    nextAction:option<editorStateAction>,
 }
 
 type wrkSubsErr =
@@ -661,17 +665,10 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
-let setUnifyAllIsRequired = (st:editorState, required:bool) => {
+let setNextAction = (st:editorState, action:option<editorStateAction>):editorState => {
     {
         ...st,
-        unifyAllIsRequired: required
-    }
-}
-
-let setContinueMergingStmts = (st:editorState, continue:bool) => {
-    {
-        ...st,
-        continueMergingStmts: continue
+        nextAction: action
     }
 }
 

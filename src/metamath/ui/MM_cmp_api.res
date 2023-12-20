@@ -105,7 +105,7 @@ let proveBottomUp = (
     ~state:editorState,
     ~showError:string=>promise<Js_json.t>,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>unit,
+    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
 ):promise<Js_json.t> => {
     if (!canStartProvingBottomUp) {
         showError("Cannot start proving bottom-up because either there are syntax errors in the editor or edit is in progress.")
@@ -165,8 +165,12 @@ let proveBottomUp = (
                                             },
                                             selectFirstFoundProof:
                                                 apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
+                                        })->promiseMap(proved => {
+                                            switch proved {
+                                                | None => Js_json.null
+                                                | Some(proved) => proved->Js_json.boolean
+                                            }
                                         })
-                                        promise(resolve => resolve(Js_json.null))
                                     }
                                 }
                             }
@@ -187,7 +191,7 @@ let makeEditorApi = (
     ~state:editorState,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>unit,
+    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
 ):api => {
     (funcName,paramsJson) => {
         if (funcName == funcNameGetAllSteps) {
@@ -211,7 +215,7 @@ let updateEditorApi = (
     ~state:editorState,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>unit,
+    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
 ):unit => {
     apiRef := Some(
         makeEditorApi(

@@ -16,6 +16,7 @@ open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
+open MM_proof_tree_dto
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
@@ -178,7 +179,7 @@ let make = (
         })
     }
 
-    let markStateToAutoUnifyAllIfAllowed = (st:editorState):editorState => {
+    let scheduleUnifyAllIfAllowed = (st:editorState):editorState => {
         if (st.settings.autoUnifyAll) {
             let editIsActive = st->isEditMode
             let thereAreSyntaxErrors = st->editorStateHasErrors
@@ -187,7 +188,10 @@ let make = (
                 stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
             })
             if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
-                st->setUnifyAllIsRequired(true)
+                switch st.nextAction {
+                    | None => st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
+                    | Some(_) => st
+                }
             } else {
                 st
             }
@@ -206,7 +210,7 @@ let make = (
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
             let st = st->update->commonPreSaveActions
-            let st = st->markStateToAutoUnifyAllIfAllowed
+            let st = st->scheduleUnifyAllIfAllowed
             st
         })
     }
@@ -327,7 +331,7 @@ let make = (
         }
         setStatePriv(st => {
             let st = action(st)
-            st->markStateToAutoUnifyAllIfAllowed
+            st->scheduleUnifyAllIfAllowed
         })
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
@@ -643,15 +647,6 @@ let make = (
         setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
     }
 
-    let actBottomUpResultSelected = (selectedResult:stmtsDto) => {
-        setState(st => {
-            let st = st->addNewStatements(selectedResult)
-            let st = st->uncheckAllStmts
-            let st = st->setUnifyAllIsRequired(true)
-            st
-        })
-    }
-
     let actWrkSubsSelected = wrkSubs => {
         setState(st => st->applySubstitutionForEditor(wrkSubs))
     }
@@ -664,7 +659,7 @@ let make = (
                     if (continueMergingStmts) {
                         let st = st->updateEditorStateWithPostupdateActions(st => st)
                         if (st->editorStateHasDuplicatedStmts) {
-                            st->setContinueMergingStmts(true)
+                            st->setNextAction(Some(MergeNextDuplicate))
                         } else {
                             st
                         }
@@ -735,16 +730,6 @@ let make = (
             }
         }
     }
-
-    React.useEffect1(() => {
-        if (state.continueMergingStmts) {
-            setStatePriv(setContinueMergingStmts(_,false))
-            if (state->editorStateHasDuplicatedStmts) {
-                actMergeStmts()
-            }
-        }
-        None
-    }, [state.continueMergingStmts])
 
     let actSearchAsrt = () => {
         switch state.wrkCtx {
@@ -840,12 +825,12 @@ let make = (
         }
     }
 
-    let actUnifyAllResultsAreReady = proofTreeDto => {
+    let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
         setStatePriv(st => {
             let st = applyUnifyAllResults(st, proofTreeDto)
             editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
             setHist(ht => ht->editorHistAddSnapshot(st))
-            st
+            st->setNextAction(Some(Action(nextAction)))
         })
     }
 
@@ -869,13 +854,15 @@ let make = (
         }
     }
 
-    let actUnify = (
+    let rec actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
         ~selectFirstFoundProof:bool=false,
+        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit = _ => (),
+        ~nextAction: unit=>unit = ()=>(),
         ()
     ) => {
         switch state.wrkCtx {
@@ -940,8 +927,8 @@ let make = (
                                     initialDebugLevel=?initialDebugLevel
                                     selectFirstFoundProof
                                     onResultSelected={newStmtsDto => {
+                                        actBottomUpResultSelected( newStmtsDto, bottomUpProofResultConsumer )
                                         closeModal(modalRef, modalId)
-                                        actBottomUpResultSelected(newStmtsDto)
                                     }}
                                     onCancel={() => closeModal(modalRef, modalId)}
                                 />
@@ -980,25 +967,51 @@ let make = (
                                     )
                                 )
                             )->promiseMap(proofTreeDto => {
+                                actUnifyAllResultsAreReady(proofTreeDto, nextAction)
                                 closeModal(modalRef, modalId)
-                                actUnifyAllResultsAreReady(proofTreeDto)
                             })
                         })->ignore
                     }
                 }
             }
         }
+    } and let actBottomUpResultSelected = (
+        selectedResult:option<stmtsDto>,
+        bottomUpProofResultConsumer:option<stmtsDto>=>unit,
+    ) => {
+        switch selectedResult {
+            | None => bottomUpProofResultConsumer(selectedResult)
+            | Some(selectedResult) => {
+                setState(st => {
+                    let st = st->addNewStatements(selectedResult)
+                    let st = st->uncheckAllStmts
+                    let st = st->setNextAction(Some(
+                        UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(selectedResult))})
+                    ))
+                    st
+                })
+            }
+        }
     }
 
     React.useEffect1(() => {
-        if (state.unifyAllIsRequired) {
-            setStatePriv(setUnifyAllIsRequired(_,false))
-            if (!editorStateHasErrors(state)) {
-                actUnify(())
+        switch state.nextAction {
+            | None => ()
+            | Some(action) => {
+                setStatePriv(setNextAction(_,None))
+                switch action {
+                    | UnifyAll({nextAction}) => actUnify(~nextAction, ())
+                    | MergeNextDuplicate => {
+                        if (state->editorStateHasDuplicatedStmts) {
+                            actMergeStmts()
+                        }
+                    }
+                    | Action(action) => action()
+                }
             }
         }
         None
-    }, [state.unifyAllIsRequired])
+    }, [state.nextAction])
 
     let actExportProof = (stmtId) => {
         switch generateCompressedProof(state, stmtId) {
@@ -1685,17 +1698,39 @@ let make = (
         ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
         ~startProvingBottomUp = (params) => {
-            if (generalModificationActionIsEnabled) {
-                actUnify( 
-                    ~stmtId=params.stmtId, 
-                    ~params=params.bottomUpProverParams, 
+            promise(resolve => {
+                actUnify(
+                    ~stmtId=params.stmtId,
+                    ~params=params.bottomUpProverParams,
                     ~initialDebugLevel=params.debugLevel,
                     ~isApiCall=true,
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
                     ~selectFirstFoundProof=params.selectFirstFoundProof,
+                    ~bottomUpProofResultConsumer = stmtsDto => {
+                        if (params.selectFirstFoundProof) {
+                            switch stmtsDto {
+                                | None => resolve(None)
+                                | Some(stmtsDto) => {
+                                    let len = stmtsDto.stmts->Js_array2.length
+                                    if (len == 0) {
+                                        Js_exn.raiseError(
+                                            `bottom-up prover returned stmtsDto.stmts->Js_array2.length == 0.`
+                                        )
+                                    } else {
+                                        resolve(Some(stmtsDto.stmts[len-1].isProved))
+                                    }
+                                }
+                            }
+                        }
+                    },
                     ()
                 )
-            }
+                if (!params.selectFirstFoundProof) {
+                    resolve(None)
+                } else {
+                    ()
+                }
+            })
         }
     )
 

@@ -18,8 +18,8 @@ type proverParams = {
 }
 
 let updateEditorApi: (
-  ~state: MM_wrk_editor.editorState,
-  ~showError: string => unit,
-  ~canStartProvingBottomUp:bool,
-  ~startProvingBottomUp:proverParams=>unit,
+    ~state: MM_wrk_editor.editorState,
+    ~showError: string => unit,
+    ~canStartProvingBottomUp:bool,
+    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
 ) => unit
