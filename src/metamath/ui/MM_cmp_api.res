@@ -1,6 +1,8 @@
 open MM_wrk_editor
 open Expln_utils_promise
 open Common
+open MM_context
+open MM_syntax_tree
 
 type api = (string,Js.Json.t) => promise<Js_json.t>
 
@@ -18,6 +20,43 @@ let fun = {
     "editor": {
         "getState": funcNameGetState, 
         "proveBottomUp": funcNameProveBottomUp,
+    }
+}
+
+let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t => {
+    Js_dict.fromArray([
+        ("nodeType", "expr"->Js_json.string),
+        ("exprType", ctx->ctxIntToSymExn(node.typ)->Js_json.string),
+        ("label", node.label->Js_json.string),
+        ("children", node.children->Js.Array2.map(childNodeToJson(ctx,_))->Js_json.array ),
+    ])->Js_json.object_ 
+} and childNodeToJson = (ctx:mmContext, node:childNode):Js_json.t => {
+    switch node {
+        | Subtree(subtree) => syntaxTreeNodeToJson(ctx, subtree)
+        | Symbol({sym, isVar}) => {
+            Js_dict.fromArray([
+                ("nodeType", "sym"->Js_json.string),
+                ("sym", sym->Js_json.string),
+                ("isVar", isVar->Js_json.boolean),
+            ])->Js_json.object_ 
+        }
+    }
+}
+
+let syntaxTreeToJson = (state:editorState, stmt:userStmt):Js_json.t => {
+    switch state.wrkCtx {
+        | None => Js_json.null
+        | Some(wrkCtx) => {
+            switch stmt.cont {
+                | Text(_) => Js_json.null
+                | Tree({exprTyp, root}) => {
+                    Js_dict.fromArray([
+                        ("exprType", exprTyp->Js_json.string),
+                        ("root", syntaxTreeNodeToJson(wrkCtx, root)),
+                    ])->Js_json.object_
+                }
+            }
+        }
     }
 }
 
@@ -60,6 +99,7 @@ let getAllSteps = (~state:editorState):Js_json.t => {
                 )
             ),
             ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
+            ("tree", syntaxTreeToJson(state, stmt)),
             ("stmtErr", 
                 switch stmt.stmtErr {
                     | None => Js_json.null
