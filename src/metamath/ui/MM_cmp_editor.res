@@ -1697,8 +1697,8 @@ let make = (
         promise(resolve => {
             setState(st => {
                 switch update(st) {
-                    | Error(msg) => st->setNextAction(Some(Action(() => resolve(Error(msg)))))
                     | Ok((st,json)) => st->setNextAction(Some(Action(() => resolve(Ok(json)))))
+                    | Error(msg) => st->setNextAction(Some(Action(() => resolve(Error(msg)))))
                 }
             })
         })

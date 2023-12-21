@@ -308,26 +308,82 @@ let unifyAll = (
 }
 
 
-type stepInputParams = {
-    id: option<stmtId>,
+type addStepInputParams = {
     label: option<string>,
     typ: option<string>,
-    cont: option<string>,
+    stmt: option<string>,
     jstf: option<string>,
 }
 type addStepsInputParams = {
     atIdx: option<int>,
-    steps: option<string>,
-    typ: option<userStmtTypeExtended>,
-    cont: option<string>,
-    jstf: option<string>,
+    steps: array<addStepInputParams>,
 }
-// let addSteps = (
-//     ~showError:string=>promise<Js_json.t>,
-//     ~setState:(editorState=>editorState)=>promise<unit>,
-// ):promise<Js_json.t> => {
-
-// }
+let addSteps = (
+    ~paramsJson:Js_json.t,
+    ~showError:string=>promise<Js_json.t>,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+):promise<Js_json.t> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<addStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
+        {
+            atIdx: d->intOpt("atIdx", ()),
+            steps: d->arr("steps", asObj(_, d=>{
+                {
+                    label: d->strOpt("label", ()),
+                    typ: d->strOpt("type", ~validator = str => {
+                        switch str {
+                            | None => Ok(str)
+                            | Some(str) => {
+                                if (str == "H" || str == "P" || str == "G") {
+                                    Ok(Some(str))
+                                } else {
+                                    Error(`Step type must be one of: H,P,G.`)
+                                }
+                            }
+                        }
+                    }, ()),
+                    stmt: d->strOpt("stmt", ()),
+                    jstf: d->strOpt("jstf", ()),
+                }
+            }, ()), ()),
+        }
+    }, ()), ())
+    switch parseResult {
+        | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
+        | Ok(parseResult) => {
+            setState(st => {
+                let steps = parseResult.steps->Js_array2.map(step => {
+                    {
+                        id: None,
+                        label: step.label,
+                        typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
+                        cont: step.stmt,
+                        jstf: step.jstf,
+                    }
+                })
+                switch st->addSteps(~atIdx=?parseResult.atIdx, ~steps, ()) {
+                    | Error(msg) => Error(msg)
+                    | Ok((st,stmtIds)) => {
+                        let stmtIdToLabel = Belt_HashMapString.fromArray(
+                            st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+                        )
+                        Ok(
+                            st,
+                            stmtIds->Js_array2.map(stmtId => {
+                                stmtIdToLabel->Belt_HashMapString.get(stmtId)->Belt.Option.getExn->Js_json.string
+                            })->Js_json.array
+                        )
+                    }
+                }
+            })->promiseFlatMap(res => {
+                switch res {
+                    | Error(msg) => showError(msg)
+                    | Ok(stmtLabel) => promise(resolve => resolve(stmtLabel))
+                }
+            })
+        }
+    }
+}
 
 let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.t>) => msg => {
     showError(`${funcName}: ${msg}`)
@@ -348,7 +404,7 @@ let makeEditorApi = (
             getEditorState(~state)
         } else if (funcName == funcNameProveBottomUp) {
             proveBottomUp(
-                ~paramsJson, 
+                ~paramsJson,
                 ~state, 
                 ~showError=makeShowError(funcName,showError),
                 ~canStartProvingBottomUp,
@@ -359,6 +415,12 @@ let makeEditorApi = (
                 ~showError=makeShowError(funcName,showError),
                 ~canStartUnifyAll,
                 ~startUnifyAll,
+            )
+        } else if (funcName == funcNameAddSteps) {
+            addSteps(
+                ~paramsJson,
+                ~showError=makeShowError(funcName,showError),
+                ~setState,
             )
         } else {
             showError(`Unknown api function ${funcName}`)

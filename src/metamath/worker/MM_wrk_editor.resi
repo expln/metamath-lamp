@@ -54,7 +54,7 @@ type userStmtType = E | P
 type userStmtTypeExtended = H | P | G
 let userStmtTypeFromStr: string => userStmtType
 let userStmtTypeToStr: userStmtType => string
-let userStmtTypeExtendedFromStr: string => userStmtTypeExtended
+let userStmtTypeExtendedFromStrExn: string => userStmtTypeExtended
 
 let readInstrToStr: readInstr => string
 let readInstrFromStr: string => readInstr

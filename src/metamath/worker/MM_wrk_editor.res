@@ -106,7 +106,7 @@ let userStmtTypeToStr = typ => {
     }
 }
 
-let userStmtTypeExtendedFromStr = (str:string):userStmtTypeExtended => {
+let userStmtTypeExtendedFromStrExn = (str:string):userStmtTypeExtended => {
     switch str {
         | "H" => H
         | "P" => P
