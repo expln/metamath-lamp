@@ -4,28 +4,7 @@ open Common
 open MM_context
 open MM_syntax_tree
 
-type api = (string,Js.Json.t) => promise<Js_json.t>
-
-let apiRef:ref<option<api>> = ref(None)
-let apiEntry = (funcName:string, params:Js_json.t):promise<Js_json.t> => {
-    switch apiRef.contents {
-        | None => promise(resolve => resolve(Js_json.null))
-        | Some(api) => api(funcName, params)
-    }
-}
-
-let funcNameGetState = "editor.getState"
-let funcNameProveBottomUp = "editor.proveBottomUp"
-let funcNameUnifyAll = "editor.unifyAll"
-let funcNameAddSteps = "editor.addSteps"
-let fun = {
-    "editor": {
-        "getState": funcNameGetState, 
-        "proveBottomUp": funcNameProveBottomUp,
-        "unifyAll": funcNameUnifyAll,
-        "addSteps": funcNameAddSteps,
-    }
-}
+type api = Js.Json.t => promise<Js_json.t>
 
 let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t => {
     Js_dict.fromArray([
@@ -378,7 +357,7 @@ let addSteps = (
             })->promiseFlatMap(res => {
                 switch res {
                     | Error(msg) => showError(msg)
-                    | Ok(stmtLabel) => promise(resolve => resolve(stmtLabel))
+                    | Ok(stmtLabel) => promiseResolved(stmtLabel)
                 }
             })
         }
@@ -390,42 +369,25 @@ let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.
     promise(resolve => resolve(Js_json.null))
 }
 
-let makeEditorApi = (
-    ~state:editorState,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-    ~showError:string=>unit,
-    ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
-    ~canStartUnifyAll:bool,
-    ~startUnifyAll:unit=>promise<unit>,
-):api => {
-    (funcName,paramsJson) => {
-        if (funcName == funcNameGetState) {
-            getEditorState(~state)
-        } else if (funcName == funcNameProveBottomUp) {
-            proveBottomUp(
-                ~paramsJson,
-                ~state, 
-                ~showError=makeShowError(funcName,showError),
-                ~canStartProvingBottomUp,
-                ~startProvingBottomUp,
-            )
-        } else if (funcName == funcNameUnifyAll) {
-            unifyAll(
-                ~showError=makeShowError(funcName,showError),
-                ~canStartUnifyAll,
-                ~startUnifyAll,
-            )
-        } else if (funcName == funcNameAddSteps) {
-            addSteps(
-                ~paramsJson,
-                ~showError=makeShowError(funcName,showError),
-                ~setState,
-            )
-        } else {
-            showError(`Unknown api function ${funcName}`)
-            promise(resolve => resolve(Js_json.null))
+let makeApiFunc = (ref:ref<option<api>>):api => {
+    params => {
+        switch ref.contents {
+            | None => Js.Exn.raiseError("api function is not defined")
+            | Some(func) => func(params)
         }
+    }
+}
+
+let getStateRef:ref<option<api>> = ref(None)
+let proveBottomUpRef:ref<option<api>> = ref(None)
+let unifyAllRef:ref<option<api>> = ref(None)
+let addStepsRef:ref<option<api>> = ref(None)
+let api = {
+    "editor": {
+        "getState": makeApiFunc(getStateRef),
+        "proveBottomUp": makeApiFunc(proveBottomUpRef),
+        "unifyAll": makeApiFunc(unifyAllRef),
+        "addSteps": makeApiFunc(addStepsRef),
     }
 }
 
@@ -438,15 +400,28 @@ let updateEditorApi = (
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
 ):unit => {
-    apiRef := Some(
-        makeEditorApi(
-            ~state,
-            ~setState,
-            ~showError,
+    getStateRef := Some(_ => getEditorState(~state))
+    proveBottomUpRef := Some(params => {
+        proveBottomUp(
+            ~paramsJson=params,
+            ~state, 
+            ~showError=makeShowError("editor.proveBottomUp",showError),
             ~canStartProvingBottomUp,
             ~startProvingBottomUp,
+        )
+    })
+    unifyAllRef := Some(_ => {
+        unifyAll(
+            ~showError=makeShowError("editor.unifyAll",showError),
             ~canStartUnifyAll,
             ~startUnifyAll,
         )
-    )
+    })
+    addStepsRef := Some(params => {
+        addSteps(
+            ~paramsJson=params,
+            ~showError=makeShowError("editor.addSteps",showError),
+            ~setState,
+        )
+    })
 }

@@ -1,15 +1,13 @@
 open MM_wrk_editor
 
-type api = (string, Js.Json.t) => promise<Js_json.t>
+type api = Js.Json.t => promise<Js_json.t>
 
-let apiEntry: api
-
-let fun: {
+let api: {
     "editor" : {
-        "getState": string,
-        "proveBottomUp": string,
-        "unifyAll": string,
-        "addSteps": string,
+        "getState": api,
+        "proveBottomUp": api,
+        "unifyAll": api,
+        "addSteps": api,
     }
 }
 
