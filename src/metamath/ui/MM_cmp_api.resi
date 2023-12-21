@@ -7,6 +7,7 @@ let fun: {
         "getState": string,
         "proveBottomUp": string,
         "unifyAll": string,
+        "addSteps": string,
     }
 }
 

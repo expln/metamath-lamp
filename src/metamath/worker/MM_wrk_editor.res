@@ -89,6 +89,7 @@ let strToCont = (
 }
 
 type userStmtType = E | P
+type userStmtTypeExtended = H | P | G
 
 let userStmtTypeFromStr = str => {
     switch str {
@@ -102,6 +103,23 @@ let userStmtTypeToStr = typ => {
     switch typ {
         | E => "e"
         | P => "p"
+    }
+}
+
+let userStmtTypeExtendedFromStr = (str:string):userStmtTypeExtended => {
+    switch str {
+        | "H" => H
+        | "P" => P
+        | "G" => G
+        | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtTypeExtended. Possible values are H, P, G.`}))
+    }
+}
+
+let userStmtTypeExtendedToUserStmtType = (typExt:userStmtTypeExtended):(userStmtType,bool) => {
+    switch typExt {
+        | H => (E,false)
+        | P => (P,false)
+        | G => (P,true)
     }
 }
 
@@ -181,6 +199,14 @@ type userStmt = {
     proofStatus: option<proofStatus>,
     unifErr: option<string>,
     syntaxErr: option<string>,
+}
+
+type userStmtDtoOpt = {
+    id: option<stmtId>,
+    label: option<string>,
+    typ: option<userStmtTypeExtended>,
+    cont: option<string>,
+    jstf: option<string>,
 }
 
 type editorStateAction = 
@@ -836,7 +862,7 @@ let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {
 }
 
 let sortStmtsByType = st => {
-    let stmtToInt = stmt => {
+    let stmtToInt = (stmt:userStmt) => {
         switch stmt.typ {
             | E => 1
             | P => {
@@ -1328,7 +1354,7 @@ let insertStmt = (
                         }
                     }
 
-                    let updateExistingStmt = (st,existingStmt):(editorState,string) => {
+                    let updateExistingStmt = (st,existingStmt:userStmt):(editorState,string) => {
                         let st = switch jstf {
                             | None => st
                             | Some(jstf) => {
@@ -1524,7 +1550,12 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserStmt):option<jstf> => {
+let srcToJstf = (
+    wrkCtx:mmContext, 
+    proofTree:proofTreeDto, 
+    exprSrc:exprSrcDto, 
+    exprToUserStmt:Belt_HashMap.t<expr,userStmt,ExprHash.identity>
+):option<jstf> => {
     switch exprSrc {
         | Assertion({args, label}) => {
             switch wrkCtx->getFrame(label) {
@@ -1557,7 +1588,9 @@ let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserS
     }
 }
 
-let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
+let userStmtSetJstfTextAndProof = (
+    stmt:userStmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt
+):userStmt => {
     let stmt = switch proofNode.proof {
         | None => stmt
         | Some(proofSrc) => {
@@ -2126,7 +2159,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
     }
 }
 
-let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
+let completeTypEditMode = (st:editorState, stmtId:stmtId, newTyp:userStmtType, newIsGoal:bool) => {
     let oldStmt = st->editorGetStmtByIdExn(stmtId)
     let st = updateStmt(st, stmtId, stmt => {
         {
@@ -2182,6 +2215,76 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     })
     let newStmt = st->editorGetStmtByIdExn(stmtId)
     renameHypToMatchGoal(st, oldStmt, newStmt)
+}
+
+let addSteps = (
+    st:editorState,
+    ~atIdx:option<int>=?,
+    ~steps:array<userStmtDtoOpt>,
+    ()
+):result<(editorState,array<stmtId>),string> => {
+    let updates:array<(result<editorState,string>,stmtId,userStmtDtoOpt)=>result<editorState,string>> = [
+        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+            switch step.cont {
+                | None => Error(`Steps must not have empty statements.`)
+                | Some(cont) => {
+                    if (cont->Js_string2.trim == "") {
+                        Error(`Steps must not have empty statements.`)
+                    } else {
+                        Ok(st->completeContEditMode(stmtId, cont))
+                    }
+                }
+            }
+        }),
+        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+            switch step.label {
+                | None => Ok(st)
+                | Some(label) => {
+                    if (label->Js_string2.trim == "") {
+                        Error(`Steps must not have empty labels.`)
+                    } else {
+                        Ok(st->completeLabelEditMode(stmtId, label))
+                    }
+                }
+            }
+        }),
+        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+            switch step.typ {
+                | None => Ok(st)
+                | Some(typExt) => {
+                    let (typ,isGoal) = typExt->userStmtTypeExtendedToUserStmtType
+                    Ok(st->completeTypEditMode(stmtId, typ, isGoal))
+                }
+            }
+        }),
+        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+            switch step.jstf {
+                | None => Ok(st)
+                | Some(jstf) => Ok(st->completeJstfEditMode(stmtId, jstf))
+            }
+        }),
+    ]
+    let stmtIds = []
+    let res = steps->Js_array2.reducei(
+        (res, step, i) => {
+            switch res {
+                | Error(_) => res
+                | Ok(st) => {
+                    let (st,stmtId) = switch atIdx {
+                        | None => st->addNewStmt
+                        | Some(atIdx) => st->addNewStmtAtIdx(atIdx+i)
+                    }
+                    stmtIds->Js.Array2.push(stmtId)->ignore
+                    updates->Js.Array2.reduce((res,update) => update(res,stmtId,step), Ok(st))
+                }
+            }
+        },
+        Ok(st)
+    )
+    switch res {
+        | Error(msg) => Error(msg)
+        | Ok(st) => Ok((st,stmtIds))
+    }
 }
 
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {

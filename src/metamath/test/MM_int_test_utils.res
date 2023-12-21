@@ -28,7 +28,7 @@ let proofStatusToStr = status => {
 }
 
 let editorStateToStr = st => {
-    let userStmtTypeToStr = stmt => {
+    let userStmtTypeToStr = (stmt:userStmt) => {
         switch stmt.typ {
             | E => "e"
             | P => if (stmt.isGoal) {"g"} else {"p"}

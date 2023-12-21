@@ -51,8 +51,10 @@ let strToCont: (
 ) => stmtCont
 
 type userStmtType = E | P
+type userStmtTypeExtended = H | P | G
 let userStmtTypeFromStr: string => userStmtType
 let userStmtTypeToStr: userStmtType => string
+let userStmtTypeExtendedFromStr: string => userStmtTypeExtended
 
 let readInstrToStr: readInstr => string
 let readInstrFromStr: string => readInstr
@@ -96,6 +98,14 @@ type userStmt = {
     proofStatus: option<proofStatus>,
     unifErr: option<string>,
     syntaxErr: option<string>,
+}
+
+type userStmtDtoOpt = {
+    id: option<stmtId>,
+    label: option<string>,
+    typ: option<userStmtTypeExtended>,
+    cont: option<string>,
+    jstf: option<string>,
 }
 
 type editorStateAction = 
@@ -164,6 +174,8 @@ let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
 let addNewStmt: editorState => (editorState,stmtId)
+let addNewStatements: (editorState, stmtsDto) => editorState
+let addSteps: (editorState, ~atIdx:int=?, ~steps:array<userStmtDtoOpt>, ()) => result<(editorState,array<stmtId>),string>
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool) => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
@@ -187,7 +199,6 @@ let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
 let editorStateHasDuplicatedStmts: editorState => bool
 let createNewDisj: (editorState, disjMutable) => editorState
-let addNewStatements: (editorState, stmtsDto) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState

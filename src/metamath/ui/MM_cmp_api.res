@@ -17,11 +17,13 @@ let apiEntry = (funcName:string, params:Js_json.t):promise<Js_json.t> => {
 let funcNameGetState = "editor.getState"
 let funcNameProveBottomUp = "editor.proveBottomUp"
 let funcNameUnifyAll = "editor.unifyAll"
+let funcNameAddSteps = "editor.addSteps"
 let fun = {
     "editor": {
         "getState": funcNameGetState, 
         "proveBottomUp": funcNameProveBottomUp,
         "unifyAll": funcNameUnifyAll,
+        "addSteps": funcNameAddSteps,
     }
 }
 
@@ -304,6 +306,28 @@ let unifyAll = (
         startUnifyAll()->promiseMap(_ => Js_json.null)
     }
 }
+
+
+type stepInputParams = {
+    id: option<stmtId>,
+    label: option<string>,
+    typ: option<string>,
+    cont: option<string>,
+    jstf: option<string>,
+}
+type addStepsInputParams = {
+    atIdx: option<int>,
+    steps: option<string>,
+    typ: option<userStmtTypeExtended>,
+    cont: option<string>,
+    jstf: option<string>,
+}
+// let addSteps = (
+//     ~showError:string=>promise<Js_json.t>,
+//     ~setState:(editorState=>editorState)=>promise<unit>,
+// ):promise<Js_json.t> => {
+
+// }
 
 let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.t>) => msg => {
     showError(`${funcName}: ${msg}`)
