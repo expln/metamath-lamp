@@ -336,6 +336,7 @@ let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.
 
 let makeEditorApi = (
     ~state:editorState,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
@@ -368,6 +369,7 @@ let makeEditorApi = (
 
 let updateEditorApi = (
     ~state:editorState,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
@@ -377,6 +379,7 @@ let updateEditorApi = (
     apiRef := Some(
         makeEditorApi(
             ~state,
+            ~setState,
             ~showError,
             ~canStartProvingBottomUp,
             ~startProvingBottomUp,

@@ -1,3 +1,5 @@
+open MM_wrk_editor
+
 type api = (string, Js.Json.t) => promise<Js_json.t>
 
 let apiEntry: api
@@ -13,14 +15,15 @@ let fun: {
 
 type proverParams = {
     delayBeforeStartMs:int,
-    stmtId: MM_wrk_editor.stmtId,
+    stmtId: stmtId,
     debugLevel:int,
     bottomUpProverParams: MM_provers.bottomUpProverParams,
     selectFirstFoundProof:bool,
 }
 
 let updateEditorApi: (
-    ~state: MM_wrk_editor.editorState,
+    ~state: editorState,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
     ~showError: string => unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,

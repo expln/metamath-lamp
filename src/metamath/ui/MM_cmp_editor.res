@@ -1693,8 +1693,20 @@ let make = (
         })->React.array
     }
 
+    let actSetStateFromApi = (update:editorState=>result<(editorState,Js_json.t),string>):promise<result<Js_json.t,string>> => {
+        promise(resolve => {
+            setState(st => {
+                switch update(st) {
+                    | Error(msg) => st->setNextAction(Some(Action(() => resolve(Error(msg)))))
+                    | Ok((st,json)) => st->setNextAction(Some(Action(() => resolve(Ok(json)))))
+                }
+            })
+        })
+    }
+
     MM_cmp_api.updateEditorApi(
         ~state,
+        ~setState=actSetStateFromApi,
         ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
         ~startProvingBottomUp = (params) => {
