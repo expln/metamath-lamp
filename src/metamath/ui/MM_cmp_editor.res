@@ -1731,6 +1731,16 @@ let make = (
                     ()
                 }
             })
+        },
+        ~canStartUnifyAll=generalModificationActionIsEnabled,
+        ~startUnifyAll = () => {
+            promise(resolve => {
+                setState(st => {
+                    let st = st->uncheckAllStmts
+                    let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(())})))
+                    st
+                })
+            })
         }
     )
 

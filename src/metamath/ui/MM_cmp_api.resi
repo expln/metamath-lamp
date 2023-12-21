@@ -4,8 +4,9 @@ let apiEntry: api
 
 let fun: {
     "editor" : {
-        "getState": string, 
-        "proveBottomUp": string
+        "getState": string,
+        "proveBottomUp": string,
+        "unifyAll": string,
     }
 }
 
@@ -22,4 +23,6 @@ let updateEditorApi: (
     ~showError: string => unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~canStartUnifyAll:bool,
+    ~startUnifyAll:unit=>promise<unit>,
 ) => unit

@@ -16,10 +16,12 @@ let apiEntry = (funcName:string, params:Js_json.t):promise<Js_json.t> => {
 
 let funcNameGetState = "editor.getState"
 let funcNameProveBottomUp = "editor.proveBottomUp"
+let funcNameUnifyAll = "editor.unifyAll"
 let fun = {
     "editor": {
         "getState": funcNameGetState, 
         "proveBottomUp": funcNameProveBottomUp,
+        "unifyAll": funcNameUnifyAll,
     }
 }
 
@@ -289,6 +291,20 @@ let proveBottomUp = (
     }
 }
 
+let unifyAll = (
+    ~showError:string=>promise<Js_json.t>,
+    ~canStartUnifyAll:bool,
+    ~startUnifyAll:unit=>promise<unit>,
+):promise<Js_json.t> => {
+    if (!canStartUnifyAll) {
+        showError(
+            "Cannot start \"Unify All\" because either there are syntax errors in the editor or edit is in progress."
+        )
+    } else {
+        startUnifyAll()->promiseMap(_ => Js_json.null)
+    }
+}
+
 let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.t>) => msg => {
     showError(`${funcName}: ${msg}`)
     promise(resolve => resolve(Js_json.null))
@@ -299,6 +315,8 @@ let makeEditorApi = (
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~canStartUnifyAll:bool,
+    ~startUnifyAll:unit=>promise<unit>,
 ):api => {
     (funcName,paramsJson) => {
         if (funcName == funcNameGetState) {
@@ -310,6 +328,12 @@ let makeEditorApi = (
                 ~showError=makeShowError(funcName,showError),
                 ~canStartProvingBottomUp,
                 ~startProvingBottomUp,
+            )
+        } else if (funcName == funcNameUnifyAll) {
+            unifyAll(
+                ~showError=makeShowError(funcName,showError),
+                ~canStartUnifyAll,
+                ~startUnifyAll,
             )
         } else {
             showError(`Unknown api function ${funcName}`)
@@ -323,6 +347,8 @@ let updateEditorApi = (
     ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~canStartUnifyAll:bool,
+    ~startUnifyAll:unit=>promise<unit>,
 ):unit => {
     apiRef := Some(
         makeEditorApi(
@@ -330,6 +356,8 @@ let updateEditorApi = (
             ~showError,
             ~canStartProvingBottomUp,
             ~startProvingBottomUp,
+            ~canStartUnifyAll,
+            ~startUnifyAll,
         )
     )
 }
