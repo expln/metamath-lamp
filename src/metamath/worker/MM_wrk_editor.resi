@@ -175,7 +175,6 @@ let moveCheckedStmts: (editorState, bool) => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
 let addNewStmt: editorState => (editorState,stmtId)
 let addNewStatements: (editorState, stmtsDto) => editorState
-let addSteps: (editorState, ~atIdx:int=?, ~steps:array<userStmtDtoOpt>, ()) => result<(editorState,array<stmtId>),string>
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool) => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
@@ -217,6 +216,9 @@ let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
+
+let addSteps: (editorState, ~atIdx:int=?, ~steps:array<userStmtDtoOpt>, ()) => result<(editorState,array<stmtId>),string>
+let updateSteps: ( editorState, array<userStmtDtoOpt>) => result<editorState,string>
 
 let getSelectedSubtree: stmtContTreeData => option<childNode>
 let getSelectedSubtreeFromStmtCont: stmtCont => option<childNode>

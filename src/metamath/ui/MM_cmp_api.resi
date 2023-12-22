@@ -8,6 +8,7 @@ let api: {
         "proveBottomUp": api,
         "unifyAll": api,
         "addSteps": api,
+        "updateSteps": api,
     }
 }
 

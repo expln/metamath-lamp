@@ -286,6 +286,18 @@ let unifyAll = (
     }
 }
 
+let validateStepType = (typ:option<string>):result<option<string>,string> => {
+    switch typ {
+        | None => Ok(typ)
+        | Some(typ) => {
+            if (typ == "H" || typ == "P" || typ == "G") {
+                Ok(Some(typ))
+            } else {
+                Error(`Step type must be one of: H,P,G.`)
+            }
+        }
+    }
+}
 
 type addStepInputParams = {
     label: option<string>,
@@ -309,18 +321,7 @@ let addSteps = (
             steps: d->arr("steps", asObj(_, d=>{
                 {
                     label: d->strOpt("label", ()),
-                    typ: d->strOpt("type", ~validator = str => {
-                        switch str {
-                            | None => Ok(str)
-                            | Some(str) => {
-                                if (str == "H" || str == "P" || str == "G") {
-                                    Ok(Some(str))
-                                } else {
-                                    Error(`Step type must be one of: H,P,G.`)
-                                }
-                            }
-                        }
-                    }, ()),
+                    typ: d->strOpt("type", ~validator=validateStepType, ()),
                     stmt: d->strOpt("stmt", ()),
                     jstf: d->strOpt("jstf", ()),
                 }
@@ -357,7 +358,69 @@ let addSteps = (
             })->promiseFlatMap(res => {
                 switch res {
                     | Error(msg) => showError(msg)
-                    | Ok(stmtLabel) => promiseResolved(stmtLabel)
+                    | Ok(stmtLabels) => promiseResolved(stmtLabels)
+                }
+            })
+        }
+    }
+}
+
+type updateStepInputParams = {
+    label: string,
+    typ: option<string>,
+    stmt: option<string>,
+    jstf: option<string>,
+}
+type updateStepsInputParams = {
+    steps: array<updateStepInputParams>,
+}
+let updateSteps = (
+    ~paramsJson:Js_json.t,
+    ~showError:string=>promise<Js_json.t>,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+):promise<Js_json.t> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<updateStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
+        {
+            steps: d->arr("steps", asObj(_, d=>{
+                {
+                    label: d->str("label", ()),
+                    typ: d->strOpt("type", ~validator=validateStepType, ()),
+                    stmt: d->strOpt("stmt", ()),
+                    jstf: d->strOpt("jstf", ()),
+                }
+            }, ()), ()),
+        }
+    }, ()), ())
+    switch parseResult {
+        | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
+        | Ok(parseResult) => {
+            setState(st => {
+                let labelToStmtId = st.stmts->Js_array2.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
+                let stepWithoutId = parseResult.steps
+                    ->Js_array2.find(step => labelToStmtId->Belt_HashMapString.get(step.label)->Belt.Option.isNone)
+                switch stepWithoutId {
+                    | Some(step) => Error(`Cannot find step with label '${step.label}'`)
+                    | None => {
+                        let steps = parseResult.steps->Js_array2.map(step => {
+                            {
+                                id: labelToStmtId->Belt_HashMapString.get(step.label),
+                                label: None,
+                                typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
+                                cont: step.stmt,
+                                jstf: step.jstf,
+                            }
+                        })
+                        switch st->updateSteps(steps) {
+                            | Error(msg) => Error(msg)
+                            | Ok(st) => Ok( st, true->Js_json.boolean )
+                        }
+                    }
+                }
+            })->promiseFlatMap(res => {
+                switch res {
+                    | Error(msg) => showError(msg)
+                    | Ok(json) => promiseResolved(json)
                 }
             })
         }
@@ -382,12 +445,14 @@ let getStateRef:ref<option<api>> = ref(None)
 let proveBottomUpRef:ref<option<api>> = ref(None)
 let unifyAllRef:ref<option<api>> = ref(None)
 let addStepsRef:ref<option<api>> = ref(None)
+let updateStepsRef:ref<option<api>> = ref(None)
 let api = {
     "editor": {
         "getState": makeApiFunc(getStateRef),
         "proveBottomUp": makeApiFunc(proveBottomUpRef),
         "unifyAll": makeApiFunc(unifyAllRef),
         "addSteps": makeApiFunc(addStepsRef),
+        "updateSteps": makeApiFunc(updateStepsRef),
     }
 }
 
@@ -419,6 +484,13 @@ let updateEditorApi = (
     })
     addStepsRef := Some(params => {
         addSteps(
+            ~paramsJson=params,
+            ~showError=makeShowError("editor.addSteps",showError),
+            ~setState,
+        )
+    })
+    updateStepsRef := Some(params => {
+        updateSteps(
             ~paramsJson=params,
             ~showError=makeShowError("editor.addSteps",showError),
             ~setState,

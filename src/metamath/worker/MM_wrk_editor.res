@@ -2223,8 +2223,8 @@ let addSteps = (
     ~steps:array<userStmtDtoOpt>,
     ()
 ):result<(editorState,array<stmtId>),string> => {
-    let updates:array<(result<editorState,string>,stmtId,userStmtDtoOpt)=>result<editorState,string>> = [
-        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+    let updates:array<(editorState,stmtId,userStmtDtoOpt)=>result<editorState,string>> = [
+        (st,stmtId,step) => {
             switch step.cont {
                 | None => Error(`Steps must not have empty statements.`)
                 | Some(cont) => {
@@ -2235,8 +2235,8 @@ let addSteps = (
                     }
                 }
             }
-        }),
-        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+        },
+        (st,stmtId,step) => {
             switch step.label {
                 | None => Ok(st)
                 | Some(label) => {
@@ -2247,8 +2247,8 @@ let addSteps = (
                     }
                 }
             }
-        }),
-        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+        },
+        (st,stmtId,step) => {
             switch step.typ {
                 | None => Ok(st)
                 | Some(typExt) => {
@@ -2256,13 +2256,13 @@ let addSteps = (
                     Ok(st->completeTypEditMode(stmtId, typ, isGoal))
                 }
             }
-        }),
-        (res,stmtId,step) => res->Belt_Result.flatMap(st => {
+        },
+        (st,stmtId,step) => {
             switch step.jstf {
                 | None => Ok(st)
                 | Some(jstf) => Ok(st->completeJstfEditMode(stmtId, jstf))
             }
-        }),
+        },
     ]
     let stmtIds = []
     let res = steps->Js_array2.reducei(
@@ -2275,7 +2275,7 @@ let addSteps = (
                         | Some(atIdx) => st->addNewStmtAtIdx(atIdx+i)
                     }
                     stmtIds->Js.Array2.push(stmtId)->ignore
-                    updates->Js.Array2.reduce((res,update) => update(res,stmtId,step), Ok(st))
+                    updates->Js.Array2.reduce((res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)), Ok(st))
                 }
             }
         },
@@ -2284,6 +2284,79 @@ let addSteps = (
     switch res {
         | Error(msg) => Error(msg)
         | Ok(st) => Ok((st,stmtIds))
+    }
+}
+
+let updateSteps = (
+    st:editorState,
+    steps:array<userStmtDtoOpt>,
+):result<editorState,string> => {
+    let updates:array<(userStmt,userStmtDtoOpt)=>result<userStmt,string>> = [
+        (stmt,step) => {
+            switch step.cont {
+                | None => Ok(stmt)
+                | Some(cont) => {
+                    if (cont->Js_string2.trim == "") {
+                        Error(`Steps must not have empty statements.`)
+                    } else {
+                        Ok({
+                            ...stmt,
+                            cont:strToCont(cont, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
+                            contEditMode: false,
+                            isDuplicated: false,
+                        })
+                    }
+                }
+            }
+        },
+        (stmt,step) => {
+            switch step.typ {
+                | None => Ok(stmt)
+                | Some(typExt) => {
+                    let (typ,isGoal) = typExt->userStmtTypeExtendedToUserStmtType
+                    Ok({ ...stmt, typ:typ, isGoal:isGoal, typEditMode: false })
+                }
+            }
+        },
+        (stmt,step) => {
+            switch step.jstf {
+                | None => Ok(stmt)
+                | Some(jstf) => Ok({ ...stmt, jstfText:jstf, jstfEditMode:false })
+            }
+        },
+    ]
+    let stmtIdToStepDto = steps->Js_array2.filter(step => step.id->Belt_Option.isSome)
+        ->Js.Array2.map(step => (step.id->Belt_Option.getExn,step))
+        ->Belt_HashMapString.fromArray
+    let newStmtsRes = st.stmts->Js_array2.reduce(
+        (res, stmt) => {
+            switch res {
+                | Error(_) => res
+                | Ok(newStmts) => {
+                    let newStmtRes = switch stmtIdToStepDto->Belt_HashMapString.get(stmt.id) {
+                        | None => Ok(stmt)
+                        | Some(step) => {
+                            updates->Js.Array2.reduce(
+                                (res,update) => res->Belt_Result.flatMap(update(_,step)), 
+                                Ok(stmt)
+                            )
+                        }
+                    }
+                    switch newStmtRes {
+                        | Error(msg) => Error(msg)
+                        | Ok(stmt) => {
+                            newStmts->Js_array2.push(stmt)->ignore
+                            Ok(newStmts)
+                        }
+                    }
+                }
+            }
+        },
+        Ok([])
+    )
+    switch newStmtsRes {
+        | Error(msg) => Error(msg)
+        | Ok(newStmts) => Ok({...st, stmts:newStmts})
     }
 }
 
