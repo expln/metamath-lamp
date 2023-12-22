@@ -371,38 +371,31 @@ type updateStepInputParams = {
     stmt: option<string>,
     jstf: option<string>,
 }
-type updateStepsInputParams = {
-    steps: array<updateStepInputParams>,
-}
 let updateSteps = (
     ~paramsJson:Js_json.t,
     ~showError:string=>promise<Js_json.t>,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
 ):promise<Js_json.t> => {
     open Expln_utils_jsonParse
-    let parseResult:result<updateStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
+    let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson, asArr(_, asObj(_, d=>{
         {
-            steps: d->arr("steps", asObj(_, d=>{
-                {
-                    label: d->str("label", ()),
-                    typ: d->strOpt("type", ~validator=validateStepType, ()),
-                    stmt: d->strOpt("stmt", ()),
-                    jstf: d->strOpt("jstf", ()),
-                }
-            }, ()), ()),
+            label: d->str("label", ()),
+            typ: d->strOpt("type", ~validator=validateStepType, ()),
+            stmt: d->strOpt("stmt", ()),
+            jstf: d->strOpt("jstf", ()),
         }
-    }, ()), ())
+    }, ()), ()), ())
     switch parseResult {
         | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
-        | Ok(parseResult) => {
+        | Ok(inputSteps) => {
             setState(st => {
                 let labelToStmtId = st.stmts->Js_array2.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
-                let stepWithoutId = parseResult.steps
+                let stepWithoutId = inputSteps
                     ->Js_array2.find(step => labelToStmtId->Belt_HashMapString.get(step.label)->Belt.Option.isNone)
                 switch stepWithoutId {
                     | Some(step) => Error(`Cannot find step with label '${step.label}'`)
                     | None => {
-                        let steps = parseResult.steps->Js_array2.map(step => {
+                        let steps = inputSteps->Js_array2.map(step => {
                             {
                                 id: labelToStmtId->Belt_HashMapString.get(step.label),
                                 label: None,
