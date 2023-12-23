@@ -147,12 +147,7 @@ let makeInitialState = (
 
     let params = switch initialParams {
         | Some(params) => params
-        | None => {
-            bottomUpProverParamsMake(
-                ~args0 = possibleArgs, ~allowNewVars=false,
-                ()
-            )
-        }
+        | None => bottomUpProverParamsMake(())
     }
 
     {
