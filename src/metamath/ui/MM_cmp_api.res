@@ -143,6 +143,40 @@ let getEditorState = (~state:editorState):promise<Js_json.t> => {
     })
 }
 
+let getTokenType = (
+    ~paramsJson:Js_json.t,
+    ~state:editorState,
+    ~showError:string=>promise<Js_json.t>,
+):promise<Js_json.t> => {
+    switch state.wrkCtx {
+        | None => showError("Cannot determine token type because the editor contains errors.")
+        | Some(wrkCtx) => {
+            switch Js_json.decodeString(paramsJson) {
+                | None => showError("The parameter of getTokenType() must me a string.")
+                | Some(token) => {
+                    promise(resolve => {
+                        resolve(
+                            switch wrkCtx->getTokenType(token) {
+                                | None => Js_json.null
+                                | Some(tokenType) => {
+                                    switch tokenType {
+                                        | C => "c"
+                                        | V => "v"
+                                        | F => "f"
+                                        | E => "e"
+                                        | A => "a"
+                                        | P => "p"
+                                    }->Js_json.string
+                                }
+                            }
+                        )
+                    })
+                }
+            }
+        }
+    }
+}
+
 let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_context.expr>,string> => {
     labels->Js_array2.reduce(
         (res,label) => {
@@ -290,10 +324,10 @@ let validateStepType = (typ:option<string>):result<option<string>,string> => {
     switch typ {
         | None => Ok(typ)
         | Some(typ) => {
-            if (typ == "H" || typ == "P" || typ == "G") {
+            if (typ == "h" || typ == "p" || typ == "g") {
                 Ok(Some(typ))
             } else {
-                Error(`Step type must be one of: H,P,G.`)
+                Error(`Step type must be one of: h,p,g.`)
             }
         }
     }
@@ -439,6 +473,7 @@ let proveBottomUpRef:ref<option<api>> = ref(None)
 let unifyAllRef:ref<option<api>> = ref(None)
 let addStepsRef:ref<option<api>> = ref(None)
 let updateStepsRef:ref<option<api>> = ref(None)
+let getTokenTypeRef:ref<option<api>> = ref(None)
 let api = {
     "editor": {
         "getState": makeApiFunc(getStateRef),
@@ -446,6 +481,7 @@ let api = {
         "unifyAll": makeApiFunc(unifyAllRef),
         "addSteps": makeApiFunc(addStepsRef),
         "updateSteps": makeApiFunc(updateStepsRef),
+        "getTokenType": makeApiFunc(getTokenTypeRef),
     }
 }
 
@@ -485,8 +521,15 @@ let updateEditorApi = (
     updateStepsRef := Some(params => {
         updateSteps(
             ~paramsJson=params,
-            ~showError=makeShowError("editor.addSteps",showError),
+            ~showError=makeShowError("editor.updateSteps",showError),
             ~setState,
+        )
+    })
+    getTokenTypeRef := Some(params => {
+        getTokenType(
+            ~paramsJson=params,
+            ~showError=makeShowError("editor.getTokenType",showError),
+            ~state,
         )
     })
 }

@@ -108,10 +108,10 @@ let userStmtTypeToStr = typ => {
 
 let userStmtTypeExtendedFromStrExn = (str:string):userStmtTypeExtended => {
     switch str {
-        | "H" => H
-        | "P" => P
-        | "G" => G
-        | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtTypeExtended. Possible values are H, P, G.`}))
+        | "h" => H
+        | "p" => P
+        | "g" => G
+        | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtTypeExtended. Possible values are h, p, g.`}))
     }
 }
 

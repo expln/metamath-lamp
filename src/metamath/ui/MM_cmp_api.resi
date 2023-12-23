@@ -9,6 +9,7 @@ let api: {
         "unifyAll": api,
         "addSteps": api,
         "updateSteps": api,
+        "getTokenType": api,
     }
 }
 
