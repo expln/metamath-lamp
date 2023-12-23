@@ -498,6 +498,19 @@ let updateSteps = (
     }
 }
 
+let logApiCallsToConsole = ref(false)
+
+let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string>> => {
+    switch Js_json.decodeBoolean(params) {
+        | None => promiseResolved(Error("The parameter of setLogApiCallsToConsole() must me a boolean."))
+        | Some(bool) => {
+            logApiCallsToConsole := bool
+            promiseResolved(Ok(Js_json.null))
+        }
+    }
+}
+
+let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let getStateRef:ref<option<api>> = ref(None)
 let proveBottomUpRef:ref<option<api>> = ref(None)
 let unifyAllRef:ref<option<api>> = ref(None)
@@ -516,6 +529,7 @@ let makeApiFuncRef = (ref:ref<option<api>>):api => {
 }
 
 let api = {
+    "setLogApiCallsToConsole": makeApiFuncRef(setLogApiCallsToConsoleRef),
     "editor": {
         "getState": makeApiFuncRef(getStateRef),
         "proveBottomUp": makeApiFuncRef(proveBottomUpRef),
@@ -524,16 +538,27 @@ let api = {
         "updateSteps": makeApiFuncRef(updateStepsRef),
         "getTokenType": makeApiFuncRef(getTokenTypeRef),
         "substitute": makeApiFuncRef(substituteRef),
-    }
+    },
 }
 
-let makeApiFunc = (func:Js_json.t=>promise<result<Js_json.t,string>>):api => {
+let apiCallCnt = ref(0)
+
+let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>>):api => {
     params => {
+        apiCallCnt := apiCallCnt.contents + 1
+        let apiCallId = apiCallCnt.contents
+        if (logApiCallsToConsole.contents) {
+            Js.Console.log2(`[${apiCallId->Belt.Int.toString}] <<< ${name}`, params)
+        }
         func(params)->promiseMap(res => {
-            switch res {
+            let resp = switch res {
                 | Error(msg) => errResp(msg)
                 | Ok(json) => okResp(json)
             }
+            if (logApiCallsToConsole.contents) {
+                Js.Console.log2(`[${apiCallId->Belt.Int.toString}] >>> `, resp)
+            }
+            resp
         })
     }
 }
@@ -546,8 +571,9 @@ let updateEditorApi = (
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
 ):unit => {
-    getStateRef := Some(makeApiFunc(_ => getEditorState(~state)))
-    proveBottomUpRef := Some(makeApiFunc(params => {
+    setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
+    getStateRef := Some(makeApiFunc("editor.getState", _ => getEditorState(~state)))
+    proveBottomUpRef := Some(makeApiFunc("editor.proveBottomUp", params => {
         proveBottomUp(
             ~paramsJson=params,
             ~state, 
@@ -555,31 +581,31 @@ let updateEditorApi = (
             ~startProvingBottomUp,
         )
     }))
-    unifyAllRef := Some(makeApiFunc(_ => {
+    unifyAllRef := Some(makeApiFunc("editor.unifyAll", _ => {
         unifyAll(
             ~canStartUnifyAll,
             ~startUnifyAll,
         )
     }))
-    addStepsRef := Some(makeApiFunc(params => {
+    addStepsRef := Some(makeApiFunc("editor.addSteps", params => {
         addSteps(
             ~paramsJson=params,
             ~setState,
         )
     }))
-    updateStepsRef := Some(makeApiFunc(params => {
+    updateStepsRef := Some(makeApiFunc("editor.updateSteps", params => {
         updateSteps(
             ~paramsJson=params,
             ~setState,
         )
     }))
-    getTokenTypeRef := Some(makeApiFunc(params => {
+    getTokenTypeRef := Some(makeApiFunc("editor.getTokenType", params => {
         getTokenType(
             ~paramsJson=params,
             ~state,
         )
     }))
-    substituteRef := Some(makeApiFunc(params => {
+    substituteRef := Some(makeApiFunc("editor.substitute", params => {
         substitute(
             ~paramsJson=params,
             ~setState,

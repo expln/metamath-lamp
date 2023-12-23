@@ -9,6 +9,7 @@ type apiResp = {
 type api = Js.Json.t => promise<apiResp>
 
 let api: {
+    "setLogApiCallsToConsole": api,
     "editor" : {
         "getState": api,
         "proveBottomUp": api,
