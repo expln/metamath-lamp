@@ -5,7 +5,29 @@ open MM_context
 open MM_syntax_tree
 open MM_wrk_editor_substitution
 
-type api = Js.Json.t => promise<Js_json.t>
+type apiResp = {
+    "isOk": bool,
+    "res": option<Js_json.t>,
+    "err": option<string>,
+}
+
+type api = Js.Json.t => promise<apiResp>
+
+let okResp = (res:Js_json.t):apiResp => {
+    {
+        "isOk": true,
+        "res": Some(res),
+        "err": None,
+    }
+}
+
+let errResp = (msg:string):apiResp => {
+    {
+        "isOk": false,
+        "res": None,
+        "err": Some(msg),
+    }
+}
 
 let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t => {
     Js_dict.fromArray([
@@ -101,77 +123,72 @@ let getAllSteps = (~state:editorState):Js_json.t => {
     })->Js.Json.array
 }
 
-let getEditorState = (~state:editorState):promise<Js_json.t> => {
+let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
     let stmtIdToLabel = Belt_HashMapString.fromArray(
         state.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
     )
-    promise(resolve => {
-        resolve(
-            Js_dict.fromArray([
-                ("descr", state.descr->Js_json.string),
-                ("varsText", state.varsText->Js_json.string),
-                ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
-                ("vars", 
-                    switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
-                        | Error(_) => Js_json.null
-                        | Ok(varDefs) => {
-                            varDefs->Js_array2.map(varDef => {
-                                varDef->Js_array2.map(Js_json.string)->Js.Json.array
-                            })->Js.Json.array
-                        }
+    promiseResolved(Ok(
+        Js_dict.fromArray([
+            ("descr", state.descr->Js_json.string),
+            ("varsText", state.varsText->Js_json.string),
+            ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
+            ("vars", 
+                switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
+                    | Error(_) => Js_json.null
+                    | Ok(varDefs) => {
+                        varDefs->Js_array2.map(varDef => {
+                            varDef->Js_array2.map(Js_json.string)->Js.Json.array
+                        })->Js.Json.array
                     }
-                ),
-                ("disjText", state.disjText->Js_json.string),
-                ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
-                ("disj",
-                    state.disjText->multilineTextToNonEmptyLines->Js_array2.map(disjLine => {
-                        disjLine->Js.String2.split(",")
-                            ->Js_array2.map(Js_string2.trim)
-                            ->Js.Array2.filter(str => str != "")
-                            ->Js_array2.map(Js_json.string)
-                            ->Js.Json.array
-                    })->Js.Json.array
-                ),
-                ("steps", getAllSteps(~state)),
-                ("selectedSteps", 
-                    state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
-                        ->Js_array2.filter(Belt.Option.isSome)
-                        ->Js_array2.map(labelOpt => labelOpt->Belt.Option.getExn->Js_json.string)
+                }
+            ),
+            ("disjText", state.disjText->Js_json.string),
+            ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
+            ("disj",
+                state.disjText->multilineTextToNonEmptyLines->Js_array2.map(disjLine => {
+                    disjLine->Js.String2.split(",")
+                        ->Js_array2.map(Js_string2.trim)
+                        ->Js.Array2.filter(str => str != "")
+                        ->Js_array2.map(Js_json.string)
                         ->Js.Json.array
-                ),
-            ])->Js_json.object_
-        )
-    })
+                })->Js.Json.array
+            ),
+            ("steps", getAllSteps(~state)),
+            ("selectedSteps", 
+                state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
+                    ->Js_array2.filter(Belt.Option.isSome)
+                    ->Js_array2.map(labelOpt => labelOpt->Belt.Option.getExn->Js_json.string)
+                    ->Js.Json.array
+            ),
+        ])->Js_json.object_
+    ))
 }
 
 let getTokenType = (
     ~paramsJson:Js_json.t,
     ~state:editorState,
-    ~showError:string=>promise<Js_json.t>,
-):promise<Js_json.t> => {
+):promise<result<Js_json.t,string>> => {
     switch state.wrkCtx {
-        | None => showError("Cannot determine token type because the editor contains errors.")
+        | None => promiseResolved(Error("Cannot determine token type because the editor contains errors."))
         | Some(wrkCtx) => {
             switch Js_json.decodeString(paramsJson) {
-                | None => showError("The parameter of getTokenType() must me a string.")
+                | None => promiseResolved(Error("The parameter of getTokenType() must me a string."))
                 | Some(token) => {
-                    promise(resolve => {
-                        resolve(
-                            switch wrkCtx->getTokenType(token) {
-                                | None => Js_json.null
-                                | Some(tokenType) => {
-                                    switch tokenType {
-                                        | C => "c"
-                                        | V => "v"
-                                        | F => "f"
-                                        | E => "e"
-                                        | A => "a"
-                                        | P => "p"
-                                    }->Js_json.string
-                                }
+                    promiseResolved(Ok(
+                        switch wrkCtx->getTokenType(token) {
+                            | None => Js_json.null
+                            | Some(tokenType) => {
+                                switch tokenType {
+                                    | C => "c"
+                                    | V => "v"
+                                    | F => "f"
+                                    | E => "e"
+                                    | A => "a"
+                                    | P => "p"
+                                }->Js_json.string
                             }
-                        )
-                    })
+                        }
+                    ))
                 }
             }
         }
@@ -228,12 +245,14 @@ type proverParams = {
 let proveBottomUp = (
     ~paramsJson:Js_json.t,
     ~state:editorState,
-    ~showError:string=>promise<Js_json.t>,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
-):promise<Js_json.t> => {
+):promise<result<Js_json.t,string>> => {
     if (!canStartProvingBottomUp) {
-        showError("Cannot start proving bottom-up because either there are syntax errors in the editor or edit is in progress.")
+        promiseResolved(Error(
+            "Cannot start proving bottom-up because either there are syntax errors in the editor" 
+                ++ " or edit is in progress."
+        ))
     } else {
         open Expln_utils_jsonParse
         let parseResult:result<proveBottomUpApiParams,string> = fromJson(paramsJson, asObj(_, d=>{
@@ -259,16 +278,16 @@ let proveBottomUp = (
             }
         }, ()), ())
         switch parseResult {
-            | Error(msg) => showError(msg)
+            | Error(msg) => promiseResolved(Error(msg))
             | Ok(apiParams) => {
                 switch state.stmts->Js.Array2.find(stmt => stmt.label == apiParams.stepToProve) {
-                    | None => showError(`Cannot find a step with label '${apiParams.stepToProve}'`)
+                    | None => promiseResolved(Error(`Cannot find a step with label '${apiParams.stepToProve}'`))
                     | Some(stmtToProve) => {
                         switch state->labelsToExprs(apiParams.args0) {
-                            | Error(msg) => showError(msg)
+                            | Error(msg) => promiseResolved(Error(msg))
                             | Ok(args0) => {
                                 switch state->labelsToExprs(apiParams.args1) {
-                                    | Error(msg) => showError(msg)
+                                    | Error(msg) => promiseResolved(Error(msg))
                                     | Ok(args1) => {
                                         startProvingBottomUp({
                                             delayBeforeStartMs:
@@ -292,8 +311,8 @@ let proveBottomUp = (
                                                 apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
                                         })->promiseMap(proved => {
                                             switch proved {
-                                                | None => Js_json.null
-                                                | Some(proved) => proved->Js_json.boolean
+                                                | None => Ok(Js_json.null)
+                                                | Some(proved) => Ok(proved->Js_json.boolean)
                                             }
                                         })
                                     }
@@ -308,16 +327,15 @@ let proveBottomUp = (
 }
 
 let unifyAll = (
-    ~showError:string=>promise<Js_json.t>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
-):promise<Js_json.t> => {
+):promise<result<Js_json.t,string>> => {
     if (!canStartUnifyAll) {
-        showError(
+        promiseResolved(Error(
             "Cannot start \"Unify All\" because either there are syntax errors in the editor or edit is in progress."
-        )
+        ))
     } else {
-        startUnifyAll()->promiseMap(_ => Js_json.null)
+        startUnifyAll()->promiseMap(_ => Ok(Js_json.null))
     }
 }
 
@@ -347,9 +365,8 @@ type addStepsInputParams = {
 }
 let addSteps = (
     ~paramsJson:Js_json.t,
-    ~showError:string=>promise<Js_json.t>,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<Js_json.t> => {
+):promise<result<Js_json.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<addStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
         {
@@ -366,13 +383,13 @@ let addSteps = (
         }
     }, ()), ())
     switch parseResult {
-        | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
+        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
             if (
                 parseResult.vars->Belt.Option.map(vars => vars->Js_array2.some(a => a->Js_array2.length != 2))
                     ->Belt_Option.getWithDefault(false)
             ) {
-                showError("Each sub-array of the 'vars' array must consist of two elements.")
+                promiseResolved(Error("Each sub-array of the 'vars' array must consist of two elements."))
             } else {
                 setState(st => {
                     let steps = parseResult.steps->Js_array2.map(step => {
@@ -400,11 +417,6 @@ let addSteps = (
                             )
                         }
                     }
-                })->promiseFlatMap(res => {
-                    switch res {
-                        | Error(msg) => showError(msg)
-                        | Ok(stmtLabels) => promiseResolved(stmtLabels)
-                    }
                 })
             }
         }
@@ -417,9 +429,8 @@ type substituteInputParams = {
 }
 let substitute = (
     ~paramsJson:Js_json.t,
-    ~showError:string=>promise<Js_json.t>,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<Js_json.t> => {
+):promise<result<Js_json.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<substituteInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
         {
@@ -428,16 +439,11 @@ let substitute = (
         }
     }, ()), ())
     switch parseResult {
-        | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
+        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
             setState(st => {
                 st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
                     ->Belt.Result.map(st => (st,Js_json.null))
-            })->promiseFlatMap(res => {
-                switch res {
-                    | Error(msg) => showError(msg)
-                    | Ok(json) => promiseResolved(json)
-                }
             })
         }
     }
@@ -451,9 +457,8 @@ type updateStepInputParams = {
 }
 let updateSteps = (
     ~paramsJson:Js_json.t,
-    ~showError:string=>promise<Js_json.t>,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<Js_json.t> => {
+):promise<result<Js_json.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson, asArr(_, asObj(_, d=>{
         {
@@ -464,7 +469,7 @@ let updateSteps = (
         }
     }, ()), ()), ())
     switch parseResult {
-        | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
+        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(inputSteps) => {
             setState(st => {
                 let labelToStmtId = st.stmts->Js_array2.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
@@ -488,26 +493,7 @@ let updateSteps = (
                         }
                     }
                 }
-            })->promiseFlatMap(res => {
-                switch res {
-                    | Error(msg) => showError(msg)
-                    | Ok(json) => promiseResolved(json)
-                }
             })
-        }
-    }
-}
-
-let makeShowError = (funcName, showError:string=>unit):(string=>promise<Js_json.t>) => msg => {
-    showError(`${funcName}: ${msg}`)
-    promise(resolve => resolve(Js_json.null))
-}
-
-let makeApiFunc = (ref:ref<option<api>>):api => {
-    params => {
-        switch ref.contents {
-            | None => Js.Exn.raiseError("api function is not defined")
-            | Some(func) => func(params)
         }
     }
 }
@@ -519,70 +505,84 @@ let addStepsRef:ref<option<api>> = ref(None)
 let updateStepsRef:ref<option<api>> = ref(None)
 let getTokenTypeRef:ref<option<api>> = ref(None)
 let substituteRef:ref<option<api>> = ref(None)
+
+let makeApiFuncRef = (ref:ref<option<api>>):api => {
+    params => {
+        switch ref.contents {
+            | None => Js.Exn.raiseError("api function is not defined")
+            | Some(func) => func(params)
+        }
+    }
+}
+
 let api = {
     "editor": {
-        "getState": makeApiFunc(getStateRef),
-        "proveBottomUp": makeApiFunc(proveBottomUpRef),
-        "unifyAll": makeApiFunc(unifyAllRef),
-        "addSteps": makeApiFunc(addStepsRef),
-        "updateSteps": makeApiFunc(updateStepsRef),
-        "getTokenType": makeApiFunc(getTokenTypeRef),
-        "substitute": makeApiFunc(substituteRef),
+        "getState": makeApiFuncRef(getStateRef),
+        "proveBottomUp": makeApiFuncRef(proveBottomUpRef),
+        "unifyAll": makeApiFuncRef(unifyAllRef),
+        "addSteps": makeApiFuncRef(addStepsRef),
+        "updateSteps": makeApiFuncRef(updateStepsRef),
+        "getTokenType": makeApiFuncRef(getTokenTypeRef),
+        "substitute": makeApiFuncRef(substituteRef),
+    }
+}
+
+let makeApiFunc = (func:Js_json.t=>promise<result<Js_json.t,string>>):api => {
+    params => {
+        func(params)->promiseMap(res => {
+            switch res {
+                | Error(msg) => errResp(msg)
+                | Ok(json) => okResp(json)
+            }
+        })
     }
 }
 
 let updateEditorApi = (
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-    ~showError:string=>unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
 ):unit => {
-    getStateRef := Some(_ => getEditorState(~state))
-    proveBottomUpRef := Some(params => {
+    getStateRef := Some(makeApiFunc(_ => getEditorState(~state)))
+    proveBottomUpRef := Some(makeApiFunc(params => {
         proveBottomUp(
             ~paramsJson=params,
             ~state, 
-            ~showError=makeShowError("editor.proveBottomUp",showError),
             ~canStartProvingBottomUp,
             ~startProvingBottomUp,
         )
-    })
-    unifyAllRef := Some(_ => {
+    }))
+    unifyAllRef := Some(makeApiFunc(_ => {
         unifyAll(
-            ~showError=makeShowError("editor.unifyAll",showError),
             ~canStartUnifyAll,
             ~startUnifyAll,
         )
-    })
-    addStepsRef := Some(params => {
+    }))
+    addStepsRef := Some(makeApiFunc(params => {
         addSteps(
             ~paramsJson=params,
-            ~showError=makeShowError("editor.addSteps",showError),
             ~setState,
         )
-    })
-    updateStepsRef := Some(params => {
+    }))
+    updateStepsRef := Some(makeApiFunc(params => {
         updateSteps(
             ~paramsJson=params,
-            ~showError=makeShowError("editor.updateSteps",showError),
             ~setState,
         )
-    })
-    getTokenTypeRef := Some(params => {
+    }))
+    getTokenTypeRef := Some(makeApiFunc(params => {
         getTokenType(
             ~paramsJson=params,
-            ~showError=makeShowError("editor.getTokenType",showError),
             ~state,
         )
-    })
-    substituteRef := Some(params => {
+    }))
+    substituteRef := Some(makeApiFunc(params => {
         substitute(
             ~paramsJson=params,
-            ~showError=makeShowError("editor.getTokenType",showError),
             ~setState,
         )
-    })
+    }))
 }

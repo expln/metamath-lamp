@@ -1,6 +1,12 @@
 open MM_wrk_editor
 
-type api = Js.Json.t => promise<Js_json.t>
+type apiResp = {
+    "isOk": bool,
+    "res": option<Js_json.t>,
+    "err": option<string>,
+}
+
+type api = Js.Json.t => promise<apiResp>
 
 let api: {
     "editor" : {
@@ -25,7 +31,6 @@ type proverParams = {
 let updateEditorApi: (
     ~state: editorState,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-    ~showError: string => unit,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
     ~canStartUnifyAll:bool,

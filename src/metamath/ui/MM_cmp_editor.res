@@ -1707,7 +1707,6 @@ let make = (
     MM_cmp_api.updateEditorApi(
         ~state,
         ~setState=actSetStateFromApi,
-        ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
         ~startProvingBottomUp = (params) => {
             promise(resolve => {
