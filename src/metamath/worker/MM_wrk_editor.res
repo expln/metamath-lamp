@@ -1231,7 +1231,12 @@ let getTheOnlyCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int>) => {
+let createNewVars = (
+    st:editorState, 
+    ~varTypes:array<int>,
+    ~varNames:option<array<string>>=?,
+    ()
+):(editorState,array<int>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
         | Some(wrkCtx) => {
@@ -1239,15 +1244,26 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
             if (numOfVars == 0) {
                 (st,[])
             } else {
-                let typeToPrefix = Belt_MapString.fromArray(
-                    st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
-                )
-                let newVarNames = generateNewVarNames(
-                    ~ctx=wrkCtx,
-                    ~types=varTypes, 
-                    ~typeToPrefix,
-                    ()
-                )
+                let newVarNames =
+                    switch varNames {
+                        | Some(varNames) => {
+                            if (varTypes->Js_array2.length != varNames->Js_array2.length) {
+                                raise(MmException({msg:`varTypes->Js_array2.length != varNames->Js_array2.length`}))
+                            }
+                            varNames
+                        }
+                        | None => {
+                            let typeToPrefix = Belt_MapString.fromArray(
+                                st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                            )
+                            generateNewVarNames(
+                                ~ctx=wrkCtx,
+                                ~types=varTypes, 
+                                ~typeToPrefix,
+                                ()
+                            )
+                        }
+                    }
                 let newHypLabels = generateNewLabels(
                     ~ctx=wrkCtx,
                     ~prefix="var", 
@@ -1437,7 +1453,7 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
 }
 
 let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
-    let (st, newCtxVarInts) = createNewVars(st,newStmts.newVarTypes)
+    let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes,())
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
         newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
@@ -2217,7 +2233,7 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     renameHypToMatchGoal(st, oldStmt, newStmt)
 }
 
-let addSteps = (
+let addStepsWithoutVars = (
     st:editorState,
     ~atIdx:option<int>=?,
     ~steps:array<userStmtDtoOpt>,
@@ -2284,6 +2300,41 @@ let addSteps = (
     switch res {
         | Error(msg) => Error(msg)
         | Ok(st) => Ok((st,stmtIds))
+    }
+}
+
+let addSteps = (
+    st:editorState,
+    ~atIdx:option<int>=?,
+    ~steps:array<userStmtDtoOpt>,
+    ~vars:array<(string,option<string>)>=[],
+    ()
+):result<(editorState,array<stmtId>),string> => {
+    if (vars->Js_array2.length == 0) {
+        st->addStepsWithoutVars( ~atIdx?, ~steps, () )
+    } else {
+        switch st.wrkCtx {
+            | None => Error("Cannot add new variables because of errors in the editor.")
+            | Some(wrkCtx) => {
+                let varTypesStr = vars->Js.Array2.map(((typStr,_)) => typStr)
+                let varTypesOpt = varTypesStr->Js.Array2.map(wrkCtx->ctxSymToInt)
+                let unknownTypeIdx = varTypesOpt->Js.Array2.findIndex(Belt_Option.isNone)
+                if (unknownTypeIdx >= 0) {
+                    Error(`Unknown type - ${varTypesStr[unknownTypeIdx]}`)
+                } else {
+                    let varTypes = varTypesOpt->Js.Array2.map(Belt_Option.getExn)
+                    let st = if (vars->Js.Array2.some(((_,varName)) => varName->Belt_Option.isNone)) {
+                        let (st, _) = createNewVars(st,~varTypes,())
+                        st
+                    } else {
+                        let varNames = vars->Js.Array2.map(((_,varName)) => varName->Belt_Option.getExn)
+                        let (st, _) = createNewVars(st, ~varTypes, ~varNames, ())
+                        st
+                    }
+                    st->addStepsWithoutVars( ~atIdx?, ~steps, () )
+                }
+            }
+        }
     }
 }
 

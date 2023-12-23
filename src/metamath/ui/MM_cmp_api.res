@@ -342,6 +342,7 @@ type addStepInputParams = {
 type addStepsInputParams = {
     atIdx: option<int>,
     steps: array<addStepInputParams>,
+    vars: option<array<array<string>>>
 }
 let addSteps = (
     ~paramsJson:Js_json.t,
@@ -360,41 +361,51 @@ let addSteps = (
                     jstf: d->strOpt("jstf", ()),
                 }
             }, ()), ()),
+            vars: d->arrOpt("vars", asArr(_, asStr(_, ()), ()), ()),
         }
     }, ()), ())
     switch parseResult {
         | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
         | Ok(parseResult) => {
-            setState(st => {
-                let steps = parseResult.steps->Js_array2.map(step => {
-                    {
-                        id: None,
-                        label: step.label,
-                        typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
-                        cont: step.stmt,
-                        jstf: step.jstf,
+            if (
+                parseResult.vars->Belt.Option.map(vars => vars->Js_array2.some(a => a->Js_array2.length != 2))
+                    ->Belt_Option.getWithDefault(false)
+            ) {
+                showError("Each sub-array of the 'vars' array must consist of two elements.")
+            } else {
+                setState(st => {
+                    let steps = parseResult.steps->Js_array2.map(step => {
+                        {
+                            id: None,
+                            label: step.label,
+                            typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
+                            cont: step.stmt,
+                            jstf: step.jstf,
+                        }
+                    })
+                    let vars = parseResult.vars
+                        ->Belt.Option.map(vars => vars->Js_array2.map(var => (var[0], Some(var[1]))))
+                    switch st->addSteps(~atIdx=?parseResult.atIdx, ~steps, ~vars?, ()) {
+                        | Error(msg) => Error(msg)
+                        | Ok((st,stmtIds)) => {
+                            let stmtIdToLabel = Belt_HashMapString.fromArray(
+                                st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+                            )
+                            Ok(
+                                st,
+                                stmtIds->Js_array2.map(stmtId => {
+                                    stmtIdToLabel->Belt_HashMapString.get(stmtId)->Belt.Option.getExn->Js_json.string
+                                })->Js_json.array
+                            )
+                        }
+                    }
+                })->promiseFlatMap(res => {
+                    switch res {
+                        | Error(msg) => showError(msg)
+                        | Ok(stmtLabels) => promiseResolved(stmtLabels)
                     }
                 })
-                switch st->addSteps(~atIdx=?parseResult.atIdx, ~steps, ()) {
-                    | Error(msg) => Error(msg)
-                    | Ok((st,stmtIds)) => {
-                        let stmtIdToLabel = Belt_HashMapString.fromArray(
-                            st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
-                        )
-                        Ok(
-                            st,
-                            stmtIds->Js_array2.map(stmtId => {
-                                stmtIdToLabel->Belt_HashMapString.get(stmtId)->Belt.Option.getExn->Js_json.string
-                            })->Js_json.array
-                        )
-                    }
-                }
-            })->promiseFlatMap(res => {
-                switch res {
-                    | Error(msg) => showError(msg)
-                    | Ok(stmtLabels) => promiseResolved(stmtLabels)
-                }
-            })
+            }
         }
     }
 }
