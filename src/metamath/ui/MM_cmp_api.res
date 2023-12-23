@@ -3,6 +3,7 @@ open Expln_utils_promise
 open Common
 open MM_context
 open MM_syntax_tree
+open MM_wrk_editor_substitution
 
 type api = Js.Json.t => promise<Js_json.t>
 
@@ -410,6 +411,38 @@ let addSteps = (
     }
 }
 
+type substituteInputParams = {
+    what: string,
+    with_: string,
+}
+let substitute = (
+    ~paramsJson:Js_json.t,
+    ~showError:string=>promise<Js_json.t>,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+):promise<Js_json.t> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<substituteInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
+        {
+            what: d->str("what", ()),
+            with_: d->str("with", ()),
+        }
+    }, ()), ())
+    switch parseResult {
+        | Error(msg) => showError(`Could not parse input parameters: ${msg}`)
+        | Ok(parseResult) => {
+            setState(st => {
+                st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
+                    ->Belt.Result.map(st => (st,Js_json.null))
+            })->promiseFlatMap(res => {
+                switch res {
+                    | Error(msg) => showError(msg)
+                    | Ok(json) => promiseResolved(json)
+                }
+            })
+        }
+    }
+}
+
 type updateStepInputParams = {
     label: string,
     typ: option<string>,
@@ -485,6 +518,7 @@ let unifyAllRef:ref<option<api>> = ref(None)
 let addStepsRef:ref<option<api>> = ref(None)
 let updateStepsRef:ref<option<api>> = ref(None)
 let getTokenTypeRef:ref<option<api>> = ref(None)
+let substituteRef:ref<option<api>> = ref(None)
 let api = {
     "editor": {
         "getState": makeApiFunc(getStateRef),
@@ -493,6 +527,7 @@ let api = {
         "addSteps": makeApiFunc(addStepsRef),
         "updateSteps": makeApiFunc(updateStepsRef),
         "getTokenType": makeApiFunc(getTokenTypeRef),
+        "substitute": makeApiFunc(substituteRef),
     }
 }
 
@@ -541,6 +576,13 @@ let updateEditorApi = (
             ~paramsJson=params,
             ~showError=makeShowError("editor.getTokenType",showError),
             ~state,
+        )
+    })
+    substituteRef := Some(params => {
+        substitute(
+            ~paramsJson=params,
+            ~showError=makeShowError("editor.getTokenType",showError),
+            ~setState,
         )
     })
 }

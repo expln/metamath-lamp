@@ -10,6 +10,7 @@ let api: {
         "addSteps": api,
         "updateSteps": api,
         "getTokenType": api,
+        "substitute": api,
     }
 }
 

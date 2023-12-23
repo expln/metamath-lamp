@@ -7,6 +7,7 @@ open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
 open MM_provers
+open Common
 
 let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
@@ -355,6 +356,48 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                         }
                     })
                     Ok(foundSubs)
+                }
+            }
+        }
+    }
+}
+
+let substitute = (st:editorState, ~what:string, ~with_:string):result<editorState,string> => {
+    switch st.wrkCtx {
+        | None => Error("Cannot apply a substitution because of errors in the editor.")
+        | Some(wrkCtx) => {
+            let findIncorrectSymbol = syms => syms->Js_array2.find(sym => {
+                !(wrkCtx->isConst(sym) || wrkCtx->MM_context.isVar(sym))
+            })
+            let syms1 = what->getSpaceSeparatedValuesAsArray
+            switch findIncorrectSymbol(syms1) {
+                | Some(sym) => Error(`Unknown symbol - '${sym}'`)
+                | None => {
+                    let syms2 = with_->getSpaceSeparatedValuesAsArray
+                    switch findIncorrectSymbol(syms2) {
+                        | Some(sym) => Error(`Unknown symbol - '${sym}'`)
+                        | None => {
+                            let foundSubs = findPossibleSubs(
+                                st, 
+                                wrkCtx->ctxSymsToIntsExn(syms1),
+                                wrkCtx->ctxSymsToIntsExn(syms2),
+                                true,
+                            )
+                            switch foundSubs {
+                                | Error(msg) => Error(msg)
+                                | Ok(foundSubs) => {
+                                    let validSubs = foundSubs->Js_array2.filter(subs => subs.err->Belt_Option.isNone)
+                                    if (validSubs->Js_array2.length == 0) {
+                                        Error(`No substitutions found.`)
+                                    } else if (validSubs->Js_array2.length > 1) {
+                                        Error(`More than 1 substitution found.`)
+                                    } else {
+                                        Ok(st->applySubstitutionForEditor(validSubs[0]))
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
