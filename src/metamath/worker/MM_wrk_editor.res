@@ -1235,6 +1235,7 @@ let createNewVars = (
     st:editorState, 
     ~varTypes:array<int>,
     ~varNames:option<array<string>>=?,
+    ~dontAddVariablesToContext:bool=false,
     ()
 ):(editorState,array<int>) => {
     switch st.wrkCtx {
@@ -1270,11 +1271,13 @@ let createNewVars = (
                     ~amount=numOfVars,
                     ()
                 )
-                wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
-                newHypLabels->Js.Array2.forEachi((label,i) => {
-                    wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
-                })
+                if (!dontAddVariablesToContext) {
+                    wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
+                    newHypLabels->Js.Array2.forEachi((label,i) => {
+                        wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
+                    })
+                }
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
                 let newVarsText = newHypLabels->Js.Array2.mapi((label,i) => {
                     `${label} ${varTypeNames[i]} ${newVarNames[i]}`
@@ -2313,6 +2316,7 @@ let addSteps = (
     ~atIdx:option<int>=?,
     ~steps:array<userStmtDtoOpt>,
     ~vars:array<(string,option<string>)>=[],
+    ~dontAddVariablesToContext:bool,
     ()
 ):result<(editorState,array<stmtId>),string> => {
     if (vars->Js_array2.length == 0) {
@@ -2332,11 +2336,11 @@ let addSteps = (
                         Error("All variable names must be either defined or undefined.")
                     } else {
                         let st = if (vars->Js.Array2.some(((_,varName)) => varName->Belt_Option.isNone)) {
-                            let (st, _) = createNewVars(st,~varTypes,())
+                            let (st, _) = createNewVars(st, ~varTypes, ~dontAddVariablesToContext, ())
                             st
                         } else {
                             let varNames = vars->Js.Array2.map(((_,varName)) => varName->Belt_Option.getExn)
-                            let (st, _) = createNewVars(st, ~varTypes, ~varNames, ())
+                            let (st, _) = createNewVars(st, ~varTypes, ~varNames, ~dontAddVariablesToContext, ())
                             st
                         }
                         st->addStepsWithoutVars( ~atIdx?, ~steps, () )

@@ -217,12 +217,19 @@ let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
 
-let createNewVars: (editorState, ~varTypes:array<int>, ~varNames:array<string>=?, ()) => (editorState,array<int>)
+let createNewVars: (
+    editorState, 
+    ~varTypes:array<int>, 
+    ~varNames:array<string>=?, 
+    ~dontAddVariablesToContext:bool=?,
+    ()
+) => (editorState,array<int>)
 let addSteps: (
     editorState, 
     ~atIdx:int=?, 
     ~steps:array<userStmtDtoOpt>, 
     ~vars:array<(string,option<string>)>=?,
+    ~dontAddVariablesToContext:bool,
     ()
 ) => result<(editorState,array<stmtId>),string>
 let updateSteps: ( editorState, array<userStmtDtoOpt>) => result<editorState,string>

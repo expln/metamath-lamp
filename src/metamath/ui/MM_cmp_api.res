@@ -392,7 +392,23 @@ let tokenTypeToStr = (tokenType:tokenType):string => {
     }
 }
 
-let validateVarNames = (st:editorState, vars: option<array<array<string>>>):result<unit,string> => {
+let validateVarNamesAreUnique = (vars: option<array<array<string>>>):result<unit,string> => {
+    switch vars {
+        | None => Ok(())
+        | Some(vars) => {
+            let allVarNames = vars->Js_array2.filter(var => var->Js_array2.length > 1)
+                ->Js_array2.map(var => var[1])
+            let uniqueVarNames = allVarNames->Belt_HashSetString.fromArray
+            if (allVarNames->Js_array2.length == uniqueVarNames->Belt_HashSetString.size) {
+                Ok(())
+            } else {
+                Error( `Cannot create variables because two or more variables have same name.` )
+            }
+        }
+    }
+}
+
+let validateVarNamesNotPresentInCtx = (st:editorState, vars: option<array<array<string>>>):result<unit,string> => {
     switch vars {
         | None => Ok(())
         | Some(vars) => {
@@ -462,37 +478,60 @@ let addSteps = (
                     Error("Each sub-array of the 'vars' array must consist of two elements: [type,varName].")
                 )
             } else {
-                switch validateVarNames(state, parseResult.vars) {
+                switch validateVarNamesAreUnique(parseResult.vars) {
                     | Error(msg) => promiseResolved(Error(msg))
                     | Ok(_) => {
-                        let steps = parseResult.steps->Js_array2.map(step => {
-                            {
-                                id: None,
-                                label: step.label,
-                                typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
-                                cont: step.stmt,
-                                jstf: step.jstf,
+                        switch validateVarNamesNotPresentInCtx(state, parseResult.vars) {
+                            | Error(msg) => promiseResolved(Error(msg))
+                            | Ok(_) => {
+                                let steps = parseResult.steps->Js_array2.map(step => {
+                                    {
+                                        id: None,
+                                        label: step.label,
+                                        typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
+                                        cont: step.stmt,
+                                        jstf: step.jstf,
+                                    }
+                                })
+                                let vars = parseResult.vars
+                                    ->Belt.Option.map(vars => vars->Js_array2.map(var => (var[0], Some(var[1]))))
+                                setState(st => {
+                                    let dontAddVariablesToContext = 
+                                        switch validateVarNamesNotPresentInCtx(st, parseResult.vars) {
+                                            | Error(_) => {
+                                                /*
+                                                editorState is not immutable because it keeps reference to a mutable 
+                                                mmContext. But React may call this setter multiple times especially in 
+                                                React.StrictMode, because states must be immutable. This results in a 
+                                                runtime error when adding the same variable second time. But since it 
+                                                was checked that variables are not duplicated before this setter, 
+                                                it is safe to skip adding of variables (it means variables have been 
+                                                already added).
+                                                */
+                                                true
+                                            }
+                                            | Ok(_) => false
+                                        }
+                                    switch st->addSteps(
+                                        ~atIdx=?parseResult.atIdx, ~steps, ~vars?, ~dontAddVariablesToContext, ()
+                                    ) {
+                                        | Error(msg) => Error(msg)
+                                        | Ok((st,stmtIds)) => {
+                                            let stmtIdToLabel = Belt_HashMapString.fromArray(
+                                                st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+                                            )
+                                            Ok(
+                                                st,
+                                                stmtIds->Js_array2.map(stmtId => {
+                                                    stmtIdToLabel->Belt_HashMapString.get(stmtId)
+                                                        ->Belt.Option.getExn->Js_json.string
+                                                })->Js_json.array
+                                            )
+                                        }
+                                    }
+                                })
                             }
-                        })
-                        let vars = parseResult.vars
-                            ->Belt.Option.map(vars => vars->Js_array2.map(var => (var[0], Some(var[1]))))
-                        setState(st => {
-                            switch st->addSteps(~atIdx=?parseResult.atIdx, ~steps, ~vars?, ()) {
-                                | Error(msg) => Error(msg)
-                                | Ok((st,stmtIds)) => {
-                                    let stmtIdToLabel = Belt_HashMapString.fromArray(
-                                        st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
-                                    )
-                                    Ok(
-                                        st,
-                                        stmtIds->Js_array2.map(stmtId => {
-                                            stmtIdToLabel->Belt_HashMapString.get(stmtId)
-                                                ->Belt.Option.getExn->Js_json.string
-                                        })->Js_json.array
-                                    )
-                                }
-                            }
-                        })
+                        }
                     }
                 }
             }
