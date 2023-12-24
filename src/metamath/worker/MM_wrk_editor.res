@@ -2303,6 +2303,11 @@ let addStepsWithoutVars = (
     }
 }
 
+let validateVarNames = (vars:array<(string,option<string>)>):bool => {
+    vars->Js.Array2.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isNone)
+    || vars->Js.Array2.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isSome)
+}
+
 let addSteps = (
     st:editorState,
     ~atIdx:option<int>=?,
@@ -2323,15 +2328,19 @@ let addSteps = (
                     Error(`Unknown type - ${varTypesStr[unknownTypeIdx]}`)
                 } else {
                     let varTypes = varTypesOpt->Js.Array2.map(Belt_Option.getExn)
-                    let st = if (vars->Js.Array2.some(((_,varName)) => varName->Belt_Option.isNone)) {
-                        let (st, _) = createNewVars(st,~varTypes,())
-                        st
+                    if (!validateVarNames(vars)) {
+                        Error("All variable names must be either defined or undefined.")
                     } else {
-                        let varNames = vars->Js.Array2.map(((_,varName)) => varName->Belt_Option.getExn)
-                        let (st, _) = createNewVars(st, ~varTypes, ~varNames, ())
-                        st
+                        let st = if (vars->Js.Array2.some(((_,varName)) => varName->Belt_Option.isNone)) {
+                            let (st, _) = createNewVars(st,~varTypes,())
+                            st
+                        } else {
+                            let varNames = vars->Js.Array2.map(((_,varName)) => varName->Belt_Option.getExn)
+                            let (st, _) = createNewVars(st, ~varTypes, ~varNames, ())
+                            st
+                        }
+                        st->addStepsWithoutVars( ~atIdx?, ~steps, () )
                     }
-                    st->addStepsWithoutVars( ~atIdx?, ~steps, () )
                 }
             }
         }

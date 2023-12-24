@@ -381,6 +381,45 @@ let validateStepType = (typ:option<string>):result<option<string>,string> => {
     }
 }
 
+let tokenTypeToStr = (tokenType:tokenType):string => {
+    switch tokenType {
+        | C => "constant"
+        | V => "variable"
+        | F => "label of a floating"
+        | E => "label of an essential hypothesis"
+        | A => "label of an axiom"
+        | P => "label of a theorem"
+    }
+}
+
+let validateVarNames = (st:editorState, vars: option<array<array<string>>>):result<unit,string> => {
+    switch vars {
+        | None => Ok(())
+        | Some(vars) => {
+            switch st.wrkCtx {
+                | None => Error("Cannot add new variables because of errors in the editor.")
+                | Some(wrkCtx) => {
+                    let definedVars:array<(string,tokenType)> = vars->Js_array2.filter(var => var->Js_array2.length > 1)
+                        ->Js_array2.map(var => var[1])
+                        ->Js_array2.map(varName => (varName, wrkCtx->MM_context.getTokenType(varName)))
+                        ->Js_array2.filter(((_,tokenTypeOpt)) => tokenTypeOpt->Belt_Option.isSome)
+                        ->Js_array2.map(((varName,tokenTypeOpt)) => (varName,tokenTypeOpt->Belt_Option.getExn))
+                    if (definedVars->Js_array2.length == 0) {
+                        Ok(())
+                    } else {
+                        let varTypes = definedVars
+                            ->Js.Array2.map(((varName,tokenType)) => `${varName} is a ${tokenType->tokenTypeToStr}`)
+                            ->Js.Array2.joinWith("; ")
+                        Error(
+                            `Cannot create variables because names of some of them are already in use: ${varTypes}.`
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 type addStepInputParams = {
     label: option<string>,
     typ: option<string>,
@@ -393,6 +432,7 @@ type addStepsInputParams = {
     vars: option<array<array<string>>>
 }
 let addSteps = (
+    ~state:editorState,
     ~paramsJson:Js_json.t,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
 ):promise<result<Js_json.t,string>> => {
@@ -418,35 +458,43 @@ let addSteps = (
                 parseResult.vars->Belt.Option.map(vars => vars->Js_array2.some(a => a->Js_array2.length != 2))
                     ->Belt_Option.getWithDefault(false)
             ) {
-                promiseResolved(Error("Each sub-array of the 'vars' array must consist of two elements."))
+                promiseResolved(
+                    Error("Each sub-array of the 'vars' array must consist of two elements: [type,varName].")
+                )
             } else {
-                setState(st => {
-                    let steps = parseResult.steps->Js_array2.map(step => {
-                        {
-                            id: None,
-                            label: step.label,
-                            typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
-                            cont: step.stmt,
-                            jstf: step.jstf,
-                        }
-                    })
-                    let vars = parseResult.vars
-                        ->Belt.Option.map(vars => vars->Js_array2.map(var => (var[0], Some(var[1]))))
-                    switch st->addSteps(~atIdx=?parseResult.atIdx, ~steps, ~vars?, ()) {
-                        | Error(msg) => Error(msg)
-                        | Ok((st,stmtIds)) => {
-                            let stmtIdToLabel = Belt_HashMapString.fromArray(
-                                st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
-                            )
-                            Ok(
-                                st,
-                                stmtIds->Js_array2.map(stmtId => {
-                                    stmtIdToLabel->Belt_HashMapString.get(stmtId)->Belt.Option.getExn->Js_json.string
-                                })->Js_json.array
-                            )
-                        }
+                switch validateVarNames(state, parseResult.vars) {
+                    | Error(msg) => promiseResolved(Error(msg))
+                    | Ok(_) => {
+                        let steps = parseResult.steps->Js_array2.map(step => {
+                            {
+                                id: None,
+                                label: step.label,
+                                typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
+                                cont: step.stmt,
+                                jstf: step.jstf,
+                            }
+                        })
+                        let vars = parseResult.vars
+                            ->Belt.Option.map(vars => vars->Js_array2.map(var => (var[0], Some(var[1]))))
+                        setState(st => {
+                            switch st->addSteps(~atIdx=?parseResult.atIdx, ~steps, ~vars?, ()) {
+                                | Error(msg) => Error(msg)
+                                | Ok((st,stmtIds)) => {
+                                    let stmtIdToLabel = Belt_HashMapString.fromArray(
+                                        st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+                                    )
+                                    Ok(
+                                        st,
+                                        stmtIds->Js_array2.map(stmtId => {
+                                            stmtIdToLabel->Belt_HashMapString.get(stmtId)
+                                                ->Belt.Option.getExn->Js_json.string
+                                        })->Js_json.array
+                                    )
+                                }
+                            }
+                        })
                     }
-                })
+                }
             }
         }
     }
@@ -618,6 +666,7 @@ let updateEditorApi = (
     }))
     addStepsRef := Some(makeApiFunc("editor.addSteps", params => {
         addSteps(
+            ~state,
             ~paramsJson=params,
             ~setState,
         )
