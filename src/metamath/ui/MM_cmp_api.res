@@ -464,7 +464,14 @@ let addSteps = (
                     jstf: d->strOpt("jstf", ()),
                 }
             }, ()), ()),
-            vars: d->arrOpt("vars", asArr(_, asStr(_, ()), ()), ()),
+            vars: d->arrOpt("vars", asArr(_, asStr(_, ~validator=str=>{
+                let trimed = str->Js_string2.trim
+                if (trimed == "") {
+                    Error("Variable type and name must not be empty")
+                } else {
+                    Ok(trimed)
+                }
+            }, ()), ()), ()),
         }
     }, ()), ())
     switch parseResult {
