@@ -29,13 +29,42 @@ let errResp = (msg:string):apiResp => {
     }
 }
 
+let getSymOfVar = (node:syntaxTreeNode):option<string> => {
+    if (node.children->Js.Array2.length == 1) {
+        switch node.children[0] {
+            | Symbol({sym, isVar}) => {
+                if (isVar) {
+                    Some(sym)
+                } else {
+                    None
+                }
+            }
+            | Subtree(_) => None
+        }
+    } else {
+        None
+    }
+}
+
 let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t => {
-    Js_dict.fromArray([
-        ("nodeType", "expr"->Js_json.string),
+    let attrs = [
         ("exprType", ctx->ctxIntToSymExn(node.typ)->Js_json.string),
         ("label", node.label->Js_json.string),
-        ("children", node.children->Js.Array2.map(childNodeToJson(ctx,_))->Js_json.array ),
-    ])->Js_json.object_ 
+    ]
+    switch getSymOfVar(node) {
+        | None => {
+            attrs->Js_array2.push(("nodeType", "expr"->Js_json.string))->ignore
+            attrs->Js_array2.push(
+                ("children", node.children->Js.Array2.map(childNodeToJson(ctx,_))->Js_json.array )
+            )->ignore
+        }
+        | Some(varSym) => {
+            attrs->Js_array2.push(("nodeType", "sym"->Js_json.string))->ignore
+            attrs->Js_array2.push(("sym", varSym->Js_json.string))->ignore
+            attrs->Js_array2.push(("isVar", true->Js_json.boolean))->ignore
+        }
+    }
+    Js_dict.fromArray(attrs)->Js_json.object_
 } and childNodeToJson = (ctx:mmContext, node:childNode):Js_json.t => {
     switch node {
         | Subtree(subtree) => syntaxTreeNodeToJson(ctx, subtree)
