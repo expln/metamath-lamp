@@ -229,6 +229,7 @@ type editorState = {
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
+    contIsHidden:bool,
 
     descr: string,
     descrEditMode: bool,
@@ -703,6 +704,13 @@ let setNextAction = (st:editorState, action:option<editorStateAction>):editorSta
     {
         ...st,
         nextAction: action
+    }
+}
+
+let setContIsHidden = (st:editorState, contIsHidden:bool):editorState => {
+    {
+        ...st,
+        contIsHidden: contIsHidden
     }
 }
 

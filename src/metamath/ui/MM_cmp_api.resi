@@ -19,6 +19,7 @@ let api: {
         "getTokenType": api,
         "substitute": api,
         "mergeDuplicatedSteps": api,
+        "setContentIsHidden": api,
     }
 }
 

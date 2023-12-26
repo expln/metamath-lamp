@@ -1702,6 +1702,15 @@ let make = (
         })->React.array
     }
 
+    let rndShowContentBtn = () => {
+        <Col spacing=1.0 style=ReactDOM.Style.make(~padding="20px", ())>
+            {"Editor content is hidden."->React.string}
+            <Button onClick={_=>{ setState(setContIsHidden(_,false)) }} variant=#contained > 
+                {React.string("Show editor content")} 
+            </Button>
+        </Col>
+    }
+
     let actSetStateFromApi = (update:editorState=>result<(editorState,Js_json.t),string>):promise<result<Js_json.t,string>> => {
         promise(resolve => {
             setState(st => {
@@ -1770,11 +1779,19 @@ let make = (
         content={_ => {
             <Col spacing=0. >
                 {rndMainMenu()}
-                {rndDescr()}
-                {rndVars()}
-                {rndDisj()}
-                {rndStmts()}
-                {rndFooter()}
+                {
+                    if (state.contIsHidden) {
+                        rndShowContentBtn()
+                    } else {
+                        <Col spacing=0. >
+                            {rndDescr()}
+                            {rndVars()}
+                            {rndDisj()}
+                            {rndStmts()}
+                            {rndFooter()}
+                        </Col>
+                    }
+                }
             </Col>
         }}
     />

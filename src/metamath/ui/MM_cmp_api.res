@@ -374,6 +374,16 @@ let mergeDuplicatedSteps = (
     setState(st => Ok( st->autoMergeDuplicatedStatements(~selectFirst=true), Js_json.null ))
 }
 
+let editorSetContIsHidden = (
+    ~params:Js_json.t,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+):promise<result<Js_json.t,string>> => {
+    switch Js_json.decodeBoolean(params) {
+        | None => promiseResolved(Error("The parameter of setContentIsHidden() must me a boolean."))
+        | Some(bool) => setState(st => Ok( st->setContIsHidden(bool), Js_json.null ))
+    }
+}
+
 let validateStepType = (typ:option<string>):result<option<string>,string> => {
     switch typ {
         | None => Ok(typ)
@@ -648,6 +658,7 @@ let updateStepsRef:ref<option<api>> = ref(None)
 let getTokenTypeRef:ref<option<api>> = ref(None)
 let substituteRef:ref<option<api>> = ref(None)
 let mergeDuplicatedStepsRef:ref<option<api>> = ref(None)
+let editorSetContIsHiddenRef:ref<option<api>> = ref(None)
 
 let makeApiFuncRef = (ref:ref<option<api>>):api => {
     params => {
@@ -669,6 +680,7 @@ let api = {
         "getTokenType": makeApiFuncRef(getTokenTypeRef),
         "substitute": makeApiFuncRef(substituteRef),
         "mergeDuplicatedSteps": makeApiFuncRef(mergeDuplicatedStepsRef),
+        "setContentIsHidden": makeApiFuncRef(editorSetContIsHiddenRef),
     },
 }
 
@@ -713,39 +725,24 @@ let updateEditorApi = (
         )
     }))
     unifyAllRef := Some(makeApiFunc("editor.unifyAll", _ => {
-        unifyAll(
-            ~canStartUnifyAll,
-            ~startUnifyAll,
-        )
+        unifyAll( ~canStartUnifyAll, ~startUnifyAll, )
     }))
     addStepsRef := Some(makeApiFunc("editor.addSteps", params => {
-        addSteps(
-            ~state,
-            ~paramsJson=params,
-            ~setState,
-        )
+        addSteps( ~state, ~paramsJson=params, ~setState, )
     }))
     updateStepsRef := Some(makeApiFunc("editor.updateSteps", params => {
-        updateSteps(
-            ~paramsJson=params,
-            ~setState,
-        )
+        updateSteps( ~paramsJson=params, ~setState, )
     }))
     getTokenTypeRef := Some(makeApiFunc("editor.getTokenType", params => {
-        getTokenType(
-            ~paramsJson=params,
-            ~state,
-        )
+        getTokenType( ~paramsJson=params, ~state, )
     }))
     substituteRef := Some(makeApiFunc("editor.substitute", params => {
-        substitute(
-            ~paramsJson=params,
-            ~setState,
-        )
+        substitute( ~paramsJson=params, ~setState, )
     }))
     mergeDuplicatedStepsRef := Some(makeApiFunc("editor.mergeDuplicatedSteps", _ => {
-        mergeDuplicatedSteps(
-            ~setState,
-        )
+        mergeDuplicatedSteps( ~setState, )
+    }))
+    editorSetContIsHiddenRef := Some(makeApiFunc("editor.setContentIsHidden", params => {
+        editorSetContIsHidden( ~params, ~setState, )
     }))
 }

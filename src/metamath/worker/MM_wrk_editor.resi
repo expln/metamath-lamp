@@ -128,6 +128,7 @@ type editorState = {
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
+    contIsHidden:bool,
 
     descr: string,
     descrEditMode: bool,
@@ -194,6 +195,7 @@ let completeTypEditMode: (editorState, stmtId, userStmtType, bool) => editorStat
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, stmtId, string) => editorState
 let setNextAction: (editorState, option<editorStateAction>) => editorState
+let setContIsHidden: (editorState, bool) => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
 let editorStateHasErrors: editorState => bool
 let editorStateHasDuplicatedStmts: editorState => bool
