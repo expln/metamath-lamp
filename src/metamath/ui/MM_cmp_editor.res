@@ -181,19 +181,21 @@ let make = (
 
     let scheduleUnifyAllIfAllowed = (st:editorState):editorState => {
         if (st.settings.autoUnifyAll) {
-            let editIsActive = st->isEditMode
-            let thereAreSyntaxErrors = st->editorStateHasErrors
-            let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
-            let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
-                stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
-            })
-            if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
-                switch st.nextAction {
-                    | None => st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
-                    | Some(_) => st
+            switch st.nextAction {
+                | Some(_) => st
+                | None => {
+                    let editIsActive = st->isEditMode
+                    let thereAreSyntaxErrors = st->editorStateHasErrors
+                    let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
+                    let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
+                        stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
+                    })
+                    if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
+                        st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
+                    } else {
+                        st
+                    }
                 }
-            } else {
-                st
             }
         } else {
             st
@@ -201,7 +203,6 @@ let make = (
     }
 
     let commonPreSaveActions = (st:editorState):editorState => {
-        let st = st->verifyEditorState
         editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
@@ -209,15 +210,19 @@ let make = (
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
-            let st = st->update->commonPreSaveActions
+            let st = st->update
+            let st = st->verifyEditorState
+            let st = st->commonPreSaveActions
             let st = st->scheduleUnifyAllIfAllowed
             st
         })
     }
 
-    let setStateWithoutUnifyAll = (update:editorState=>editorState) => {
+    let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
         setStatePriv(st => {
-            let st = st->update->commonPreSaveActions
+            let st = st->applyUnifyAllResults(proofTreeDto)
+            let st = st->commonPreSaveActions
+            let st = st->setNextAction(Some(Action(nextAction)))
             st
         })
     }
@@ -825,15 +830,6 @@ let make = (
         }
     }
 
-    let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
-        setStatePriv(st => {
-            let st = applyUnifyAllResults(st, proofTreeDto)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            setHist(ht => ht->editorHistAddSnapshot(st))
-            st->setNextAction(Some(Action(nextAction)))
-        })
-    }
-
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
             MM_wrk_client.terminateWorker()
@@ -1103,7 +1099,10 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
-        setStateWithoutUnifyAll(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
+        setState(_ => {
+            createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
+                ->setNextAction(Some(Action(()=>())))
+        })
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
