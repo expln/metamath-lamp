@@ -253,12 +253,12 @@ let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>
     })->ignore
 }
 
-let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ):React.element => {
+let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey", () ):React.element => {
     <span
         onClick={_=> onClick() }
         style=ReactDOM.Style.make( 
             ~cursor="pointer", 
-            ~color="grey", 
+            ~color, 
             ~fontSize="0.7em", 
             ~padding="2px",
             ~borderRadius="3px",

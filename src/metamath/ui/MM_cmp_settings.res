@@ -1367,13 +1367,15 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.descrRegexToDisc, ~onSave=actDescrRegexToDiscUpdated)
-                        }
+                        },
+                        ()
                     )
                 }
                 {
                     rndSmallTextBtn(
                         ~text="Restore default regex",
-                        ~onClick=actRestoreDefaultDescrRegexToDisc
+                        ~onClick=actRestoreDefaultDescrRegexToDisc,
+                        ()
                     )
                 }
             </Row>
@@ -1393,7 +1395,8 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.labelRegexToDisc, ~onSave=actLabelRegexToDiscUpdated)
-                        }
+                        },
+                        ()
                     )
                 }
             </Row>
@@ -1413,7 +1416,8 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.descrRegexToDepr, ~onSave=actDescrRegexToDeprUpdated)
-                        }
+                        },
+                        ()
                     )
                 }
             </Row>
@@ -1433,7 +1437,8 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.labelRegexToDepr, ~onSave=actLabelRegexToDeprUpdated)
-                        }
+                        },
+                        ()
                     )
                 }
             </Row>
@@ -1563,7 +1568,8 @@ let make = (
             {
                 rndSmallTextBtn(
                     ~text="Restore default assertion usage settings",
-                    ~onClick=actRestoreDefaultDiscUsageSettings
+                    ~onClick=actRestoreDefaultDiscUsageSettings,
+                    ()
                 )
             }
         </Col>
@@ -1705,7 +1711,7 @@ let make = (
                 }
                 label="Use default transforms"
             />
-            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor ) }
+            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor, () ) }
         </Row>
         <Row alignItems=#center spacing=0. >
             <FormControlLabel
@@ -1717,7 +1723,7 @@ let make = (
                 }
                 label="Use custom transforms"
             />
-            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor ) }
+            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor, () ) }
         </Row>
         <TextField 
             size=#small

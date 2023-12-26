@@ -34,6 +34,7 @@ type proverParams = {
 let updateEditorApi: (
     ~state: editorState,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+    ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
     ~canStartUnifyAll:bool,

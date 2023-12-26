@@ -128,7 +128,6 @@ type editorState = {
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
-    contIsHidden:bool,
 
     descr: string,
     descrEditMode: bool,
@@ -195,9 +194,9 @@ let completeTypEditMode: (editorState, stmtId, userStmtType, bool) => editorStat
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, stmtId, string) => editorState
 let setNextAction: (editorState, option<editorStateAction>) => editorState
-let setContIsHidden: (editorState, bool) => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
-let editorStateHasErrors: editorState => bool
+let editorStateHasCriticalErrors: editorState => bool
+let editorStateHasAnyErrors: editorState => bool
 let editorStateHasDuplicatedStmts: editorState => bool
 let createNewDisj: (editorState, disjMutable) => editorState
 let removeUnusedVars: editorState => editorState
@@ -219,6 +218,8 @@ let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
 let autoMergeDuplicatedStatements: (editorState, ~selectFirst:bool) => editorState
+let userStmtHasCriticalErrors: userStmt => bool
+let userStmtHasAnyErrors: userStmt => bool
 
 let createNewVars: (
     editorState, 

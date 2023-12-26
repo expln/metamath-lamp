@@ -130,7 +130,7 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
 }
 
 let assertNoErrors = (st) => {
-    if (st->editorStateHasErrors) {
+    if (st->editorStateHasCriticalErrors) {
         let filePath = curTestDataDir.contents ++ "/" ++ "editor-state-error.txt"
         Expln_utils_files.writeStringToFile( st->editorStateToStr, filePath )
         raise(MmException({msg:`Editor state has errors: ${filePath}`}))

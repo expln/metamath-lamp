@@ -229,7 +229,6 @@ type editorState = {
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
-    contIsHidden:bool,
 
     descr: string,
     descrEditMode: bool,
@@ -707,13 +706,6 @@ let setNextAction = (st:editorState, action:option<editorStateAction>):editorSta
     }
 }
 
-let setContIsHidden = (st:editorState, contIsHidden:bool):editorState => {
-    {
-        ...st,
-        contIsHidden: contIsHidden
-    }
-}
-
 let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
     let res = Belt_HashMapString.make(~hintSize=16)
     switch textToVarDefs(varsText) {
@@ -922,14 +914,24 @@ let isEditMode = (st:editorState): bool => {
         )
 }
 
-let userStmtHasErrors = stmt => {
+let userStmtHasCriticalErrors = stmt => {
     stmt.stmtErr->Belt_Option.isSome
 }
 
-let editorStateHasErrors = st => {
+let userStmtHasAnyErrors = stmt => {
+    stmt.stmtErr->Belt_Option.isSome 
+        || stmt.syntaxErr->Belt_Option.isSome 
+        || stmt.unifErr->Belt_Option.isSome
+}
+
+let editorStateHasCriticalErrors = st => {
     st.varsErr->Belt_Option.isSome 
         || st.disjErr->Belt_Option.isSome 
-        || st.stmts->Js_array2.some(userStmtHasErrors)
+        || st.stmts->Js_array2.some(userStmtHasCriticalErrors)
+}
+
+let editorStateHasAnyErrors = st => {
+    st->editorStateHasCriticalErrors || st.stmts->Js_array2.some(userStmtHasAnyErrors)
 }
 
 let editorStateHasDuplicatedStmts = (st:editorState):bool => {
@@ -990,7 +992,7 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
 }
 
 let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         try {
@@ -1005,7 +1007,7 @@ let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
 }
 
 let setStmtJstf = (stmt:userStmt):userStmt => {
-    if (userStmtHasErrors(stmt) || stmt.typ == E) {
+    if (userStmtHasCriticalErrors(stmt) || stmt.typ == E) {
         stmt
     } else {
         switch parseJstf(stmt.jstfText) {
@@ -1025,7 +1027,7 @@ let validateStmtJstf = (
     definedUserLabels:Belt_HashSetString.t,
     frms: frms,
 ):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         switch stmt.jstf {
@@ -1077,7 +1079,7 @@ let validateStmtJstf = (
 }
 
 let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         if (stmt.typ == E || stmt.typ == P && stmt.isGoal) {
@@ -1120,7 +1122,7 @@ let validateStmtExpr = (
     wrkCtx:mmContext,
     definedUserExprs:Belt_HashMap.t<expr,string,ExprHash.identity>,
 ):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         switch stmt.expr {
@@ -1152,7 +1154,7 @@ let validateStmtIsGoal = (
     stmt:userStmt, 
     goalLabel:ref<option<string>>,
 ):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         switch goalLabel.contents {
@@ -1188,12 +1190,12 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
             ]
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
-                    if (editorStateHasErrors(st)) {
+                    if (editorStateHasCriticalErrors(st)) {
                         st
                     } else {
                         let stmt = actions->Js_array2.reduce(
                             (stmt,action) => {
-                                if (userStmtHasErrors(stmt)) {
+                                if (userStmtHasCriticalErrors(stmt)) {
                                     stmt
                                 } else {
                                     action(stmt)
@@ -1203,7 +1205,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                         )
 
                         definedUserLabels->Belt_HashSetString.add(stmt.label)
-                        if (!userStmtHasErrors(stmt)) {
+                        if (!userStmtHasCriticalErrors(stmt)) {
                             switch stmt.expr {
                                 | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
                                 | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
@@ -1229,7 +1231,7 @@ let prepareEditorForUnification = st => {
         prepareUserStmtsForUnification,
     ]->Js.Array2.reduce(
         (st,act) => {
-            if (editorStateHasErrors(st)) {
+            if (editorStateHasCriticalErrors(st)) {
                 st
             } else {
                 act(st)
@@ -2706,7 +2708,7 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
 
 let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefix:string, ~forHyp:bool):result<editorState, string> => {
     let state = state->prepareEditorForUnification
-    if (state->editorStateHasErrors) {
+    if (state->editorStateHasCriticalErrors) {
         Error(
             `Cannot perform renumbering because there is an error in the editor content.`
                 ++ ` Please resolve the error before renumbering.`
@@ -2750,7 +2752,7 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
             | Error(_) => res
             | Ok(state) => {
                 let state = state->prepareEditorForUnification
-                if (state->editorStateHasErrors) {
+                if (state->editorStateHasCriticalErrors) {
                     Error( `Cannot renumber steps: there was an internal error during renumbering.` )
                 } else {
                     Ok(state)
@@ -2908,7 +2910,7 @@ let resetEditorContent = (st:editorState):editorState => {
 
 let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):result<editorState, string> => {
     let state = state->prepareEditorForUnification
-    if (state->editorStateHasErrors) {
+    if (state->editorStateHasCriticalErrors) {
         Error(
             `Cannot perform deletion because there is an error in the editor content.`
                 ++ ` Please resolve the error before deleting steps.`

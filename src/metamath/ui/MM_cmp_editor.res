@@ -140,6 +140,7 @@ let make = (
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
     let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
+    let (contIsHidden, setContIsHidden) = React.useState(_ => false)
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true,
@@ -171,6 +172,24 @@ let make = (
         histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
     })
 
+    let pageSize = Js.Math.max_int(1, Js.Math.min_int(100, 100))
+    let numOfPages = (state.stmts->Js.Array2.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
+                        ->Js_math.ceil_float->Belt.Float.toInt
+    let minPageIdx = 0
+    let maxPageIdx = numOfPages - 1
+    let (pageIdx, setPageIdx) = React.useState(() => 0)
+    let pageIdx = Js.Math.max_int(minPageIdx, Js.Math.min_int(pageIdx, maxPageIdx))
+    let stmtBeginIdx = pageIdx * pageSize
+    let stmtEndIdx = stmtBeginIdx + pageSize - 1
+
+    let actGoToPage = (pageIdx) => {
+        setPageIdx(_ => pageIdx)
+    }
+
+    let actResetPageIdx = () => {
+        actGoToPage(0)
+    }
+
     let setHist = (update:editorHistory=>editorHistory):unit => {
         setHistPriv(ht => {
             let ht = update(ht)
@@ -185,12 +204,15 @@ let make = (
                 | Some(_) => st
                 | None => {
                     let editIsActive = st->isEditMode
-                    let thereAreErrorsInEditor = st->editorStateHasErrors
+                    let thereAreCriticalErrorsInEditor = st->editorStateHasCriticalErrors
                     let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
                     let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
                         stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
                     })
-                    if (!editIsActive && !thereAreErrorsInEditor && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
+                    if (
+                        !editIsActive && !thereAreCriticalErrorsInEditor 
+                        && !atLeastOneStmtIsChecked && proofStatusIsMissing
+                    ) {
                         st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
                     } else {
                         st
@@ -245,7 +267,8 @@ let make = (
     }
 
     let editIsActive = state->isEditMode
-    let thereAreErrorsInEditor = editorStateHasErrors(state)
+    let thereAreCriticalErrorsInEditor = editorStateHasCriticalErrors(state)
+    let thereAreAnyErrorsInEditor = editorStateHasAnyErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
         ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
@@ -261,7 +284,7 @@ let make = (
         }
     }
 
-    let generalModificationActionIsEnabled = !editIsActive && !thereAreErrorsInEditor
+    let generalModificationActionIsEnabled = !editIsActive && !thereAreCriticalErrorsInEditor
     let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
         | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
@@ -861,7 +884,7 @@ let make = (
         ~nextAction: unit=>unit = ()=>(),
         ()
     ) => {
-        if (thereAreErrorsInEditor) {
+        if (thereAreCriticalErrorsInEditor) {
             ()
         } else {
             switch state.wrkCtx {
@@ -1104,6 +1127,7 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
+        actResetPageIdx()
         setState(_ => {
             createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
                 ->setNextAction(Some(Action(()=>())))
@@ -1690,9 +1714,86 @@ let make = (
         </Row>
     }
 
+    let getPagesWithErrors = () => {
+        let pageHasErrors = pageIdx => {
+            let minIdx = pageIdx * pageSize
+            let maxIdx = minIdx + pageSize - 1
+            state.stmts
+                ->Js.Array2.findIndexi((stmt,i) => minIdx <= i && i <= maxIdx && stmt->userStmtHasAnyErrors) >= 0
+        }
+        Belt_Array.range(minPageIdx, maxPageIdx)->Js.Array2.filter(pageHasErrors)
+    }
+
+    let actGoToNextPageWithErrors = () => {
+        let pagesWithErrors = getPagesWithErrors()
+        if (pagesWithErrors->Js_array2.length > 0) {
+            switch getPagesWithErrors()->Js_array2.find(i => pageIdx < i) {
+                | Some(i) => actGoToPage(i)
+                | None => actGoToPage(pagesWithErrors[0])
+            }
+        }
+    }
+
+    let actGoToPrevPageWithErrors = () => {
+        let pagesWithErrors = getPagesWithErrors()
+        if (pagesWithErrors->Js_array2.length > 0) {
+            switch getPagesWithErrors()->Js_array2.find(i => i < pageIdx) {
+                | Some(i) => actGoToPage(i)
+                | None => actGoToPage(pagesWithErrors[pagesWithErrors->Js_array2.length-1])
+            }
+        }
+    }
+
+    let paginationIsRequired = state.stmts->Js.Array2.length > pageSize
+
+    let rndPagination = () => {
+        if (paginationIsRequired) {
+            <div style=ReactDOM.Style.make(~padding="5px", ())>
+                <PaginationCmp
+                    numOfPages
+                    pageIdx
+                    siblingCount=1000
+                    showGoToPage=false
+                    onPageIdxChange=actGoToPage
+                />
+            </div>
+        } else {
+            React.null
+        }
+    }
+
+    let rndGoToNextPageWithErrorsBtn = () => {
+        if (thereAreAnyErrorsInEditor && paginationIsRequired) {
+            <Row style=ReactDOM.Style.make(~padding="5px", ())>
+                {
+                    rndSmallTextBtn( 
+                        ~text="< Go to previos page with errors", ~color="red", 
+                        ~onClick=actGoToPrevPageWithErrors, () 
+                    )
+                }
+                {
+                    rndSmallTextBtn( 
+                        ~text="Go to next page with errors >", ~color="red", 
+                        ~onClick=actGoToNextPageWithErrors, () 
+                    )
+                }
+            </Row>
+        } else {
+            React.null
+        }
+    }
+
     let rndStmts = () => {
         <Col spacing=0.>
-            { state.stmts->Js_array2.map(rndStmtAndErrors)->React.array }
+            {rndPagination()}
+            {rndGoToNextPageWithErrorsBtn()}
+            { 
+                state.stmts
+                    ->Js.Array2.filteri((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
+                    ->Js_array2.map(rndStmtAndErrors)->React.array 
+            }
+            {rndGoToNextPageWithErrorsBtn()}
+            {rndPagination()}
         </Col>
     }
 
@@ -1705,8 +1806,8 @@ let make = (
     let rndShowContentBtn = () => {
         <Col spacing=1.0 style=ReactDOM.Style.make(~padding="20px", ())>
             {"Editor content is hidden."->React.string}
-            <Button onClick={_=>{ setState(setContIsHidden(_,false)) }} variant=#contained > 
-                {React.string("Show editor content")} 
+            <Button onClick={_=>{ setContIsHidden(_=>false) }} variant=#contained >
+                {React.string("Show editor content")}
             </Button>
         </Col>
     }
@@ -1722,9 +1823,15 @@ let make = (
         })
     }
 
+    let actSetEditorContIsHidden = (contIsHidden:bool):promise<unit> => {
+        setContIsHidden(_ => contIsHidden)
+        promiseResolved(())
+    }
+
     MM_cmp_api.updateEditorApi(
         ~state,
         ~setState=actSetStateFromApi,
+        ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
         ~startProvingBottomUp = (params) => {
             promise(resolve => {
@@ -1780,7 +1887,7 @@ let make = (
             <Col spacing=0. >
                 {rndMainMenu()}
                 {
-                    if (state.contIsHidden) {
+                    if (contIsHidden) {
                         rndShowContentBtn()
                     } else {
                         <Col spacing=0. >

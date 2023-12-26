@@ -14,7 +14,7 @@ let openInfoDialog: (
     unit,
 ) => unit
 
-let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ) => React.element
+let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ~color:string=?, ()) => React.element
 
 let rndColorSelect: (
     ~availableColors:array<string>, 

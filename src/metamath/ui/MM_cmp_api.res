@@ -376,11 +376,11 @@ let mergeDuplicatedSteps = (
 
 let editorSetContIsHidden = (
     ~params:Js_json.t,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+    ~setEditorContIsHidden:bool=>promise<unit>,
 ):promise<result<Js_json.t,string>> => {
     switch Js_json.decodeBoolean(params) {
         | None => promiseResolved(Error("The parameter of setContentIsHidden() must me a boolean."))
-        | Some(bool) => setState(st => Ok( st->setContIsHidden(bool), Js_json.null ))
+        | Some(bool) => setEditorContIsHidden(bool)->promiseMap(_ => Ok(Js_json.null))
     }
 }
 
@@ -709,6 +709,7 @@ let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>
 let updateEditorApi = (
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+    ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
     ~canStartUnifyAll:bool,
@@ -743,6 +744,6 @@ let updateEditorApi = (
         mergeDuplicatedSteps( ~setState, )
     }))
     editorSetContIsHiddenRef := Some(makeApiFunc("editor.setContentIsHidden", params => {
-        editorSetContIsHidden( ~params, ~setState, )
+        editorSetContIsHidden( ~params, ~setEditorContIsHidden, )
     }))
 }
