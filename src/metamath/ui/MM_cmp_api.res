@@ -368,6 +368,12 @@ let unifyAll = (
     }
 }
 
+let mergeDuplicatedSteps = (
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+):promise<result<Js_json.t,string>> => {
+    setState(st => Ok( st->autoMergeDuplicatedStatements(~selectFirst=true), Js_json.null ))
+}
+
 let validateStepType = (typ:option<string>):result<option<string>,string> => {
     switch typ {
         | None => Ok(typ)
@@ -641,6 +647,7 @@ let addStepsRef:ref<option<api>> = ref(None)
 let updateStepsRef:ref<option<api>> = ref(None)
 let getTokenTypeRef:ref<option<api>> = ref(None)
 let substituteRef:ref<option<api>> = ref(None)
+let mergeDuplicatedStepsRef:ref<option<api>> = ref(None)
 
 let makeApiFuncRef = (ref:ref<option<api>>):api => {
     params => {
@@ -661,6 +668,7 @@ let api = {
         "updateSteps": makeApiFuncRef(updateStepsRef),
         "getTokenType": makeApiFuncRef(getTokenTypeRef),
         "substitute": makeApiFuncRef(substituteRef),
+        "mergeDuplicatedSteps": makeApiFuncRef(mergeDuplicatedStepsRef),
     },
 }
 
@@ -732,6 +740,11 @@ let updateEditorApi = (
     substituteRef := Some(makeApiFunc("editor.substitute", params => {
         substitute(
             ~paramsJson=params,
+            ~setState,
+        )
+    }))
+    mergeDuplicatedStepsRef := Some(makeApiFunc("editor.mergeDuplicatedSteps", _ => {
+        mergeDuplicatedSteps(
             ~setState,
         )
     }))

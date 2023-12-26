@@ -18,6 +18,7 @@ let api: {
         "updateSteps": api,
         "getTokenType": api,
         "substitute": api,
+        "mergeDuplicatedSteps": api,
     }
 }
 

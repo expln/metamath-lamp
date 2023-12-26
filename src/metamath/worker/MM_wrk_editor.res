@@ -2469,7 +2469,7 @@ let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt>
     })
 }
 
-let autoMergeDuplicatedStatements = (st:editorState):editorState => {
+let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorState => {
     let resultState = ref(st)
     let continue = ref(true)
     while (continue.contents) {
@@ -2479,26 +2479,27 @@ let autoMergeDuplicatedStatements = (st:editorState):editorState => {
                 switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
                     | None => continue := false
                     | Some(stmt2) => {
-                        let jstf1 = stmt1.jstfText->Js_string2.trim
-                        let jstf2 = stmt2.jstfText->Js_string2.trim
-                        if (jstf1 != "" && jstf2 == "") {
-                            switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
-                                | Error(msg) => {
-                                    Js.Console.log2(`err1 msg`, msg)
-                                    continue := false
-                                }
-                                | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
-                            }
-                        } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
+                        if (selectFirst) {
                             switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
-                                | Error(msg) => {
-                                    Js.Console.log2(`err2 msg`, msg)
-                                    continue := false
-                                }
+                                | Error(_) => continue := false
                                 | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
                             }
                         } else {
-                            continue := false
+                            let jstf1 = stmt1.jstfText->Js_string2.trim
+                            let jstf2 = stmt2.jstfText->Js_string2.trim
+                            if (jstf1 != "" && jstf2 == "") {
+                                switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
+                                    | Error(_) => continue := false
+                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                }
+                            } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
+                                switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                    | Error(_) => continue := false
+                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                }
+                            } else {
+                                continue := false
+                            }
                         }
                     }
                 }
@@ -2514,7 +2515,7 @@ let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorStat
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)
         let st = if (st.settings.autoMergeStmts) {
-            autoMergeDuplicatedStatements(st)
+            autoMergeDuplicatedStatements(st, ~selectFirst=false)
         } else {
             st
         }

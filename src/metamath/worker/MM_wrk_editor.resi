@@ -216,6 +216,7 @@ let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
+let autoMergeDuplicatedStatements: (editorState, ~selectFirst:bool) => editorState
 
 let createNewVars: (
     editorState, 
