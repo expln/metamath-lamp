@@ -981,7 +981,7 @@ let make = (
         bottomUpProofResultConsumer:option<stmtsDto>=>unit,
     ) => {
         switch selectedResult {
-            | None => bottomUpProofResultConsumer(selectedResult)
+            | None => bottomUpProofResultConsumer(None)
             | Some(selectedResult) => {
                 setState(st => {
                     let st = st->addNewStatements(selectedResult)

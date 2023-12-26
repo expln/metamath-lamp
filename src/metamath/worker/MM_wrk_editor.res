@@ -490,6 +490,14 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
     }
 }
 
+let getLowestCheckedStmt = (st):option<userStmt> => {
+    if (st.checkedStmtIds->Js.Array2.length == 0) {
+        None
+    } else {
+        st.stmts->Js_array2.copy->Js.Array2.reverseInPlace->Js_array2.find(stmt => isStmtChecked(st,stmt.id))
+    }
+}
+
 let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let pCnt = st.stmts->Js.Array2.reduce(
@@ -1472,7 +1480,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     })
     let st = createNewDisj(st, newCtxDisj)
 
-    let checkedStmt = st->getTopmostCheckedStmt
+    let checkedStmt = st->getLowestCheckedStmt
     let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
 
     let replaceDtoLabelsWithCtxLabels = jstf => {
