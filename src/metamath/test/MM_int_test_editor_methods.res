@@ -104,7 +104,7 @@ let createEditorState = (
                 }
             }
     )
-    st->updateEditorStateWithPostupdateActions(s=>s)
+    st->verifyEditorState(s=>s)
 }
 
 let addStmt = (
@@ -139,7 +139,7 @@ let addStmt = (
         | None => st
     }
     let st = st->uncheckAllStmts
-    (st->updateEditorStateWithPostupdateActions(st => st), stmtId)
+    (st->verifyEditorState(st => st), stmtId)
 }
 
 let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
@@ -151,7 +151,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     } else {
         let (newStmtId,_) = st.checkedStmtIds[0]
         let st = st->uncheckAllStmts
-        (st->updateEditorStateWithPostupdateActions(st => st), newStmtId)
+        (st->verifyEditorState(st => st), newStmtId)
     }
 }
 
@@ -208,7 +208,7 @@ let updateStmt = (
         | Some(content) => st->completeContEditMode(stmtId, content)
         | None => st
     }
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let addStmtsBySearch = (
@@ -247,7 +247,7 @@ let addStmtsBySearch = (
             st->uncheckAllStmts
         }
     }
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, ()):editorState => {
@@ -261,7 +261,7 @@ let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, 
     }
     let st = st->addNewStatements(newStmts)
     let st = st->uncheckAllStmts
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let getStmtId = (
@@ -299,7 +299,7 @@ let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
         st
     )
     let st = st->deleteCheckedStmts
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatching:bool):editorState => {
@@ -320,7 +320,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
             }
         }
     }
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let unifyAll = (st):editorState => {
@@ -454,14 +454,14 @@ let unifyBottomUp = (
 
 let removeAllJstf = (st:editorState):editorState => {
     let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let addDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
     disjLines->Js_array2.push(disj)->ignore
     let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let removeDisj = (st:editorState, disj:string):editorState => {
@@ -469,17 +469,17 @@ let removeDisj = (st:editorState, disj:string):editorState => {
     let st = st->completeDisjEditMode(
         disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
     )
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let setDisj = (st:editorState, disj:string):editorState => {
     let st = st->completeDisjEditMode( disj )
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let setVars = (st:editorState, vars:string):editorState => {
     let st = st->completeVarsEditMode( vars )
-    st->updateEditorStateWithPostupdateActions(st => st)
+    st->verifyEditorState(st => st)
 }
 
 let mergeStmt = (st:editorState, stmtId):editorState => {
@@ -495,7 +495,7 @@ let mergeStmt = (st:editorState, stmtId):editorState => {
                 | Error(msg) => raise(MmException({msg:msg}))
             }
             let st = st->uncheckAllStmts
-            st->updateEditorStateWithPostupdateActions(st => st)
+            st->verifyEditorState(st => st)
         }
     }
 }

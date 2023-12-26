@@ -200,7 +200,7 @@ let editorStateHasDuplicatedStmts: editorState => bool
 let createNewDisj: (editorState, disjMutable) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
-let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
+let verifyEditorState: (editorState, editorState => editorState) => editorState
 let generateCompressedProof: (editorState, string) => option<(string,string,string)>
 let updateColorsInAllStmts: editorState => editorState
 let getTheOnlyCheckedStmt: editorState => option<userStmt>
