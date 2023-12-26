@@ -185,12 +185,12 @@ let make = (
                 | Some(_) => st
                 | None => {
                     let editIsActive = st->isEditMode
-                    let thereAreSyntaxErrors = st->editorStateHasErrors
+                    let thereAreErrorsInEditor = st->editorStateHasErrors
                     let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
                     let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
                         stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
                     })
-                    if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
+                    if (!editIsActive && !thereAreErrorsInEditor && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
                         st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
                     } else {
                         st
@@ -245,7 +245,7 @@ let make = (
     }
 
     let editIsActive = state->isEditMode
-    let thereAreSyntaxErrors = editorStateHasErrors(state)
+    let thereAreErrorsInEditor = editorStateHasErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
         ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
@@ -261,7 +261,7 @@ let make = (
         }
     }
 
-    let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
+    let generalModificationActionIsEnabled = !editIsActive && !thereAreErrorsInEditor
     let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
         | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
@@ -861,112 +861,117 @@ let make = (
         ~nextAction: unit=>unit = ()=>(),
         ()
     ) => {
-        switch state.wrkCtx {
-            | None => ()
-            | Some(wrkCtx) => {
-                let varsText=state.varsText
-                let disjText=state.disjText
-                let state = switch stmtId {
-                    | None => state
-                    | Some(stmtId) => {
-                        let state = state->uncheckAllStmts
-                        let state = state->toggleStmtChecked(stmtId)
-                        state
+        if (thereAreErrorsInEditor) {
+            ()
+        } else {
+            switch state.wrkCtx {
+                | None => ()
+                | Some(wrkCtx) => {
+                    let varsText=state.varsText
+                    let disjText=state.disjText
+                    let state = switch stmtId {
+                        | None => state
+                        | Some(stmtId) => {
+                            let state = state->uncheckAllStmts
+                            let state = state->toggleStmtChecked(stmtId)
+                            state
+                        }
                     }
-                }
-                let rootUserStmts = state->getRootStmtsForUnification
-                let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
-                    | Some(stmt) if stmt.typ == P => Some(stmt)
-                    | _ => None
-                }
-                switch singleProvableChecked {
-                    | Some(singleProvableChecked) => {
-                        let initialParams = switch params {
-                            | Some(_) => params
-                            | None => {
-                                switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
-                                    | None => None
-                                    | Some((args0,asrtLabel)) => {
-                                        Some(
-                                            bottomUpProverParamsMake(
-                                                ~asrtLabel, 
-                                                ~args0, 
-                                                ~allowNewVars=false,
-                                                ()
+                    let rootUserStmts = state->getRootStmtsForUnification
+                    let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
+                    let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
+                        | Some(stmt) if stmt.typ == P => Some(stmt)
+                        | _ => None
+                    }
+                    switch singleProvableChecked {
+                        | Some(singleProvableChecked) => {
+                            let initialParams = switch params {
+                                | Some(_) => params
+                                | None => {
+                                    switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
+                                        | None => None
+                                        | Some((args0,asrtLabel)) => {
+                                            Some(
+                                                bottomUpProverParamsMake(
+                                                    ~asrtLabel, 
+                                                    ~args0, 
+                                                    ~allowNewVars=false,
+                                                    ()
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
+                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                updateModal(modalRef, modalId, () => {
+                                    <MM_cmp_unify_bottom_up
+                                        modalRef
+                                        settingsVer=state.settingsV
+                                        settings=state.settings
+                                        preCtxVer=state.preCtxV
+                                        preCtx=state.preCtx
+                                        frms=state.frms parenCnt=state.parenCnt
+                                        varsText disjText wrkCtx
+                                        rootStmts=rootUserStmts
+                                        reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
+                                        typeToPrefix = {
+                                            Belt_MapString.fromArray(
+                                                state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                                            )
+                                        }
+                                        initialParams=?initialParams
+                                        apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
+                                        delayBeforeStartMs
+                                        initialDebugLevel=?initialDebugLevel
+                                        selectFirstFoundProof
+                                        onResultSelected={newStmtsDto => {
+                                            actBottomUpResultSelected( newStmtsDto, bottomUpProofResultConsumer )
+                                            closeModal(modalRef, modalId)
+                                        }}
+                                        onCancel={() => closeModal(modalRef, modalId)}
+                                    />
+                                })
+                            })->ignore
                         }
-                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                            updateModal(modalRef, modalId, () => {
-                                <MM_cmp_unify_bottom_up
-                                    modalRef
-                                    settingsVer=state.settingsV
-                                    settings=state.settings
-                                    preCtxVer=state.preCtxV
-                                    preCtx=state.preCtx
-                                    frms=state.frms parenCnt=state.parenCnt
-                                    varsText disjText wrkCtx
-                                    rootStmts=rootUserStmts
-                                    reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
-                                    typeToPrefix = {
-                                        Belt_MapString.fromArray(
-                                            state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                        | None => {
+                            openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))
+                                ->promiseMap(modalId => {
+                                    updateModal( 
+                                        modalRef, modalId, () => rndProgress(
+                                            ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                                         )
-                                    }
-                                    initialParams=?initialParams
-                                    apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
-                                    delayBeforeStartMs
-                                    initialDebugLevel=?initialDebugLevel
-                                    selectFirstFoundProof
-                                    onResultSelected={newStmtsDto => {
-                                        actBottomUpResultSelected( newStmtsDto, bottomUpProofResultConsumer )
-                                        closeModal(modalRef, modalId)
-                                    }}
-                                    onCancel={() => closeModal(modalRef, modalId)}
-                                />
-                            })
-                        })->ignore
-                    }
-                    | None => {
-                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))->promiseMap(modalId => {
-                            updateModal( 
-                                modalRef, modalId, () => rndProgress(
-                                    ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
-                                )
-                            )
-                            let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
-                            unify(
-                                ~settingsVer=state.settingsV,
-                                ~settings=state.settings,
-                                ~preCtxVer=state.preCtxV,
-                                ~preCtx=state.preCtx,
-                                ~varsText,
-                                ~disjText,
-                                ~rootStmts,
-                                ~bottomUpProverParams=None,
-                                ~allowedFrms=state.settings.allowedFrms,
-                                ~syntaxTypes=Some(state.syntaxTypes),
-                                ~exprsToSyntaxCheck=
-                                    if (state.settings.checkSyntax) {
-                                        Some(state->getAllExprsToSyntaxCheck(rootStmts))
-                                    } else {
-                                        None
-                                    },
-                                ~debugLevel=0,
-                                ~onProgress = msg => updateModal(
-                                    modalRef, modalId, () => rndProgress(
-                                        ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
                                     )
-                                )
-                            )->promiseMap(proofTreeDto => {
-                                actUnifyAllResultsAreReady(proofTreeDto, nextAction)
-                                closeModal(modalRef, modalId)
-                            })
-                        })->ignore
+                                    let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
+                                    unify(
+                                        ~settingsVer=state.settingsV,
+                                        ~settings=state.settings,
+                                        ~preCtxVer=state.preCtxV,
+                                        ~preCtx=state.preCtx,
+                                        ~varsText,
+                                        ~disjText,
+                                        ~rootStmts,
+                                        ~bottomUpProverParams=None,
+                                        ~allowedFrms=state.settings.allowedFrms,
+                                        ~syntaxTypes=Some(state.syntaxTypes),
+                                        ~exprsToSyntaxCheck=
+                                            if (state.settings.checkSyntax) {
+                                                Some(state->getAllExprsToSyntaxCheck(rootStmts))
+                                            } else {
+                                                None
+                                            },
+                                        ~debugLevel=0,
+                                        ~onProgress = msg => updateModal(
+                                            modalRef, modalId, () => rndProgress(
+                                                ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
+                                            )
+                                        )
+                                    )->promiseMap(proofTreeDto => {
+                                        actUnifyAllResultsAreReady(proofTreeDto, nextAction)
+                                        closeModal(modalRef, modalId)
+                                    })
+                                })->ignore
+                        }
                     }
                 }
             }
