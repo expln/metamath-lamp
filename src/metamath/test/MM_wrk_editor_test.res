@@ -170,7 +170,7 @@ describe("prepareEditorForUnification", _ => {
         let st = completeVarsEditMode(st, "hyp_v1 term v1 \n hyp_v2 term- v2")
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.getWithDefault(""), "The first symbol in the floating 'term-' must be a constant.")
@@ -183,7 +183,7 @@ describe("prepareEditorForUnification", _ => {
         let st = completeVarsEditMode(st, ".hyp_v1 term v1 \n .hyp_v2 wff v2")
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         switch st.wrkCtx {
@@ -203,7 +203,7 @@ describe("prepareEditorForUnification", _ => {
         let st = completeDisjEditMode(st, "t, r \n r, s-")
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
@@ -219,7 +219,7 @@ describe("prepareEditorForUnification", _ => {
         let st = st->completeContEditMode(s1, "t r s")
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         switch st.wrkCtx {
@@ -249,7 +249,7 @@ describe("prepareEditorForUnification", _ => {
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- 0 + 0.", ())})
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
@@ -281,7 +281,7 @@ describe("prepareEditorForUnification", _ => {
         let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ())})
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -312,7 +312,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -343,7 +343,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -374,7 +374,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -405,7 +405,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -436,7 +436,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -467,7 +467,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -498,7 +498,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -529,7 +529,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
@@ -547,7 +547,7 @@ describe("prepareEditorForUnification", _ => {
 describe("findPossibleSubs", _ => {
     it("finds all possible substitutions", _ => {
         //given
-        let st = createEditorState(findPossibleSubsSimpleCase, ())->verifyEditorState(s=>s)
+        let st = createEditorState(findPossibleSubsSimpleCase, ())->verifyEditorState
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         let t = ctx->ctxSymToIntExn("t")
@@ -586,7 +586,7 @@ describe("findPossibleSubs", _ => {
         let (st,s1) = st->addNewStmt
         let st = st->completeContEditMode(s1, "x y")
         let st = completeDisjEditMode(st, "x, y")
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         let t = ctx->ctxSymToIntExn("t")
@@ -626,7 +626,7 @@ describe("findPossibleSubs", _ => {
     it("doesn't return substitutions which don't satisfy disjoints", _ => {
         //given
         let st = createEditorState(findPossibleSubsDisjointsCase, ())
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         let t = ctx->ctxSymToIntExn("t")
@@ -665,7 +665,7 @@ describe("findPossibleSubs", _ => {
         let (st,s1) = st->addNewStmt
         let st = st->completeContEditMode(s1, "x y")
         let st = completeDisjEditMode(st, "x, y")
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         //when
@@ -699,7 +699,7 @@ describe("findPossibleSubs", _ => {
     it("doesn't return substitutions which don't satisfy types", _ => {
         //given
         let st = createEditorState(findPossibleSubsTypeCase, ())
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         let t = ctx->ctxSymToIntExn("t")
@@ -763,7 +763,7 @@ describe("findPossibleSubs", _ => {
     it("returns substitutions which satisfy disjoints", _ => {
         //given
         let st = createEditorState(findPossibleSubsDisjointsCase, ())
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         //when
@@ -789,7 +789,7 @@ describe("applySubstitutionForEditor", _ => {
         let pr2Id = st.stmts[1].id
         let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + s", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0", ())})
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
         let wrkSubs = (findPossibleSubs(
             st, 
@@ -825,7 +825,7 @@ describe("removeUnusedVars", _ => {
         let pr2Id = st.stmts[1].id
         let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = c", ())})
-        let st = verifyEditorState(st, s=>s)
+        let st = verifyEditorState(st)
 
         //when
         let st = removeUnusedVars(st)
@@ -1251,7 +1251,7 @@ describe("defaults for G steps", _ => {
         //when
         let st = st->toggleStmtChecked(s1)
         let st = st->duplicateCheckedStmt(false)
-        let st = st->verifyEditorState(s=>s)
+        let st = st->verifyEditorState
 
         //then
         assertEqMsg( st.stmts[0].typ, P , "st.stmts[0].typ")

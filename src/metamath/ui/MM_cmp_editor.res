@@ -201,7 +201,7 @@ let make = (
     }
 
     let commonPreSaveActions = (st:editorState):editorState => {
-        let st = st->verifyEditorState(st=>st)
+        let st = st->verifyEditorState
         editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
@@ -657,7 +657,7 @@ let make = (
                 | Ok(st) => {
                     let st = st->uncheckAllStmts
                     if (continueMergingStmts) {
-                        let st = st->verifyEditorState(st => st)
+                        let st = st->verifyEditorState
                         if (st->editorStateHasDuplicatedStmts) {
                             st->setNextAction(Some(MergeNextDuplicate))
                         } else {

@@ -19,7 +19,7 @@ let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
     let st = st->deleteCheckedStmts
     let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let prepareTestEditorState = (~preCtxData:preCtxData, ~testStmt:string):editorState => {
@@ -122,7 +122,7 @@ let make = (
 
     let actUpdateEditorState = (update:editorState=>editorState):unit => {
         setEditorState(st => {
-            let st = st->update->verifyEditorState(st=>st)
+            let st = st->update->verifyEditorState
             st.stmts->Belt_Array.get(0)->Belt.Option.forEach(stmt => {
                 setTestStmt(_ => stmt.cont->contToStr)
             })

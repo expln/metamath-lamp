@@ -2509,8 +2509,7 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorSt
     resultState.contents
 }
 
-let verifyEditorState = (st, update:editorState=>editorState) => {
-    let st = update(st)
+let verifyEditorState = (st:editorState) => {
     let st = prepareEditorForUnification(st)
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)

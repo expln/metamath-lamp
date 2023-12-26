@@ -104,7 +104,7 @@ let createEditorState = (
                 }
             }
     )
-    st->verifyEditorState(s=>s)
+    st->verifyEditorState
 }
 
 let addStmt = (
@@ -139,7 +139,7 @@ let addStmt = (
         | None => st
     }
     let st = st->uncheckAllStmts
-    (st->verifyEditorState(st => st), stmtId)
+    (st->verifyEditorState, stmtId)
 }
 
 let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
@@ -151,7 +151,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     } else {
         let (newStmtId,_) = st.checkedStmtIds[0]
         let st = st->uncheckAllStmts
-        (st->verifyEditorState(st => st), newStmtId)
+        (st->verifyEditorState, newStmtId)
     }
 }
 
@@ -208,7 +208,7 @@ let updateStmt = (
         | Some(content) => st->completeContEditMode(stmtId, content)
         | None => st
     }
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let addStmtsBySearch = (
@@ -247,7 +247,7 @@ let addStmtsBySearch = (
             st->uncheckAllStmts
         }
     }
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, ()):editorState => {
@@ -261,7 +261,7 @@ let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, 
     }
     let st = st->addNewStatements(newStmts)
     let st = st->uncheckAllStmts
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let getStmtId = (
@@ -299,7 +299,7 @@ let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
         st
     )
     let st = st->deleteCheckedStmts
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatching:bool):editorState => {
@@ -320,7 +320,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
             }
         }
     }
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let unifyAll = (st):editorState => {
@@ -454,14 +454,14 @@ let unifyBottomUp = (
 
 let removeAllJstf = (st:editorState):editorState => {
     let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let addDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
     disjLines->Js_array2.push(disj)->ignore
     let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let removeDisj = (st:editorState, disj:string):editorState => {
@@ -469,17 +469,17 @@ let removeDisj = (st:editorState, disj:string):editorState => {
     let st = st->completeDisjEditMode(
         disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
     )
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let setDisj = (st:editorState, disj:string):editorState => {
     let st = st->completeDisjEditMode( disj )
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let setVars = (st:editorState, vars:string):editorState => {
     let st = st->completeVarsEditMode( vars )
-    st->verifyEditorState(st => st)
+    st->verifyEditorState
 }
 
 let mergeStmt = (st:editorState, stmtId):editorState => {
@@ -495,7 +495,7 @@ let mergeStmt = (st:editorState, stmtId):editorState => {
                 | Error(msg) => raise(MmException({msg:msg}))
             }
             let st = st->uncheckAllStmts
-            st->verifyEditorState(st => st)
+            st->verifyEditorState
         }
     }
 }
