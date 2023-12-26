@@ -2463,8 +2463,7 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
 
 let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
     st.stmts->Js_array2.find(stmt => 
-        stmt.typ != E
-        && !stmt.isDuplicated
+        !stmt.isDuplicated
         && stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)
             ->Belt_Option.getWithDefault(false)
     )
@@ -2473,7 +2472,7 @@ let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
 let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt> => {
     let contStr = stmt1.cont->contToStr
     st.stmts->Js.Array2.find(stmt2 => {
-        stmt2.typ != E && !stmt2.isDuplicated && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr
+        !stmt2.isDuplicated && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr
     })
 }
 
