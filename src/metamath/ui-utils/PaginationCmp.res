@@ -10,10 +10,17 @@ let make = (
     ~numOfPages:int,
     ~pageIdx:int,
     ~siblingCount:option<int>=?,
-    ~showGoToPage:bool=true,
+    ~itemsPerPage:int=0,
+    ~showGoToPage:bool=false,
+    ~showItemsPerPage:bool=false,
     ~onPageIdxChange:int=>unit,
+    ~onItemsPerPageChange:int=>unit,
+    ~itemPerPageText:string="",
 ) => {
     let (goToPageText, setGoToPageText) = React.useState(() => "")
+    let (itemsPerPageText, setItemsPerPageText) = React.useState(() => None)
+
+    let itemsPerPageTextEffective = itemsPerPageText->Belt_Option.getWithDefault(itemsPerPage->Belt_Int.toString)
 
     let actChangePage = (newPageNum:int) => {
         if (1 <= newPageNum && newPageNum <= numOfPages) {
@@ -29,6 +36,16 @@ let make = (
         }
     }
 
+    let actChangeItemsPerPage = () => {
+        switch itemsPerPageTextEffective->Belt_Int.fromString {
+            | None => ()
+            | Some(newItemsPerPage) => {
+                onItemsPerPageChange(newItemsPerPage)
+                setItemsPerPageText(_ => None)
+            }
+        }
+    }
+
     <Row alignItems=#center>
         <Pagination
             count=numOfPages 
@@ -36,6 +53,22 @@ let make = (
             ?siblingCount
             onChange={(_,newPage) => actChangePage(newPage)}
         />
+        {itemPerPageText->React.string}
+        {
+            if (showItemsPerPage) {
+                <input
+                    type_="text" 
+                    size=3
+                    value=itemsPerPageTextEffective
+                    onChange=evt2str(newItemsPerPage => {
+                        setItemsPerPageText(_ => Some(newItemsPerPage->Js.String2.replaceByRe(nonDigitPattern, "")))
+                    })
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actChangeItemsPerPage, ())
+                />
+            } else {
+                React.null
+            }
+        }
         {
             if (showGoToPage) {
                 <TextField 

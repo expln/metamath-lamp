@@ -172,15 +172,24 @@ let make = (
         histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
     })
 
-    let pageSize = Js.Math.max_int(1, Js.Math.min_int(100, 100))
-    let numOfPages = (state.stmts->Js.Array2.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
+    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
+        ~key="editor-steps-per-page", ~default=100,
+    )
+    let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, 1000))
+    let numOfPages = (state.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                         ->Js_math.ceil_float->Belt.Float.toInt
     let minPageIdx = 0
     let maxPageIdx = numOfPages - 1
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let pageIdx = Js.Math.max_int(minPageIdx, Js.Math.min_int(pageIdx, maxPageIdx))
-    let stmtBeginIdx = pageIdx * pageSize
-    let stmtEndIdx = stmtBeginIdx + pageSize - 1
+    let stmtBeginIdx = pageIdx * stepsPerPage
+    let stmtEndIdx = stmtBeginIdx + stepsPerPage - 1
+
+    let actSetStepsPerPage = (newStepsPerPage) => {
+        if (1 <= newStepsPerPage && newStepsPerPage <= 1000) {
+            setStepsPerPage(_ => newStepsPerPage)
+        }
+    }
 
     let actGoToPage = (pageIdx) => {
         setPageIdx(_ => pageIdx)
@@ -1716,8 +1725,8 @@ let make = (
 
     let getPagesWithErrors = () => {
         let pageHasErrors = pageIdx => {
-            let minIdx = pageIdx * pageSize
-            let maxIdx = minIdx + pageSize - 1
+            let minIdx = pageIdx * stepsPerPage
+            let maxIdx = minIdx + stepsPerPage - 1
             state.stmts
                 ->Js.Array2.findIndexi((stmt,i) => minIdx <= i && i <= maxIdx && stmt->userStmtHasAnyErrors) >= 0
         }
@@ -1744,7 +1753,7 @@ let make = (
         }
     }
 
-    let paginationIsRequired = state.stmts->Js.Array2.length > pageSize
+    let paginationIsRequired = state.stmts->Js.Array2.length > stepsPerPage
 
     let rndPagination = () => {
         if (paginationIsRequired) {
@@ -1755,6 +1764,10 @@ let make = (
                     siblingCount=1000
                     showGoToPage=false
                     onPageIdxChange=actGoToPage
+                    itemsPerPage=stepsPerPage
+                    onItemsPerPageChange=actSetStepsPerPage
+                    showItemsPerPage=true
+                    itemPerPageText="steps per page"
                 />
             </div>
         } else {
