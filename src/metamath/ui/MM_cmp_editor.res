@@ -1836,6 +1836,32 @@ let make = (
         })
     }
 
+    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_syntax_tree.syntaxTreeNode,string>>,string> => {
+        switch state.wrkCtx {
+            | None => Error(`There are errors in the editor.`)
+            | Some(wrkCtx) => {
+                let syms = exprs->Js_array2.map(getSpaceSeparatedValuesAsArray)
+                let unrecognizedSymbol = syms->Expln_utils_common.arrFlatMap(a => a)
+                    ->Belt_HashSetString.fromArray
+                    ->Belt_HashSetString.toArray
+                    ->Js_array2.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
+                switch unrecognizedSymbol {
+                    | Some(sym) => Error(`Unrecognized symbol '${sym}'`)
+                    | None => {
+                        textToSyntaxTree( 
+                            ~wrkCtx, ~syms, 
+                            ~syntaxTypes=state.syntaxTypes, ~frms=state.frms, 
+                            ~frameRestrict=state.settings.allowedFrms.inSyntax,
+                            ~parenCnt=state.parenCnt,
+                            ~lastSyntaxType=None,
+                            ~onLastSyntaxTypeChange=_=>(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     let actSetEditorContIsHidden = (contIsHidden:bool):promise<unit> => {
         setContIsHidden(_ => contIsHidden)
         promiseResolved(())
@@ -1890,7 +1916,8 @@ let make = (
                     st
                 })
             })
-        }
+        },
+        ~buildSyntaxTrees=actBuildSyntaxTrees,
     )
 
     <Expln_React_ContentWithStickyHeader

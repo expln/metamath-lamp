@@ -1,4 +1,5 @@
 open MM_wrk_editor
+open MM_syntax_tree
 
 type apiResp = {
     "isOk": bool,
@@ -20,6 +21,7 @@ let api: {
         "substitute": api,
         "mergeDuplicatedSteps": api,
         "setContentIsHidden": api,
+        "buildSyntaxTrees": api,
     }
 }
 
@@ -39,4 +41,5 @@ let updateEditorApi: (
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
+    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
 ) => unit

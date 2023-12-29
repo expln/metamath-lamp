@@ -637,6 +637,50 @@ let updateSteps = (
     }
 }
 
+let editorBuildSyntaxTrees = (
+    ~params:Js_json.t,
+    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~state:editorState,
+):promise<result<Js_json.t,string>> => {
+    switch state.wrkCtx {
+        | None => promiseResolved(Error( "Cannot build syntax trees because there are errors in the editor." ))
+        | Some(wrkCtx) => {
+            open Expln_utils_jsonParse
+            let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_, ()), ()), ())
+            switch parseResult {
+                | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+                | Ok(exprs) => {
+                    switch buildSyntaxTrees(exprs) {
+                        | Error(msg) => promiseResolved(Error(msg))
+                        | Ok(syntaxTrees) => {
+                            promiseResolved(
+                                Ok(
+                                    syntaxTrees->Js_array2.map(syntaxTree => {
+                                        switch syntaxTree {
+                                            | Error(msg) => {
+                                                Js_dict.fromArray([
+                                                    ("err", msg->Js_json.string),
+                                                    ("tree", Js_json.null),
+                                                ])->Js_json.object_ 
+                                            }
+                                            | Ok(syntaxTree) => {
+                                                Js_dict.fromArray([
+                                                    ("err", Js_json.null),
+                                                    ("tree", syntaxTreeNodeToJson(wrkCtx, syntaxTree)),
+                                                ])->Js_json.object_ 
+                                            }
+                                        }
+                                    })->Js_json.array
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 let logApiCallsToConsole = ref(false)
 
 let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string>> => {
@@ -659,6 +703,7 @@ let getTokenTypeRef:ref<option<api>> = ref(None)
 let substituteRef:ref<option<api>> = ref(None)
 let mergeDuplicatedStepsRef:ref<option<api>> = ref(None)
 let editorSetContIsHiddenRef:ref<option<api>> = ref(None)
+let editorBuildSyntaxTreesRef:ref<option<api>> = ref(None)
 
 let makeApiFuncRef = (ref:ref<option<api>>):api => {
     params => {
@@ -681,6 +726,7 @@ let api = {
         "substitute": makeApiFuncRef(substituteRef),
         "mergeDuplicatedSteps": makeApiFuncRef(mergeDuplicatedStepsRef),
         "setContentIsHidden": makeApiFuncRef(editorSetContIsHiddenRef),
+        "buildSyntaxTrees": makeApiFuncRef(editorBuildSyntaxTreesRef),
     },
 }
 
@@ -714,6 +760,7 @@ let updateEditorApi = (
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
+    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
 ):unit => {
     setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
     getStateRef := Some(makeApiFunc("editor.getState", _ => getEditorState(~state)))
@@ -745,5 +792,8 @@ let updateEditorApi = (
     }))
     editorSetContIsHiddenRef := Some(makeApiFunc("editor.setContentIsHidden", params => {
         editorSetContIsHidden( ~params, ~setEditorContIsHidden, )
+    }))
+    editorBuildSyntaxTreesRef := Some(makeApiFunc("editor.buildSyntaxTrees", params => {
+        editorBuildSyntaxTrees( ~params, ~buildSyntaxTrees, ~state, )
     }))
 }
