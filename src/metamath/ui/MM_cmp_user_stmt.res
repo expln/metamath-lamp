@@ -1214,10 +1214,10 @@ let make = React.memoCustomCompareProps( ({
                         </Button>
                     }
                 }
-                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Copy to the clipboard, A" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
                 {
                     if (readOnly) {React.null} else {
-                        <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
+                        <Button title="Paste from the clipboard to the selection, D" onClick={_=>actPasteFromClipboard()} ?style>
                             <MM_Icons.ContentPaste/>
                         </Button>
                     }
@@ -1242,6 +1242,8 @@ let make = React.memoCustomCompareProps( ({
                         kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
                         kbrdClbkMake(~key="q", ~act=transformSelection, ()),
                         kbrdClbkMake(~key="e", ~act=actEditSelection, ()),
+                        kbrdClbkMake(~key="a", ~act=actCopyToClipboard, ()),
+                        kbrdClbkMake(~key="d", ~act=actPasteFromClipboard, ()),
                         kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
                     ]),
                     ()
