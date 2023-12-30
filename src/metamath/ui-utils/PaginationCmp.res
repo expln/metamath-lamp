@@ -14,7 +14,7 @@ let make = (
     ~showGoToPage:bool=false,
     ~showItemsPerPage:bool=false,
     ~onPageIdxChange:int=>unit,
-    ~onItemsPerPageChange:int=>unit,
+    ~onItemsPerPageChange:option<int=>unit>=?,
     ~itemPerPageText:string="",
 ) => {
     let (goToPageText, setGoToPageText) = React.useState(() => "")
@@ -40,7 +40,10 @@ let make = (
         switch itemsPerPageTextEffective->Belt_Int.fromString {
             | None => ()
             | Some(newItemsPerPage) => {
-                onItemsPerPageChange(newItemsPerPage)
+                switch onItemsPerPageChange {
+                    | None => ()
+                    | Some(onItemsPerPageChange) => onItemsPerPageChange(newItemsPerPage)
+                }
                 setItemsPerPageText(_ => None)
             }
         }

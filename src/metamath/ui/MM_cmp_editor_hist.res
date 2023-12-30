@@ -4,7 +4,6 @@ open MM_editor_history
 open MM_wrk_editor
 open Expln_React_Modal
 open MM_cmp_user_stmt
-open Local_storage_utils
 
 @react.component
 let make = (
@@ -13,21 +12,13 @@ let make = (
     ~hist:editorHistory,
     ~onClose:unit=>unit,
     ~viewOptions:viewOptions,
+    ~stepsPerPage:int,
     ~onRestore:int=>unit,
 ) => {
     let (curIdx, setCurIdx) = React.useState(() => if (hist->editorHistLength > 0) {0} else {-1})
     let (curEditorState, setCurEditorState) = React.useState(() => hist->editorHistGetSnapshotPreview(curIdx,editorState))
 
-    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
-        ~key="editor-history-steps-per-page", ~default=100,
-    )
     let (pageIdx, setPageIdx) = React.useState(() => 0)
-
-    let actSetStepsPerPage = (newStepsPerPage) => {
-        if (1 <= newStepsPerPage && newStepsPerPage <= 1000) {
-            setStepsPerPage(_ => newStepsPerPage)
-        }
-    }
 
     let actGoToPage = (pageIdx) => {
         setPageIdx(_ => pageIdx)
@@ -196,9 +187,7 @@ let make = (
                     showGoToPage=false
                     onPageIdxChange=actGoToPage
                     itemsPerPage=stepsPerPage
-                    onItemsPerPageChange=actSetStepsPerPage
-                    showItemsPerPage=true
-                    itemPerPageText="steps per page"
+                    showItemsPerPage=false
                 />
             </div>
         } else {
@@ -207,7 +196,6 @@ let make = (
     }
 
     let rndStmts = (editorState:editorState) => {
-        let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, 1000))
         let numOfPages = (editorState.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                             ->Js_math.ceil_float->Belt.Float.toInt
         let minPageIdx = 0

@@ -175,7 +175,8 @@ let make = (
     let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
         ~key="editor-steps-per-page", ~default=100,
     )
-    let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, 1000))
+    let maxStepsPerPage = 300
+    let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, maxStepsPerPage))
     let numOfPages = (state.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                         ->Js_math.ceil_float->Belt.Float.toInt
     let minPageIdx = 0
@@ -186,7 +187,7 @@ let make = (
     let stmtEndIdx = stmtBeginIdx + stepsPerPage - 1
 
     let actSetStepsPerPage = (newStepsPerPage) => {
-        if (1 <= newStepsPerPage && newStepsPerPage <= 1000) {
+        if (1 <= newStepsPerPage && newStepsPerPage <= maxStepsPerPage) {
             setStepsPerPage(_ => newStepsPerPage)
         }
     }
@@ -736,6 +737,7 @@ let make = (
                     hist 
                     onClose={_=>closeModal(modalRef, modalId)} 
                     viewOptions
+                    stepsPerPage
                     onRestore={histIdx => {
                         actRestorePrevState(histIdx)
                         closeModal(modalRef, modalId)
@@ -1351,6 +1353,7 @@ let make = (
                     showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
                     inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
                     smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
+                    stepsPerPage onStepsPerPageChange=actSetStepsPerPage
                 />
             })
         })->ignore
@@ -1765,9 +1768,7 @@ let make = (
                     showGoToPage=false
                     onPageIdxChange=actGoToPage
                     itemsPerPage=stepsPerPage
-                    onItemsPerPageChange=actSetStepsPerPage
-                    showItemsPerPage=true
-                    itemPerPageText="steps per page"
+                    showItemsPerPage=false
                 />
             </div>
         } else {
