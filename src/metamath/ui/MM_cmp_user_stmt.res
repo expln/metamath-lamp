@@ -1182,6 +1182,9 @@ let make = React.memoCustomCompareProps( ({
             | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
             | _ => "1"
         }
+        let transformSelection:unit=>unit = () => {
+            stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
+        }
         <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection, W" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
@@ -1203,10 +1206,8 @@ let make = React.memoCustomCompareProps( ({
                 {
                     if (readOnly) {React.null} else {
                         <Button 
-                            title="Transform" 
-                            onClick={_=>{
-                                stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
-                            }} 
+                            title="Transform, Q" 
+                            onClick={_=>transformSelection()} 
                             ?style
                         > 
                             <MM_Icons.ShapeLineSharp/>
@@ -1223,7 +1224,7 @@ let make = React.memoCustomCompareProps( ({
                 }
                 {
                     if (readOnly) {React.null} else {
-                        <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
+                        <Button title="Edit, E" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
                     }
                 }
                 <Button title="Unselect, Esc" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
@@ -1236,11 +1237,13 @@ let make = React.memoCustomCompareProps( ({
             {
                 rndHiddenTextField(
                     ~key=clickedTimeStr,
-                    ~onKeyDown=kbrdHnd3(
+                    ~onKeyDown=kbrdHnds([
                         kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
                         kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
+                        kbrdClbkMake(~key="q", ~act=transformSelection, ()),
+                        kbrdClbkMake(~key="e", ~act=actEditSelection, ()),
                         kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
-                    ),
+                    ]),
                     ()
                 )
             }

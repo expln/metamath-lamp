@@ -168,6 +168,10 @@ let kbrdHnd3 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, clbk3:kbrdCallback, ):(
     }
 }
 
+let kbrdHnds = ( clbks:array<kbrdCallback>):(ReactEvent.Keyboard.t => unit) => {
+    evt => clbks->Js_array2.forEach(runKbrdCallback(evt,_))
+}
+
 let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
     <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
         <Row alignItems=#center spacing=1.>
