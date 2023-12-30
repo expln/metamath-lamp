@@ -7,6 +7,8 @@ module ArrowBack = { @module("@mui/icons-material/ArrowBack") @react.component e
 module AccountTree = { @module("@mui/icons-material/AccountTree") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module BookmarkAddOutlined = { @module("@mui/icons-material/BookmarkAddOutlined") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module BookmarkRemoveOutlined = { @module("@mui/icons-material/BookmarkRemoveOutlined") @react.component external make: (~style: reStyle=?) => React.element = "default" }
+module BookmarkBorder = { @module("@mui/icons-material/BookmarkBorder") @react.component external make: (~style: reStyle=?) => React.element = "default" }
+module Bookmark = { @module("@mui/icons-material/Bookmark") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module CancelOutlined = { @module("@mui/icons-material/CancelOutlined") @react.component external make: () => React.element = "default" }
 module ControlPointDuplicate = { @module("@mui/icons-material/ControlPointDuplicate") @react.component external make: () => React.element = "default" }
 module ContentCopy = { @module("@mui/icons-material/ContentCopy") @react.component external make: () => React.element = "default" }

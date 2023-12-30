@@ -595,6 +595,8 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
     && a.stmt.typ == b.stmt.typ
+    && a.stmt.isGoal == b.stmt.isGoal
+    && a.stmt.isBkm == b.stmt.isBkm
     && a.stmt.typEditMode == b.stmt.typEditMode
     && a.stmt.cont === b.stmt.cont
     && a.stmt.contEditMode == b.stmt.contEditMode
@@ -1488,6 +1490,9 @@ let make = React.memoCustomCompareProps( ({
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
                     ~display="inline-block",
+                    ~backgroundColor=?(if (stmt.isBkm) {Some("#676767")} else {None}),
+                    ~color= if (stmt.isBkm) {"white"} else {"black"},
+                    ~borderRadius="4px",
                     ()
                 )
                 title=?{

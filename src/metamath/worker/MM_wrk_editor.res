@@ -528,7 +528,7 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
                     | Some(idToAddBefore) => {
                         st.stmts->Js_array2.map(stmt => {
                             if (stmt.id == idToAddBefore) {
-                                [createEmptyUserStmt(newId,P,newLabel,isGoal), stmt]
+                                [{...createEmptyUserStmt(newId,P,newLabel,isGoal), isBkm:stmt.isBkm}, stmt]
                             } else {
                                 [stmt]
                             }
@@ -590,6 +590,20 @@ let duplicateCheckedStmt = (st:editorState, top:bool) => {
         } else {
             st
         }
+    }
+}
+
+let bookmarkCheckedStmts = (st:editorState, isBkm:bool):editorState => {
+    let checkedStmtIds = st.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtId)
+    {
+        ...st,
+        stmts: st.stmts->Js_array2.map(stmt => {
+            if (checkedStmtIds->Js_array2.includes(stmt.id)) {
+                {...stmt, isBkm}
+            } else {
+                stmt
+            }
+        })
     }
 }
 

@@ -141,6 +141,7 @@ let make = (
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
     let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
     let (contIsHidden, setContIsHidden) = React.useState(_ => false)
+    let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true,
@@ -172,12 +173,23 @@ let make = (
         histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
     })
 
+    let stmtsToShow =
+        if (showBkmOnly) {
+            state.stmts->Js_array2.filter(stmt => {
+                stmt.typ == E || stmt.isGoal || stmt.isBkm
+                || stmt->userStmtHasAnyErrors
+                || stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode
+            })
+        } else {
+            state.stmts
+        }
+
     let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
         ~key="editor-steps-per-page", ~default=100,
     )
     let maxStepsPerPage = 300
     let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, maxStepsPerPage))
-    let numOfPages = (state.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+    let numOfPages = (stmtsToShow->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                         ->Js_math.ceil_float->Belt.Float.toInt
     let minPageIdx = 0
     let maxPageIdx = numOfPages - 1
@@ -283,6 +295,13 @@ let make = (
     let atLeastOneStmtHasSelectedText = state.stmts
         ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
         ->Belt.Option.isSome
+    let checkedStmtIds = state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtId)
+    let allCheckedStmtsAreBookmarked = state.stmts->Js_array2.every(stmt => {
+        !(checkedStmtIds->Js_array2.includes(stmt.id)) || stmt.isBkm
+    })
+    let allCheckedStmtsAreUnbookmarked = state.stmts->Js_array2.every(stmt => {
+        !(checkedStmtIds->Js_array2.includes(stmt.id)) || !stmt.isBkm
+    })
     let mainCheckboxState = {
         let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
         if ((atLeastOneStmtIsChecked || atLeastOneStmtHasSelectedText) && atLeastOneStmtIsNotChecked) {
@@ -374,36 +393,31 @@ let make = (
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
     let actMoveCheckedStmtsDown = () => setState(moveCheckedStmts(_, false))
+    let actBookmarkCheckedStmts = () => setState(bookmarkCheckedStmts(_, true))
+    let actUnbookmarkCheckedStmts = () => setState(bookmarkCheckedStmts(_, false))
     let actDuplicateStmt = (top:bool) => setState(st => {
         let st = duplicateCheckedStmt(st,top)
         let st = uncheckAllStmts(st)
         st
     })
+    let addStmtAbove = (st:editorState, id:stmtId, text:string):editorState => {
+        let st = uncheckAllStmts(st)
+        let st = toggleStmtChecked(st,id)
+        let (st, newId) = addNewStmt(st)
+        let st = setStmtCont(st, newId, text->strToCont(()))
+        st
+    }
     let actAddStmtAbove = (id:stmtId, text:string):unit => {
         setState(st => {
-            let st = uncheckAllStmts(st)
-            let st = toggleStmtChecked(st,id)
-            let (st, newId) = addNewStmt(st)
-            let st = setStmtCont(st, newId, text->strToCont(()))
+            let st = addStmtAbove(st, id, text)
             let st = uncheckAllStmts(st)
             st
         })
     }
     let actAddStmtBelow = (id:stmtId, text:string):unit => {
         setState(st => {
-            let st = uncheckAllStmts(st)
-            let st = switch st.stmts->Js.Array2.findIndex(stmt => stmt.id == id) {
-                | -1 => st
-                | idx => {
-                    if (idx == st.stmts->Js.Array2.length-1) {
-                        st
-                    } else {
-                        toggleStmtChecked(st,st.stmts[idx+1].id)
-                    }
-                }
-            }
-            let (st, newId) = addNewStmt(st)
-            let st = setStmtCont(st, newId, text->strToCont(()))
+            let st = addStmtAbove(st, id, text)
+            let st = moveCheckedStmts(st, true)
             let st = uncheckAllStmts(st)
             st
         })
@@ -1477,13 +1491,18 @@ let make = (
         }
     }
 
+    let actToggleShowBkmOnly = () => {
+        setShowBkmOnly(prev => !prev)
+        setState(uncheckAllStmts)
+    }
+
     let rndButtons = () => {
         <Paper>
             <Row
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 14 => Some(Js.Json.string("auto"))
+                        | 15 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1497,16 +1516,22 @@ let make = (
                         if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
                     }
                 />
-                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
+                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
+                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
-                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
+                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
+                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode, ())}
-                {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=()=>(), 
-                    ~active= !editIsActive && atLeastOneStmtIsChecked,
+                {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
+                    ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreBookmarked,
                     ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
-                {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=()=>(), 
-                    ~active= !editIsActive && atLeastOneStmtIsChecked,
+                {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=actUnbookmarkCheckedStmts, 
+                    ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreUnbookmarked,
                     ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(
+                    ~icon=if (showBkmOnly){<MM_Icons.Bookmark/>}else{<MM_Icons.BookmarkBorder/>}, 
+                    ~onClick=actToggleShowBkmOnly, ~active=true,
+                    ~title="Show bookmarked steps only / show all steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
@@ -1736,7 +1761,7 @@ let make = (
         let pageHasErrors = pageIdx => {
             let minIdx = pageIdx * stepsPerPage
             let maxIdx = minIdx + stepsPerPage - 1
-            state.stmts
+            stmtsToShow
                 ->Js.Array2.findIndexi((stmt,i) => minIdx <= i && i <= maxIdx && stmt->userStmtHasAnyErrors) >= 0
         }
         Belt_Array.range(minPageIdx, maxPageIdx)->Js.Array2.filter(pageHasErrors)
@@ -1762,7 +1787,7 @@ let make = (
         }
     }
 
-    let paginationIsRequired = state.stmts->Js.Array2.length > stepsPerPage
+    let paginationIsRequired = stmtsToShow->Js.Array2.length > stepsPerPage
 
     let rndPagination = () => {
         if (paginationIsRequired) {
@@ -1808,7 +1833,7 @@ let make = (
             {rndPagination()}
             {rndGoToNextPageWithErrorsBtn()}
             { 
-                state.stmts
+                stmtsToShow
                     ->Js.Array2.filteri((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
                     ->Js_array2.map(rndStmtAndErrors)->React.array 
             }

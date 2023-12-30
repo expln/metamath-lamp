@@ -178,6 +178,7 @@ let addNewStmt: editorState => (editorState,stmtId)
 let addNewStatements: (editorState, stmtsDto) => editorState
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool) => editorState
+let bookmarkCheckedStmts: (editorState, bool) => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
 let setDescrEditMode: editorState => editorState
 let completeDescrEditMode: (editorState, string) => editorState
