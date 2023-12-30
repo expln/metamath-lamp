@@ -2934,7 +2934,7 @@ let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):res
     } else {
         let unprocessedIds = Belt.MutableQueue.fromArray(stepIdsToKeep)
         state.stmts->Js.Array2.forEach(stmt => {
-            if (stmt.typ == E || stmt.isGoal) {
+            if (stmt.typ == E || stmt.isGoal || stmt.isBkm) {
                 unprocessedIds->Belt_MutableQueue.add(stmt.id)
             }
         })
