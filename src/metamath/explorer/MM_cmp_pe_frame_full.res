@@ -628,7 +628,8 @@ let make = React.memoCustomCompareProps(({
                             label: hyp.label, 
                             typ: userStmtTypeToStr(E), 
                             isGoal: false,
-                            cont: preCtxData.ctxV.val->frmIntsToStrExn(state.frame, hyp.expr), 
+                            isBkm: false,
+                            cont: preCtxData.ctxV.val->frmIntsToStrExn(state.frame, hyp.expr),
                             jstfText: "",
                         }
                     )->ignore
@@ -682,7 +683,8 @@ let make = React.memoCustomCompareProps(({
                                                 label, 
                                                 typ: userStmtTypeToStr(P), 
                                                 isGoal,
-                                                cont: state.frmCtx->ctxIntsToStrExn(pRec.expr), 
+                                                isBkm:false,
+                                                cont: state.frmCtx->ctxIntsToStrExn(pRec.expr),
                                                 jstfText,
                                             }
                                         )->ignore

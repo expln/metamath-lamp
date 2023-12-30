@@ -81,10 +81,11 @@ type userStmt = {
     typ: userStmtType,
     typEditMode: bool,
     isGoal: bool,
+    isBkm: bool,
     cont: stmtCont,
     contEditMode: bool,
     isDuplicated: bool,
-    
+
     jstfText: string,
     jstfEditMode: bool,
 

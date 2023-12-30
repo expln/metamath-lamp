@@ -1483,7 +1483,7 @@ let make = (
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 12 => Some(Js.Json.string("auto"))
+                        | 14 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1501,6 +1501,12 @@ let make = (
                     ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=()=>(), 
+                    ~active= !editIsActive && atLeastOneStmtIsChecked,
+                    ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=()=>(), 
+                    ~active= !editIsActive && atLeastOneStmtIsChecked,
+                    ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
