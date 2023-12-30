@@ -29,47 +29,20 @@ let errResp = (msg:string):apiResp => {
     }
 }
 
-let getSymOfVar = (node:syntaxTreeNode):option<string> => {
-    if (node.children->Js.Array2.length == 1) {
-        switch node.children[0] {
-            | Symbol({sym, isVar}) => {
-                if (isVar) {
-                    Some(sym)
-                } else {
-                    None
-                }
-            }
-            | Subtree(_) => None
-        }
-    } else {
-        None
-    }
-}
-
 let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t => {
-    let attrs = [
+    Js_dict.fromArray([
+        ("id", node.id->Belt.Int.toFloat->Js_json.number),
+        ("nodeType", "expr"->Js_json.string),
         ("exprType", ctx->ctxIntToSymExn(node.typ)->Js_json.string),
         ("label", node.label->Js_json.string),
-    ]
-    switch getSymOfVar(node) {
-        | None => {
-            attrs->Js_array2.push(("nodeType", "expr"->Js_json.string))->ignore
-            attrs->Js_array2.push(
-                ("children", node.children->Js.Array2.map(childNodeToJson(ctx,_))->Js_json.array )
-            )->ignore
-        }
-        | Some(varSym) => {
-            attrs->Js_array2.push(("nodeType", "sym"->Js_json.string))->ignore
-            attrs->Js_array2.push(("sym", varSym->Js_json.string))->ignore
-            attrs->Js_array2.push(("isVar", true->Js_json.boolean))->ignore
-        }
-    }
-    Js_dict.fromArray(attrs)->Js_json.object_
+        ("children", node.children->Js.Array2.map(childNodeToJson(ctx,_))->Js_json.array ),
+    ])->Js_json.object_ 
 } and childNodeToJson = (ctx:mmContext, node:childNode):Js_json.t => {
     switch node {
         | Subtree(subtree) => syntaxTreeNodeToJson(ctx, subtree)
-        | Symbol({sym, isVar}) => {
+        | Symbol({id, sym, isVar}) => {
             Js_dict.fromArray([
+                ("id", id->Belt.Int.toFloat->Js_json.number),
                 ("nodeType", "sym"->Js_json.string),
                 ("sym", sym->Js_json.string),
                 ("isVar", isVar->Js_json.boolean),
@@ -89,6 +62,23 @@ let syntaxTreeToJson = (state:editorState, stmt:userStmt):Js_json.t => {
                         ("exprType", exprTyp->Js_json.string),
                         ("root", syntaxTreeNodeToJson(wrkCtx, root)),
                     ])->Js_json.object_
+                }
+            }
+        }
+    }
+}
+
+let getSelectedFragment = (state:editorState, stmt:userStmt):Js_json.t => {
+    switch state.wrkCtx {
+        | None => Js_json.null
+        | Some(wrkCtx) => {
+            switch stmt.cont {
+                | Text(_) => Js_json.null
+                | Tree(stmtContTreeData) => {
+                    switch getSelectedSubtree(stmtContTreeData) {
+                        | None => Js_json.null
+                        | Some(node) => childNodeToJson(wrkCtx, node)
+                    }
                 }
             }
         }
@@ -115,6 +105,7 @@ let getAllSteps = (~state:editorState):Js_json.t => {
             ("label", stmt.label->Js_json.string),
             ("isHyp", (stmt.typ == E)->Js_json.boolean),
             ("isGoal", stmt.isGoal->Js_json.boolean),
+            ("isBkm", stmt.isBkm->Js_json.boolean),
             ("jstfText", stmt.jstfText->Js_json.string),
             (
                 "jstf", 
@@ -135,6 +126,7 @@ let getAllSteps = (~state:editorState):Js_json.t => {
             ),
             ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
             ("tree", syntaxTreeToJson(state, stmt)),
+            ("frag", getSelectedFragment(state, stmt)),
             ("stmtErr", 
                 switch stmt.stmtErr {
                     | None => Js_json.null
