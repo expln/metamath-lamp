@@ -124,7 +124,7 @@ let addStmt = (
             st->toggleStmtChecked(beforeStmtId)
         }
     }
-    let (st,stmtId) = st->addNewStmt
+    let (st,stmtId) = st->addNewStmt(())
     let st = st->completeContEditMode(stmtId, stmt)
     let st = switch label {
         | Some(label) => st->completeLabelEditMode(stmtId, label)

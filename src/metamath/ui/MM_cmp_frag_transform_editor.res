@@ -17,7 +17,7 @@ let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
     let st = st->completeDisjEditMode("")
     let st = st->checkAllStmts
     let st = st->deleteCheckedStmts
-    let (st,stmtId) = st->addNewStmt
+    let (st,stmtId) = st->addNewStmt(())
     let st = st->completeContEditMode(stmtId, stmt)
     st->verifyEditorState
 }

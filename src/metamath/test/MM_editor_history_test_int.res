@@ -122,7 +122,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let st6 = st
         assertEditorState(st6, "st6")
 
-        let (st,s1) = st->addNewStmt
+        let (st,s1) = st->addNewStmt(())
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st = st->completeContEditMode(s1, "|- r = r")
@@ -173,7 +173,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let ht = editorHistMake(~initState=st, ~maxLength=200)
         assertEditorHistory(ht, "hist1")
 
-        let (st,goalStmtId) = st->addNewStmt
+        let (st,goalStmtId) = st->addNewStmt(())
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st = st->completeContEditMode(goalStmtId, "|- t = t")->verifyEditorState
@@ -239,7 +239,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         assertEditorHistory(ht, "hist16")
 
         let st = st->toggleStmtChecked(st.stmts[st.stmts->Js.Array2.length-1].id)
-        let (st,s2) = st->addNewStmt
+        let (st,s2) = st->addNewStmt(())
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st = st->completeContEditMode(s2, "|- ( ( t + 0 ) = t -> t = t )")->verifyEditorState

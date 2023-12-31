@@ -501,7 +501,7 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let addNewStmt = (st:editorState):(editorState,stmtId) => {
+let addNewStmt = (st:editorState, ~isHyp:bool=false, ()):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let pCnt = st.stmts->Js.Array2.reduce(
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
@@ -511,12 +511,12 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newLabel = 
         if (pCnt == 0 && defaultStmtLabel->Js.String2.length > 0) {
             if (st.stmts->Js.Array2.some(stmt => stmt.label == defaultStmtLabel)) {
-                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=false, ())
+                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp, ())
             } else {
                 defaultStmtLabel
             }
         } else {
-            createNewLabel(st, ~prefix="", ~forHyp=false, ())
+            createNewLabel(st, ~prefix="", ~forHyp=isHyp, ())
         }
     let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
@@ -542,7 +542,7 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
     )
 }
 
-let addNewStmtAtIdx = (st:editorState, idx:int):(editorState,stmtId) => {
+let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorState,stmtId) => {
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
     let st = if (0 <= idx && idx < st.stmts->Js_array2.length) {
@@ -550,7 +550,7 @@ let addNewStmtAtIdx = (st:editorState, idx:int):(editorState,stmtId) => {
     } else {
         st
     }
-    let (st,stmtId) = st->addNewStmt
+    let (st,stmtId) = st->addNewStmt(~isHyp, ())
     let st = {...st, checkedStmtIds:savedCheckedStmtIds}
     (st,stmtId)
 }
@@ -1426,7 +1426,7 @@ let insertStmt = (
                                 if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { minIdx }
                             }
                         }
-                        let (st,newStmtId) = st->addNewStmtAtIdx(newIdx)
+                        let (st,newStmtId) = st->addNewStmtAtIdx(~idx=newIdx, ())
                         let st = st->updateStmt(newStmtId, stmt => {
                             {
                                 ...stmt,
@@ -2271,6 +2271,18 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     renameHypToMatchGoal(st, oldStmt, newStmt)
 }
 
+let isHyp = (stmtTyp:option<userStmtTypeExtended>):bool => {
+    switch stmtTyp {
+        | None => false
+        | Some(typ) => {
+            switch typ {
+                | H => true
+                | P | G => false
+            }
+        }
+    }
+}
+
 let addStepsWithoutVars = (
     st:editorState,
     ~atIdx:option<int>=?,
@@ -2331,8 +2343,8 @@ let addStepsWithoutVars = (
                 | Error(_) => res
                 | Ok(st) => {
                     let (st,stmtId) = switch atIdx {
-                        | None => st->addNewStmt
-                        | Some(atIdx) => st->addNewStmtAtIdx(atIdx+i)
+                        | None => st->addNewStmt(~isHyp=isHyp(step.typ), ())
+                        | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ), ())
                     }
                     stmtIds->Js.Array2.push(stmtId)->ignore
                     updates->Js.Array2.reduce((res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)), Ok(st))

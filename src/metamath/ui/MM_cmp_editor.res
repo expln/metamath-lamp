@@ -341,7 +341,7 @@ let make = (
 
     let actAddNewStmt = () => {
         setState(st => {
-            let (st, _) = addNewStmt(st)
+            let (st, _) = addNewStmt(st, ())
             st
         })
     }
@@ -403,7 +403,7 @@ let make = (
     let addStmtAbove = (st:editorState, id:stmtId, text:string):editorState => {
         let st = uncheckAllStmts(st)
         let st = toggleStmtChecked(st,id)
-        let (st, newId) = addNewStmt(st)
+        let (st, newId) = addNewStmt(st, ())
         let st = setStmtCont(st, newId, text->strToCont(()))
         st
     }
