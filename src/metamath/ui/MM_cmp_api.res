@@ -68,16 +68,15 @@ let syntaxTreeToJson = (state:editorState, stmt:userStmt):Js_json.t => {
     }
 }
 
-let getSelectedFragment = (state:editorState, stmt:userStmt):Js_json.t => {
-    switch state.wrkCtx {
-        | None => Js_json.null
-        | Some(wrkCtx) => {
-            switch stmt.cont {
-                | Text(_) => Js_json.null
-                | Tree(stmtContTreeData) => {
-                    switch getSelectedSubtree(stmtContTreeData) {
-                        | None => Js_json.null
-                        | Some(node) => childNodeToJson(wrkCtx, node)
+let getSelectedFragmentId = (stmt:userStmt):Js_json.t => {
+    switch stmt.cont {
+        | Text(_) => Js_json.null
+        | Tree(stmtContTreeData) => {
+            switch getSelectedSubtree(stmtContTreeData) {
+                | None => Js_json.null
+                | Some(node) => {
+                    switch node {
+                        | Subtree({id}) | Symbol({id}) => id->Belt.Int.toFloat->Js_json.number
                     }
                 }
             }
@@ -126,7 +125,7 @@ let getAllSteps = (~state:editorState):Js_json.t => {
             ),
             ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
             ("tree", syntaxTreeToJson(state, stmt)),
-            ("frag", getSelectedFragment(state, stmt)),
+            ("fragId", getSelectedFragmentId(stmt)),
             ("stmtErr", 
                 switch stmt.stmtErr {
                     | None => Js_json.null
@@ -449,6 +448,7 @@ type addStepInputParams = {
     typ: option<string>,
     stmt: option<string>,
     jstf: option<string>,
+    isBkm: option<bool>,
 }
 type addStepsInputParams = {
     atIdx: option<int>,
@@ -470,6 +470,7 @@ let addSteps = (
                     typ: d->strOpt("type", ~validator=validateStepType, ()),
                     stmt: d->strOpt("stmt", ()),
                     jstf: d->strOpt("jstf", ()),
+                    isBkm: d->boolOpt("isBkm", ()),
                 }
             }, ()), ()),
             vars: d->arrOpt("vars", asArr(_, asStr(_, ~validator=str=>{
@@ -506,6 +507,7 @@ let addSteps = (
                                         typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
                                         cont: step.stmt,
                                         jstf: step.jstf,
+                                        isBkm: step.isBkm,
                                     }
                                 })
                                 let vars = parseResult.vars
@@ -585,6 +587,7 @@ type updateStepInputParams = {
     typ: option<string>,
     stmt: option<string>,
     jstf: option<string>,
+    isBkm: option<bool>,
 }
 let updateSteps = (
     ~paramsJson:Js_json.t,
@@ -597,6 +600,7 @@ let updateSteps = (
             typ: d->strOpt("type", ~validator=validateStepType, ()),
             stmt: d->strOpt("stmt", ()),
             jstf: d->strOpt("jstf", ()),
+            isBkm: d->boolOpt("isBkm", ()),
         }
     }, ()), ()), ())
     switch parseResult {
@@ -616,6 +620,7 @@ let updateSteps = (
                                 typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
                                 cont: step.stmt,
                                 jstf: step.jstf,
+                                isBkm: step.isBkm,
                             }
                         })
                         switch st->updateSteps(steps) {

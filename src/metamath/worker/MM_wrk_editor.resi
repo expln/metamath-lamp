@@ -107,6 +107,7 @@ type userStmtDtoOpt = {
     typ: option<userStmtTypeExtended>,
     cont: option<string>,
     jstf: option<string>,
+    isBkm: option<bool>,
 }
 
 type editorStateAction = 

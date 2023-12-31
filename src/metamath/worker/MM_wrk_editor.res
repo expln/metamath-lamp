@@ -208,6 +208,7 @@ type userStmtDtoOpt = {
     typ: option<userStmtTypeExtended>,
     cont: option<string>,
     jstf: option<string>,
+    isBkm: option<bool>,
 }
 
 type editorStateAction = 
@@ -2316,6 +2317,12 @@ let addStepsWithoutVars = (
                 | Some(jstf) => Ok(st->completeJstfEditMode(stmtId, jstf))
             }
         },
+        (st,stmtId,step) => {
+            switch step.isBkm {
+                | None => Ok(st)
+                | Some(isBkm) => Ok(st->updateStmt(stmtId, stmt => {...stmt, isBkm}))
+            }
+        },
     ]
     let stmtIds = []
     let res = steps->Js_array2.reducei(
@@ -2420,6 +2427,12 @@ let updateSteps = (
             switch step.jstf {
                 | None => Ok(stmt)
                 | Some(jstf) => Ok({ ...stmt, jstfText:jstf, jstfEditMode:false })
+            }
+        },
+        (stmt,step) => {
+            switch step.isBkm {
+                | None => Ok(stmt)
+                | Some(isBkm) => Ok({ ...stmt, isBkm })
             }
         },
     ]
