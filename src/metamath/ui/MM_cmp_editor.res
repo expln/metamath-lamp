@@ -246,7 +246,7 @@ let make = (
         }
     }
 
-    let commonPreSaveActions = (st:editorState):editorState => {
+    let saveStateToLocStorAndMakeHistSnapshot = (st:editorState):editorState => {
         editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
@@ -256,7 +256,7 @@ let make = (
         setStatePriv(st => {
             let st = st->update
             let st = st->verifyEditorState
-            let st = st->commonPreSaveActions
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
             let st = st->scheduleUnifyAllIfAllowed
             st
         })
@@ -265,7 +265,7 @@ let make = (
     let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
         setStatePriv(st => {
             let st = st->applyUnifyAllResults(proofTreeDto)
-            let st = st->commonPreSaveActions
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
             let st = st->setNextAction(Some(Action(nextAction)))
             st
         })
@@ -393,8 +393,20 @@ let make = (
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
     let actMoveCheckedStmtsDown = () => setState(moveCheckedStmts(_, false))
-    let actBookmarkCheckedStmts = () => setState(bookmarkCheckedStmts(_, true))
-    let actUnbookmarkCheckedStmts = () => setState(bookmarkCheckedStmts(_, false))
+    let actBookmarkCheckedStmts = () => {
+        setStatePriv(st => {
+            let st = st->bookmarkCheckedStmts(true)
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
+            st
+        })
+    }
+    let actUnbookmarkCheckedStmts = () => {
+        setStatePriv(st => {
+            let st = st->bookmarkCheckedStmts(false)
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
+            st
+        })
+    }
     let actDuplicateStmt = (top:bool) => setState(st => {
         let st = duplicateCheckedStmt(st,top)
         let st = uncheckAllStmts(st)
