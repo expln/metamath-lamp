@@ -341,7 +341,7 @@ let make = (
 
     let actAddNewStmt = () => {
         setState(st => {
-            let (st, _) = addNewStmt(st, ())
+            let (st, _) = addNewStmt(st, ~isBkm=showBkmOnly, ())
             st
         })
     }

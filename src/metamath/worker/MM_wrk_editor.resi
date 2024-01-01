@@ -175,7 +175,7 @@ let deleteStmt: (editorState, stmtId) => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
-let addNewStmt: (editorState, ~isHyp:bool=?, ()) => (editorState,stmtId)
+let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?, ()) => (editorState,stmtId)
 let addNewStatements: (editorState, stmtsDto) => editorState
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool) => editorState

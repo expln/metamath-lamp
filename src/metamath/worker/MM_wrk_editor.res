@@ -501,7 +501,7 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let addNewStmt = (st:editorState, ~isHyp:bool=false, ()):(editorState,stmtId) => {
+let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let pCnt = st.stmts->Js.Array2.reduce(
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
@@ -529,13 +529,26 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ()):(editorState,stmtId) =>
                     | Some(idToAddBefore) => {
                         st.stmts->Js_array2.map(stmt => {
                             if (stmt.id == idToAddBefore) {
-                                [{...createEmptyUserStmt(newId,P,newLabel,isGoal), isBkm:stmt.isBkm}, stmt]
+                                [
+                                    {
+                                        ...createEmptyUserStmt(newId,P,newLabel,isGoal), 
+                                        isBkm:isBkm->Belt_Option.getWithDefault(stmt.isBkm)
+                                    }, 
+                                    stmt
+                                ]
                             } else {
                                 [stmt]
                             }
                         })->Belt_Array.concatMany
                     }
-                    | None => st.stmts->Js_array2.concat([createEmptyUserStmt(newId, P, newLabel, isGoal)])
+                    | None => {
+                        st.stmts->Js_array2.concat([
+                            {
+                                ...createEmptyUserStmt(newId, P, newLabel, isGoal), 
+                                isBkm:isBkm->Belt_Option.getWithDefault(false)
+                            }
+                        ])
+                    }
                 }
         },
         newId
