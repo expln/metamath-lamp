@@ -1505,7 +1505,7 @@ let make = (
 
     let actToggleShowBkmOnly = () => {
         setShowBkmOnly(prev => !prev)
-        setState(uncheckAllStmts)
+        setStatePriv(uncheckAllStmts)
     }
 
     let rndButtons = () => {
