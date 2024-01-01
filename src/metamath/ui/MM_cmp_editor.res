@@ -708,7 +708,12 @@ let make = (
     }
 
     let actAsrtSearchResultsSelected = selectedResults => {
-        setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
+        setState(st => {
+            selectedResults->Js_array2.reduce( 
+                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly, ()), 
+                st 
+            )
+        })
     }
 
     let actWrkSubsSelected = wrkSubs => {
@@ -986,7 +991,11 @@ let make = (
                                         initialDebugLevel=?initialDebugLevel
                                         selectFirstFoundProof
                                         onResultSelected={newStmtsDto => {
-                                            actBottomUpResultSelected( newStmtsDto, bottomUpProofResultConsumer )
+                                            actBottomUpResultSelected( 
+                                                ~selectedResult=newStmtsDto,
+                                                ~bottomUpProofResultConsumer,
+                                                ~selectedManually=!selectFirstFoundProof,
+                                            )
                                             closeModal(modalRef, modalId)
                                         }}
                                         onCancel={() => closeModal(modalRef, modalId)}
@@ -1037,14 +1046,15 @@ let make = (
             }
         }
     } and let actBottomUpResultSelected = (
-        selectedResult:option<stmtsDto>,
-        bottomUpProofResultConsumer:option<stmtsDto>=>unit,
+        ~selectedResult:option<stmtsDto>,
+        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit,
+        ~selectedManually:bool,
     ) => {
         switch selectedResult {
             | None => bottomUpProofResultConsumer(None)
             | Some(selectedResult) => {
                 setState(st => {
-                    let st = st->addNewStatements(selectedResult)
+                    let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly, ())
                     let st = st->uncheckAllStmts
                     let st = st->setNextAction(Some(
                         UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(selectedResult))})

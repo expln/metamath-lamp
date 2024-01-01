@@ -1386,6 +1386,7 @@ let insertStmt = (
     ~jstf:option<jstf>, 
     ~before:option<stmtId>,
     ~placeAtMaxIdxByDefault:bool,
+    ~isBkm:bool,
 ):(editorState,string) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot insertStmt without wrkCtx.`}))
@@ -1449,7 +1450,7 @@ let insertStmt = (
                                     ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()
                                 ),
                                 contEditMode: false,
-                                isBkm: false,
+                                isBkm,
                                 jstfText: jstf->Belt_Option.mapWithDefault("", jstfToStr),
                                 expr:Some(expr),
                             }
@@ -1504,7 +1505,7 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
     }
 }
 
-let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
+let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false, ()):editorState => {
     let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes,())
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
@@ -1558,7 +1559,8 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                 ~expr=stmtDto.expr, 
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                ~placeAtMaxIdxByDefault
+                ~placeAtMaxIdxByDefault,
+                ~isBkm,
             )
             stMut.contents = st
             newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
