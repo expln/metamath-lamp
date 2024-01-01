@@ -1436,6 +1436,7 @@ let insertStmt = (
                                     ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()
                                 ),
                                 contEditMode: false,
+                                isBkm: false,
                                 jstfText: jstf->Belt_Option.mapWithDefault("", jstfToStr),
                                 expr:Some(expr),
                             }

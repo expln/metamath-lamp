@@ -448,7 +448,7 @@ type addStepInputParams = {
     typ: option<string>,
     stmt: option<string>,
     jstf: option<string>,
-    isBkm: option<bool>,
+    isBkm: bool,
 }
 type addStepsInputParams = {
     atIdx: option<int>,
@@ -470,7 +470,7 @@ let addSteps = (
                     typ: d->strOpt("type", ~validator=validateStepType, ()),
                     stmt: d->strOpt("stmt", ()),
                     jstf: d->strOpt("jstf", ()),
-                    isBkm: d->boolOpt("isBkm", ()),
+                    isBkm: d->bool("isBkm", ~default=()=>false, ()),
                 }
             }, ()), ()),
             vars: d->arrOpt("vars", asArr(_, asStr(_, ~validator=str=>{
@@ -507,7 +507,7 @@ let addSteps = (
                                         typ: step.typ->Belt.Option.map(userStmtTypeExtendedFromStrExn),
                                         cont: step.stmt,
                                         jstf: step.jstf,
-                                        isBkm: step.isBkm,
+                                        isBkm: Some(step.isBkm),
                                     }
                                 })
                                 let vars = parseResult.vars
