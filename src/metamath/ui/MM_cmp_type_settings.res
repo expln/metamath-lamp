@@ -56,7 +56,8 @@ let make = (
             {
                 rndSmallTextBtn(
                     ~text="Restore default type settings",
-                    ~onClick=onRestoreDefaults
+                    ~onClick=onRestoreDefaults,
+                    ()
                 )
             }
         </Row>

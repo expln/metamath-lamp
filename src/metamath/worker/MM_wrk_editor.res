@@ -89,6 +89,7 @@ let strToCont = (
 }
 
 type userStmtType = E | P
+type userStmtTypeExtended = H | P | G
 
 let userStmtTypeFromStr = str => {
     switch str {
@@ -102,6 +103,23 @@ let userStmtTypeToStr = typ => {
     switch typ {
         | E => "e"
         | P => "p"
+    }
+}
+
+let userStmtTypeExtendedFromStrExn = (str:string):userStmtTypeExtended => {
+    switch str {
+        | "h" => H
+        | "p" => P
+        | "g" => G
+        | _ => raise(MmException({msg:`Cannot convert '${str}' to userStmtTypeExtended. Possible values are h, p, g.`}))
+    }
+}
+
+let userStmtTypeExtendedToUserStmtType = (typExt:userStmtTypeExtended):(userStmtType,bool) => {
+    switch typExt {
+        | H => (E,false)
+        | P => (P,false)
+        | G => (P,true)
     }
 }
 
@@ -164,6 +182,7 @@ type userStmt = {
     typ: userStmtType,
     typEditMode: bool,
     isGoal: bool,
+    isBkm: bool,
     cont: stmtCont,
     contEditMode: bool,
     isDuplicated: bool,
@@ -182,6 +201,20 @@ type userStmt = {
     unifErr: option<string>,
     syntaxErr: option<string>,
 }
+
+type userStmtDtoOpt = {
+    id: option<stmtId>,
+    label: option<string>,
+    typ: option<userStmtTypeExtended>,
+    cont: option<string>,
+    jstf: option<string>,
+    isBkm: option<bool>,
+}
+
+type editorStateAction = 
+    | UnifyAll({nextAction:unit=>unit})
+    | MergeNextDuplicate
+    | Action(unit=>unit)
 
 type editorState = {
     settingsV:int,
@@ -217,8 +250,7 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<(stmtId,Js_date.t)>,
 
-    unifyAllIsRequired: bool,
-    continueMergingStmts: bool,
+    nextAction:option<editorStateAction>,
 }
 
 type wrkSubsErr =
@@ -237,6 +269,7 @@ let createEmptyUserStmt = (id, typ, label, isGoal):userStmt => {
         label, labelEditMode:false, 
         typ, typEditMode:false, 
         isGoal,
+        isBkm:false,
         cont:Text({text:"", syms:[]}), contEditMode:true,
         isDuplicated:false,
         jstfText:"", jstfEditMode:false,
@@ -460,7 +493,15 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let addNewStmt = (st:editorState):(editorState,stmtId) => {
+let getLowestCheckedStmt = (st):option<userStmt> => {
+    if (st.checkedStmtIds->Js.Array2.length == 0) {
+        None
+    } else {
+        st.stmts->Js_array2.copy->Js.Array2.reverseInPlace->Js_array2.find(stmt => isStmtChecked(st,stmt.id))
+    }
+}
+
+let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let pCnt = st.stmts->Js.Array2.reduce(
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
@@ -470,12 +511,12 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
     let newLabel = 
         if (pCnt == 0 && defaultStmtLabel->Js.String2.length > 0) {
             if (st.stmts->Js.Array2.some(stmt => stmt.label == defaultStmtLabel)) {
-                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=false, ())
+                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp, ())
             } else {
                 defaultStmtLabel
             }
         } else {
-            createNewLabel(st, ~prefix="", ~forHyp=false, ())
+            createNewLabel(st, ~prefix="", ~forHyp=isHyp, ())
         }
     let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
@@ -488,20 +529,33 @@ let addNewStmt = (st:editorState):(editorState,stmtId) => {
                     | Some(idToAddBefore) => {
                         st.stmts->Js_array2.map(stmt => {
                             if (stmt.id == idToAddBefore) {
-                                [createEmptyUserStmt(newId,P,newLabel,isGoal), stmt]
+                                [
+                                    {
+                                        ...createEmptyUserStmt(newId,P,newLabel,isGoal), 
+                                        isBkm:isBkm->Belt_Option.getWithDefault(stmt.isBkm)
+                                    }, 
+                                    stmt
+                                ]
                             } else {
                                 [stmt]
                             }
                         })->Belt_Array.concatMany
                     }
-                    | None => st.stmts->Js_array2.concat([createEmptyUserStmt(newId, P, newLabel, isGoal)])
+                    | None => {
+                        st.stmts->Js_array2.concat([
+                            {
+                                ...createEmptyUserStmt(newId, P, newLabel, isGoal), 
+                                isBkm:isBkm->Belt_Option.getWithDefault(false)
+                            }
+                        ])
+                    }
                 }
         },
         newId
     )
 }
 
-let addNewStmtAtIdx = (st:editorState, idx:int):(editorState,stmtId) => {
+let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorState,stmtId) => {
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
     let st = if (0 <= idx && idx < st.stmts->Js_array2.length) {
@@ -509,7 +563,7 @@ let addNewStmtAtIdx = (st:editorState, idx:int):(editorState,stmtId) => {
     } else {
         st
     }
-    let (st,stmtId) = st->addNewStmt
+    let (st,stmtId) = st->addNewStmt(~isHyp, ())
     let st = {...st, checkedStmtIds:savedCheckedStmtIds}
     (st,stmtId)
 }
@@ -550,6 +604,20 @@ let duplicateCheckedStmt = (st:editorState, top:bool) => {
         } else {
             st
         }
+    }
+}
+
+let bookmarkCheckedStmts = (st:editorState, isBkm:bool):editorState => {
+    let checkedStmtIds = st.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtId)
+    {
+        ...st,
+        stmts: st.stmts->Js_array2.map(stmt => {
+            if (checkedStmtIds->Js_array2.includes(stmt.id)) {
+                {...stmt, isBkm}
+            } else {
+                stmt
+            }
+        })
     }
 }
 
@@ -661,17 +729,10 @@ let setJstfEditMode = (st, stmtId) => {
     }
 }
 
-let setUnifyAllIsRequired = (st:editorState, required:bool) => {
+let setNextAction = (st:editorState, action:option<editorStateAction>):editorState => {
     {
         ...st,
-        unifyAllIsRequired: required
-    }
-}
-
-let setContinueMergingStmts = (st:editorState, continue:bool) => {
-    {
-        ...st,
-        continueMergingStmts: continue
+        nextAction: action
     }
 }
 
@@ -839,7 +900,7 @@ let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {
 }
 
 let sortStmtsByType = st => {
-    let stmtToInt = stmt => {
+    let stmtToInt = (stmt:userStmt) => {
         switch stmt.typ {
             | E => 1
             | P => {
@@ -883,14 +944,24 @@ let isEditMode = (st:editorState): bool => {
         )
 }
 
-let userStmtHasErrors = stmt => {
+let userStmtHasCriticalErrors = stmt => {
     stmt.stmtErr->Belt_Option.isSome
 }
 
-let editorStateHasErrors = st => {
+let userStmtHasAnyErrors = stmt => {
+    stmt.stmtErr->Belt_Option.isSome 
+        || stmt.syntaxErr->Belt_Option.isSome 
+        || stmt.unifErr->Belt_Option.isSome
+}
+
+let editorStateHasCriticalErrors = st => {
     st.varsErr->Belt_Option.isSome 
         || st.disjErr->Belt_Option.isSome 
-        || st.stmts->Js_array2.some(userStmtHasErrors)
+        || st.stmts->Js_array2.some(userStmtHasCriticalErrors)
+}
+
+let editorStateHasAnyErrors = st => {
+    st->editorStateHasCriticalErrors || st.stmts->Js_array2.some(userStmtHasAnyErrors)
 }
 
 let editorStateHasDuplicatedStmts = (st:editorState):bool => {
@@ -951,7 +1022,7 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
 }
 
 let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         try {
@@ -966,7 +1037,7 @@ let setStmtExpr = (stmt:userStmt,wrkCtx:mmContext):userStmt => {
 }
 
 let setStmtJstf = (stmt:userStmt):userStmt => {
-    if (userStmtHasErrors(stmt) || stmt.typ == E) {
+    if (userStmtHasCriticalErrors(stmt) || stmt.typ == E) {
         stmt
     } else {
         switch parseJstf(stmt.jstfText) {
@@ -986,7 +1057,7 @@ let validateStmtJstf = (
     definedUserLabels:Belt_HashSetString.t,
     frms: frms,
 ):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         switch stmt.jstf {
@@ -1038,7 +1109,7 @@ let validateStmtJstf = (
 }
 
 let validateStmtLabel = (stmt:userStmt, wrkCtx:mmContext, definedUserLabels:Belt_HashSetString.t):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         if (stmt.typ == E || stmt.typ == P && stmt.isGoal) {
@@ -1081,7 +1152,7 @@ let validateStmtExpr = (
     wrkCtx:mmContext,
     definedUserExprs:Belt_HashMap.t<expr,string,ExprHash.identity>,
 ):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         switch stmt.expr {
@@ -1113,7 +1184,7 @@ let validateStmtIsGoal = (
     stmt:userStmt, 
     goalLabel:ref<option<string>>,
 ):userStmt => {
-    if (userStmtHasErrors(stmt)) {
+    if (userStmtHasCriticalErrors(stmt)) {
         stmt
     } else {
         switch goalLabel.contents {
@@ -1149,12 +1220,12 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
             ]
             st.stmts->Js_array2.reduce(
                 (st,stmt) => {
-                    if (editorStateHasErrors(st)) {
+                    if (editorStateHasCriticalErrors(st)) {
                         st
                     } else {
                         let stmt = actions->Js_array2.reduce(
                             (stmt,action) => {
-                                if (userStmtHasErrors(stmt)) {
+                                if (userStmtHasCriticalErrors(stmt)) {
                                     stmt
                                 } else {
                                     action(stmt)
@@ -1164,7 +1235,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                         )
 
                         definedUserLabels->Belt_HashSetString.add(stmt.label)
-                        if (!userStmtHasErrors(stmt)) {
+                        if (!userStmtHasCriticalErrors(stmt)) {
                             switch stmt.expr {
                                 | None => raise(MmException({msg:`Expr must be set in prepareUserStmtsForUnification.`}))
                                 | Some(expr) => definedUserExprs->Belt_HashMap.set(expr, stmt.label)
@@ -1190,7 +1261,7 @@ let prepareEditorForUnification = st => {
         prepareUserStmtsForUnification,
     ]->Js.Array2.reduce(
         (st,act) => {
-            if (editorStateHasErrors(st)) {
+            if (editorStateHasCriticalErrors(st)) {
                 st
             } else {
                 act(st)
@@ -1208,7 +1279,13 @@ let getTheOnlyCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int>) => {
+let createNewVars = (
+    st:editorState, 
+    ~varTypes:array<int>,
+    ~varNames:option<array<string>>=?,
+    ~dontAddVariablesToContext:bool=false,
+    ()
+):(editorState,array<int>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
         | Some(wrkCtx) => {
@@ -1216,26 +1293,39 @@ let createNewVars = (st:editorState, varTypes:array<int>):(editorState,array<int
             if (numOfVars == 0) {
                 (st,[])
             } else {
-                let typeToPrefix = Belt_MapString.fromArray(
-                    st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
-                )
-                let newVarNames = generateNewVarNames(
-                    ~ctx=wrkCtx,
-                    ~types=varTypes, 
-                    ~typeToPrefix,
-                    ()
-                )
+                let newVarNames =
+                    switch varNames {
+                        | Some(varNames) => {
+                            if (varTypes->Js_array2.length != varNames->Js_array2.length) {
+                                raise(MmException({msg:`varTypes->Js_array2.length != varNames->Js_array2.length`}))
+                            }
+                            varNames
+                        }
+                        | None => {
+                            let typeToPrefix = Belt_MapString.fromArray(
+                                st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                            )
+                            generateNewVarNames(
+                                ~ctx=wrkCtx,
+                                ~types=varTypes, 
+                                ~typeToPrefix,
+                                ()
+                            )
+                        }
+                    }
                 let newHypLabels = generateNewLabels(
                     ~ctx=wrkCtx,
                     ~prefix="var", 
                     ~amount=numOfVars,
                     ()
                 )
-                wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
-                newHypLabels->Js.Array2.forEachi((label,i) => {
-                    wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
-                })
+                if (!dontAddVariablesToContext) {
+                    wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
+                    newHypLabels->Js.Array2.forEachi((label,i) => {
+                        wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
+                    })
+                }
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
                 let newVarsText = newHypLabels->Js.Array2.mapi((label,i) => {
                     `${label} ${varTypeNames[i]} ${newVarNames[i]}`
@@ -1296,6 +1386,7 @@ let insertStmt = (
     ~jstf:option<jstf>, 
     ~before:option<stmtId>,
     ~placeAtMaxIdxByDefault:bool,
+    ~isBkm:bool,
 ):(editorState,string) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot insertStmt without wrkCtx.`}))
@@ -1331,7 +1422,7 @@ let insertStmt = (
                         }
                     }
 
-                    let updateExistingStmt = (st,existingStmt):(editorState,string) => {
+                    let updateExistingStmt = (st,existingStmt:userStmt):(editorState,string) => {
                         let st = switch jstf {
                             | None => st
                             | Some(jstf) => {
@@ -1349,7 +1440,7 @@ let insertStmt = (
                                 if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { minIdx }
                             }
                         }
-                        let (st,newStmtId) = st->addNewStmtAtIdx(newIdx)
+                        let (st,newStmtId) = st->addNewStmtAtIdx(~idx=newIdx, ())
                         let st = st->updateStmt(newStmtId, stmt => {
                             {
                                 ...stmt,
@@ -1359,6 +1450,7 @@ let insertStmt = (
                                     ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()
                                 ),
                                 contEditMode: false,
+                                isBkm,
                                 jstfText: jstf->Belt_Option.mapWithDefault("", jstfToStr),
                                 expr:Some(expr),
                             }
@@ -1413,8 +1505,8 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
     }
 }
 
-let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
-    let (st, newCtxVarInts) = createNewVars(st,newStmts.newVarTypes)
+let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false, ()):editorState => {
+    let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes,())
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
         newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
@@ -1430,7 +1522,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
     })
     let st = createNewDisj(st, newCtxDisj)
 
-    let checkedStmt = st->getTopmostCheckedStmt
+    let checkedStmt = st->getLowestCheckedStmt
     let newStmtsLabelToCtxLabel = Belt_MutableMapString.make()
 
     let replaceDtoLabelsWithCtxLabels = jstf => {
@@ -1467,7 +1559,8 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto):editorState => {
                 ~expr=stmtDto.expr, 
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
-                ~placeAtMaxIdxByDefault
+                ~placeAtMaxIdxByDefault,
+                ~isBkm,
             )
             stMut.contents = st
             newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
@@ -1527,7 +1620,12 @@ let removeUnusedVars = (st:editorState):editorState => {
     }
 }
 
-let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserStmt):option<jstf> => {
+let srcToJstf = (
+    wrkCtx:mmContext, 
+    proofTree:proofTreeDto, 
+    exprSrc:exprSrcDto, 
+    exprToUserStmt:Belt_HashMap.t<expr,userStmt,ExprHash.identity>
+):option<jstf> => {
     switch exprSrc {
         | Assertion({args, label}) => {
             switch wrkCtx->getFrame(label) {
@@ -1560,7 +1658,9 @@ let srcToJstf = (wrkCtx, proofTree:proofTreeDto, exprSrc:exprSrcDto, exprToUserS
     }
 }
 
-let userStmtSetJstfTextAndProof = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt):userStmt => {
+let userStmtSetJstfTextAndProof = (
+    stmt:userStmt, wrkCtx, proofTree:proofTreeDto, proofNode:proofNodeDto, exprToUserStmt
+):userStmt => {
     let stmt = switch proofNode.proof {
         | None => stmt
         | Some(proofSrc) => {
@@ -2129,7 +2229,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
     }
 }
 
-let completeTypEditMode = (st, stmtId, newTyp, newIsGoal) => {
+let completeTypEditMode = (st:editorState, stmtId:stmtId, newTyp:userStmtType, newIsGoal:bool) => {
     let oldStmt = st->editorGetStmtByIdExn(stmtId)
     let st = updateStmt(st, stmtId, stmt => {
         {
@@ -2187,6 +2287,218 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     renameHypToMatchGoal(st, oldStmt, newStmt)
 }
 
+let isHyp = (stmtTyp:option<userStmtTypeExtended>):bool => {
+    switch stmtTyp {
+        | None => false
+        | Some(typ) => {
+            switch typ {
+                | H => true
+                | P | G => false
+            }
+        }
+    }
+}
+
+let addStepsWithoutVars = (
+    st:editorState,
+    ~atIdx:option<int>=?,
+    ~steps:array<userStmtDtoOpt>,
+    ()
+):result<(editorState,array<stmtId>),string> => {
+    let updates:array<(editorState,stmtId,userStmtDtoOpt)=>result<editorState,string>> = [
+        (st,stmtId,step) => {
+            switch step.cont {
+                | None => Error(`Steps must not have empty statements.`)
+                | Some(cont) => {
+                    if (cont->Js_string2.trim == "") {
+                        Error(`Steps must not have empty statements.`)
+                    } else {
+                        Ok(st->completeContEditMode(stmtId, cont))
+                    }
+                }
+            }
+        },
+        (st,stmtId,step) => {
+            switch step.label {
+                | None => Ok(st)
+                | Some(label) => {
+                    if (label->Js_string2.trim == "") {
+                        Error(`Steps must not have empty labels.`)
+                    } else {
+                        Ok(st->completeLabelEditMode(stmtId, label))
+                    }
+                }
+            }
+        },
+        (st,stmtId,step) => {
+            switch step.typ {
+                | None => Ok(st)
+                | Some(typExt) => {
+                    let (typ,isGoal) = typExt->userStmtTypeExtendedToUserStmtType
+                    Ok(st->completeTypEditMode(stmtId, typ, isGoal))
+                }
+            }
+        },
+        (st,stmtId,step) => {
+            switch step.jstf {
+                | None => Ok(st)
+                | Some(jstf) => Ok(st->completeJstfEditMode(stmtId, jstf))
+            }
+        },
+        (st,stmtId,step) => {
+            switch step.isBkm {
+                | None => Ok(st)
+                | Some(isBkm) => Ok(st->updateStmt(stmtId, stmt => {...stmt, isBkm}))
+            }
+        },
+    ]
+    let stmtIds = []
+    let res = steps->Js_array2.reducei(
+        (res, step, i) => {
+            switch res {
+                | Error(_) => res
+                | Ok(st) => {
+                    let (st,stmtId) = switch atIdx {
+                        | None => st->addNewStmt(~isHyp=isHyp(step.typ), ())
+                        | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ), ())
+                    }
+                    stmtIds->Js.Array2.push(stmtId)->ignore
+                    updates->Js.Array2.reduce((res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)), Ok(st))
+                }
+            }
+        },
+        Ok(st)
+    )
+    switch res {
+        | Error(msg) => Error(msg)
+        | Ok(st) => Ok((st,stmtIds))
+    }
+}
+
+let validateVarNames = (vars:array<(string,option<string>)>):bool => {
+    vars->Js.Array2.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isNone)
+    || vars->Js.Array2.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isSome)
+}
+
+let addSteps = (
+    st:editorState,
+    ~atIdx:option<int>=?,
+    ~steps:array<userStmtDtoOpt>,
+    ~vars:array<(string,option<string>)>=[],
+    ~dontAddVariablesToContext:bool,
+    ()
+):result<(editorState,array<stmtId>),string> => {
+    if (vars->Js_array2.length == 0) {
+        st->addStepsWithoutVars( ~atIdx?, ~steps, () )
+    } else {
+        switch st.wrkCtx {
+            | None => Error("Cannot add new variables because of errors in the editor.")
+            | Some(wrkCtx) => {
+                let varTypesStr = vars->Js.Array2.map(((typStr,_)) => typStr)
+                let varTypesOpt = varTypesStr->Js.Array2.map(wrkCtx->ctxSymToInt)
+                let unknownTypeIdx = varTypesOpt->Js.Array2.findIndex(Belt_Option.isNone)
+                if (unknownTypeIdx >= 0) {
+                    Error(`Unknown type - ${varTypesStr[unknownTypeIdx]}`)
+                } else {
+                    let varTypes = varTypesOpt->Js.Array2.map(Belt_Option.getExn)
+                    if (!validateVarNames(vars)) {
+                        Error("All variable names must be either defined or undefined.")
+                    } else {
+                        let st = if (vars->Js.Array2.some(((_,varName)) => varName->Belt_Option.isNone)) {
+                            let (st, _) = createNewVars(st, ~varTypes, ~dontAddVariablesToContext, ())
+                            st
+                        } else {
+                            let varNames = vars->Js.Array2.map(((_,varName)) => varName->Belt_Option.getExn)
+                            let (st, _) = createNewVars(st, ~varTypes, ~varNames, ~dontAddVariablesToContext, ())
+                            st
+                        }
+                        st->addStepsWithoutVars( ~atIdx?, ~steps, () )
+                    }
+                }
+            }
+        }
+    }
+}
+
+let updateSteps = (
+    st:editorState,
+    steps:array<userStmtDtoOpt>,
+):result<editorState,string> => {
+    let updates:array<(userStmt,userStmtDtoOpt)=>result<userStmt,string>> = [
+        (stmt,step) => {
+            switch step.cont {
+                | None => Ok(stmt)
+                | Some(cont) => {
+                    if (cont->Js_string2.trim == "") {
+                        Error(`Steps must not have empty statements.`)
+                    } else {
+                        Ok({
+                            ...stmt,
+                            cont:strToCont(cont, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
+                            contEditMode: false,
+                            isDuplicated: false,
+                        })
+                    }
+                }
+            }
+        },
+        (stmt,step) => {
+            switch step.typ {
+                | None => Ok(stmt)
+                | Some(typExt) => {
+                    let (typ,isGoal) = typExt->userStmtTypeExtendedToUserStmtType
+                    Ok({ ...stmt, typ:typ, isGoal:isGoal, typEditMode: false })
+                }
+            }
+        },
+        (stmt,step) => {
+            switch step.jstf {
+                | None => Ok(stmt)
+                | Some(jstf) => Ok({ ...stmt, jstfText:jstf, jstfEditMode:false })
+            }
+        },
+        (stmt,step) => {
+            switch step.isBkm {
+                | None => Ok(stmt)
+                | Some(isBkm) => Ok({ ...stmt, isBkm })
+            }
+        },
+    ]
+    let stmtIdToStepDto = steps->Js_array2.filter(step => step.id->Belt_Option.isSome)
+        ->Js.Array2.map(step => (step.id->Belt_Option.getExn,step))
+        ->Belt_HashMapString.fromArray
+    let newStmtsRes = st.stmts->Js_array2.reduce(
+        (res, stmt) => {
+            switch res {
+                | Error(_) => res
+                | Ok(newStmts) => {
+                    let newStmtRes = switch stmtIdToStepDto->Belt_HashMapString.get(stmt.id) {
+                        | None => Ok(stmt)
+                        | Some(step) => {
+                            updates->Js.Array2.reduce(
+                                (res,update) => res->Belt_Result.flatMap(update(_,step)), 
+                                Ok(stmt)
+                            )
+                        }
+                    }
+                    switch newStmtRes {
+                        | Error(msg) => Error(msg)
+                        | Ok(stmt) => {
+                            newStmts->Js_array2.push(stmt)->ignore
+                            Ok(newStmts)
+                        }
+                    }
+                }
+            }
+        },
+        Ok([])
+    )
+    switch newStmtsRes {
+        | Error(msg) => Error(msg)
+        | Ok(newStmts) => Ok({...st, stmts:newStmts})
+    }
+}
+
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
     let stmt1 = if (st.checkedStmtIds->Js.Array2.length == 0) {
         st.stmts->Js_array2.find(stmt => {
@@ -2218,8 +2530,7 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
 
 let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
     st.stmts->Js_array2.find(stmt => 
-        stmt.typ != E
-        && !stmt.isDuplicated
+        !stmt.isDuplicated
         && stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)
             ->Belt_Option.getWithDefault(false)
     )
@@ -2228,11 +2539,11 @@ let findFirstDuplicatedStmt = (st:editorState):option<userStmt> => {
 let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt> => {
     let contStr = stmt1.cont->contToStr
     st.stmts->Js.Array2.find(stmt2 => {
-        stmt2.typ != E && !stmt2.isDuplicated && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr
+        !stmt2.isDuplicated && stmt2.id != stmt1.id && stmt2.cont->contToStr == contStr
     })
 }
 
-let autoMergeDuplicatedStatements = (st:editorState):editorState => {
+let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorState => {
     let resultState = ref(st)
     let continue = ref(true)
     while (continue.contents) {
@@ -2242,26 +2553,27 @@ let autoMergeDuplicatedStatements = (st:editorState):editorState => {
                 switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
                     | None => continue := false
                     | Some(stmt2) => {
-                        let jstf1 = stmt1.jstfText->Js_string2.trim
-                        let jstf2 = stmt2.jstfText->Js_string2.trim
-                        if (jstf1 != "" && jstf2 == "") {
-                            switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
-                                | Error(msg) => {
-                                    Js.Console.log2(`err1 msg`, msg)
-                                    continue := false
-                                }
-                                | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
-                            }
-                        } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
+                        if (selectFirst) {
                             switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
-                                | Error(msg) => {
-                                    Js.Console.log2(`err2 msg`, msg)
-                                    continue := false
-                                }
+                                | Error(_) => continue := false
                                 | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
                             }
                         } else {
-                            continue := false
+                            let jstf1 = stmt1.jstfText->Js_string2.trim
+                            let jstf2 = stmt2.jstfText->Js_string2.trim
+                            if (jstf1 != "" && jstf2 == "") {
+                                switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
+                                    | Error(_) => continue := false
+                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                }
+                            } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
+                                switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                    | Error(_) => continue := false
+                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                }
+                            } else {
+                                continue := false
+                            }
                         }
                     }
                 }
@@ -2271,13 +2583,12 @@ let autoMergeDuplicatedStatements = (st:editorState):editorState => {
     resultState.contents
 }
 
-let updateEditorStateWithPostupdateActions = (st, update:editorState=>editorState) => {
-    let st = update(st)
+let verifyEditorState = (st:editorState) => {
     let st = prepareEditorForUnification(st)
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)
         let st = if (st.settings.autoMergeStmts) {
-            autoMergeDuplicatedStatements(st)
+            autoMergeDuplicatedStatements(st, ~selectFirst=false)
         } else {
             st
         }
@@ -2454,7 +2765,7 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
 
 let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefix:string, ~forHyp:bool):result<editorState, string> => {
     let state = state->prepareEditorForUnification
-    if (state->editorStateHasErrors) {
+    if (state->editorStateHasCriticalErrors) {
         Error(
             `Cannot perform renumbering because there is an error in the editor content.`
                 ++ ` Please resolve the error before renumbering.`
@@ -2498,7 +2809,7 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
             | Error(_) => res
             | Ok(state) => {
                 let state = state->prepareEditorForUnification
-                if (state->editorStateHasErrors) {
+                if (state->editorStateHasCriticalErrors) {
                     Error( `Cannot renumber steps: there was an internal error during renumbering.` )
                 } else {
                     Ok(state)
@@ -2656,7 +2967,7 @@ let resetEditorContent = (st:editorState):editorState => {
 
 let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):result<editorState, string> => {
     let state = state->prepareEditorForUnification
-    if (state->editorStateHasErrors) {
+    if (state->editorStateHasCriticalErrors) {
         Error(
             `Cannot perform deletion because there is an error in the editor content.`
                 ++ ` Please resolve the error before deleting steps.`
@@ -2664,7 +2975,7 @@ let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):res
     } else {
         let unprocessedIds = Belt.MutableQueue.fromArray(stepIdsToKeep)
         state.stmts->Js.Array2.forEach(stmt => {
-            if (stmt.typ == E || stmt.isGoal) {
+            if (stmt.typ == E || stmt.isGoal || stmt.isBkm) {
                 unprocessedIds->Belt_MutableQueue.add(stmt.id)
             }
         })

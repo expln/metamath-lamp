@@ -16,6 +16,7 @@ open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
+open MM_proof_tree_dto
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
@@ -139,6 +140,8 @@ let make = (
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Js.Nullable.null)
     let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
+    let (contIsHidden, setContIsHidden) = React.useState(_ => false)
+    let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true,
@@ -170,6 +173,45 @@ let make = (
         histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
     })
 
+    let stmtsToShow =
+        if (showBkmOnly) {
+            state.stmts->Js_array2.filter(stmt => {
+                stmt.typ == E || stmt.isGoal || stmt.isBkm
+                || stmt->userStmtHasAnyErrors
+                || stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode
+            })
+        } else {
+            state.stmts
+        }
+
+    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
+        ~key="editor-steps-per-page", ~default=100,
+    )
+    let maxStepsPerPage = 300
+    let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, maxStepsPerPage))
+    let numOfPages = (stmtsToShow->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+                        ->Js_math.ceil_float->Belt.Float.toInt
+    let minPageIdx = 0
+    let maxPageIdx = numOfPages - 1
+    let (pageIdx, setPageIdx) = React.useState(() => 0)
+    let pageIdx = Js.Math.max_int(minPageIdx, Js.Math.min_int(pageIdx, maxPageIdx))
+    let stmtBeginIdx = pageIdx * stepsPerPage
+    let stmtEndIdx = stmtBeginIdx + stepsPerPage - 1
+
+    let actSetStepsPerPage = (newStepsPerPage) => {
+        if (1 <= newStepsPerPage && newStepsPerPage <= maxStepsPerPage) {
+            setStepsPerPage(_ => newStepsPerPage)
+        }
+    }
+
+    let actGoToPage = (pageIdx) => {
+        setPageIdx(_ => pageIdx)
+    }
+
+    let actResetPageIdx = () => {
+        actGoToPage(0)
+    }
+
     let setHist = (update:editorHistory=>editorHistory):unit => {
         setHistPriv(ht => {
             let ht = update(ht)
@@ -178,26 +220,33 @@ let make = (
         })
     }
 
-    let markStateToAutoUnifyAllIfAllowed = (st:editorState):editorState => {
+    let scheduleUnifyAllIfAllowed = (st:editorState):editorState => {
         if (st.settings.autoUnifyAll) {
-            let editIsActive = st->isEditMode
-            let thereAreSyntaxErrors = st->editorStateHasErrors
-            let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
-            let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
-                stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
-            })
-            if (!editIsActive && !thereAreSyntaxErrors && !atLeastOneStmtIsChecked && proofStatusIsMissing) {
-                st->setUnifyAllIsRequired(true)
-            } else {
-                st
+            switch st.nextAction {
+                | Some(_) => st
+                | None => {
+                    let editIsActive = st->isEditMode
+                    let thereAreCriticalErrorsInEditor = st->editorStateHasCriticalErrors
+                    let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
+                    let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
+                        stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
+                    })
+                    if (
+                        !editIsActive && !thereAreCriticalErrorsInEditor 
+                        && !atLeastOneStmtIsChecked && proofStatusIsMissing
+                    ) {
+                        st->setNextAction(Some(UnifyAll({nextAction:()=>()})))
+                    } else {
+                        st
+                    }
+                }
             }
         } else {
             st
         }
     }
 
-    let commonPreSaveActions = (st:editorState):editorState => {
-        let st = st->updateEditorStateWithPostupdateActions(st=>st)
+    let saveStateToLocStorAndMakeHistSnapshot = (st:editorState):editorState => {
         editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
@@ -205,15 +254,19 @@ let make = (
 
     let setState = (update:editorState=>editorState) => {
         setStatePriv(st => {
-            let st = st->update->commonPreSaveActions
-            let st = st->markStateToAutoUnifyAllIfAllowed
+            let st = st->update
+            let st = st->verifyEditorState
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
+            let st = st->scheduleUnifyAllIfAllowed
             st
         })
     }
 
-    let setStateWithoutUnifyAll = (update:editorState=>editorState) => {
+    let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
         setStatePriv(st => {
-            let st = st->update->commonPreSaveActions
+            let st = st->applyUnifyAllResults(proofTreeDto)
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
+            let st = st->setNextAction(Some(Action(nextAction)))
             st
         })
     }
@@ -236,11 +289,19 @@ let make = (
     }
 
     let editIsActive = state->isEditMode
-    let thereAreSyntaxErrors = editorStateHasErrors(state)
+    let thereAreCriticalErrorsInEditor = editorStateHasCriticalErrors(state)
+    let thereAreAnyErrorsInEditor = editorStateHasAnyErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
         ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
         ->Belt.Option.isSome
+    let checkedStmtIds = state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtId)
+    let allCheckedStmtsAreBookmarked = state.stmts->Js_array2.every(stmt => {
+        !(checkedStmtIds->Js_array2.includes(stmt.id)) || stmt.isBkm
+    })
+    let allCheckedStmtsAreUnbookmarked = state.stmts->Js_array2.every(stmt => {
+        !(checkedStmtIds->Js_array2.includes(stmt.id)) || !stmt.isBkm
+    })
     let mainCheckboxState = {
         let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
         if ((atLeastOneStmtIsChecked || atLeastOneStmtHasSelectedText) && atLeastOneStmtIsNotChecked) {
@@ -252,7 +313,7 @@ let make = (
         }
     }
 
-    let generalModificationActionIsEnabled = !editIsActive && !thereAreSyntaxErrors
+    let generalModificationActionIsEnabled = !editIsActive && !thereAreCriticalErrorsInEditor
     let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
         | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
@@ -280,7 +341,7 @@ let make = (
 
     let actAddNewStmt = () => {
         setState(st => {
-            let (st, _) = addNewStmt(st)
+            let (st, _) = addNewStmt(st, ~isBkm=showBkmOnly, ())
             st
         })
     }
@@ -327,41 +388,48 @@ let make = (
         }
         setStatePriv(st => {
             let st = action(st)
-            st->markStateToAutoUnifyAllIfAllowed
+            st->scheduleUnifyAllIfAllowed
         })
     }
     let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
     let actMoveCheckedStmtsDown = () => setState(moveCheckedStmts(_, false))
+    let actBookmarkCheckedStmts = () => {
+        setStatePriv(st => {
+            let st = st->bookmarkCheckedStmts(true)
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
+            st
+        })
+    }
+    let actUnbookmarkCheckedStmts = () => {
+        setStatePriv(st => {
+            let st = st->bookmarkCheckedStmts(false)
+            let st = st->saveStateToLocStorAndMakeHistSnapshot
+            st
+        })
+    }
     let actDuplicateStmt = (top:bool) => setState(st => {
         let st = duplicateCheckedStmt(st,top)
         let st = uncheckAllStmts(st)
         st
     })
+    let addStmtAbove = (st:editorState, id:stmtId, text:string):editorState => {
+        let st = uncheckAllStmts(st)
+        let st = toggleStmtChecked(st,id)
+        let (st, newId) = addNewStmt(st, ())
+        let st = setStmtCont(st, newId, text->strToCont(()))
+        st
+    }
     let actAddStmtAbove = (id:stmtId, text:string):unit => {
         setState(st => {
-            let st = uncheckAllStmts(st)
-            let st = toggleStmtChecked(st,id)
-            let (st, newId) = addNewStmt(st)
-            let st = setStmtCont(st, newId, text->strToCont(()))
+            let st = addStmtAbove(st, id, text)
             let st = uncheckAllStmts(st)
             st
         })
     }
     let actAddStmtBelow = (id:stmtId, text:string):unit => {
         setState(st => {
-            let st = uncheckAllStmts(st)
-            let st = switch st.stmts->Js.Array2.findIndex(stmt => stmt.id == id) {
-                | -1 => st
-                | idx => {
-                    if (idx == st.stmts->Js.Array2.length-1) {
-                        st
-                    } else {
-                        toggleStmtChecked(st,st.stmts[idx+1].id)
-                    }
-                }
-            }
-            let (st, newId) = addNewStmt(st)
-            let st = setStmtCont(st, newId, text->strToCont(()))
+            let st = addStmtAbove(st, id, text)
+            let st = moveCheckedStmts(st, true)
             let st = uncheckAllStmts(st)
             st
         })
@@ -640,15 +708,11 @@ let make = (
     }
 
     let actAsrtSearchResultsSelected = selectedResults => {
-        setState(st => selectedResults->Js_array2.reduce( addNewStatements, st ))
-    }
-
-    let actBottomUpResultSelected = (selectedResult:stmtsDto) => {
         setState(st => {
-            let st = st->addNewStatements(selectedResult)
-            let st = st->uncheckAllStmts
-            let st = st->setUnifyAllIsRequired(true)
-            st
+            selectedResults->Js_array2.reduce( 
+                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly, ()), 
+                st 
+            )
         })
     }
 
@@ -662,9 +726,9 @@ let make = (
                 | Ok(st) => {
                     let st = st->uncheckAllStmts
                     if (continueMergingStmts) {
-                        let st = st->updateEditorStateWithPostupdateActions(st => st)
+                        let st = st->verifyEditorState
                         if (st->editorStateHasDuplicatedStmts) {
-                            st->setContinueMergingStmts(true)
+                            st->setNextAction(Some(MergeNextDuplicate))
                         } else {
                             st
                         }
@@ -704,6 +768,7 @@ let make = (
                     hist 
                     onClose={_=>closeModal(modalRef, modalId)} 
                     viewOptions
+                    stepsPerPage
                     onRestore={histIdx => {
                         actRestorePrevState(histIdx)
                         closeModal(modalRef, modalId)
@@ -735,16 +800,6 @@ let make = (
             }
         }
     }
-
-    React.useEffect1(() => {
-        if (state.continueMergingStmts) {
-            setStatePriv(setContinueMergingStmts(_,false))
-            if (state->editorStateHasDuplicatedStmts) {
-                actMergeStmts()
-            }
-        }
-        None
-    }, [state.continueMergingStmts])
 
     let actSearchAsrt = () => {
         switch state.wrkCtx {
@@ -840,15 +895,6 @@ let make = (
         }
     }
 
-    let actUnifyAllResultsAreReady = proofTreeDto => {
-        setStatePriv(st => {
-            let st = applyUnifyAllResults(st, proofTreeDto)
-            editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
-            setHist(ht => ht->editorHistAddSnapshot(st))
-            st
-        })
-    }
-
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
             MM_wrk_client.terminateWorker()
@@ -869,134 +915,174 @@ let make = (
         }
     }
 
-    let actUnify = (
+    let rec actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
+        ~selectFirstFoundProof:bool=false,
+        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit = _ => (),
+        ~nextAction: unit=>unit = ()=>(),
         ()
     ) => {
-        switch state.wrkCtx {
-            | None => ()
-            | Some(wrkCtx) => {
-                let varsText=state.varsText
-                let disjText=state.disjText
-                let state = switch stmtId {
-                    | None => state
-                    | Some(stmtId) => {
-                        let state = state->uncheckAllStmts
-                        let state = state->toggleStmtChecked(stmtId)
-                        state
+        if (thereAreCriticalErrorsInEditor) {
+            ()
+        } else {
+            switch state.wrkCtx {
+                | None => ()
+                | Some(wrkCtx) => {
+                    let varsText=state.varsText
+                    let disjText=state.disjText
+                    let state = switch stmtId {
+                        | None => state
+                        | Some(stmtId) => {
+                            let state = state->uncheckAllStmts
+                            let state = state->toggleStmtChecked(stmtId)
+                            state
+                        }
                     }
-                }
-                let rootUserStmts = state->getRootStmtsForUnification
-                let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
-                    | Some(stmt) if stmt.typ == P => Some(stmt)
-                    | _ => None
-                }
-                switch singleProvableChecked {
-                    | Some(singleProvableChecked) => {
-                        let initialParams = switch params {
-                            | Some(_) => params
-                            | None => {
-                                switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
-                                    | None => None
-                                    | Some((args0,asrtLabel)) => {
-                                        Some(
-                                            bottomUpProverParamsMake(
-                                                ~asrtLabel, 
-                                                ~args0, 
-                                                ~allowNewVars=false,
-                                                ()
+                    let rootUserStmts = state->getRootStmtsForUnification
+                    let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
+                    let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
+                        | Some(stmt) if stmt.typ == P => Some(stmt)
+                        | _ => None
+                    }
+                    switch singleProvableChecked {
+                        | Some(singleProvableChecked) => {
+                            let initialParams = switch params {
+                                | Some(_) => params
+                                | None => {
+                                    switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
+                                        | None => None
+                                        | Some((args0,asrtLabel)) => {
+                                            Some(
+                                                bottomUpProverParamsMake(
+                                                    ~asrtLabel, 
+                                                    ~args0, 
+                                                    ~allowNewVars=false,
+                                                    ()
+                                                )
                                             )
-                                        )
+                                        }
                                     }
                                 }
                             }
+                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                                updateModal(modalRef, modalId, () => {
+                                    <MM_cmp_unify_bottom_up
+                                        modalRef
+                                        settingsVer=state.settingsV
+                                        settings=state.settings
+                                        preCtxVer=state.preCtxV
+                                        preCtx=state.preCtx
+                                        frms=state.frms parenCnt=state.parenCnt
+                                        varsText disjText wrkCtx
+                                        rootStmts=rootUserStmts
+                                        reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
+                                        typeToPrefix = {
+                                            Belt_MapString.fromArray(
+                                                state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                                            )
+                                        }
+                                        initialParams=?initialParams
+                                        apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
+                                        delayBeforeStartMs
+                                        initialDebugLevel=?initialDebugLevel
+                                        selectFirstFoundProof
+                                        onResultSelected={newStmtsDto => {
+                                            actBottomUpResultSelected( 
+                                                ~selectedResult=newStmtsDto,
+                                                ~bottomUpProofResultConsumer,
+                                                ~selectedManually=!selectFirstFoundProof,
+                                            )
+                                            closeModal(modalRef, modalId)
+                                        }}
+                                        onCancel={() => closeModal(modalRef, modalId)}
+                                    />
+                                })
+                            })->ignore
                         }
-                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                            updateModal(modalRef, modalId, () => {
-                                <MM_cmp_unify_bottom_up
-                                    modalRef
-                                    settingsVer=state.settingsV
-                                    settings=state.settings
-                                    preCtxVer=state.preCtxV
-                                    preCtx=state.preCtx
-                                    frms=state.frms parenCnt=state.parenCnt
-                                    varsText disjText wrkCtx
-                                    rootStmts=rootUserStmts
-                                    reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
-                                    typeToPrefix = {
-                                        Belt_MapString.fromArray(
-                                            state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                        | None => {
+                            openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))
+                                ->promiseMap(modalId => {
+                                    updateModal( 
+                                        modalRef, modalId, () => rndProgress(
+                                            ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                                         )
-                                    }
-                                    initialParams=?initialParams
-                                    apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
-                                    delayBeforeStartMs
-                                    initialDebugLevel=?initialDebugLevel
-                                    onResultSelected={newStmtsDto => {
-                                        closeModal(modalRef, modalId)
-                                        actBottomUpResultSelected(newStmtsDto)
-                                    }}
-                                    onCancel={() => closeModal(modalRef, modalId)}
-                                />
-                            })
-                        })->ignore
-                    }
-                    | None => {
-                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))->promiseMap(modalId => {
-                            updateModal( 
-                                modalRef, modalId, () => rndProgress(
-                                    ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
-                                )
-                            )
-                            let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
-                            unify(
-                                ~settingsVer=state.settingsV,
-                                ~settings=state.settings,
-                                ~preCtxVer=state.preCtxV,
-                                ~preCtx=state.preCtx,
-                                ~varsText,
-                                ~disjText,
-                                ~rootStmts,
-                                ~bottomUpProverParams=None,
-                                ~allowedFrms=state.settings.allowedFrms,
-                                ~syntaxTypes=Some(state.syntaxTypes),
-                                ~exprsToSyntaxCheck=
-                                    if (state.settings.checkSyntax) {
-                                        Some(state->getAllExprsToSyntaxCheck(rootStmts))
-                                    } else {
-                                        None
-                                    },
-                                ~debugLevel=0,
-                                ~onProgress = msg => updateModal(
-                                    modalRef, modalId, () => rndProgress(
-                                        ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
                                     )
-                                )
-                            )->promiseMap(proofTreeDto => {
-                                closeModal(modalRef, modalId)
-                                actUnifyAllResultsAreReady(proofTreeDto)
-                            })
-                        })->ignore
+                                    let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
+                                    unify(
+                                        ~settingsVer=state.settingsV,
+                                        ~settings=state.settings,
+                                        ~preCtxVer=state.preCtxV,
+                                        ~preCtx=state.preCtx,
+                                        ~varsText,
+                                        ~disjText,
+                                        ~rootStmts,
+                                        ~bottomUpProverParams=None,
+                                        ~allowedFrms=state.settings.allowedFrms,
+                                        ~syntaxTypes=Some(state.syntaxTypes),
+                                        ~exprsToSyntaxCheck=
+                                            if (state.settings.checkSyntax) {
+                                                Some(state->getAllExprsToSyntaxCheck(rootStmts))
+                                            } else {
+                                                None
+                                            },
+                                        ~debugLevel=0,
+                                        ~onProgress = msg => updateModal(
+                                            modalRef, modalId, () => rndProgress(
+                                                ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
+                                            )
+                                        )
+                                    )->promiseMap(proofTreeDto => {
+                                        actUnifyAllResultsAreReady(proofTreeDto, nextAction)
+                                        closeModal(modalRef, modalId)
+                                    })
+                                })->ignore
+                        }
                     }
                 }
+            }
+        }
+    } and let actBottomUpResultSelected = (
+        ~selectedResult:option<stmtsDto>,
+        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit,
+        ~selectedManually:bool,
+    ) => {
+        switch selectedResult {
+            | None => bottomUpProofResultConsumer(None)
+            | Some(selectedResult) => {
+                setState(st => {
+                    let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly, ())
+                    let st = st->uncheckAllStmts
+                    let st = st->setNextAction(Some(
+                        UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(selectedResult))})
+                    ))
+                    st
+                })
             }
         }
     }
 
     React.useEffect1(() => {
-        if (state.unifyAllIsRequired) {
-            setStatePriv(setUnifyAllIsRequired(_,false))
-            if (!editorStateHasErrors(state)) {
-                actUnify(())
+        switch state.nextAction {
+            | None => ()
+            | Some(action) => {
+                setStatePriv(setNextAction(_,None))
+                switch action {
+                    | UnifyAll({nextAction}) => actUnify(~nextAction, ())
+                    | MergeNextDuplicate => {
+                        if (state->editorStateHasDuplicatedStmts) {
+                            actMergeStmts()
+                        }
+                    }
+                    | Action(action) => action()
+                }
             }
         }
         None
-    }, [state.unifyAllIsRequired])
+    }, [state.nextAction])
 
     let actExportProof = (stmtId) => {
         switch generateCompressedProof(state, stmtId) {
@@ -1019,17 +1105,22 @@ let make = (
         ->Belt.Option.map(stmt => (stmt.id, stmt.cont->contToStr, stmt.proofStatus))
     let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
     React.useEffect1(() => {
-        switch currGoalStmtStatus {
-            | None => ()
-            | Some((curGoalId,curGoalText,currGoalStatus)) => {
-                switch currGoalStatus {
-                    | None => prevGoalStmtStatus.current = (curGoalText,NoJstf)
-                    | Some(currGoalStatus) => {
-                        let (prevGoalText,prevGoalStatus) = prevGoalStmtStatus.current
-                        if (currGoalStatus == Ready && (prevGoalStatus != Ready || curGoalText != prevGoalText)) {
-                            actExportProof(curGoalId)
+        switch state.nextAction {
+            | Some(_) => ()
+            | None => {
+                switch currGoalStmtStatus {
+                    | None => ()
+                    | Some((curGoalId,curGoalText,currGoalStatus)) => {
+                        switch currGoalStatus {
+                            | None => prevGoalStmtStatus.current = (curGoalText,NoJstf)
+                            | Some(currGoalStatus) => {
+                                let (prevGoalText,prevGoalStatus) = prevGoalStmtStatus.current
+                                if (currGoalStatus == Ready && (prevGoalStatus != Ready || curGoalText != prevGoalText)) {
+                                    actExportProof(curGoalId)
+                                }
+                                prevGoalStmtStatus.current = (curGoalText,currGoalStatus)
+                            }
                         }
-                        prevGoalStmtStatus.current = (curGoalText,currGoalStatus)
                     }
                 }
             }
@@ -1083,7 +1174,11 @@ let make = (
     }
 
     let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
-        setStateWithoutUnifyAll(_ => createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) ))
+        actResetPageIdx()
+        setState(_ => {
+            createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
+                ->setNextAction(Some(Action(()=>())))
+        })
         reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
@@ -1294,6 +1389,7 @@ let make = (
                     showJstf onShowJstfChange = {b => setShowJstf(_ => b) }
                     inlineMode onInlineModeChange = {b => setInlineMode(_ => b) }
                     smallBtns onSmallBtnsChange = {b => setSmallBtns(_ => b) }
+                    stepsPerPage onStepsPerPageChange=actSetStepsPerPage
                 />
             })
         })->ignore
@@ -1417,13 +1513,18 @@ let make = (
         }
     }
 
+    let actToggleShowBkmOnly = () => {
+        setShowBkmOnly(prev => !prev)
+        setStatePriv(uncheckAllStmts)
+    }
+
     let rndButtons = () => {
         <Paper>
             <Row
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 12 => Some(Js.Json.string("auto"))
+                        | 15 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1437,10 +1538,22 @@ let make = (
                         if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
                     }
                 />
-                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, ~active= !editIsActive && canMoveCheckedStmts(state,false),
+                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
+                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
-                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, ~active= !editIsActive && canMoveCheckedStmts(state,true),
+                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
+                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
+                    ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreBookmarked,
+                    ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=actUnbookmarkCheckedStmts, 
+                    ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreUnbookmarked,
+                    ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(
+                    ~icon=if (showBkmOnly){<MM_Icons.Bookmark/>}else{<MM_Icons.BookmarkBorder/>}, 
+                    ~onClick=actToggleShowBkmOnly, ~active=true,
+                    ~title="Show bookmarked steps only / show all steps", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
@@ -1666,9 +1779,88 @@ let make = (
         </Row>
     }
 
+    let getPagesWithErrors = () => {
+        let pageHasErrors = pageIdx => {
+            let minIdx = pageIdx * stepsPerPage
+            let maxIdx = minIdx + stepsPerPage - 1
+            stmtsToShow
+                ->Js.Array2.findIndexi((stmt,i) => minIdx <= i && i <= maxIdx && stmt->userStmtHasAnyErrors) >= 0
+        }
+        Belt_Array.range(minPageIdx, maxPageIdx)->Js.Array2.filter(pageHasErrors)
+    }
+
+    let actGoToNextPageWithErrors = () => {
+        let pagesWithErrors = getPagesWithErrors()
+        if (pagesWithErrors->Js_array2.length > 0) {
+            switch getPagesWithErrors()->Js_array2.find(i => pageIdx < i) {
+                | Some(i) => actGoToPage(i)
+                | None => actGoToPage(pagesWithErrors[0])
+            }
+        }
+    }
+
+    let actGoToPrevPageWithErrors = () => {
+        let pagesWithErrors = getPagesWithErrors()
+        if (pagesWithErrors->Js_array2.length > 0) {
+            switch getPagesWithErrors()->Js_array2.find(i => i < pageIdx) {
+                | Some(i) => actGoToPage(i)
+                | None => actGoToPage(pagesWithErrors[pagesWithErrors->Js_array2.length-1])
+            }
+        }
+    }
+
+    let paginationIsRequired = stmtsToShow->Js.Array2.length > stepsPerPage
+
+    let rndPagination = () => {
+        if (paginationIsRequired) {
+            <div style=ReactDOM.Style.make(~padding="5px", ())>
+                <PaginationCmp
+                    numOfPages
+                    pageIdx
+                    siblingCount=1000
+                    showGoToPage=false
+                    onPageIdxChange=actGoToPage
+                    itemsPerPage=stepsPerPage
+                    showItemsPerPage=false
+                />
+            </div>
+        } else {
+            React.null
+        }
+    }
+
+    let rndGoToNextPageWithErrorsBtn = () => {
+        if (thereAreAnyErrorsInEditor && paginationIsRequired) {
+            <Row style=ReactDOM.Style.make(~padding="5px", ())>
+                {
+                    rndSmallTextBtn( 
+                        ~text="< Go to previos page with errors", ~color="red", 
+                        ~onClick=actGoToPrevPageWithErrors, () 
+                    )
+                }
+                {
+                    rndSmallTextBtn( 
+                        ~text="Go to next page with errors >", ~color="red", 
+                        ~onClick=actGoToNextPageWithErrors, () 
+                    )
+                }
+            </Row>
+        } else {
+            React.null
+        }
+    }
+
     let rndStmts = () => {
         <Col spacing=0.>
-            { state.stmts->Js_array2.map(rndStmtAndErrors)->React.array }
+            {rndPagination()}
+            {rndGoToNextPageWithErrorsBtn()}
+            { 
+                stmtsToShow
+                    ->Js.Array2.filteri((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
+                    ->Js_array2.map(rndStmtAndErrors)->React.array 
+            }
+            {rndGoToNextPageWithErrorsBtn()}
+            {rndPagination()}
         </Col>
     }
 
@@ -1678,22 +1870,108 @@ let make = (
         })->React.array
     }
 
+    let rndShowContentBtn = () => {
+        <Col spacing=1.0 style=ReactDOM.Style.make(~padding="20px", ())>
+            {"Editor content is hidden."->React.string}
+            <Button onClick={_=>{ setContIsHidden(_=>false) }} variant=#contained >
+                {React.string("Show editor content")}
+            </Button>
+        </Col>
+    }
+
+    let actSetStateFromApi = (update:editorState=>result<(editorState,Js_json.t),string>):promise<result<Js_json.t,string>> => {
+        promise(resolve => {
+            setState(st => {
+                switch update(st) {
+                    | Ok((st,json)) => st->setNextAction(Some(Action(() => resolve(Ok(json)))))
+                    | Error(msg) => st->setNextAction(Some(Action(() => resolve(Error(msg)))))
+                }
+            })
+        })
+    }
+
+    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_syntax_tree.syntaxTreeNode,string>>,string> => {
+        switch state.wrkCtx {
+            | None => Error(`There are errors in the editor.`)
+            | Some(wrkCtx) => {
+                let syms = exprs->Js_array2.map(getSpaceSeparatedValuesAsArray)
+                let unrecognizedSymbol = syms->Expln_utils_common.arrFlatMap(a => a)
+                    ->Belt_HashSetString.fromArray
+                    ->Belt_HashSetString.toArray
+                    ->Js_array2.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
+                switch unrecognizedSymbol {
+                    | Some(sym) => Error(`Unrecognized symbol '${sym}'`)
+                    | None => {
+                        textToSyntaxTree( 
+                            ~wrkCtx, ~syms, 
+                            ~syntaxTypes=state.syntaxTypes, ~frms=state.frms, 
+                            ~frameRestrict=state.settings.allowedFrms.inSyntax,
+                            ~parenCnt=state.parenCnt,
+                            ~lastSyntaxType=None,
+                            ~onLastSyntaxTypeChange=_=>(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    let actSetEditorContIsHidden = (contIsHidden:bool):promise<unit> => {
+        setContIsHidden(_ => contIsHidden)
+        promiseResolved(())
+    }
+
     MM_cmp_api.updateEditorApi(
         ~state,
-        ~showError = msg => openInfoDialog(~modalRef, ~title="API Error", ~text=msg, ()),
+        ~setState=actSetStateFromApi,
+        ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
         ~startProvingBottomUp = (params) => {
-            if (generalModificationActionIsEnabled) {
-                actUnify( 
-                    ~stmtId=params.stmtId, 
-                    ~params=params.bottomUpProverParams, 
+            promise(resolve => {
+                actUnify(
+                    ~stmtId=params.stmtId,
+                    ~params=params.bottomUpProverParams,
                     ~initialDebugLevel=params.debugLevel,
                     ~isApiCall=true,
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
+                    ~selectFirstFoundProof=params.selectFirstFoundProof,
+                    ~bottomUpProofResultConsumer = stmtsDto => {
+                        if (params.selectFirstFoundProof) {
+                            switch stmtsDto {
+                                | None => resolve(None)
+                                | Some(stmtsDto) => {
+                                    let len = stmtsDto.stmts->Js_array2.length
+                                    if (len == 0) {
+                                        Js_exn.raiseError(
+                                            `bottom-up prover returned stmtsDto.stmts->Js_array2.length == 0.`
+                                        )
+                                    } else {
+                                        resolve(Some(stmtsDto.stmts[len-1].isProved))
+                                    }
+                                }
+                            }
+                        }
+                    },
                     ()
                 )
-            }
-        }
+                if (!params.selectFirstFoundProof) {
+                    resolve(None)
+                } else {
+                    ()
+                }
+            })
+        },
+        ~canStartUnifyAll=generalModificationActionIsEnabled,
+        ~startUnifyAll = () => {
+            promise(resolve => {
+                setState(st => {
+                    let st = st->uncheckAllStmts
+                    let st = st->setNextAction(Some(UnifyAll({nextAction: () => resolve(())})))
+                    st
+                })
+            })
+        },
+        ~buildSyntaxTrees=actBuildSyntaxTrees,
     )
 
     <Expln_React_ContentWithStickyHeader
@@ -1702,11 +1980,19 @@ let make = (
         content={_ => {
             <Col spacing=0. >
                 {rndMainMenu()}
-                {rndDescr()}
-                {rndVars()}
-                {rndDisj()}
-                {rndStmts()}
-                {rndFooter()}
+                {
+                    if (contIsHidden) {
+                        rndShowContentBtn()
+                    } else {
+                        <Col spacing=0. >
+                            {rndDescr()}
+                            {rndVars()}
+                            {rndDisj()}
+                            {rndStmts()}
+                            {rndFooter()}
+                        </Col>
+                    }
+                }
             </Col>
         }}
     />

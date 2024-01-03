@@ -4,5 +4,6 @@ open Expln_React_common
 external make: (
     ~count:int,
     ~page:int,
+    ~siblingCount:int=?,
     ~onChange:(_,int) => unit,
 ) => reElem = "default"

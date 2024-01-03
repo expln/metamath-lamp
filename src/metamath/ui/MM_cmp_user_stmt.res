@@ -595,6 +595,8 @@ let propsAreSame = (a:props,b:props):bool => {
     && a.stmt.label == b.stmt.label
     && a.stmt.labelEditMode == b.stmt.labelEditMode
     && a.stmt.typ == b.stmt.typ
+    && a.stmt.isGoal == b.stmt.isGoal
+    && a.stmt.isBkm == b.stmt.isBkm
     && a.stmt.typEditMode == b.stmt.typEditMode
     && a.stmt.cont === b.stmt.cont
     && a.stmt.contEditMode == b.stmt.contEditMode
@@ -1180,6 +1182,9 @@ let make = React.memoCustomCompareProps( ({
             | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
             | _ => "1"
         }
+        let transformSelection:unit=>unit = () => {
+            stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
+        }
         <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection, W" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
@@ -1201,27 +1206,25 @@ let make = React.memoCustomCompareProps( ({
                 {
                     if (readOnly) {React.null} else {
                         <Button 
-                            title="Transform" 
-                            onClick={_=>{
-                                stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
-                            }} 
+                            title="Transform, Q" 
+                            onClick={_=>transformSelection()} 
                             ?style
                         > 
                             <MM_Icons.ShapeLineSharp/>
                         </Button>
                     }
                 }
-                <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
+                <Button title="Copy to the clipboard, A" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
                 {
                     if (readOnly) {React.null} else {
-                        <Button title="Paste from the clipboard to the selection" onClick={_=>actPasteFromClipboard()} ?style>
+                        <Button title="Paste from the clipboard to the selection, D" onClick={_=>actPasteFromClipboard()} ?style>
                             <MM_Icons.ContentPaste/>
                         </Button>
                     }
                 }
                 {
                     if (readOnly) {React.null} else {
-                        <Button title="Edit" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
+                        <Button title="Edit, E" onClick={_=>actEditSelection()} ?style> <MM_Icons.Edit/> </Button>
                     }
                 }
                 <Button title="Unselect, Esc" onClick={_=>actUnselect()} ?style> <MM_Icons.CancelOutlined/> </Button>
@@ -1234,11 +1237,15 @@ let make = React.memoCustomCompareProps( ({
             {
                 rndHiddenTextField(
                     ~key=clickedTimeStr,
-                    ~onKeyDown=kbrdHnd3(
+                    ~onKeyDown=kbrdHnds([
                         kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
                         kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
+                        kbrdClbkMake(~key="q", ~act=transformSelection, ()),
+                        kbrdClbkMake(~key="e", ~act=actEditSelection, ()),
+                        kbrdClbkMake(~key="a", ~act=actCopyToClipboard, ()),
+                        kbrdClbkMake(~key="d", ~act=actPasteFromClipboard, ()),
                         kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
-                    ),
+                    ]),
                     ()
                 )
             }
@@ -1488,6 +1495,9 @@ let make = React.memoCustomCompareProps( ({
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
                     ~display="inline-block",
+                    ~backgroundColor=?(if (stmt.isBkm) {Some("rgb(65 65 65)")} else {None}),
+                    ~color= if (stmt.isBkm) {"white"} else {"black"},
+                    ~borderRadius="4px",
                     ()
                 )
                 title=?{

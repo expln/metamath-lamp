@@ -5,8 +5,9 @@ type userStmtLocStor = {
     label: string, 
     typ: string, 
     isGoal: bool,
-    cont: string, 
-    jstfText: string
+    isBkm:bool,
+    cont: string,
+    jstfText: string,
 }
 
 type editorStateLocStor = {

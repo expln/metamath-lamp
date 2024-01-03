@@ -724,9 +724,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
     it("autoMergeDuplicatedStatements", _ => {
         setTestDataDir("autoMergeDuplicatedStatements")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="bj-0", ~debug, ~editorState="editor-initial-state", ())
-        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => {
-            {...st, settings:{...st.settings, autoMergeStmts:true}}
-        })
+        let st = {...st, settings:{...st.settings, autoMergeStmts:true}}
+        let st = st->MM_wrk_editor.verifyEditorState
         assertEditorState(st, "step1")
 
         let st = st->applySubstitution(
@@ -747,10 +746,10 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let st = MM_wrk_editor.uncheckAllStmts(st)
         let st = MM_wrk_editor.toggleStmtChecked(st,st->getStmtId(~label="syl.2", ()))
-        let (st, newId) = MM_wrk_editor.addNewStmt(st)
+        let (st, newId) = MM_wrk_editor.addNewStmt(st, ())
         let st = st->MM_wrk_editor.setStmtCont( newId, "|- ( ps -> ch )"->MM_wrk_editor.strToCont(()) )
         let st = MM_wrk_editor.uncheckAllStmts(st)
-        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        let st = st->MM_wrk_editor.verifyEditorState
         assertEditorState(st, "step6")
 
         let st = st->updateStmt(newId, ~content="|- ( ps -> ch ) +", ())
@@ -762,13 +761,13 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->deleteStmts([newId])
         let st = MM_wrk_editor.uncheckAllStmts(st)
         let st = MM_wrk_editor.toggleStmtChecked(st,st->getStmtId(~label="qed", ()))
-        let (st, newId2) = MM_wrk_editor.addNewStmt(st)
+        let (st, newId2) = MM_wrk_editor.addNewStmt(st, ())
         let st = st->MM_wrk_editor.setStmtCont( 
             newId2, 
             "|- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) )"->MM_wrk_editor.strToCont(()) 
         )
         let st = MM_wrk_editor.uncheckAllStmts(st)
-        let st = st->MM_wrk_editor.updateEditorStateWithPostupdateActions(st => st)
+        let st = st->MM_wrk_editor.verifyEditorState
         assertEditorState(st, "step9")
 
         let st = st->updateStmt(newId2, ~content="|- ( ( ph -> ( ps -> ch ) ) -> ( ( ph -> ps ) -> ( ph -> ch ) ) ) +", ())

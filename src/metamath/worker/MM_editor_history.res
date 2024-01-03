@@ -6,6 +6,7 @@ type stmtSnapshot = {
     label: string,
     typ: userStmtType,
     isGoal: bool,
+    isBkm: bool,
     jstfText: string,
     cont: string,
     proofStatus: option<proofStatus>,
@@ -24,6 +25,7 @@ type editorDiff =
     | Disj(string)
     | StmtLabel({stmtId: stmtId, label: string})
     | StmtTyp({stmtId: stmtId, typ: userStmtType, isGoal: bool})
+    | StmtBkm({stmtId: stmtId, isBkm: bool})
     | StmtJstf({stmtId: stmtId, jstfText: string})
     | StmtCont({stmtId: stmtId, cont: string})
     | StmtStatus({stmtId: stmtId, proofStatus: option<proofStatus>})
@@ -82,6 +84,7 @@ let editorSnapshotMake = (st:editorState):editorSnapshot => {
                 label: stmt.label,
                 typ: stmt.typ,
                 isGoal: stmt.isGoal,
+                isBkm: stmt.isBkm,
                 jstfText: stmt.jstfText,
                 cont: stmt.cont->contToStr,
                 proofStatus: stmt.proofStatus,
@@ -106,6 +109,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
                 typ: stmt.typ,
                 typEditMode: false,
                 isGoal: stmt.isGoal,
+                isBkm: stmt.isBkm,
                 cont: stmt.cont->strToCont(
                     ~preCtxColors=st.preCtxColors,
                     ~wrkCtxColors=st.wrkCtxColors,
@@ -189,6 +193,7 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
         | Disj(disjText) => {...sn, disjText}
         | StmtLabel({stmtId, label}) => sn->updateStmt(stmtId, stmt => {...stmt, label})
         | StmtTyp({stmtId, typ, isGoal}) => sn->updateStmt(stmtId, stmt => {...stmt, typ, isGoal})
+        | StmtBkm({stmtId, isBkm}) => sn->updateStmt(stmtId, stmt => {...stmt, isBkm})
         | StmtJstf({stmtId, jstfText}) => sn->updateStmt(stmtId, stmt => {...stmt, jstfText})
         | StmtCont({stmtId, cont}) => sn->updateStmt(stmtId, stmt => {...stmt, cont})
         | StmtStatus({stmtId, proofStatus}) => sn->updateStmt(stmtId, stmt => {...stmt, proofStatus})
@@ -268,6 +273,9 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         }
         if (stmtA.typ != stmtB.typ || stmtA.isGoal != stmtB.isGoal) {
             diffs->Js.Array2.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))->ignore
+        }
+        if (stmtA.isBkm != stmtB.isBkm) {
+            diffs->Js.Array2.push(StmtBkm({stmtId:stmtA.id, isBkm:stmtB.isBkm}))->ignore
         }
         if (stmtA.jstfText != stmtB.jstfText) {
             diffs->Js.Array2.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))->ignore
@@ -416,6 +424,7 @@ type stmtSnapshotLocStor = {
     l: string, /* label */
     t: string, /* typ */
     g: bool, /* isGoal */
+    b: bool, /* isBkm */
     j: string, /* jstfText */
     c: string, /* cont */
     p: option<string>, /* proofStatus */
@@ -469,6 +478,7 @@ let stmtSnapshotToLocStor = (stmt:stmtSnapshot):stmtSnapshotLocStor => {
         l: stmt.label,
         t: stmt.typ->userStmtTypeToStr,
         g: stmt.isGoal,
+        b: stmt.isBkm,
         j: stmt.jstfText,
         c: stmt.cont,
         p: stmt.proofStatus->Belt_Option.map(proofStatusToStr)
@@ -481,6 +491,7 @@ let stmtSnapshotFromLocStor = (stmt:stmtSnapshotLocStor):stmtSnapshot => {
         label: stmt.l,
         typ: stmt.t->userStmtTypeFromStr,
         isGoal: stmt.g,
+        isBkm: stmt.b,
         jstfText: stmt.j,
         cont: stmt.c,
         proofStatus: stmt.p->Belt_Option.map(proofStatusFromStr)
@@ -517,6 +528,8 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
             { t:"SL", d:stmtId, s:label }
         | StmtTyp({stmtId, typ, isGoal}) => 
             { t:"ST", d:stmtId, s:typ->userStmtTypeToStr, b:isGoal }
+        | StmtBkm({stmtId, isBkm}) => 
+            { t:"SB", d:stmtId, b:isBkm }
         | StmtJstf({stmtId, jstfText}) => 
             { t:"SJ", d:stmtId, s:jstfText }
         | StmtCont({stmtId, cont}) => 
@@ -555,6 +568,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | "J" => Disj(diff->edlsGetStr)
         | "SL" => StmtLabel({stmtId:diff->edlsGetId, label:diff->edlsGetStr})
         | "ST" => StmtTyp({stmtId:diff->edlsGetId, typ:diff->edlsGetStr->userStmtTypeFromStr, isGoal:diff->edlsGetBool})
+        | "SB" => StmtBkm({stmtId:diff->edlsGetId, isBkm:diff->edlsGetBool})
         | "SJ" => StmtJstf({stmtId:diff->edlsGetId, jstfText:diff->edlsGetStr})
         | "SC" => StmtCont({stmtId:diff->edlsGetId, cont:diff->edlsGetStr})
         | "SS" => StmtStatus({stmtId:diff->edlsGetId, proofStatus:diff.s->Belt.Option.map(proofStatusFromStr)})
@@ -593,6 +607,7 @@ let parseStmtSnapshotLocStor = (d:Expln_utils_jsonParse.jsonAny):stmtSnapshotLoc
         l: d->str("l", ()),
         t: d->str("t", ()),
         g: d->bool("g", ()),
+        b: d->bool("b", ()),
         j: d->str("j", ()),
         c: d->str("c", ()),
         p: d->strOpt("p", ()),
@@ -634,6 +649,11 @@ let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
         | E => "H"
         | P => if (stmt.isGoal) {"G"} else {"P"}
     }
+    let bkmStr = if (stmt.isBkm) {
+        "BKM "
+    } else {
+        ""
+    }
     let statusStr = switch stmt.proofStatus {
         | None => ""
         | Some(Ready) => "\u2713"
@@ -641,7 +661,7 @@ let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
         | Some(NoJstf) => "?"
         | Some(JstfIsIncorrect) => "\u2717"
     }
-    `${stmt.id}: ${statusStr} ${stmt.label} ${typStr} [${stmt.jstfText}] ${stmt.cont}`
+    `${stmt.id}: ${statusStr} ${bkmStr}${stmt.label} ${typStr} [${stmt.jstfText}] ${stmt.cont}`
 }
 
 let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
@@ -679,6 +699,8 @@ let diffToStringExtendedSingle = (diff:editorDiff):string => {
         | StmtLabel({stmtId, label}) => `StmtLabel({stmtId=${stmtId}, label=${label}})`
         | StmtTyp({stmtId, typ, isGoal}) => 
             `StmtTyp({stmtId=${stmtId}, typ=${typ->userStmtTypeToStr}, isGoal=${isGoal->Expln_utils_common.stringify}})`
+        | StmtBkm({stmtId, isBkm}) => 
+            `StmtBkm({stmtId=${stmtId}, isBkm=${isBkm->Expln_utils_common.stringify}})`
         | StmtJstf({stmtId, jstfText}) => `StmtJstf({stmtId=${stmtId}, jstfText=${jstfText}})`
         | StmtCont({stmtId, cont}) => `StmtCont({stmtId=${stmtId}, cont=${cont}})`
         | StmtStatus({stmtId, proofStatus}) => 
@@ -722,9 +744,9 @@ let a:editorSnapshot = {
         varsText: "varsText",
         disjText: "disjText",
         stmts: [
-            { id: "1", label: "label1", typ: E, isGoal: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
-            { id: "2", label: "label2", typ: P, isGoal: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
-            { id: "3", label: "label3", typ: P, isGoal: true, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
+            { id: "1", label: "label1", typ: E, isGoal: false, isBkm: false, jstfText: "jstfText1", cont: "cont1", proofStatus: None },
+            { id: "2", label: "label2", typ: P, isGoal: false, isBkm: false, jstfText: "jstfText2", cont: "cont2", proofStatus: Some(Ready) },
+            { id: "3", label: "label3", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText3", cont: "cont3", proofStatus: Some(Waiting) },
         ],
     }
 }
@@ -785,6 +807,10 @@ let mm_editor_history__test_findDiff = ():unit => {
             [StmtTyp({stmtId: "2", typ: E, isGoal: true})] 
         )
         assertEq( 
+            findDiff(a, a->updateStmt("2", stmt => {...stmt, isBkm:true})), 
+            [StmtBkm({stmtId: "2", isBkm: true})]
+        )
+        assertEq( 
             findDiff(a, a->updateStmt("3", stmt => {...stmt, jstfText: "jstfText-new"})), 
             [StmtJstf({stmtId: "3", jstfText: "jstfText-new"})]
         )
@@ -800,25 +826,25 @@ let mm_editor_history__test_findDiff = ():unit => {
         assertEq( 
             findDiff(
                 {...a, stmts:[]}, 
-                {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
             ), 
-            [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
+            [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
         )
         assertEq( 
-            findDiff(a, a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
-            [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
+            findDiff(a, a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
+            [StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
         )
         assertEq( 
-            findDiff(a, a->addStmt(1, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
-            [StmtAdd({idx: 1, stmt: { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
+            findDiff(a, a->addStmt(1, { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })), 
+            [StmtAdd({idx: 1, stmt: { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }})]
         )
         assertEq( 
-            findDiff(a, a->addStmt(2, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })), 
-            [StmtAdd({idx: 2, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
+            findDiff(a, a->addStmt(2, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None })), 
+            [StmtAdd({idx: 2, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
         )
         assertEq( 
-            findDiff(a, a->addStmt(3, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })), 
-            [StmtAdd({idx: 3, stmt: { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
+            findDiff(a, a->addStmt(3, { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None })), 
+            [StmtAdd({idx: 3, stmt: { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
         )
 
         assertEq( findDiff(a, a->removeStmt("1")), [StmtRemove({stmtId: "1"})] )
@@ -826,7 +852,7 @@ let mm_editor_history__test_findDiff = ():unit => {
         assertEq( findDiff(a, a->removeStmt("3")), [StmtRemove({stmtId: "3"})] )
         assertEq( 
             findDiff(
-                {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
+                {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
                 {...a, stmts:[]},
             ), 
             [StmtRemove({stmtId: "4"})]
@@ -847,12 +873,12 @@ let mm_editor_history__test_findDiff = ():unit => {
             findDiff(
                 a, 
                 a
-                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
-                    ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
             ), 
             [
-                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
-                StmtAdd({idx: 2, stmt: { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) }}),
+                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
+                StmtAdd({idx: 2, stmt: { id: "5", label: "label5", typ: P, isGoal: false, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) }}),
             ] 
         )
 
@@ -907,16 +933,17 @@ let mm_editor_history__test_findDiff = ():unit => {
             findDiff(
                 a,
                 {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
-                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
                     ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
                     ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
-                    ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"}),
+                    ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT", isBkm:true}),
             ), 
             [
-                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
+                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
                 StmtLabel({stmtId: "1", label: "ABC"}),
                 StmtStatus({stmtId: "1", proofStatus: Some(NoJstf)}),
                 StmtTyp({stmtId: "2", typ:E, isGoal:true}),
+                StmtBkm({stmtId: "3", isBkm:true}),
                 StmtJstf({stmtId: "3", jstfText:"BBB"}),
                 StmtCont({stmtId: "3", cont:"TTTTT"}),
                 Descr("descr-new"),
@@ -929,16 +956,17 @@ let mm_editor_history__test_findDiff = ():unit => {
             findDiff(
                 a,
                 {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
-                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
-                    ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf), isBkm:true})
                     ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
                     ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
-                    ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }),
+                    ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }),
             ), 
             [
-                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
-                StmtAdd({idx: 4, stmt: { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }}),
+                StmtAdd({idx: 0, stmt: { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }}),
+                StmtAdd({idx: 4, stmt: { id: "5", label: "label5", typ: E, isGoal: true, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) }}),
                 StmtLabel({stmtId: "1", label: "ABC"}),
+                StmtBkm({stmtId: "1", isBkm: true}),
                 StmtStatus({stmtId: "1", proofStatus: Some(NoJstf)}),
                 StmtTyp({stmtId: "2", typ:E, isGoal:true}),
                 StmtJstf({stmtId: "3", jstfText:"BBB"}),
@@ -983,6 +1011,10 @@ let mm_editor_history__test_applyDiff = ():unit => {
             ~expectedEndState = a->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
         )
         testApplyDiff( ~initState=a,
+            ~changes = updateStmt(_, "3", stmt => {...stmt, isBkm:true}),
+            ~expectedEndState = a->updateStmt("3", stmt => {...stmt, isBkm:true})
+        )
+        testApplyDiff( ~initState=a,
             ~changes = updateStmt(_, "3", stmt => {...stmt, jstfText: "jstfText-new"}),
             ~expectedEndState = a->updateStmt("3", stmt => {...stmt, jstfText: "jstfText-new"})
         )
@@ -996,20 +1028,20 @@ let mm_editor_history__test_applyDiff = ():unit => {
         )
 
         testApplyDiff( ~initState=a,
-            ~changes = addStmt(_, 0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
-            ~expectedEndState = a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+            ~changes = addStmt(_, 0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
+            ~expectedEndState = a->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
         )
         testApplyDiff( ~initState=a,
-            ~changes = addStmt(_, 1, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
-            ~expectedEndState = a->addStmt(1, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+            ~changes = addStmt(_, 1, { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
+            ~expectedEndState = a->addStmt(1, { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
         )
         testApplyDiff( ~initState=a,
-            ~changes = addStmt(_, 2, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }),
-            ~expectedEndState = a->addStmt(2, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })
+            ~changes = addStmt(_, 2, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None }),
+            ~expectedEndState = a->addStmt(2, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None })
         )
         testApplyDiff( ~initState=a,
-            ~changes = addStmt(_, 3, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None }),
-            ~expectedEndState = a->addStmt(3, { id: "4", label: "label4", typ: P, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: None })
+            ~changes = addStmt(_, 3, { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None }),
+            ~expectedEndState = a->addStmt(3, { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None })
         )
 
         testApplyDiff( ~initState=a,
@@ -1042,12 +1074,12 @@ let mm_editor_history__test_applyDiff = ():unit => {
         testApplyDiff( ~initState=a,
             ~changes = sn => {
                 sn
-                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
-                    ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
             },
             ~expectedEndState = a
-                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
-                ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
+                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                ->addStmt(2, { id: "5", label: "label5", typ: P, isGoal: false, isBkm: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Waiting) })
         )
 
         testApplyDiff( ~initState=a,
@@ -1071,13 +1103,13 @@ let mm_editor_history__test_applyDiff = ():unit => {
         testApplyDiff( ~initState=a,
             ~changes = sn => {
                 {...sn, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
-                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
                     ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
                     ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
                     ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
             },
             ~expectedEndState = {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
-                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
                 ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
                 ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
                 ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
@@ -1086,18 +1118,18 @@ let mm_editor_history__test_applyDiff = ():unit => {
         testApplyDiff( ~initState=a,
             ~changes = _ => {
                 {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
-                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                    ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
                     ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
                     ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
                     ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
-                    ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
+                    ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
             },
             ~expectedEndState = {...a, descr: "descr-new", varsText: "varsText-new", disjText: "disjText-new", }
-                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
+                ->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) })
                 ->updateStmt("1", stmt => {...stmt, label:"ABC", proofStatus:Some(NoJstf)})
                 ->updateStmt("2", stmt => {...stmt, typ:E, isGoal:true})
                 ->updateStmt("3", stmt => {...stmt, jstfText:"BBB", cont:"TTTTT"})
-                ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
+                ->addStmt(4, { id: "5", label: "label5", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText5", cont: "cont5", proofStatus: Some(Ready) })
         )
     })
 }

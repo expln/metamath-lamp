@@ -14,7 +14,7 @@ let openInfoDialog: (
     unit,
 ) => unit
 
-let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ) => React.element
+let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ~color:string=?, ()) => React.element
 
 let rndColorSelect: (
     ~availableColors:array<string>, 
@@ -78,3 +78,4 @@ let kbrdHnd: (
 
 let kbrdHnd2: ( kbrdCallback, kbrdCallback ) => (ReactEvent.Keyboard.t => unit)
 let kbrdHnd3: ( kbrdCallback, kbrdCallback, kbrdCallback ) => (ReactEvent.Keyboard.t => unit)
+let kbrdHnds: array<kbrdCallback> => (ReactEvent.Keyboard.t => unit)

@@ -1,4 +1,4 @@
-let promise: (('a => unit) => unit) => promise<'a> = procedure => {
+let promise = (procedure:('a => unit) => unit): promise<'a> => {
     Js.Promise.make(
         (~resolve, ~reject) => {
             try {
@@ -13,3 +13,4 @@ let promise: (('a => unit) => unit) => promise<'a> = procedure => {
 }
 let promiseFlatMap = (promise, mapper) => promise -> Js.Promise.then_(mapper, _)
 let promiseMap = (promise, mapper) => promise -> promiseFlatMap(value => Js_promise.resolve(mapper(value)))
+let promiseResolved = (value:'a): promise<'a> => promise(resolve => resolve(value))

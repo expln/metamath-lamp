@@ -6,9 +6,10 @@ type userStmtLocStor = {
     label: string,
     typ: string,
     isGoal: bool,
+    isBkm:bool,
     cont: string,
     jstfText: string,
-}   
+}
 
 type editorStateLocStor = {
     srcs: array<mmCtxSrcDto>,
@@ -27,6 +28,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         typ: userStmtTypeFromStr(userStmtLocStor.typ),
         typEditMode: false,
         isGoal: userStmtLocStor.isGoal,
+        isBkm: userStmtLocStor.isBkm,
         cont: strToCont(userStmtLocStor.cont, ()),
         contEditMode: false,
         isDuplicated: false,
@@ -95,8 +97,7 @@ let createInitialEditorState = (
                 ->Belt.Option.getWithDefault([]),
         checkedStmtIds: [],
 
-        unifyAllIsRequired: false,
-        continueMergingStmts: false,
+        nextAction: None,
     }
     let st = st->setPreCtxData(preCtxData)
     st
@@ -113,6 +114,7 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
                 label: stmt.label,
                 typ: (stmt.typ->userStmtTypeToStr),
                 isGoal: stmt.isGoal,
+                isBkm: stmt.isBkm,
                 cont: contToStr(stmt.cont),
                 jstfText: stmt.jstfText,
             }
@@ -144,8 +146,9 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     label: d->str("label", ()),
                     typ: d->str("typ", ()),
                     isGoal: d->bool("isGoal", ~default=()=>false, ()),
+                    isBkm: d->bool("isBkm", ~default=()=>false, ()),
                     cont: d->str("cont", ()),
-                    jstfText: d->str("jstfText", ())
+                    jstfText: d->str("jstfText", ()),
                 }
             }, ()), ())
         }

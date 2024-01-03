@@ -28,7 +28,7 @@ let proofStatusToStr = status => {
 }
 
 let editorStateToStr = st => {
-    let userStmtTypeToStr = stmt => {
+    let userStmtTypeToStr = (stmt:userStmt) => {
         switch stmt.typ {
             | E => "e"
             | P => if (stmt.isGoal) {"g"} else {"p"}
@@ -130,7 +130,7 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
 }
 
 let assertNoErrors = (st) => {
-    if (st->editorStateHasErrors) {
+    if (st->editorStateHasCriticalErrors) {
         let filePath = curTestDataDir.contents ++ "/" ++ "editor-state-error.txt"
         Expln_utils_files.writeStringToFile( st->editorStateToStr, filePath )
         raise(MmException({msg:`Editor state has errors: ${filePath}`}))

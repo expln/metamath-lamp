@@ -51,8 +51,10 @@ let strToCont: (
 ) => stmtCont
 
 type userStmtType = E | P
+type userStmtTypeExtended = H | P | G
 let userStmtTypeFromStr: string => userStmtType
 let userStmtTypeToStr: userStmtType => string
+let userStmtTypeExtendedFromStrExn: string => userStmtTypeExtended
 
 let readInstrToStr: readInstr => string
 let readInstrFromStr: string => readInstr
@@ -79,10 +81,11 @@ type userStmt = {
     typ: userStmtType,
     typEditMode: bool,
     isGoal: bool,
+    isBkm: bool,
     cont: stmtCont,
     contEditMode: bool,
     isDuplicated: bool,
-    
+
     jstfText: string,
     jstfEditMode: bool,
 
@@ -97,6 +100,20 @@ type userStmt = {
     unifErr: option<string>,
     syntaxErr: option<string>,
 }
+
+type userStmtDtoOpt = {
+    id: option<stmtId>,
+    label: option<string>,
+    typ: option<userStmtTypeExtended>,
+    cont: option<string>,
+    jstf: option<string>,
+    isBkm: option<bool>,
+}
+
+type editorStateAction = 
+    | UnifyAll({nextAction:unit=>unit})
+    | MergeNextDuplicate
+    | Action(unit=>unit)
 
 type editorState = {
     settingsV:int,
@@ -132,8 +149,7 @@ type editorState = {
     stmts: array<userStmt>,
     checkedStmtIds: array<(stmtId,Js_date.t)>,
 
-    unifyAllIsRequired: bool,
-    continueMergingStmts: bool,
+    nextAction:option<editorStateAction>,
 }
 
 type wrkSubsErr = 
@@ -159,9 +175,11 @@ let deleteStmt: (editorState, stmtId) => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
-let addNewStmt: editorState => (editorState,stmtId)
+let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?, ()) => (editorState,stmtId)
+let addNewStatements: (editorState, stmtsDto, ~isBkm:bool=?, ()) => editorState
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool) => editorState
+let bookmarkCheckedStmts: (editorState, bool) => editorState
 let canGoEditModeForStmt: (editorState, string) => bool
 let setDescrEditMode: editorState => editorState
 let completeDescrEditMode: (editorState, string) => editorState
@@ -178,16 +196,15 @@ let setTypEditMode: (editorState, stmtId) => editorState
 let completeTypEditMode: (editorState, stmtId, userStmtType, bool) => editorState
 let setJstfEditMode: (editorState, string) => editorState
 let completeJstfEditMode: (editorState, stmtId, string) => editorState
-let setUnifyAllIsRequired: (editorState,bool) => editorState
-let setContinueMergingStmts: (editorState,bool) => editorState
+let setNextAction: (editorState, option<editorStateAction>) => editorState
 let setPreCtxData: (editorState, preCtxData) => editorState
-let editorStateHasErrors: editorState => bool
+let editorStateHasCriticalErrors: editorState => bool
+let editorStateHasAnyErrors: editorState => bool
 let editorStateHasDuplicatedStmts: editorState => bool
 let createNewDisj: (editorState, disjMutable) => editorState
-let addNewStatements: (editorState, stmtsDto) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
-let updateEditorStateWithPostupdateActions: (editorState, editorState => editorState) => editorState
+let verifyEditorState: editorState => editorState
 let generateCompressedProof: (editorState, string) => option<(string,string,string)>
 let updateColorsInAllStmts: editorState => editorState
 let getTheOnlyCheckedStmt: editorState => option<userStmt>
@@ -203,6 +220,26 @@ let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
+let autoMergeDuplicatedStatements: (editorState, ~selectFirst:bool) => editorState
+let userStmtHasCriticalErrors: userStmt => bool
+let userStmtHasAnyErrors: userStmt => bool
+
+let createNewVars: (
+    editorState, 
+    ~varTypes:array<int>, 
+    ~varNames:array<string>=?, 
+    ~dontAddVariablesToContext:bool=?,
+    ()
+) => (editorState,array<int>)
+let addSteps: (
+    editorState, 
+    ~atIdx:int=?, 
+    ~steps:array<userStmtDtoOpt>, 
+    ~vars:array<(string,option<string>)>=?,
+    ~dontAddVariablesToContext:bool,
+    ()
+) => result<(editorState,array<stmtId>),string>
+let updateSteps: ( editorState, array<userStmtDtoOpt>) => result<editorState,string>
 
 let getSelectedSubtree: stmtContTreeData => option<childNode>
 let getSelectedSubtreeFromStmtCont: stmtCont => option<childNode>
