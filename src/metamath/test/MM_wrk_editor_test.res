@@ -1278,31 +1278,33 @@ describe("deleteUnrelatedSteps", _ => {
         let (st, idQed) = addNewStmt(st, ())
         let (st, id8) = addNewStmt(st, ())
         let st = updateStmt(st, idQed1, stmt => { ...stmt, 
-            label:"qed.1", typ:E, cont:strToCont("|- ( &W2 -> &W1 )", ())
+            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )", ())
         })
         let st = updateStmt(st, id1, stmt => { ...stmt, 
-            label:"1", typ:P, jstfText: "", cont:strToCont("|- &W2", ())
+            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2", ())
         })
         let st = updateStmt(st, id2, stmt => { ...stmt, 
-            label:"2", typ:P, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
+            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
         })
         let st = updateStmt(st, id3, stmt => { ...stmt, 
-            label:"3", typ:P, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
+            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
         })
         let st = updateStmt(st, id4, stmt => { ...stmt, 
-            label:"4", typ:P, jstfText: ": a1", cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
+            label:"4", typ:P, isGoal:false, jstfText: ": a1", 
+            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
         })
         let st = updateStmt(st, id5, stmt => { ...stmt, 
-            label:"5", typ:P, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
+            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
         })
         let st = updateStmt(st, id6, stmt => { ...stmt, 
-            label:"6", typ:P, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
+            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
         })
         let st = updateStmt(st, id7, stmt => { ...stmt, 
-            label:"7", typ:P, jstfText: ": a1", cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
+            label:"7", typ:P, isGoal:false, jstfText: ": a1", 
+            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
         })
         let st = updateStmt(st, idQed, stmt => { ...stmt, 
-            label:"qed", typ:P, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
+            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
         })
         let st = updateStmt(st, id8, stmt => { ...stmt, 
             label:"8", typ:P, isGoal:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
@@ -1343,34 +1345,36 @@ describe("deleteUnrelatedSteps", _ => {
         let (st, idQed) = addNewStmt(st, ())
         let (st, id8) = addNewStmt(st, ())
         let st = updateStmt(st, idQed1, stmt => { ...stmt, 
-            label:"qed.1", typ:E, cont:strToCont("|- ( &W2 -> &W1 )", ())
+            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )", ())
         })
         let st = updateStmt(st, id1, stmt => { ...stmt, 
-            label:"1", typ:P, jstfText: "", cont:strToCont("|- &W2", ())
+            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2", ())
         })
         let st = updateStmt(st, id2, stmt => { ...stmt, 
-            label:"2", typ:P, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
+            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
         })
         let st = updateStmt(st, id3, stmt => { ...stmt, 
-            label:"3", typ:P, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
+            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
         })
         let st = updateStmt(st, id4, stmt => { ...stmt, 
-            label:"4", typ:P, jstfText: ": a1", cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
+            label:"4", typ:P, isGoal:false, jstfText: ": a1", 
+            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
         })
         let st = updateStmt(st, id5, stmt => { ...stmt, 
-            label:"5", typ:P, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
+            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
         })
         let st = updateStmt(st, id6, stmt => { ...stmt, 
-            label:"6", typ:P, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
+            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
         })
         let st = updateStmt(st, id7, stmt => { ...stmt, 
-            label:"7", typ:P, jstfText: ": a1", cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
+            label:"7", typ:P, isGoal:false, jstfText: ": a1", 
+            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
         })
         let st = updateStmt(st, idQed, stmt => { ...stmt, 
-            label:"qed", typ:P, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
+            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
         })
         let st = updateStmt(st, id8, stmt => { ...stmt, 
-            label:"8", typ:P, isBkm:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
+            label:"8", typ:P, isGoal:false, isBkm:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
         })
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")

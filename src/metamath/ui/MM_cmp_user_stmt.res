@@ -1495,7 +1495,7 @@ let make = React.memoCustomCompareProps( ({
                     ~marginLeft=stmtPartMarginLeft, 
                     ~marginTop=stmtPartMarginTop, 
                     ~display="inline-block",
-                    ~backgroundColor=?(if (stmt.isBkm) {Some("#676767")} else {None}),
+                    ~backgroundColor=?(if (stmt.isBkm) {Some("rgb(65 65 65)")} else {None}),
                     ~color= if (stmt.isBkm) {"white"} else {"black"},
                     ~borderRadius="4px",
                     ()
