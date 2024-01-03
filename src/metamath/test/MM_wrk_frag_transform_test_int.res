@@ -435,4 +435,21 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
             ~expectedResult = "( a + ( b + ( c + d ) ) )",
         )
     })
+
+    it("Replace", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Replace"
+        let prepareState = params => {
+            st => state({
+                "text":params["text"], 
+            })
+        }
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( 6 + 1 )",
+            ~prepareState = prepareState({"text":"7"}),
+            ~expectedResult = "7",
+        )
+    })
 })
