@@ -54,7 +54,7 @@ Here's a simple screenshot of metamath-lamp in action.
 
 Windows: `copy /B /Y ".\dist\webworker-main.js" ".\public"`
 
-Mac: `cp ./dist/webworker-main.js ./public`
+Mac/Linux: `cp ./dist/webworker-main.js ./public`
 
 7. Finally, run the project locally
 
