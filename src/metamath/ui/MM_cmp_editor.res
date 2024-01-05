@@ -917,7 +917,7 @@ let make = (
 
     let rec actUnify = (
         ~stmtId:option<stmtId>=?,
-        ~params:option<bottomUpProverParams>=?,
+        ~params:option<array<bottomUpProverParams>>=?,
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
@@ -957,7 +957,7 @@ let make = (
                                         | None => None
                                         | Some((args0,asrtLabel)) => {
                                             Some(
-                                                bottomUpProverParamsMake(
+                                                bottomUpProverParamsMakeDefault(
                                                     ~asrtLabel, 
                                                     ~args0, 
                                                     ~allowNewVars=false,
@@ -1338,40 +1338,46 @@ let make = (
             | Some(singleProvableChecked) => {
                 let rootUserStmts = st->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                let params = switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
+                let (params,debugLevel) = switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
                     | Some((args0,asrtLabel)) => {
-                        bottomUpProverParamsMake(
-                            ~args0, 
-                            ~args1=[],
-                            ~asrtLabel, 
-                            ~maxSearchDepth=1,
-                            ~lengthRestrict=Less,
-                            ~allowNewDisjForExistingVars=false,
-                            ~allowNewStmts=false,
-                            ~allowNewVars=false,
-                            ~maxNumberOfBranches=?None,
-                            ()
+                        (
+                            bottomUpProverParamsMakeDefault(
+                                ~args0, 
+                                ~args1=[],
+                                ~asrtLabel, 
+                                ~maxSearchDepth=1,
+                                ~lengthRestrict=Less,
+                                ~allowNewDisjForExistingVars=false,
+                                ~allowNewStmts=false,
+                                ~allowNewVars=false,
+                                ~maxNumberOfBranches=?None,
+                                ()
+                            ),
+                            2
                         )
                     }
                     | None => {
-                        bottomUpProverParamsMake(
-                            ~args0=rootStmts->Js_array2.map(stmt => stmt.expr), 
-                            ~args1=[],
-                            ~asrtLabel=?None, 
-                            ~maxSearchDepth=1,
-                            ~lengthRestrict=Less,
-                            ~allowNewDisjForExistingVars=false,
-                            ~allowNewStmts=false,
-                            ~allowNewVars=false,
-                            ~maxNumberOfBranches=?None,
-                            ()
+                        (
+                            bottomUpProverParamsMakeDefault(
+                                ~args0=rootStmts->Js_array2.map(stmt => stmt.expr), 
+                                ~args1=[],
+                                ~asrtLabel=?None, 
+                                ~maxSearchDepth=1,
+                                ~lengthRestrict=No,
+                                ~allowNewDisjForExistingVars=false,
+                                ~allowNewStmts=false,
+                                ~allowNewVars=false,
+                                ~maxNumberOfBranches=?None,
+                                ()
+                            ),
+                            1
                         )
                     }
                 }
                 actUnify(
                     ~stmtId, 
                     ~params, 
-                    ~initialDebugLevel = if (params.asrtLabel->Belt_Option.isSome) {2} else {1}, 
+                    ~initialDebugLevel = debugLevel, 
                     ()
                 )
             }

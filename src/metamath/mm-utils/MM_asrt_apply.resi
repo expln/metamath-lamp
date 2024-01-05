@@ -24,7 +24,9 @@ module ApplyAssertionResultHash: {
 
 let applyAssertions: (
     ~maxVar:int,
-    ~frms:array<frmSubsData>,
+    ~frms:Belt_HashMapString.t<frmSubsData>,
+    ~frmsToUse:array<string>=?,
+    ~isFrameAllowed:frame=>bool,
     ~isDisjInCtx:(int,int)=>bool,
     ~statements:array<expr>,
     ~exactOrderOfStmts:bool=?,
@@ -32,7 +34,6 @@ let applyAssertions: (
     ~allowNewVars:bool=?,
     ~result:expr=?,
     ~parenCnt:parenCnt,
-    ~frameFilter:frame=>bool=?,
     ~allowNewDisjForExistingVars:bool=?,
     ~combCntMax:int=?,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,

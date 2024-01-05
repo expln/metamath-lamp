@@ -7,21 +7,19 @@ open MM_wrk_settings
 type lengthRestrict = No | LessEq | Less
 
 type bottomUpProverParams = {
-    asrtLabel: option<string>,
+    minDepth: int,
+    maxDepth: int,
     frmsToUse: option<array<string>>,
-    maxSearchDepth: int,
-    lengthRestrict: lengthRestrict,
+    args: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
-    args0: array<expr>,
-    args1: array<expr>,
+    lengthRestrict: lengthRestrict,
     maxNumberOfBranches: option<int>,
 }
 
-let bottomUpProverParamsMake: (
+let bottomUpProverParamsMakeDefault:(
     ~asrtLabel: string=?,
-    ~frmsToUse: array<string>=?,
     ~maxSearchDepth: int=?,
     ~lengthRestrict: lengthRestrict=?,
     ~allowNewDisjForExistingVars: bool=?,
@@ -31,7 +29,7 @@ let bottomUpProverParamsMake: (
     ~args1: array<expr>=?,
     ~maxNumberOfBranches: int=?,
     ()
-) => bottomUpProverParams
+) => array<bottomUpProverParams>
 
 let lengthRestrictToStr: lengthRestrict => string
 let lengthRestrictFromStr: string => option<lengthRestrict>
@@ -65,7 +63,7 @@ let unifyAll: (
     ~frms: frms,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
-    ~bottomUpProverParams:bottomUpProverParams=?,
+    ~bottomUpProverParams:array<bottomUpProverParams>=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~syntaxTypes:array<int>=?,

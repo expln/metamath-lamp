@@ -179,7 +179,7 @@ let testApplyAssertions = (
     ~stopAfter:string="",
     ~additionalStatements:array<stmt>=[],
     ~statements:array<(string,string)>,
-    ~frameFilter:frame=>bool=_=>true,
+    ~isFrameAllowed:frame=>bool=_=>true,
     ~allowEmptyArgs:bool=true,
     ~allowNewDisjForExistingVars:bool=false,
     ~result:option<string>=?,
@@ -261,7 +261,7 @@ let testApplyAssertions = (
     let parens = "( ) { } [ ]"
     let workCtx = createContext(~parent=preCtx, ())
     let workCtx = workCtx->ctxOptimizeForProver(~parens, ())
-    let frms = prepareFrmSubsData(~ctx=workCtx, ())->frmsSelect(())
+    let frms = prepareFrmSubsData(~ctx=workCtx, ())->frmsGetAllGroupedByLabel
     let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
@@ -280,7 +280,7 @@ let testApplyAssertions = (
         ~frms,
         ~statements = stmtsForAppl,
         ~parenCnt,
-        ~frameFilter,
+        ~isFrameAllowed,
         ~allowEmptyArgs,
         ~allowNewDisjForExistingVars,
         ~result=?result->Belt_Option.map(str => str->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(workCtx,_)),
@@ -340,7 +340,7 @@ describe("applyAssertions", _ => {
             ~statements = [
                 ("p1","|- ( t + 0 ) = t")
             ],
-            ~frameFilter=frame=>frame.label=="mp",
+            ~isFrameAllowed=frame=>frame.label=="mp",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-mp.txt",
             ()
         )
@@ -365,7 +365,7 @@ describe("applyAssertions", _ => {
             ~statements = [
                 ("p1","|- P")
             ],
-            ~frameFilter = frame => frame.label == "mp",
+            ~isFrameAllowed = frame => frame.label == "mp",
             ~result="|- P",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-with-result.txt",
             ()
@@ -377,7 +377,7 @@ describe("applyAssertions", _ => {
             ~stopAfter = "asrt-without-vars",
             ~additionalStatements = [],
             ~statements = [ ],
-            ~frameFilter = frame => frame.label == "asrt-without-vars",
+            ~isFrameAllowed = frame => frame.label == "asrt-without-vars",
             ~result="|- T.",
             ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt",
             ()

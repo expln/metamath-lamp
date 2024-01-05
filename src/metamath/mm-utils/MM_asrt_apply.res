@@ -428,9 +428,38 @@ let iterateSubstitutionsForResult = (
     }
 }
 
+let iterateFrms = (
+    ~frms:Belt_HashMapString.t<frmSubsData>,
+    ~frmsToUse:option<array<string>>,
+    ~isFrameAllowed:frame=>bool,
+    ~frmConsumer:frmSubsData=>unit,
+):unit => {
+    switch frmsToUse {
+        | Some(frmsToUse) => {
+            frmsToUse->Js_array2.forEach(frmLabel => {
+                switch frms->Belt_HashMapString.get(frmLabel) {
+                    | None => ()
+                    | Some(frm) => {
+                        if (isFrameAllowed(frm.frame)) {
+                            frmConsumer(frm)
+                        }
+                    }
+                }
+            })
+        }
+        | None => frms->Belt_HashMapString.forEach((_,frm) => {
+            if (isFrameAllowed(frm.frame)) {
+                frmConsumer(frm)
+            }
+        })
+    }
+}
+
 let applyAssertions = (
     ~maxVar:int,
-    ~frms:array<frmSubsData>,
+    ~frms:Belt_HashMapString.t<frmSubsData>,
+    ~frmsToUse:option<array<string>>=?,
+    ~isFrameAllowed:frame=>bool,
     ~isDisjInCtx:(int,int)=>bool,
     ~statements:array<expr>,
     ~exactOrderOfStmts:bool=false,
@@ -438,7 +467,6 @@ let applyAssertions = (
     ~allowNewVars:bool=true,
     ~result:option<expr>=?,
     ~parenCnt:parenCnt,
-    ~frameFilter:frame=>bool=_=>true,
     ~allowNewDisjForExistingVars:bool=false,
     ~combCntMax:int=10000,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
@@ -464,13 +492,17 @@ let applyAssertions = (
     }
 
     let numOfStmts = statements->Js_array2.length
-    let numOfFrames = frms->Js_array2.length->Belt_Int.toFloat
+    let numOfFrames = 
+        switch frmsToUse {
+            | Some(frmsToUse) => frmsToUse->Js_array2.length
+            | None => frms->Belt_HashMapString.size
+        }->Belt_Int.toFloat
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
-    frms->Js_array2.forEach(frm => {
-        if ( continueInstr.contents == Continue && frameFilter(frm.frame) ) {
+    iterateFrms( ~frms, ~frmsToUse, ~isFrameAllowed, ~frmConsumer = frm => {
+        if ( continueInstr.contents == Continue ) {
             if (result->Belt.Option.map(result => result[0] != frm.frame.asrt[0])->Belt_Option.getWithDefault(false)) {
                 if (debugLevel >= 2) {
                     continueInstr.contents = sendNoUnifForAsrt(frm)

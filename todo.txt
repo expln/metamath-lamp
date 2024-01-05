@@ -1,6 +1,7 @@
 - fix a bug: completed proof should not be shown in macros.
 - fix a bug: in eliminate variables rename labels if there were merges of duplicates.
 - update syntax tree structure in fragment transforms. Also add possibility to use only the final result.
+- improve performance of the bottom-up prover.
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source

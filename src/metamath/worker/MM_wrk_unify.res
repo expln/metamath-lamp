@@ -14,7 +14,7 @@ let procName = "MM_wrk_unify"
 type request = 
     | Unify({
         rootStmts: array<rootStmt>, 
-        bottomUpProverParams:option<bottomUpProverParams>,
+        bottomUpProverParams:option<array<bottomUpProverParams>>,
         allowedFrms:allowedFrms,
         combCntMax:int,
         syntaxTypes:option<array<int>>,
@@ -26,13 +26,15 @@ type response =
     | OnProgress(string)
     | Result(proofTreeDto)
 
-let bottomUpProverParamsToStr = (params:option<bottomUpProverParams>):string => {
+let bottomUpProverParamsToStr = (params:option<array<bottomUpProverParams>>):string => {
     switch params {
         | None => "None"
         | Some(params) => {
-            `{` 
-                ++ `allowNewDisjForExistingVars=${if (params.allowNewDisjForExistingVars) {"true"} else {"false"}}` 
-                ++ `}`
+            params->Js_array2.map(p => {
+                `{` 
+                    ++ `allowNewDisjForExistingVars=${if (p.allowNewDisjForExistingVars) {"true"} else {"false"}}` 
+                    ++ `}`
+            })->Js_array2.joinWith("; ")
         }
     }
 }
@@ -61,7 +63,7 @@ let unify = (
     ~varsText: string,
     ~disjText: string,
     ~rootStmts: array<rootStmt>,
-    ~bottomUpProverParams: option<bottomUpProverParams>,
+    ~bottomUpProverParams: option<array<bottomUpProverParams>>,
     ~allowedFrms:allowedFrms,
     ~syntaxTypes:option<array<int>>,
     ~exprsToSyntaxCheck:option<array<expr>>,

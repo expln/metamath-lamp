@@ -17,7 +17,7 @@ let unify: (
     ~varsText: string,
     ~disjText: string,
     ~rootStmts: array<rootStmt>,
-    ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
+    ~bottomUpProverParams: option<array<MM_provers.bottomUpProverParams>>,
     ~allowedFrms:allowedFrms,
     ~syntaxTypes:option<array<int>>,
     ~exprsToSyntaxCheck:option<array<expr>>,

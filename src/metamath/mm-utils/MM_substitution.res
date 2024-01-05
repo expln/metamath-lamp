@@ -49,6 +49,7 @@ type frms = {
     all: array<frmSubsData>,
     byType:Belt_HashMapInt.t<array<frmSubsData>>,
     byLabel:Belt_HashMapString.t<frmSubsData>,
+    byTypeAndLabel:Belt_HashMapInt.t<Belt_HashMapString.t<frmSubsData>>,
 }
 
 let subsClone = subs => {
@@ -577,6 +578,7 @@ let prepareFrmSubsData = (
     let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Js_array2.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)
+    let byTypeAndLabel = Belt_HashMapInt.make(~hintSize=16)
     all->Js_array2.forEach(frm => {
         byLabel->Belt_HashMapString.set(frm.frame.label, frm)
         let typ = frm.frame.asrt[0]
@@ -584,11 +586,20 @@ let prepareFrmSubsData = (
             | None => byType->Belt_HashMapInt.set(typ,[frm])
             | Some(arr) => arr->Js_array2.push(frm)->ignore
         }
+        switch byTypeAndLabel->Belt_HashMapInt.get(typ) {
+            | None => {
+                let map = Belt_HashMapString.make(~hintSize=1000)
+                byTypeAndLabel->Belt_HashMapInt.set(typ,map)
+                map->Belt_HashMapString.set(frm.frame.label, frm)
+            }
+            | Some(map) => map->Belt_HashMapString.set(frm.frame.label, frm)
+        }
     })
     {
         all,
         byLabel,
         byType,
+        byTypeAndLabel,
     }
 }
 
@@ -694,6 +705,7 @@ let frmsEmpty = ():frms => {
         all: [],
         byType: Belt_HashMapInt.make(~hintSize=0),
         byLabel:Belt_HashMapString.make(~hintSize=0),
+        byTypeAndLabel:Belt_HashMapInt.make(~hintSize=0),
     }
 }
 let frmsSize = frms => frms.all->Js_array2.length
@@ -738,6 +750,9 @@ let frmsGetByLabel = (frms:frms, label:string):option<frmSubsData> => {
     frms.byLabel->Belt_HashMapString.get(label)
 }
 let frmsGetAllTypes = (frms):array<int> => frms.byType->Belt_HashMapInt.keysToArray
+let frmsGetAllGroupedByTypeAndLabel = (frms:frms):Belt_HashMapInt.t<Belt_HashMapString.t<frmSubsData>> => 
+    frms.byTypeAndLabel
+let frmsGetAllGroupedByLabel = (frms:frms):Belt_HashMapString.t<frmSubsData> => frms.byLabel
 
 //------------------------- TEST ---------------------------
 

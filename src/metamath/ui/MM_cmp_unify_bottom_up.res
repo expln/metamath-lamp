@@ -28,19 +28,22 @@ type resultRendered = {
     numOfStmts: int,
 }
 
-type actualProverParams = {
-    stepToProve:string,
-    asrtLabel:option<string>,
-    frmsToUse:option<array<string>>,
-    maxSearchDepth: int,
-    lengthRestrict: string,
+type proverFrameParamsToShow = {
+    minDepth: int,
+    maxDepth: int,
+    frmsToUse: option<array<string>>,
+    args: array<string>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
-    args0: array<string>,
-    args1: array<string>,
+    lengthRestrict: string,
     maxNumberOfBranches: option<int>,
+}
+
+type proverParamsToShow = {
+    stepToProve:string,
     debugLevel:int,
+    frameParams: array<proverFrameParamsToShow>,
 }
 
 type state = {
@@ -50,11 +53,11 @@ type state = {
     exprToProve:expr,
     title: reElem,
 
+    initialParams: array<bottomUpProverParams>,
     args0: array<bool>,
     args1: array<bool>,
     availableLabels: array<string>,
     label:option<string>,
-    frmsToUse:option<array<string>>,
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
@@ -67,7 +70,7 @@ type state = {
     debugLevel:int,
     maxNumberOfBranchesStr:string,
 
-    actualProverParams:option<actualProverParams>,
+    proverParamsToShow:option<proverParamsToShow>,
     tree: option<proofTreeDto>,
     warnings:array<string>,
     results: option<array<stmtsDto>>,
@@ -135,7 +138,7 @@ let makeInitialState = (
     ~rootUserStmts: array<userStmt>,
     ~frms: frms,
     ~parenCnt: parenCnt,
-    ~initialParams: option<bottomUpProverParams>,
+    ~initialParams: option<array<bottomUpProverParams>>,
     ~initialDebugLevel: option<int>,
     ~allowedFrms:allowedFrms,
 ) => {
@@ -147,8 +150,10 @@ let makeInitialState = (
 
     let params = switch initialParams {
         | Some(params) => params
-        | None => bottomUpProverParamsMake(())
+        | None => bottomUpProverParamsMakeDefault(())
     }
+
+    let maxSearchDepth = params->Js.Array2.reduce((max,p) => Js.Math.max_int(max,p.maxDepth), 0)
 
     {
         rootUserStmts,
@@ -175,30 +180,66 @@ let makeInitialState = (
                 { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts[maxRootStmtIdx].cont, ()) }
             </span>,
 
+        initialParams:params,
         args0: possibleArgs->Js_array2.map(possibleArg => {
-            params.args0->Js_array2.some(arg0 => arg0->exprEq(possibleArg))
+            params->Js_array2.length > 0 && params[0].args->Js_array2.some(arg0 => arg0->exprEq(possibleArg))
         }),
         args1: possibleArgs->Js_array2.map(possibleArg => {
-            params.args1->Js_array2.some(arg1 => arg1->exprEq(possibleArg))
+            params->Js_array2.length > 1 && params[1].args->Js_array2.some(arg1 => arg1->exprEq(possibleArg))
         }),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
-        label: params.asrtLabel,
-        frmsToUse: params.frmsToUse,
-        depthStr: params.maxSearchDepth->Belt_Int.toString,
-        depth: params.maxSearchDepth,
-        lengthRestrict: params.lengthRestrict,
-        allowNewDisjForExistingVars: params.allowNewDisjForExistingVars,
-        allowNewStmts: params.allowNewStmts,
-        allowNewVars: params.allowNewVars,
+        label:
+            if (params->Js_array2.length > 0) {
+                params[0].frmsToUse
+                    ->Belt_Option.flatMap(arr => {
+                        if (arr->Js_array2.length > 0) {
+                            Some(arr[0])
+                        } else {
+                            None
+                        }
+                    })
+            } else {
+                None
+            },
+        depthStr: maxSearchDepth->Belt_Int.toString,
+        depth: maxSearchDepth,
+        lengthRestrict:
+            if (params->Js_array2.length > 1) {
+                params[1].lengthRestrict
+            } else {
+                Less
+            },
+        allowNewDisjForExistingVars:
+            if (params->Js_array2.length > 0) {
+                params[0].allowNewDisjForExistingVars
+            } else {
+                true
+            },
+        allowNewStmts:
+            if (params->Js_array2.length > 0) {
+                params[0].allowNewStmts
+            } else {
+                true
+            },
+        allowNewVars:
+            if (params->Js_array2.length > 0) {
+                params[0].allowNewVars
+            } else {
+                false
+            },
         useDisc:allowedFrms.inEssen.useDisc,
         useDepr:allowedFrms.inEssen.useDepr,
         useTranDepr:allowedFrms.inEssen.useTranDepr,
         debugLevel: initialDebugLevel
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
-            params.maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault(""),
+            if (params->Js_array2.length > 0) {
+                params[0].maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
+            } else {
+                ""
+            },
 
-        actualProverParams: None,
+        proverParamsToShow: None,
         tree: None,
         warnings: [],
         results: None,
@@ -591,7 +632,7 @@ let make = (
     ~rootStmts: array<userStmt>,
     ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~initialParams: option<bottomUpProverParams>=?,
+    ~initialParams: option<array<bottomUpProverParams>>=?,
     ~initialDebugLevel: option<int>=?,
     ~apiCallStartTime:option<Js_date.t>,
     ~delayBeforeStartMs:int,
@@ -677,6 +718,63 @@ let make = (
         })
     }
 
+    let getEffectiveProverParams = (state:state):array<bottomUpProverParams> => {
+        if (isApiCall) {
+            state.initialParams
+        } else {
+            bottomUpProverParamsMakeDefault(
+                ~asrtLabel=?state.label,
+                ~maxSearchDepth=state.depth,
+                ~lengthRestrict=state.lengthRestrict,
+                ~allowNewDisjForExistingVars=state.allowNewDisjForExistingVars,
+                ~allowNewStmts=state.allowNewStmts,
+                ~allowNewVars=state.allowNewVars,
+                ~args0=state.rootStmtsRendered
+                    ->Js_array2.filteri((_,i) => state.args0[i])
+                    ->Js_array2.map(stmt => stmt.expr),
+                ~args1=state.rootStmtsRendered
+                    ->Js_array2.filteri((_,i) => state.args1[i])
+                    ->Js_array2.map(stmt => stmt.expr),
+                ~maxNumberOfBranches=
+                    ?if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
+                        None
+                    } else {
+                        state.maxNumberOfBranchesStr->Belt_Int.fromString
+                    },
+                ()
+            )
+        }
+    }
+
+    let exprToLabel = (state:state, expr:expr):string => {
+        switch state.rootStmtsRendered->Js_array2.find(stmt => exprEq(expr, stmt.expr)) {
+            | None => {
+                raise(MmException({
+                    msg: "Could not find a label for an expression in MM_cmp_unify_bottom_up.exprToLabel()"
+                }))
+            }
+            | Some(stmt) => stmt.label
+        }
+    }
+
+    let getEffectiveProverParamsToShow = (state:state, params:array<bottomUpProverParams>):proverParamsToShow => {
+        {
+            stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
+            debugLevel: state.debugLevel,
+            frameParams: params->Js_array2.map(p => {
+                minDepth: p.minDepth,
+                maxDepth: p.maxDepth,
+                frmsToUse: p.frmsToUse,
+                args: p.args->Js_array2.map(exprToLabel(state, _)),
+                allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
+                allowNewStmts: p.allowNewStmts,
+                allowNewVars: p.allowNewVars,
+                lengthRestrict: p.lengthRestrict->lengthRestrictToStr,
+                maxNumberOfBranches: p.maxNumberOfBranches,
+            }),
+        }
+    }
+
     let actProve = () => {
         setState(st => {
             let depthStr = st.depthStr->Js_string2.trim
@@ -688,42 +786,13 @@ let make = (
                 {...st, depth, depthStr}
             }
 
-            let asrtLabel = st.label
-            let frmsToUse = st.frmsToUse
-            let maxSearchDepth = st.depth
-            let lengthRestrict = st.lengthRestrict
-            let allowNewDisjForExistingVars = st.allowNewDisjForExistingVars
-            let allowNewStmts = st.allowNewStmts
-            let allowNewVars = st.allowNewVars
-            let args0 = st.rootStmtsRendered
-                ->Js_array2.filteri((_,i) => st.args0[i])
-                ->Js_array2.map(stmt => stmt.label)
-            let args1 = st.rootStmtsRendered
-                                ->Js_array2.filteri((_,i) => st.args1[i])
-                                ->Js_array2.map(stmt => stmt.label)
-            let maxNumberOfBranches = 
-                if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
-                    None
-                } else {
-                    state.maxNumberOfBranchesStr->Belt_Int.fromString
-                }
+            let effectiveProverParams = getEffectiveProverParams(st)
+            let paramsToShow = getEffectiveProverParamsToShow(st, effectiveProverParams)
+
             let debugLevel = st.debugLevel
             let st = {
                 ...st,
-                actualProverParams: Some({
-                    stepToProve: st.rootStmts[st.rootStmts->Js_array2.length-1].label,
-                    asrtLabel:asrtLabel,
-                    frmsToUse,
-                    maxSearchDepth,
-                    lengthRestrict:lengthRestrict->lengthRestrictToStr,
-                    allowNewDisjForExistingVars,
-                    allowNewStmts,
-                    allowNewVars,
-                    args0,
-                    args1,
-                    maxNumberOfBranches,
-                    debugLevel,
-                })
+                proverParamsToShow: Some(paramsToShow),
             }
 
             openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0., ()))->promiseMap(modalId => {
@@ -734,24 +803,7 @@ let make = (
                 )
                 unify(
                     ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~rootStmts=state.rootStmts,
-                    ~bottomUpProverParams=Some({
-                        asrtLabel,
-                        frmsToUse,
-                        maxSearchDepth,
-                        lengthRestrict,
-                        allowNewDisjForExistingVars,
-                        allowNewStmts,
-                        allowNewVars,
-                        args0: 
-                            st.rootStmtsRendered
-                                ->Js_array2.filteri((_,i) => st.args0[i])
-                                ->Js_array2.map(stmt => stmt.expr),
-                        args1:
-                            st.rootStmtsRendered
-                                ->Js_array2.filteri((_,i) => st.args1[i])
-                                ->Js_array2.map(stmt => stmt.expr),
-                        maxNumberOfBranches,
-                    }),
+                    ~bottomUpProverParams=Some(effectiveProverParams),
                     ~allowedFrms={
                         inSyntax: settings.allowedFrms.inSyntax,
                         inEssen: {
@@ -1097,9 +1149,9 @@ let make = (
     let rndParamsForApiCall = () => {
         <Col>
             {
-                switch state.actualProverParams {
+                switch state.proverParamsToShow {
                     | None => "Starting..."->React.string
-                    | Some(actualProverParams) => {
+                    | Some(proverParamsToShow) => {
                         if (state.showApiParams) {
                             <TextField
                                 label="Actual prover params"
@@ -1108,7 +1160,7 @@ let make = (
                                 autoFocus=false
                                 multiline=true
                                 rows=10
-                                value=Expln_utils_common.stringify(actualProverParams)
+                                value=Expln_utils_common.stringify(proverParamsToShow)
                                 disabled=true
                             />
                         } else {

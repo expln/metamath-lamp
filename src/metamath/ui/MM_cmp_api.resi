@@ -29,7 +29,7 @@ type proverParams = {
     delayBeforeStartMs:int,
     stmtId: stmtId,
     debugLevel:int,
-    bottomUpProverParams: MM_provers.bottomUpProverParams,
+    bottomUpProverParams: array<MM_provers.bottomUpProverParams>,
     selectFirstFoundProof:bool,
 }
 

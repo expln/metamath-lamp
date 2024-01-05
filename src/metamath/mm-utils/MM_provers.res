@@ -13,21 +13,19 @@ open MM_wrk_settings
 type lengthRestrict = No | LessEq | Less
 
 type bottomUpProverParams = {
-    asrtLabel: option<string>,
+    minDepth: int,
+    maxDepth: int,
     frmsToUse: option<array<string>>,
-    maxSearchDepth: int,
-    lengthRestrict: lengthRestrict,
+    args: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
-    args0: array<expr>,
-    args1: array<expr>,
+    lengthRestrict: lengthRestrict,
     maxNumberOfBranches: option<int>,
 }
 
-let bottomUpProverParamsMake = (
+let bottomUpProverParamsMakeDefault = (
     ~asrtLabel: option<string>=?,
-    ~frmsToUse: option<array<string>>=?,
     ~maxSearchDepth: int=4,
     ~lengthRestrict: lengthRestrict=Less,
     ~allowNewDisjForExistingVars: bool=true,
@@ -37,19 +35,31 @@ let bottomUpProverParamsMake = (
     ~args1: array<expr>=[],
     ~maxNumberOfBranches: option<int>=?,
     ()
-):bottomUpProverParams => {
-    {
-        asrtLabel,
-        frmsToUse,
-        maxSearchDepth,
-        lengthRestrict,
-        allowNewDisjForExistingVars,
-        allowNewStmts,
-        allowNewVars,
-        args0,
-        args1,
-        maxNumberOfBranches,
-    }
+):array<bottomUpProverParams> => {
+    [
+        {
+            minDepth: 0,
+            maxDepth: 0,
+            frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
+            args: args0,
+            allowNewDisjForExistingVars,
+            allowNewStmts,
+            allowNewVars: allowNewVars,
+            lengthRestrict: No,
+            maxNumberOfBranches,
+        },
+        {
+            minDepth: 1,
+            maxDepth: maxSearchDepth,
+            frmsToUse: None,
+            args: args1,
+            allowNewDisjForExistingVars,
+            allowNewStmts,
+            allowNewVars: false,
+            lengthRestrict: lengthRestrict,
+            maxNumberOfBranches,
+        }
+    ]
 }
 
 let lengthRestrictToStr = (len:lengthRestrict) => {
@@ -93,7 +103,7 @@ let findAsrtParentsWithoutNewVars = (
     ~onResult: exprSrc => unit,
 ):unit => {
     let exprLen = expr->Js_array2.length
-    tree->ptGetFrms(expr[0])->Js.Array2.forEach(frm => {
+    tree->ptGetFrms(expr[0])->Belt_HashMapString.forEach((_,frm) => {
         if (frm.frame->frameIsAllowed(frameRestrict)) {
             let frmExpr = frm.frame.asrt
             iterateSubstitutions(
@@ -246,8 +256,7 @@ let findAsrtParentsWithNewVars = (
     ~allowEmptyArgs:bool,
     ~allowNewVars:bool,
     ~allowNewDisjForExistingVars:bool,
-    ~asrtLabel:option<string>=?,
-    ~frmsToUse:option<Belt_HashSetString.t>=?,
+    ~frmsToUse:option<array<string>>=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int=0,
@@ -259,20 +268,14 @@ let findAsrtParentsWithNewVars = (
     let applResults = []
     let restrictFoundCnt = maxNumberOfResults->Belt_Option.isSome
     let maxFoundCnt = maxNumberOfResults->Belt_Option.getWithDefault(0)
-    let frameFilter = switch asrtLabel {
-        | Some(asrtLabel) => (frame:frame) => frame.label == asrtLabel
-        | None => {
-            switch frmsToUse {
-                | Some(frmsToUse) => (frame:frame) => frmsToUse->Belt_HashSetString.has(frame.label)
-                | None => (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
-            }
-        }
-    }
+    let isFrameAllowed = (frame:frame) => frame->frameIsAllowed(allowedFrms.inEssen)
 
     let maxVarBeforeSearch = tree->ptGetMaxVar
     applyAssertions(
         ~maxVar = maxVarBeforeSearch,
         ~frms = tree->ptGetFrms(expr[0]),
+        ~frmsToUse?,
+        ~isFrameAllowed,
         ~isDisjInCtx = tree->ptIsDisjInCtx,
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = args,
@@ -280,7 +283,6 @@ let findAsrtParentsWithNewVars = (
         ~allowEmptyArgs,
         ~allowNewVars,
         ~result = expr,
-        ~frameFilter,
         ~allowNewDisjForExistingVars,
         ~combCntMax,
         ~debugLevel,
@@ -452,7 +454,7 @@ let proveWithJustification = (
             ~exactOrderOfArgs=true,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
-            ~asrtLabel=jstf.label,
+            ~frmsToUse=[jstf.label],
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
             ~combCntMax,
@@ -581,67 +583,77 @@ let proveBottomUp = (
 let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
-    ~params:bottomUpProverParams,
-    ~frmsToUse:option<Belt_HashSetString.t>,
+    ~params:array<bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
 
+    let maxSearchDepth = params->Js_array2.reduce((max,params) => Js.Math.max_int(max,params.maxDepth), 0)
+
     let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSrc> => {
-        let parents = findAsrtParentsWithNewVars(
-            ~tree,
-            ~expr,
-            ~args = if (dist == 0) {params.args0} else {params.args1},
-            ~exactOrderOfArgs=false,
-            ~asrtLabel = ?(if (dist == 0) {params.asrtLabel} else {None}),
-            ~frmsToUse?,
-            ~allowEmptyArgs = params.allowNewStmts,
-            ~allowNewVars = dist == 0 && params.allowNewVars,
-            ~allowNewDisjForExistingVars=params.allowNewDisjForExistingVars,
-            ~allowedFrms,
-            ~combCntMax,
-            ~debugLevel,
-            ~maxNumberOfResults=?params.maxNumberOfBranches,
-            ~onProgress?,
-            ()
-        )
-        if (dist == 0) {
-            parents
-        } else {
-            let exprLen = expr->Js_array2.length
-            parents->Js.Array2.filter(parent => {
-                switch parent {
-                    | VarType | Hypothesis(_) | AssertionWithErr(_) => true
-                    | Assertion({args, frame}) => {
-                        let argsAreCorrect = ref(true)
-                        let numOfArgs = frame.hyps->Js_array2.length
-                        let maxArgIdx = numOfArgs - 1
-                        let argIdx = ref(0)
-                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                            let arg = args[argIdx.contents]
-                            if (frame.hyps[argIdx.contents].typ == E) {
-                                argsAreCorrect.contents = switch params.lengthRestrict {
-                                    | No => true
-                                    | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
-                                    | Less => arg->pnGetExpr->Js_array2.length < exprLen
+        let res = []
+        for i in 0 to params->Js_array2.length-1 {
+            let paramsI = params[i]
+            if (paramsI.minDepth <= dist && dist <= paramsI.maxDepth) {
+                let parents = findAsrtParentsWithNewVars(
+                    ~tree,
+                    ~expr,
+                    ~args=paramsI.args,
+                    ~exactOrderOfArgs=false,
+                    ~frmsToUse=?paramsI.frmsToUse,
+                    ~allowEmptyArgs=paramsI.allowNewStmts,
+                    ~allowNewVars=paramsI.allowNewVars,
+                    ~allowNewDisjForExistingVars=paramsI.allowNewDisjForExistingVars,
+                    ~allowedFrms,
+                    ~combCntMax,
+                    ~debugLevel,
+                    ~maxNumberOfResults=?paramsI.maxNumberOfBranches,
+                    ~onProgress?,
+                    ()
+                )
+                switch paramsI.lengthRestrict {
+                    | No => res->Js_array2.push(parents)->ignore
+                    | LessEq | Less => {
+                        let exprLen = expr->Js_array2.length
+                        res->Js_array2.push(
+                            parents->Js.Array2.filter(parent => {
+                                switch parent {
+                                    | VarType | Hypothesis(_) | AssertionWithErr(_) => true
+                                    | Assertion({args, frame}) => {
+                                        let argsAreCorrect = ref(true)
+                                        let numOfArgs = frame.hyps->Js_array2.length
+                                        let maxArgIdx = numOfArgs - 1
+                                        let argIdx = ref(0)
+                                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
+                                            let arg = args[argIdx.contents]
+                                            if (frame.hyps[argIdx.contents].typ == E) {
+                                                argsAreCorrect.contents = switch paramsI.lengthRestrict {
+                                                    | No => true
+                                                    | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
+                                                    | Less => arg->pnGetExpr->Js_array2.length < exprLen
+                                                }
+                                            }
+                                            argIdx.contents = argIdx.contents + 1
+                                        }
+                                        argsAreCorrect.contents
+                                    }
                                 }
-                            }
-                            argIdx.contents = argIdx.contents + 1
-                        }
-                        argsAreCorrect.contents
+                            })
+                        )->ignore
                     }
                 }
-            })
+            }
         }
+        res->Belt.Array.concatMany
     }
 
     proveBottomUp(
         ~tree, 
         ~expr, 
         ~getParents,
-        ~maxSearchDepth=params.maxSearchDepth,
+        ~maxSearchDepth,
         ~onProgress,
     )
     tree->ptGetNode(expr)
@@ -651,8 +663,7 @@ let proveStmt = (
     ~tree, 
     ~expr:expr, 
     ~jstf:option<jstf>,
-    ~bottomUpProverParams:option<bottomUpProverParams>,
-    ~frmsToUse:option<Belt_HashSetString.t>,
+    ~bottomUpProverParams:option<array<bottomUpProverParams>>,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int,
@@ -661,7 +672,7 @@ let proveStmt = (
     switch bottomUpProverParams {
         | Some(params) => {
             proveStmtBottomUp( 
-                ~tree, ~expr, ~params, ~frmsToUse, ~allowedFrms, ~combCntMax, ~debugLevel, ~onProgress, 
+                ~tree, ~expr, ~params, ~allowedFrms, ~combCntMax, ~debugLevel, ~onProgress, 
             )->ignore
         }
         | None => {
@@ -832,7 +843,7 @@ let unifyAll = (
     ~frms: frms,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
-    ~bottomUpProverParams:option<bottomUpProverParams>=?,
+    ~bottomUpProverParams:option<array<bottomUpProverParams>>=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~syntaxTypes:option<array<int>>=?,
@@ -882,9 +893,6 @@ let unifyAll = (
 
     let rootProvables = rootStmts->Js_array2.filter(stmt => !stmt.isHyp)
     let numOfStmts = rootProvables->Js_array2.length
-    let frmsToUse = bottomUpProverParams->Belt_Option.flatMap(params => {
-        params.frmsToUse->Belt_Option.map(Belt_HashSetString.fromArray)
-    })
     let maxStmtIdx = numOfStmts - 1
     rootProvables->Js.Array2.forEachi((stmt,stmtIdx) => {
         proveStmt(
@@ -892,7 +900,6 @@ let unifyAll = (
             ~expr=stmt.expr, 
             ~jstf=stmt.jstf,
             ~bottomUpProverParams = if (stmtIdx == maxStmtIdx) {bottomUpProverParams} else {None},
-            ~frmsToUse,
             ~allowedFrms,
             ~combCntMax,
             ~debugLevel,
