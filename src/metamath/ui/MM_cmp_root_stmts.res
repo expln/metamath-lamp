@@ -80,7 +80,7 @@ let make = (
     let rndButtons = () => {
         <Row>
             <Button onClick={_=>onClose(state.flags)} variant=#outlined>
-                {React.string("Done")}
+                {React.string("Close")}
             </Button>
             <Button onClick={_=>actUnselectAllStmts()} >
                 {React.string("None")}

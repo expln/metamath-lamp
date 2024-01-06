@@ -18,6 +18,7 @@ module CodeOff = { @module("@mui/icons-material/CodeOff") @react.component exter
 module DeleteForever = { @module("@mui/icons-material/DeleteForever") @react.component external make: () => React.element = "default" }
 module Delete = { @module("@mui/icons-material/Delete") @react.component external make: () => React.element = "default" }
 module Done = { @module("@mui/icons-material/Done") @react.component external make: () => React.element = "default" }
+module DisplaySettings = { @module("@mui/icons-material/DisplaySettings") @react.component external make: () => React.element = "default" }
 module Edit = { @module("@mui/icons-material/Edit") @react.component external make: () => React.element = "default" }
 module ExpandMore = { @module("@mui/icons-material/ExpandMore") @react.component external make: () => React.element = "default" }
 module FilterNone = { @module("@mui/icons-material/FilterNone") @react.component external make: () => React.element = "default" }

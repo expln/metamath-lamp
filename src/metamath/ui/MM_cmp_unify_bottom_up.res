@@ -1149,23 +1149,32 @@ let make = (
         setState(toggleShowApiParams)
     }
 
+    let rndActualProverParams = () => {
+        switch state.proverParamsToShow {
+            | None => React.null
+            | Some(proverParamsToShow) => {
+                <TextField
+                    label="Actual parameters of the bottom-up prover"
+                    size=#small
+                    style=ReactDOM.Style.make(~width="800px", ())
+                    autoFocus=false
+                    multiline=true
+                    rows=10
+                    value=Expln_utils_common.stringify(proverParamsToShow)
+                    disabled=true
+                />
+            }
+        }
+    }
+
     let rndParamsForApiCall = () => {
         <Col>
             {
                 switch state.proverParamsToShow {
                     | None => "Starting..."->React.string
-                    | Some(proverParamsToShow) => {
+                    | Some(_) => {
                         if (state.showApiParams) {
-                            <TextField
-                                label="Actual prover params"
-                                size=#small
-                                style=ReactDOM.Style.make(~width="800px", ())
-                                autoFocus=false
-                                multiline=true
-                                rows=10
-                                value=Expln_utils_common.stringify(proverParamsToShow)
-                                disabled=true
-                            />
+                            rndActualProverParams()
                         } else {
                             React.null
                         }
@@ -1250,6 +1259,30 @@ let make = (
         }
     }
 
+    let actShowActualParams = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                    <Col>
+                        {rndActualProverParams()}
+                        <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                            {React.string("Close")}
+                        </Button>
+                    </Col>
+                </Paper>
+            })
+        })->ignore
+    }
+
+    let rndShowActualParamsBtn = () => {
+        <IconButton 
+            title="Show actual parameters of the bottom-up prover" 
+            onClick={_=>actShowActualParams()}
+        >
+            <MM_Icons.DisplaySettings/>
+        </IconButton>
+    }
+
     let rndResults = () => {
         switch state.resultsSorted {
             | None => React.null
@@ -1262,6 +1295,7 @@ let make = (
                             {React.string("Nothing found.")}
                             {rndShowProofTreeBtn()}
                             {rndWarningsBtn(state.warnings)}
+                            {rndShowActualParamsBtn()}
                         </Row>
                     </Col>
                 } else {
@@ -1275,6 +1309,7 @@ let make = (
                             {rndPagination(totalNumOfResults)}
                             {rndShowProofTreeBtn()}
                             {rndWarningsBtn(state.warnings)}
+                            {rndShowActualParamsBtn()}
                         </Row>
                         {
                             items->Js_array2.map(item => {
