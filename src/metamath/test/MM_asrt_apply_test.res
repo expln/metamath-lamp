@@ -261,7 +261,7 @@ let testApplyAssertions = (
     let parens = "( ) { } [ ]"
     let workCtx = createContext(~parent=preCtx, ())
     let workCtx = workCtx->ctxOptimizeForProver(~parens, ())
-    let frms = prepareFrmSubsData(~ctx=workCtx, ())->frmsGetAllGroupedByLabel
+    let frms = prepareFrmSubsData(~ctx=workCtx, ())
     let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()

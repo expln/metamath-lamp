@@ -429,35 +429,56 @@ let iterateSubstitutionsForResult = (
 }
 
 let iterateFrms = (
-    ~frms:Belt_HashMapString.t<frmSubsData>,
+    ~frms:frms,
     ~frmsToUse:option<array<string>>,
     ~isFrameAllowed:frame=>bool,
+    ~result:option<expr>,
     ~frmConsumer:frmSubsData=>unit,
 ):unit => {
     switch frmsToUse {
         | Some(frmsToUse) => {
             frmsToUse->Js_array2.forEach(frmLabel => {
-                switch frms->Belt_HashMapString.get(frmLabel) {
-                    | None => ()
-                    | Some(frm) => {
-                        if (isFrameAllowed(frm.frame)) {
-                            frmConsumer(frm)
-                        }
+                frms->frmsGetByLabel(frmLabel)->Belt_Option.forEach(frm => {
+                    if (isFrameAllowed(frm.frame)) {
+                        frmConsumer(frm)
                     }
+                })
+            })
+        }
+        | None => {
+            frms->frmsForEach(~typ=?result->Belt_Option.map(expr => expr[0]), frm => {
+                if (isFrameAllowed(frm.frame)) {
+                    frmConsumer(frm)
                 }
             })
         }
-        | None => frms->Belt_HashMapString.forEach((_,frm) => {
-            if (isFrameAllowed(frm.frame)) {
-                frmConsumer(frm)
+    }
+}
+
+let countFrames = (
+    ~frms:frms,
+    ~frmsToUse:option<array<string>>,
+    ~result:option<expr>,
+):int => {
+    switch frmsToUse {
+        | Some(frmsToUse) => frmsToUse->Js_array2.length
+        | None => {
+            switch result {
+                | Some(result) => {
+                    switch frms->frmsGetByType(result[0]) {
+                        | None => 0
+                        | Some(frames) => frames->Js_array2.length
+                    }
+                }
+                | None => frms->frmsGetAll->Js_array2.length
             }
-        })
+        }
     }
 }
 
 let applyAssertions = (
     ~maxVar:int,
-    ~frms:Belt_HashMapString.t<frmSubsData>,
+    ~frms:frms,
     ~frmsToUse:option<array<string>>=?,
     ~isFrameAllowed:frame=>bool,
     ~isDisjInCtx:(int,int)=>bool,
@@ -492,16 +513,12 @@ let applyAssertions = (
     }
 
     let numOfStmts = statements->Js_array2.length
-    let numOfFrames = 
-        switch frmsToUse {
-            | Some(frmsToUse) => frmsToUse->Js_array2.length
-            | None => frms->Belt_HashMapString.size
-        }->Belt_Int.toFloat
+    let numOfFrames = countFrames(~frms, ~frmsToUse, ~result)->Belt_Int.toFloat
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
-    iterateFrms( ~frms, ~frmsToUse, ~isFrameAllowed, ~frmConsumer = frm => {
+    iterateFrms( ~frms, ~frmsToUse, ~isFrameAllowed, ~result, ~frmConsumer = frm => {
         if ( continueInstr.contents == Continue ) {
             if (result->Belt.Option.map(result => result[0] != frm.frame.asrt[0])->Belt_Option.getWithDefault(false)) {
                 if (debugLevel >= 2) {

@@ -746,8 +746,12 @@ let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):ar
         }
     }
 }
+let frmsGetAll = (frms:frms):array<frmSubsData> => frms.all
 let frmsGetByLabel = (frms:frms, label:string):option<frmSubsData> => {
     frms.byLabel->Belt_HashMapString.get(label)
+}
+let frmsGetByType = (frms:frms, typ:int):option<array<frmSubsData>> => {
+    frms.byType->Belt_HashMapInt.get(typ)
 }
 let frmsGetAllTypes = (frms):array<int> => frms.byType->Belt_HashMapInt.keysToArray
 let frmsGetAllGroupedByTypeAndLabel = (frms:frms):Belt_HashMapInt.t<Belt_HashMapString.t<frmSubsData>> => 

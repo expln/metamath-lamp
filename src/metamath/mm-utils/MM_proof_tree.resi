@@ -39,7 +39,7 @@ let ptMake: (
     ~exprToStr: option<expr=>string>,
 ) => proofTree
 
-let ptGetFrms: (proofTree,int) => Belt_HashMapString.t<frmSubsData>
+let ptGetFrms: proofTree => frms
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
 let ptGetMaxVar: proofTree => int

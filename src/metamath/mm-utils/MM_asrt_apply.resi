@@ -24,7 +24,7 @@ module ApplyAssertionResultHash: {
 
 let applyAssertions: (
     ~maxVar:int,
-    ~frms:Belt_HashMapString.t<frmSubsData>,
+    ~frms:frms,
     ~frmsToUse:array<string>=?,
     ~isFrameAllowed:frame=>bool,
     ~isDisjInCtx:(int,int)=>bool,

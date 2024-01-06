@@ -103,7 +103,7 @@ let findAsrtParentsWithoutNewVars = (
     ~onResult: exprSrc => unit,
 ):unit => {
     let exprLen = expr->Js_array2.length
-    tree->ptGetFrms(expr[0])->Belt_HashMapString.forEach((_,frm) => {
+    tree->ptGetFrms->frmsForEach(~typ=expr[0], frm => {
         if (frm.frame->frameIsAllowed(frameRestrict)) {
             let frmExpr = frm.frame.asrt
             iterateSubstitutions(
@@ -273,7 +273,7 @@ let findAsrtParentsWithNewVars = (
     let maxVarBeforeSearch = tree->ptGetMaxVar
     applyAssertions(
         ~maxVar = maxVarBeforeSearch,
-        ~frms = tree->ptGetFrms(expr[0]),
+        ~frms = tree->ptGetFrms,
         ~frmsToUse?,
         ~isFrameAllowed,
         ~isDisjInCtx = tree->ptIsDisjInCtx,
