@@ -57,6 +57,7 @@ type state = {
     initialParams: bottomUpProverParams,
     args0: array<bool>,
     args1: array<bool>,
+    args1EqArgs0:bool,
     availableLabels: array<string>,
     label:option<string>,
     depth: int,
@@ -189,6 +190,7 @@ let makeInitialState = (
         args1: possibleArgs->Js_array2.map(possibleArg => {
             frameParamsLen > 1 && frameParams[1].args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
+        args1EqArgs0:false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label:
             if (frameParamsLen > 0) {
@@ -297,6 +299,13 @@ let toggleAllowNewVars = (st) => {
     {
         ...st,
         allowNewVars: !st.allowNewVars
+    }
+}
+
+let toggleArgs1EqArgs0 = (st) => {
+    {
+        ...st,
+        args1EqArgs0: !st.args1EqArgs0
     }
 }
 
@@ -724,6 +733,9 @@ let make = (
         if (isApiCall) {
             state.initialParams
         } else {
+            let args0=state.rootStmtsRendered
+                    ->Js_array2.filteri((_,i) => state.args0[i])
+                    ->Js_array2.map(stmt => stmt.expr)
             bottomUpProverParamsMakeDefault(
                 ~asrtLabel=?state.label,
                 ~maxSearchDepth=state.depth,
@@ -731,12 +743,15 @@ let make = (
                 ~allowNewDisjForExistingVars=state.allowNewDisjForExistingVars,
                 ~allowNewStmts=state.allowNewStmts,
                 ~allowNewVars=state.allowNewVars,
-                ~args0=state.rootStmtsRendered
-                    ->Js_array2.filteri((_,i) => state.args0[i])
-                    ->Js_array2.map(stmt => stmt.expr),
-                ~args1=state.rootStmtsRendered
-                    ->Js_array2.filteri((_,i) => state.args1[i])
-                    ->Js_array2.map(stmt => stmt.expr),
+                ~args0,
+                ~args1=
+                    if (state.args1EqArgs0) {
+                        args0
+                    } else {
+                        state.rootStmtsRendered
+                            ->Js_array2.filteri((_,i) => state.args1[i])
+                            ->Js_array2.map(stmt => stmt.expr)
+                    },
                 ~maxNumberOfBranches=
                     ?if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
                         None
@@ -1384,68 +1399,91 @@ let make = (
 
     let rndRootStmtsForLevelShort = (
         ~title: string, 
+        ~titleOnly:bool,
         ~dialogTitle: string,
         ~stmtToProve:reElem,
         ~getFlags: state => array<bool>,
         ~setFlags: array<bool> => unit,
     ) => {
-        let flags = state->getFlags
-        let allSelected = flags->Js_array2.every(b => b)
-        let noneSelected = flags->Js_array2.every(b => !b)
-        let numberOfSelected = if (allSelected) {
-            "All"
-        } else if (noneSelected) {
-            "None"
+        if (titleOnly) {
+            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+                {React.string(title)}
+            </Row>
         } else {
-            let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
-            let numAll = flags->Js_array2.length
-            numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
+            let flags = state->getFlags
+            let allSelected = flags->Js_array2.every(b => b)
+            let noneSelected = flags->Js_array2.every(b => !b)
+            let numberOfSelected = if (allSelected) {
+                "All"
+            } else if (noneSelected) {
+                "None"
+            } else {
+                let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
+                let numAll = flags->Js_array2.length
+                numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
+            }
+            let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
+                ("select all", () => setFlags(flags->selectAllArgs))
+            } else {
+                ("select none", () => setFlags(flags->unselectAllArgs))
+            }
+            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+                {React.string(title)}
+                <span
+                    onClick={_=> { 
+                        actOpenRootStmtsDialog( ~title = dialogTitle, ~stmtToProve, ~getFlags, ~setFlags, ) 
+                    }}
+                    style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+                >
+                    {React.string(numberOfSelected)}
+                </span>
+                <span
+                    onClick={_=> selectUnselectAct() }
+                    style=ReactDOM.Style.make(
+                        ~cursor="pointer", 
+                        ~border="solid lightgrey 0px", 
+                        ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
+                        ~paddingLeft="5px", ~paddingRight="5px", 
+                        ()
+                    )
+                >
+                    {React.string(selectUnselectText)}
+                </span>
+            </Row>
         }
-        let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
-            ("select all", () => setFlags(flags->selectAllArgs))
-        } else {
-            ("select none", () => setFlags(flags->unselectAllArgs))
-        }
-        <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
-            {React.string(title)}
-            <span
-                onClick={_=> { actOpenRootStmtsDialog( ~title = dialogTitle, ~stmtToProve, ~getFlags, ~setFlags, ) }}
-                style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
-            >
-                {React.string(numberOfSelected)}
-            </span>
-            <span
-                onClick={_=> selectUnselectAct() }
-                style=ReactDOM.Style.make(
-                    ~cursor="pointer", 
-                    ~border="solid lightgrey 0px", ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
-                    ~paddingLeft="5px", ~paddingRight="5px", 
-                    ()
-                )
-            >
-                {React.string(selectUnselectText)}
-            </span>
-        </Row>
+    }
+
+    let actToggleArgs1EqArgs0 = () => {
+        setState(toggleArgs1EqArgs0)
     }
 
     let rndRootStmts = () => {
         if (state.rootStmtsRendered->Js_array2.length == 0) {
             React.null
         } else {
-            <Row alignItems=#center>
+            <Row alignItems=#center spacing=0.2>
                 {React.string("Allowed statements: ")}
                 {
                     rndRootStmtsForLevelShort(
                         ~title = "first level", 
+                        ~titleOnly=false,
                         ~dialogTitle = "Select steps to derive from on level 0", 
                         ~stmtToProve = state.title,
                         ~getFlags = state => state.args0,
                         ~setFlags = newFlags => setState(updateArgs0(_, newFlags)),
                     )
                 }
+                <IconButton 
+                    title="Set allowed statements for other levels same as for the first level" 
+                    onClick={_=>actToggleArgs1EqArgs0()}
+                    color = ?(if (state.args1EqArgs0) {Some("primary")} else {None})
+                >
+                    <MM_Icons.Pause style=ReactDOM.Style.make(~transform="rotate(-90deg)", ())/>
+                </IconButton>
                 {
                     rndRootStmtsForLevelShort(
-                        ~title = "other levels", 
+                        ~title = if (state.args1EqArgs0) {"other levels: same as first level"} else {"other levels"}, 
+                        ~titleOnly=state.args1EqArgs0,
                         ~dialogTitle = "Select steps to derive from on other levels", 
                         ~stmtToProve = state.title,
                         ~getFlags = state => state.args1,

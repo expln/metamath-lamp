@@ -31,6 +31,7 @@ module KeyboardReturn = { @module("@mui/icons-material/KeyboardReturn") @react.c
 module Logout = { @module("@mui/icons-material/Logout") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module MergeType = { @module("@mui/icons-material/MergeType") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module Menu = { @module("@mui/icons-material/Menu") @react.component external make: (~style: reStyle=?) => React.element = "default" }
+module Pause = { @module("@mui/icons-material/Pause") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module Restore = { @module("@mui/icons-material/Restore") @react.component external make: (~style: reStyle=?) => React.element = "default" }
 module Save = { @module("@mui/icons-material/Save") @react.component external make: () => React.element = "default" }
 module Search = { @module("@mui/icons-material/Search") @react.component external make: () => React.element = "default" }
