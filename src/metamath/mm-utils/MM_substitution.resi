@@ -83,7 +83,6 @@ let frmsGetByLabel: (frms, string) => option<frmSubsData>
 let frmsGetByType: (frms, int) => option<array<frmSubsData>>
 let frmsSelect: (frms, ~typ:int=?, ~label:string=?, ()) => array<frmSubsData>
 let frmsGetAllTypes: frms => array<int>
-let frmsGetAllGroupedByTypeAndLabel: frms => Belt_HashMapInt.t<Belt_HashMapString.t<frmSubsData>>
 let frmsGetAllGroupedByLabel: frms => Belt_HashMapString.t<frmSubsData>
 
 //------------------------- TEST ---------------------------
