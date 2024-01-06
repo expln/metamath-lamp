@@ -917,7 +917,7 @@ let make = (
 
     let rec actUnify = (
         ~stmtId:option<stmtId>=?,
-        ~params:option<array<bottomUpProverParams>>=?,
+        ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,

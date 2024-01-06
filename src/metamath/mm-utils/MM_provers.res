@@ -12,9 +12,9 @@ open MM_wrk_settings
 
 type lengthRestrict = No | LessEq | Less
 
-type bottomUpProverParams = {
-    minDepth: int,
-    maxDepth: int,
+type bottomUpProverFrameParams = {
+    minDist: option<int>,
+    maxDist: option<int>,
     frmsToUse: option<array<string>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
@@ -22,6 +22,11 @@ type bottomUpProverParams = {
     allowNewVars: bool,
     lengthRestrict: lengthRestrict,
     maxNumberOfBranches: option<int>,
+}
+
+type bottomUpProverParams = {
+    maxSearchDepth: int,
+    frameParams: array<bottomUpProverFrameParams>,
 }
 
 let bottomUpProverParamsMakeDefault = (
@@ -35,31 +40,34 @@ let bottomUpProverParamsMakeDefault = (
     ~args1: array<expr>=[],
     ~maxNumberOfBranches: option<int>=?,
     ()
-):array<bottomUpProverParams> => {
-    [
-        {
-            minDepth: 0,
-            maxDepth: 0,
-            frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
-            args: args0,
-            allowNewDisjForExistingVars,
-            allowNewStmts,
-            allowNewVars: allowNewVars,
-            lengthRestrict: No,
-            maxNumberOfBranches,
-        },
-        {
-            minDepth: 1,
-            maxDepth: maxSearchDepth,
-            frmsToUse: None,
-            args: args1,
-            allowNewDisjForExistingVars,
-            allowNewStmts,
-            allowNewVars: false,
-            lengthRestrict: lengthRestrict,
-            maxNumberOfBranches,
-        }
-    ]
+):bottomUpProverParams => {
+    {
+        maxSearchDepth,
+        frameParams: [
+            {
+                minDist: Some(0),
+                maxDist: Some(0),
+                frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
+                args: args0,
+                allowNewDisjForExistingVars,
+                allowNewStmts,
+                allowNewVars: allowNewVars,
+                lengthRestrict: No,
+                maxNumberOfBranches,
+            },
+            {
+                minDist: Some(1),
+                maxDist: None,
+                frmsToUse: None,
+                args: args1,
+                allowNewDisjForExistingVars,
+                allowNewStmts,
+                allowNewVars: false,
+                lengthRestrict: lengthRestrict,
+                maxNumberOfBranches,
+            }
+        ],
+    }
 }
 
 let lengthRestrictToStr = (len:lengthRestrict) => {
@@ -580,23 +588,41 @@ let proveBottomUp = (
     }
 }
 
+let isInCorrectOrder = (min:option<int>, i:int, max:option<int>):bool => {
+    switch min {
+        | Some(min) => {
+            if (min <= i) {
+                switch max {
+                    | Some(max) => i <= max
+                    | None => true
+                }
+            } else {
+                false
+            }
+        }
+        | None => {
+            switch max {
+                | Some(max) => i <= max
+                | None => true
+            }
+        }
+    }
+}
+
 let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
-    ~params:array<bottomUpProverParams>,
+    ~params:bottomUpProverParams,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
-
-    let maxSearchDepth = params->Js_array2.reduce((max,params) => Js.Math.max_int(max,params.maxDepth), 0)
-
     let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSrc> => {
         let res = []
-        for i in 0 to params->Js_array2.length-1 {
-            let paramsI = params[i]
-            if (paramsI.minDepth <= dist && dist <= paramsI.maxDepth) {
+        for i in 0 to params.frameParams->Js_array2.length-1 {
+            let paramsI = params.frameParams[i]
+            if (isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist)) {
                 let parents = findAsrtParentsWithNewVars(
                     ~tree,
                     ~expr,
@@ -653,7 +679,7 @@ let proveStmtBottomUp = (
         ~tree, 
         ~expr, 
         ~getParents,
-        ~maxSearchDepth,
+        ~maxSearchDepth=params.maxSearchDepth,
         ~onProgress,
     )
     tree->ptGetNode(expr)
@@ -663,7 +689,7 @@ let proveStmt = (
     ~tree, 
     ~expr:expr, 
     ~jstf:option<jstf>,
-    ~bottomUpProverParams:option<array<bottomUpProverParams>>,
+    ~bottomUpProverParams:option<bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~debugLevel:int,
@@ -843,7 +869,7 @@ let unifyAll = (
     ~frms: frms,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
-    ~bottomUpProverParams:option<array<bottomUpProverParams>>=?,
+    ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~syntaxTypes:option<array<int>>=?,

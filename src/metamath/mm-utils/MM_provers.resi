@@ -6,9 +6,9 @@ open MM_wrk_settings
 
 type lengthRestrict = No | LessEq | Less
 
-type bottomUpProverParams = {
-    minDepth: int,
-    maxDepth: int,
+type bottomUpProverFrameParams = {
+    minDist: option<int>,
+    maxDist: option<int>,
     frmsToUse: option<array<string>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
@@ -16,6 +16,11 @@ type bottomUpProverParams = {
     allowNewVars: bool,
     lengthRestrict: lengthRestrict,
     maxNumberOfBranches: option<int>,
+}
+
+type bottomUpProverParams = {
+    maxSearchDepth: int,
+    frameParams: array<bottomUpProverFrameParams>,
 }
 
 let bottomUpProverParamsMakeDefault:(
@@ -29,7 +34,7 @@ let bottomUpProverParamsMakeDefault:(
     ~args1: array<expr>=?,
     ~maxNumberOfBranches: int=?,
     ()
-) => array<bottomUpProverParams>
+) => bottomUpProverParams
 
 let lengthRestrictToStr: lengthRestrict => string
 let lengthRestrictFromStr: string => option<lengthRestrict>
@@ -63,7 +68,7 @@ let unifyAll: (
     ~frms: frms,
     ~rootStmts: array<rootStmt>,
     ~parenCnt: parenCnt,
-    ~bottomUpProverParams:array<bottomUpProverParams>=?,
+    ~bottomUpProverParams:bottomUpProverParams=?,
     ~allowedFrms:allowedFrms,
     ~combCntMax:int,
     ~syntaxTypes:array<int>=?,

@@ -241,8 +241,8 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
 }
 
 type apiBottomUpProverFrameParams = {
-    minSearchDepth:int,
-    maxSearchDepth:int,
+    minDist:option<int>,
+    maxDist:option<int>,
     framesToUse:option<array<string>>,
     stepsToUse:array<string>,
     allowNewDisjointsForExistingVariables:bool,
@@ -254,6 +254,7 @@ type apiBottomUpProverFrameParams = {
 type proveBottomUpApiParams = {
     delayBeforeStartMs:option<int>,
     stepToProve:string,
+    maxSearchDepth:int,
     debugLevel:option<int>,
     selectFirstFoundProof:option<bool>,
     frameParams: array<apiBottomUpProverFrameParams>,
@@ -262,7 +263,7 @@ type proverParams = {
     delayBeforeStartMs:int,
     stmtId: MM_wrk_editor.stmtId,
     debugLevel:int,
-    bottomUpProverParams: array<MM_provers.bottomUpProverParams>,
+    bottomUpProverParams: MM_provers.bottomUpProverParams,
     selectFirstFoundProof:bool,
 }
 let proveBottomUp = (
@@ -283,11 +284,12 @@ let proveBottomUp = (
                 delayBeforeStartMs: d->intOpt("delayBeforeStartMs", ()),
                 stepToProve: d->str("stepToProve", ()),
                 debugLevel: d->intOpt("debugLevel", ()),
+                maxSearchDepth: d->int("maxSearchDepth", ()),
                 selectFirstFoundProof: d->boolOpt("selectFirstFoundProof", ()),
                 frameParams: d->arr("frameParams", asObj(_, d=>{
                     {
-                        minSearchDepth: d->int("minSearchDepth", ()),
-                        maxSearchDepth: d->int("maxSearchDepth", ()),
+                        minDist: d->intOpt("minDist", ()),
+                        maxDist: d->intOpt("maxDist", ()),
                         framesToUse: d->arrOpt("framesToUse", asStr(_, ()), ()),
                         stepsToUse: d->arr("stepsToUse", asStr(_, ()), ()),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),
@@ -338,20 +340,24 @@ let proveBottomUp = (
                                     debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
                                     selectFirstFoundProof:
                                         apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
-                                    bottomUpProverParams: apiParams.frameParams->Js_array2.mapi(
-                                        (frameParams,i):MM_provers.bottomUpProverParams => {
-                                            {
-                                                minDepth: frameParams.minSearchDepth,
-                                                maxDepth: frameParams.maxSearchDepth,
-                                                frmsToUse: frameParams.framesToUse,
-                                                args: args[i],
-                                                allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
-                                                allowNewStmts: frameParams.allowNewSteps,
-                                                allowNewVars: frameParams.allowNewVariables,
-                                                lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
-                                                maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                    bottomUpProverParams: {
+                                        maxSearchDepth: apiParams.maxSearchDepth,
+                                        frameParams: apiParams.frameParams->Js_array2.mapi(
+                                            (frameParams,i):MM_provers.bottomUpProverFrameParams => {
+                                                {
+                                                    minDist: frameParams.minDist,
+                                                    maxDist: frameParams.maxDist,
+                                                    frmsToUse: frameParams.framesToUse,
+                                                    args: args[i],
+                                                    allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
+                                                    allowNewStmts: frameParams.allowNewSteps,
+                                                    allowNewVars: frameParams.allowNewVariables,
+                                                    lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
+                                                    maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                                }
                                             }
-                                        })
+                                        )
+                                    }
                                 })->promiseMap(proved => {
                                     switch proved {
                                         | None => Ok(Js_json.null)

@@ -29,8 +29,8 @@ type resultRendered = {
 }
 
 type proverFrameParamsToShow = {
-    minDepth: int,
-    maxDepth: int,
+    minDist: option<int>,
+    maxDist: option<int>,
     frmsToUse: option<array<string>>,
     args: array<string>,
     allowNewDisjForExistingVars: bool,
@@ -43,6 +43,7 @@ type proverFrameParamsToShow = {
 type proverParamsToShow = {
     stepToProve:string,
     debugLevel:int,
+    maxSearchDepth:int,
     frameParams: array<proverFrameParamsToShow>,
 }
 
@@ -53,7 +54,7 @@ type state = {
     exprToProve:expr,
     title: reElem,
 
-    initialParams: array<bottomUpProverParams>,
+    initialParams: bottomUpProverParams,
     args0: array<bool>,
     args1: array<bool>,
     availableLabels: array<string>,
@@ -138,7 +139,7 @@ let makeInitialState = (
     ~rootUserStmts: array<userStmt>,
     ~frms: frms,
     ~parenCnt: parenCnt,
-    ~initialParams: option<array<bottomUpProverParams>>,
+    ~initialParams: option<bottomUpProverParams>,
     ~initialDebugLevel: option<int>,
     ~allowedFrms:allowedFrms,
 ) => {
@@ -153,7 +154,8 @@ let makeInitialState = (
         | None => bottomUpProverParamsMakeDefault(())
     }
 
-    let maxSearchDepth = params->Js.Array2.reduce((max,p) => Js.Math.max_int(max,p.maxDepth), 0)
+    let frameParams = params.frameParams
+    let frameParamsLen = frameParams->Js_array2.length
 
     {
         rootUserStmts,
@@ -182,15 +184,15 @@ let makeInitialState = (
 
         initialParams:params,
         args0: possibleArgs->Js_array2.map(possibleArg => {
-            params->Js_array2.length > 0 && params[0].args->Js_array2.some(arg0 => arg0->exprEq(possibleArg))
+            frameParamsLen > 0 && frameParams[0].args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
         args1: possibleArgs->Js_array2.map(possibleArg => {
-            params->Js_array2.length > 1 && params[1].args->Js_array2.some(arg1 => arg1->exprEq(possibleArg))
+            frameParamsLen > 1 && frameParams[1].args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label:
-            if (params->Js_array2.length > 0) {
-                params[0].frmsToUse
+            if (frameParamsLen > 0) {
+                frameParams[0].frmsToUse
                     ->Belt_Option.flatMap(arr => {
                         if (arr->Js_array2.length > 0) {
                             Some(arr[0])
@@ -201,29 +203,29 @@ let makeInitialState = (
             } else {
                 None
             },
-        depthStr: maxSearchDepth->Belt_Int.toString,
-        depth: maxSearchDepth,
+        depthStr: params.maxSearchDepth->Belt_Int.toString,
+        depth: params.maxSearchDepth,
         lengthRestrict:
-            if (params->Js_array2.length > 1) {
-                params[1].lengthRestrict
+            if (frameParamsLen > 1) {
+                frameParams[1].lengthRestrict
             } else {
                 Less
             },
         allowNewDisjForExistingVars:
-            if (params->Js_array2.length > 0) {
-                params[0].allowNewDisjForExistingVars
+            if (frameParamsLen > 0) {
+                frameParams[0].allowNewDisjForExistingVars
             } else {
                 true
             },
         allowNewStmts:
-            if (params->Js_array2.length > 0) {
-                params[0].allowNewStmts
+            if (frameParamsLen > 0) {
+                frameParams[0].allowNewStmts
             } else {
                 true
             },
         allowNewVars:
-            if (params->Js_array2.length > 0) {
-                params[0].allowNewVars
+            if (frameParamsLen > 0) {
+                frameParams[0].allowNewVars
             } else {
                 false
             },
@@ -233,8 +235,8 @@ let makeInitialState = (
         debugLevel: initialDebugLevel
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
-            if (params->Js_array2.length > 0) {
-                params[0].maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
+            if (frameParamsLen > 0) {
+                frameParams[0].maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
             } else {
                 ""
             },
@@ -632,7 +634,7 @@ let make = (
     ~rootStmts: array<userStmt>,
     ~reservedLabels: array<string>,
     ~typeToPrefix: Belt_MapString.t<string>,
-    ~initialParams: option<array<bottomUpProverParams>>=?,
+    ~initialParams: option<bottomUpProverParams>=?,
     ~initialDebugLevel: option<int>=?,
     ~apiCallStartTime:option<Js_date.t>,
     ~delayBeforeStartMs:int,
@@ -718,7 +720,7 @@ let make = (
         })
     }
 
-    let getEffectiveProverParams = (state:state):array<bottomUpProverParams> => {
+    let getEffectiveProverParams = (state:state):bottomUpProverParams => {
         if (isApiCall) {
             state.initialParams
         } else {
@@ -757,13 +759,14 @@ let make = (
         }
     }
 
-    let getEffectiveProverParamsToShow = (state:state, params:array<bottomUpProverParams>):proverParamsToShow => {
+    let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
         {
             stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
             debugLevel: state.debugLevel,
-            frameParams: params->Js_array2.map(p => {
-                minDepth: p.minDepth,
-                maxDepth: p.maxDepth,
+            maxSearchDepth: params.maxSearchDepth,
+            frameParams: params.frameParams->Js_array2.map(p => {
+                minDist: p.minDist,
+                maxDist: p.maxDist,
                 frmsToUse: p.frmsToUse,
                 args: p.args->Js_array2.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
