@@ -3,6 +3,7 @@ open Expln_React_Mui
 open MM_cmp_single_frag_transf
 open MM_wrk_frag_transform
 open MM_wrk_editor
+open Raw_js_utils
 
 let transformsTextCache:ref<array<string>> = ref([])
 let allTransformsCache: ref<array<fragmentTransform>> = ref([])
@@ -52,7 +53,7 @@ let make = (
 
     let rndAvailableTransforms = (availableTransforms:array<fragmentTransform>):result<reElem,string> => {
         let param = {"step":state.step}
-        let listItems = unsafeFunc( "Listing available transforms", () => {
+        let listItems = invokeExnFunc( "Listing available transforms", () => {
             availableTransforms->Js_array2.mapi((availableTransform,i) => {
                 <ListItem key={i->Belt_Int.toString} disablePadding=true >
                     <ListItemButton onClick={_=>{setState(setSelectedTransform(_,Some(availableTransform)))}}>
@@ -82,7 +83,7 @@ let make = (
             let availableTransformsElem = arrStrToFragTransforms(transformsText)
                 ->Belt.Result.flatMap(allTransforms => {
                     allTransformsRef := allTransforms
-                    unsafeFunc(
+                    invokeExnFunc(
                         "Getting available transforms",
                         () => allTransforms->Js_array2.filter(tr => tr.canApply(param))
                     )
@@ -97,7 +98,7 @@ let make = (
                 }
             }
         } else {
-            let availableTransformsElem = unsafeFunc(
+            let availableTransformsElem = invokeExnFunc(
                     "Getting available transforms from cache",
                     () => allTransformsCache.contents->Js_array2.filter(tr => tr.canApply(param))
                 )

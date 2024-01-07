@@ -1524,13 +1524,24 @@ let make = (
         setStatePriv(uncheckAllStmts)
     }
 
+    let actOpenMacros = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                let closeDialog = ()=>closeModal(modalRef, modalId)
+                <MM_cmp_macros
+                    onClose=closeDialog
+                />
+            })
+        })->ignore
+    }
+
     let rndButtons = () => {
         <Paper>
             <Row
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 15 => Some(Js.Json.string("auto"))
+                        | 16 => Some(Js.Json.string("auto"))
                         | _ => None
                     }
                 }}
@@ -1599,6 +1610,12 @@ let make = (
                             if (singleProvableChecked->Belt.Option.isSome) {Some(notifyEditInTempMode)} else {None}
                         },
                         ~title="Unify all steps or unify selected provable bottom-up", ~smallBtns, () )
+                }
+                { 
+                    rndIconButton(~icon=<MM_Icons.PlayArrow/>, ~onClick=actOpenMacros,
+                        ~active=!editIsActive, 
+                        ~notifyEditInTempMode,
+                        ~title="Run a macro", ~smallBtns, () )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 

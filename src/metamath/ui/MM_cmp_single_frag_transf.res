@@ -4,7 +4,7 @@ open Expln_React_Mui
 open Expln_utils_promise
 open Common
 open MM_wrk_frag_transform
-
+open Raw_js_utils
 
 @react.component
 let make = (
@@ -20,7 +20,7 @@ let make = (
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
 
     React.useEffect0(() => {
-        let state = unsafeFunc("Creating initial state", 
+        let state = invokeExnFunc("Creating initial state", 
             () => transform.createInitialState({"step":step})
         )
         switch state {
@@ -210,7 +210,7 @@ let make = (
             "state":state, 
             "setState": mapper => setState(Belt_Option.map(_, mapper))
         }
-        let reElemDto = unsafeFunc("Rendering dialog (getting a DTO)", 
+        let reElemDto = invokeExnFunc("Rendering dialog (getting a DTO)", 
             () => transform.renderDialog(params)
         )
         switch reElemDto {
@@ -219,7 +219,7 @@ let make = (
                 React.null
             }
             | Ok(reElemDto) => {
-                let customElem = unsafeFunc("Rendering dialog (rendering a DTO)", 
+                let customElem = invokeExnFunc("Rendering dialog (rendering a DTO)", 
                     () => reElemDto->reactElemDtoToObj->rndCustomElem
                 )
                 switch customElem {
