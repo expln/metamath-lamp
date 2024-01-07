@@ -1050,16 +1050,12 @@ let make = React.memoCustomCompareProps( ({
         openFrameExplorer(label)
     }
 
-    let actInsertTransformResultAbove = result => {
-        result->replaceSelectionWithNewText->Belt_Option.forEach(addStmtAbove)
-    }
-
-    let actInsertTransformResultBelow = result => {
-        result->replaceSelectionWithNewText->Belt_Option.forEach(addStmtBelow)
-    }
-
-    let actInsertTransformResultToCurrent = result => {
-        result->replaceSelectionWithNewText->Belt_Option.forEach(onContEditDone)
+    let applyResultOfTransform = (replaceSelection, resultOfTransform, action) => {
+        if (replaceSelection) {
+            replaceSelectionWithNewText(resultOfTransform)
+        } else {
+            Some(resultOfTransform)
+        }->Belt_Option.forEach(action)
     }
 
     let actOpenFragmentTransform = () => {
@@ -1085,16 +1081,16 @@ let make = React.memoCustomCompareProps( ({
                         ctxConstIntToSymExn={wrkCtx->ctxIntToSymExn}
                         transformsText
                         onCancel=closeDialog
-                        onInsertAbove={transformedSelectionText => {
-                            actInsertTransformResultAbove(transformedSelectionText)
+                        onInsertAbove={(replaceSelection, transformedSelectionText) => {
+                            applyResultOfTransform(replaceSelection, transformedSelectionText, addStmtAbove)
                             closeDialog()
                         }}
-                        onInsertBelow={transformedSelectionText => {
-                            actInsertTransformResultBelow(transformedSelectionText)
+                        onInsertBelow={(replaceSelection, transformedSelectionText) => {
+                            applyResultOfTransform(replaceSelection, transformedSelectionText, addStmtBelow)
                             closeDialog()
                         }}
-                        onUpdateCurrent={transformedSelectionText => {
-                            actInsertTransformResultToCurrent(transformedSelectionText)
+                        onUpdateCurrent={(replaceSelection, transformedSelectionText) => {
+                            applyResultOfTransform(replaceSelection, transformedSelectionText, onContEditDone)
                             closeDialog()
                         }}
                     />

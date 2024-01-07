@@ -11,9 +11,9 @@ let make = (
     ~step:Js_json.t,
     ~transform:fragmentTransform,
     ~onBack:unit=>unit,
-    ~onInsertAbove:string=>unit,
-    ~onInsertBelow:string=>unit,
-    ~onUpdateCurrent:string=>unit,
+    ~onInsertAbove:(bool,string)=>unit,
+    ~onInsertBelow:(bool,string)=>unit,
+    ~onUpdateCurrent:(bool,string)=>unit,
 ):reElem => {
     let (error, setError) = React.useState(() => None)
     let (state, setState) = React.useState(() => None)
@@ -169,6 +169,10 @@ let make = (
     and rndApplyButtons = (elem:{..}):reElem => {
         let result = reqStrExn(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
             ->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
+        let replaceSelection = optBoolExn(
+            elem["replaceSelection"], 
+            "the 'replaceSelection' attribute of ApplyButtons component must be a boolean"
+        )->Belt.Option.getWithDefault(true)
         <Col>
             <Row>
                 <IconButton title="Back" onClick={_=>onBack()} color="primary" > 
@@ -177,13 +181,19 @@ let make = (
                 <IconButton title="Copy to the clipboard" onClick={_=>actCopyToClipboard(result)} color="primary" > 
                     <MM_Icons.ContentCopy/> 
                 </IconButton>
-                <IconButton title="Add new step above" onClick={_=>onInsertAbove(result)} color="primary" >
+                <IconButton title="Add new step above" 
+                    onClick={_=>onInsertAbove(replaceSelection, result)} color="primary" 
+                >
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />
                 </IconButton>
-                <IconButton title="Add new step below" onClick={_=>onInsertBelow(result)} color="primary" >
+                <IconButton title="Add new step below" 
+                    onClick={_=>onInsertBelow(replaceSelection, result)} color="primary"
+                >
                     <MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />
                 </IconButton>
-                <IconButton title="Update current step" onClick={_=>onUpdateCurrent(result)} color="primary" > 
+                <IconButton title="Update current step" 
+                    onClick={_=>onUpdateCurrent(replaceSelection, result)} color="primary" 
+                > 
                     <MM_Icons.Done/> 
                 </IconButton>
             </Row>

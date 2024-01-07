@@ -493,4 +493,22 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
             ~expectedResult = "7",
         )
     })
+
+    it("Extract", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Extract"
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( A + B )",
+            ~prepareState = st => st,
+            ~expectedResult = "|- ( A + B )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( th -> C = D )",
+            ~prepareState = st => st,
+            ~expectedResult = "|- ( th -> ( th -> C = D ) )",
+        )
+    })
 })

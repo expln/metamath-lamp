@@ -43,9 +43,9 @@ let make = (
     ~step:userStmt,
     ~ctxConstIntToSymExn:int=>string,
     ~transformsText:array<string>,
-    ~onInsertAbove:string=>unit,
-    ~onInsertBelow:string=>unit,
-    ~onUpdateCurrent:string=>unit,
+    ~onInsertAbove:(bool,string)=>unit,
+    ~onInsertBelow:(bool,string)=>unit,
+    ~onUpdateCurrent:(bool,string)=>unit,
     ~onCancel:unit=>unit,
 ) => {
     let (state, setState) = React.useState(() => createInitialState(~step, ~ctxConstIntToSymExn))

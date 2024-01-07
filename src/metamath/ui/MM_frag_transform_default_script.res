@@ -695,15 +695,40 @@ const trReplace = {
     }
 }
 
+const trExtract = {
+    displayName: ({step}) => "Extract",
+    canApply: ({step}) => true,
+    createInitialState: ({step}) => {
+        let deductionMatchResult = match(step.tree.root, ['(', varOfType('wff'), '->', '', ')'])
+        let selection = getSelection(step)
+        return ({
+            selection,
+            selectionText: syntaxTreeToText(selection),
+            ph: deductionMatchResult?.[1],
+        })
+    },
+    renderDialog: ({state, setState}) => {
+        const rndResult = () => {
+            if (state.ph !== undefined) {
+                return mapToTextCmpArr(['|- (', syntaxTreeToText(state.ph), '->', [state.selectionText, YELLOW], ')'])
+            } else {
+                return mapToTextCmpArr(['|-', state.selectionText])
+            }
+        }
+        const resultElem = {cmp:"span", children: rndResult()}
+        return {cmp:"Col", children:[
+                {cmp:"Text", value: "Extract", fontWeight:"bold"},
+                {cmp:"Text", value: "Result:"},
+                resultElem,
+                {cmp:"ApplyButtons", replaceSelection:false, result: getAllTextFromComponent(resultElem)},
+            ]}
+    }
+}
+
+
+
 const allTransforms = [
-    trInsert, trElide, trSwap, trAssoc, trReplace,
-    // makeSimpleTransform({
-    //     // isDebug:true,
-    //     displayName: 'X ⇒  X = X',
-    //     pattern: [],
-    //     makeInitial: ([x]) => [[x, YELLOW]],
-    //     makeResult:  ([x]) => [[x, YELLOW], '=', [x, YELLOW]],
-    // }),
+    trInsert, trElide, trSwap, trAssoc, trReplace, trExtract
 ]
 
 return allTransforms
