@@ -8,7 +8,6 @@ type fragmentTransform = {
     createInitialState: {"step":Js_json.t} => fragmentTransformState,
     renderDialog: 
         {
-            "step":Js_json.t, 
             "state":fragmentTransformState, 
             "setState":(fragmentTransformState => fragmentTransformState) => unit
         } => reactElemDto,

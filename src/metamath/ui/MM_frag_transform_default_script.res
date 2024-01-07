@@ -184,9 +184,15 @@ const makeSimpleTransform = ({displayName, pattern, makeInitial, makeResult, isD
             const {step} = params
             return undefined !== match(getSelection(step), pattern)
         },
-        createInitialState: ({step}) => ({}),
-        renderDialog: ({step, state, setState}) => {
-            const matched = match(getSelection(step), pattern)
+        createInitialState: ({step}) => {
+            let selection = getSelection(step)
+            return ({
+                selection,
+                selectionText: syntaxTreeToText(selection),
+            })
+        },
+        renderDialog: ({state, setState}) => {
+            const matched = match(state.selection, pattern)
             const resultElem = {cmp: "span", children: mapToTextCmpArr(makeResult(matched))}
             return {
                 cmp: "Col",
@@ -227,7 +233,7 @@ const trInsert = {
             twoSided: insertCanBeTwoSided(selection),
         })
     },
-    renderDialog: ({step, state, setState}) => {
+    renderDialog: ({state, setState}) => {
         const canBeTwoSided = insertCanBeTwoSided(state.selection)
         const twoSidedUltimate = canBeTwoSided && state.twoSided
         const rndResult = () => {
@@ -322,7 +328,7 @@ const trElide = {
             paren: NO_PARENS
         })
     },
-    renderDialog: ({step, state, setState}) => {
+    renderDialog: ({state, setState}) => {
         const canBeTwoSided = elideCanBeTwoSided(state.selection)
         const twoSidedUltimate = canBeTwoSided && state.twoSided
         const keepColor = YELLOW
@@ -524,7 +530,7 @@ const trSwap = {
             selMatch: findMatch(selection, swapSelPatterns)
         })
     },
-    renderDialog: ({step, state, setState}) => {
+    renderDialog: ({state, setState}) => {
         const rndInitial = () => {
             if (state.selMatch?.pattern === swapSelPat1) {
                 const [leftExpr, operator, rightExpr] = state.selMatch.match
@@ -579,7 +585,7 @@ const trAssoc = {
             right: findMatch(selection, [assocSelPat35_, assocSelPat55_]) !== undefined
         })
     },
-    renderDialog: ({step, state, setState}) => {
+    renderDialog: ({state, setState}) => {
         const bkg = YELLOW
         const rndInitial = () => {
             if (state.selMatch?.pattern === assocSelPat35_) {
@@ -671,7 +677,7 @@ const trReplace = {
             text: "",
         })
     },
-    renderDialog: ({step, state, setState}) => {
+    renderDialog: ({state, setState}) => {
         const rndResult = () => mapToTextCmpArr([state.text])
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
         const resultElem = {cmp:"span", children: rndResult()}

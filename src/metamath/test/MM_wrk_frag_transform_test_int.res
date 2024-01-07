@@ -97,7 +97,7 @@ let testTransform = (
 
     let initState = transform.createInitialState(param)
 
-    let elemDto = transform.renderDialog( { "step":stepJson, "state":prepareState(initState), "setState":_=>() } )
+    let elemDto = transform.renderDialog( { "state":prepareState(initState), "setState":_=>() } )
     assertEq(
         elemDto->reactElemDtoToObj->extractResult->Belt.Option.map(str => {
             str->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")

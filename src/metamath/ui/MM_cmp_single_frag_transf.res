@@ -197,7 +197,6 @@ let make = (
 
     let rndCustomContent = (state:fragmentTransformState) => {
         let params = {
-            "step":step, 
             "state":state, 
             "setState": mapper => setState(Belt_Option.map(_, mapper))
         }
