@@ -4,6 +4,8 @@ open MM_int_test_editor_methods
 open MM_wrk_frag_transform
 open MM_context
 open Common
+open MM_wrk_editor
+open MM_syntax_tree
 
 let rec extractResult = (reactElemDto:{..}):option<string> => {
     switch reactElemDto["cmp"]->Js.Nullable.toOption {
@@ -27,6 +29,13 @@ let rec extractResult = (reactElemDto:{..}):option<string> => {
                 | None => None
             }
         }
+    }
+}
+
+let rec getAnySymNodeId = (node:childNode):int => {
+    switch node {
+        | Symbol({id}) => id
+        | Subtree({children}) => getAnySymNodeId(children[0])
     }
 }
 
@@ -54,8 +63,32 @@ let testTransform = (
         | Ok([Error(msg)]) => Js.Exn.raiseError(`[error-2] ${msg}; when building a syntax tree for '${selectedFragment}'`)
         | _ => Js.Exn.raiseError(`[error-3] when building a syntax tree for '${selectedFragment}'`)
     }
-    let selection = syntaxTreeToSelection(Subtree(syntaxTreeNode))
-    let param = {"selection":selection}
+
+    let step:userStmt = {
+        id: "1",
+        label: "1",
+        labelEditMode: false,
+        typ: P,
+        typEditMode: false,
+        isGoal: false,
+        isBkm: false,
+        cont: Tree({
+            text:"", 
+            exprTyp:"|-", 
+            root:syntaxTreeNode, 
+            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children[0]),Js_date.make())), 
+            expLvl:100
+        }),
+        contEditMode: false,
+        isDuplicated: false,
+        jstfText: "",
+        jstfEditMode: false,
+        stmtErr: None,
+        expr: None, jstf: None, proofTreeDto: None, src: None, proof: None, proofStatus: None, unifErr: None, 
+        syntaxErr: None,
+    }
+    let stepJson = MM_cmp_api.stmtToJson(step, Some(wrkCtx->ctxIntToSymExn))
+    let param = {"step":stepJson}
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
     let filteredTransforms = allTransforms->Js.Array2.filter(tr => tr.displayName(param) == transformName)
     assertEqMsg(filteredTransforms->Js.Array2.length, 1, "filteredTransforms->Js.Array2.length")
@@ -64,7 +97,7 @@ let testTransform = (
 
     let initState = transform.createInitialState(param)
 
-    let elemDto = transform.renderDialog( { "selection":selection, "state":prepareState(initState), "setState":_=>() } )
+    let elemDto = transform.renderDialog( { "state":prepareState(initState), "setState":_=>() } )
     assertEq(
         elemDto->reactElemDtoToObj->extractResult->Belt.Option.map(str => {
             str->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
@@ -83,6 +116,8 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Insert: X ⇒ ( X + A )"
         let prepareState = params => {
             st => state({
+                "selection":fromState(st)["selection"], 
+                "selectionText":fromState(st)["selectionText"], 
                 "selMatch":fromState(st)["selMatch"], 
                 "twoSided":params["twoSided"], 
                 "text": params["text"], 
@@ -206,6 +241,8 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Elide: ( X + A ) ⇒ X"
         let prepareState = params => {
             st => state({
+                "selection":fromState(st)["selection"], 
+                "selectionText":fromState(st)["selectionText"], 
                 "selMatch":fromState(st)["selMatch"], 
                 "twoSided":params["twoSided"], 
                 "keepLeft": params["keepLeft"], 
@@ -382,6 +419,8 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Associate: ( A + B ) + C ⇒ A + ( B + C )"
         let prepareState = params => {
             st => state({
+                "selection":fromState(st)["selection"], 
+                "selectionText":fromState(st)["selectionText"], 
                 "selMatch":fromState(st)["selMatch"], 
                 "right":params["right"], 
             })
@@ -442,6 +481,8 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         let transformName = "Replace"
         let prepareState = params => {
             st => state({
+                "selection":fromState(st)["selection"], 
+                "selectionText":fromState(st)["selectionText"], 
                 "text":params["text"],
             })
         }
@@ -450,6 +491,24 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
             ~selectedFragment = "( 6 + 1 )",
             ~prepareState = prepareState({"text":"7"}),
             ~expectedResult = "7",
+        )
+    })
+
+    it("Extract", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Extract"
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( A + B )",
+            ~prepareState = st => st,
+            ~expectedResult = "|- ( A + B )",
+        )
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( th -> C = D )",
+            ~prepareState = st => st,
+            ~expectedResult = "|- ( th -> ( th -> C = D ) )",
         )
     })
 })

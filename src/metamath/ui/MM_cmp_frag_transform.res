@@ -1,24 +1,25 @@
-open MM_syntax_tree
 open Expln_React_common
 open Expln_React_Mui
 open MM_cmp_single_frag_transf
 open MM_wrk_frag_transform
+open MM_wrk_editor
 
 let transformsTextCache:ref<array<string>> = ref([])
 let allTransformsCache: ref<array<fragmentTransform>> = ref([])
 
 type state = {
-    selection:selection,
+    step:Js_json.t,
     transformsParseErr:option<string>,
     availableTransforms:option<reElem>,
     selectedTransform: option<fragmentTransform>,
 }
 
 let createInitialState = (
-    ~selectedSubtree:childNode,
+    ~step:userStmt,
+    ~ctxConstIntToSymExn:int=>string,
 ):state => {
     {
-        selection: syntaxTreeToSelection(selectedSubtree),
+        step: MM_cmp_api.stmtToJson(step, Some(ctxConstIntToSymExn)),
         transformsParseErr: None,
         availableTransforms: None,
         selectedTransform: None,
@@ -39,17 +40,18 @@ let setSelectedTransform = (st:state,tr:option<fragmentTransform>) => {
 
 @react.component
 let make = (
-    ~onCancel:unit=>unit,
-    ~selectedSubtree:childNode,
+    ~step:userStmt,
+    ~ctxConstIntToSymExn:int=>string,
     ~transformsText:array<string>,
-    ~onInsertAbove:string=>unit,
-    ~onInsertBelow:string=>unit,
-    ~onUpdateCurrent:string=>unit,
+    ~onInsertAbove:(bool,string)=>unit,
+    ~onInsertBelow:(bool,string)=>unit,
+    ~onUpdateCurrent:(bool,string)=>unit,
+    ~onCancel:unit=>unit,
 ) => {
-    let (state, setState) = React.useState(() => createInitialState(~selectedSubtree))
+    let (state, setState) = React.useState(() => createInitialState(~step, ~ctxConstIntToSymExn))
 
     let rndAvailableTransforms = (availableTransforms:array<fragmentTransform>):result<reElem,string> => {
-        let param = {"selection":state.selection}
+        let param = {"step":state.step}
         let listItems = unsafeFunc( "Listing available transforms", () => {
             availableTransforms->Js_array2.mapi((availableTransform,i) => {
                 <ListItem key={i->Belt_Int.toString} disablePadding=true >
@@ -74,7 +76,7 @@ let make = (
     }
 
     React.useEffect0(() => {
-        let param = {"selection":state.selection}
+        let param = {"step":state.step}
         if (transformsText != transformsTextCache.contents) {
             let allTransformsRef = ref([])
             let availableTransformsElem = arrStrToFragTransforms(transformsText)
@@ -122,7 +124,7 @@ let make = (
 
     let rndSelectedTransform = (selectedTransform) => {
         <MM_cmp_single_frag_transf
-            selection={state.selection}
+            step=state.step
             transform=selectedTransform
             onBack=actUnselectTransform
             onInsertAbove
@@ -136,12 +138,12 @@ let make = (
             | Some(msg) => {
                 <Col>
                     <span>
-                        {React.string(`Error: ${msg}`)}
-                    </span>
-                    <span>
                         {React.string(`Please make sure the custom transforms script is non-blank and valid or `
                                                 ++ `the "Use custom transforms" setting is unchecked.`)}
                     </span>
+                    <pre>
+                        {React.string(`Error: ${msg}`)}
+                    </pre>
                 </Col>
             }
             | None => {

@@ -1,20 +1,13 @@
-open MM_syntax_tree
-
-type rec selection = {
-    "text": string,
-    "children": array<selection>,
-}
 
 type fragmentTransformState = string
 type reactElemDto = string
 
 type fragmentTransform = {
-    canApply: {"selection":selection} => bool,
-    displayName: {"selection":selection} => string,
-    createInitialState: {"selection":selection} => fragmentTransformState,
+    canApply: {"step":Js_json.t} => bool,
+    displayName: {"step":Js_json.t} => string,
+    createInitialState: {"step":Js_json.t} => fragmentTransformState,
     renderDialog: 
         {
-            "selection":selection, 
             "state":fragmentTransformState, 
             "setState":(fragmentTransformState => fragmentTransformState) => unit
         } => reactElemDto,
@@ -30,7 +23,8 @@ let unsafeFunc = (title:string, func:unit=>'a):result<'a,string> => {
     } catch {
         | Js.Exn.Error(exn) => {
             let errMsg = `${title}: ${exn->Js.Exn.message->Belt_Option.getWithDefault("unknown error.")}.`
-            Error(errMsg)
+            let stack = exn->Js.Exn.stack->Belt_Option.getWithDefault("")
+            Error([errMsg,stack]->Js.Array2.joinWith("\n"))
         }
         | _ => {
             let errMsg = `${title}: unknown error.`
@@ -133,18 +127,6 @@ let reqFuncExn = (nullable:Js.Nullable.t<'a>, msg:string):'a => {
         Js_exn.raiseError(`Not a function: ${msg}`)
     } else {
         res
-    }
-}
-
-let rec syntaxTreeToSelection = (tree:childNode):selection => {
-    let text = tree->syntaxTreeToText
-    {
-        "text": text,
-        "children":
-            switch tree {
-                | Symbol(_) => []
-                | Subtree({children}) => children->Js.Array2.map(syntaxTreeToSelection)
-            },
     }
 }
 

@@ -43,3 +43,5 @@ let updateEditorApi: (
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
 ) => unit
+
+let stmtToJson: (userStmt, option<int=>string>) => Js_json.t
