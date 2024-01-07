@@ -8,7 +8,7 @@ type macro = {
     run:unit=>unit,
 }
 
-type collectionOfMacros = {
+type collOfMacros = {
     id:int,
     version:int,
     displayName:string,
@@ -20,8 +20,8 @@ type collectionOfMacros = {
 
 type state = {
     nextId:int,
-    activeCollectionOfMacrosId:int,
-    collectionsOfMacros:array<collectionOfMacros>,
+    activeCollOfMacrosId:int,
+    collsOfMacros:array<collOfMacros>,
 }
 
 let createMacroFromObject = (obj:{..}):macro => {
@@ -49,8 +49,8 @@ let makeEmptyState = () => {
     let setMmExampleDisplayName = "set.mm example"
     {
         nextId:1,
-        activeCollectionOfMacrosId:-1,
-        collectionsOfMacros:[
+        activeCollOfMacrosId:-1,
+        collsOfMacros:[
             {
                 id: -1,
                 version: 1,
@@ -67,13 +67,13 @@ let makeEmptyState = () => {
     }
 }
 
-let addNewCollectionOfMacros = (st:state):state => {
+let addNewCollOfMacros = (st:state):state => {
     let displayName = `Macros-${st.nextId->Belt.Int.toString}`
     let scriptText = "return [{displayName:'empty macro', run:() => console.log('empty macro')}]"
     {
         nextId:st.nextId+1,
-        activeCollectionOfMacrosId:st.nextId,
-        collectionsOfMacros:Belt_Array.concatMany([
+        activeCollOfMacrosId:st.nextId,
+        collsOfMacros:Belt_Array.concatMany([
             [{
                 id:st.nextId,
                 version:1,
@@ -83,7 +83,7 @@ let addNewCollectionOfMacros = (st:state):state => {
                 scriptTextEdit:scriptText,
                 macros: stringToMacros( ~displayName, ~script=scriptText )
             }],
-            st.collectionsOfMacros, 
+            st.collsOfMacros, 
         ])
     }
 }
@@ -95,7 +95,7 @@ let deleteMacros = (st:state, ~id:int):result<state,string> => {
         Ok(
             {
                 ...st,
-                collectionsOfMacros:st.collectionsOfMacros->Js_array2.filter(macros => macros.id != id)
+                collsOfMacros:st.collsOfMacros->Js_array2.filter(macros => macros.id != id)
             }
         )
     }
@@ -108,18 +108,18 @@ let saveEdits = (st:state, ~id:int):result<state,string> => {
         Ok(
             {
                 ...st,
-                collectionsOfMacros:st.collectionsOfMacros->Js_array2.map(collectionOfMacros => {
-                    if (collectionOfMacros.id != id) {
-                        collectionOfMacros
+                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                    if (collOfMacros.id != id) {
+                        collOfMacros
                     } else {
                         {
-                            ...collectionOfMacros,
-                            version:collectionOfMacros.version+1,
-                            displayName:collectionOfMacros.displayNameEdit,
-                            scriptText:collectionOfMacros.scriptTextEdit,
+                            ...collOfMacros,
+                            version:collOfMacros.version+1,
+                            displayName:collOfMacros.displayNameEdit,
+                            scriptText:collOfMacros.scriptTextEdit,
                             macros: stringToMacros(
-                                ~displayName=collectionOfMacros.displayNameEdit,
-                                ~script=collectionOfMacros.scriptTextEdit
+                                ~displayName=collOfMacros.displayNameEdit,
+                                ~script=collOfMacros.scriptTextEdit
                             )
                         }
                     }
@@ -129,18 +129,18 @@ let saveEdits = (st:state, ~id:int):result<state,string> => {
     }
 }
 
-let setDisplayNameEdit = (st:state, ~collectionOfMacrosId:int, ~displayNameEdit:string):result<state,string> => {
-    if (collectionOfMacrosId < 0) {
+let setDisplayNameEdit = (st:state, ~collOfMacrosId:int, ~displayNameEdit:string):result<state,string> => {
+    if (collOfMacrosId < 0) {
         Error("Cannot update these macros because they are read-only.")
     } else {
         Ok(
             {
                 ...st,
-                collectionsOfMacros:st.collectionsOfMacros->Js_array2.map(collectionOfMacros => {
-                    if (collectionOfMacros.id != collectionOfMacrosId) {
-                        collectionOfMacros
+                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                    if (collOfMacros.id != collOfMacrosId) {
+                        collOfMacros
                     } else {
-                        { ...collectionOfMacros, displayNameEdit, }
+                        { ...collOfMacros, displayNameEdit, }
                     }
                 })
             }
@@ -148,18 +148,18 @@ let setDisplayNameEdit = (st:state, ~collectionOfMacrosId:int, ~displayNameEdit:
     }
 }
 
-let setScriptTextEdit = (st:state, ~collectionOfMacrosId:int, ~scriptTextEdit:string):result<state,string> => {
-    if (collectionOfMacrosId < 0) {
+let setScriptTextEdit = (st:state, ~collOfMacrosId:int, ~scriptTextEdit:string):result<state,string> => {
+    if (collOfMacrosId < 0) {
         Error("Cannot update these macros because they are read-only.")
     } else {
         Ok(
             {
                 ...st,
-                collectionsOfMacros:st.collectionsOfMacros->Js_array2.map(collectionOfMacros => {
-                    if (collectionOfMacros.id != collectionOfMacrosId) {
-                        collectionOfMacros
+                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                    if (collOfMacros.id != collOfMacrosId) {
+                        collOfMacros
                     } else {
-                        { ...collectionOfMacros, scriptTextEdit, }
+                        { ...collOfMacros, scriptTextEdit, }
                     }
                 })
             }
@@ -167,21 +167,21 @@ let setScriptTextEdit = (st:state, ~collectionOfMacrosId:int, ~scriptTextEdit:st
     }
 }
 
-let resetEditsForCollectionOfMacros = (st:state, id:int):result<state,string> => {
+let resetEditsForCollOfMacros = (st:state, id:int):result<state,string> => {
     if (id < 0) {
         Error("Cannot update these macros because they are read-only.")
     } else {
         Ok(
             {
                 ...st,
-                collectionsOfMacros:st.collectionsOfMacros->Js_array2.map(collectionOfMacros => {
-                    if (collectionOfMacros.id != id) {
-                        collectionOfMacros
+                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                    if (collOfMacros.id != id) {
+                        collOfMacros
                     } else {
                         {
-                            ...collectionOfMacros,
-                            displayNameEdit:collectionOfMacros.displayName,
-                            scriptTextEdit:collectionOfMacros.scriptText,
+                            ...collOfMacros,
+                            displayNameEdit:collOfMacros.displayName,
+                            scriptTextEdit:collOfMacros.scriptText,
                         }
                     }
                 })
@@ -190,18 +190,18 @@ let resetEditsForCollectionOfMacros = (st:state, id:int):result<state,string> =>
     }
 }
 
-let setActiveCollectionOfMacrosId = (st:state, newActiveCollectionOfMacrosId:int):result<state,string> => {
-    switch st.collectionsOfMacros->Js_array2.find(coll => coll.id == newActiveCollectionOfMacrosId) {
+let setActiveCollOfMacrosId = (st:state, newActiveCollOfMacrosId:int):result<state,string> => {
+    switch st.collsOfMacros->Js_array2.find(coll => coll.id == newActiveCollOfMacrosId) {
         | None => Ok(st)
-        | Some(newActiveCollectionOfMacros) => {
+        | Some(newActiveCollOfMacros) => {
             let st = {
                 ...st,
-                activeCollectionOfMacrosId:newActiveCollectionOfMacrosId
+                activeCollOfMacrosId:newActiveCollOfMacrosId
             }
-            if (newActiveCollectionOfMacrosId < 0) {
+            if (newActiveCollOfMacrosId < 0) {
                 Ok(st)
             } else {
-                st->resetEditsForCollectionOfMacros( newActiveCollectionOfMacrosId )
+                st->resetEditsForCollOfMacros( newActiveCollOfMacrosId )
             }
         }
     }
@@ -213,18 +213,18 @@ let make = (
 ) => {
     let (state, setState) = React.useState(makeEmptyState)
 
-    let activeCollectionOfMacros = state.collectionsOfMacros
-        ->Js_array2.find(collectionOfMacros => collectionOfMacros.id == state.activeCollectionOfMacrosId)
-    let thereAreChangesInActiveCollectionOfMacros = activeCollectionOfMacros->Belt.Option.map(coll => {
+    let activeCollOfMacros = state.collsOfMacros
+        ->Js_array2.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
+    let thereAreChangesInActiveCollOfMacros = activeCollOfMacros->Belt.Option.map(coll => {
         coll.displayName != coll.displayNameEdit || coll.scriptText != coll.scriptTextEdit
     })->Belt_Option.getWithDefault(false)
 
-    let actActiveCollectionOfMacrosChange = (newActiveCollectionOfMacrosIdStr:string) => {
-        switch newActiveCollectionOfMacrosIdStr->Belt_Int.fromString {
+    let actActiveCollOfMacrosChange = (newActiveCollOfMacrosIdStr:string) => {
+        switch newActiveCollOfMacrosIdStr->Belt_Int.fromString {
             | None => ()
             | Some(id) => {
                 setState(st => {
-                    switch st->setActiveCollectionOfMacrosId(id) {
+                    switch st->setActiveCollOfMacrosId(id) {
                         | Error(_) => st
                         | Ok(st) => st
                     }
@@ -234,11 +234,11 @@ let make = (
     }
 
     let actSetDisplayNameEdit = (str:string) => {
-        switch activeCollectionOfMacros {
+        switch activeCollOfMacros {
             | None => ()
             | Some({id}) => {
                 setState(st => {
-                    switch st->setDisplayNameEdit(~collectionOfMacrosId=id, ~displayNameEdit=str) {
+                    switch st->setDisplayNameEdit(~collOfMacrosId=id, ~displayNameEdit=str) {
                         | Error(_) => st
                         | Ok(st) => st
                     }
@@ -248,11 +248,11 @@ let make = (
     }
 
     let actSetScriptTextEdit = (str:string) => {
-        switch activeCollectionOfMacros {
+        switch activeCollOfMacros {
             | None => ()
             | Some({id}) => {
                 setState(st => {
-                    switch st->setScriptTextEdit(~collectionOfMacrosId=id, ~scriptTextEdit=str) {
+                    switch st->setScriptTextEdit(~collOfMacrosId=id, ~scriptTextEdit=str) {
                         | Error(_) => st
                         | Ok(st) => st
                     }
@@ -262,7 +262,7 @@ let make = (
     }
 
     let actSaveEdits = () => {
-        switch activeCollectionOfMacros {
+        switch activeCollOfMacros {
             | None => ()
             | Some({id}) => {
                 setState(st => {
@@ -275,8 +275,8 @@ let make = (
         }
     }
 
-    let actAddNewCollectionOfMacros = () => {
-        setState(addNewCollectionOfMacros)
+    let actAddNewCollOfMacros = () => {
+        setState(addNewCollOfMacros)
     }
 
     let rndError = msg => {
@@ -286,12 +286,12 @@ let make = (
     let rndMacrosDropdown = () => {
         <FormControl size=#small >
             <Select
-                value={state.activeCollectionOfMacrosId->Belt_Int.toString}
-                onChange=evt2str(actActiveCollectionOfMacrosChange)
+                value={state.activeCollOfMacrosId->Belt_Int.toString}
+                onChange=evt2str(actActiveCollOfMacrosChange)
                 sx={"width": 300}
             >
                 {
-                    state.collectionsOfMacros->Js_array2.map(macros => {
+                    state.collsOfMacros->Js_array2.map(macros => {
                         let value = macros.id->Belt_Int.toString
                         <MenuItem key=value value>{React.string(macros.displayName)}</MenuItem>
                     })->React.array
@@ -307,18 +307,18 @@ let make = (
     }
 
     let rndEditControls = () => {
-        switch activeCollectionOfMacros {
+        switch activeCollOfMacros {
             | None => React.null
-            | Some(collectionOfMacros) => {
+            | Some(collOfMacros) => {
                 <Col>
                     <TextField
                         size=#small
                         style=ReactDOM.Style.make(~width="300px", ())
                         label="Display name" 
-                        value=collectionOfMacros.displayNameEdit
+                        value=collOfMacros.displayNameEdit
                         onChange=evt2str(actSetDisplayNameEdit)
                         onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
-                        disabled={collectionOfMacros.id < 0}
+                        disabled={collOfMacros.id < 0}
                     />
                     <TextField
                         size=#small
@@ -327,20 +327,20 @@ let make = (
                         autoFocus=true
                         multiline=true
                         maxRows=3
-                        value=collectionOfMacros.scriptTextEdit
+                        value=collOfMacros.scriptTextEdit
                         onChange=evt2str(actSetScriptTextEdit)
                         onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
-                        disabled={collectionOfMacros.id < 0}
+                        disabled={collOfMacros.id < 0}
                     />
                     <Row>
                         <Button 
-                            disabled={!thereAreChangesInActiveCollectionOfMacros} 
+                            disabled={!thereAreChangesInActiveCollOfMacros} 
                             onClick={_=>actSaveEdits()} variant=#contained 
                         >
                             {React.string("Save changes")}
                         </Button>
                         <Button 
-                            onClick={_=>actAddNewCollectionOfMacros()} variant=#outlined 
+                            onClick={_=>actAddNewCollOfMacros()} variant=#outlined 
                         >
                             {React.string("Add new")}
                         </Button>
@@ -351,25 +351,25 @@ let make = (
     }
 
     let rndActiveMacros = () => {
-        switch activeCollectionOfMacros {
+        switch activeCollOfMacros {
             | None => {
                 rndError(
-                    `Cannot find a collection of macros with id ` 
-                        ++ ` ${state.activeCollectionOfMacrosId->Belt_Int.toString}`
+                    `Cannot find a coll of macros with id ` 
+                        ++ ` ${state.activeCollOfMacrosId->Belt_Int.toString}`
                 )
             }
-            | Some(collectionOfMacros) => {
-                switch collectionOfMacros.macros {
+            | Some(collOfMacros) => {
+                switch collOfMacros.macros {
                     | Error(msg) => {
-                        rndError(`There was an error during initialization of this collection of macros:\n${msg}`)
+                        rndError(`There was an error during initialization of this coll of macros:\n${msg}`)
                     }
                     | Ok(macros) => {
-                        <List disablePadding=true key={collectionOfMacros.id->Belt_Int.toString}>
+                        <List disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
                             {
                                 macros->Js_array2.mapi((macro,i) => {
                                     <ListItem 
                                         key={
-                                            collectionOfMacros.version->Belt_Int.toString 
+                                            collOfMacros.version->Belt_Int.toString 
                                                 ++ "-" ++ i->Belt_Int.toString
                                         } 
                                         disablePadding=true 
