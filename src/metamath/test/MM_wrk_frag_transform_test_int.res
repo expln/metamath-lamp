@@ -77,10 +77,10 @@ let state = objToFragmentTransformState
 external fromState: fragmentTransformState => {..} = "%identity"
 
 describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
-    it("Insert: X ⇒  ( X + A )", _ => {
+    it("Insert: X ⇒ ( X + A )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
         let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
-        let transformName = "Insert: X ⇒  ( X + A )"
+        let transformName = "Insert: X ⇒ ( X + A )"
         let prepareState = params => {
             st => state({
                 "selMatch":fromState(st)["selMatch"], 
@@ -200,10 +200,10 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         )
     })
 
-    it("Elide: ( X + A ) ⇒  X", _ => {
+    it("Elide: ( X + A ) ⇒ X", _ => {
         setTestDataDir("MM_wrk_frag_transform")
         let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
-        let transformName = "Elide: ( X + A ) ⇒  X"
+        let transformName = "Elide: ( X + A ) ⇒ X"
         let prepareState = params => {
             st => state({
                 "selMatch":fromState(st)["selMatch"], 
@@ -346,10 +346,10 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         )
     })
 
-    it("Swap: X = Y ⇒  Y = X", _ => {
+    it("Swap: X = Y ⇒ Y = X", _ => {
         setTestDataDir("MM_wrk_frag_transform")
         let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
-        let transformName = "Swap: X = Y ⇒  Y = X"
+        let transformName = "Swap: X = Y ⇒ Y = X"
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "x = y",
@@ -376,10 +376,10 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         )
     })
 
-    it("Associate: ( A + B ) + C ⇒  A + ( B + C )", _ => {
+    it("Associate: ( A + B ) + C ⇒ A + ( B + C )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
         let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
-        let transformName = "Associate: ( A + B ) + C ⇒  A + ( B + C )"
+        let transformName = "Associate: ( A + B ) + C ⇒ A + ( B + C )"
         let prepareState = params => {
             st => state({
                 "selMatch":fromState(st)["selMatch"], 
@@ -433,6 +433,23 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
             ~selectedFragment = "( ( a + b ) + ( c + d ) )",
             ~prepareState = prepareState({"right":true}),
             ~expectedResult = "( a + ( b + ( c + d ) ) )",
+        )
+    })
+
+    it("Replace", _ => {
+        setTestDataDir("MM_wrk_frag_transform")
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let transformName = "Replace"
+        let prepareState = params => {
+            st => state({
+                "text":params["text"],
+            })
+        }
+
+        testTransform( ~editorState, ~transformName,
+            ~selectedFragment = "( 6 + 1 )",
+            ~prepareState = prepareState({"text":"7"}),
+            ~expectedResult = "7",
         )
     })
 })

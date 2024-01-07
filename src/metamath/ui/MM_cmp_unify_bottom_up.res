@@ -28,19 +28,23 @@ type resultRendered = {
     numOfStmts: int,
 }
 
-type actualProverParams = {
-    stepToProve:string,
-    asrtLabel:option<string>,
-    frmsToUse:option<array<string>>,
-    maxSearchDepth: int,
-    lengthRestrict: string,
+type proverFrameParamsToShow = {
+    minDist: option<int>,
+    maxDist: option<int>,
+    frmsToUse: option<array<string>>,
+    args: array<string>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
-    args0: array<string>,
-    args1: array<string>,
+    lengthRestrict: string,
     maxNumberOfBranches: option<int>,
+}
+
+type proverParamsToShow = {
+    stepToProve:string,
     debugLevel:int,
+    maxSearchDepth:int,
+    frameParams: array<proverFrameParamsToShow>,
 }
 
 type state = {
@@ -50,11 +54,12 @@ type state = {
     exprToProve:expr,
     title: reElem,
 
+    initialParams: bottomUpProverParams,
     args0: array<bool>,
     args1: array<bool>,
+    args1EqArgs0:bool,
     availableLabels: array<string>,
     label:option<string>,
-    frmsToUse:option<array<string>>,
     depth: int,
     depthStr: string,
     lengthRestrict: lengthRestrict,
@@ -67,7 +72,7 @@ type state = {
     debugLevel:int,
     maxNumberOfBranchesStr:string,
 
-    actualProverParams:option<actualProverParams>,
+    proverParamsToShow:option<proverParamsToShow>,
     tree: option<proofTreeDto>,
     warnings:array<string>,
     results: option<array<stmtsDto>>,
@@ -147,8 +152,11 @@ let makeInitialState = (
 
     let params = switch initialParams {
         | Some(params) => params
-        | None => bottomUpProverParamsMake(())
+        | None => bottomUpProverParamsMakeDefault(())
     }
+
+    let frameParams = params.frameParams
+    let frameParamsLen = frameParams->Js_array2.length
 
     {
         rootUserStmts,
@@ -175,30 +183,67 @@ let makeInitialState = (
                 { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts[maxRootStmtIdx].cont, ()) }
             </span>,
 
+        initialParams:params,
         args0: possibleArgs->Js_array2.map(possibleArg => {
-            params.args0->Js_array2.some(arg0 => arg0->exprEq(possibleArg))
+            frameParamsLen > 0 && frameParams[0].args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
         args1: possibleArgs->Js_array2.map(possibleArg => {
-            params.args1->Js_array2.some(arg1 => arg1->exprEq(possibleArg))
+            frameParamsLen > 1 && frameParams[1].args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
+        args1EqArgs0:false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
-        label: params.asrtLabel,
-        frmsToUse: params.frmsToUse,
+        label:
+            if (frameParamsLen > 0) {
+                frameParams[0].frmsToUse
+                    ->Belt_Option.flatMap(arr => {
+                        if (arr->Js_array2.length > 0) {
+                            Some(arr[0])
+                        } else {
+                            None
+                        }
+                    })
+            } else {
+                None
+            },
         depthStr: params.maxSearchDepth->Belt_Int.toString,
         depth: params.maxSearchDepth,
-        lengthRestrict: params.lengthRestrict,
-        allowNewDisjForExistingVars: params.allowNewDisjForExistingVars,
-        allowNewStmts: params.allowNewStmts,
-        allowNewVars: params.allowNewVars,
+        lengthRestrict:
+            if (frameParamsLen > 1) {
+                frameParams[1].lengthRestrict
+            } else {
+                Less
+            },
+        allowNewDisjForExistingVars:
+            if (frameParamsLen > 0) {
+                frameParams[0].allowNewDisjForExistingVars
+            } else {
+                true
+            },
+        allowNewStmts:
+            if (frameParamsLen > 0) {
+                frameParams[0].allowNewStmts
+            } else {
+                true
+            },
+        allowNewVars:
+            if (frameParamsLen > 0) {
+                frameParams[0].allowNewVars
+            } else {
+                false
+            },
         useDisc:allowedFrms.inEssen.useDisc,
         useDepr:allowedFrms.inEssen.useDepr,
         useTranDepr:allowedFrms.inEssen.useTranDepr,
         debugLevel: initialDebugLevel
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
-            params.maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault(""),
+            if (frameParamsLen > 0) {
+                frameParams[0].maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
+            } else {
+                ""
+            },
 
-        actualProverParams: None,
+        proverParamsToShow: None,
         tree: None,
         warnings: [],
         results: None,
@@ -254,6 +299,13 @@ let toggleAllowNewVars = (st) => {
     {
         ...st,
         allowNewVars: !st.allowNewVars
+    }
+}
+
+let toggleArgs1EqArgs0 = (st) => {
+    {
+        ...st,
+        args1EqArgs0: !st.args1EqArgs0
     }
 }
 
@@ -677,6 +729,70 @@ let make = (
         })
     }
 
+    let getEffectiveProverParams = (state:state):bottomUpProverParams => {
+        if (isApiCall) {
+            state.initialParams
+        } else {
+            let args0=state.rootStmtsRendered
+                    ->Js_array2.filteri((_,i) => state.args0[i])
+                    ->Js_array2.map(stmt => stmt.expr)
+            bottomUpProverParamsMakeDefault(
+                ~asrtLabel=?state.label,
+                ~maxSearchDepth=state.depth,
+                ~lengthRestrict=state.lengthRestrict,
+                ~allowNewDisjForExistingVars=state.allowNewDisjForExistingVars,
+                ~allowNewStmts=state.allowNewStmts,
+                ~allowNewVars=state.allowNewVars,
+                ~args0,
+                ~args1=
+                    if (state.args1EqArgs0) {
+                        args0
+                    } else {
+                        state.rootStmtsRendered
+                            ->Js_array2.filteri((_,i) => state.args1[i])
+                            ->Js_array2.map(stmt => stmt.expr)
+                    },
+                ~maxNumberOfBranches=
+                    ?if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
+                        None
+                    } else {
+                        state.maxNumberOfBranchesStr->Belt_Int.fromString
+                    },
+                ()
+            )
+        }
+    }
+
+    let exprToLabel = (state:state, expr:expr):string => {
+        switch state.rootStmtsRendered->Js_array2.find(stmt => exprEq(expr, stmt.expr)) {
+            | None => {
+                raise(MmException({
+                    msg: "Could not find a label for an expression in MM_cmp_unify_bottom_up.exprToLabel()"
+                }))
+            }
+            | Some(stmt) => stmt.label
+        }
+    }
+
+    let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
+        {
+            stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
+            debugLevel: state.debugLevel,
+            maxSearchDepth: params.maxSearchDepth,
+            frameParams: params.frameParams->Js_array2.map(p => {
+                minDist: p.minDist,
+                maxDist: p.maxDist,
+                frmsToUse: p.frmsToUse,
+                args: p.args->Js_array2.map(exprToLabel(state, _)),
+                allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
+                allowNewStmts: p.allowNewStmts,
+                allowNewVars: p.allowNewVars,
+                lengthRestrict: p.lengthRestrict->lengthRestrictToStr,
+                maxNumberOfBranches: p.maxNumberOfBranches,
+            }),
+        }
+    }
+
     let actProve = () => {
         setState(st => {
             let depthStr = st.depthStr->Js_string2.trim
@@ -688,42 +804,13 @@ let make = (
                 {...st, depth, depthStr}
             }
 
-            let asrtLabel = st.label
-            let frmsToUse = st.frmsToUse
-            let maxSearchDepth = st.depth
-            let lengthRestrict = st.lengthRestrict
-            let allowNewDisjForExistingVars = st.allowNewDisjForExistingVars
-            let allowNewStmts = st.allowNewStmts
-            let allowNewVars = st.allowNewVars
-            let args0 = st.rootStmtsRendered
-                ->Js_array2.filteri((_,i) => st.args0[i])
-                ->Js_array2.map(stmt => stmt.label)
-            let args1 = st.rootStmtsRendered
-                                ->Js_array2.filteri((_,i) => st.args1[i])
-                                ->Js_array2.map(stmt => stmt.label)
-            let maxNumberOfBranches = 
-                if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
-                    None
-                } else {
-                    state.maxNumberOfBranchesStr->Belt_Int.fromString
-                }
+            let effectiveProverParams = getEffectiveProverParams(st)
+            let paramsToShow = getEffectiveProverParamsToShow(st, effectiveProverParams)
+
             let debugLevel = st.debugLevel
             let st = {
                 ...st,
-                actualProverParams: Some({
-                    stepToProve: st.rootStmts[st.rootStmts->Js_array2.length-1].label,
-                    asrtLabel:asrtLabel,
-                    frmsToUse,
-                    maxSearchDepth,
-                    lengthRestrict:lengthRestrict->lengthRestrictToStr,
-                    allowNewDisjForExistingVars,
-                    allowNewStmts,
-                    allowNewVars,
-                    args0,
-                    args1,
-                    maxNumberOfBranches,
-                    debugLevel,
-                })
+                proverParamsToShow: Some(paramsToShow),
             }
 
             openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0., ()))->promiseMap(modalId => {
@@ -734,24 +821,7 @@ let make = (
                 )
                 unify(
                     ~settingsVer, ~settings, ~preCtxVer, ~preCtx, ~varsText, ~disjText, ~rootStmts=state.rootStmts,
-                    ~bottomUpProverParams=Some({
-                        asrtLabel,
-                        frmsToUse,
-                        maxSearchDepth,
-                        lengthRestrict,
-                        allowNewDisjForExistingVars,
-                        allowNewStmts,
-                        allowNewVars,
-                        args0: 
-                            st.rootStmtsRendered
-                                ->Js_array2.filteri((_,i) => st.args0[i])
-                                ->Js_array2.map(stmt => stmt.expr),
-                        args1:
-                            st.rootStmtsRendered
-                                ->Js_array2.filteri((_,i) => st.args1[i])
-                                ->Js_array2.map(stmt => stmt.expr),
-                        maxNumberOfBranches,
-                    }),
+                    ~bottomUpProverParams=Some(effectiveProverParams),
                     ~allowedFrms={
                         inSyntax: settings.allowedFrms.inSyntax,
                         inEssen: {
@@ -1094,23 +1164,32 @@ let make = (
         setState(toggleShowApiParams)
     }
 
+    let rndActualProverParams = () => {
+        switch state.proverParamsToShow {
+            | None => React.null
+            | Some(proverParamsToShow) => {
+                <TextField
+                    label="Actual parameters of the bottom-up prover"
+                    size=#small
+                    style=ReactDOM.Style.make(~width="800px", ())
+                    autoFocus=false
+                    multiline=true
+                    rows=10
+                    value=Expln_utils_common.stringify(proverParamsToShow)
+                    disabled=true
+                />
+            }
+        }
+    }
+
     let rndParamsForApiCall = () => {
         <Col>
             {
-                switch state.actualProverParams {
+                switch state.proverParamsToShow {
                     | None => "Starting..."->React.string
-                    | Some(actualProverParams) => {
+                    | Some(_) => {
                         if (state.showApiParams) {
-                            <TextField
-                                label="Actual prover params"
-                                size=#small
-                                style=ReactDOM.Style.make(~width="800px", ())
-                                autoFocus=false
-                                multiline=true
-                                rows=10
-                                value=Expln_utils_common.stringify(actualProverParams)
-                                disabled=true
-                            />
+                            rndActualProverParams()
                         } else {
                             React.null
                         }
@@ -1195,6 +1274,30 @@ let make = (
         }
     }
 
+    let actShowActualParams = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                    <Col>
+                        {rndActualProverParams()}
+                        <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                            {React.string("Close")}
+                        </Button>
+                    </Col>
+                </Paper>
+            })
+        })->ignore
+    }
+
+    let rndShowActualParamsBtn = () => {
+        <IconButton 
+            title="Show actual parameters of the bottom-up prover" 
+            onClick={_=>actShowActualParams()}
+        >
+            <MM_Icons.DisplaySettings/>
+        </IconButton>
+    }
+
     let rndResults = () => {
         switch state.resultsSorted {
             | None => React.null
@@ -1207,6 +1310,7 @@ let make = (
                             {React.string("Nothing found.")}
                             {rndShowProofTreeBtn()}
                             {rndWarningsBtn(state.warnings)}
+                            {rndShowActualParamsBtn()}
                         </Row>
                     </Col>
                 } else {
@@ -1220,6 +1324,7 @@ let make = (
                             {rndPagination(totalNumOfResults)}
                             {rndShowProofTreeBtn()}
                             {rndWarningsBtn(state.warnings)}
+                            {rndShowActualParamsBtn()}
                         </Row>
                         {
                             items->Js_array2.map(item => {
@@ -1294,68 +1399,91 @@ let make = (
 
     let rndRootStmtsForLevelShort = (
         ~title: string, 
+        ~titleOnly:bool,
         ~dialogTitle: string,
         ~stmtToProve:reElem,
         ~getFlags: state => array<bool>,
         ~setFlags: array<bool> => unit,
     ) => {
-        let flags = state->getFlags
-        let allSelected = flags->Js_array2.every(b => b)
-        let noneSelected = flags->Js_array2.every(b => !b)
-        let numberOfSelected = if (allSelected) {
-            "All"
-        } else if (noneSelected) {
-            "None"
+        if (titleOnly) {
+            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+                {React.string(title)}
+            </Row>
         } else {
-            let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
-            let numAll = flags->Js_array2.length
-            numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
+            let flags = state->getFlags
+            let allSelected = flags->Js_array2.every(b => b)
+            let noneSelected = flags->Js_array2.every(b => !b)
+            let numberOfSelected = if (allSelected) {
+                "All"
+            } else if (noneSelected) {
+                "None"
+            } else {
+                let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
+                let numAll = flags->Js_array2.length
+                numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
+            }
+            let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
+                ("select all", () => setFlags(flags->selectAllArgs))
+            } else {
+                ("select none", () => setFlags(flags->unselectAllArgs))
+            }
+            <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
+                {React.string(title)}
+                <span
+                    onClick={_=> { 
+                        actOpenRootStmtsDialog( ~title = dialogTitle, ~stmtToProve, ~getFlags, ~setFlags, ) 
+                    }}
+                    style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
+                >
+                    {React.string(numberOfSelected)}
+                </span>
+                <span
+                    onClick={_=> selectUnselectAct() }
+                    style=ReactDOM.Style.make(
+                        ~cursor="pointer", 
+                        ~border="solid lightgrey 0px", 
+                        ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
+                        ~paddingLeft="5px", ~paddingRight="5px", 
+                        ()
+                    )
+                >
+                    {React.string(selectUnselectText)}
+                </span>
+            </Row>
         }
-        let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
-            ("select all", () => setFlags(flags->selectAllArgs))
-        } else {
-            ("select none", () => setFlags(flags->unselectAllArgs))
-        }
-        <Row style=ReactDOM.Style.make(~border="solid lightgrey 1px", ~borderRadius="6px", ~margin="2px", ())>
-            {React.string(title)}
-            <span
-                onClick={_=> { actOpenRootStmtsDialog( ~title = dialogTitle, ~stmtToProve, ~getFlags, ~setFlags, ) }}
-                style=ReactDOM.Style.make(~cursor="pointer", ~color="blue", ())
-            >
-                {React.string(numberOfSelected)}
-            </span>
-            <span
-                onClick={_=> selectUnselectAct() }
-                style=ReactDOM.Style.make(
-                    ~cursor="pointer", 
-                    ~border="solid lightgrey 0px", ~borderRadius="10px", ~backgroundColor="rgb(240, 240, 240)", 
-                    ~paddingLeft="5px", ~paddingRight="5px", 
-                    ()
-                )
-            >
-                {React.string(selectUnselectText)}
-            </span>
-        </Row>
+    }
+
+    let actToggleArgs1EqArgs0 = () => {
+        setState(toggleArgs1EqArgs0)
     }
 
     let rndRootStmts = () => {
         if (state.rootStmtsRendered->Js_array2.length == 0) {
             React.null
         } else {
-            <Row alignItems=#center>
+            <Row alignItems=#center spacing=0.2>
                 {React.string("Allowed statements: ")}
                 {
                     rndRootStmtsForLevelShort(
                         ~title = "first level", 
+                        ~titleOnly=false,
                         ~dialogTitle = "Select steps to derive from on level 0", 
                         ~stmtToProve = state.title,
                         ~getFlags = state => state.args0,
                         ~setFlags = newFlags => setState(updateArgs0(_, newFlags)),
                     )
                 }
+                <IconButton 
+                    title="Set allowed statements for other levels same as for the first level" 
+                    onClick={_=>actToggleArgs1EqArgs0()}
+                    color = ?(if (state.args1EqArgs0) {Some("primary")} else {None})
+                >
+                    <MM_Icons.Pause style=ReactDOM.Style.make(~transform="rotate(-90deg)", ())/>
+                </IconButton>
                 {
                     rndRootStmtsForLevelShort(
-                        ~title = "other levels", 
+                        ~title = if (state.args1EqArgs0) {"other levels: same as first level"} else {"other levels"}, 
+                        ~titleOnly=state.args1EqArgs0,
                         ~dialogTitle = "Select steps to derive from on other levels", 
                         ~stmtToProve = state.title,
                         ~getFlags = state => state.args1,

@@ -30,9 +30,11 @@ let bottomUpProverParamsToStr = (params:option<bottomUpProverParams>):string => 
     switch params {
         | None => "None"
         | Some(params) => {
-            `{` 
-                ++ `allowNewDisjForExistingVars=${if (params.allowNewDisjForExistingVars) {"true"} else {"false"}}` 
-                ++ `}`
+            params.frameParams->Js_array2.map(p => {
+                `{` 
+                    ++ `allowNewDisjForExistingVars=${if (p.allowNewDisjForExistingVars) {"true"} else {"false"}}` 
+                    ++ `}`
+            })->Js_array2.joinWith("; ")
         }
     }
 }

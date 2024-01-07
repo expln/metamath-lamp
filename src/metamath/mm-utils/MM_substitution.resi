@@ -78,9 +78,12 @@ let verifyDisjoints: (
 let frmsEmpty: unit => frms
 let frmsSize: frms => int
 let frmsForEach: (frms, ~typ:int=?, frmSubsData=>unit) => unit
+let frmsGetAll: frms => array<frmSubsData>
 let frmsGetByLabel: (frms, string) => option<frmSubsData>
+let frmsGetByType: (frms, int) => option<array<frmSubsData>>
 let frmsSelect: (frms, ~typ:int=?, ~label:string=?, ()) => array<frmSubsData>
 let frmsGetAllTypes: frms => array<int>
+let frmsGetAllGroupedByLabel: frms => Belt_HashMapString.t<frmSubsData>
 
 //------------------------- TEST ---------------------------
 

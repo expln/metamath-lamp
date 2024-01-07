@@ -240,20 +240,24 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
     )
 }
 
+type apiBottomUpProverFrameParams = {
+    minDist:option<int>,
+    maxDist:option<int>,
+    framesToUse:option<array<string>>,
+    stepsToUse:array<string>,
+    allowNewDisjointsForExistingVariables:bool,
+    allowNewSteps:bool,
+    allowNewVariables:bool,
+    statementLengthRestriction:string,
+    maxNumberOfBranches:option<int>,
+}
 type proveBottomUpApiParams = {
     delayBeforeStartMs:option<int>,
     stepToProve:string,
-    debugLevel:option<int>,
-    args0:array<string>,
-    args1:array<string>,
-    frmsToUse:option<array<string>>,
     maxSearchDepth:int,
-    lengthRestrict:string,
-    allowNewStmts:bool,
-    allowNewVars:bool,
-    allowNewDisjForExistingVars:bool,
-    maxNumberOfBranches:option<int>,
+    debugLevel:option<int>,
     selectFirstFoundProof:option<bool>,
+    frameParams: array<apiBottomUpProverFrameParams>,
 }
 type proverParams = {
     delayBeforeStartMs:int,
@@ -280,63 +284,86 @@ let proveBottomUp = (
                 delayBeforeStartMs: d->intOpt("delayBeforeStartMs", ()),
                 stepToProve: d->str("stepToProve", ()),
                 debugLevel: d->intOpt("debugLevel", ()),
-                args0: d->arr("args0", asStr(_, ()), ()),
-                args1: d->arr("args1", asStr(_, ()), ()),
-                frmsToUse: d->arrOpt("frmsToUse", asStr(_, ()), ()),
                 maxSearchDepth: d->int("maxSearchDepth", ()),
-                lengthRestrict: d->str("lengthRestrict", ~validator = str => {
-                    switch MM_provers.lengthRestrictFromStr(str) {
-                        | Some(_) => Ok(str)
-                        | None => Error(`lengthRestrict must be one of: No, LessEq, Less.`)
-                    }
-                }, ()),
-                allowNewStmts: d->bool("allowNewStmts", ()),
-                allowNewVars: d->bool("allowNewVars", ()),
-                allowNewDisjForExistingVars: d->bool("allowNewDisjForExistingVars", ()),
-                maxNumberOfBranches: d->intOpt("maxNumberOfBranches", ()),
                 selectFirstFoundProof: d->boolOpt("selectFirstFoundProof", ()),
+                frameParams: d->arr("frameParams", asObj(_, d=>{
+                    {
+                        minDist: d->intOpt("minDist", ()),
+                        maxDist: d->intOpt("maxDist", ()),
+                        framesToUse: d->arrOpt("framesToUse", asStr(_, ()), ()),
+                        stepsToUse: d->arr("stepsToUse", asStr(_, ()), ()),
+                        allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),
+                        allowNewSteps: d->bool("allowNewSteps", ()),
+                        allowNewVariables: d->bool("allowNewVariables", ()),
+                        statementLengthRestriction: d->str("statementLengthRestriction", ~validator = str => {
+                            switch MM_provers.lengthRestrictFromStr(str) {
+                                | Some(_) => Ok(str)
+                                | None => Error(`statementLengthRestriction must be one of: No, LessEq, Less.`)
+                            }
+                        }, ()),
+                        maxNumberOfBranches: d->intOpt("maxNumberOfBranches", ()),
+                        
+                    }
+                }, ()), ()),
             }
         }, ()), ())
         switch parseResult {
             | Error(msg) => promiseResolved(Error(msg))
             | Ok(apiParams) => {
                 switch state.stmts->Js.Array2.find(stmt => stmt.label == apiParams.stepToProve) {
-                    | None => promiseResolved(Error(`Cannot find a step with label '${apiParams.stepToProve}'`))
+                    | None => promiseResolved(Error(`Cannot find a step with the label '${apiParams.stepToProve}'`))
                     | Some(stmtToProve) => {
-                        switch state->labelsToExprs(apiParams.args0) {
-                            | Error(msg) => promiseResolved(Error(msg))
-                            | Ok(args0) => {
-                                switch state->labelsToExprs(apiParams.args1) {
-                                    | Error(msg) => promiseResolved(Error(msg))
-                                    | Ok(args1) => {
-                                        startProvingBottomUp({
-                                            delayBeforeStartMs:
-                                                apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
-                                            stmtId: stmtToProve.id,
-                                            debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
-                                            bottomUpProverParams: {
-                                                asrtLabel: None,
-                                                args0,
-                                                args1,
-                                                frmsToUse: apiParams.frmsToUse,
-                                                maxSearchDepth: apiParams.maxSearchDepth,
-                                                lengthRestrict: 
-                                                    apiParams.lengthRestrict->MM_provers.lengthRestrictFromStrExn,
-                                                allowNewDisjForExistingVars: apiParams.allowNewDisjForExistingVars,
-                                                allowNewStmts: apiParams.allowNewStmts,
-                                                allowNewVars: apiParams.allowNewVars,
-                                                maxNumberOfBranches: apiParams.maxNumberOfBranches,
-                                            },
-                                            selectFirstFoundProof:
-                                                apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
-                                        })->promiseMap(proved => {
-                                            switch proved {
-                                                | None => Ok(Js_json.null)
-                                                | Some(proved) => Ok(proved->Js_json.boolean)
+                        let args = apiParams.frameParams->Js_array2.reduce(
+                            (res,frameParams) => {
+                                switch res {
+                                    | Error(msg) => Error(msg)
+                                    | Ok(args) => {
+                                        switch state->labelsToExprs(frameParams.stepsToUse) {
+                                            | Error(msg) => Error(msg)
+                                            | Ok(exprs) => {
+                                                args->Js_array2.push(exprs)->ignore
+                                                Ok(args)
                                             }
-                                        })
+                                        }
                                     }
                                 }
+                            },
+                            Ok([])
+                        )
+                        switch args {
+                            | Error(msg) => promiseResolved(Error(msg))
+                            | Ok(args) => {
+                                startProvingBottomUp({
+                                    delayBeforeStartMs:
+                                        apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
+                                    stmtId: stmtToProve.id,
+                                    debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
+                                    selectFirstFoundProof:
+                                        apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
+                                    bottomUpProverParams: {
+                                        maxSearchDepth: apiParams.maxSearchDepth,
+                                        frameParams: apiParams.frameParams->Js_array2.mapi(
+                                            (frameParams,i):MM_provers.bottomUpProverFrameParams => {
+                                                {
+                                                    minDist: frameParams.minDist,
+                                                    maxDist: frameParams.maxDist,
+                                                    frmsToUse: frameParams.framesToUse,
+                                                    args: args[i],
+                                                    allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
+                                                    allowNewStmts: frameParams.allowNewSteps,
+                                                    allowNewVars: frameParams.allowNewVariables,
+                                                    lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
+                                                    maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                                }
+                                            }
+                                        )
+                                    }
+                                })->promiseMap(proved => {
+                                    switch proved {
+                                        | None => Ok(Js_json.null)
+                                        | Some(proved) => Ok(proved->Js_json.boolean)
+                                    }
+                                })
                             }
                         }
                     }

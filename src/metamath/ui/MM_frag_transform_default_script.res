@@ -144,7 +144,7 @@ const insertCanBeTwoSided = selection => findMatch(selection,insertSelPatterns) 
  * X => [ X + A ] : else
  */
 const trInsert = {
-    displayName: () => "Insert: X ⇒  ( X + A )",
+    displayName: () => "Insert: X ⇒ ( X + A )",
     canApply: () => true,
     createInitialState: ({selection}) => ({
         selMatch: findMatch(selection,insertSelPatterns),
@@ -235,7 +235,7 @@ const elideCanBeTwoSided = selection => findMatch(selection,elideSelPatterns) !=
  * X + A => [ X ] : else // test: class X + Y
  */
 const trElide = {
-    displayName: () => "Elide: ( X + A ) ⇒  X",
+    displayName: () => "Elide: ( X + A ) ⇒ X",
     canApply:({selection}) => findMatch(selection,[['', '', ''], ['', '', '', '', '']]) !== undefined,
     createInitialState: ({selection}) => ({
         selMatch: findMatch(selection,elideSelPatterns),
@@ -435,7 +435,7 @@ const swapSelPat2 = ['', '', '', '', '']
 const swapSelPatterns = [swapSelPat1, swapSelPat2]
 
 const trSwap = {
-    displayName: () => "Swap: X = Y ⇒  Y = X",
+    displayName: () => "Swap: X = Y ⇒ Y = X",
     canApply:({selection}) => findMatch(selection,swapSelPatterns) !== undefined,
     createInitialState: ({selection}) => ({
         selMatch: findMatch(selection,swapSelPatterns)
@@ -483,7 +483,7 @@ const assocSelPat5_5 = ['','','',['','','','',''],'']
 const assocSelPatterns = [assocSelPat355, assocSelPat555, assocSelPat35_, assocSelPat3_5, assocSelPat55_, assocSelPat5_5]
 
 const trAssoc = {
-    displayName: () => "Associate: ( A + B ) + C ⇒  A + ( B + C )",
+    displayName: () => "Associate: ( A + B ) + C ⇒ A + ( B + C )",
     canApply:({selection}) => findMatch(selection,assocSelPatterns) !== undefined,
     createInitialState: ({selection}) => ({
         selMatch: findMatch(selection,assocSelPatterns),

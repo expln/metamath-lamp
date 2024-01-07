@@ -6,22 +6,25 @@ open MM_wrk_settings
 
 type lengthRestrict = No | LessEq | Less
 
-type bottomUpProverParams = {
-    asrtLabel: option<string>,
+type bottomUpProverFrameParams = {
+    minDist: option<int>,
+    maxDist: option<int>,
     frmsToUse: option<array<string>>,
-    maxSearchDepth: int,
-    lengthRestrict: lengthRestrict,
+    args: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
-    args0: array<expr>,
-    args1: array<expr>,
+    lengthRestrict: lengthRestrict,
     maxNumberOfBranches: option<int>,
 }
 
-let bottomUpProverParamsMake: (
+type bottomUpProverParams = {
+    maxSearchDepth: int,
+    frameParams: array<bottomUpProverFrameParams>,
+}
+
+let bottomUpProverParamsMakeDefault:(
     ~asrtLabel: string=?,
-    ~frmsToUse: array<string>=?,
     ~maxSearchDepth: int=?,
     ~lengthRestrict: lengthRestrict=?,
     ~allowNewDisjForExistingVars: bool=?,
