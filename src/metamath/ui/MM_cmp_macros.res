@@ -2,6 +2,7 @@ open Expln_React_common
 open MM_react_common
 open Expln_React_Mui
 open Raw_js_utils
+open Local_storage_utils
 
 type macro = {
     displayName: string,
@@ -71,6 +72,7 @@ let addNewCollOfMacros = (st:state):state => {
     let displayName = `Macros-${st.nextId->Belt.Int.toString}`
     let scriptText = "return [{displayName:'empty macro', run:() => console.log('empty macro')}]"
     {
+        ...st,
         nextId:st.nextId+1,
         activeCollOfMacrosId:st.nextId,
         collsOfMacros:Belt_Array.concatMany([
@@ -193,7 +195,7 @@ let resetEditsForCollOfMacros = (st:state, id:int):result<state,string> => {
 let setActiveCollOfMacrosId = (st:state, newActiveCollOfMacrosId:int):result<state,string> => {
     switch st.collsOfMacros->Js_array2.find(coll => coll.id == newActiveCollOfMacrosId) {
         | None => Ok(st)
-        | Some(newActiveCollOfMacros) => {
+        | Some(_) => {
             let st = {
                 ...st,
                 activeCollOfMacrosId:newActiveCollOfMacrosId
@@ -207,11 +209,27 @@ let setActiveCollOfMacrosId = (st:state, newActiveCollOfMacrosId:int):result<sta
     }
 }
 
+let expBtnBaseStyle = ReactDOM.Style.make(
+    ~display="block",
+    ~color="grey", 
+    ~border="1px solid",
+    ~marginRight="3px",
+    ~marginTop="13px",
+    ~padding="1px 3px 0px 2px",
+    ~fontFamily="courier",
+    ~fontSize="10px",
+    ~cursor="pointer",
+    ()
+)
+
 @react.component
 let make = (
     ~onClose:unit=>unit
 ) => {
     let (state, setState) = React.useState(makeEmptyState)
+    let (isExpanded, setIsExpanded) = useStateFromLocalStorageBool(
+        ~key="macros-dialog-is-expanded", ~default=false
+    )
 
     let activeCollOfMacros = state.collsOfMacros
         ->Js_array2.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
@@ -279,25 +297,38 @@ let make = (
         setState(addNewCollOfMacros)
     }
 
+    let actToggleExpanded = () => {
+        setIsExpanded(prev => !prev)
+    }
+
     let rndError = msg => {
         <pre> { React.string( msg ) } </pre>
     }
+    
+    let rndExpBtn = ():reElem => {
+        <a style=expBtnBaseStyle onClick={_=>actToggleExpanded()}>
+            {React.string(if (isExpanded) {"-"} else {"+"})}
+        </a>
+    }
 
     let rndMacrosDropdown = () => {
-        <FormControl size=#small >
-            <Select
-                value={state.activeCollOfMacrosId->Belt_Int.toString}
-                onChange=evt2str(actActiveCollOfMacrosChange)
-                sx={"width": 300}
-            >
-                {
-                    state.collsOfMacros->Js_array2.map(macros => {
-                        let value = macros.id->Belt_Int.toString
-                        <MenuItem key=value value>{React.string(macros.displayName)}</MenuItem>
-                    })->React.array
-                }
-            </Select>
-        </FormControl>
+        <Row >
+            <FormControl size=#small >
+                <Select
+                    value={state.activeCollOfMacrosId->Belt_Int.toString}
+                    onChange=evt2str(actActiveCollOfMacrosChange)
+                    sx={"width": 300}
+                >
+                    {
+                        state.collsOfMacros->Js_array2.map(macros => {
+                            let value = macros.id->Belt_Int.toString
+                            <MenuItem key=value value>{React.string(macros.displayName)}</MenuItem>
+                        })->React.array
+                    }
+                </Select>
+            </FormControl>
+            {rndExpBtn()}
+        </Row>
     }
 
     let rndCancelBtn = () => {
@@ -307,45 +338,49 @@ let make = (
     }
 
     let rndEditControls = () => {
-        switch activeCollOfMacros {
-            | None => React.null
-            | Some(collOfMacros) => {
-                <Col>
-                    <TextField
-                        size=#small
-                        style=ReactDOM.Style.make(~width="300px", ())
-                        label="Display name" 
-                        value=collOfMacros.displayNameEdit
-                        onChange=evt2str(actSetDisplayNameEdit)
-                        onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
-                        disabled={collOfMacros.id < 0}
-                    />
-                    <TextField
-                        size=#small
-                        style=ReactDOM.Style.make(~width="300px", ())
-                        label="Script"
-                        autoFocus=true
-                        multiline=true
-                        maxRows=3
-                        value=collOfMacros.scriptTextEdit
-                        onChange=evt2str(actSetScriptTextEdit)
-                        onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
-                        disabled={collOfMacros.id < 0}
-                    />
-                    <Row>
-                        <Button 
-                            disabled={!thereAreChangesInActiveCollOfMacros} 
-                            onClick={_=>actSaveEdits()} variant=#contained 
-                        >
-                            {React.string("Save changes")}
-                        </Button>
-                        <Button 
-                            onClick={_=>actAddNewCollOfMacros()} variant=#outlined 
-                        >
-                            {React.string("Add new")}
-                        </Button>
-                    </Row>
-                </Col>
+        if (!isExpanded) {
+            React.null
+        } else {
+            switch activeCollOfMacros {
+                | None => React.null
+                | Some(collOfMacros) => {
+                    <Col>
+                        <TextField
+                            size=#small
+                            style=ReactDOM.Style.make(~width="320px", ())
+                            label="Display name" 
+                            value=collOfMacros.displayNameEdit
+                            onChange=evt2str(actSetDisplayNameEdit)
+                            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
+                            disabled={collOfMacros.id < 0}
+                        />
+                        <TextField
+                            size=#small
+                            style=ReactDOM.Style.make(~width="320px", ())
+                            label="Script"
+                            autoFocus=true
+                            multiline=true
+                            maxRows=3
+                            value=collOfMacros.scriptTextEdit
+                            onChange=evt2str(actSetScriptTextEdit)
+                            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
+                            disabled={collOfMacros.id < 0}
+                        />
+                        <Row>
+                            <Button 
+                                disabled={!thereAreChangesInActiveCollOfMacros} 
+                                onClick={_=>actSaveEdits()} variant=#contained 
+                            >
+                                {React.string("Save changes")}
+                            </Button>
+                            <Button 
+                                onClick={_=>actAddNewCollOfMacros()} variant=#outlined 
+                            >
+                                {React.string("Add new")}
+                            </Button>
+                        </Row>
+                    </Col>
+                }
             }
         }
     }
@@ -354,14 +389,14 @@ let make = (
         switch activeCollOfMacros {
             | None => {
                 rndError(
-                    `Cannot find a coll of macros with id ` 
+                    `Cannot find a collection of macros with id ` 
                         ++ ` ${state.activeCollOfMacrosId->Belt_Int.toString}`
                 )
             }
             | Some(collOfMacros) => {
                 switch collOfMacros.macros {
                     | Error(msg) => {
-                        rndError(`There was an error during initialization of this coll of macros:\n${msg}`)
+                        rndError(`There was an error during initialization of this collection of macros:\n${msg}`)
                     }
                     | Ok(macros) => {
                         <List disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
