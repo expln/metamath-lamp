@@ -1062,42 +1062,45 @@ let make = React.memoCustomCompareProps( ({
         result->replaceSelectionWithNewText->Belt_Option.forEach(onContEditDone)
     }
 
-    let actOpenFragmentTransform = (selectedSubtree:childNode) => {
-        let transformsText = if (settings.useDefaultTransforms) {
-            if (settings.useCustomTransforms) {
-                [MM_frag_transform_default_script.fragmentTransformsDefaultScript, settings.customTransforms]
+    let actOpenFragmentTransform = () => {
+        wrkCtx->Belt_Option.forEach(wrkCtx => {
+            let transformsText = if (settings.useDefaultTransforms) {
+                if (settings.useCustomTransforms) {
+                    [MM_frag_transform_default_script.fragmentTransformsDefaultScript, settings.customTransforms]
+                } else {
+                    [MM_frag_transform_default_script.fragmentTransformsDefaultScript]
+                }
             } else {
-                [MM_frag_transform_default_script.fragmentTransformsDefaultScript]
+                if (settings.useCustomTransforms) {
+                    [settings.customTransforms]
+                } else {
+                    []
+                }
             }
-        } else {
-            if (settings.useCustomTransforms) {
-                [settings.customTransforms]
-            } else {
-                []
-            }
-        }
-        openModal(modalRef, () => React.null)->promiseMap(modalId => {
-            updateModal(modalRef, modalId, () => {
-                let closeDialog = ()=>closeModal(modalRef, modalId)
-                <MM_cmp_frag_transform
-                    selectedSubtree
-                    transformsText
-                    onCancel=closeDialog
-                    onInsertAbove={transformedSelectionText => {
-                        actInsertTransformResultAbove(transformedSelectionText)
-                        closeDialog()
-                    }}
-                    onInsertBelow={transformedSelectionText => {
-                        actInsertTransformResultBelow(transformedSelectionText)
-                        closeDialog()
-                    }}
-                    onUpdateCurrent={transformedSelectionText => {
-                        actInsertTransformResultToCurrent(transformedSelectionText)
-                        closeDialog()
-                    }}
-                />
-            })
-        })->ignore
+            openModal(modalRef, () => React.null)->promiseMap(modalId => {
+                updateModal(modalRef, modalId, () => {
+                    let closeDialog = ()=>closeModal(modalRef, modalId)
+                    <MM_cmp_frag_transform
+                        step=stmt
+                        ctxConstIntToSymExn={wrkCtx->ctxIntToSymExn}
+                        transformsText
+                        onCancel=closeDialog
+                        onInsertAbove={transformedSelectionText => {
+                            actInsertTransformResultAbove(transformedSelectionText)
+                            closeDialog()
+                        }}
+                        onInsertBelow={transformedSelectionText => {
+                            actInsertTransformResultBelow(transformedSelectionText)
+                            closeDialog()
+                        }}
+                        onUpdateCurrent={transformedSelectionText => {
+                            actInsertTransformResultToCurrent(transformedSelectionText)
+                            closeDialog()
+                        }}
+                    />
+                })
+            })->ignore
+        })
     }
 
     let rndLabel = () => {
@@ -1182,9 +1185,6 @@ let make = React.memoCustomCompareProps( ({
             | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
             | _ => "1"
         }
-        let transformSelection:unit=>unit = () => {
-            stmt.cont->getSelectedSubtreeFromStmtCont->Belt.Option.forEach(actOpenFragmentTransform)
-        }
         <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
             <ButtonGroup variant=#outlined size=#small >
                 <Button title="Expand selection, W" onClick={_=>actExpandSelection()} ?style> <MM_Icons.ZoomOutMap/> </Button>
@@ -1207,7 +1207,7 @@ let make = React.memoCustomCompareProps( ({
                     if (readOnly) {React.null} else {
                         <Button 
                             title="Transform, Q" 
-                            onClick={_=>transformSelection()} 
+                            onClick={_=>actOpenFragmentTransform()} 
                             ?style
                         > 
                             <MM_Icons.ShapeLineSharp/>
@@ -1240,7 +1240,7 @@ let make = React.memoCustomCompareProps( ({
                     ~onKeyDown=kbrdHnds([
                         kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
                         kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
-                        kbrdClbkMake(~key="q", ~act=transformSelection, ()),
+                        kbrdClbkMake(~key="q", ~act=actOpenFragmentTransform, ()),
                         kbrdClbkMake(~key="e", ~act=actEditSelection, ()),
                         kbrdClbkMake(~key="a", ~act=actCopyToClipboard, ()),
                         kbrdClbkMake(~key="d", ~act=actPasteFromClipboard, ()),

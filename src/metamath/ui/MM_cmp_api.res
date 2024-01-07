@@ -29,17 +29,17 @@ let errResp = (msg:string):apiResp => {
     }
 }
 
-let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t => {
+let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):Js_json.t => {
     Js_dict.fromArray([
         ("id", node.id->Belt.Int.toFloat->Js_json.number),
         ("nodeType", "expr"->Js_json.string),
-        ("exprType", ctx->ctxIntToSymExn(node.typ)->Js_json.string),
+        ("exprType", ctxConstIntToSymExn(node.typ)->Js_json.string),
         ("label", node.label->Js_json.string),
-        ("children", node.children->Js.Array2.map(childNodeToJson(ctx,_))->Js_json.array ),
+        ("children", node.children->Js.Array2.map(childNodeToJson(_, ctxConstIntToSymExn))->Js_json.array ),
     ])->Js_json.object_ 
-} and childNodeToJson = (ctx:mmContext, node:childNode):Js_json.t => {
+} and childNodeToJson = (node:childNode, ctxConstIntToSymExn:int=>string):Js_json.t => {
     switch node {
-        | Subtree(subtree) => syntaxTreeNodeToJson(ctx, subtree)
+        | Subtree(subtree) => syntaxTreeNodeToJson(subtree, ctxConstIntToSymExn)
         | Symbol({id, sym, isVar}) => {
             Js_dict.fromArray([
                 ("id", id->Belt.Int.toFloat->Js_json.number),
@@ -51,19 +51,14 @@ let rec syntaxTreeNodeToJson = (ctx:mmContext, node:syntaxTreeNode):Js_json.t =>
     }
 }
 
-let syntaxTreeToJson = (state:editorState, stmt:userStmt):Js_json.t => {
-    switch state.wrkCtx {
-        | None => Js_json.null
-        | Some(wrkCtx) => {
-            switch stmt.cont {
-                | Text(_) => Js_json.null
-                | Tree({exprTyp, root}) => {
-                    Js_dict.fromArray([
-                        ("exprType", exprTyp->Js_json.string),
-                        ("root", syntaxTreeNodeToJson(wrkCtx, root)),
-                    ])->Js_json.object_
-                }
-            }
+let syntaxTreeToJson = (stmt:userStmt, ctxConstIntToSymExn:int=>string):Js_json.t => {
+    switch stmt.cont {
+        | Text(_) => Js_json.null
+        | Tree({exprTyp, root}) => {
+            Js_dict.fromArray([
+                ("exprType", exprTyp->Js_json.string),
+                ("root", syntaxTreeNodeToJson(root, ctxConstIntToSymExn)),
+            ])->Js_json.object_
         }
     }
 }
@@ -84,63 +79,71 @@ let getSelectedFragmentId = (stmt:userStmt):Js_json.t => {
     }
 }
 
-let getAllSteps = (~state:editorState):Js_json.t => {
-    state.stmts->Js.Array2.map(stmt => {
-        Js_dict.fromArray([
-            ("id", stmt.id->Js_json.string),
-            ("status", 
-                switch stmt.proofStatus {
-                    | None => Js_json.null
-                    | Some(proofStatus) => {
-                        switch proofStatus {
-                            | Ready => "v"
-                            | Waiting => "~"
-                            | NoJstf => "?"
-                            | JstfIsIncorrect => "x"
-                        }->Js_json.string
-                    }
+let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_json.t => {
+    Js_dict.fromArray([
+        ("id", stmt.id->Js_json.string),
+        ("status", 
+            switch stmt.proofStatus {
+                | None => Js_json.null
+                | Some(proofStatus) => {
+                    switch proofStatus {
+                        | Ready => "v"
+                        | Waiting => "~"
+                        | NoJstf => "?"
+                        | JstfIsIncorrect => "x"
+                    }->Js_json.string
                 }
-            ),
-            ("label", stmt.label->Js_json.string),
-            ("isHyp", (stmt.typ == E)->Js_json.boolean),
-            ("isGoal", stmt.isGoal->Js_json.boolean),
-            ("isBkm", stmt.isBkm->Js_json.boolean),
-            ("jstfText", stmt.jstfText->Js_json.string),
-            (
-                "jstf", 
-                stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
-                    Js_json.null, 
-                    (jstf:option<MM_statements_dto.jstf>) => {
-                        switch jstf {
-                            | None => Js_json.null
-                            | Some(jstf) => {
-                                Js_dict.fromArray([
-                                    ("args", jstf.args->Js_array2.map(Js_json.string)->Js_json.array),
-                                    ("asrt", jstf.label->Js_json.string),
-                                ])->Js_json.object_
-                            }
+            }
+        ),
+        ("label", stmt.label->Js_json.string),
+        ("isHyp", (stmt.typ == E)->Js_json.boolean),
+        ("isGoal", stmt.isGoal->Js_json.boolean),
+        ("isBkm", stmt.isBkm->Js_json.boolean),
+        ("jstfText", stmt.jstfText->Js_json.string),
+        (
+            "jstf", 
+            stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
+                Js_json.null, 
+                (jstf:option<MM_statements_dto.jstf>) => {
+                    switch jstf {
+                        | None => Js_json.null
+                        | Some(jstf) => {
+                            Js_dict.fromArray([
+                                ("args", jstf.args->Js_array2.map(Js_json.string)->Js_json.array),
+                                ("asrt", jstf.label->Js_json.string),
+                            ])->Js_json.object_
                         }
                     }
-                )
-            ),
-            ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
-            ("tree", syntaxTreeToJson(state, stmt)),
-            ("fragId", getSelectedFragmentId(stmt)),
-            ("stmtErr", 
-                switch stmt.stmtErr {
-                    | None => Js_json.null
-                    | Some({ code, msg }) => {
-                        Js_dict.fromArray([
-                            ("code", code->Belt.Int.toFloat->Js_json.number),
-                            ("msg", msg->Js_json.string),
-                        ])->Js_json.object_
-                    }
                 }
-            ),
-            ("unifErr", stmt.unifErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
-            ("syntaxErr", stmt.syntaxErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
-        ])->Js_json.object_
-    })->Js.Json.array
+            )
+        ),
+        ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
+        ("tree", 
+            switch ctxConstIntToSymExn {
+                | None => Js_json.null
+                | Some(ctxConstIntToSymExn) => syntaxTreeToJson(stmt, ctxConstIntToSymExn)
+            }
+        ),
+        ("fragId", getSelectedFragmentId(stmt)),
+        ("stmtErr", 
+            switch stmt.stmtErr {
+                | None => Js_json.null
+                | Some({ code, msg }) => {
+                    Js_dict.fromArray([
+                        ("code", code->Belt.Int.toFloat->Js_json.number),
+                        ("msg", msg->Js_json.string),
+                    ])->Js_json.object_
+                }
+            }
+        ),
+        ("unifErr", stmt.unifErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
+        ("syntaxErr", stmt.syntaxErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
+    ])->Js_json.object_
+}
+
+let getAllSteps = (~state:editorState):Js_json.t => {
+    let ctxConstIntToSymExn = state.wrkCtx->Belt_Option.map(wrkCtx => wrkCtx->ctxIntToSymExn)
+    state.stmts->Js.Array2.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
 }
 
 let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
@@ -690,7 +693,7 @@ let editorBuildSyntaxTrees = (
                                             | Ok(syntaxTree) => {
                                                 Js_dict.fromArray([
                                                     ("err", Js_json.null),
-                                                    ("tree", syntaxTreeNodeToJson(wrkCtx, syntaxTree)),
+                                                    ("tree", syntaxTreeNodeToJson(syntaxTree, wrkCtx->ctxIntToSymExn)),
                                                 ])->Js_json.object_ 
                                             }
                                         }

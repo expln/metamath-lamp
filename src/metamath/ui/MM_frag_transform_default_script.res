@@ -9,49 +9,84 @@ const nbsp = String.fromCharCode(160)
 const NO_PARENS = "no parentheses"
 const ALL_PARENS = [NO_PARENS, "( )", "[ ]", "{ }", "[. ].", "[_ ]_", "<. >.", "<< >>", "[s ]s", "(. ).", "(( ))", "[b /b"]
 
-const isObj = x => x !== undefined && x !== null && typeof x === 'object' && !Array.isArray(x)
-
-const ANY = 'any'
-const any = options => ({matcherType:ANY,options})
-
-const match = (selection, pattern) => {
-    if (pattern.length === 0) {
-        return [selection.text]
-    } else if (selection.children.length !== pattern.length) {
-        return undefined
-    } else {
-        const result = []
-        for (let i = 0; i < selection.children.length; i++) {
-            const pat = pattern[i]
-            const ch = selection.children[i]
-            if (Array.isArray(pat)) {
-                const subMatchResult = match(ch,pat)
-                if (subMatchResult === undefined) {
-                    return undefined
-                } else {
-                    result.push(subMatchResult)
-                }
-            } else if (isObj(pat)) {
-                if (pat.matcherType === ANY && pat.options.includes(ch.text)) {
-                    result.push(ch.text)
-                } else {
-                    return undefined
-                }
-            } else {
-                if (pat === '' || pat === ch.text) {
-                    result.push(ch.text)
-                } else {
-                    return undefined
-                }
-            }
-        }
-        return result
-    }
+function isSymbol(tree) {
+    return tree.nodeType === "sym"
 }
 
-const findMatch = (selection,patterns) => {
+function isVar(tree) {
+    return tree.nodeType === "expr" && tree.children.length === 1 && tree.children[0].isVar
+}
+
+function isObj(x) {
+    return x !== undefined && x !== null && typeof x === 'object' && !Array.isArray(x)
+}
+
+const MATCHER_ANY_SYMBOL = 'MATCHER_ANY_SYMBOL'
+function anySym(allowedSymbols) {
+    return ({matcherType:MATCHER_ANY_SYMBOL,allowedSymbols})
+}
+const MATCHER_EXPR_OF_TYPE = 'MATCHER_EXPR_OF_TYPE'
+function exprOfType(type) {
+    return ({matcherType:MATCHER_EXPR_OF_TYPE,type})
+}
+const MATCHER_VAR_OF_TYPE = 'MATCHER_VAR_OF_TYPE'
+function varOfType(type) {
+    return ({matcherType:MATCHER_VAR_OF_TYPE,type})
+}
+const MATCHER_VAR_OF_ANY_TYPE = 'MATCHER_VAR_OF_ANY_TYPE'
+function anyVar() {
+    return ({matcherType:MATCHER_VAR_OF_ANY_TYPE})
+}
+const MATCHER_USER_DEFINED = 'MATCHER_USER_DEFINED'
+function makeMatcher(matcher) {
+    return ({matcherType:MATCHER_USER_DEFINED, matcher})
+}
+
+function match(tree, pattern) {
+    if (pattern.length === 0) {
+        return tree
+    }
+    if (tree.nodeType !== "expr" || tree.children.length !== pattern.length) {
+        return undefined
+    }
+    const result = []
+    for (let i = 0; i < tree.children.length; i++) {
+        const pat = pattern[i]
+        const ch = tree.children[i]
+        if (Array.isArray(pat)) {
+            const subMatchResult = match(ch,pat)
+            if (subMatchResult === undefined) {
+                return undefined
+            }
+            result.push(subMatchResult)
+        } else if (isObj(pat)) {
+            if (pat.matcherType === MATCHER_ANY_SYMBOL && isSymbol(ch) && pat.allowedSymbols.includes(ch.sym)) {
+                result.push(ch)
+            } else if (pat.matcherType === MATCHER_EXPR_OF_TYPE && ch.exprType === pat.type) {
+                result.push(ch)
+            } else if (pat.matcherType === MATCHER_VAR_OF_TYPE && isVar(ch) && ch.exprType === pat.type) {
+                result.push(ch)
+            } else if (pat.matcherType === MATCHER_VAR_OF_ANY_TYPE && isVar(ch)) {
+                result.push(ch)
+            } else if (pat.matcherType === MATCHER_USER_DEFINED && pat.matcher(ch)) {
+                result.push(ch)
+            } else {
+                return undefined
+            }
+        } else {
+            if (pat === '' || isSymbol(ch) && pat === ch.sym) {
+                result.push(ch)
+            } else {
+                return undefined
+            }
+        }
+    }
+    return result
+}
+
+const findMatch = (tree,patterns) => {
     for (const pattern of patterns) {
-        const foundMatch = match(selection,pattern)
+        const foundMatch = match(tree,pattern)
         if (foundMatch !== undefined) {
             return {pattern, match:foundMatch}
         }
@@ -59,17 +94,51 @@ const findMatch = (selection,patterns) => {
     return undefined
 }
 
+function findFirstInTree(tree, nodePredicate) {
+    if (nodePredicate(tree)) {
+        return tree
+    }
+    if (tree.nodeType === 'expr') {
+        for (let i = 0; i < tree.children.length; i++) {
+            const found = findFirstInTree(tree.children[i], nodePredicate)
+            if (found) {
+                return found
+            }
+        }
+    }
+    return undefined
+}
+
+function syntaxTreeToText(tree) {
+    if (isSymbol(tree)) {
+        return tree.sym
+    } else {
+        return tree.children.map(syntaxTreeToText).join(' ')
+    }
+}
+
+function getSelection(step) {
+    return findFirstInTree(step.tree.root, node => node.id === step.fragId)
+}
+
+function textPartToStr(part) {
+    if (isObj(part)) {
+        return syntaxTreeToText(part)
+    }
+    return part
+}
+
 const mapToTextCmpArr = (arrOfTextParts) => {
     return arrOfTextParts.map(part => {
         if (!Array.isArray(part)) {
-            const text = part
+            const text = textPartToStr(part)
             if (text.trim() !== "" || text === nbsp) {
                 return {cmp:"Text", value: nbsp+text+nbsp}
             } else {
                 return {cmp:"Text", value: ""}
             }
         } else {
-            const text = part[0]
+            const text = textPartToStr(part[0])
             const bkgColor = part[1]
 
             if (text.trim() !== "" || text === nbsp) {
@@ -107,17 +176,17 @@ const getAllTextFromComponent = cmp => {
 
 const makeSimpleTransform = ({displayName, pattern, makeInitial, makeResult, isDebug}) => {
     return {
-        displayName: ({selection}) => displayName,
+        displayName: ({step}) => displayName,
         canApply: (params) => {
             if (isDebug) {
                 console.log(displayName + ': params = ' + JSON.stringify(params));
             }
-            const {selection} = params
-            return undefined !== match(selection, pattern)
+            const {step} = params
+            return undefined !== match(getSelection(step), pattern)
         },
-        createInitialState: ({selection}) => ({}),
-        renderDialog: ({selection, state, setState}) => {
-            const matched = match(selection, pattern)
+        createInitialState: ({step}) => ({}),
+        renderDialog: ({step, state, setState}) => {
+            const matched = match(getSelection(step), pattern)
             const resultElem = {cmp: "span", children: mapToTextCmpArr(makeResult(matched))}
             return {
                 cmp: "Col",
@@ -146,15 +215,20 @@ const insertCanBeTwoSided = selection => findMatch(selection,insertSelPatterns) 
 const trInsert = {
     displayName: () => "Insert: X ⇒ ( X + A )",
     canApply: () => true,
-    createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,insertSelPatterns),
-        paren: "( )",
-        text: "",
-        right: true,
-        twoSided: insertCanBeTwoSided(selection),
-    }),
-    renderDialog: ({selection, state, setState}) => {
-        const canBeTwoSided = insertCanBeTwoSided(selection)
+    createInitialState: ({step}) => {
+        const selection = getSelection(step)
+        return ({
+            selection,
+            selectionText: syntaxTreeToText(selection),
+            selMatch: findMatch(selection, insertSelPatterns),
+            paren: "( )",
+            text: "",
+            right: true,
+            twoSided: insertCanBeTwoSided(selection),
+        })
+    },
+    renderDialog: ({step, state, setState}) => {
+        const canBeTwoSided = insertCanBeTwoSided(state.selection)
         const twoSidedUltimate = canBeTwoSided && state.twoSided
         const rndResult = () => {
             const [leftParen, rightParen] = state.paren === NO_PARENS ? ["", ""] : state.paren.split(" ")
@@ -186,7 +260,7 @@ const trInsert = {
             } else {//X => [ X + A ] : else
                 return mapToTextCmpArr([
                     [leftParen,bkgColor],
-                    ...appendOnSide({init:selection.text, text:state.text, right:state.right, bkgColor}),
+                    ...appendOnSide({init:state.selectionText, text:state.text, right:state.right, bkgColor}),
                     [rightParen,bkgColor],
                 ])
             }
@@ -196,7 +270,7 @@ const trInsert = {
         return {cmp:"Col", children:[
             {cmp:"Text", value: "Insert", fontWeight:"bold"},
             {cmp:"Text", value: "Initial:"},
-            {cmp:"Text", value: selection.text},
+            {cmp:"Text", value: state.selectionText},
             {cmp:"Divider"},
             {cmp:"Row", children:[
                 {cmp:"Checkbox", checked:state.twoSided, label: "Two-sided", onChange: updateState('twoSided'), disabled:!canBeTwoSided},
@@ -236,15 +310,20 @@ const elideCanBeTwoSided = selection => findMatch(selection,elideSelPatterns) !=
  */
 const trElide = {
     displayName: () => "Elide: ( X + A ) ⇒ X",
-    canApply:({selection}) => findMatch(selection,[['', '', ''], ['', '', '', '', '']]) !== undefined,
-    createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,elideSelPatterns),
-        twoSided:elideCanBeTwoSided(selection),
-        keepLeft:true,
-        paren:NO_PARENS
-    }),
-    renderDialog: ({selection, state, setState}) => {
-        const canBeTwoSided = elideCanBeTwoSided(selection)
+    canApply:({step}) => findMatch(getSelection(step), [['', '', ''], ['', '', '', '', '']]) !== undefined,
+    createInitialState: ({step}) => {
+        let selection = getSelection(step)
+        return ({
+            selection,
+            selectionText: syntaxTreeToText(selection),
+            selMatch: findMatch(selection, elideSelPatterns),
+            twoSided: elideCanBeTwoSided(selection),
+            keepLeft: true,
+            paren: NO_PARENS
+        })
+    },
+    renderDialog: ({step, state, setState}) => {
+        const canBeTwoSided = elideCanBeTwoSided(state.selection)
         const twoSidedUltimate = canBeTwoSided && state.twoSided
         const keepColor = YELLOW
         const insertColor = GREEN
@@ -314,7 +393,7 @@ const trElide = {
                     end,
                 ])
             } else {
-                const match5 = match(selection, ['','','','',''])
+                const match5 = match(state.selection, ['','','','',''])
                 if (match5 !== undefined) {
                     // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
                     const [begin, leftExpr, operator, rightExpr, end] = match5
@@ -327,7 +406,7 @@ const trElide = {
                     ])
                 } else {
                     // X + A => [ X ] : else // test: class X + Y
-                    const [leftExpr, operator, rightExpr] = match(selection, ['','',''])
+                    const [leftExpr, operator, rightExpr] = match(state.selection, ['','',''])
                     return mapToTextCmpArr([
                         [leftExpr,state.keepLeft?keepColor:""],
                         operator,
@@ -383,7 +462,7 @@ const trElide = {
                     end,
                 ])
             } else {
-                const match5 = match(selection, ['','','','',''])
+                const match5 = match(state.selection, ['','','','',''])
                 if (match5 !== undefined) {
                     // { X + A } => [ X ] : ['', '', '', '', ''] // test: |- ( ph -> ps )
                     const [begin, leftExpr, operator, rightExpr, end] = match5
@@ -394,7 +473,7 @@ const trElide = {
                     ])
                 } else {
                     // X + A => [ X ] : else // test: class X + Y
-                    const [leftExpr, operator, rightExpr] = match(selection, ['','',''])
+                    const [leftExpr, operator, rightExpr] = match(state.selection, ['','',''])
                     return mapToTextCmpArr([
                         [leftParen,insertColor],
                         state.keepLeft?leftExpr:rightExpr,
@@ -436,11 +515,16 @@ const swapSelPatterns = [swapSelPat1, swapSelPat2]
 
 const trSwap = {
     displayName: () => "Swap: X = Y ⇒ Y = X",
-    canApply:({selection}) => findMatch(selection,swapSelPatterns) !== undefined,
-    createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,swapSelPatterns)
-    }),
-    renderDialog: ({selection, state, setState}) => {
+    canApply:({step}) => findMatch(getSelection(step),swapSelPatterns) !== undefined,
+    createInitialState: ({step}) => {
+        let selection = getSelection(step)
+        return ({
+            selection,
+            selectionText: syntaxTreeToText(selection),
+            selMatch: findMatch(selection, swapSelPatterns)
+        })
+    },
+    renderDialog: ({step, state, setState}) => {
         const rndInitial = () => {
             if (state.selMatch?.pattern === swapSelPat1) {
                 const [leftExpr, operator, rightExpr] = state.selMatch.match
@@ -484,13 +568,18 @@ const assocSelPatterns = [assocSelPat355, assocSelPat555, assocSelPat35_, assocS
 
 const trAssoc = {
     displayName: () => "Associate: ( A + B ) + C ⇒ A + ( B + C )",
-    canApply:({selection}) => findMatch(selection,assocSelPatterns) !== undefined,
-    createInitialState: ({selection}) => ({
-        selMatch: findMatch(selection,assocSelPatterns),
-        needSideSelector: findMatch(selection,[assocSelPat355, assocSelPat555]) !== undefined,
-        right: findMatch(selection,[assocSelPat35_, assocSelPat55_]) !== undefined
-    }),
-    renderDialog: ({selection, state, setState}) => {
+    canApply:({step}) => findMatch(getSelection(step),assocSelPatterns) !== undefined,
+    createInitialState: ({step}) => {
+        let selection = getSelection(step)
+        return ({
+            selection,
+            selectionText: syntaxTreeToText(selection),
+            selMatch: findMatch(selection, assocSelPatterns),
+            needSideSelector: findMatch(selection, [assocSelPat355, assocSelPat555]) !== undefined,
+            right: findMatch(selection, [assocSelPat35_, assocSelPat55_]) !== undefined
+        })
+    },
+    renderDialog: ({step, state, setState}) => {
         const bkg = YELLOW
         const rndInitial = () => {
             if (state.selMatch?.pattern === assocSelPat35_) {
@@ -572,19 +661,24 @@ const trAssoc = {
 }
 
 const trReplace = {
-    displayName: () => "Replace",
-    canApply: () => true,
-    createInitialState: ({selection}) => ({
-        text: "",
-    }),
-    renderDialog: ({selection, state, setState}) => {
+    displayName: ({step}) => "Replace",
+    canApply: ({step}) => true,
+    createInitialState: ({step}) => {
+        let selection = getSelection(step)
+        return ({
+            selection,
+            selectionText: syntaxTreeToText(selection),
+            text: "",
+        })
+    },
+    renderDialog: ({step, state, setState}) => {
         const rndResult = () => mapToTextCmpArr([state.text])
         const updateState = attrName => newValue => setState(st => ({...st, [attrName]: newValue}))
         const resultElem = {cmp:"span", children: rndResult()}
         return {cmp:"Col", children:[
                 {cmp:"Text", value: "Replace", fontWeight:"bold"},
                 {cmp:"Text", value: "Initial:"},
-                {cmp:"Text", value: selection.text},
+                {cmp:"Text", value: state.selectionText},
                 {cmp:"Divider"},
                 {cmp:"TextField", autoFocus:true, value:state.text, label: "Replace with", onChange: updateState('text'), width:'300px'},
                 {cmp:"Divider"},

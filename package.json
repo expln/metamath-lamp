@@ -30,7 +30,7 @@
     "compile-test-all-unit": "rescript && mocha src/**/test/**/*_test.bs.js",
     "compile-test-all-int": "rescript && mocha --timeout 10000000 src/**/test/**/*_test_int.bs.js",
     "compile-test-editor": "rescript && mocha --timeout 10000000 -g \"'MM_wrk_editor integration tests'\" src/metamath/test/**/*.js",
-    "compile-test-single": "rescript && mocha --timeout 10000000 -g \"'put_test_name_here'\" src/**/test/**/*.js",
+    "compile-test-single": "rescript && mocha --timeout 10000000 -g \"'MM_wrk_editor integration tests: MM_wrk_frag_transform'\" src/**/test/**/*.js",
     "clean-and-compile-with-deps": "npm run rescript-clean && npm run compile-with-deps",
     "rescript-start": "rescript build -w",
     "rescript-clean": "rescript clean -with-deps",

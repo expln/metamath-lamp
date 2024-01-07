@@ -8,7 +8,7 @@ open MM_wrk_frag_transform
 
 @react.component
 let make = (
-    ~selection:selection,
+    ~step:Js_json.t,
     ~transform:fragmentTransform,
     ~onBack:unit=>unit,
     ~onInsertAbove:string=>unit,
@@ -21,7 +21,7 @@ let make = (
 
     React.useEffect0(() => {
         let state = unsafeFunc("Creating initial state", 
-            () => transform.createInitialState({"selection":selection})
+            () => transform.createInitialState({"step":step})
         )
         switch state {
             | Error(msg) => setError(_ => Some(msg))
@@ -197,7 +197,7 @@ let make = (
 
     let rndCustomContent = (state:fragmentTransformState) => {
         let params = {
-            "selection":selection, 
+            "step":step, 
             "state":state, 
             "setState": mapper => setState(Belt_Option.map(_, mapper))
         }
@@ -228,7 +228,9 @@ let make = (
         switch error {
             | Some(msg) => {
                 <Col>
-                    {React.string(`Error: ${msg}`)}
+                    <pre>
+                        {React.string(`Error: ${msg}`)}
+                    </pre>
                     <Button title="Back" onClick={_=>onBack()} > <MM_Icons.ArrowBack/> </Button>
                 </Col>
             }
