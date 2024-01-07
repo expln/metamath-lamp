@@ -3,6 +3,8 @@ open MM_react_common
 open Expln_React_Mui
 open Raw_js_utils
 open Local_storage_utils
+open Expln_React_Modal
+open Expln_utils_promise
 
 type macro = {
     displayName: string,
@@ -56,7 +58,7 @@ let stringToMacros = (~displayName:string, ~script:string):result<array<macro>,s
 }
 
 let setMmExampleScript = MM_macros_set_mm_example2.setMmExampleMacros
-let setMmExampleDisplayName = "set.mm example"
+let setMmExampleDisplayName = "set.mm example macros"
 
 let makeEmptyState = () => {
     {
@@ -321,6 +323,7 @@ let readStateFromLocStor = ():state => {
 
 @react.component
 let make = (
+    ~modalRef:modalRef,
     ~onClose:unit=>unit
 ) => {
     let (state, setState) = React.useState(readStateFromLocStor)
@@ -330,8 +333,13 @@ let make = (
 
     let activeCollOfMacros = state.collsOfMacros
         ->Js_array2.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
+
     let thereAreChangesInActiveCollOfMacros = activeCollOfMacros->Belt.Option.map(coll => {
         coll.displayName != coll.displayNameEdit || coll.scriptText != coll.scriptTextEdit
+    })->Belt_Option.getWithDefault(false)
+
+    let activeCollOfMacrosIsReadOnly = activeCollOfMacros->Belt.Option.map(coll => {
+        coll.id < 0
     })->Belt_Option.getWithDefault(false)
 
     let actActiveCollOfMacrosChange = (newActiveCollOfMacrosIdStr:string) => {
@@ -396,6 +404,54 @@ let make = (
         }
     }
 
+    let deleteCollOfMacros = (collId:int) => {
+        setState(prevSt => {
+            switch prevSt->deleteMacros(~id=collId) {
+                | Error(_) => prevSt
+                | Ok(st) => {
+                    switch st->setActiveCollOfMacrosId(st.collsOfMacros[0].id) {
+                        | Error(_) => prevSt
+                        | Ok(st) => {
+                            saveStateToLocStor(st)
+                            st
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    let actDeleteActiveCollOfMacros = () => {
+        switch activeCollOfMacros {
+            | None => ()
+            | Some({id:collId, displayName}) => {
+                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                    updateModal(modalRef, modalId, () => {
+                        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                            <Col spacing=1.>
+                                {
+                                    React.string(`Delete "${displayName}" collection of macros?`)
+                                }
+                                <Row>
+                                    <Button onClick={_=>closeModal(modalRef, modalId)}> {React.string("Cancel")} </Button>
+                                    <Button
+                                        onClick={_=>{
+                                            closeModal(modalRef, modalId)
+                                            deleteCollOfMacros(collId)
+                                        }}
+                                        variant=#contained
+                                    > 
+                                        {React.string("Delete")} 
+                                    </Button>
+                                </Row>
+                            </Col>
+                        </Paper>
+                    })
+                })->ignore
+            }
+        }
+    }
+
     let actAddNewCollOfMacros = () => {
         setState(st => {
             let st = st->addNewCollOfMacros
@@ -424,7 +480,7 @@ let make = (
                 <Select
                     value={state.activeCollOfMacrosId->Belt_Int.toString}
                     onChange=evt2str(actActiveCollOfMacrosChange)
-                    sx={"width": 300}
+                    sx={"width": 330}
                 >
                     {
                         state.collsOfMacros->Js_array2.map(macros => {
@@ -454,7 +510,7 @@ let make = (
                     <Col>
                         <TextField
                             size=#small
-                            style=ReactDOM.Style.make(~width="320px", ())
+                            style=ReactDOM.Style.make(~width="350px", ())
                             label="Display name" 
                             value=collOfMacros.displayNameEdit
                             onChange=evt2str(actSetDisplayNameEdit)
@@ -463,7 +519,7 @@ let make = (
                         />
                         <TextField
                             size=#small
-                            style=ReactDOM.Style.make(~width="320px", ())
+                            style=ReactDOM.Style.make(~width="350px", ())
                             label="Script"
                             autoFocus=true
                             multiline=true
@@ -484,6 +540,12 @@ let make = (
                                 onClick={_=>actAddNewCollOfMacros()} variant=#outlined 
                             >
                                 {React.string("Add new")}
+                            </Button>
+                            <Button
+                                disabled=activeCollOfMacrosIsReadOnly 
+                                onClick={_=>actDeleteActiveCollOfMacros()} variant=#outlined 
+                            >
+                                {React.string("Delete")}
                             </Button>
                         </Row>
                     </Col>

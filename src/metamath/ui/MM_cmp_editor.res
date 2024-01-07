@@ -1529,6 +1529,7 @@ let make = (
             updateModal(modalRef, modalId, () => {
                 let closeDialog = ()=>closeModal(modalRef, modalId)
                 <MM_cmp_macros
+                    modalRef
                     onClose=closeDialog
                 />
             })
