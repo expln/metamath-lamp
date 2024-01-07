@@ -1111,4 +1111,11 @@ const m = {
     sortPolynomialVariables,
     combineExponents,
 }
+
+return [
+    {
+        displayName: "getEditorState",
+        run: getEditorState
+    }
+]
 `
