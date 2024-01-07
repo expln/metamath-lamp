@@ -25,6 +25,16 @@ type state = {
     collsOfMacros:array<collOfMacros>,
 }
 
+type collOfMacrosLocStor = {
+    displayName:string,
+    scriptText:string,
+}
+
+type stateLocStor = {
+    activeCollOfMacrosIdx:int,
+    collsOfMacros:array<collOfMacrosLocStor>,
+}
+
 let createMacroFromObject = (obj:{..}):macro => {
     let runFn = reqFuncExn(obj["run"], "'run' attribute of a macro must be a function.")
     {
@@ -45,11 +55,12 @@ let stringToMacros = (~displayName:string, ~script:string):result<array<macro>,s
     }
 }
 
+let setMmExampleScript = MM_macros_set_mm_example2.setMmExampleMacros
+let setMmExampleDisplayName = "set.mm example"
+
 let makeEmptyState = () => {
-    let setMmExampleScript = MM_macros_set_mm_example2.setMmExampleMacros
-    let setMmExampleDisplayName = "set.mm example"
     {
-        nextId:1,
+        nextId:0,
         activeCollOfMacrosId:-1,
         collsOfMacros:[
             {
@@ -69,10 +80,9 @@ let makeEmptyState = () => {
 }
 
 let addNewCollOfMacros = (st:state):state => {
-    let displayName = `Macros-${st.nextId->Belt.Int.toString}`
+    let displayName = `Macros-${(st.nextId+1)->Belt.Int.toString}`
     let scriptText = "return [{displayName:'empty macro', run:() => console.log('empty macro')}]"
     {
-        ...st,
         nextId:st.nextId+1,
         activeCollOfMacrosId:st.nextId,
         collsOfMacros:Belt_Array.concatMany([
@@ -222,11 +232,98 @@ let expBtnBaseStyle = ReactDOM.Style.make(
     ()
 )
 
+let stateToStateLocStor = (st:state):stateLocStor => {
+    {
+        activeCollOfMacrosIdx: st.collsOfMacros->Js.Array2.findIndex(coll => coll.id == st.activeCollOfMacrosId),
+        collsOfMacros: st.collsOfMacros->Js_array2.filter(coll => coll.id >= 0)->Js_array2.map(coll => {
+            {
+                displayName: coll.displayName,
+                scriptText: coll.scriptText,
+            }
+        }),
+    }
+}
+
+let stateLocStorToState = (ls:stateLocStor):state => {
+    let defaultColls = [
+        {
+            id: -1,
+            version: 1,
+            displayName: setMmExampleDisplayName,
+            displayNameEdit: setMmExampleDisplayName,
+            scriptText: setMmExampleScript,
+            scriptTextEdit: setMmExampleScript,
+            macros: stringToMacros(
+                ~displayName=setMmExampleDisplayName,
+                ~script=setMmExampleScript
+            )
+        }
+    ]
+    let collsOfMacros = Belt_Array.concatMany([
+        ls.collsOfMacros->Js_array2.mapi((coll,i) => {
+            {
+                id:i,
+                version:1,
+                displayName:coll.displayName,
+                displayNameEdit:coll.displayName,
+                scriptText:coll.scriptText,
+                scriptTextEdit:coll.scriptText,
+                macros: stringToMacros(
+                    ~displayName=coll.displayName,
+                    ~script=coll.scriptText
+                )
+            }
+        }),
+        defaultColls,
+    ])
+    {
+        nextId:ls.collsOfMacros->Js_array2.length,
+        activeCollOfMacrosId:
+            switch collsOfMacros->Belt_Array.get(ls.activeCollOfMacrosIdx) {
+                | None => 0
+                | Some(coll) => coll.id
+            },
+        collsOfMacros,
+    }
+}
+
+let macrosLocStorKey = "macros"
+let saveStateToLocStor = (st:state):unit => {
+    locStorWriteString(macrosLocStorKey, Expln_utils_common.stringify(st->stateToStateLocStor))
+}
+
+let readStateLocStorFromJsonStr = (jsonStr:string):result<stateLocStor,string> => {
+    open Expln_utils_jsonParse
+    parseJson(jsonStr, asObj(_, d=>{
+        {
+            activeCollOfMacrosIdx: d->int("activeCollOfMacrosIdx", ()),
+            collsOfMacros: d->arr("collsOfMacros", asObj(_, d=>{
+                {
+                    displayName: d->str("displayName", ()),
+                    scriptText: d->str("scriptText", ()),
+                }
+            }, ()), ())
+        }
+    }, ()), ())
+}
+
+let readStateFromLocStor = ():state => {
+    switch locStorReadString(macrosLocStorKey) {
+        | None => makeEmptyState()
+        | Some(jsonStr) => {
+            switch readStateLocStorFromJsonStr(jsonStr) {
+                | Error(_) => makeEmptyState()
+                | Ok(stateLocStor) => stateLocStor->stateLocStorToState
+            }
+        }
+    }
+}
+
 @react.component
 let make = (
     ~onClose:unit=>unit
 ) => {
-    let (state, setState) = React.useState(makeEmptyState)
+    let (state, setState) = React.useState(readStateFromLocStor)
     let (isExpanded, setIsExpanded) = useStateFromLocalStorageBool(
         ~key="macros-dialog-is-expanded", ~default=false
     )
@@ -244,7 +341,10 @@ let make = (
                 setState(st => {
                     switch st->setActiveCollOfMacrosId(id) {
                         | Error(_) => st
-                        | Ok(st) => st
+                        | Ok(st) => {
+                            saveStateToLocStor(st)
+                            st
+                        }
                     }
                 })
             }
@@ -286,7 +386,10 @@ let make = (
                 setState(st => {
                     switch st->saveEdits(~id) {
                         | Error(_) => st
-                        | Ok(st) => st
+                        | Ok(st) => {
+                            saveStateToLocStor(st)
+                            st
+                        }
                     }
                 })
             }
@@ -294,7 +397,11 @@ let make = (
     }
 
     let actAddNewCollOfMacros = () => {
-        setState(addNewCollOfMacros)
+        setState(st => {
+            let st = st->addNewCollOfMacros
+            saveStateToLocStor(st)
+            st
+        })
     }
 
     let actToggleExpanded = () => {
@@ -431,7 +538,6 @@ let make = (
 
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col>
-            {rndCancelBtn()}
             {rndMacrosDropdown()}
             {rndEditControls()}
             {rndActiveMacros()}
