@@ -705,14 +705,15 @@ const trExtract = {
             selection,
             selectionText: syntaxTreeToText(selection),
             ph: deductionMatchResult?.[1],
+            stepType: step.tree.exprType
         })
     },
     renderDialog: ({state, setState}) => {
         const rndResult = () => {
             if (state.ph !== undefined) {
-                return mapToTextCmpArr(['|- (', syntaxTreeToText(state.ph), '->', [state.selectionText, YELLOW], ')'])
+                return mapToTextCmpArr([state.stepType, '(', syntaxTreeToText(state.ph), '->', [state.selectionText, YELLOW], ')'])
             } else {
-                return mapToTextCmpArr(['|-', state.selectionText])
+                return mapToTextCmpArr([state.stepType, state.selectionText])
             }
         }
         const resultElem = {cmp:"span", children: rndResult()}
