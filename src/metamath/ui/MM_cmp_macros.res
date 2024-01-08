@@ -350,6 +350,12 @@ let readStateFromLocStor = ():state => {
     }
 }
 
+let warningText = `
+    Please be careful with what JavaScript code you use for macros. 
+    This code will be executed by your browser "as is" meaning no safety measures will be taken to protect your browser from hurmful code.
+    Before putting any code into this dialog please make sure you understand what that code does or make sure the code is not harmful.
+`
+
 @react.component
 let make = (
     ~modalRef:modalRef,
@@ -358,6 +364,9 @@ let make = (
     let (state, setState) = React.useState(readStateFromLocStor)
     let (isExpanded, setIsExpanded) = useStateFromLocalStorageBool(
         ~key="macros-dialog-is-expanded", ~default=false
+    )
+    let (hideWarning, setHideWarning) = useStateFromLocalStorageBool(
+        ~key="custom-macros-js-warning-hide", ~default=false
     )
 
     let activeCollOfMacros = state.collsOfMacros
@@ -370,6 +379,27 @@ let make = (
     let activeCollOfMacrosIsReadOnly = activeCollOfMacros->Belt.Option.map(coll => {
         coll.id < 0
     })->Belt_Option.getWithDefault(false)
+
+    let actShowWarning = () => {
+        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <Warning_modal
+                    title="Security warning"
+                    warningText
+                    hideInit=hideWarning
+                    onHideChange = {b => setHideWarning(_ => b)}
+                    onClose={()=>closeModal(modalRef, modalId)}
+                />
+            })
+        })->ignore
+    }
+
+    React.useEffect1(() => {
+        if (!activeCollOfMacrosIsReadOnly && !hideWarning && isExpanded) {
+            actShowWarning()
+        }
+        None
+    }, [activeCollOfMacrosIsReadOnly])
 
     let actActiveCollOfMacrosChange = (newActiveCollOfMacrosIdStr:string) => {
         switch newActiveCollOfMacrosIdStr->Belt_Int.fromString {
@@ -529,6 +559,22 @@ let make = (
         </Button>
     }
 
+    let rndScriptTextField = (collOfMacros:collOfMacros) => {
+        <TextField
+            key={collOfMacros.id->Belt.Int.toString}
+            size=#small
+            style=ReactDOM.Style.make(~width=if(activeCollOfMacrosIsReadOnly) {"350px"} else {"300px"}, ())
+            label="Script"
+            autoFocus=true
+            multiline=true
+            maxRows=3
+            value=collOfMacros.scriptTextEdit
+            onChange=evt2str(actSetScriptTextEdit)
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
+            disabled=activeCollOfMacrosIsReadOnly
+        />
+    }
+
     let rndEditControls = () => {
         if (!isExpanded) {
             React.null
@@ -546,18 +592,28 @@ let make = (
                             onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
                             disabled={collOfMacros.id < 0}
                         />
-                        <TextField
-                            size=#small
-                            style=ReactDOM.Style.make(~width="350px", ())
-                            label="Script"
-                            autoFocus=true
-                            multiline=true
-                            maxRows=3
-                            value=collOfMacros.scriptTextEdit
-                            onChange=evt2str(actSetScriptTextEdit)
-                            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
-                            disabled={collOfMacros.id < 0}
-                        />
+                        {
+                            if (activeCollOfMacrosIsReadOnly) {
+                                {rndScriptTextField(collOfMacros)}
+                            } else {
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <IconButton title="Security warning" onClick={_=>actShowWarning()} 
+                                                    color="orange" 
+                                                >
+                                                    <MM_Icons.Warning/>
+                                                </IconButton>
+                                            </td>
+                                            <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                                                {rndScriptTextField(collOfMacros)}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            }
+                        }
                         <Row>
                             <Button 
                                 disabled={!thereAreChangesInActiveCollOfMacros} 
