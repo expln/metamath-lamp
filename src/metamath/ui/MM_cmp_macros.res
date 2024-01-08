@@ -556,9 +556,19 @@ let make = (
     }
 
     let rndCancelBtn = () => {
-        <Button onClick={_=>onClose()} variant=#outlined>
-            {React.string("Cancel")}
-        </Button>
+        <Row>
+            <Button onClick={_=>onClose()} variant=#outlined>
+                {React.string("Cancel")}
+            </Button>
+            {
+                rndHiddenTextField(
+                    ~onKeyDown=kbrdHnds([
+                        kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                    ]),
+                    ()
+                )
+            }
+        </Row>
     }
 
     let rndScriptTextField = (collOfMacros:collOfMacros) => {
@@ -572,7 +582,10 @@ let make = (
             maxRows=3
             value=collOfMacros.scriptTextEdit
             onChange=evt2str(actSetScriptTextEdit)
-            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
+            onKeyDown=kbrdHnds([
+                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits, ()),
+                kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+            ])
             disabled=activeCollOfMacrosIsReadOnly
         />
     }
@@ -591,7 +604,10 @@ let make = (
                             label="Display name" 
                             value=collOfMacros.displayNameEdit
                             onChange=evt2str(actSetDisplayNameEdit)
-                            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actSaveEdits, ())
+                            onKeyDown=kbrdHnds([
+                                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits, ()),
+                                kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                            ])
                             disabled={collOfMacros.id < 0}
                         />
                         {

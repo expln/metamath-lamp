@@ -151,7 +151,7 @@ let stateJsonCached = ref(None)
 let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
     let canUseCachedValue = switch stateCached.contents {
         | None => false
-        | Some(stateCached) => stateCached == state
+        | Some(stateCached) => stateCached === state
     }
     if (canUseCachedValue) {
         promiseResolved(Ok(stateJsonCached.contents->Belt_Option.getExn))

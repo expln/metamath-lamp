@@ -55,11 +55,11 @@ function getResponse(apiResponse) {
 api.setLogApiCallsToConsole(true)
 
 async function showInfoMsg(msg) {
-    getResponse(await api.showInfoMsg(msg))
+    getResponse(await api.showInfoMsg(String(msg)))
 }
 
 async function showErrMsg(msg) {
-    getResponse(await api.showErrMsg(msg))
+    getResponse(await api.showErrMsg(String(msg)))
 }
 
 async function setContentIsHidden(contIsHidden) {
@@ -235,65 +235,6 @@ function syntaxTreeToText(node) {
     }
 }
 
-async function prove({step, use, frms, debug, maxSearchDepth}) {
-    // debug = 1
-    // maxSearchDepth = 30
-
-    let allSteps = (await getEditorState()).steps
-    let allHyps = allSteps.filter(s => s.isHyp).map(s => s.label)
-    function getPrevLabel(label) {
-        for (let i = 1; i < allSteps.length; i++) {
-            if (allSteps[i].label === label) {
-                return allSteps[i-1].label
-            }
-        }
-        exn([!@#]Cannot find previous step for '{!@#}{label}'[!@#])
-    }
-    step = (step??'last') === 'last' ? allSteps[allSteps.length-1].label : step
-    use = (use??['prev']).map(label => label === 'prev' ? getPrevLabel(step) : label)
-    const debugLevel = debug??0
-
-    getResponse(await api.editor.proveBottomUp({
-        stepToProve:step,
-        debugLevel,
-        args0:[...use, ...allHyps],
-        args1:[...use, ...allHyps],
-        frmsToUse:frms??fastFrms,
-        maxSearchDepth: maxSearchDepth??20,
-        lengthRestrict:'No',
-        allowNewStmts:true,
-        allowNewVars:false,
-        allowNewDisjForExistingVars:false,
-        selectFirstFoundProof:debugLevel === 0,
-    }))
-    if (debugLevel > 0) {
-        return undefined
-    } else {
-        return await getEditorState()
-    }
-}
-
-async function pr(str, debugLevel) {
-    if (str === undefined || str === '') {
-        const state = await getEditorState()
-        if (state.selectedSteps.length > 0) {
-            const sortedSteps = state.selectedSteps
-                .map(label => [label,getStepIdx(state,label)]).sort((a,b) => b[1]-a[1])
-                .map(labelIdx => labelIdx[0])
-            await pr(sortedSteps.join(' '), debugLevel)
-        } else {
-            await pr('last', debugLevel)
-        }
-    } else {
-        const [step, ...use] = str.split(/\s+/)
-        if (use.length === 0) {
-            await prove({step, debug: debugLevel})
-        } else {
-            await prove({step, use, debug: debugLevel})
-        }
-    }
-}
-
 function isGoalProved(editorState) {
     let goalSteps = editorState.steps.filter(step => step.isGoal)
     if (goalSteps.length !== 1) {
@@ -333,6 +274,83 @@ function getStepIdx(editorState, label) {
 
 function getStepByLabel(editorState, label) {
     return editorState.steps[getStepIdx(editorState, label)]
+}
+
+function getAllStepsBefore(editorState, label) {
+    const res = []
+    for (const step of editorState.steps) {
+        if (step.label === label) {
+            return res
+        }
+        res.push(step.label)
+    }
+    return res
+}
+
+async function prove({stepToProve, stepsToDeriveFrom, debugLevel, maxSearchDepth}) {
+    let editorState = await getEditorState()
+    let allSteps = editorState.steps
+    let allHyps = allSteps.filter(s => s.isHyp).map(s => s.label)
+    function getPrevLabel(label) {
+        for (let i = 1; i < allSteps.length; i++) {
+            if (allSteps[i].label === label) {
+                return allSteps[i-1].label
+            }
+        }
+        exn([!@#]Cannot find previous step for '{!@#}{label}'[!@#])
+    }
+    stepToProve = (stepToProve??'last') === 'last' ? allSteps[allSteps.length-1].label : stepToProve
+    stepsToDeriveFrom = (stepsToDeriveFrom??[]).map(label => label === 'prev' ? getPrevLabel(stepToProve) : label)
+    debugLevel = debugLevel??0
+    maxSearchDepth = maxSearchDepth??20
+    const allPrevSteps = getAllStepsBefore(editorState, stepToProve)
+
+    getResponse(await api.editor.proveBottomUp({
+        stepToProve:stepToProve,
+        maxSearchDepth,
+        debugLevel,
+        selectFirstFoundProof:debugLevel === 0,
+        frameParams: [
+            {
+                framesToUse:fastFrms,
+                stepsToUse:[...allHyps, ...stepsToDeriveFrom],
+                allowNewDisjointsForExistingVariables:false,
+                allowNewSteps:true,
+                allowNewVariables:false,
+                statementLengthRestriction:'No',
+            },
+            {
+                framesToUse:slowFrms,
+                stepsToUse:allPrevSteps,
+                allowNewDisjointsForExistingVariables:false,
+                allowNewSteps:false,
+                allowNewVariables:false,
+                statementLengthRestriction:'No',
+            },
+        ]
+    }))
+    if (debugLevel > 0) {
+        return undefined
+    } else {
+        return await getEditorState()
+    }
+}
+
+async function pr(str, debugLevel) {
+    if (str === undefined || str === '') {
+        const state = await getEditorState()
+        if (state.selectedSteps.length > 0) {
+            const sortedSteps = state.selectedSteps
+                .map(label => [label,getStepIdx(state,label)]).sort((a,b) => b[1]-a[1])
+                .map(labelAndIdx => labelAndIdx[0])
+            await pr(sortedSteps.join(' '), debugLevel)
+        } else {
+            await pr('last', debugLevel)
+        }
+    } else {
+        const [stepToProve, ...stepsToDeriveFrom] = str.split(/\s+/)
+        await prove({stepToProve, stepsToDeriveFrom, debugLevel})
+    }
 }
 
 async function inferenceToDeduction() {
@@ -606,7 +624,7 @@ async function runSequenceOfModificationsForStep({
             ],
             vars: (variables??[]).map(([varType, varName, varExprTree]) => [varType, varName])
         })
-        state = await prove({step: newStepLabel, use: [stepToModify.label]})
+        state = await prove({stepToProve: newStepLabel, stepsToDeriveFrom: [stepToModify.label]})
         if (!isStepProved(state, newStepLabel)) {
             exn([!@#]Cannot not prove the step with the label '{!@#}{newStepLabel}'.[!@#])
         }
@@ -676,7 +694,7 @@ async function runSequenceOfModificationsForFragment({
         atIdx: state.steps.length,
         steps: [{type: 'p', stmt: [!@#]|- {!@#}{syntaxTreeToText(finalStepTree)}[!@#], isBkm:true}],
     })
-    await prove({step:finalStepLabel, use:[initialStep.label, finalVarStep.label]})
+    await prove({stepToProve:finalStepLabel, stepsToDeriveFrom:[initialStep.label, finalVarStep.label]})
 
     await setContentIsHidden(false)
 }
@@ -1124,6 +1142,7 @@ function makeMacro(name, func) {
 }
 
 const macros = [
+    makeMacro("Prove", async () => await pr()),
     makeMacro("Log editor state", async () => console.log("Get editor state", await getEditorState())),
     makeMacro("Log new assertions from editor", async () => console.log("new assertions from editor", await getNewAssertionsFromEditor())),
     makeMacro("Inference to deduction", inferenceToDeduction),
