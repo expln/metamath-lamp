@@ -146,12 +146,20 @@ let getAllSteps = (~state:editorState):Js_json.t => {
     state.stmts->Js.Array2.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
 }
 
+let stateCached = ref(None)
+let stateJsonCached = ref(None)
 let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
-    let stmtIdToLabel = Belt_HashMapString.fromArray(
-        state.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
-    )
-    promiseResolved(Ok(
-        Js_dict.fromArray([
+    let canUseCachedValue = switch stateCached.contents {
+        | None => false
+        | Some(stateCached) => stateCached == state
+    }
+    if (canUseCachedValue) {
+        promiseResolved(Ok(stateJsonCached.contents->Belt_Option.getExn))
+    } else {
+        let stmtIdToLabel = Belt_HashMapString.fromArray(
+            state.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+        )
+        let stateJson = Js_dict.fromArray([
             ("descr", state.descr->Js_json.string),
             ("varsText", state.varsText->Js_json.string),
             ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
@@ -184,7 +192,10 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
                     ->Js.Json.array
             ),
         ])->Js_json.object_
-    ))
+        stateCached := Some(state)
+        stateJsonCached := Some(stateJson)
+        promiseResolved(Ok(stateJson))
+    }
 }
 
 let getTokenType = (
