@@ -1,5 +1,5 @@
 let setMmExampleMacros = `
-const frmsToUse = [
+const fastFrms = [
     //common
     "_reexpcli","3t2e6","6p1e7","3t3e9","recni","mulneg2i","2p2e4","4p1e5","2t2e4","4p3e7","7p1e8","3p2e5","3p1e4",
     "4p4e8","7p2e9","8p1e9","4p4e8","3p3e6","5p1e6",
@@ -27,26 +27,15 @@ const frmsToUse = [
     "reexpcld","1cnd","negcld","jca","0red","0re","1red","2re","3re","4re","5re","6re","7re","8re","9re",
     "mulexpd","negeqd","sqvald","expmuld","expp1d","nn0mulcli","expaddd","nn0addcli","nn0addcld","comraddd","mulcomd",
     "eqtr2d","eqnetrd","neqned","expdivd","expcld","expne0d","divdird",
-
-    "_3cubeslem3_pow1",
-    "_3cubeslem3_pow2",
-    "_3cubeslem3_pow3",
-    "_3cubeslem3_pow4",
-    "_3cubeslem3_pow5",
-    "_3cubeslem3_pow6",
-    "_3cubeslem3_pow7",
-    "_3cubeslem3_left_part_d",
-    "_3cubeslem3_right_part_d",
-    "3cubeslem2",
 ]
-const frmsToExclude = [
+const slowFrms = [
     "mpbir","id","eqidd",
     "eqid",
     //slow
     "ax-mp","mpbi","mp2an",
     //not for now
     "cu3addi", "cu3addd", "binom3", "mp1i","syl",
-    "mpd","rspc3ev","_3cubeslem2_RR","3cubeslem4","pm2.18i","mpan2","syl2anc",
+    "mpd","rspc3ev","pm2.18i","mpan2","syl2anc",
 ]
 
 const NUMBER_CONSTANTS = ['0','1','2','3','4','5','6','7','8','9']
@@ -63,7 +52,15 @@ function getResponse(apiResponse) {
     }
 }
 
-getResponse(await api.setLogApiCallsToConsole(true))
+api.setLogApiCallsToConsole(true)
+
+async function showInfoMsg(msg) {
+    getResponse(await api.showInfoMsg(msg))
+}
+
+async function showErrMsg(msg) {
+    getResponse(await api.showErrMsg(msg))
+}
 
 async function setContentIsHidden(contIsHidden) {
     return getResponse(await api.editor.setContentIsHidden(contIsHidden))
@@ -87,7 +84,7 @@ async function getEditorStateWithSyntaxTrees() {
     if (state.steps.every(step => step.tree !== null)) {
         return state
     }
-    exn(\`Cannot get an editor state with syntax trees.\`)
+    exn([!@#]Cannot get an editor state with syntax trees.[!@#])
 }
 
 async function updateSteps(steps) {
@@ -209,7 +206,7 @@ function matchExn(tree, pattern) {
     if (matchResult === undefined) {
         console.log('pattern', pattern)
         console.log('tree', tree)
-        exn(\`the pattern doesn't match the tree (see above)\`)
+        exn([!@#]the pattern doesn't match the tree (see above)[!@#])
     }
     return matchResult
 }
@@ -227,7 +224,7 @@ function arrSub(a, b) {
 }
 
 async function getNewAssertionsFromEditor() {
-    return arrSub(await getAllFrmsFromEditor(), [...frmsToUse, ...frmsToExclude])
+    return arrSub(await getAllFrmsFromEditor(), [...fastFrms, ...slowFrms])
 }
 
 function syntaxTreeToText(node) {
@@ -250,7 +247,7 @@ async function prove({step, use, frms, debug, maxSearchDepth}) {
                 return allSteps[i-1].label
             }
         }
-        exn(\`Cannot find previous step for '\${label}'\`)
+        exn([!@#]Cannot find previous step for '{!@#}{label}'[!@#])
     }
     step = (step??'last') === 'last' ? allSteps[allSteps.length-1].label : step
     use = (use??['prev']).map(label => label === 'prev' ? getPrevLabel(step) : label)
@@ -261,7 +258,7 @@ async function prove({step, use, frms, debug, maxSearchDepth}) {
         debugLevel,
         args0:[...use, ...allHyps],
         args1:[...use, ...allHyps],
-        frmsToUse:frms??frmsToUse,
+        frmsToUse:frms??fastFrms,
         maxSearchDepth: maxSearchDepth??20,
         lengthRestrict:'No',
         allowNewStmts:true,
@@ -300,7 +297,7 @@ async function pr(str, debugLevel) {
 function isGoalProved(editorState) {
     let goalSteps = editorState.steps.filter(step => step.isGoal)
     if (goalSteps.length !== 1) {
-        exn(\`Cannot find the goal step.\`)
+        exn([!@#]Cannot find the goal step.[!@#])
     } else {
         return goalSteps[0].status === "v"
     }
@@ -309,7 +306,7 @@ function isGoalProved(editorState) {
 function isStepProved(editorState, label) {
     let steps = editorState.steps.filter(step => step.label === label)
     if (steps.length !== 1) {
-        exn(\`Cannot find the step with the label '\${label}'\`)
+        exn([!@#]Cannot find the step with the label '{!@#}{label}'[!@#])
     } else {
         return steps[0].status === "v"
     }
@@ -331,7 +328,7 @@ function getStepIdx(editorState, label) {
             return i
         }
     }
-    exn(\`Cannot find the step with the label '\${label}'\`)
+    exn([!@#]Cannot find the step with the label '{!@#}{label}'[!@#])
 }
 
 function getStepByLabel(editorState, label) {
@@ -341,7 +338,7 @@ function getStepByLabel(editorState, label) {
 async function inferenceToDeduction() {
     const allSteps = await getEditorStateWithSyntaxTrees().steps
     await updateSteps(allSteps.map(
-        step => ({label:step.label, jstf:'', stmt:\`|- ( ph -> \${syntaxTreeToText(step.tree.root)} )\`})
+        step => ({label:step.label, jstf:'', stmt:[!@#]|- ( ph -> {!@#}{syntaxTreeToText(step.tree.root)} )[!@#]})
     ))
     await inferenceToDeductionContinue()
 }
@@ -359,7 +356,7 @@ async function inferenceToDeductionContinue() {
         if (!isStepProved(state, newLabel)) {
             state = await pr(newLabel, [])
             if (!isStepProved(state, newLabel)) {
-                exn(\`Cannot prove the step with the label '\${newLabel}'\`)
+                exn([!@#]Cannot prove the step with the label '{!@#}{newLabel}'[!@#])
             }
         }
     }
@@ -372,8 +369,8 @@ async function deductionToInference() {
     for (const step of allSteps) {
         const [lp, ph, arr, expr, rp] = matchExn(step.tree.root, ['(', '', '->', '', ')'])
         const exprStr = syntaxTreeToText(expr)
-        stepsToAdd.push({stmt:\`|- ( T. -> \${exprStr} )\`})
-        stepsToUpdate.push({label:step.label, jstf:'', stmt:\`|- \${exprStr}\`})
+        stepsToAdd.push({stmt:[!@#]|- ( T. -> {!@#}{exprStr} )[!@#]})
+        stepsToUpdate.push({label:step.label, jstf:'', stmt:[!@#]|- {!@#}{exprStr}[!@#]})
     }
     await updateSteps(stepsToUpdate)
     await addSteps({steps:stepsToAdd})
@@ -418,7 +415,7 @@ async function inferenceToClosed() {
         label:step.label,
         type:step.isGoal?'g':'p',
         jstf:'',
-        stmt:\`|- ( \${conj} -> \${syntaxTreeToText(step.tree.root)} )\`
+        stmt:[!@#]|- ( {!@#}{conj} -> {!@#}{syntaxTreeToText(step.tree.root)} )[!@#]
     })))
     await unifyAll()
 }
@@ -599,11 +596,11 @@ async function runSequenceOfModificationsForStep({
         const [newStepLabel] = await addSteps({
             atIdx: state.steps.length,
             steps: [
-                {type: 'p', stmt: \`|- \${syntaxTreeToText(newStepTree)}\`},
+                {type: 'p', stmt: [!@#]|- {!@#}{syntaxTreeToText(newStepTree)}[!@#]},
                 ...(variables??[]).map(([varType, varName, varExprTree]) => {
                     return {
                         type: 'h',
-                        stmt: \`|- ( \${syntaxTreeToText(wffVar)} -> \${varName} = \${syntaxTreeToText(varExprTree)} )\`
+                        stmt: [!@#]|- ( {!@#}{syntaxTreeToText(wffVar)} -> {!@#}{varName} = {!@#}{syntaxTreeToText(varExprTree)} )[!@#]
                     }
                 })
             ],
@@ -611,7 +608,7 @@ async function runSequenceOfModificationsForStep({
         })
         state = await prove({step: newStepLabel, use: [stepToModify.label]})
         if (!isStepProved(state, newStepLabel)) {
-            exn(\`Cannot not prove the step with the label '\${newStepLabel}'.\`)
+            exn([!@#]Cannot not prove the step with the label '{!@#}{newStepLabel}'.[!@#])
         }
         stepToModify = getStepByLabel(state, newStepLabel)
         let [lp2, wffVar2, ar2, [v2, eq2, exprToModify2]] = matchExn(
@@ -659,7 +656,7 @@ async function runSequenceOfModificationsForFragment({
         steps: [
             {
                 type: 'h',
-                stmt: \`|- ( \${syntaxTreeToText(wffVar)} -> \${tempVarName} = \${syntaxTreeToText(fragmentTree)} )\`
+                stmt: [!@#]|- ( {!@#}{syntaxTreeToText(wffVar)} -> {!@#}{tempVarName} = {!@#}{syntaxTreeToText(fragmentTree)} )[!@#]
             },
         ],
         vars: [[fragmentTree.exprType, tempVarName]]
@@ -677,7 +674,7 @@ async function runSequenceOfModificationsForFragment({
     const finalStepTree = replaceSubtreeWithAnotherSubtree(initialStep.tree.root, fragmentTree, finalExpr)
     const [finalStepLabel] = await addSteps({
         atIdx: state.steps.length,
-        steps: [{type: 'p', stmt: \`|- \${syntaxTreeToText(finalStepTree)}\`, isBkm:true}],
+        steps: [{type: 'p', stmt: [!@#]|- {!@#}{syntaxTreeToText(finalStepTree)}[!@#], isBkm:true}],
     })
     await prove({step:finalStepLabel, use:[initialStep.label, finalVarStep.label]})
 
@@ -692,7 +689,7 @@ function isTerm(tree,allowedConsts) {
         return !isAllowedNode(node)
     }
     function endsWithDigits(str) {
-        return str.match(/\d+$/) !== null
+        return str.match(/\d+{!@#}/) !== null
     }
 
     return !allowedConsts.includes(syntaxTreeToText(tree))
@@ -862,7 +859,7 @@ function applyDistribution(tree) {
         const cS = syntaxTreeToText(c)
         const ioS = syntaxTreeToText(io)
         const ooS = syntaxTreeToText(oo)
-        return makeConst(\`( ( \${aS} \${ooS} \${bS} ) \${ioS} ( \${aS} \${ooS} \${cS} ) )\`)
+        return makeConst([!@#]( ( {!@#}{aS} {!@#}{ooS} {!@#}{bS} ) {!@#}{ioS} ( {!@#}{aS} {!@#}{ooS} {!@#}{cS} ) )[!@#])
     }
     const [LP,[lp,b,io,c,rp],oo,a,RP] = matchExn(tree,['(', ['(', '', '', '', ')'], '', '', ')'])
     const aS = syntaxTreeToText(a)
@@ -870,7 +867,7 @@ function applyDistribution(tree) {
     const cS = syntaxTreeToText(c)
     const ioS = syntaxTreeToText(io)
     const ooS = syntaxTreeToText(oo)
-    return makeConst(\`( ( \${bS} \${ooS} \${aS} ) \${ioS} ( \${cS} \${ooS} \${aS} ) )\`)
+    return makeConst([!@#]( ( {!@#}{bS} {!@#}{ooS} {!@#}{aS} ) {!@#}{ioS} ( {!@#}{cS} {!@#}{ooS} {!@#}{aS} ) )[!@#])
 }
 
 async function distribute(isDistributable) {
@@ -938,7 +935,7 @@ function getSubtreeToSwap(tree, sym) {
 
 function swapTree(tree) {
     const [lp, leftSubtree, op, rightSubtree, rp] = matchExn(tree, ['(', '', '', '', ')'])
-    return makeConst(\`( \${syntaxTreeToText(rightSubtree)} \${syntaxTreeToText(op)} \${syntaxTreeToText(leftSubtree)} )\`)
+    return makeConst([!@#]( {!@#}{syntaxTreeToText(rightSubtree)} {!@#}{syntaxTreeToText(op)} {!@#}{syntaxTreeToText(leftSubtree)} )[!@#])
 }
 
 function getSubtreeToAssoc(tree) {
@@ -954,7 +951,7 @@ function assocTree(tree) {
     const cS = syntaxTreeToText(c)
     const o1S = syntaxTreeToText(o1)
     const o2S = syntaxTreeToText(o2)
-    return makeConst(\`( \${aS} \${o1S} ( \${bS} \${o2S} \${cS} ) )\`)
+    return makeConst([!@#]( {!@#}{aS} {!@#}{o1S} ( {!@#}{bS} {!@#}{o2S} {!@#}{cS} ) )[!@#])
 }
 
 function stableSort(arr, cmpFn) {
@@ -1051,7 +1048,7 @@ async function combineExponents() {
             const aS = syntaxTreeToText(a)
             const bS = syntaxTreeToText(b)
             const dS = syntaxTreeToText(d)
-            return makeConst(\`( \${aS} ^ ( \${bS} + \${dS} ) )\`)
+            return makeConst([!@#]( {!@#}{aS} ^ ( {!@#}{bS} + {!@#}{dS} ) )[!@#])
         }
         matchResult = match(tree, ['(', ['(', '', ['^'], '', ')'], ['^'], '', ')'])
         if (matchResult !== undefined) {
@@ -1059,7 +1056,7 @@ async function combineExponents() {
             const aS = syntaxTreeToText(a)
             const bS = syntaxTreeToText(b)
             const cS = syntaxTreeToText(c)
-            return makeConst(\`( \${aS} ^ ( \${bS} x. \${cS} ) )\`)
+            return makeConst([!@#]( {!@#}{aS} ^ ( {!@#}{bS} x. {!@#}{cS} ) )[!@#])
         }
         matchResult = match(tree, ['(', ['(', '', ['^'], '', ')'], ['x.'], '', ')'])
         if (matchResult !== undefined) {
@@ -1069,7 +1066,7 @@ async function combineExponents() {
             }
             const aS = syntaxTreeToText(a)
             const bS = syntaxTreeToText(b)
-            return makeConst(\`( \${aS} ^ ( \${bS} + 1 ) )\`)
+            return makeConst([!@#]( {!@#}{aS} ^ ( {!@#}{bS} + 1 ) )[!@#])
         }
         matchResult = match(tree, ['(', '', ['x.'], ['(', '', ['^'], '', ')'], ')'])
         if (matchResult !== undefined) {
@@ -1080,7 +1077,7 @@ async function combineExponents() {
             const aS = syntaxTreeToText(a)
             const bS = syntaxTreeToText(b)
             const cS = syntaxTreeToText(c)
-            return makeConst(\`( ( \${aS} ^ \${bS} ) x. \${cS} )\`)
+            return makeConst([!@#]( ( {!@#}{aS} ^ {!@#}{bS} ) x. {!@#}{cS} )[!@#])
         }
         return undefined
     }
@@ -1112,10 +1109,36 @@ const m = {
     combineExponents,
 }
 
-return [
-    {
-        displayName: "getEditorState",
-        run: getEditorState
+function makeMacro(name, func) {
+    return {
+        displayName:name,
+        run: async () => {
+            try {
+                await func()
+            } catch (ex) {
+                await showErrMsg(ex.message)
+                throw ex
+            }
+        }
     }
+}
+
+const macros = [
+    makeMacro("Log editor state", async () => console.log("Get editor state", await getEditorState())),
+    makeMacro("Log new assertions from editor", async () => console.log("new assertions from editor", await getNewAssertionsFromEditor())),
+    makeMacro("Inference to deduction", inferenceToDeduction),
+    makeMacro("Deduction to inference", deductionToInference),
+    makeMacro("Inference to closed", inferenceToClosed),
+    makeMacro("Eliminate all variables", eliminateVariables),
+    makeMacro("Eliminate variables in selection", eliminateVariablesInSelectedFragment),
+    makeMacro("Introduce variables +", introduceVariablesSum),
+    makeMacro("Introduce variables x.", introduceVariablesMul),
+    makeMacro("Distribute x.", distributeMul),
+    makeMacro("Distribute ^", distributeExp),
+    makeMacro("Sort regular symbols", sortRegularSymbols),
+    makeMacro("Sort polynomial variables", sortPolynomialVariables),
+    makeMacro("Combine exponents", combineExponents),
 ]
+
+return macros
 `
