@@ -220,7 +220,7 @@ let removeAllTempData: editorState => editorState
 let isEditMode: editorState => bool
 let resetEditorContent: editorState => editorState
 let deleteUnrelatedSteps: (editorState, ~stepIdsToKeep:array<stmtId>) => result<editorState, string>
-let autoMergeDuplicatedStatements: (editorState, ~selectFirst:bool) => editorState
+let autoMergeDuplicatedStatements: (editorState, ~selectFirst:bool) => (editorState,array<(string,string)>)
 let userStmtHasCriticalErrors: userStmt => bool
 let userStmtHasAnyErrors: userStmt => bool
 

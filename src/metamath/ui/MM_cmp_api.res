@@ -392,7 +392,13 @@ let unifyAll = (
 let mergeDuplicatedSteps = (
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
 ):promise<result<Js_json.t,string>> => {
-    setState(st => Ok( st->autoMergeDuplicatedStatements(~selectFirst=true), Js_json.null ))
+    setState(st => {
+        let (st,renames) = st->autoMergeDuplicatedStatements(~selectFirst=true)
+        let renamesJson = renames->Js.Array2.map(((from,to_)) => {
+            [from->Js_json.string, to_->Js_json.string]->Js_json.array
+        })->Js_json.array
+        Ok( st, renamesJson )
+    })
 }
 
 let editorSetContIsHidden = (

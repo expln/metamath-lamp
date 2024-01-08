@@ -2543,7 +2543,8 @@ let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt>
     })
 }
 
-let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorState => {
+let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorState,array<(string,string)>) => {
+    let renames = []
     let resultState = ref(st)
     let continue = ref(true)
     while (continue.contents) {
@@ -2553,23 +2554,36 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorSt
                 switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
                     | None => continue := false
                     | Some(stmt2) => {
+                        let jstf1 = stmt1.jstfText->Js_string2.trim
+                        let jstf2 = stmt2.jstfText->Js_string2.trim
                         if (selectFirst) {
-                            switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
-                                | Error(_) => continue := false
-                                | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                            if (jstf1 == "") {
+                                continue := false
+                            } else {
+                                switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                    | Error(_) => continue := false
+                                    | Ok(stateAfterMerge) => {
+                                        renames->Js.Array2.push((stmt1.label, stmt2.label))->ignore
+                                        resultState := stateAfterMerge->prepareEditorForUnification
+                                    }
+                                }
                             }
                         } else {
-                            let jstf1 = stmt1.jstfText->Js_string2.trim
-                            let jstf2 = stmt2.jstfText->Js_string2.trim
                             if (jstf1 != "" && jstf2 == "") {
                                 switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
                                     | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                    | Ok(stateAfterMerge) => {
+                                        renames->Js.Array2.push((stmt2.label, stmt1.label))->ignore
+                                        resultState := stateAfterMerge->prepareEditorForUnification
+                                    }
                                 }
                             } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
                                 switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
                                     | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                    | Ok(stateAfterMerge) => {
+                                        renames->Js.Array2.push((stmt1.label, stmt2.label))->ignore
+                                        resultState := stateAfterMerge->prepareEditorForUnification
+                                    }
                                 }
                             } else {
                                 continue := false
@@ -2580,15 +2594,16 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorSt
             }
         }
     }
-    resultState.contents
+    (resultState.contents,renames)
 }
 
-let verifyEditorState = (st:editorState) => {
+let verifyEditorState = (st:editorState):editorState => {
     let st = prepareEditorForUnification(st)
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)
         let st = if (st.settings.autoMergeStmts) {
-            autoMergeDuplicatedStatements(st, ~selectFirst=false)
+            let (st,_) = autoMergeDuplicatedStatements(st, ~selectFirst=false)
+            st
         } else {
             st
         }
