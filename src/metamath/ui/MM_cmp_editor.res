@@ -1945,8 +1945,24 @@ let make = (
         promiseResolved(())
     }
 
+    let showInfoMsg = (msg:string) => {
+        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, () )
+    }
+
+    let showErrMsg = (msg:string) => {
+        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, 
+            ~icon=
+                <span style=ReactDOM.Style.make(~color="red", () ) >
+                    <MM_Icons.PriorityHigh/>
+                </span>,
+            ()
+        )
+    }
+
     MM_cmp_api.updateEditorApi(
         ~state,
+        ~showInfoMsg,
+        ~showErrMsg,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,

@@ -11,6 +11,8 @@ type api = Js.Json.t => promise<apiResp>
 
 let api: {
     "setLogApiCallsToConsole": api,
+    "showInfoMsg": api,
+    "showErrMsg": api,
     "editor" : {
         "getState": api,
         "proveBottomUp": api,
@@ -35,6 +37,8 @@ type proverParams = {
 
 let updateEditorApi: (
     ~state: editorState,
+    ~showInfoMsg:string=>unit,
+    ~showErrMsg:string=>unit,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,

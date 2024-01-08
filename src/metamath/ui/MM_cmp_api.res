@@ -718,7 +718,7 @@ let logApiCallsToConsole = ref(false)
 
 let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string>> => {
     switch Js_json.decodeBoolean(params) {
-        | None => promiseResolved(Error("The parameter of setLogApiCallsToConsole() must me a boolean."))
+        | None => promiseResolved(Error("The parameter of setLogApiCallsToConsole() must be a boolean."))
         | Some(bool) => {
             logApiCallsToConsole := bool
             promiseResolved(Ok(Js_json.null))
@@ -726,7 +726,29 @@ let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string
     }
 }
 
+let apiShowInfoMsg = (params:Js_json.t, showInfoMsg:string=>unit):promise<result<Js_json.t,string>> => {
+    switch Js_json.decodeString(params) {
+        | None => promiseResolved(Error("The parameter of showInfoMsg() must be a string."))
+        | Some(msg) => {
+            showInfoMsg(msg)
+            promiseResolved(Ok(Js_json.null))
+        }
+    }
+}
+
+let apiShowErrMsg = (params:Js_json.t, showErrMsg:string=>unit):promise<result<Js_json.t,string>> => {
+    switch Js_json.decodeString(params) {
+        | None => promiseResolved(Error("The parameter of showErrMsg() must be a string."))
+        | Some(msg) => {
+            showErrMsg(msg)
+            promiseResolved(Ok(Js_json.null))
+        }
+    }
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
+let apiShowInfoMsgRef:ref<option<api>> = ref(None)
+let apiShowErrMsgRef:ref<option<api>> = ref(None)
 let getStateRef:ref<option<api>> = ref(None)
 let proveBottomUpRef:ref<option<api>> = ref(None)
 let unifyAllRef:ref<option<api>> = ref(None)
@@ -749,6 +771,8 @@ let makeApiFuncRef = (ref:ref<option<api>>):api => {
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncRef(setLogApiCallsToConsoleRef),
+    "showInfoMsg": makeApiFuncRef(apiShowInfoMsgRef),
+    "showErrMsg": makeApiFuncRef(apiShowErrMsgRef),
     "editor": {
         "getState": makeApiFuncRef(getStateRef),
         "proveBottomUp": makeApiFuncRef(proveBottomUpRef),
@@ -787,6 +811,8 @@ let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>
 
 let updateEditorApi = (
     ~state:editorState,
+    ~showInfoMsg:string=>unit,
+    ~showErrMsg:string=>unit,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
@@ -796,6 +822,8 @@ let updateEditorApi = (
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
 ):unit => {
     setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
+    apiShowInfoMsgRef := Some(makeApiFunc("showInfoMsg", params => apiShowInfoMsg(params, showInfoMsg)))
+    apiShowErrMsgRef := Some(makeApiFunc("showErrMsg", params => apiShowErrMsg(params, showErrMsg)))
     getStateRef := Some(makeApiFunc("editor.getState", _ => getEditorState(~state)))
     proveBottomUpRef := Some(makeApiFunc("editor.proveBottomUp", params => {
         proveBottomUp(

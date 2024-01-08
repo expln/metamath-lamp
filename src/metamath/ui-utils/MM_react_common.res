@@ -208,7 +208,24 @@ let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd, ()):r
     />
 }
 
-let rndInfoDialog = (~text:string, ~onOk:unit=>unit, ~title:option<string>=?, ()) => {
+let rndDialogContent = (
+    ~text:option<string>, 
+    ~content:option<React.element>, 
+) => {
+    switch content {
+        | Some(content) => content
+        | None => text->Belt_Option.getWithDefault("")->React.string
+    }
+}
+
+let rndInfoDialog = (
+    ~text:option<string>=?, 
+    ~content:option<React.element>=?, 
+    ~icon:option<React.element>=?,
+    ~onOk:unit=>unit, 
+    ~title:option<string>=?, 
+    ()
+) => {
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
             <span 
@@ -220,9 +237,29 @@ let rndInfoDialog = (~text:string, ~onOk:unit=>unit, ~title:option<string>=?, ()
             >
                 {title->Belt_Option.getWithDefault("")->React.string}
             </span>
-            <span>
-                {text->React.string}
-            </span>
+            {
+                switch icon {
+                    | None => {
+                        <span>
+                            {rndDialogContent(~text, ~content)}
+                        </span>
+                    }
+                    | Some(icon) => {
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        icon
+                                    </td>
+                                    <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                                        {rndDialogContent(~text, ~content)}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    }
+                }
+            }
             <Row>
                 <Button onClick={_=>onOk()} variant=#contained >
                     {React.string("Ok")}
@@ -241,11 +278,21 @@ let rndInfoDialog = (~text:string, ~onOk:unit=>unit, ~title:option<string>=?, ()
     </Paper>
 }
 
-let openInfoDialog = (~modalRef:modalRef, ~text:string, ~onOk:option<unit=>unit>=?, ~title:option<string>=?, ()) => {
+let openInfoDialog = (
+    ~modalRef:modalRef, 
+    ~text:option<string>=?, 
+    ~content:option<React.element>=?, 
+    ~icon:option<React.element>=?,
+    ~onOk:option<unit=>unit>=?, 
+    ~title:option<string>=?, 
+    ()
+) => {
     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
         updateModal(modalRef, modalId, () => {
             rndInfoDialog(
-                ~text, 
+                ~text?, 
+                ~content?, 
+                ~icon?,
                 ~onOk = () => {
                     closeModal(modalRef, modalId)
                     onOk->Belt_Option.forEach(clbk => clbk())
