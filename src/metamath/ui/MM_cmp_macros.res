@@ -37,6 +37,8 @@ type stateLocStor = {
     collsOfMacros:array<collOfMacrosLocStor>,
 }
 
+let macrosCache:Belt_HashMapString.t<result<array<macro>,string>> = Belt_HashMapString.make(~hintSize=1)
+
 let createMacroFromObject = (obj:{..}):macro => {
     let runFn = reqFuncExn(obj["run"], "'run' attribute of a macro must be a function.")
     {
@@ -57,6 +59,33 @@ let stringToMacros = (~displayName:string, ~script:string):result<array<macro>,s
     }
 }
 
+let getMacrosCacheKey = (~displayName:string, ~script:string):string => {
+    displayName ++ " ### " ++ script
+}
+
+let getMacrosFromCache = (~displayName:string, ~script:string):result<array<macro>,string> => {
+    let cacheKey = getMacrosCacheKey(~displayName, ~script)
+    switch macrosCache->Belt_HashMapString.get(cacheKey) {
+        | Some(macros) => macros
+        | None => {
+            let macros = stringToMacros(~displayName, ~script)
+            macrosCache->Belt_HashMapString.set(cacheKey, macros)
+            macros
+        }
+    }
+}
+
+let removeStaleMacrosFromCache = (st:state):unit => {
+    let validKeys = st.collsOfMacros
+        ->Js.Array2.map(coll => getMacrosCacheKey(~displayName=coll.displayName, ~script=coll.scriptText))
+    let allKeys = macrosCache->Belt_HashMapString.keysToArray
+    allKeys->Js.Array2.forEach(key => {
+        if (!(validKeys->Js_array2.includes(key))) {
+            macrosCache->Belt_HashMapString.remove(key)
+        }
+    })
+}
+
 let setMmExampleScript = MM_macros_set_mm_example2.setMmExampleMacros
 let setMmExampleDisplayName = "set.mm example macros"
 
@@ -72,7 +101,7 @@ let makeEmptyState = () => {
                 displayNameEdit: setMmExampleDisplayName,
                 scriptText: setMmExampleScript,
                 scriptTextEdit: setMmExampleScript,
-                macros: stringToMacros(
+                macros: getMacrosFromCache(
                     ~displayName=setMmExampleDisplayName,
                     ~script=setMmExampleScript
                 )
@@ -95,7 +124,7 @@ let addNewCollOfMacros = (st:state):state => {
                 displayNameEdit:displayName,
                 scriptText,
                 scriptTextEdit:scriptText,
-                macros: stringToMacros( ~displayName, ~script=scriptText )
+                macros: getMacrosFromCache( ~displayName, ~script=scriptText )
             }],
             st.collsOfMacros, 
         ])
@@ -119,27 +148,27 @@ let saveEdits = (st:state, ~id:int):result<state,string> => {
     if (id < 0) {
         Error("Cannot update these macros because they are read-only.")
     } else {
-        Ok(
-            {
-                ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
-                    if (collOfMacros.id != id) {
-                        collOfMacros
-                    } else {
-                        {
-                            ...collOfMacros,
-                            version:collOfMacros.version+1,
-                            displayName:collOfMacros.displayNameEdit,
-                            scriptText:collOfMacros.scriptTextEdit,
-                            macros: stringToMacros(
-                                ~displayName=collOfMacros.displayNameEdit,
-                                ~script=collOfMacros.scriptTextEdit
-                            )
-                        }
+        let st = {
+            ...st,
+            collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                if (collOfMacros.id != id) {
+                    collOfMacros
+                } else {
+                    {
+                        ...collOfMacros,
+                        version:collOfMacros.version+1,
+                        displayName:collOfMacros.displayNameEdit,
+                        scriptText:collOfMacros.scriptTextEdit,
+                        macros: getMacrosFromCache(
+                            ~displayName=collOfMacros.displayNameEdit,
+                            ~script=collOfMacros.scriptTextEdit
+                        )
                     }
-                })
-            }
-        )
+                }
+            })
+        }
+        removeStaleMacrosFromCache(st:state)
+        Ok(st)
     }
 }
 
@@ -255,7 +284,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
             displayNameEdit: setMmExampleDisplayName,
             scriptText: setMmExampleScript,
             scriptTextEdit: setMmExampleScript,
-            macros: stringToMacros(
+            macros: getMacrosFromCache(
                 ~displayName=setMmExampleDisplayName,
                 ~script=setMmExampleScript
             )
@@ -270,7 +299,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
                 displayNameEdit:coll.displayName,
                 scriptText:coll.scriptText,
                 scriptTextEdit:coll.scriptText,
-                macros: stringToMacros(
+                macros: getMacrosFromCache(
                     ~displayName=coll.displayName,
                     ~script=coll.scriptText
                 )

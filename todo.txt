@@ -1,5 +1,7 @@
 - fix a bug: completed proof should not be shown in macros.
 - fix a bug: in eliminate variables rename labels if there were merges of duplicates.
+- show security warning in the macros dialog.
+- implement caching in the API.
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source
