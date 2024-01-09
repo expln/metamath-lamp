@@ -412,23 +412,23 @@ let make = (
         let st = uncheckAllStmts(st)
         st
     })
-    let addStmtAbove = (st:editorState, id:stmtId, text:string):editorState => {
+    let addStmtAbove = (st:editorState, ~id:stmtId, ~text:string, ~isBkm:bool):editorState => {
         let st = uncheckAllStmts(st)
         let st = toggleStmtChecked(st,id)
-        let (st, newId) = addNewStmt(st, ())
+        let (st, newId) = addNewStmt(st, ~isBkm, ())
         let st = setStmtCont(st, newId, text->strToCont(()))
         st
     }
-    let actAddStmtAbove = (id:stmtId, text:string):unit => {
+    let actAddStmtAbove = (~id:stmtId, ~text:string, ~isBkm:bool):unit => {
         setState(st => {
-            let st = addStmtAbove(st, id, text)
+            let st = addStmtAbove(st, ~id, ~text, ~isBkm)
             let st = uncheckAllStmts(st)
             st
         })
     }
-    let actAddStmtBelow = (id:stmtId, text:string):unit => {
+    let actAddStmtBelow = (~id:stmtId, ~text:string, ~isBkm:bool):unit => {
         setState(st => {
-            let st = addStmtAbove(st, id, text)
+            let st = addStmtAbove(st, ~id, ~text, ~isBkm)
             let st = moveCheckedStmts(st, true)
             let st = uncheckAllStmts(st)
             st
@@ -1704,8 +1704,10 @@ let make = (
             onGenerateProof={()=>actExportProof(stmt.id)}
             onDebug={() => notifyEditInTempMode(()=>actDebugUnifyAll(stmt.id))}
 
-            addStmtAbove=actAddStmtAbove(stmt.id)
-            addStmtBelow=actAddStmtBelow(stmt.id)
+            addStmtAbove=
+                {text => actAddStmtAbove(~id=stmt.id, ~text, ~isBkm = stmt.isBkm || showBkmOnly && stmt.typ == E)}
+            addStmtBelow=
+                {text => actAddStmtBelow(~id=stmt.id, ~text, ~isBkm = stmt.isBkm || showBkmOnly && stmt.typ == E)}
             setShowTabs
             openFrameExplorer
         />
