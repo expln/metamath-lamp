@@ -561,12 +561,16 @@ let make = (
                 {React.string("Cancel")}
             </Button>
             {
-                rndHiddenTextField(
-                    ~onKeyDown=kbrdHnds([
-                        kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
-                    ]),
-                    ()
-                )
+                if (isExpanded) {
+                    React.null
+                } else {
+                    rndHiddenTextField(
+                        ~onKeyDown=kbrdHnds([
+                            kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                        ]),
+                        ()
+                    )
+                }
             }
         </Row>
     }

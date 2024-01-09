@@ -1476,7 +1476,7 @@ let make = (
                 <IconButton 
                     title="Set allowed statements for other levels same as for the first level" 
                     onClick={_=>actToggleArgs1EqArgs0()}
-                    color = ?(if (state.args1EqArgs0) {Some("primary")} else {None})
+                    color = ?(if (state.args1EqArgs0) {Some("primary")} else {Some("lightgrey")})
                 >
                     <MM_Icons.Pause style=ReactDOM.Style.make(~transform="rotate(-90deg)", ())/>
                 </IconButton>
