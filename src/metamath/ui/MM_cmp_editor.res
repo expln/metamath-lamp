@@ -908,10 +908,28 @@ let make = (
             ->Js_array2.map(stmt => stmt.expr)
     }
 
-    let getArgs0AndAsrtLabel = (jstfText:string, rootStmts:array<rootStmt>):option<(array<expr>,string)> => {
-        switch jstfText->parseJstf {
-            | Error(_) | Ok(None) => None
-            | Ok(Some({args:argLabels, label})) => Some((prepareArgs0(argLabels, rootStmts), label))
+    let getArgs0AndAsrtLabel = (checkedStmts:array<userStmt>, rootStmts:array<rootStmt>):option<(array<expr>,option<string>)> => {
+        if (checkedStmts->Js_array2.length == 0 || checkedStmts[checkedStmts->Js_array2.length-1].typ != P) {
+            None
+        } else {
+            let stmtToProve = checkedStmts[checkedStmts->Js_array2.length-1]
+            switch stmtToProve.jstfText->parseJstf {
+                | Ok(Some({args:argLabels, label})) => Some((prepareArgs0(argLabels, rootStmts), Some(label)))
+                | Error(_) | Ok(None) => {
+                    if (checkedStmts->Js_array2.length == 1) {
+                        None
+                    } else {
+                        Some((
+                            prepareArgs0(
+                                checkedStmts->Js_array2.slice(~start=0,~end_=checkedStmts->Js_array2.length - 1)
+                                    ->Js_array2.map(stmt => stmt.label), 
+                                rootStmts
+                            ), 
+                            None
+                        ))
+                    }
+                }
+            }
         }
     }
 
@@ -944,103 +962,100 @@ let make = (
                     }
                     let rootUserStmts = state->getRootStmtsForUnification
                     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                    let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
-                        | Some(stmt) if stmt.typ == P => Some(stmt)
-                        | _ => None
-                    }
-                    switch singleProvableChecked {
-                        | Some(singleProvableChecked) => {
-                            let initialParams = switch params {
-                                | Some(_) => params
-                                | None => {
-                                    switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
-                                        | None => None
-                                        | Some((args0,asrtLabel)) => {
-                                            Some(
-                                                bottomUpProverParamsMakeDefault(
-                                                    ~asrtLabel, 
-                                                    ~args0, 
-                                                    ~allowNewVars=false,
-                                                    ()
-                                                )
+                    let checkedStmtIds = state.checkedStmtIds->Js.Array2.map(((stmtId,_)) => stmtId)
+                        ->Belt_HashSetString.fromArray
+                    let checkedStmts = state.stmts
+                        ->Js.Array2.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
+                    if (checkedStmts->Js.Array2.length > 0 && checkedStmts[checkedStmts->Js.Array2.length-1].typ == P) {
+                        let initialParams = switch params {
+                            | Some(_) => params
+                            | None => {
+                                switch getArgs0AndAsrtLabel(checkedStmts, rootStmts) {
+                                    | None => None
+                                    | Some((args0,asrtLabel)) => {
+                                        Some(
+                                            bottomUpProverParamsMakeDefault(
+                                                ~asrtLabel?, 
+                                                ~args0, 
+                                                ~allowNewVars=false,
+                                                ()
                                             )
-                                        }
+                                        )
                                     }
                                 }
                             }
-                            openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                updateModal(modalRef, modalId, () => {
-                                    <MM_cmp_unify_bottom_up
-                                        modalRef
-                                        settingsVer=state.settingsV
-                                        settings=state.settings
-                                        preCtxVer=state.preCtxV
-                                        preCtx=state.preCtx
-                                        frms=state.frms parenCnt=state.parenCnt
-                                        varsText disjText wrkCtx
-                                        rootStmts=rootUserStmts
-                                        reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
-                                        typeToPrefix = {
-                                            Belt_MapString.fromArray(
-                                                state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
-                                            )
-                                        }
-                                        initialParams=?initialParams
-                                        apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
-                                        delayBeforeStartMs
-                                        initialDebugLevel=?initialDebugLevel
-                                        selectFirstFoundProof
-                                        onResultSelected={newStmtsDto => {
-                                            actBottomUpResultSelected( 
-                                                ~selectedResult=newStmtsDto,
-                                                ~bottomUpProofResultConsumer,
-                                                ~selectedManually=!selectFirstFoundProof,
-                                            )
-                                            closeModal(modalRef, modalId)
-                                        }}
-                                        onCancel={() => closeModal(modalRef, modalId)}
-                                    />
-                                })
-                            })->ignore
                         }
-                        | None => {
-                            openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))
-                                ->promiseMap(modalId => {
-                                    updateModal( 
+                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <MM_cmp_unify_bottom_up
+                                    modalRef
+                                    settingsVer=state.settingsV
+                                    settings=state.settings
+                                    preCtxVer=state.preCtxV
+                                    preCtx=state.preCtx
+                                    frms=state.frms parenCnt=state.parenCnt
+                                    varsText disjText wrkCtx
+                                    rootStmts=rootUserStmts
+                                    reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
+                                    typeToPrefix = {
+                                        Belt_MapString.fromArray(
+                                            state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                                        )
+                                    }
+                                    initialParams=?initialParams
+                                    apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
+                                    delayBeforeStartMs
+                                    initialDebugLevel=?initialDebugLevel
+                                    selectFirstFoundProof
+                                    onResultSelected={newStmtsDto => {
+                                        actBottomUpResultSelected( 
+                                            ~selectedResult=newStmtsDto,
+                                            ~bottomUpProofResultConsumer,
+                                            ~selectedManually=!selectFirstFoundProof,
+                                        )
+                                        closeModal(modalRef, modalId)
+                                    }}
+                                    onCancel={() => closeModal(modalRef, modalId)}
+                                />
+                            })
+                        })->ignore
+                    } else {
+                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))
+                            ->promiseMap(modalId => {
+                                updateModal( 
+                                    modalRef, modalId, () => rndProgress(
+                                        ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                                    )
+                                )
+                                let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
+                                unify(
+                                    ~settingsVer=state.settingsV,
+                                    ~settings=state.settings,
+                                    ~preCtxVer=state.preCtxV,
+                                    ~preCtx=state.preCtx,
+                                    ~varsText,
+                                    ~disjText,
+                                    ~rootStmts,
+                                    ~bottomUpProverParams=None,
+                                    ~allowedFrms=state.settings.allowedFrms,
+                                    ~syntaxTypes=Some(state.syntaxTypes),
+                                    ~exprsToSyntaxCheck=
+                                        if (state.settings.checkSyntax) {
+                                            Some(state->getAllExprsToSyntaxCheck(rootStmts))
+                                        } else {
+                                            None
+                                        },
+                                    ~debugLevel=0,
+                                    ~onProgress = msg => updateModal(
                                         modalRef, modalId, () => rndProgress(
-                                            ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                                            ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
                                         )
                                     )
-                                    let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
-                                    unify(
-                                        ~settingsVer=state.settingsV,
-                                        ~settings=state.settings,
-                                        ~preCtxVer=state.preCtxV,
-                                        ~preCtx=state.preCtx,
-                                        ~varsText,
-                                        ~disjText,
-                                        ~rootStmts,
-                                        ~bottomUpProverParams=None,
-                                        ~allowedFrms=state.settings.allowedFrms,
-                                        ~syntaxTypes=Some(state.syntaxTypes),
-                                        ~exprsToSyntaxCheck=
-                                            if (state.settings.checkSyntax) {
-                                                Some(state->getAllExprsToSyntaxCheck(rootStmts))
-                                            } else {
-                                                None
-                                            },
-                                        ~debugLevel=0,
-                                        ~onProgress = msg => updateModal(
-                                            modalRef, modalId, () => rndProgress(
-                                                ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
-                                            )
-                                        )
-                                    )->promiseMap(proofTreeDto => {
-                                        actUnifyAllResultsAreReady(proofTreeDto, nextAction)
-                                        closeModal(modalRef, modalId)
-                                    })
-                                })->ignore
-                        }
+                                )->promiseMap(proofTreeDto => {
+                                    actUnifyAllResultsAreReady(proofTreeDto, nextAction)
+                                    closeModal(modalRef, modalId)
+                                })
+                            })->ignore
                     }
                 }
             }
@@ -1338,13 +1353,13 @@ let make = (
             | Some(singleProvableChecked) => {
                 let rootUserStmts = st->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                let (params,debugLevel) = switch getArgs0AndAsrtLabel(singleProvableChecked.jstfText, rootStmts) {
+                let (params,debugLevel) = switch getArgs0AndAsrtLabel([singleProvableChecked], rootStmts) {
                     | Some((args0,asrtLabel)) => {
                         (
                             bottomUpProverParamsMakeDefault(
                                 ~args0, 
                                 ~args1=[],
-                                ~asrtLabel, 
+                                ~asrtLabel?, 
                                 ~maxSearchDepth=1,
                                 ~lengthRestrict=Less,
                                 ~allowNewDisjForExistingVars=false,
@@ -1556,12 +1571,6 @@ let make = (
                         if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
                     }
                 />
-                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
-                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
-                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
-                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreBookmarked,
                     ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
@@ -1572,6 +1581,12 @@ let make = (
                     ~icon=if (showBkmOnly){<MM_Icons.Bookmark/>}else{<MM_Icons.BookmarkBorder/>}, 
                     ~onClick=actToggleShowBkmOnly, ~active=true,
                     ~title="Show bookmarked steps only / show all steps", ~smallBtns, ())}
+                {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
+                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
+                    ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
+                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
+                    ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode, ())}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
@@ -1585,13 +1600,13 @@ let make = (
                     ~onClick=()=>actDuplicateStmt(false), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step down", 
                     ~smallBtns, ~notifyEditInTempMode, ())}
+                {rndIconButton(~icon=<MM_Icons.Restore/>, 
+                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
+                    ~title="Restore previous state", ~smallBtns, ())}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeStmts, ~notifyEditInTempMode,
                     ~active= numOfCheckedStmts==1 || thereIsDuplicatedStmt, 
                     ~title="Merge two similar steps", ~smallBtns, ())}
-                {rndIconButton(~icon=<MM_Icons.Restore/>, 
-                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
-                    ~title="Restore previous state", ~smallBtns, ())}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
                         ~active=generalModificationActionIsEnabled && state.frms->MM_substitution.frmsSize > 0,
@@ -1605,7 +1620,6 @@ let make = (
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
-                                    && (!atLeastOneStmtIsChecked || singleProvableChecked->Belt.Option.isSome)
                                     && state.stmts->Js_array2.length > 0, 
                         ~notifyEditInTempMode=?{
                             if (singleProvableChecked->Belt.Option.isSome) {Some(notifyEditInTempMode)} else {None}

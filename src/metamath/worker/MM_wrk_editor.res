@@ -443,7 +443,24 @@ let getAllStmtsUpToChecked = (st:editorState):array<userStmt> => {
 }
 
 let getRootStmtsForUnification = (st):array<userStmt> => {
-    st->getAllStmtsUpToChecked
+    let checkedStmtIds = st.checkedStmtIds->Js.Array2.map(((stmtId,_)) => stmtId)->Belt_HashSetString.fromArray
+    if (checkedStmtIds->Belt_HashSetString.size == 0) {
+        st.stmts
+    } else {
+        let lowestCheckedStmtIdx = ref(None)
+        let i = ref(st.stmts->Js.Array2.length-1)
+        while (i.contents >= 0 && lowestCheckedStmtIdx.contents->Belt_Option.isNone) {
+            let stmt = st.stmts[i.contents]
+            if (checkedStmtIds->Belt_HashSetString.has(stmt.id)) {
+                lowestCheckedStmtIdx := Some(i.contents)
+            }
+            i := i.contents - 1
+        }
+        switch lowestCheckedStmtIdx.contents {
+            | None => st.stmts
+            | Some(idx) => st.stmts->Js.Array2.slice(~start=0, ~end_=idx+1)
+        }
+    }
 }
 
 let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false, ()):string => {
