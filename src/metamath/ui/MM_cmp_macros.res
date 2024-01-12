@@ -6,9 +6,11 @@ open Local_storage_utils
 open Expln_React_Modal
 open Expln_utils_promise
 
+type macroGlobalContext = string
+
 type macro = {
     displayName: string,
-    run:unit=>unit,
+    run:macroGlobalContext=>unit,
 }
 
 type collOfMacros = {
@@ -37,13 +39,15 @@ type stateLocStor = {
     collsOfMacros:array<collOfMacrosLocStor>,
 }
 
+let macrosGlobalContext:macroGlobalContext = %raw(`{}`)
+
 let macrosCache:Belt_HashMapString.t<result<array<macro>,string>> = Belt_HashMapString.make(~hintSize=1)
 
 let createMacroFromObject = (obj:{..}):macro => {
     let runFn = reqFuncExn(obj["run"], "'run' attribute of a macro must be a function.")
     {
         displayName: reqStrExn(obj["displayName"], "'displayName' attribute of a macro must be a string."),
-        run: () => runFn(.),
+        run: ctx => runFn(. ctx),
     }
 }
 
@@ -688,7 +692,7 @@ let make = (
                                         <ListItemButton 
                                             onClick={_=>{
                                                 onClose()
-                                                macro.run()
+                                                macro.run(macrosGlobalContext)
                                             }}
                                         >
                                             <ListItemText>
