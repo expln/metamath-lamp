@@ -31,6 +31,7 @@ type resultRendered = {
 type proverFrameParamsToShow = {
     minDist: option<int>,
     maxDist: option<int>,
+    matches: option<array<string>>,
     frmsToUse: option<array<string>>,
     args: array<string>,
     allowNewDisjForExistingVars: bool,
@@ -782,6 +783,7 @@ let make = (
             frameParams: params.frameParams->Js_array2.map(p => {
                 minDist: p.minDist,
                 maxDist: p.maxDist,
+                matches: p.matches->Belt.Option.map(Js_array2.map(_, frm => wrkCtx->ctxIntsToStrExn(frm.frame.asrt))),
                 frmsToUse: p.frmsToUse,
                 args: p.args->Js_array2.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,

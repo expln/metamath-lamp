@@ -15,6 +15,7 @@ type lengthRestrict = No | LessEq | Less
 type bottomUpProverFrameParams = {
     minDist: option<int>,
     maxDist: option<int>,
+    matches: option<array<frmSubsData>>,
     frmsToUse: option<array<string>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
@@ -47,6 +48,7 @@ let bottomUpProverParamsMakeDefault = (
             {
                 minDist: Some(0),
                 maxDist: Some(0),
+                matches: None,
                 frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
                 args: args0,
                 allowNewDisjForExistingVars,
@@ -58,6 +60,7 @@ let bottomUpProverParamsMakeDefault = (
             {
                 minDist: Some(1),
                 maxDist: None,
+                matches: None,
                 frmsToUse: None,
                 args: args1,
                 allowNewDisjForExistingVars,
@@ -609,6 +612,43 @@ let isInCorrectOrder = (min:option<int>, i:int, max:option<int>):bool => {
     }
 }
 
+let exprMatchesAsrt = (
+    ~expr:expr,
+    ~frm:frmSubsData,
+    ~parenCnt:parenCnt,
+):bool => {
+    if (expr[0] != frm.frame.asrt[0]) {
+        false
+    } else {
+        let res = ref(false)
+        iterateSubstitutions(
+            ~frmExpr = frm.frame.asrt,
+            ~expr,
+            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
+            ~constParts = frm.constParts[frm.numOfHypsE], 
+            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~subs = frm.subs,
+            ~parenCnt,
+            ~consumer = _ => {
+                res.contents = true
+                Stop
+            }
+        )->ignore
+        res.contents
+    }
+}
+
+let exprMatchesAsrts = (
+    ~expr:expr, 
+    ~patterns:option<array<frmSubsData>>,
+    ~parenCnt:parenCnt,
+):bool => {
+    switch patterns {
+        | None => true
+        | Some(patterns) => patterns->Js_array2.some(pat => exprMatchesAsrt(~expr, ~frm=pat, ~parenCnt))
+    }
+}
+
 let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
@@ -622,7 +662,10 @@ let proveStmtBottomUp = (
         let res = []
         for i in 0 to params.frameParams->Js_array2.length-1 {
             let paramsI = params.frameParams[i]
-            if (isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist)) {
+            if (
+                isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist) 
+                && exprMatchesAsrts(~expr, ~patterns=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
+            ) {
                 let parents = findAsrtParentsWithNewVars(
                     ~tree,
                     ~expr,

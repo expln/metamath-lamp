@@ -142,6 +142,7 @@ let createFrame: (
     ~tokenType:string=?,
     ~skipEssentials:bool=?, 
     ~skipFirstSymCheck:bool=?, 
+    ~skipDisj:bool=?, 
     ~descrRegexToDisc:Js_re.t=?,
     ~labelRegexToDisc:Js_re.t=?,
     ~descrRegexToDepr:Js_re.t=?,

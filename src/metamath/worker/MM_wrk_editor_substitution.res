@@ -166,28 +166,33 @@ let findPossibleSubsByMatch = (
     ~frmExpr:expr, 
     ~expr:expr
 ):result<array<wrkSubs>,string> => {
-    let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
-    let tmpFrame = createFrame(
-        ~ctx=wrkCtx, ~ord=0, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
-        ~skipEssentials=true, ~skipFirstSymCheck=true, ()
-    )
-    let frm = prepareFrmSubsDataForFrame(tmpFrame)
-    let foundSubs = []
-    iterateSubstitutions(
-        ~frmExpr=tmpFrame.asrt,
-        ~expr,
-        ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-        ~constParts = frm.constParts[frm.numOfHypsE], 
-        ~varGroups = frm.varGroups[frm.numOfHypsE],
-        ~subs = frm.subs,
-        ~parenCnt,
-        ~consumer = subs => {
-            let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
-            foundSubs->Js_array2.push(wrkSubs)->ignore
-            Continue
-        }
-    )->ignore
-    Ok(foundSubs)
+    try {
+        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
+        let tmpFrame = createFrame(
+            ~ctx=wrkCtx, ~ord=0, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
+            ~skipEssentials=true, ~skipFirstSymCheck=true, ()
+        )
+        let frm = prepareFrmSubsDataForFrame(tmpFrame)
+        let foundSubs = []
+        iterateSubstitutions(
+            ~frmExpr=tmpFrame.asrt,
+            ~expr,
+            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
+            ~constParts = frm.constParts[frm.numOfHypsE], 
+            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~subs = frm.subs,
+            ~parenCnt,
+            ~consumer = subs => {
+                let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
+                foundSubs->Js_array2.push(wrkSubs)->ignore
+                Continue
+            }
+        )->ignore
+        Ok(foundSubs)
+    } catch {
+        | MmException({msg}) => Error(msg)
+        | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+    }
 }
 
 let makeCannotBuildSyntaxTreeError = (expr:expr, msg:string, ctx:mmContext):string => {

@@ -1053,6 +1053,7 @@ let createFrame = (
     ~tokenType:string="a frame",
     ~skipEssentials:bool=false, 
     ~skipFirstSymCheck:bool=false, 
+    ~skipDisj:bool=false, 
     ~descrRegexToDisc:option<Js_re.t>=?,
     ~labelRegexToDisc:option<Js_re.t>=?,
     ~descrRegexToDepr:option<Js_re.t>=?,
@@ -1071,7 +1072,9 @@ let createFrame = (
                 let asrt = exprStr->Js_array2.map(ctx->ctxSymToIntExn)
                 let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ())
                 let mandatoryVarsArr = mandatoryVarsSet->Belt_HashSetInt.toArray
-                let mandatoryDisj = extractMandatoryDisj(ctx, mandatoryVarsSet)
+                let mandatoryDisj = if (skipDisj) {disjMake()} else {
+                    extractMandatoryDisj(ctx, mandatoryVarsSet)
+                }
                 let mandatoryHypotheses = extractMandatoryHypotheses(ctx, mandatoryVarsSet, ~skipEssentials, ())
                 let ctxToFrameRenum = mandatoryVarsArr
                                         ->Js_array2.mapi((cv,fv) => (cv,fv))

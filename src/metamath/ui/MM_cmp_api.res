@@ -4,6 +4,8 @@ open Common
 open MM_context
 open MM_syntax_tree
 open MM_wrk_editor_substitution
+open MM_substitution
+open MM_parser
 
 type apiResp = {
     "isOk": bool,
@@ -254,9 +256,60 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
     )
 }
 
+let makeFrmSubsData = (
+    ~ctx:mmContext,
+    ~pattern:string,
+):result<frmSubsData,string> => {
+    try {
+        let frame = createFrame( ~ctx, ~ord=0, ~isAxiom=true, ~label="###temp_asrt###", ~proof=None, 
+            ~skipEssentials=true, ~skipFirstSymCheck=true, ~skipDisj=true, 
+            ~exprStr=pattern->getSpaceSeparatedValuesAsArray,
+            ()
+        )
+        Ok(frame->prepareFrmSubsDataForFrame)
+    } catch {
+        | MmException({msg}) => Error(msg)
+        | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+    }
+}
+
+let makeFrmSubsDataArr = (
+    ~state:editorState,
+    ~patterns:option<array<string>>,
+):result<option<array<frmSubsData>>,string> => {
+    switch patterns {
+        | None => Ok(None)
+        | Some(patterns) => {
+            switch state.wrkCtx {
+                | None => Error("Internal error: cannot parse patters to match")
+                | Some(wrkCtx) => {
+                    patterns->Js_array2.reduce(
+                        (res,pat) => {
+                            switch res {
+                                | Error(_) => res
+                                | Ok(res) => {
+                                    switch makeFrmSubsData(~ctx=wrkCtx, ~pattern=pat) {
+                                        | Error(msg) => Error(msg)
+                                        | Ok(frm) => {
+                                            res->Js_array2.push(frm)->ignore
+                                            Ok(res)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        Ok([])
+                    )->Belt_Result.map(arr => Some(arr))
+                }
+            }
+        }
+    }
+}
+
 type apiBottomUpProverFrameParams = {
     minDist:option<int>,
     maxDist:option<int>,
+    matches:option<array<string>>,
     framesToUse:option<array<string>>,
     stepsToUse:array<string>,
     allowNewDisjointsForExistingVariables:bool,
@@ -304,6 +357,7 @@ let proveBottomUp = (
                     {
                         minDist: d->intOpt("minDist", ()),
                         maxDist: d->intOpt("maxDist", ()),
+                        matches: d->arrOpt("matches", asStr(_, ()), ()),
                         framesToUse: d->arrOpt("frames", asStr(_, ()), ()),
                         stepsToUse: d->arr("stepsToDeriveFrom", asStr(_, ()), ()),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),
@@ -347,37 +401,60 @@ let proveBottomUp = (
                         switch args {
                             | Error(msg) => promiseResolved(Error(msg))
                             | Ok(args) => {
-                                startProvingBottomUp({
-                                    delayBeforeStartMs:
-                                        apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
-                                    stmtId: stmtToProve.id,
-                                    debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
-                                    selectFirstFoundProof:
-                                        apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
-                                    bottomUpProverParams: {
-                                        maxSearchDepth: apiParams.maxSearchDepth,
-                                        frameParams: apiParams.frameParams->Js_array2.mapi(
-                                            (frameParams,i):MM_provers.bottomUpProverFrameParams => {
-                                                {
-                                                    minDist: frameParams.minDist,
-                                                    maxDist: frameParams.maxDist,
-                                                    frmsToUse: frameParams.framesToUse,
-                                                    args: args[i],
-                                                    allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
-                                                    allowNewStmts: frameParams.allowNewSteps,
-                                                    allowNewVars: frameParams.allowNewVariables,
-                                                    lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
-                                                    maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                let matches = apiParams.frameParams->Js_array2.reduce(
+                                    (res,frameParams) => {
+                                        switch res {
+                                            | Error(msg) => Error(msg)
+                                            | Ok(matches) => {
+                                                switch makeFrmSubsDataArr(~state, ~patterns=frameParams.matches) {
+                                                    | Error(msg) => Error(msg)
+                                                    | Ok(frms) => {
+                                                        matches->Js_array2.push(frms)->ignore
+                                                        Ok(matches)
+                                                    }
                                                 }
                                             }
-                                        )
+                                        }
+                                    },
+                                    Ok([])
+                                )
+                                switch matches {
+                                    | Error(msg) => promiseResolved(Error(msg))
+                                    | Ok(matches) => {
+                                        startProvingBottomUp({
+                                            delayBeforeStartMs:
+                                                apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
+                                            stmtId: stmtToProve.id,
+                                            debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
+                                            selectFirstFoundProof:
+                                                apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
+                                            bottomUpProverParams: {
+                                                maxSearchDepth: apiParams.maxSearchDepth,
+                                                frameParams: apiParams.frameParams->Js_array2.mapi(
+                                                    (frameParams,i):MM_provers.bottomUpProverFrameParams => {
+                                                        {
+                                                            minDist: frameParams.minDist,
+                                                            maxDist: frameParams.maxDist,
+                                                            matches: matches[i],
+                                                            frmsToUse: frameParams.framesToUse,
+                                                            args: args[i],
+                                                            allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
+                                                            allowNewStmts: frameParams.allowNewSteps,
+                                                            allowNewVars: frameParams.allowNewVariables,
+                                                            lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
+                                                            maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        })->promiseMap(proved => {
+                                            switch proved {
+                                                | None => Ok(Js_json.null)
+                                                | Some(proved) => Ok(proved->Js_json.boolean)
+                                            }
+                                        })
                                     }
-                                })->promiseMap(proved => {
-                                    switch proved {
-                                        | None => Ok(Js_json.null)
-                                        | Some(proved) => Ok(proved->Js_json.boolean)
-                                    }
-                                })
+                                }
                             }
                         }
                     }
