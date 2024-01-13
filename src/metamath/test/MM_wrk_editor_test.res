@@ -1318,13 +1318,80 @@ describe("deleteUnrelatedSteps", _ => {
         )
 
         //when
-        switch deleteUnrelatedSteps(st, ~stepIdsToKeep=[idQed]) {
+        switch deleteUnrelatedSteps(st, ~stepIdsToKeep=[idQed], ~deleteHyps=false) {
             | Error(msg) => failMsg("Could not remove unrelated steps because of the error: " ++ msg)
             | Ok(state) => {
                 //then
                 assertEqMsg(
                     state.stmts->Js_array2.map(stmt => stmt.id),
                     [ idQed1, id2, id4, id6, idQed, id8, ],
+                    "after"
+                )
+            }
+        }
+    })
+
+    it("deletes unrelated hypotheses", _ => {
+        //given
+        let st = createEditorState(demo0, ())
+        let (st, idQed1) = addNewStmt(st, ())
+        let (st, id1) = addNewStmt(st, ())
+        let (st, id2) = addNewStmt(st, ())
+        let (st, id3) = addNewStmt(st, ())
+        let (st, id4) = addNewStmt(st, ())
+        let (st, id5) = addNewStmt(st, ())
+        let (st, id6) = addNewStmt(st, ())
+        let (st, id7) = addNewStmt(st, ())
+        let (st, idQed) = addNewStmt(st, ())
+        let (st, id8) = addNewStmt(st, ())
+        let st = updateStmt(st, idQed1, stmt => { ...stmt, 
+            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )", ())
+        })
+        let st = updateStmt(st, id1, stmt => { ...stmt, 
+            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2", ())
+        })
+        let st = updateStmt(st, id2, stmt => { ...stmt, 
+            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
+        })
+        let st = updateStmt(st, id3, stmt => { ...stmt, 
+            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
+        })
+        let st = updateStmt(st, id4, stmt => { ...stmt, 
+            label:"4", typ:P, isGoal:false, jstfText: ": a1", 
+            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
+        })
+        let st = updateStmt(st, id5, stmt => { ...stmt, 
+            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
+        })
+        let st = updateStmt(st, id6, stmt => { ...stmt, 
+            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
+        })
+        let st = updateStmt(st, id7, stmt => { ...stmt, 
+            label:"7", typ:P, isGoal:false, jstfText: ": a1", 
+            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
+        })
+        let st = updateStmt(st, idQed, stmt => { ...stmt, 
+            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
+        })
+        let st = updateStmt(st, id8, stmt => { ...stmt, 
+            label:"8", typ:P, isGoal:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
+        })
+        let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
+                ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")
+        assertEqMsg(
+            st.stmts->Js_array2.map(stmt => stmt.id),
+            [ idQed1, id1, id2, id3, id4, id5, id6, id7, idQed, id8, ],
+            "before"
+        )
+
+        //when
+        switch deleteUnrelatedSteps(st, ~stepIdsToKeep=[idQed], ~deleteHyps=true) {
+            | Error(msg) => failMsg("Could not remove unrelated steps because of the error: " ++ msg)
+            | Ok(state) => {
+                //then
+                assertEqMsg(
+                    state.stmts->Js_array2.map(stmt => stmt.id),
+                    [ id2, id4, id6, idQed, id8, ],
                     "after"
                 )
             }
@@ -1385,7 +1452,7 @@ describe("deleteUnrelatedSteps", _ => {
         )
 
         //when
-        switch deleteUnrelatedSteps(st, ~stepIdsToKeep=[idQed]) {
+        switch deleteUnrelatedSteps(st, ~stepIdsToKeep=[idQed], ~deleteHyps=false) {
             | Error(msg) => failMsg("Could not remove unrelated steps because of the error: " ++ msg)
             | Ok(state) => {
                 //then

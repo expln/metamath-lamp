@@ -1299,10 +1299,11 @@ let make = (
         }
     }
 
-    let actDeleteUnrelatedSteps = () => {
+    let actDeleteUnrelatedSteps = (~deleteHyps:bool) => {
         notifyEditInTempMode(() => {
             switch state->deleteUnrelatedSteps(
-                ~stepIdsToKeep=state.checkedStmtIds->Js_array2.map(((id,_)) => id)
+                ~stepIdsToKeep=state.checkedStmtIds->Js_array2.map(((id,_)) => id),
+                ~deleteHyps
             ) {
                 | Ok(state) => setState(_ => state)
                 | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
@@ -1505,10 +1506,18 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actDeleteUnrelatedSteps()
+                                actDeleteUnrelatedSteps(~deleteHyps=false)
                             }}
                         >
                             {"Delete unrelated steps"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actDeleteUnrelatedSteps(~deleteHyps=true)
+                            }}
+                        >
+                            {"Delete unrelated steps and hypotheses"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

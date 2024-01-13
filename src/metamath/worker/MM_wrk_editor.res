@@ -428,20 +428,6 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
     }
 }
 
-let getAllStmtsUpToChecked = (st:editorState):array<userStmt> => {
-    let checkedAdded = ref(false)
-    let res = []
-    let i = ref(0)
-    let stmtsLen = st.stmts->Js_array2.length
-    while (i.contents < stmtsLen && !checkedAdded.contents) {
-        let stmt = st.stmts[i.contents]
-        res->Js.Array2.push(stmt)->ignore
-        checkedAdded.contents = st->isStmtChecked(stmt.id)
-        i.contents = i.contents + 1
-    }
-    res
-}
-
 let getRootStmtsForUnification = (st):array<userStmt> => {
     let checkedStmtIds = st.checkedStmtIds->Js.Array2.map(((stmtId,_)) => stmtId)->Belt_HashSetString.fromArray
     if (checkedStmtIds->Belt_HashSetString.size == 0) {
@@ -2997,7 +2983,11 @@ let resetEditorContent = (st:editorState):editorState => {
     }
 }
 
-let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):result<editorState, string> => {
+let deleteUnrelatedSteps = (
+    state:editorState, 
+    ~stepIdsToKeep:array<stmtId>, 
+    ~deleteHyps:bool
+):result<editorState, string> => {
     let state = state->prepareEditorForUnification
     if (state->editorStateHasCriticalErrors) {
         Error(
@@ -3007,7 +2997,7 @@ let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):res
     } else {
         let unprocessedIds = Belt.MutableQueue.fromArray(stepIdsToKeep)
         state.stmts->Js.Array2.forEach(stmt => {
-            if (stmt.typ == E || stmt.isGoal || stmt.isBkm) {
+            if ((!deleteHyps && stmt.typ == E) || stmt.isGoal || stmt.isBkm) {
                 unprocessedIds->Belt_MutableQueue.add(stmt.id)
             }
         })

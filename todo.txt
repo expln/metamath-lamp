@@ -1,3 +1,4 @@
+- fix a bug: set "autounify all" = true. Update settings - an error occurs.
 - fix a bug: completed proof should not be shown in macros.
 - fix a bug: in eliminate variables rename labels if there were merges of duplicates.
 - simplify actUnify() in MM_cmp_editors.
