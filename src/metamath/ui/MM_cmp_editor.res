@@ -322,7 +322,11 @@ let make = (
     let thereIsDuplicatedStmt = state->editorStateHasDuplicatedStmts
 
     let actPreCtxDataUpdated = () => {
-        setState(setPreCtxData(_, preCtxData))
+        setState(st => {
+            let st = st->setPreCtxData(preCtxData)
+            let st = st->setNextAction(Some(Action(()=>())))
+            st
+        })
         setHist(editorHistSetMaxLength(_, preCtxData.settingsV.val.editorHistMaxLength))
     }
 
