@@ -927,7 +927,7 @@ let make = (
         switch state.tree {
             | None => ()
             | Some(tree) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModalFullScreen(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
                         let closeBtn =
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
