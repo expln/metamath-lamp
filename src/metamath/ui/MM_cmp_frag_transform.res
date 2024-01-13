@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open MM_react_common
 open MM_cmp_single_frag_transf
 open MM_wrk_frag_transform
 open MM_wrk_editor
@@ -120,6 +121,14 @@ let make = (
             <Button onClick={_=>onCancel()} variant=#outlined>
                 {React.string("Cancel")}
             </Button>
+            {
+                rndHiddenTextField(
+                    ~onKeyDown=kbrdHnds([
+                        kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                    ]),
+                    ()
+                )
+            }
         </Row>
     }
 

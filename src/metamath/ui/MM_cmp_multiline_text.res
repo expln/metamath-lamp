@@ -198,7 +198,7 @@ let make = (
             let style = if (text->Js.String2.trim == "") {
                 ReactDOM.Style.make(~padding="4px", ())
             } else {
-                ReactDOM.Style.make(~padding="0px", ())
+                ReactDOM.Style.make(~padding="0px 4px", ())
             }
             let title = if (editByAltClick) {
                 if (longClickEnabled) {
