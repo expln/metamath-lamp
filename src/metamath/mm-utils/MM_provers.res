@@ -9,13 +9,14 @@ open MM_unification_debug
 open MM_statements_dto
 open Common
 open MM_wrk_settings
+open MM_apply_asrt_matcher
 
 type lengthRestrict = No | LessEq | Less
 
 type bottomUpProverFrameParams = {
     minDist: option<int>,
     maxDist: option<int>,
-    matches: option<array<frmSubsData>>,
+    matches: option<array<applyAsrtResultMatcher>>,
     frmsToUse: option<array<string>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
@@ -612,40 +613,45 @@ let isInCorrectOrder = (min:option<int>, i:int, max:option<int>):bool => {
     }
 }
 
-let exprMatchesAsrt = (
+let exprMatchesAsrtMatcher = (
     ~expr:expr,
-    ~frm:frmSubsData,
+    ~matcher:applyAsrtResultMatcher,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (expr[0] != frm.frame.asrt[0]) {
-        false
+    if (!matcher.matchAsrt) {
+        true
     } else {
-        let res = ref(false)
-        iterateSubstitutions(
-            ~frmExpr = frm.frame.asrt,
-            ~expr,
-            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-            ~constParts = frm.constParts[frm.numOfHypsE], 
-            ~varGroups = frm.varGroups[frm.numOfHypsE],
-            ~subs = frm.subs,
-            ~parenCnt,
-            ~consumer = _ => {
-                res.contents = true
-                Stop
-            }
-        )->ignore
-        res.contents
+        let frm = matcher.frm
+        if (expr[0] != frm.frame.asrt[0]) {
+            false
+        } else {
+            let res = ref(false)
+            iterateSubstitutions(
+                ~frmExpr = frm.frame.asrt,
+                ~expr,
+                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
+                ~constParts = frm.constParts[frm.numOfHypsE], 
+                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~subs = frm.subs,
+                ~parenCnt,
+                ~consumer = _ => {
+                    res.contents = true
+                    Stop
+                }
+            )->ignore
+            res.contents
+        }
     }
 }
 
-let exprMatchesAsrts = (
+let exprMatchesAsrtMatchers = (
     ~expr:expr, 
-    ~patterns:option<array<frmSubsData>>,
+    ~matchers:option<array<applyAsrtResultMatcher>>,
     ~parenCnt:parenCnt,
 ):bool => {
-    switch patterns {
+    switch matchers {
         | None => true
-        | Some(patterns) => patterns->Js_array2.some(pat => exprMatchesAsrt(~expr, ~frm=pat, ~parenCnt))
+        | Some(matchers) => matchers->Js_array2.some(matcher => exprMatchesAsrtMatcher(~expr, ~matcher, ~parenCnt))
     }
 }
 
@@ -664,7 +670,7 @@ let proveStmtBottomUp = (
             let paramsI = params.frameParams[i]
             if (
                 isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist) 
-                && exprMatchesAsrts(~expr, ~patterns=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
+                && exprMatchesAsrtMatchers(~expr, ~matchers=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
             ) {
                 let parents = findAsrtParentsWithNewVars(
                     ~tree,

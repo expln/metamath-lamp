@@ -90,6 +90,17 @@ let anyToObj = (jsonAny, mapper: jsonAny=>'a):result<option<'a>,string> => {
     }
 }
 
+let anyToJson = (jsonAny):result<option<Js_json.t>,string> => {
+    switch jsonAny {
+        | JsonNull(_) => Ok(None)
+        | JsonBool(bool, _) => Ok(Some(bool->Js_json.boolean))
+        | JsonNum(float, _) => Ok(Some(float->Js_json.number))
+        | JsonStr(string, _) => Ok(Some(string->Js_json.string))
+        | JsonArr(array, _) => Ok(Some(array->Js_json.array))
+        | JsonObj(dict, _) => Ok(Some(dict->Js_json.object_))
+    }
+}
+
 let getByPath = (obj:jsonAny, attrName: string):result<option<jsonAny>,string> => {
     switch obj {
         | JsonObj(dict,path) => {
@@ -186,6 +197,11 @@ let asStrOpt = makeAsValOpt(anyToStr)
 let asStr = makeAsVal(anyToStr, "a string")
 let strOpt = makeValOpt(asStrOpt)
 let str = makeVal(asStr, "a string")
+
+let asJsonOpt = makeAsValOpt(anyToJson)
+let asJson = makeAsVal(anyToJson, "a json")
+let jsonOpt = makeValOpt(asJsonOpt)
+let json = makeVal(asJson, "a json")
 
 let asArrOpt = (
     arr:jsonAny, 

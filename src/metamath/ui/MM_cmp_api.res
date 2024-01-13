@@ -6,6 +6,7 @@ open MM_syntax_tree
 open MM_wrk_editor_substitution
 open MM_substitution
 open MM_parser
+open MM_apply_asrt_matcher
 
 type apiResp = {
     "isOk": bool,
@@ -273,43 +274,60 @@ let makeFrmSubsData = (
     }
 }
 
-let makeFrmSubsDataArr = (
+type apiApplyAsrtResultMatcher = {
+    typ: string,
+    label: option<string>,
+    idx: option<int>,
+    pattern: string,
+}
+
+let jsonToMatcher = (
+    ~ctx:mmContext,
+    ~matcher:array<apiApplyAsrtResultMatcher>,
+    ~frmsToUse:option<array<string>>,
+):result<applyAsrtResultMatcher> => {
+
+}
+
+let optArrayToMatchers = (
     ~state:editorState,
-    ~patterns:option<array<string>>,
-):result<option<array<frmSubsData>>,string> => {
-    switch patterns {
-        | None => Ok(None)
-        | Some(patterns) => {
-            switch state.wrkCtx {
-                | None => Error("Internal error: cannot parse patters to match")
-                | Some(wrkCtx) => {
-                    patterns->Js_array2.reduce(
-                        (res,pat) => {
-                            switch res {
-                                | Error(_) => res
-                                | Ok(res) => {
-                                    switch makeFrmSubsData(~ctx=wrkCtx, ~pattern=pat) {
-                                        | Error(msg) => Error(msg)
-                                        | Ok(frm) => {
-                                            res->Js_array2.push(frm)->ignore
-                                            Ok(res)
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        Ok([])
-                    )->Belt_Result.map(arr => Some(arr))
-                }
-            }
-        }
-    }
+    ~matches:option<array<array<apiApplyAsrtResultMatcher>>>,
+    ~frmsToUse:option<array<string>>,
+):result<option<array<applyAsrtResultMatcher>>,string> => {
+    Ok(None)
+    // switch matches {
+    //     | None => Ok(None)
+    //     | Some(matches) => {
+    //         switch state.wrkCtx {
+    //             | None => Error("Internal error: cannot parse patters to match")
+    //             | Some(wrkCtx) => {
+    //                 patterns->Js_array2.reduce(
+    //                     (res,pat) => {
+    //                         switch res {
+    //                             | Error(_) => res
+    //                             | Ok(res) => {
+    //                                 switch makeFrmSubsData(~ctx=wrkCtx, ~pattern=pat) {
+    //                                     | Error(msg) => Error(msg)
+    //                                     | Ok(frm) => {
+    //                                         res->Js_array2.push(frm)->ignore
+    //                                         Ok(res)
+    //                                     }
+    //                                 }
+    //                             }
+    //                         }
+    //                     },
+    //                     Ok([])
+    //                 )->Belt_Result.map(arr => Some(arr))
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 type apiBottomUpProverFrameParams = {
     minDist:option<int>,
     maxDist:option<int>,
-    matches:option<array<string>>,
+    matches:option<array<array<apiApplyAsrtResultMatcher>>>,
     framesToUse:option<array<string>>,
     stepsToUse:array<string>,
     allowNewDisjointsForExistingVariables:bool,
@@ -357,7 +375,21 @@ let proveBottomUp = (
                     {
                         minDist: d->intOpt("minDist", ()),
                         maxDist: d->intOpt("maxDist", ()),
-                        matches: d->arrOpt("matches", asStr(_, ()), ()),
+                        matches: d->arrOpt("matches", asArr(_, asObj(_, d=>{
+                            {
+                                typ: d->str("type", ~validator = str => {
+                                    if (str == "res" || str == "hyp") {
+                                        Ok(str)
+                                    } else {
+                                        Error("'type' must be one of: 'res', 'hyp'.")
+                                    }
+                                }, ()),
+                                label: d->strOpt("label", ()),
+                                idx: d->intOpt("idx", ()),
+                                pattern: d->str("pattern", ()),
+                                
+                            }
+                        }, ()), ()), ()),
                         framesToUse: d->arrOpt("frames", asStr(_, ()), ()),
                         stepsToUse: d->arr("stepsToDeriveFrom", asStr(_, ()), ()),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),
@@ -406,7 +438,11 @@ let proveBottomUp = (
                                         switch res {
                                             | Error(msg) => Error(msg)
                                             | Ok(matches) => {
-                                                switch makeFrmSubsDataArr(~state, ~patterns=frameParams.matches) {
+                                                switch optArrayToMatchers(
+                                                    ~state, 
+                                                    ~matches=frameParams.matches, 
+                                                    ~frmsToUse=frameParams.framesToUse
+                                                ) {
                                                     | Error(msg) => Error(msg)
                                                     | Ok(frms) => {
                                                         matches->Js_array2.push(frms)->ignore

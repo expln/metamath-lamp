@@ -3,13 +3,14 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_wrk_settings
+open MM_apply_asrt_matcher
 
 type lengthRestrict = No | LessEq | Less
 
 type bottomUpProverFrameParams = {
     minDist: option<int>,
     maxDist: option<int>,
-    matches: option<array<frmSubsData>>,
+    matches: option<array<applyAsrtResultMatcher>>,
     frmsToUse: option<array<string>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,

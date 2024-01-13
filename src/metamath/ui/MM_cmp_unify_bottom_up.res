@@ -15,6 +15,7 @@ open MM_wrk_unify
 open MM_parenCounter
 open MM_wrk_settings
 open MM_cmp_root_stmts
+open MM_apply_asrt_matcher
 
 type sortBy = NewStmtsNum | UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -28,10 +29,21 @@ type resultRendered = {
     numOfStmts: int,
 }
 
+type applyAsrtResultHypMatcherToShow = {
+    label: option<string>,
+    idx:option<int>,
+    pat:string,
+}
+
+type applyAsrtResultMatcherToShow = {
+    res: option<string>,
+    hyps: option<array<applyAsrtResultHypMatcherToShow>>,
+}
+
 type proverFrameParamsToShow = {
     minDist: option<int>,
     maxDist: option<int>,
-    matches: option<array<string>>,
+    matches: option<array<array<applyAsrtResultMatcherToShow>>>,
     frmsToUse: option<array<string>>,
     args: array<string>,
     allowNewDisjForExistingVars: bool,
@@ -775,6 +787,33 @@ let make = (
         }
     }
 
+    let makeMatchesToShow = (wrkCtx:mmContext, matches:array<applyAsrtResultMatcher>):array<array<applyAsrtResultMatcherToShow>> => {
+        matches->Js_array2.map(matcher => {
+            let res = []
+            if (matcher.matchAsrt) {
+                res->Js.Array2.push({
+                    typ: "res",
+                    label: None,
+                    idx: None,
+                    pattern: wrkCtx->ctxIntsToStrExn(matcher.frm.frame.asrt),
+                })->ignore
+            }
+            matcher.hypMatchers->Js.Array2.forEachi((hypMatcher,i) => {
+                let (label,idx) = switch hypMatcher {
+                    | Label(label) => (Some(label), None)
+                    | Idx(idx) => (None, Some(idx))
+                }
+                res->Js.Array2.push({
+                    typ: "hyp",
+                    label,
+                    idx,
+                    pattern: wrkCtx->ctxIntsToStrExn(matcher.frm.hypsE[i].expr),
+                })->ignore
+            })
+            res
+        })
+    }
+
     let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
         {
             stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
@@ -783,7 +822,7 @@ let make = (
             frameParams: params.frameParams->Js_array2.map(p => {
                 minDist: p.minDist,
                 maxDist: p.maxDist,
-                matches: p.matches->Belt.Option.map(Js_array2.map(_, frm => wrkCtx->ctxIntsToStrExn(frm.frame.asrt))),
+                matches: p.matches->Belt.Option.map(makeMatchesToShow(wrkCtx, _)),
                 frmsToUse: p.frmsToUse,
                 args: p.args->Js_array2.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,

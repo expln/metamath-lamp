@@ -23,6 +23,11 @@ let asStr: (jsonAny, ~validator:validator<string>=?, ~default:default<string>=?,
 let strOpt: (jsonAny, string, ~validator:validator<option<string>>=?, ~default:default<option<string>>=?, ()) => option<string>
 let str: (jsonAny, string, ~validator:validator<string>=?, ~default:default<string>=?, ()) => string
 
+let asJsonOpt: (jsonAny, ~validator:validator<option<Js_json.t>>=?, ~default:default<option<Js_json.t>>=?, ()) => option<Js_json.t>
+let asJson: (jsonAny, ~validator:validator<Js_json.t>=?, ~default:default<Js_json.t>=?, ()) => Js_json.t
+let jsonOpt: (jsonAny, string, ~validator:validator<option<Js_json.t>>=?, ~default:default<option<Js_json.t>>=?, ()) => option<Js_json.t>
+let json: (jsonAny, string, ~validator:validator<Js_json.t>=?, ~default:default<Js_json.t>=?, ()) => Js_json.t
+
 let asArrOpt: (jsonAny, jsonAny => 'a, ~validator:validator<option<array<'a>>>=?, ~default:default<option<array<'a>>>=?, ()) => option<array<'a>>
 let asArr: (jsonAny, jsonAny => 'a, ~validator:validator<array<'a>>=?, ~default:default<array<'a>>=?, ()) => array<'a>
 let arrOpt: (jsonAny, string, jsonAny => 'a, ~validator:validator<option<array<'a>>>=?, ~default:default<option<array<'a>>>=?, ()) => option<array<'a>>
