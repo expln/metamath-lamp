@@ -15,6 +15,7 @@ open MM_wrk_unify
 open MM_parenCounter
 open MM_wrk_settings
 open MM_cmp_root_stmts
+open MM_apply_asrt_matcher
 
 type sortBy = NewStmtsNum | UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -28,9 +29,21 @@ type resultRendered = {
     numOfStmts: int,
 }
 
+type applyAsrtResultHypMatcherToShow = {
+    label: option<string>,
+    idx:option<int>,
+    pat:string,
+}
+
+type applyAsrtResultMatcherToShow = {
+    res: option<string>,
+    hyps: array<applyAsrtResultHypMatcherToShow>,
+}
+
 type proverFrameParamsToShow = {
     minDist: option<int>,
     maxDist: option<int>,
+    matches: option<array<applyAsrtResultMatcherToShow>>,
     frmsToUse: option<array<string>>,
     args: array<string>,
     allowNewDisjForExistingVars: bool,
@@ -774,6 +787,30 @@ let make = (
         }
     }
 
+    let makeMatchesToShow = (wrkCtx:mmContext, matches:array<applyAsrtResultMatcher>):array<applyAsrtResultMatcherToShow> => {
+        matches->Js_array2.map(matcher => {
+            {
+                res: 
+                    if (matcher.matchAsrt) {
+                        Some(wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.frame.asrt))
+                    } else {
+                        None
+                    },
+                hyps: matcher.hypMatchers->Js_array2.mapi((hypMatcher,i) => {
+                    let (label,idx) = switch hypMatcher {
+                        | Label(label) => (Some(label), None)
+                        | Idx(idx) => (None, Some(idx))
+                    }
+                    {
+                        label,
+                        idx,
+                        pat: wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.hypsE[i].expr),
+                    }
+                }),
+            }
+        })
+    }
+
     let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
         {
             stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
@@ -782,6 +819,7 @@ let make = (
             frameParams: params.frameParams->Js_array2.map(p => {
                 minDist: p.minDist,
                 maxDist: p.maxDist,
+                matches: p.matches->Belt.Option.map(makeMatchesToShow(wrkCtx, _)),
                 frmsToUse: p.frmsToUse,
                 args: p.args->Js_array2.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
@@ -927,7 +965,7 @@ let make = (
         switch state.tree {
             | None => ()
             | Some(tree) => {
-                openModal(modalRef, _ => React.null)->promiseMap(modalId => {
+                openModalFullScreen(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
                         let closeBtn =
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
@@ -1476,7 +1514,7 @@ let make = (
                 <IconButton 
                     title="Set allowed statements for other levels same as for the first level" 
                     onClick={_=>actToggleArgs1EqArgs0()}
-                    color = ?(if (state.args1EqArgs0) {Some("primary")} else {None})
+                    color = ?(if (state.args1EqArgs0) {Some("primary")} else {Some("lightgrey")})
                 >
                     <MM_Icons.Pause style=ReactDOM.Style.make(~transform="rotate(-90deg)", ())/>
                 </IconButton>

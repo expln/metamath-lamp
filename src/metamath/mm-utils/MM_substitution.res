@@ -533,7 +533,7 @@ let createSubs = (~numOfVars:int) => {
     }
 }
 
-let prepareFrmSubsDataForFrame = (frame):frmSubsData => {
+let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
     let hypsE = frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)
 
     let frmConstPartsArr:array<constParts> = []

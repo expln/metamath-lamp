@@ -9,6 +9,7 @@ open MM_unification_debug
 open MM_statements_dto
 open Common
 open MM_wrk_settings
+open MM_apply_asrt_matcher
 
 type lengthRestrict = No | LessEq | Less
 
@@ -16,6 +17,7 @@ type bottomUpProverFrameParams = {
     minDist: option<int>,
     maxDist: option<int>,
     frmsToUse: option<array<string>>,
+    matches: option<array<applyAsrtResultMatcher>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
@@ -48,6 +50,7 @@ let bottomUpProverParamsMakeDefault = (
                 minDist: Some(0),
                 maxDist: Some(0),
                 frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
+                matches: None,
                 args: args0,
                 allowNewDisjForExistingVars,
                 allowNewStmts,
@@ -58,6 +61,7 @@ let bottomUpProverParamsMakeDefault = (
             {
                 minDist: Some(1),
                 maxDist: None,
+                matches: None,
                 frmsToUse: None,
                 args: args1,
                 allowNewDisjForExistingVars,
@@ -609,6 +613,48 @@ let isInCorrectOrder = (min:option<int>, i:int, max:option<int>):bool => {
     }
 }
 
+let exprMatchesAsrtMatcher = (
+    ~expr:expr,
+    ~matcher:applyAsrtResultMatcher,
+    ~parenCnt:parenCnt,
+):bool => {
+    if (!matcher.matchAsrt) {
+        true
+    } else {
+        let frm = matcher.frm
+        if (expr[0] != frm.frame.asrt[0]) {
+            false
+        } else {
+            let res = ref(false)
+            iterateSubstitutions(
+                ~frmExpr = frm.frame.asrt,
+                ~expr,
+                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
+                ~constParts = frm.constParts[frm.numOfHypsE], 
+                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~subs = frm.subs,
+                ~parenCnt,
+                ~consumer = _ => {
+                    res.contents = true
+                    Stop
+                }
+            )->ignore
+            res.contents
+        }
+    }
+}
+
+let exprMatchesAsrtMatchers = (
+    ~expr:expr, 
+    ~matchers:option<array<applyAsrtResultMatcher>>,
+    ~parenCnt:parenCnt,
+):bool => {
+    switch matchers {
+        | None => true
+        | Some(matchers) => matchers->Js_array2.some(matcher => exprMatchesAsrtMatcher(~expr, ~matcher, ~parenCnt))
+    }
+}
+
 let proveStmtBottomUp = (
     ~tree:proofTree, 
     ~expr:expr, 
@@ -622,8 +668,11 @@ let proveStmtBottomUp = (
         let res = []
         for i in 0 to params.frameParams->Js_array2.length-1 {
             let paramsI = params.frameParams[i]
-            if (isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist)) {
-                let parents = findAsrtParentsWithNewVars(
+            if (
+                isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist) 
+                && exprMatchesAsrtMatchers(~expr, ~matchers=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
+            ) {
+                let parents:array<exprSrc> = findAsrtParentsWithNewVars(
                     ~tree,
                     ~expr,
                     ~args=paramsI.args,
@@ -639,37 +688,51 @@ let proveStmtBottomUp = (
                     ~onProgress?,
                     ()
                 )
-                switch paramsI.lengthRestrict {
-                    | No => res->Js_array2.push(parents)->ignore
+                let parents = switch paramsI.lengthRestrict {
+                    | No => parents
                     | LessEq | Less => {
                         let exprLen = expr->Js_array2.length
-                        res->Js_array2.push(
-                            parents->Js.Array2.filter(parent => {
-                                switch parent {
-                                    | VarType | Hypothesis(_) | AssertionWithErr(_) => true
-                                    | Assertion({args, frame}) => {
-                                        let argsAreCorrect = ref(true)
-                                        let numOfArgs = frame.hyps->Js_array2.length
-                                        let maxArgIdx = numOfArgs - 1
-                                        let argIdx = ref(0)
-                                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                                            let arg = args[argIdx.contents]
-                                            if (frame.hyps[argIdx.contents].typ == E) {
-                                                argsAreCorrect.contents = switch paramsI.lengthRestrict {
-                                                    | No => true
-                                                    | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
-                                                    | Less => arg->pnGetExpr->Js_array2.length < exprLen
-                                                }
+                        parents->Js.Array2.filter(parent => {
+                            switch parent {
+                                | VarType | Hypothesis(_) | AssertionWithErr(_) => true
+                                | Assertion({args, frame}) => {
+                                    let argsAreCorrect = ref(true)
+                                    let numOfArgs = frame.hyps->Js_array2.length
+                                    let maxArgIdx = numOfArgs - 1
+                                    let argIdx = ref(0)
+                                    while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
+                                        let arg = args[argIdx.contents]
+                                        if (frame.hyps[argIdx.contents].typ == E) {
+                                            argsAreCorrect.contents = switch paramsI.lengthRestrict {
+                                                | No => true
+                                                | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
+                                                | Less => arg->pnGetExpr->Js_array2.length < exprLen
                                             }
-                                            argIdx.contents = argIdx.contents + 1
                                         }
-                                        argsAreCorrect.contents
+                                        argIdx.contents = argIdx.contents + 1
                                     }
+                                    argsAreCorrect.contents
                                 }
-                            })
-                        )->ignore
+                            }
+                        })
                     }
                 }
+                let parents = switch paramsI.matches {
+                    | None => parents
+                    | Some(matchers) => {
+                        parents->Js.Array2.filter(parent => {
+                            matchers->Js.Array2.some(matcher => {
+                                exprSrcMatches(
+                                    ~expr,
+                                    ~src=parent,
+                                    ~matcher,
+                                    ~parenCnt=tree->ptGetParenCnt,
+                                )
+                            })
+                        })
+                    }
+                }
+                res->Js_array2.push(parents)->ignore
             }
         }
         res->Belt.Array.concatMany

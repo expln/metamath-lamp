@@ -26,57 +26,11 @@ let prepareTestEditorState = (~preCtxData:preCtxData, ~testStmt:string):editorSt
     createInitialEditorState(~preCtxData, ~stateLocStor=None)->putSingleStatementToEditor(testStmt)
 }
 
-module CustomJsWarning = {
-    let warningText = `
-        Please be careful with what JavaScript code you use for the custom transforms. 
-        This code will be executed by your browser "as is" meaning no safety measures will be taken to protect your browser from hurmful code.
-        Before putting any code into this dialog please make sure you understand what that code does or make sure the code is not harmful.
-    `
-    @react.component
-    let make = (
-        ~hideInit:bool,
-        ~onHideChange:bool=>unit,
-        ~onClose:unit=>unit,
-    ) => {
-        let (hide, setHide) = React.useState(() => hideInit)
-
-        let actHideChange = newHide => {
-            setHide(_ => newHide)
-            onHideChange(newHide)
-        }
-
-        <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-            <Col spacing=1.>
-                <span style=ReactDOM.Style.make( ~fontWeight="bold", ~color="#FF7900", () ) >
-                    {"Security warning"->React.string}
-                </span>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <span style=ReactDOM.Style.make(~color="#FF7900", () ) >
-                                    <MM_Icons.Warning/>
-                                </span>
-                            </td>
-                            <td style=ReactDOM.Style.make(~padding="10px", () )>
-                                {warningText->React.string}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <Row alignItems=#center>
-                    <Button onClick={_=>onClose()} variant=#contained >
-                        {React.string("Ok")}
-                    </Button>
-                    <FormControlLabel
-                        control={ <Checkbox checked=hide onChange=evt2bool(actHideChange) /> }
-                        label="Don't show again"
-                    />
-                </Row>
-            </Col>
-        </Paper>
-    }
-}
+let warningText = `
+    Please be careful with what JavaScript code you use for transforms. 
+    This code will be executed by your browser "as is" meaning no safety measures will be taken to protect your browser from hurmful code.
+    Before putting any code into this dialog please make sure you understand what that code does or make sure the code is not harmful.
+`
 
 @react.component
 let make = (
@@ -104,7 +58,9 @@ let make = (
     let actShowWarning = () => {
         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
-                <CustomJsWarning
+                <Warning_modal
+                    title="Security warning"
+                    warningText
                     hideInit=hideWarning
                     onHideChange = {b => setHideWarning(_ => b)}
                     onClose={()=>closeModal(modalRef, modalId)}

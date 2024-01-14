@@ -322,7 +322,7 @@ module rec ProofNodeDtoCmp: {
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
                         <td
-                            style=ReactDOM.Style.make( ~cursor="pointer", ())
+                            style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ())
                             onClick={_=>actToggleExpanded()}
                         > 
                             {exprToReElem(tree.nodes[nodeIdx].expr)} 

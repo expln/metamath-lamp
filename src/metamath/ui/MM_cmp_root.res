@@ -51,6 +51,9 @@ let mainTheme = ThemeProvider.createTheme(
             "grey": {
                 "main": "#e0e0e0",
             },
+            "lightgrey": {
+                "main": "#e2e2e2",
+            },
             "red": {
                 "main": "#FF0000",
             },

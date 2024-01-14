@@ -160,12 +160,12 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
         let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="xmulasslem", ())
-        let resultsWhenLabelParamIsNotSpecified = stmts1->newStmtsDtoToStr
+        let resultsWhenLabelParamIsNotSpecified = stmts1->getSingleStmtsDto->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "xmulasslem")
 
         let (_, stmts2) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="xmulasslem", ~chooseLabel="xmulasslem", ())
-        let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
+        let resultsWhenLabelParamIsSpecified = stmts2->getSingleStmtsDto->newStmtsDtoToStr
 
         assertTextsEq(
             resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
@@ -180,12 +180,12 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( A e. RR* -> ( sgn ` A ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
 
         let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~chooseLabel="fvmpt", ())
-        let resultsWhenLabelParamIsNotSpecified = stmts1->newStmtsDtoToStr
+        let resultsWhenLabelParamIsNotSpecified = stmts1->getSingleStmtsDto->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenLabelParamIsNotSpecified, "fvmpt")
 
         let (_, stmts2) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=1, ~asrtLabel="fvmpt", ~chooseLabel="fvmpt", ())
-        let resultsWhenLabelParamIsSpecified = stmts2->newStmtsDtoToStr
+        let resultsWhenLabelParamIsSpecified = stmts2->getSingleStmtsDto->newStmtsDtoToStr
 
         assertTextsEq(
             resultsWhenLabelParamIsNotSpecified, "resultsWhenLabelParamIsNotSpecified", 
@@ -201,12 +201,12 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->addDisj("x,A")
 
         let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
-        let resultsWhenDepth3 = stmts1->newStmtsDtoToStr
+        let resultsWhenDepth3 = stmts1->getSingleStmtsDto->newStmtsDtoToStr
 
         assertTextEqFile(resultsWhenDepth3, "ifbieq2d")
 
         let (_, stmts2) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=4, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
-        let resultsWhenDepth4 = stmts2->newStmtsDtoToStr
+        let resultsWhenDepth4 = stmts2->getSingleStmtsDto->newStmtsDtoToStr
 
         assertTextsEq(
             resultsWhenDepth3, "resultsWhenDepth3", 
@@ -225,7 +225,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less, ~chooseLabel="fvmpt", ())
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -262,7 +262,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="ifbieq2d",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step6")
         assertProof(st, trgtStmtId, "sgnval-proof")
@@ -280,7 +280,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less, ~chooseLabel="fvmpt", ())
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -304,7 +304,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseResult=stmts=>stmts.newVars->Js_array2.length==0, 
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step3")
 
@@ -326,7 +326,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less, ~chooseLabel="fvmpt", ())
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -335,7 +335,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseResult = dto => dto.newVars->Js_array2.length != 0,
             ()
         )
-        assertStmtsDto(stmts, "stmtsDto")
+        assertStmtsDto(stmts->getSingleStmtsDto, "stmtsDto")
     })
 
     it("prove sgn0e0", _ => {
@@ -359,7 +359,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="ax-mp",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step3")
         assertProof(st, trgtStmtId, "sgn0e0-proof")
@@ -377,7 +377,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         )
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId, 
             ~maxSearchDepth=1, ~lengthRestrict=No, ~allowNewVars=true, ~chooseLabel="decsuc", ())
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
@@ -408,7 +408,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="mp2",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step2")
         assertProof(st, trgtStmtId, "proof")
@@ -439,7 +439,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="ralbidv",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step4")
 
@@ -450,7 +450,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="2ralbidv",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step5")
 
@@ -462,7 +462,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="mp1i",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step6-all-proved")
 
@@ -480,7 +480,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="spcev",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step8")
 
@@ -494,7 +494,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="brab2a",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step9")
 
@@ -508,7 +508,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~chooseLabel="tgjustf",
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step10-disj-restored")
 
@@ -526,7 +526,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             ~allowNewStmts=false,
             ()
         )
-        let st = st->addNewStmts(stmts, ())
+        let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
     })
@@ -782,6 +782,125 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ~stopBefore="mathbox", ())
         let st = st->unifyAll
         assertEditorState(st, "step1")
+    })
+
+    it("bottomUpProverFrameParams.frameParams.matches filters by result and hypotheses", _ => {
+        setTestDataDir("frameParams-matches")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", ~stopBefore="mathbox", ())
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+
+        let defaultFrameParams:MM_provers.bottomUpProverFrameParams = {
+            minDist: None, maxDist: None,
+            matches: None,
+            frmsToUse: Some([]),
+            args: [
+                getStmt(st, ~label="hyp1", ()).expr->Belt.Option.getExn,
+                getStmt(st, ~label="hyp2", ()).expr->Belt.Option.getExn,
+            ],
+            allowNewDisjForExistingVars:false,
+            allowNewStmts:true,
+            allowNewVars: false,
+            lengthRestrict: No,
+            maxNumberOfBranches: None,
+        }
+
+        let prepareBottomUpProverParams = (
+            state:MM_wrk_editor.editorState,
+            matcher:MM_cmp_api.apiApplyAsrtResultMatcher,
+        ):MM_provers.bottomUpProverParams => {
+            {
+                maxSearchDepth:3,
+                frameParams: [
+                    {
+                        ...defaultFrameParams,
+                        frmsToUse: Some(["qcn"]),
+                        matches: None,
+                    },
+                    {
+                        ...defaultFrameParams,
+                        frmsToUse: Some(["syl"]),
+                        matches: MM_cmp_api.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
+                    }
+                ],
+            }
+        }
+
+        let assertResults = (actual:array<MM_statements_dto.stmtsDto>, expectedFileName:string) => {
+            assertTextEqFile(
+                actual->Js.Array2.map(newStmtsDtoToStr)
+                ->Js.Array2.joinWith("\n\n----------------------------------\n"), 
+                expectedFileName
+            )
+        }
+
+        let (st, foundProofsResultOnly) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {hyps:[], res:Some("|- ( ph -> X e. A )")}
+            ),
+            ()
+        )
+        assertResults(foundProofsResultOnly, "foundProofsResultOnly")
+
+        let (st, foundProofsResultAndHyps) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
+                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
+                    ],
+                    res:Some("|- ( ph -> X e. B )")
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsResultAndHyps, "foundProofsResultAndHyps")
+
+        let (st, foundProofsHypsOnly) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
+                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
+                    ],
+                    res:None
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsHypsOnly, "foundProofsHypsOnly")
+
+        let (st, foundProofsHyp0Only) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
+                    ],
+                    res:None
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsHyp0Only, "foundProofsHyp0Only")
+
+        let (_, foundProofsHyp1Only) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
+                    ],
+                    res:None
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsHyp1Only, "foundProofsHyp1Only")
+
     })
 
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {

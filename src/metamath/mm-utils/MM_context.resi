@@ -100,7 +100,7 @@ let isDisj: (mmContext,int,int) => bool
 let getAllConsts: mmContext => array<string>
 let getHypothesis: (mmContext,string) => option<hypothesis>
 let getHypByExpr: (mmContext, expr) => option<hypothesis>
-let getMandHyps: (mmContext, expr) => array<hypothesis>
+let getMandHyps: (mmContext, expr, ~skipEssentials:bool=?, ~overrideHyps:array<expr>=?, ()) => array<hypothesis>
 let getAllHyps: mmContext => Belt_MapString.t<hypothesis>
 let getAllFrames: mmContext => Belt_MapString.t<frame>
 let getAllFramesArr: mmContext => array<frame>
@@ -142,6 +142,8 @@ let createFrame: (
     ~tokenType:string=?,
     ~skipEssentials:bool=?, 
     ~skipFirstSymCheck:bool=?, 
+    ~skipDisj:bool=?, 
+    ~overrideHyps:array<expr>=?,
     ~descrRegexToDisc:Js_re.t=?,
     ~labelRegexToDisc:Js_re.t=?,
     ~descrRegexToDepr:Js_re.t=?,

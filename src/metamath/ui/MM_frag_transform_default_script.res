@@ -696,7 +696,7 @@ const trReplace = {
 }
 
 const trExtract = {
-    displayName: ({step}) => "Extract",
+    displayName: ({step}) => "Extract: X ⇒ ( ph -> X )",
     canApply: ({step}) => true,
     createInitialState: ({step}) => {
         let deductionMatchResult = match(step.tree.root, ['(', varOfType('wff'), '->', '', ')'])
@@ -713,7 +713,7 @@ const trExtract = {
             if (state.ph !== undefined) {
                 return mapToTextCmpArr([state.stepType, '(', syntaxTreeToText(state.ph), '->', [state.selectionText, YELLOW], ')'])
             } else {
-                return mapToTextCmpArr([state.stepType, state.selectionText])
+                return mapToTextCmpArr([state.stepType, '( ph ->', [state.selectionText, YELLOW], ')'])
             }
         }
         const resultElem = {cmp:"span", children: rndResult()}

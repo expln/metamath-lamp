@@ -428,22 +428,25 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
     }
 }
 
-let getAllStmtsUpToChecked = (st:editorState):array<userStmt> => {
-    let checkedAdded = ref(false)
-    let res = []
-    let i = ref(0)
-    let stmtsLen = st.stmts->Js_array2.length
-    while (i.contents < stmtsLen && !checkedAdded.contents) {
-        let stmt = st.stmts[i.contents]
-        res->Js.Array2.push(stmt)->ignore
-        checkedAdded.contents = st->isStmtChecked(stmt.id)
-        i.contents = i.contents + 1
-    }
-    res
-}
-
 let getRootStmtsForUnification = (st):array<userStmt> => {
-    st->getAllStmtsUpToChecked
+    let checkedStmtIds = st.checkedStmtIds->Js.Array2.map(((stmtId,_)) => stmtId)->Belt_HashSetString.fromArray
+    if (checkedStmtIds->Belt_HashSetString.size == 0) {
+        st.stmts
+    } else {
+        let lowestCheckedStmtIdx = ref(None)
+        let i = ref(st.stmts->Js.Array2.length-1)
+        while (i.contents >= 0 && lowestCheckedStmtIdx.contents->Belt_Option.isNone) {
+            let stmt = st.stmts[i.contents]
+            if (checkedStmtIds->Belt_HashSetString.has(stmt.id)) {
+                lowestCheckedStmtIdx := Some(i.contents)
+            }
+            i := i.contents - 1
+        }
+        switch lowestCheckedStmtIdx.contents {
+            | None => st.stmts
+            | Some(idx) => st.stmts->Js.Array2.slice(~start=0, ~end_=idx+1)
+        }
+    }
 }
 
 let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false, ()):string => {
@@ -2031,7 +2034,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                         })
                                     )
 
-                                    let mandHyps = proofCtx->getMandHyps(expr)
+                                    let mandHyps = proofCtx->getMandHyps(expr, ())
                                     let proof = MM_proof_table.createProof(
                                         mandHyps, proofTableWithTypes, proofTableWithTypes->Js_array2.length-1
                                     )
@@ -2543,7 +2546,8 @@ let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt>
     })
 }
 
-let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorState => {
+let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorState,array<(string,string)>) => {
+    let renames = []
     let resultState = ref(st)
     let continue = ref(true)
     while (continue.contents) {
@@ -2553,23 +2557,36 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorSt
                 switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
                     | None => continue := false
                     | Some(stmt2) => {
+                        let jstf1 = stmt1.jstfText->Js_string2.trim
+                        let jstf2 = stmt2.jstfText->Js_string2.trim
                         if (selectFirst) {
-                            switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
-                                | Error(_) => continue := false
-                                | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                            if (jstf1 == "") {
+                                continue := false
+                            } else {
+                                switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                    | Error(_) => continue := false
+                                    | Ok(stateAfterMerge) => {
+                                        renames->Js.Array2.push((stmt1.label, stmt2.label))->ignore
+                                        resultState := stateAfterMerge->prepareEditorForUnification
+                                    }
+                                }
                             }
                         } else {
-                            let jstf1 = stmt1.jstfText->Js_string2.trim
-                            let jstf2 = stmt2.jstfText->Js_string2.trim
                             if (jstf1 != "" && jstf2 == "") {
                                 switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
                                     | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                    | Ok(stateAfterMerge) => {
+                                        renames->Js.Array2.push((stmt2.label, stmt1.label))->ignore
+                                        resultState := stateAfterMerge->prepareEditorForUnification
+                                    }
                                 }
                             } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
                                 switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
                                     | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => resultState := stateAfterMerge->prepareEditorForUnification
+                                    | Ok(stateAfterMerge) => {
+                                        renames->Js.Array2.push((stmt1.label, stmt2.label))->ignore
+                                        resultState := stateAfterMerge->prepareEditorForUnification
+                                    }
                                 }
                             } else {
                                 continue := false
@@ -2580,15 +2597,16 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):editorSt
             }
         }
     }
-    resultState.contents
+    (resultState.contents,renames)
 }
 
-let verifyEditorState = (st:editorState) => {
+let verifyEditorState = (st:editorState):editorState => {
     let st = prepareEditorForUnification(st)
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)
         let st = if (st.settings.autoMergeStmts) {
-            autoMergeDuplicatedStatements(st, ~selectFirst=false)
+            let (st,_) = autoMergeDuplicatedStatements(st, ~selectFirst=false)
+            st
         } else {
             st
         }
@@ -2965,7 +2983,11 @@ let resetEditorContent = (st:editorState):editorState => {
     }
 }
 
-let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):result<editorState, string> => {
+let deleteUnrelatedSteps = (
+    state:editorState, 
+    ~stepIdsToKeep:array<stmtId>, 
+    ~deleteHyps:bool
+):result<editorState, string> => {
     let state = state->prepareEditorForUnification
     if (state->editorStateHasCriticalErrors) {
         Error(
@@ -2975,7 +2997,7 @@ let deleteUnrelatedSteps = (state:editorState, ~stepIdsToKeep:array<stmtId>):res
     } else {
         let unprocessedIds = Belt.MutableQueue.fromArray(stepIdsToKeep)
         state.stmts->Js.Array2.forEach(stmt => {
-            if (stmt.typ == E || stmt.isGoal || stmt.isBkm) {
+            if ((!deleteHyps && stmt.typ == E) || stmt.isGoal || stmt.isBkm) {
                 unprocessedIds->Belt_MutableQueue.add(stmt.id)
             }
         })

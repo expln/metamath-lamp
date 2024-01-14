@@ -1,5 +1,6 @@
 open MM_wrk_editor
 open MM_statements_dto
+open MM_provers
 
 type rootStmtsToUse =
     | AllStmts
@@ -52,6 +53,14 @@ let addStmtsBySearch: (
 
 let addNewStmts: ( editorState, stmtsDto, ~before: stmtId=?, unit, ) => editorState
 
+let getStmt: (
+    editorState, 
+    ~predicate:userStmt=>bool=?,
+    ~contains:string=?, 
+    ~label:string=?,
+    ()
+) => userStmt
+
 let getStmtId: (
     editorState, 
     ~predicate:userStmt=>bool=?,
@@ -72,6 +81,7 @@ let unifyAll: editorState => editorState
 let unifyBottomUp: (
     editorState,
     ~stmtId:stmtId,
+    ~bottomUpProverParams:bottomUpProverParams=?,
     ~args0:rootStmtsToUse=?,
     ~args1:rootStmtsToUse=?,
     ~asrtLabel: string=?,
@@ -87,7 +97,9 @@ let unifyBottomUp: (
     ~chooseLabel: string=?,
     ~chooseResult: stmtsDto=>bool =?,
     (),
-) => (editorState, stmtsDto)
+) => (editorState, array<stmtsDto>)
+
+let getSingleStmtsDto: array<stmtsDto> => stmtsDto
 
 let removeAllJstf: editorState => editorState
 let addDisj: ( editorState, string, ) => editorState

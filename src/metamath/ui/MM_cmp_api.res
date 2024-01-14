@@ -4,6 +4,9 @@ open Common
 open MM_context
 open MM_syntax_tree
 open MM_wrk_editor_substitution
+open MM_substitution
+open MM_parser
+open MM_apply_asrt_matcher
 
 type apiResp = {
     "isOk": bool,
@@ -146,12 +149,20 @@ let getAllSteps = (~state:editorState):Js_json.t => {
     state.stmts->Js.Array2.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
 }
 
+let stateCached = ref(None)
+let stateJsonCached = ref(None)
 let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
-    let stmtIdToLabel = Belt_HashMapString.fromArray(
-        state.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
-    )
-    promiseResolved(Ok(
-        Js_dict.fromArray([
+    let canUseCachedValue = switch stateCached.contents {
+        | None => false
+        | Some(stateCached) => stateCached === state
+    }
+    if (canUseCachedValue) {
+        promiseResolved(Ok(stateJsonCached.contents->Belt_Option.getExn))
+    } else {
+        let stmtIdToLabel = Belt_HashMapString.fromArray(
+            state.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+        )
+        let stateJson = Js_dict.fromArray([
             ("descr", state.descr->Js_json.string),
             ("varsText", state.varsText->Js_json.string),
             ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
@@ -184,7 +195,10 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
                     ->Js.Json.array
             ),
         ])->Js_json.object_
-    ))
+        stateCached := Some(state)
+        stateJsonCached := Some(stateJson)
+        promiseResolved(Ok(stateJson))
+    }
 }
 
 let getTokenType = (
@@ -243,9 +257,131 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
     )
 }
 
+type apiApplyAsrtResultHypMatcher = {
+    label: option<string>,
+    idx: option<int>,
+    pat: string,
+}
+
+type apiApplyAsrtResultMatcher = {
+    res: option<string>,
+    hyps: array<apiApplyAsrtResultHypMatcher>,
+}
+
+let apiMatcherToMatcher = (
+    ~ctx:mmContext,
+    ~matcher:apiApplyAsrtResultMatcher,
+):result<applyAsrtResultMatcher,string> => {
+    if (matcher.res->Belt.Option.isNone && matcher.hyps->Js_array2.length == 0) {
+        Error("'res' and 'hyps' must not be empty at the same time.")
+    } else {
+        let hypMatchers = matcher.hyps->Js_array2.reduce((res,hypMatcher) => {
+                switch res {
+                    | Error(_) => res
+                    | Ok(hypMatchers) => {
+                        switch hypMatcher.label {
+                            | Some(label) => {
+                                switch hypMatcher.idx {
+                                    | Some(_) => {
+                                        Error(
+                                            "Only one of 'label' or 'idx' must be specified" 
+                                                ++ " for each hypothesis matcher"
+                                        )
+                                    }
+                                    | None => {
+                                        hypMatchers->Js_array2.push(Label(label))->ignore
+                                        res
+                                    }
+                                }
+                            }
+                            | None => {
+                                switch hypMatcher.idx {
+                                    | Some(idx) => {
+                                        hypMatchers->Js_array2.push(Idx(idx))->ignore
+                                        res
+                                    }
+                                    | None => {
+                                        Error(
+                                            "Either 'label' or 'idx' must be specified for each hypothesis matcher"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, Ok([])
+        )
+        switch hypMatchers {
+            | Error(msg) => Error(msg)
+            | Ok(hypMatchers) => {
+                try {
+                    let overrideHyps = matcher.hyps->Js_array2.map(hypMatcher => {
+                        ctx->ctxStrToIntsExn(hypMatcher.pat)
+                    })
+                    let frame = createFrame( 
+                        ~ctx, ~ord=0, ~isAxiom=true, ~label="###temp_asrt###", ~proof=None, 
+                        ~skipFirstSymCheck=true, ~skipDisj=true, 
+                        ~overrideHyps,
+                        ~exprStr = switch matcher.res {
+                            | Some(res) => res
+                            | None => matcher.hyps[0].pat
+                        }->getSpaceSeparatedValuesAsArray,
+                        ()
+                    )
+                    Ok(
+                        {
+                            frm: frame->prepareFrmSubsDataForFrame,
+                            matchAsrt: matcher.res->Belt.Option.isSome,
+                            hypMatchers,
+                        }
+                    )
+                } catch {
+                    | MmException({msg}) => Error(msg)
+                    | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+                }
+            }
+        }
+    }
+}
+
+let optArrayToMatchers = (
+    ~state:editorState,
+    ~matches:option<array<apiApplyAsrtResultMatcher>>,
+):result<option<array<applyAsrtResultMatcher>>,string> => {
+    switch matches {
+        | None => Ok(None)
+        | Some(matches) => {
+            switch state.wrkCtx {
+                | None => Error("Error: cannot parse patters to match")
+                | Some(wrkCtx) => {
+                    matches->Js_array2.reduce(
+                        (res,matcher) => {
+                            switch res {
+                                | Error(_) => res
+                                | Ok(res) => {
+                                    switch apiMatcherToMatcher( ~ctx=wrkCtx, ~matcher, ) {
+                                        | Error(msg) => Error(msg)
+                                        | Ok(parsedMatcher) => {
+                                            res->Js_array2.push(parsedMatcher)->ignore
+                                            Ok(res)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        Ok([])
+                    )->Belt_Result.map(arr => Some(arr))
+                }
+            }
+        }
+    }
+}
+
 type apiBottomUpProverFrameParams = {
     minDist:option<int>,
     maxDist:option<int>,
+    matches:option<array<apiApplyAsrtResultMatcher>>,
     framesToUse:option<array<string>>,
     stepsToUse:array<string>,
     allowNewDisjointsForExistingVariables:bool,
@@ -289,12 +425,25 @@ let proveBottomUp = (
                 debugLevel: d->intOpt("debugLevel", ()),
                 maxSearchDepth: d->int("maxSearchDepth", ()),
                 selectFirstFoundProof: d->boolOpt("selectFirstFoundProof", ()),
-                frameParams: d->arr("frameParams", asObj(_, d=>{
+                frameParams: d->arr("frameParameters", asObj(_, d=>{
                     {
                         minDist: d->intOpt("minDist", ()),
                         maxDist: d->intOpt("maxDist", ()),
-                        framesToUse: d->arrOpt("framesToUse", asStr(_, ()), ()),
-                        stepsToUse: d->arr("stepsToUse", asStr(_, ()), ()),
+                        matches: d->arrOpt("matches", asObj(_, d=>{
+                            {
+                                res: d->strOpt("res", ()),
+                                hyps: d->arr("hyps", asObj(_, d=>{
+                                    {
+                                        label: d->strOpt("label", ()),
+                                        idx: d->intOpt("idx", ()),
+                                        pat: d->str("pat", ()),
+                                        
+                                    }
+                                }, ()), ~default = () => [], ()),
+                            }
+                        }, ()), ()),
+                        framesToUse: d->arrOpt("frames", asStr(_, ()), ()),
+                        stepsToUse: d->arr("stepsToDeriveFrom", asStr(_, ()), ()),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),
                         allowNewSteps: d->bool("allowNewSteps", ()),
                         allowNewVariables: d->bool("allowNewVariables", ()),
@@ -336,37 +485,63 @@ let proveBottomUp = (
                         switch args {
                             | Error(msg) => promiseResolved(Error(msg))
                             | Ok(args) => {
-                                startProvingBottomUp({
-                                    delayBeforeStartMs:
-                                        apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
-                                    stmtId: stmtToProve.id,
-                                    debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
-                                    selectFirstFoundProof:
-                                        apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
-                                    bottomUpProverParams: {
-                                        maxSearchDepth: apiParams.maxSearchDepth,
-                                        frameParams: apiParams.frameParams->Js_array2.mapi(
-                                            (frameParams,i):MM_provers.bottomUpProverFrameParams => {
-                                                {
-                                                    minDist: frameParams.minDist,
-                                                    maxDist: frameParams.maxDist,
-                                                    frmsToUse: frameParams.framesToUse,
-                                                    args: args[i],
-                                                    allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
-                                                    allowNewStmts: frameParams.allowNewSteps,
-                                                    allowNewVars: frameParams.allowNewVariables,
-                                                    lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
-                                                    maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                let matches = apiParams.frameParams->Js_array2.reduce(
+                                    (res,frameParams) => {
+                                        switch res {
+                                            | Error(msg) => Error(msg)
+                                            | Ok(matches) => {
+                                                switch optArrayToMatchers(
+                                                    ~state, 
+                                                    ~matches=frameParams.matches, 
+                                                ) {
+                                                    | Error(msg) => Error(msg)
+                                                    | Ok(frms) => {
+                                                        matches->Js_array2.push(frms)->ignore
+                                                        Ok(matches)
+                                                    }
                                                 }
                                             }
-                                        )
+                                        }
+                                    },
+                                    Ok([])
+                                )
+                                switch matches {
+                                    | Error(msg) => promiseResolved(Error(msg))
+                                    | Ok(matches) => {
+                                        startProvingBottomUp({
+                                            delayBeforeStartMs:
+                                                apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
+                                            stmtId: stmtToProve.id,
+                                            debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
+                                            selectFirstFoundProof:
+                                                apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
+                                            bottomUpProverParams: {
+                                                maxSearchDepth: apiParams.maxSearchDepth,
+                                                frameParams: apiParams.frameParams->Js_array2.mapi(
+                                                    (frameParams,i):MM_provers.bottomUpProverFrameParams => {
+                                                        {
+                                                            minDist: frameParams.minDist,
+                                                            maxDist: frameParams.maxDist,
+                                                            matches: matches[i],
+                                                            frmsToUse: frameParams.framesToUse,
+                                                            args: args[i],
+                                                            allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
+                                                            allowNewStmts: frameParams.allowNewSteps,
+                                                            allowNewVars: frameParams.allowNewVariables,
+                                                            lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
+                                                            maxNumberOfBranches: frameParams.maxNumberOfBranches,
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        })->promiseMap(proved => {
+                                            switch proved {
+                                                | None => Ok(Js_json.null)
+                                                | Some(proved) => Ok(proved->Js_json.boolean)
+                                            }
+                                        })
                                     }
-                                })->promiseMap(proved => {
-                                    switch proved {
-                                        | None => Ok(Js_json.null)
-                                        | Some(proved) => Ok(proved->Js_json.boolean)
-                                    }
-                                })
+                                }
                             }
                         }
                     }
@@ -392,7 +567,13 @@ let unifyAll = (
 let mergeDuplicatedSteps = (
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
 ):promise<result<Js_json.t,string>> => {
-    setState(st => Ok( st->autoMergeDuplicatedStatements(~selectFirst=true), Js_json.null ))
+    setState(st => {
+        let (st,renames) = st->autoMergeDuplicatedStatements(~selectFirst=true)
+        let renamesJson = renames->Js.Array2.map(((from,to_)) => {
+            [from->Js_json.string, to_->Js_json.string]->Js_json.array
+        })->Js_json.array
+        Ok( st, renamesJson )
+    })
 }
 
 let editorSetContIsHidden = (
@@ -712,7 +893,7 @@ let logApiCallsToConsole = ref(false)
 
 let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string>> => {
     switch Js_json.decodeBoolean(params) {
-        | None => promiseResolved(Error("The parameter of setLogApiCallsToConsole() must me a boolean."))
+        | None => promiseResolved(Error("The parameter of setLogApiCallsToConsole() must be a boolean."))
         | Some(bool) => {
             logApiCallsToConsole := bool
             promiseResolved(Ok(Js_json.null))
@@ -720,7 +901,29 @@ let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string
     }
 }
 
+let apiShowInfoMsg = (params:Js_json.t, showInfoMsg:string=>unit):promise<result<Js_json.t,string>> => {
+    switch Js_json.decodeString(params) {
+        | None => promiseResolved(Error("The parameter of showInfoMsg() must be a string."))
+        | Some(msg) => {
+            showInfoMsg(msg)
+            promiseResolved(Ok(Js_json.null))
+        }
+    }
+}
+
+let apiShowErrMsg = (params:Js_json.t, showErrMsg:string=>unit):promise<result<Js_json.t,string>> => {
+    switch Js_json.decodeString(params) {
+        | None => promiseResolved(Error("The parameter of showErrMsg() must be a string."))
+        | Some(msg) => {
+            showErrMsg(msg)
+            promiseResolved(Ok(Js_json.null))
+        }
+    }
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
+let apiShowInfoMsgRef:ref<option<api>> = ref(None)
+let apiShowErrMsgRef:ref<option<api>> = ref(None)
 let getStateRef:ref<option<api>> = ref(None)
 let proveBottomUpRef:ref<option<api>> = ref(None)
 let unifyAllRef:ref<option<api>> = ref(None)
@@ -743,6 +946,8 @@ let makeApiFuncRef = (ref:ref<option<api>>):api => {
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncRef(setLogApiCallsToConsoleRef),
+    "showInfoMsg": makeApiFuncRef(apiShowInfoMsgRef),
+    "showErrMsg": makeApiFuncRef(apiShowErrMsgRef),
     "editor": {
         "getState": makeApiFuncRef(getStateRef),
         "proveBottomUp": makeApiFuncRef(proveBottomUpRef),
@@ -781,6 +986,8 @@ let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>
 
 let updateEditorApi = (
     ~state:editorState,
+    ~showInfoMsg:string=>unit,
+    ~showErrMsg:string=>unit,
     ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
@@ -790,6 +997,8 @@ let updateEditorApi = (
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
 ):unit => {
     setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
+    apiShowInfoMsgRef := Some(makeApiFunc("showInfoMsg", params => apiShowInfoMsg(params, showInfoMsg)))
+    apiShowErrMsgRef := Some(makeApiFunc("showErrMsg", params => apiShowErrMsg(params, showErrMsg)))
     getStateRef := Some(makeApiFunc("editor.getState", _ => getEditorState(~state)))
     proveBottomUpRef := Some(makeApiFunc("editor.proveBottomUp", params => {
         proveBottomUp(

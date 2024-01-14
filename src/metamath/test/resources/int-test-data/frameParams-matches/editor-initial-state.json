@@ -1,0 +1,32 @@
+{
+  "srcs": [],
+  "descr": "",
+  "varsText": "",
+  "disjText": "",
+  "stmts": [
+    {
+      "label": "hyp1",
+      "typ": "e",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( ph -> A e. QQ )",
+      "jstfText": ""
+    },
+    {
+      "label": "hyp2",
+      "typ": "e",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( ph -> B = ( 2 x. 2 ) )",
+      "jstfText": ""
+    },
+    {
+      "label": "qed",
+      "typ": "p",
+      "isGoal": false,
+      "isBkm": false,
+      "cont": "|- ( ph -> A e. CC )",
+      "jstfText": ""
+    }
+  ]
+}

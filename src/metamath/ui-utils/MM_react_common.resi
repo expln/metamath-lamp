@@ -8,7 +8,9 @@ let rndHiddenTextField: (~key:string=?, ~onKeyDown:reKeyboardHnd, ()) => reElem
 
 let openInfoDialog: (
     ~modalRef: Expln_React_Modal.modalRef,
-    ~text: string,
+    ~text: string=?,
+    ~content:React.element=?, 
+    ~icon:React.element=?,
     ~onOk: unit => unit =?,
     ~title:string=?,
     unit,
