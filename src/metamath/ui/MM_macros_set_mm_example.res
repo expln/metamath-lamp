@@ -49,10 +49,10 @@ const FPR_EQUALS = 'FPR_EQUALS';
 frms[FPR_EQUALS] = [
     FPR_ELEM_OF,
     makeFrmParams([
-        'oveq1d', 'oveq2d','eqtr3d','eqtrd', 'eqtr4d', 'eqcomd', 'adddid', 'adddird', 'addcomd', 'addassd', 'negsubd',
+        'oveq1d', 'oveq2d','eqtrd','eqtr2d','eqtr3d', 'eqtr4d', 'eqcomd', 'adddid', 'adddird', 'addcomd', 'addassd', 'negsubd',
         'addid2d','addid1d','negeqd','mulneg1d','mulexpd','mulcomd','mulassd','negidd',
         'sq0','sq1','sq2','sq3',
-        'expp1d','expaddd','expmuld',
+        'expp1d','expaddd','expmuld','mulid2d','syl5reqr','mulcomli',
         'df-2','df-3','df-4','df-5','df-6','df-7','df-8','df-9',
         '0p1e1','1p0e1','1p1e2','2p1e3','2p2e4','1p2e3','2t2e4','3p1e4','4p1e5','5p1e6','6p1e7','7p1e8','8p1e9','3p2e5','3p3e6',
         '4p2e6','4p3e7','4p4e8','5p2e7','5p3e8','5p4e9','6p2e8','6p3e9','7p2e9',
@@ -63,6 +63,10 @@ frms[FPR_EQUALS] = [
         {
             hyps: [{idx:0, pat:[!@#]|- ( ph -> ( X e. A /{!@#}{code(92)} Y e. B ) )[!@#]},],
             res:'|- ( ph -> ( ( X + Y ) ^ 3 ) = Z )'
+        },
+        {
+            hyps: [{idx:0, pat:[!@#]|- ( ph -> X e. A )[!@#]},],
+            res:'|- ( ph -> Y = ( X ^ N ) )'
         },
     ]),
 ]
@@ -418,17 +422,26 @@ async function prove({
 async function proveSelected({frmParams, maxSearchDepth, debugLevel}) {
     const state = await getEditorState()
     if (state.selectedSteps.length === 0) {
-        exn('At least one step must be selected.')
+        if (state.steps.length === 0) {
+            return
+        } else {
+            const stepToProve = state.steps[state.steps.length-1].label
+            const stepsToDeriveFrom = state.steps.length > 1 ? [state.steps[state.steps.length-2].label] : []
+            await prove({
+                stepToProve, stepsToDeriveFrom,
+                frmParams,
+                maxSearchDepth, debugLevel
+            })
+        }
+    } else {
+        const [stepToProve, ...stepsToDeriveFrom] =
+            state.steps.filter(step => state.selectedSteps.includes(step.label)).map(step => step.label).reverse()
+        await prove({
+            stepToProve, stepsToDeriveFrom,
+            frmParams,
+            maxSearchDepth, debugLevel
+        })
     }
-    const sortedSteps = state.selectedSteps
-        .map(label => [label, getStepIdx(state, label)]).sort((a, b) => b[1] - a[1])
-        .map(labelAndIdx => labelAndIdx[0])
-    const [stepToProve, ...stepsToDeriveFrom] = sortedSteps
-    await prove({
-        stepToProve, stepsToDeriveFrom,
-        frmParams,
-        maxSearchDepth, debugLevel
-    })
 }
 
 async function deductionToInference() {
