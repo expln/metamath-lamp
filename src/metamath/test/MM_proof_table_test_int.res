@@ -120,12 +120,14 @@ describe("createProof", _ => {
 
                     let proofTableOptimized = createProofTableFromProof(~proofNode, ~mergeSameRows=true, ())
                     let actualProofOptimized = createProof(
-                        ctx->getMandHyps(expr), proofTableOptimized, proofTableOptimized->Js_array2.length-1
+                        ctx->getMandHyps(expr, ()), proofTableOptimized, proofTableOptimized->Js_array2.length-1
                     )
                     verifyProof(~ctx, ~expr, ~proof=actualProofOptimized, ~isDisjInCtx=ctx->isDisj)->ignore
 
                     let proofTable = createProofTableFromProof(~proofNode, ~mergeSameRows=false, ())
-                    let actualProof = createProof(ctx->getMandHyps(expr), proofTable, proofTable->Js_array2.length-1)
+                    let actualProof = createProof(
+                        ctx->getMandHyps(expr, ()), proofTable, proofTable->Js_array2.length-1
+                    )
                     verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=ctx->isDisj)->ignore
 
                     //then
@@ -133,7 +135,7 @@ describe("createProof", _ => {
                         !proofEq(
                             ~expectedProof, 
                             ~actualProof, 
-                            ~getMandHypsNum = () => getMandHyps(ctx, expr)->Js.Array2.length
+                            ~getMandHypsNum = () => getMandHyps(ctx, expr, ())->Js.Array2.length
                         )
                     ) {
                         Js.Console.log2("expected", expectedProof)

@@ -257,77 +257,138 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
     )
 }
 
-let makeFrmSubsData = (
-    ~ctx:mmContext,
-    ~pattern:string,
-):result<frmSubsData,string> => {
-    try {
-        let frame = createFrame( ~ctx, ~ord=0, ~isAxiom=true, ~label="###temp_asrt###", ~proof=None, 
-            ~skipEssentials=true, ~skipFirstSymCheck=true, ~skipDisj=true, 
-            ~exprStr=pattern->getSpaceSeparatedValuesAsArray,
-            ()
-        )
-        Ok(frame->prepareFrmSubsDataForFrame)
-    } catch {
-        | MmException({msg}) => Error(msg)
-        | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
-    }
+type apiApplyAsrtResultHypMatcher = {
+    label: option<string>,
+    idx: option<int>,
+    pat: string,
 }
 
 type apiApplyAsrtResultMatcher = {
-    typ: string,
-    label: option<string>,
-    idx: option<int>,
-    pattern: string,
+    res: option<string>,
+    hyps: array<apiApplyAsrtResultHypMatcher>,
 }
 
-let jsonToMatcher = (
+let apiMatcherToMatcher = (
     ~ctx:mmContext,
-    ~matcher:array<apiApplyAsrtResultMatcher>,
+    ~matcher:apiApplyAsrtResultMatcher,
     ~frmsToUse:option<array<string>>,
-):result<applyAsrtResultMatcher> => {
-
+):result<applyAsrtResultMatcher,string> => {
+    switch frmsToUse {
+        | None => Error("'frames' must not be empty is 'matches' is specified")
+        | Some(_) => {
+            if (matcher.res->Belt.Option.isNone && matcher.hyps->Js_array2.length == 0) {
+                Error("'res' and 'hyps' must not be empty at the same time.")
+            } else {
+                let hypMatchers = matcher.hyps->Js_array2.reduce((res,hypMatcher) => {
+                        switch res {
+                            | Error(_) => res
+                            | Ok(hypMatchers) => {
+                                switch hypMatcher.label {
+                                    | Some(label) => {
+                                        switch hypMatcher.idx {
+                                            | Some(_) => {
+                                                Error(
+                                                    "Only one of 'label' or 'idx' must be specified" 
+                                                        ++ " for each hypothesis matcher"
+                                                )
+                                            }
+                                            | None => {
+                                                hypMatchers->Js_array2.push(Label(label))->ignore
+                                                res
+                                            }
+                                        }
+                                    }
+                                    | None => {
+                                        switch hypMatcher.idx {
+                                            | Some(idx) => {
+                                                hypMatchers->Js_array2.push(Idx(idx))->ignore
+                                                res
+                                            }
+                                            | None => {
+                                                Error(
+                                                    "Either 'label' or 'idx' must be specified for each hypothesis matcher"
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }, Ok([])
+                )
+                switch hypMatchers {
+                    | Error(msg) => Error(msg)
+                    | Ok(hypMatchers) => {
+                        try {
+                            let overrideHyps = matcher.hyps->Js_array2.map(hypMatcher => {
+                                ctx->ctxStrToIntsExn(hypMatcher.pat)
+                            })
+                            let frame = createFrame( 
+                                ~ctx, ~ord=0, ~isAxiom=true, ~label="###temp_asrt###", ~proof=None, 
+                                ~skipFirstSymCheck=true, ~skipDisj=true, 
+                                ~overrideHyps,
+                                ~exprStr = switch matcher.res {
+                                    | Some(res) => res
+                                    | None => matcher.hyps[0].pat
+                                }->getSpaceSeparatedValuesAsArray,
+                                ()
+                            )
+                            Ok(
+                                {
+                                    frm: frame->prepareFrmSubsDataForFrame,
+                                    matchAsrt: matcher.res->Belt.Option.isSome,
+                                    hypMatchers,
+                                }
+                            )
+                        } catch {
+                            | MmException({msg}) => Error(msg)
+                            | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 let optArrayToMatchers = (
     ~state:editorState,
-    ~matches:option<array<array<apiApplyAsrtResultMatcher>>>,
+    ~matches:option<array<apiApplyAsrtResultMatcher>>,
     ~frmsToUse:option<array<string>>,
 ):result<option<array<applyAsrtResultMatcher>>,string> => {
-    Ok(None)
-    // switch matches {
-    //     | None => Ok(None)
-    //     | Some(matches) => {
-    //         switch state.wrkCtx {
-    //             | None => Error("Internal error: cannot parse patters to match")
-    //             | Some(wrkCtx) => {
-    //                 patterns->Js_array2.reduce(
-    //                     (res,pat) => {
-    //                         switch res {
-    //                             | Error(_) => res
-    //                             | Ok(res) => {
-    //                                 switch makeFrmSubsData(~ctx=wrkCtx, ~pattern=pat) {
-    //                                     | Error(msg) => Error(msg)
-    //                                     | Ok(frm) => {
-    //                                         res->Js_array2.push(frm)->ignore
-    //                                         Ok(res)
-    //                                     }
-    //                                 }
-    //                             }
-    //                         }
-    //                     },
-    //                     Ok([])
-    //                 )->Belt_Result.map(arr => Some(arr))
-    //             }
-    //         }
-    //     }
-    // }
+    switch matches {
+        | None => Ok(None)
+        | Some(matches) => {
+            switch state.wrkCtx {
+                | None => Error("Error: cannot parse patters to match")
+                | Some(wrkCtx) => {
+                    matches->Js_array2.reduce(
+                        (res,matcher) => {
+                            switch res {
+                                | Error(_) => res
+                                | Ok(res) => {
+                                    switch apiMatcherToMatcher( ~ctx=wrkCtx, ~matcher, ~frmsToUse, ) {
+                                        | Error(msg) => Error(msg)
+                                        | Ok(parsedMatcher) => {
+                                            res->Js_array2.push(parsedMatcher)->ignore
+                                            Ok(res)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        Ok([])
+                    )->Belt_Result.map(arr => Some(arr))
+                }
+            }
+        }
+    }
 }
 
 type apiBottomUpProverFrameParams = {
     minDist:option<int>,
     maxDist:option<int>,
-    matches:option<array<array<apiApplyAsrtResultMatcher>>>,
+    matches:option<array<apiApplyAsrtResultMatcher>>,
     framesToUse:option<array<string>>,
     stepsToUse:array<string>,
     allowNewDisjointsForExistingVariables:bool,
@@ -375,21 +436,19 @@ let proveBottomUp = (
                     {
                         minDist: d->intOpt("minDist", ()),
                         maxDist: d->intOpt("maxDist", ()),
-                        matches: d->arrOpt("matches", asArr(_, asObj(_, d=>{
+                        matches: d->arrOpt("matches", asObj(_, d=>{
                             {
-                                typ: d->str("type", ~validator = str => {
-                                    if (str == "res" || str == "hyp") {
-                                        Ok(str)
-                                    } else {
-                                        Error("'type' must be one of: 'res', 'hyp'.")
+                                res: d->strOpt("res", ()),
+                                hyps: d->arr("hyps", asObj(_, d=>{
+                                    {
+                                        label: d->strOpt("label", ()),
+                                        idx: d->intOpt("idx", ()),
+                                        pat: d->str("pat", ()),
+                                        
                                     }
-                                }, ()),
-                                label: d->strOpt("label", ()),
-                                idx: d->intOpt("idx", ()),
-                                pattern: d->str("pattern", ()),
-                                
+                                }, ()), ~default = () => [], ()),
                             }
-                        }, ()), ()), ()),
+                        }, ()), ()),
                         framesToUse: d->arrOpt("frames", asStr(_, ()), ()),
                         stepsToUse: d->arr("stepsToDeriveFrom", asStr(_, ()), ()),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),

@@ -568,15 +568,30 @@ let getTypeOfVarExn = (ctx:mmContext, varInt:int):int => {
     }
 }
 
-let extractMandatoryVariables = (ctx:mmContext, asrt:expr, ~skipEssentials:bool=false, ()):Belt_HashSetInt.t => {
+let extractMandatoryVariables = (
+    ctx:mmContext, 
+    asrt:expr, 
+    ~skipEssentials:bool=false, 
+    ~overrideHyps:option<array<expr>>=?,
+    ()
+):Belt_HashSetInt.t => {
     let res = Belt_HashSetInt.make(~hintSize=16)
     if (!skipEssentials) {
-        ctx->forEachHypothesisInDeclarationOrder(hyp => {
-            if (hyp.typ == E) {
-                hyp.expr->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
+        switch overrideHyps {
+            | Some(overrideHyps) => {
+                overrideHyps->Js_array2.forEach(hypExpr => {
+                    hypExpr->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
+                })
             }
-            None
-        })->ignore
+            | None => {
+                ctx->forEachHypothesisInDeclarationOrder(hyp => {
+                    if (hyp.typ == E) {
+                        hyp.expr->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
+                    }
+                    None
+                })->ignore
+            }
+        }
     }
     asrt->Js_array2.forEach(i => if i >= 0 {res->Belt_HashSetInt.add(i)})
     res
@@ -599,17 +614,35 @@ let extractMandatoryDisj = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t): dis
     mandatoryDisj
 }
 
-let extractMandatoryHypotheses = (ctx:mmContext, mandatoryVars:Belt_HashSetInt.t, ~skipEssentials:bool=false, ()):array<hypothesis> => {
+let extractMandatoryHypotheses = (
+    ctx:mmContext, 
+    mandatoryVars:Belt_HashSetInt.t, 
+    ~skipEssentials:bool=false, 
+    ~overrideHyps:option<array<expr>>=?,
+    ()
+):array<hypothesis> => {
     let res = []
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
         if (
-            hyp.typ == E && !skipEssentials
+            hyp.typ == E && (!skipEssentials && overrideHyps->Belt_Option.isNone)
             || hyp.typ == F && mandatoryVars->Belt_HashSetInt.has(hyp.expr[1])
         ) {
             res->Js.Array2.push(hyp)->ignore
         }
         None
     })->ignore
+    switch overrideHyps {
+        | None => ()
+        | Some(overrideHyps) => {
+            overrideHyps->Js_array2.forEachi((hypExpr,i) => {
+                res->Js.Array2.push({
+                    typ: E,
+                    label: i->Belt.Int.toString,
+                    expr: hypExpr
+                })->ignore
+            })
+        }
+    }
     res
 }
 
@@ -617,9 +650,15 @@ let getAllConsts = (ctx:mmContext):array<string> => {
     Belt_Option.getExn(ctx.contents.root).consts->Js_array2.sliceFrom(1)
 }
 
-let getMandHyps = (ctx:mmContext, expr:expr):array<hypothesis> => {
-    let mandatoryVars = extractMandatoryVariables(ctx, expr, ())
-    extractMandatoryHypotheses(ctx, mandatoryVars, ())
+let getMandHyps = (
+    ctx:mmContext, 
+    expr:expr,
+    ~skipEssentials:bool=false, 
+    ~overrideHyps:option<array<expr>>=?,
+    ()
+):array<hypothesis> => {
+    let mandatoryVars = extractMandatoryVariables( ctx, expr, ~skipEssentials, ~overrideHyps?, () )
+    extractMandatoryHypotheses(ctx, mandatoryVars, ~skipEssentials, ~overrideHyps?, ())
 }
 
 let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
@@ -1054,6 +1093,7 @@ let createFrame = (
     ~skipEssentials:bool=false, 
     ~skipFirstSymCheck:bool=false, 
     ~skipDisj:bool=false, 
+    ~overrideHyps:option<array<expr>>=?,
     ~descrRegexToDisc:option<Js_re.t>=?,
     ~labelRegexToDisc:option<Js_re.t>=?,
     ~descrRegexToDepr:option<Js_re.t>=?,
@@ -1075,7 +1115,9 @@ let createFrame = (
                 let mandatoryDisj = if (skipDisj) {disjMake()} else {
                     extractMandatoryDisj(ctx, mandatoryVarsSet)
                 }
-                let mandatoryHypotheses = extractMandatoryHypotheses(ctx, mandatoryVarsSet, ~skipEssentials, ())
+                let mandatoryHypotheses = extractMandatoryHypotheses(
+                    ctx, mandatoryVarsSet, ~skipEssentials, ~overrideHyps?, ()
+                )
                 let ctxToFrameRenum = mandatoryVarsArr
                                         ->Js_array2.mapi((cv,fv) => (cv,fv))
                                         ->Belt_HashMapInt.fromArray

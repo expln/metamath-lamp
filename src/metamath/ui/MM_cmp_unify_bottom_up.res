@@ -37,13 +37,13 @@ type applyAsrtResultHypMatcherToShow = {
 
 type applyAsrtResultMatcherToShow = {
     res: option<string>,
-    hyps: option<array<applyAsrtResultHypMatcherToShow>>,
+    hyps: array<applyAsrtResultHypMatcherToShow>,
 }
 
 type proverFrameParamsToShow = {
     minDist: option<int>,
     maxDist: option<int>,
-    matches: option<array<array<applyAsrtResultMatcherToShow>>>,
+    matches: option<array<applyAsrtResultMatcherToShow>>,
     frmsToUse: option<array<string>>,
     args: array<string>,
     allowNewDisjForExistingVars: bool,
@@ -787,30 +787,27 @@ let make = (
         }
     }
 
-    let makeMatchesToShow = (wrkCtx:mmContext, matches:array<applyAsrtResultMatcher>):array<array<applyAsrtResultMatcherToShow>> => {
+    let makeMatchesToShow = (wrkCtx:mmContext, matches:array<applyAsrtResultMatcher>):array<applyAsrtResultMatcherToShow> => {
         matches->Js_array2.map(matcher => {
-            let res = []
-            if (matcher.matchAsrt) {
-                res->Js.Array2.push({
-                    typ: "res",
-                    label: None,
-                    idx: None,
-                    pattern: wrkCtx->ctxIntsToStrExn(matcher.frm.frame.asrt),
-                })->ignore
+            {
+                res: 
+                    if (matcher.matchAsrt) {
+                        Some(wrkCtx->ctxIntsToStrExn(matcher.frm.frame.asrt))
+                    } else {
+                        None
+                    },
+                hyps: matcher.hypMatchers->Js_array2.mapi((hypMatcher,i) => {
+                    let (label,idx) = switch hypMatcher {
+                        | Label(label) => (Some(label), None)
+                        | Idx(idx) => (None, Some(idx))
+                    }
+                    {
+                        label,
+                        idx,
+                        pat: wrkCtx->ctxIntsToStrExn(matcher.frm.hypsE[i].expr),
+                    }
+                }),
             }
-            matcher.hypMatchers->Js.Array2.forEachi((hypMatcher,i) => {
-                let (label,idx) = switch hypMatcher {
-                    | Label(label) => (Some(label), None)
-                    | Idx(idx) => (None, Some(idx))
-                }
-                res->Js.Array2.push({
-                    typ: "hyp",
-                    label,
-                    idx,
-                    pattern: wrkCtx->ctxIntsToStrExn(matcher.frm.hypsE[i].expr),
-                })->ignore
-            })
-            res
         })
     }
 

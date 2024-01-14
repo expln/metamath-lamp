@@ -672,7 +672,7 @@ let proveStmtBottomUp = (
                 isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist) 
                 && exprMatchesAsrtMatchers(~expr, ~matchers=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
             ) {
-                let parents = findAsrtParentsWithNewVars(
+                let parents:array<exprSrc> = findAsrtParentsWithNewVars(
                     ~tree,
                     ~expr,
                     ~args=paramsI.args,
@@ -688,37 +688,51 @@ let proveStmtBottomUp = (
                     ~onProgress?,
                     ()
                 )
-                switch paramsI.lengthRestrict {
-                    | No => res->Js_array2.push(parents)->ignore
+                let parents = switch paramsI.lengthRestrict {
+                    | No => parents
                     | LessEq | Less => {
                         let exprLen = expr->Js_array2.length
-                        res->Js_array2.push(
-                            parents->Js.Array2.filter(parent => {
-                                switch parent {
-                                    | VarType | Hypothesis(_) | AssertionWithErr(_) => true
-                                    | Assertion({args, frame}) => {
-                                        let argsAreCorrect = ref(true)
-                                        let numOfArgs = frame.hyps->Js_array2.length
-                                        let maxArgIdx = numOfArgs - 1
-                                        let argIdx = ref(0)
-                                        while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                                            let arg = args[argIdx.contents]
-                                            if (frame.hyps[argIdx.contents].typ == E) {
-                                                argsAreCorrect.contents = switch paramsI.lengthRestrict {
-                                                    | No => true
-                                                    | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
-                                                    | Less => arg->pnGetExpr->Js_array2.length < exprLen
-                                                }
+                        parents->Js.Array2.filter(parent => {
+                            switch parent {
+                                | VarType | Hypothesis(_) | AssertionWithErr(_) => true
+                                | Assertion({args, frame}) => {
+                                    let argsAreCorrect = ref(true)
+                                    let numOfArgs = frame.hyps->Js_array2.length
+                                    let maxArgIdx = numOfArgs - 1
+                                    let argIdx = ref(0)
+                                    while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
+                                        let arg = args[argIdx.contents]
+                                        if (frame.hyps[argIdx.contents].typ == E) {
+                                            argsAreCorrect.contents = switch paramsI.lengthRestrict {
+                                                | No => true
+                                                | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
+                                                | Less => arg->pnGetExpr->Js_array2.length < exprLen
                                             }
-                                            argIdx.contents = argIdx.contents + 1
                                         }
-                                        argsAreCorrect.contents
+                                        argIdx.contents = argIdx.contents + 1
                                     }
+                                    argsAreCorrect.contents
                                 }
-                            })
-                        )->ignore
+                            }
+                        })
                     }
                 }
+                let parents = switch paramsI.matches {
+                    | None => parents
+                    | Some(matchers) => {
+                        parents->Js.Array2.filter(parent => {
+                            matchers->Js.Array2.some(matcher => {
+                                exprSrcMatches(
+                                    ~expr,
+                                    ~src=parent,
+                                    ~matcher,
+                                    ~parenCnt=tree->ptGetParenCnt,
+                                )
+                            })
+                        })
+                    }
+                }
+                res->Js_array2.push(parents)->ignore
             }
         }
         res->Belt.Array.concatMany

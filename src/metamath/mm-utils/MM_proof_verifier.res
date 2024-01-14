@@ -349,7 +349,7 @@ let applyCompressedProof = (
     }
 
     let steps = compressedProofBlockToArray(compressedProofBlock)
-    let hyps = getMandHyps(ctx, expr)
+    let hyps = getMandHyps(ctx, expr, ())
     let hypLen = hyps->Js_array2.length
     let hypLenPlusLabelsLen = hypLen + labels->Js_array2.length
     let savedNodes = []

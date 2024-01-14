@@ -2034,7 +2034,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                         })
                                     )
 
-                                    let mandHyps = proofCtx->getMandHyps(expr)
+                                    let mandHyps = proofCtx->getMandHyps(expr, ())
                                     let proof = MM_proof_table.createProof(
                                         mandHyps, proofTableWithTypes, proofTableWithTypes->Js_array2.length-1
                                     )
