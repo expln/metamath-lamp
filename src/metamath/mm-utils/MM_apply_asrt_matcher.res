@@ -28,7 +28,7 @@ let getArgToMatchPriv = (
                 hypLabelToMatch->Belt_Option.map(label => label == hyp.label)->Belt_Option.getWithDefault(false)
                 || hypIdxToMatch->Belt_Option.map(idx => idx == eHypI.contents)->Belt_Option.getWithDefault(false)
             ) {
-                res := Some(args[eHypI.contents]->pnGetExpr)
+                res := Some(args[i.contents]->pnGetExpr)
             } else {
                 eHypI := eHypI.contents + 1
             }

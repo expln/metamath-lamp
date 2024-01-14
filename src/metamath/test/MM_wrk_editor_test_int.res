@@ -805,71 +805,102 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             maxNumberOfBranches: None,
         }
 
-        let (st, foundProofsResultMatcherOnly) = st->unifyBottomUp(
-            ~stmtId=st->getStmtId(~label="qed", ()), 
-            ~bottomUpProverParams={
+        let prepareBottomUpProverParams = (
+            state:MM_wrk_editor.editorState,
+            matcher:MM_cmp_api.apiApplyAsrtResultMatcher,
+        ):MM_provers.bottomUpProverParams => {
+            {
                 maxSearchDepth:3,
                 frameParams: [
                     {
                         ...defaultFrameParams,
-                        matches: None,
                         frmsToUse: Some(["qcn"]),
+                        matches: None,
                     },
                     {
                         ...defaultFrameParams,
-                        matches: MM_cmp_api.optArrayToMatchers(
-                            ~state=st,
-                            ~matches=Some([
-                                {res:Some("|- ( ph -> X e. A )"), hyps:[]}
-                            ]),
-                        )->Belt_Result.getExn,
                         frmsToUse: Some(["syl"]),
+                        matches: MM_cmp_api.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
                     }
                 ],
-            },
-            ()
-        )
-        assertTextEqFile(
-            foundProofsResultMatcherOnly->Js.Array2.map(newStmtsDtoToStr)
-            ->Js.Array2.joinWith("\n\n----------------------------------\n"), 
-            "foundProofsResultMatcherOnly"
-        )
+            }
+        }
 
-        let (_, foundProofsResultAndHypsMatchers) = st->unifyBottomUp(
+        let assertResults = (actual:array<MM_statements_dto.stmtsDto>, expectedFileName:string) => {
+            assertTextEqFile(
+                actual->Js.Array2.map(newStmtsDtoToStr)
+                ->Js.Array2.joinWith("\n\n----------------------------------\n"), 
+                expectedFileName
+            )
+        }
+
+        let (st, foundProofsResultOnly) = st->unifyBottomUp(
             ~stmtId=st->getStmtId(~label="qed", ()), 
-            ~bottomUpProverParams={
-                maxSearchDepth:3,
-                frameParams: [
-                    {
-                        ...defaultFrameParams,
-                        matches: None,
-                        frmsToUse: Some(["qcn"]),
-                    },
-                    {
-                        ...defaultFrameParams,
-                        matches: MM_cmp_api.optArrayToMatchers(
-                            ~state=st,
-                            ~matches=Some([
-                                {
-                                    hyps:[
-                                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
-                                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
-                                    ],
-                                    res:Some("|- ( ph -> X e. B )")
-                                }
-                            ]),
-                        )->Belt_Result.getExn,
-                        frmsToUse: Some(["syl"]),
-                    }
-                ],
-            },
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {hyps:[], res:Some("|- ( ph -> X e. A )")}
+            ),
             ()
         )
-        assertTextEqFile(
-            foundProofsResultAndHypsMatchers->Js.Array2.map(newStmtsDtoToStr)
-            ->Js.Array2.joinWith("\n\n----------------------------------\n"), 
-            "foundProofsResultAndHypsMatchers"
+        assertResults(foundProofsResultOnly, "foundProofsResultOnly")
+
+        let (st, foundProofsResultAndHyps) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
+                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
+                    ],
+                    res:Some("|- ( ph -> X e. B )")
+                }
+            ),
+            ()
         )
+        assertResults(foundProofsResultAndHyps, "foundProofsResultAndHyps")
+
+        let (st, foundProofsHypsOnly) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
+                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
+                    ],
+                    res:None
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsHypsOnly, "foundProofsHypsOnly")
+
+        let (st, foundProofsHyp0Only) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(0), pat:"|- ( ph -> X e. A )"},
+                    ],
+                    res:None
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsHyp0Only, "foundProofsHyp0Only")
+
+        let (_, foundProofsHyp1Only) = st->unifyBottomUp(
+            ~stmtId=st->getStmtId(~label="qed", ()), 
+            ~bottomUpProverParams=prepareBottomUpProverParams( st,
+                {
+                    hyps:[
+                        {label:None, idx:Some(1), pat:"|- ( X e. A -> X e. B )"},
+                    ],
+                    res:None
+                }
+            ),
+            ()
+        )
+        assertResults(foundProofsHyp1Only, "foundProofsHyp1Only")
+
     })
 
     // it("bottom-up prover should not find missing disjoints if allowNewDisjForExistingVars==false", _ => {

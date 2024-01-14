@@ -16,8 +16,8 @@ type lengthRestrict = No | LessEq | Less
 type bottomUpProverFrameParams = {
     minDist: option<int>,
     maxDist: option<int>,
-    matches: option<array<applyAsrtResultMatcher>>,
     frmsToUse: option<array<string>>,
+    matches: option<array<applyAsrtResultMatcher>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
@@ -49,8 +49,8 @@ let bottomUpProverParamsMakeDefault = (
             {
                 minDist: Some(0),
                 maxDist: Some(0),
-                matches: None,
                 frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
+                matches: None,
                 args: args0,
                 allowNewDisjForExistingVars,
                 allowNewStmts,

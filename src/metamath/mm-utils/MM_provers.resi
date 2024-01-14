@@ -10,8 +10,8 @@ type lengthRestrict = No | LessEq | Less
 type bottomUpProverFrameParams = {
     minDist: option<int>,
     maxDist: option<int>,
-    matches: option<array<applyAsrtResultMatcher>>,
     frmsToUse: option<array<string>>,
+    matches: option<array<applyAsrtResultMatcher>>,
     args: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,

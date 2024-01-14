@@ -1,0 +1,3 @@
+
+1 [ : qcn ] ✓ |- ( A e. QQ -> A e. CC )
+qed [hyp1 1 : syl ] ✓ |- ( ph -> A e. CC )
