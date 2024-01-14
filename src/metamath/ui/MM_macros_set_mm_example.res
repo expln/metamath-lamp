@@ -16,6 +16,10 @@ function makeFrmParams(frames, matchers) {
     }
 }
 
+function code(code) {
+    return String.fromCharCode(code)
+}
+
 const frms = {}
 
 const FPR_ELEM_OF = 'ELEM_OF';
@@ -57,7 +61,7 @@ frms[FPR_EQUALS] = [
     ]),
     makeFrmParams(['syl'], [
         {
-            hyps: [{idx:0, pat:'|- ( ph -> ( X e. A /\\ Y e. B ) )'},],
+            hyps: [{idx:0, pat:[!@#]|- ( ph -> ( X e. A /{!@#}{code(92)} Y e. B ) )[!@#]},],
             res:'|- ( ph -> ( ( X + Y ) ^ 3 ) = Z )'
         },
     ]),
@@ -468,7 +472,7 @@ function conjToStr(conj) {
     if (conj.length === 1) {
         return conj[0]
     }
-    return '( ' + conj.map(conjToStr).join(' /\\ ') + ' )'
+    return '( ' + conj.map(conjToStr).join([!@#] /{!@#}{code(92)} [!@#]) + ' )'
 }
 
 async function inferenceToClosed() {
@@ -751,6 +755,7 @@ async function runSequenceOfModificationsForFragment({modifySubtree, frmParams})
     await setContentIsHidden(false)
 }
 
+const ENDS_WITH_DIGITS_PATTERN = new RegExp([!@#]{!@#}{code(92)}d+{!@#}[!@#])
 function isTerm(tree,allowedConsts) {
     function isAllowedNode(node) {
         return node.nodeType !== "sym" || node.isVar || allowedConsts.includes(node.sym) || NUMBER_CONSTANTS.includes(node.sym)
@@ -759,7 +764,7 @@ function isTerm(tree,allowedConsts) {
         return !isAllowedNode(node)
     }
     function endsWithDigits(str) {
-        return str.match(/\d+{!@#}/) !== null
+        return str.match(ENDS_WITH_DIGITS_PATTERN) !== null
     }
 
     return !allowedConsts.includes(syntaxTreeToText(tree))
@@ -800,9 +805,10 @@ function expPowers(pow,exp) {
     return pow.map(([varName,powNum]) => [varName,powNum*exp])
 }
 
+const VAR_NAME_TO_POWERS_PATTERN = new RegExp([!@#]([a-zA-Z]+)({!@#}{code(92)}d+)[!@#], "g")
 function varNameToPowers(varName) {
     function polynomVarNameToPowers(varName) {
-        return [...varName.matchAll(/([a-zA-Z]+)(\d+)/g)].map(match => [match[1].toLowerCase(), parseInt(match[2])])
+        return [...varName.matchAll(VAR_NAME_TO_POWERS_PATTERN)].map(match => [match[1].toLowerCase(), parseInt(match[2])])
     }
     const res = polynomVarNameToPowers(varName)
     if (res.length !== 0) {
@@ -1299,7 +1305,7 @@ function makeMacro(name, func) {
             try {
                 await func(globalContext)
             } catch (ex) {
-                await showErrMsg([!@#]{!@#}{ex.message}\n{!@#}{ex.stack}[!@#])
+                await showErrMsg([!@#]{!@#}{ex.message}{!@#}{code(10)}{!@#}{ex.stack}[!@#])
                 throw ex
             }
         }
@@ -1327,7 +1333,7 @@ async function showNewAssertions(ctx, frmParams) {
         }
     })
     console.log('new assertions', newFrms)
-    await showInfoMsg([!@#]New assertions not present in {!@#}{JSON.stringify(frmParams)}:\n{!@#}{newFrms.join('\n')}[!@#])
+    await showInfoMsg([!@#]New assertions not present in {!@#}{JSON.stringify(frmParams)}:{!@#}{code(10)}{!@#}{newFrms.join(code(10))}[!@#])
 }
 
 const macros = [
