@@ -1,42 +1,73 @@
 let setMmExampleMacros = `
-const fastFrms = [
-    //common
-    "_reexpcli","3t2e6","6p1e7","3t3e9","recni","mulneg2i","2p2e4","4p1e5","2t2e4","4p3e7","7p1e8","3p2e5","3p1e4",
-    "4p4e8","7p2e9","8p1e9","4p4e8","3p3e6","5p1e6",
-    "0nn0","1nn0","2nn0","3nn0","4nn0","5nn0","6nn0","7nn0","8nn0","9nn0","10nn0",
-    "recn","subidd","addid2d","peano2re","0re", "subadd23", "resqcld","posdifd","3cn","df-3","expp1",
-    "ax-1cn", "sq1","mulexp", "3re", "reexpcl", "neg1cn","n2dvds3","3z","m1expo", "1exp", "1pneg1e0",
-    "sqneg","3nn","expm1t","3m1e2","1p2e3","oveq2i","df-7","6cn","6p2e8","neg1sqe1","2cn","mulcomi","eqtr2i",
-    "qre","qcn","nnq","nnexpcld","resqcl","peano2rem","nnexpcld","oveq1","eqeq2d","qmulcl","qexpcl","1nn","qsubcl",
-    "sylancl",
-    //inference
-    "pm3.2i","3pm3.2i",
-    // "_anpnaneq0_i",
-    // "resqcli","resubcli","ltadd1i","recni","addid1i", "subidi", "oveq2i","eqcomi","eqtr4i","breqtri","breqtrri",
-    // "eqbrtri","posdifi", "sqge0i","ltletri","oveq1i","sqvali","adddiri","sqcli","mulassi","mulcomi","mulid2i","mulcli",
-    // "addcli", "addsubassi","binom2i","eqeltri","addassi","addcomi","2timesi", "mulid1i","sqmuli","adddii", "nn0expcli",
-    // "nn0rei","remulcli", "readdcli","negsubi", "renegcli", "mulm1i","eqtri","eqtr3i",
-    //deduction
-    "_sqnegd","_a23eqa32","_a3eqaaa","_reexpcld","_anpnaneq0_d",
-    "a1i","3jca","negidd","mulneg1d","mulneg2d","times2d",
-    "resqcld","resubcld","ltadd1d","recnd","addid1d","oveq2d","eqcomd","eqtr4d","breqtrd","breqtrrd","eqbrtrd","posdifd",
-    "sqge0d","ltletrd","oveq1d","sqvald","adddird","sqcld","mulassd","mulcomd","mulid2d","mulcld","addcld","subidd",
-    "addsubassd","binom2d","eqeltrd","addassd","addcomd","2timesd","mulid1d","sqmuld","adddid",
-    "nn0expcld","nn0red","remulcld","readdcld","negsubd",
-    "renegcld","mulm1d","eqtrd","eqtr3d",
-    "reexpcld","1cnd","negcld","jca","0red","0re","1red","2re","3re","4re","5re","6re","7re","8re","9re",
-    "mulexpd","negeqd","sqvald","expmuld","expp1d","nn0mulcli","expaddd","nn0addcli","nn0addcld","comraddd","mulcomd",
-    "eqtr2d","eqnetrd","neqned","expdivd","expcld","expne0d","divdird",
+const commonFrameParams = {
+    minDist:null,
+    maxDist:null,
+    allowNewDisjointsForExistingVariables:false,
+    allowNewSteps:true,
+    allowNewVariables:false,
+    statementLengthRestriction:'No',
+}
+
+function makeFrmParams(frames, matchers) {
+    return {
+        ...commonFrameParams,
+        frames,
+        matches:matchers??null
+    }
+}
+
+const frms = {}
+
+const FPR_ELEM_OF = 'ELEM_OF';
+frms[FPR_ELEM_OF] = [
+    makeFrmParams([
+        '0cn','ax-1cn','2cn','3cn','4cn','5cn','6cn','7cn','8cn','9cn',
+        '0nn0','1nn0','2nn0','3nn0','4nn0','5nn0','6nn0','7nn0','8nn0','9nn0','10nn0',
+        '1nn','2nn','3nn','4nn','5nn','6nn','7nn','8nn','9nn','10nn',
+        'addcld','qre',
+        'expcld', 'reexpcld', 'nnexpcld', 'nn0expcld', 'rpexpcld',
+        'jca', 'jca31', 'jca32', '3jca', 'eqeltrd', 'sqcld', 'nn0cnd','recnd',
+        'mulcld', 'remulcld', 'nnmulcld', 'nn0mulcld', 'zmulcld', 'rpmulcld', 'xmulcld',
+        'a1i','nnred','qcn','negcld','expcld','nn0addcld'
+    ]),
+    makeFrmParams(['syl'], [
+        {
+            hyps: [
+                {idx:0, pat:'|- ( ph -> X e. A )'},
+                {idx:1, pat:'|- ( X e. A -> X e. B )'},
+            ],
+            res:'|- ( ph -> X e. B )'
+        }
+    ]),
+];
+
+const FPR_EQUALS = 'FPR_EQUALS';
+frms[FPR_EQUALS] = [
+    FPR_ELEM_OF,
+    makeFrmParams([
+        'oveq1d', 'oveq2d','eqtr3d','eqtrd', 'eqtr4d', 'eqcomd', 'adddid', 'adddird', 'addcomd', 'addassd', 'negsubd',
+        'addid2d','addid1d','negeqd','mulneg1d','mulexpd','mulcomd','mulassd','negidd',
+        'sq0','sq1','sq2','sq3',
+        'expp1d','expaddd','expmuld',
+        'df-2','df-3','df-4','df-5','df-6','df-7','df-8','df-9',
+        '0p1e1','1p0e1','1p1e2','2p1e3','2p2e4','1p2e3','2t2e4','3p1e4','4p1e5','5p1e6','6p1e7','7p1e8','8p1e9','3p2e5','3p3e6',
+        '4p2e6','4p3e7','4p4e8','5p2e7','5p3e8','5p4e9','6p2e8','6p3e9','7p2e9',
+        '2m1e1','1e2m1','3m1e2','4m1e3','5m1e4','6m1e5','7m1e6','8m1e7','9m1e8',
+        '1t1e1','2t1e2','2t2e4','3t1e3','3t2e6','3t3e9','4t2e8','2t0e0',
+    ]),
+    makeFrmParams(['syl'], [
+        {
+            hyps: [{idx:0, pat:'|- ( ph -> ( X e. A /\\ Y e. B ) )'},],
+            res:'|- ( ph -> ( ( X + Y ) ^ 3 ) = Z )'
+        },
+    ]),
 ]
-const slowFrms = [
-    "mpbir","id","eqidd",
-    "eqid",
-    //slow
-    "ax-mp","mpbi","mp2an",
-    //not for now
-    "cu3addi", "cu3addd", "binom3", "mp1i","syl",
-    "mpd","rspc3ev","pm2.18i","mpan2","syl2anc",
-]
+
+const FPR_RUN_SEQ_FOR_STEP = 'RUN_SEQ_FOR_STEP';
+frms[FPR_RUN_SEQ_FOR_STEP] = []
+
+const FPR_RUN_SEQ_FOR_FRAG = 'RUN_SEQ_FOR_FRAG';
+frms[FPR_RUN_SEQ_FOR_FRAG] = [FPR_EQUALS]
 
 const NUMBER_CONSTANTS = ['0','1','2','3','4','5','6','7','8','9']
 
@@ -117,6 +148,19 @@ async function mergeDuplicatedSteps() {
 
 function isSymbol(tree) {
     return tree.nodeType === "sym"
+        || tree.nodeType === "expr" && tree.children.length === 1 && tree.children[0].nodeType === "sym"
+}
+
+function getSymbol(tree) {
+    if (!isSymbol(tree)) {
+        console.log('tree to get symbol from', tree)
+        exn('Not a symbol')
+    }
+    if (tree.nodeType === "sym") {
+        return tree.sym
+    } else {
+        return tree.children[0].sym
+    }
 }
 
 function isVar(tree) {
@@ -125,6 +169,7 @@ function isVar(tree) {
 
 function getVarName(tree) {
     if (!isVar(tree)) {
+        console.log('tree to get var name from', tree)
         exn('Not a variable')
     }
     return tree.children[0].sym
@@ -136,6 +181,14 @@ function makeConst(sym) {
 
 function isObj(x) {
     return x !== undefined && x !== null && typeof x === 'object' && !Array.isArray(x)
+}
+
+function isArr(x) {
+    return x !== undefined && x !== null && Array.isArray(x)
+}
+
+function isStr(x) {
+    return x !== undefined && x !== null && typeof x === 'string'
 }
 
 const MATCHER_ANY_SYMBOL = 'MATCHER_ANY_SYMBOL'
@@ -177,7 +230,7 @@ function match(tree, pattern) {
             }
             result.push(subMatchResult)
         } else if (isObj(pat)) {
-            if (pat.matcherType === MATCHER_ANY_SYMBOL && isSymbol(ch) && pat.allowedSymbols.includes(ch.sym)) {
+            if (pat.matcherType === MATCHER_ANY_SYMBOL && isSymbol(ch) && pat.allowedSymbols.includes(getSymbol(ch))) {
                 result.push(ch)
             } else if (pat.matcherType === MATCHER_EXPR_OF_TYPE && ch.exprType === pat.type) {
                 result.push(ch)
@@ -191,7 +244,7 @@ function match(tree, pattern) {
                 return undefined
             }
         } else {
-            if (pat === '' || isSymbol(ch) && pat === ch.sym) {
+            if (pat === '' || isSymbol(ch) && pat === getSymbol(ch)) {
                 result.push(ch)
             } else {
                 return undefined
@@ -219,17 +272,33 @@ async function getAllFrmsFromEditor() {
     return [...new Set((await getEditorState()).steps.filter(step => step.jstf).map(step => step.jstf.asrt))]
 }
 
-function arrSub(a, b) {
-    return a.filter(e => !b.includes(e))
+function arDiff(a,...bs) {
+    for (const b of bs) {
+        const bSet = new Set(b)
+        a = a.filter(e => !bSet.has(e))
+    }
+    return a
 }
 
-async function getNewAssertionsFromEditor() {
-    return arrSub(await getAllFrmsFromEditor(), [...fastFrms, ...slowFrms])
+function arIntersect(a,...bs) {
+    for (const b of bs) {
+        const bSet = new Set(b)
+        a = a.filter(e => bSet.has(e))
+    }
+    return a
+}
+
+function arUnion(a,...bs) {
+    return [...new Set(a.concat(...bs))]
+}
+
+async function updateFrms() {
+    frms.editor = await getAllFrmsFromEditor()
 }
 
 function syntaxTreeToText(node) {
     if (isSymbol(node)) {
-        return node.sym
+        return getSymbol(node)
     } else {
         return node.children.map(syntaxTreeToText).join(' ')
     }
@@ -276,18 +345,34 @@ function getStepByLabel(editorState, label) {
     return editorState.steps[getStepIdx(editorState, label)]
 }
 
-function getAllStepsBefore(editorState, label) {
-    const res = []
-    for (const step of editorState.steps) {
-        if (step.label === label) {
-            return res
-        }
-        res.push(step.label)
-    }
-    return res
+function cannotResolveFrmParamsExn(frmParams) {
+    console.log('frmParams', frmParams)
+    exn('Cannot resolve frmParams (see the actual value in the console).')
 }
 
-async function prove({stepToProve, stepsToDeriveFrom, debugLevel, maxSearchDepth}) {
+function resolveFrmParams(frmParams, path) {
+    path = path??''
+    if (isObj(frmParams)) {
+        return [{...frmParams, tag:path}]
+    }
+    if (isStr(frmParams)) {
+        let res = frms[frmParams]
+        if (res === undefined) {
+            cannotResolveFrmParamsExn(frmParams)
+        }
+        return resolveFrmParams(res, path + "." + frmParams)
+    }
+    if (!isArr(frmParams)) {
+        cannotResolveFrmParamsExn(frmParams)
+    }
+    return frmParams.flatMap(p => resolveFrmParams(p, path))
+}
+
+async function prove({
+                         stepToProve, stepsToDeriveFrom,
+                         frmParams,
+                         maxSearchDepth, debugLevel
+}) {
     let editorState = await getEditorState()
     let allSteps = editorState.steps
     let allHyps = allSteps.filter(s => s.isHyp).map(s => s.label)
@@ -301,83 +386,45 @@ async function prove({stepToProve, stepsToDeriveFrom, debugLevel, maxSearchDepth
     }
     stepToProve = (stepToProve??'last') === 'last' ? allSteps[allSteps.length-1].label : stepToProve
     stepsToDeriveFrom = (stepsToDeriveFrom??[]).map(label => label === 'prev' ? getPrevLabel(stepToProve) : label)
+    stepsToDeriveFrom = [...allHyps, ...stepsToDeriveFrom]
     debugLevel = debugLevel??0
     maxSearchDepth = maxSearchDepth??20
-    const allPrevSteps = getAllStepsBefore(editorState, stepToProve)
 
-    getResponse(await api.editor.proveBottomUp({
-        stepToProve:stepToProve,
-        maxSearchDepth,
-        debugLevel,
-        selectFirstFoundProof:debugLevel === 0,
-        frameParams: [
-            {
-                framesToUse:fastFrms,
-                stepsToUse:[...allHyps, ...stepsToDeriveFrom],
-                allowNewDisjointsForExistingVariables:false,
-                allowNewSteps:true,
-                allowNewVariables:false,
-                statementLengthRestriction:'No',
-            },
-            {
-                framesToUse:slowFrms,
-                stepsToUse:allPrevSteps,
-                allowNewDisjointsForExistingVariables:false,
-                allowNewSteps:false,
-                allowNewVariables:false,
-                statementLengthRestriction:'No',
-            },
-        ]
-    }))
-    if (debugLevel > 0) {
-        return undefined
-    } else {
-        return await getEditorState()
+    const frameParameters = resolveFrmParams(frmParams).map(p => ({...p, stepsToDeriveFrom}))
+
+    async function doProve(debugLevel) {
+        return getResponse(await api.editor.proveBottomUp({
+            tags:frmParams,
+            stepToProve: stepToProve,
+            maxSearchDepth,
+            debugLevel,
+            selectFirstFoundProof: debugLevel === 0,
+            frameParameters,
+            delayBeforeStartMs:500,
+        }))
     }
+
+    const proved = await doProve(debugLevel)
+    if (!proved && debugLevel === 0) {
+        await doProve(1)
+    }
+    return await getEditorState()
 }
 
-async function pr(str, debugLevel) {
-    if (str === undefined || str === '') {
-        const state = await getEditorState()
-        if (state.selectedSteps.length > 0) {
-            const sortedSteps = state.selectedSteps
-                .map(label => [label,getStepIdx(state,label)]).sort((a,b) => b[1]-a[1])
-                .map(labelAndIdx => labelAndIdx[0])
-            await pr(sortedSteps.join(' '), debugLevel)
-        } else {
-            await pr('last', debugLevel)
-        }
-    } else {
-        const [stepToProve, ...stepsToDeriveFrom] = str.split(/\s+/)
-        await prove({stepToProve, stepsToDeriveFrom, debugLevel})
+async function proveSelected({frmParams, maxSearchDepth, debugLevel}) {
+    const state = await getEditorState()
+    if (state.selectedSteps.length === 0) {
+        exn('At least one step must be selected.')
     }
-}
-
-async function inferenceToDeduction() {
-    const allSteps = await getEditorStateWithSyntaxTrees().steps
-    await updateSteps(allSteps.map(
-        step => ({label:step.label, jstf:'', stmt:[!@#]|- ( ph -> {!@#}{syntaxTreeToText(step.tree.root)} )[!@#]})
-    ))
-    await inferenceToDeductionContinue()
-}
-
-async function inferenceToDeductionContinue() {
-    let state = await unifyAll()
-    while (!isGoalProved(state)) {
-        const unprovedStep = getFirstUnprovedStep(state)
-        const [lp, ph, arr, expr, rp] = matchExn(unprovedStep.tree.root, ['(', '', '->', '', ')'])
-        const [newLabel] = await addSteps({
-            atIdx:getStepIdx(state,unprovedStep.label),
-            steps:[{stmt:'|- ' + syntaxTreeToText(expr)}]
-        })
-        state = await unifyAll()
-        if (!isStepProved(state, newLabel)) {
-            state = await pr(newLabel, [])
-            if (!isStepProved(state, newLabel)) {
-                exn([!@#]Cannot prove the step with the label '{!@#}{newLabel}'[!@#])
-            }
-        }
-    }
+    const sortedSteps = state.selectedSteps
+        .map(label => [label, getStepIdx(state, label)]).sort((a, b) => b[1] - a[1])
+        .map(labelAndIdx => labelAndIdx[0])
+    const [stepToProve, ...stepsToDeriveFrom] = sortedSteps
+    await prove({
+        stepToProve, stepsToDeriveFrom,
+        frmParams,
+        maxSearchDepth, debugLevel
+    })
 }
 
 async function deductionToInference() {
@@ -438,13 +485,6 @@ async function inferenceToClosed() {
     await unifyAll()
 }
 
-function getSingleSelectedStep(editorState) {
-    if (editorState.selectedSteps.length !== 1) {
-        exn('One step must be selected')
-    }
-    return getStepByLabel(editorState, editorState.selectedSteps[0])
-}
-
 function getSingleStepWithFragmentSelected(editorState) {
     const stepsWithFragmentSelected = editorState.steps.filter(step => step.fragId !== null)
     if (stepsWithFragmentSelected.length !== 1) {
@@ -470,7 +510,7 @@ async function eliminateVar(varHypStep) {
     const [lp, ph, ar, [v, eq, expr], rp] = matchExn(varHypStep.tree.root, VARIABLE_HYPOTHESIS_PATTERN)
     await substitute({what: getVarName(v), with_: syntaxTreeToText(expr)})
     await updateSteps([{label:varHypStep.label, type:'p'}])
-    await mergeDuplicatedSteps()
+    return await mergeDuplicatedSteps()
 }
 
 async function eliminateVariables(varNames) {
@@ -487,11 +527,14 @@ async function eliminateVariables(varNames) {
 
     let state = await getEditorStateWithSyntaxTrees()
     let varHypStep = state.steps.find(isVarToEliminate)
+    let allRenames = []
     while (varHypStep) {
-        await eliminateVar(varHypStep)
+        const renames = await eliminateVar(varHypStep)
+        allRenames.push(...renames)
         state = await getEditorStateWithSyntaxTrees()
         varHypStep = state.steps.find(isVarToEliminate)
     }
+    return allRenames
 }
 
 async function eliminateVariablesInSelectedFragment() {
@@ -594,37 +637,36 @@ function treeEq(a,b) {
     return true
 }
 
-async function runSequenceOfModificationsForStep({
-     stepLabel,
-     findSubtreeToModify,
-     makeNewSubtreeAndVariables,
-}) {
+async function runSequenceOfModificationsForStep({stepLabel, modifySubtree, frmParams}) {
     const labelOfStepToModify = stepLabel
     let state = await getEditorStateWithSyntaxTrees()
     let stepToModify = getStepByLabel(state, labelOfStepToModify)
     let [lp, wffVar, ar, [v, eq, exprToModify]] = matchExn(
         stepToModify.tree.root, ['(', varOfType('wff'), '->', [anyVar(), '=', ''], ')']
     )
-    let subtreeToModify = await findSubtreeToModify(exprToModify)
+    let {subtreeToModify, newSubtree, newVariables} = (await modifySubtree(exprToModify))??{}
     while (subtreeToModify !== undefined) {
         console.log('subtreeToModify', syntaxTreeToText(subtreeToModify))
-        const {newSubtree, variables} = (await makeNewSubtreeAndVariables(exprToModify, subtreeToModify))
         console.log('newSubtree', syntaxTreeToText(newSubtree))
+        console.log('newVariables', newVariables)
         const newStepTree = replaceSubtreeWithAnotherSubtree(stepToModify.tree.root, subtreeToModify, newSubtree)
         const [newStepLabel] = await addSteps({
             atIdx: state.steps.length,
             steps: [
                 {type: 'p', stmt: [!@#]|- {!@#}{syntaxTreeToText(newStepTree)}[!@#]},
-                ...(variables??[]).map(([varType, varName, varExprTree]) => {
+                ...(newVariables??[]).map(([varType, varName, varExprTree]) => {
                     return {
                         type: 'h',
                         stmt: [!@#]|- ( {!@#}{syntaxTreeToText(wffVar)} -> {!@#}{varName} = {!@#}{syntaxTreeToText(varExprTree)} )[!@#]
                     }
                 })
             ],
-            vars: (variables??[]).map(([varType, varName, varExprTree]) => [varType, varName])
+            vars: (newVariables??[]).map(([varType, varName, varExprTree]) => [varType, varName])
         })
-        state = await prove({stepToProve: newStepLabel, stepsToDeriveFrom: [stepToModify.label]})
+        state = await prove({
+            stepToProve: newStepLabel, stepsToDeriveFrom: [stepToModify.label],
+            frmParams: [FPR_RUN_SEQ_FOR_STEP, frmParams]
+        })
         if (!isStepProved(state, newStepLabel)) {
             exn([!@#]Cannot not prove the step with the label '{!@#}{newStepLabel}'.[!@#])
         }
@@ -633,7 +675,10 @@ async function runSequenceOfModificationsForStep({
             stepToModify.tree.root, ['(', varOfType('wff'), '->', [anyVar(), '=', ''], ')']
         )
         exprToModify = exprToModify2
-        subtreeToModify = await findSubtreeToModify(exprToModify)
+        let modifiedSubtreeParams = (await modifySubtree(exprToModify))??{}
+        subtreeToModify = modifiedSubtreeParams.subtreeToModify
+        newSubtree = modifiedSubtreeParams.newSubtree
+        newVariables = modifiedSubtreeParams.newVariables
     }
     return stepToModify.label
 }
@@ -653,22 +698,27 @@ async function getNewVarName(prefix) {
     return varName
 }
 
-async function runSequenceOfModificationsForFragment({
-     findSubtreeToModify,
-     makeNewSubtreeAndVariables,
-}) {
+function rename(renaming, label) {
+    for (const [oldName, newName] of renaming) {
+        if (label === oldName) {
+            label = newName
+        }
+    }
+    return label
+}
+
+async function runSequenceOfModificationsForFragment({modifySubtree, frmParams}) {
     await setContentIsHidden(true)
 
     let state = await getEditorState()
     const initialStep = getSingleStepWithFragmentSelected(state)
     const fragmentTree = findFirstInTree(initialStep.tree.root, node => node.id === initialStep.fragId)
-    if (await findSubtreeToModify(fragmentTree) === undefined) {
+    const {subtreeToModify} = (await modifySubtree(fragmentTree))??{}
+    if (subtreeToModify === undefined) {
         await setContentIsHidden(false)
         return
     }
-    const [lp, wffVar, ar, initExpr, rp] = matchExn(
-        initialStep.tree.root, ['(', varOfType('wff'), '->', '', ')']
-    )
+    const [lp, wffVar, ar, initExpr, rp] = matchExn(initialStep.tree.root, ['(', varOfType('wff'), '->', '', ')'])
     const tempVarName = await getNewVarName('tmp')
     const [hypLabel] = await addSteps({
         steps: [
@@ -679,29 +729,31 @@ async function runSequenceOfModificationsForFragment({
         ],
         vars: [[fragmentTree.exprType, tempVarName]]
     })
-    const finalVarStepLabel = await runSequenceOfModificationsForStep({
-        stepLabel:hypLabel, findSubtreeToModify, makeNewSubtreeAndVariables
-    })
+    const finalVarStepLabel = await runSequenceOfModificationsForStep({stepLabel:hypLabel, modifySubtree, frmParams})
     state = await getEditorStateWithSyntaxTrees()
     const finalVarStep = getStepByLabel(state, finalVarStepLabel)
     const [lp1, wffVar1, arr1, [tmpVar, eq, finalExpr], rp1] = matchExn(
         finalVarStep.tree.root, ['(', varOfType('wff'), '->', [anyVar(), '=', ''], ')']
     )
-    await eliminateVariables([tempVarName])
+    const renaming = await eliminateVariables([tempVarName])
     state = await getEditorState()
     const finalStepTree = replaceSubtreeWithAnotherSubtree(initialStep.tree.root, fragmentTree, finalExpr)
     const [finalStepLabel] = await addSteps({
         atIdx: state.steps.length,
         steps: [{type: 'p', stmt: [!@#]|- {!@#}{syntaxTreeToText(finalStepTree)}[!@#], isBkm:true}],
     })
-    await prove({stepToProve:finalStepLabel, stepsToDeriveFrom:[initialStep.label, finalVarStep.label]})
+    await prove({
+        stepToProve:finalStepLabel,
+        stepsToDeriveFrom:[rename(renaming,initialStep.label), rename(renaming,finalVarStep.label)],
+        frmParams:FPR_RUN_SEQ_FOR_FRAG
+    })
 
     await setContentIsHidden(false)
 }
 
 function isTerm(tree,allowedConsts) {
     function isAllowedNode(node) {
-        return !isSymbol(node) || node.isVar || allowedConsts.includes(node.sym) || NUMBER_CONSTANTS.includes(node.sym)
+        return node.nodeType !== "sym" || node.isVar || allowedConsts.includes(node.sym) || NUMBER_CONSTANTS.includes(node.sym)
     }
     function isForbiddenNode(node) {
         return !isAllowedNode(node)
@@ -838,17 +890,20 @@ async function introduceVariables(allowedConsts) {
         })
     }
     await runSequenceOfModificationsForFragment({
-        findSubtreeToModify: async tree => {
-            return findFirstInTree(tree, node => {
+        frmParams:FPR_EQUALS,
+        modifySubtree: async tree => {
+            const subtreeToModify = findFirstInTree(tree, node => {
                 return isTerm(node, allowedConsts) && !isForbiddenToBeTerm(tree, node)
             })
-        },
-        makeNewSubtreeAndVariables: async (tree, subtree) => {
-            const varName = await getPolynomVarNameForTerm(subtree)
-            return {
-                newSubtree: makeConst(varName),
-                variables: [[subtree.exprType, varName, subtree]]
+            if (subtreeToModify !== undefined) {
+                const varName = await getPolynomVarNameForTerm(subtreeToModify)
+                return {
+                    subtreeToModify,
+                    newSubtree: makeConst(varName),
+                    newVariables: [[subtreeToModify.exprType, varName, subtreeToModify]]
+                }
             }
+            return undefined
         },
     })
 }
@@ -890,11 +945,16 @@ function applyDistribution(tree) {
 
 async function distribute(isDistributable) {
     await runSequenceOfModificationsForFragment({
-        findSubtreeToModify: async tree => {
-            return findFirstInTree(tree, isDistributable)
-        },
-        makeNewSubtreeAndVariables: async (tree, subtree) => {
-            return {newSubtree: applyDistribution(subtree)}
+        frmParams:FPR_EQUALS,
+        modifySubtree: async tree => {
+            const subtreeToModify = findFirstInTree(tree, isDistributable)
+            if (subtreeToModify !== undefined) {
+                return {
+                    subtreeToModify,
+                    newSubtree: applyDistribution(subtreeToModify),
+                }
+            }
+            return undefined
         },
     })
 }
@@ -907,6 +967,56 @@ async function distributeMul() {
 async function distributeExp() {
     let pattern = makeDistributableRightPattern('x.', '^');
     await distribute(tree => match(tree, pattern) !== undefined)
+}
+
+function makeUndistributablePattern(insideOperator,outsideOperator) {
+    return ['(', ['(', exprOfType('class'), [outsideOperator], exprOfType('class'), ')'], [insideOperator], ['(', exprOfType('class'), [outsideOperator], exprOfType('class'), ')'], ')']
+}
+
+function applyUndistribution(tree) {
+    const [o1, [o2, A, oo1, B, c2], io, [o3, C, oo2, D, c3], c1] = matchExn(
+        tree,
+        ['(', ['(', '', '', '', ')'], '', ['(', '', '', '', ')'], ')']
+    )
+    const aS = syntaxTreeToText(A)
+    const bS = syntaxTreeToText(B)
+    const cS = syntaxTreeToText(C)
+    const dS = syntaxTreeToText(D)
+    const ooS = syntaxTreeToText(oo1)
+    const ioS = syntaxTreeToText(io)
+    if (aS === cS) {
+        return makeConst([!@#]( {!@#}{aS} {!@#}{ooS} ( {!@#}{bS} {!@#}{ioS} {!@#}{dS} ) )[!@#])
+    } else {
+        return makeConst([!@#]( ( {!@#}{aS} {!@#}{ioS} {!@#}{cS} ) {!@#}{ooS} {!@#}{bS}  )[!@#])
+    }
+}
+
+async function undistribute(isUndistributable) {
+    await runSequenceOfModificationsForFragment({
+        frmParams:FPR_EQUALS,
+        modifySubtree: async tree => {
+            const subtreeToModify = findFirstInTree(tree, isUndistributable)
+            if (subtreeToModify !== undefined) {
+                return {
+                    subtreeToModify,
+                    newSubtree: applyUndistribution(subtreeToModify),
+                }
+            }
+            return undefined
+        },
+    })
+}
+
+async function undistributeMul() {
+    const pattern = makeUndistributablePattern('+', 'x.')
+    await undistribute(node => {
+        const matchResult = match(node, pattern)
+        if (matchResult !== undefined) {
+            const [o1, [o2, A, oo1, B, c2], io, [o3, C, oo2, D, c3], c1] = matchResult
+            return syntaxTreeToText(A) === syntaxTreeToText(C) || syntaxTreeToText(B) === syntaxTreeToText(D)
+        }
+        return false
+    })
 }
 
 function getAllSymbols(tree) {
@@ -1005,20 +1115,18 @@ function getSubtreeToSort(tree, symCmpFn) {
 
 async function sortSymbols(symCmpFn) {
     await runSequenceOfModificationsForFragment({
-        findSubtreeToModify: async tree => {
-            const {subtreeToSwap,subtreeToAssoc} = getSubtreeToSort(tree, symCmpFn)
-            return subtreeToSwap??subtreeToAssoc
-        },
-        makeNewSubtreeAndVariables: async (tree, subtree) => {
+        frmParams:FPR_EQUALS,
+        modifySubtree: async tree => {
             const {subtreeToSwap,subtreeToAssoc} = getSubtreeToSort(tree, symCmpFn)
             if (subtreeToSwap !== undefined) {
                 console.log('subtreeToSwap', syntaxTreeToText(subtreeToSwap))
-                return {newSubtree: swapTree(subtree)}
-            } else {
+                return {subtreeToModify:subtreeToSwap, newSubtree: swapTree(subtreeToSwap)}
+            } else if (subtreeToAssoc !== undefined) {
                 console.log('subtreeToAssoc', syntaxTreeToText(subtreeToAssoc))
-                return {newSubtree: assocTree(subtree)}
+                return {subtreeToModify:subtreeToAssoc, newSubtree: assocTree(subtreeToAssoc)}
             }
-        },
+            return undefined
+        }
     })
 }
 
@@ -1035,24 +1143,97 @@ async function sortRegularSymbols() {
 }
 
 async function sortPolynomialVariables() {
-    function polynomVarNameToBaseName(varName) {
-        const powers = varNameToPowers(varName)
-        return powers.map(([varName,powNum]) => varName.toLowerCase()+powNum).join('')
+    function comparePowers(powersA,powersB) {
+        if (powersA.length === 0 && powersB.length > 0) {
+            return 1
+        } else if (powersA.length > 0 && powersB.length === 0) {
+            return -1
+        } else if (powersA.length === 0 && powersB.length === 0) {
+            return 0
+        } else {
+            const sumOfPowersA = powersA.reduce((sum,[varName,powNum]) => sum+powNum, 0)
+            const sumOfPowersB = powersB.reduce((sum,[varName,powNum]) => sum+powNum, 0)
+            if (sumOfPowersA < sumOfPowersB) {
+                return 1
+            } else if (sumOfPowersA > sumOfPowersB) {
+                return -1
+            } else {
+                const minVarA = powersA[0][0]
+                const minVarB = powersB[0][0]
+                if (minVarA < minVarB) {
+                    return -1
+                } else if (minVarA > minVarB) {
+                    return 1
+                } else {
+                    return comparePowers(powersA.slice(1),powersB.slice(1))
+                }
+            }
+        }
     }
     function comparePolynomVarNamesByBaseName(a,b) {
-        const aBase = polynomVarNameToBaseName(a)
-        const bBase = polynomVarNameToBaseName(b)
-        let cmpRes
-        if (aBase < bBase) {
-            cmpRes = -1
-        } else if (aBase === bBase) {
-            cmpRes = 0
-        } else {
-            cmpRes = 1
-        }
-        return -cmpRes
+        return comparePowers(varNameToPowers(a), varNameToPowers(b))
     }
     await sortSymbols(comparePolynomVarNamesByBaseName)
+}
+
+function getSubtreeToGroup(tree, isSym, symToKey) {
+    function getAllKeys(tree) {
+        const res = []
+        forEachNode(tree, node => {
+            if (isSym(node)) {
+                res.push(symToKey(node))
+            }
+        })
+        return res
+    }
+    return findFirstInTree(tree, node => {
+        const matchResult = match(node, ['(', '', '', ['(', '', '', '', ')'], ')'])
+        if (matchResult === undefined) {
+            return false
+        }
+        const [Lp, A, op1, [lp, B, op2, C, rp], Rp] = matchResult
+        const aKeys = getAllKeys(A)
+        const bKeys = getAllKeys(B)
+        console.log('aKeys', JSON.stringify(aKeys))
+        console.log('bKeys', bKeys)
+        return arIntersect(aKeys, bKeys).length > 0
+    })
+}
+
+function groupTree(tree) {
+    const [Lp, A, op1, [lp, B, op2, C, rp], Rp] = matchExn(tree, ['(', '', '', ['(', '', '', '', ')'], ')'])
+    const aStr = syntaxTreeToText(A)
+    const bStr = syntaxTreeToText(B)
+    const cStr = syntaxTreeToText(C)
+    const op1Str = syntaxTreeToText(op1)
+    const op2Str = syntaxTreeToText(op2)
+    return makeConst([!@#]( ( {!@#}{aStr} {!@#}{op1Str} {!@#}{bStr} ) {!@#}{op2Str} {!@#}{cStr} )[!@#])
+}
+
+async function groupSymbols(isSym, symToKey) {
+    await runSequenceOfModificationsForFragment({
+        frmParams:FPR_EQUALS,
+        modifySubtree: async tree => {
+            const subtreeToGroup = getSubtreeToGroup(tree, isSym, symToKey)
+            if (subtreeToGroup !== undefined) {
+                console.log('subtreeToGroup', syntaxTreeToText(subtreeToGroup))
+                const newSubtree = groupTree(subtreeToGroup)
+                console.log('newSubtree', newSubtree)
+                return {subtreeToModify:subtreeToGroup, newSubtree}
+            }
+            return undefined
+        }
+    })
+}
+
+async function groupPolynomialVariables() {
+    function isSym(node) {
+        return node.isVar
+    }
+    function symToKey(node) {
+        return varNameToPowers(node.sym).map(([varName,powNum]) => varName.toLowerCase()+powNum).join('')
+    }
+    await groupSymbols(isSym, symToKey)
 }
 
 async function combineExponents() {
@@ -1100,63 +1281,78 @@ async function combineExponents() {
         return undefined
     }
     await runSequenceOfModificationsForFragment({
-        findSubtreeToModify: async tree => {
-            return findFirstInTree(tree, node => combineExponentsPriv(node) !== undefined)
-        },
-        makeNewSubtreeAndVariables: async (tree, subtree) => {
-            return {newSubtree: combineExponentsPriv(subtree)}
-        },
+        frmParams:FPR_EQUALS,
+        modifySubtree: async tree => {
+            const subtreeToModify = findFirstInTree(tree, node => combineExponentsPriv(node) !== undefined)
+            if (subtreeToModify !== undefined) {
+                return {subtreeToModify, newSubtree:combineExponentsPriv(subtreeToModify)}
+            }
+            return undefined
+        }
     })
-}
-
-const m = {
-    getEditorState,
-    buildSyntaxTrees,
-    getNewAssertionsFromEditor,
-    inferenceToDeduction,
-    deductionToInference,
-    inferenceToClosed,
-    eliminateAllVariables: eliminateVariables,
-    eliminateVariablesInSelectedFragment,
-    introduceVariablesSum,
-    introduceVariablesMul,
-    distributeMul,
-    distributeExp,
-    sortRegularSymbols,
-    sortPolynomialVariables,
-    combineExponents,
 }
 
 function makeMacro(name, func) {
     return {
         displayName:name,
-        run: async () => {
+        run: async globalContext => {
             try {
-                await func()
+                await func(globalContext)
             } catch (ex) {
-                await showErrMsg(ex.message)
+                await showErrMsg([!@#]{!@#}{ex.message}\n{!@#}{ex.stack}[!@#])
                 throw ex
             }
         }
     }
 }
 
+async function saveEditorState(ctx) {
+    ctx.editorState = await getEditorState()
+    showInfoMsg('Editor state was saved.')
+}
+
+async function showNewAssertions(ctx, frmParams) {
+    const prevState = ctx.editorState
+    if (prevState === undefined) {
+        exn('prevState === undefined')
+    }
+    const prevStepIds = new Set(prevState.steps.map(step => step.id))
+    const frameParameters = resolveFrmParams(frmParams)
+    const existingFrms = new Set(frameParameters.flatMap(fp => fp.frames))
+    const currState = await getEditorState()
+    const newFrms = []
+    currState.steps.forEach(step => {
+        if (!prevStepIds.has(step.id) && !existingFrms.has(step.jstf?.asrt)) {
+            newFrms.push(step.jstf?.asrt)
+        }
+    })
+    console.log('new assertions', newFrms)
+    await showInfoMsg([!@#]New assertions not present in {!@#}{JSON.stringify(frmParams)}:\n{!@#}{newFrms.join('\n')}[!@#])
+}
+
 const macros = [
-    makeMacro("Prove", async () => await pr()),
-    makeMacro("Log editor state", async () => console.log("Get editor state", await getEditorState())),
-    makeMacro("Log new assertions from editor", async () => console.log("new assertions from editor", await getNewAssertionsFromEditor())),
-    makeMacro("Inference to deduction", inferenceToDeduction),
-    makeMacro("Deduction to inference", deductionToInference),
-    makeMacro("Inference to closed", inferenceToClosed),
-    makeMacro("Eliminate all variables", eliminateVariables),
-    makeMacro("Eliminate variables in selection", eliminateVariablesInSelectedFragment),
-    makeMacro("Introduce variables +", introduceVariablesSum),
-    makeMacro("Introduce variables x.", introduceVariablesMul),
-    makeMacro("Distribute x.", distributeMul),
-    makeMacro("Distribute ^", distributeExp),
-    makeMacro("Sort regular symbols", sortRegularSymbols),
-    makeMacro("Sort polynomial variables", sortPolynomialVariables),
-    makeMacro("Combine exponents", combineExponents),
+    makeMacro([!@#]Prove "element of"[!@#], async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
+    makeMacro('Prove "equals"', async () => await proveSelected({frmParams:FPR_EQUALS, debugLevel:0})),
+    makeMacro('Introduce variables +', introduceVariablesSum),
+    makeMacro('Introduce variables x.', introduceVariablesMul),
+    makeMacro('Distribute x.', distributeMul),
+    makeMacro('Distribute ^', distributeExp),
+    makeMacro('Un-distribute x.', undistributeMul),
+    makeMacro('Sort polynomial variables', sortPolynomialVariables),
+    makeMacro('Group polynomial variables', groupPolynomialVariables),
+    makeMacro('Sort regular symbols', sortRegularSymbols),
+    makeMacro('Eliminate variables in selection', async () => await eliminateVariablesInSelectedFragment()),
+    makeMacro('Eliminate all variables', async () => {
+        await setContentIsHidden(true)
+        await eliminateVariables()
+        await setContentIsHidden(false)
+    }),
+    makeMacro('Combine exponents', combineExponents),
+    makeMacro('Deduction to inference', deductionToInference),
+    makeMacro('Inference to closed', inferenceToClosed),
+    // makeMacro('Save editor state', saveEditorState),
+    // makeMacro('Show new assertions for "element of"', ctx => showNewAssertions(ctx,FPR_ELEM_OF)),
+    // makeMacro('Show new assertions for "equals"', ctx => showNewAssertions(ctx,FPR_EQUALS)),
 ]
 
 return macros

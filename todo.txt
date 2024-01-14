@@ -2,6 +2,7 @@
 - fix a bug: completed proof should not be shown in macros.
 - fix a bug: in eliminate variables rename labels if there were merges of duplicates.
 - simplify actUnify() in MM_cmp_editors.
+- the macro display name should be a functions of the global context
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source
