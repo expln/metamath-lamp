@@ -264,7 +264,7 @@ let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, 
     st->verifyEditorState
 }
 
-let getStmtId = (
+let getStmt = (
     st:editorState, 
     ~predicate:option<userStmt=>bool>=?,
     ~contains:option<string>=?, 
@@ -286,10 +286,20 @@ let getStmtId = (
 
     let found = st.stmts->Js_array2.filter(predicate)
     if (found->Js_array2.length != 1) {
-        raise(MmException({msg:`getStmtId:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
+        raise(MmException({msg:`getStmt:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
     } else {
-        found[0].id
+        found[0]
     }
+}
+
+let getStmtId = (
+    st:editorState, 
+    ~predicate:option<userStmt=>bool>=?,
+    ~contains:option<string>=?, 
+    ~label:option<string>=?, 
+    ()
+) => {
+    getStmt( st, ~predicate?, ~contains?, ~label?, () ).id
 }
 
 let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
@@ -358,6 +368,7 @@ let filterRootStmts = (stmts:array<userStmt>, rootStmtsToUse:rootStmtsToUse):arr
 let unifyBottomUp = (
     st,
     ~stmtId:stmtId,
+    ~bottomUpProverParams:option<bottomUpProverParams>=?,
     ~args0:rootStmtsToUse=AllStmts,
     ~args1:rootStmtsToUse=NoneStmts,
     ~asrtLabel:option<string>=?,
@@ -373,7 +384,7 @@ let unifyBottomUp = (
     ~chooseLabel:option<string>=?,
     ~chooseResult:option<stmtsDto => bool>=?,
     ()
-):(editorState, stmtsDto) => {
+):(editorState, array<stmtsDto>) => {
     assertNoErrors(st)
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyBottomUp when wrkCtx is None.`}))
@@ -387,17 +398,23 @@ let unifyBottomUp = (
                 ~frms = st.frms,
                 ~wrkCtx,
                 ~rootStmts,
-                ~bottomUpProverParams = bottomUpProverParamsMakeDefault(
-                    ~asrtLabel?,
-                    ~maxSearchDepth,
-                    ~lengthRestrict,
-                    ~allowNewDisjForExistingVars,
-                    ~allowNewStmts,
-                    ~allowNewVars,
-                    ~args0 = filterRootStmts(rootUserStmts, args0),
-                    ~args1 = filterRootStmts(rootUserStmts, args1),
-                    ()
-                ),
+                ~bottomUpProverParams = 
+                    switch bottomUpProverParams {
+                        | Some(params) => params
+                        | None => {
+                            bottomUpProverParamsMakeDefault(
+                                ~asrtLabel?,
+                                ~maxSearchDepth,
+                                ~lengthRestrict,
+                                ~allowNewDisjForExistingVars,
+                                ~allowNewStmts,
+                                ~allowNewVars,
+                                ~args0 = filterRootStmts(rootUserStmts, args0),
+                                ~args1 = filterRootStmts(rootUserStmts, args1),
+                                ()
+                            )
+                        }
+                    },
                 ~allowedFrms={
                     inSyntax: st.settings.allowedFrms.inSyntax,
                     inEssen: {
@@ -441,12 +458,18 @@ let unifyBottomUp = (
                 | None => result
                 | Some(chooseResult) => result->Js_array2.filter(chooseResult)
             }
-            if (result->Js_array2.length != 1) {
-                raise(MmException({msg:`Cannot find a bottom-up result by filters provided.`}))
-            } else {
-                (st, result[0])
-            }
+            (st, result)
         }
+    }
+}
+
+let getSingleStmtsDto = (stmtsDtoArr:array<stmtsDto>):stmtsDto => {
+    if (stmtsDtoArr->Js_array2.length > 1) {
+        raise(MmException({msg:`There are more than 1 element in stmtsDtoArr.`}))
+    } else if (stmtsDtoArr->Js_array2.length == 0) {
+        raise(MmException({msg:`stmtsDtoArr is empty.`}))
+    } else {
+        stmtsDtoArr[0]
     }
 }
 

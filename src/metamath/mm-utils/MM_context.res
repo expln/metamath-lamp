@@ -1110,7 +1110,7 @@ let createFrame = (
             | Some(sym) => raise(MmException({msg:`The symbol '${sym}' must be either a constant or a variable.`}))
             | None => {
                 let asrt = exprStr->Js_array2.map(ctx->ctxSymToIntExn)
-                let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ())
+                let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ~overrideHyps?, ())
                 let mandatoryVarsArr = mandatoryVarsSet->Belt_HashSetInt.toArray
                 let mandatoryDisj = if (skipDisj) {disjMake()} else {
                     extractMandatoryDisj(ctx, mandatoryVarsSet)

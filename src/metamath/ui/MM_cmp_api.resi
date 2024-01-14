@@ -1,5 +1,6 @@
 open MM_wrk_editor
 open MM_syntax_tree
+open MM_apply_asrt_matcher
 
 type apiResp = {
     "isOk": bool,
@@ -49,3 +50,19 @@ let updateEditorApi: (
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => Js_json.t
+
+type apiApplyAsrtResultHypMatcher = {
+    label: option<string>,
+    idx: option<int>,
+    pat: string,
+}
+
+type apiApplyAsrtResultMatcher = {
+    res: option<string>,
+    hyps: array<apiApplyAsrtResultHypMatcher>,
+}
+
+let optArrayToMatchers: (
+    ~state:editorState,
+    ~matches:option<array<apiApplyAsrtResultMatcher>>,
+) => result<option<array<applyAsrtResultMatcher>>,string>

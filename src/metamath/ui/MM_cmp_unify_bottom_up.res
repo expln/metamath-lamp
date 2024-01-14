@@ -792,7 +792,7 @@ let make = (
             {
                 res: 
                     if (matcher.matchAsrt) {
-                        Some(wrkCtx->ctxIntsToStrExn(matcher.frm.frame.asrt))
+                        Some(wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.frame.asrt))
                     } else {
                         None
                     },
@@ -804,7 +804,7 @@ let make = (
                     {
                         label,
                         idx,
-                        pat: wrkCtx->ctxIntsToStrExn(matcher.frm.hypsE[i].expr),
+                        pat: wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.hypsE[i].expr),
                     }
                 }),
             }
