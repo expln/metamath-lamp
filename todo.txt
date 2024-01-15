@@ -1,8 +1,10 @@
 - fix a bug: set "autounify all" = true. Update settings - an error occurs.
 - fix a bug: completed proof should not be shown in macros.
-- fix a bug: in eliminate variables rename labels if there were merges of duplicates.
 - simplify actUnify() in MM_cmp_editors.
 - the macro display name should be a functions of the global context
+- there should be quick access to frequently used macros from the buttons bar
+- implement "a macro is running" mode when popups are not appearing (so the screen is not blinking)
+- add a few options to the proof tree explorer: show essentials only, show unproved steps only, show number of unproved steps for each source.
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source
@@ -51,6 +53,7 @@
 - replace a[i] with a->Js_array2.unsafe_get(i), or open Belt and replace with Option.getExn
 
 DONE:
+- fix a bug: in eliminate variables rename labels if there were merges of duplicates.
 - show security warning in the macros dialog.
 - implement caching in the API.
 - allow to set args1 == args0 fast on UI.
