@@ -273,7 +273,7 @@ describe("prepareEditorForUnification", _ => {
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("", ()),contEditMode:false})
 
         //when
         let st = updateEditorStateWithPostupdateActions(st, s=>s)
@@ -299,7 +299,9 @@ describe("prepareEditorForUnification", _ => {
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("t = t", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("t = t", ()),
+            contEditMode:false
+        })
 
         //when
         let st = updateEditorStateWithPostupdateActions(st, s=>s)
@@ -354,7 +356,9 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st)
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("", ())})
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("", ()),
+            contEditMode:false
+        })
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
 
         //when
@@ -380,7 +384,9 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st)
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t", ())})
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t", ()),
+            contEditMode:false
+        })
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
 
         //when

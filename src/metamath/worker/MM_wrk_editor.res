@@ -1101,7 +1101,7 @@ let validateStmtExpr = (
                                                             ++ ` one - '${prevStmtLabel}'`})}
                             }
                             | None => {
-                                if (expr->Js_array2.length == 0 || expr[0] >= 0) {
+                                if (!stmt.contEditMode && (expr->Js_array2.length == 0 || expr[0] >= 0)) {
                                     {...stmt, stmtErr:Some({code:someStmtErrCode, 
                                         msg:`Any statement must begin with a constant.`})}
                                 } else {
