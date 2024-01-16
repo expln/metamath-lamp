@@ -224,6 +224,12 @@ let rndContText = (
 ) => {
     switch stmtCont {
         | Text({syms}) => {
+            let syms = 
+                if (syms->Js.Array2.length == 0) {
+                    [{sym:nbsp,color:None},{sym:nbsp,color:None},{sym:nbsp,color:None}]
+                } else {
+                    syms
+                }
             syms->Js.Array2.mapi((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
