@@ -267,15 +267,15 @@ describe("prepareEditorForUnification", _ => {
     it("detects an error when a hypothesis is empty", _ => {
         //given
         let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st)
-        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st, ())
+        let (st, _) = addNewStmt(st, ())
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("", ()),contEditMode:false})
 
         //when
-        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
@@ -293,8 +293,8 @@ describe("prepareEditorForUnification", _ => {
     it("detects an error when a hypothesis begins with a variable", _ => {
         //given
         let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st)
-        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st, ())
+        let (st, _) = addNewStmt(st, ())
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
@@ -303,7 +303,7 @@ describe("prepareEditorForUnification", _ => {
         })
 
         //when
-        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
@@ -351,8 +351,8 @@ describe("prepareEditorForUnification", _ => {
     it("detects an error when a provable expression is empty", _ => {
         //given
         let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st)
-        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st, ())
+        let (st, _) = addNewStmt(st, ())
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("", ()),
@@ -361,7 +361,7 @@ describe("prepareEditorForUnification", _ => {
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
 
         //when
-        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
@@ -379,8 +379,8 @@ describe("prepareEditorForUnification", _ => {
     it("detects an error when a provable expression begins with a variable", _ => {
         //given
         let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st)
-        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st, ())
+        let (st, _) = addNewStmt(st, ())
         let prId = st.stmts[0].id
         let hypId = st.stmts[1].id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t", ()),
@@ -389,7 +389,7 @@ describe("prepareEditorForUnification", _ => {
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
 
         //when
-        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+        let st = verifyEditorState(st)
 
         //then
         assertEq(st.varsErr->Belt_Option.isNone, true)
