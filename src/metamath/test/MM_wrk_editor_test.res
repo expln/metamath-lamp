@@ -263,6 +263,61 @@ describe("prepareEditorForUnification", _ => {
         assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
         assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
     })
+    
+    it("detects an error when a hypothesis is empty", _ => {
+        //given
+        let st = createEditorState(demo0, ())
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let prId = st.stmts[0].id
+        let hypId = st.stmts[1].id
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("", ()),contEditMode:false})
+
+        //when
+        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+
+        //then
+        assertEq(st.varsErr->Belt_Option.isNone, true)
+        assertEq(st.disjErr->Belt_Option.isNone, true)
+        assertEq(st.wrkCtx->Belt_Option.isSome, true)
+        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        assertEq(
+            st.stmts[0].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Any statement must begin with a constant."
+        )
+        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
+        assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
+    })
+    
+    it("detects an error when a hypothesis begins with a variable", _ => {
+        //given
+        let st = createEditorState(demo0, ())
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let prId = st.stmts[0].id
+        let hypId = st.stmts[1].id
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("t = t", ()),
+            contEditMode:false
+        })
+
+        //when
+        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+
+        //then
+        assertEq(st.varsErr->Belt_Option.isNone, true)
+        assertEq(st.disjErr->Belt_Option.isNone, true)
+        assertEq(st.wrkCtx->Belt_Option.isSome, true)
+        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        Js.Console.log2(`st`, st)
+        assertEq(
+            st.stmts[0].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Any statement must begin with a constant."
+        )
+        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
+        assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
+    })
 
     it("detects an error in a provable expression", _ => {
         //given
@@ -291,6 +346,62 @@ describe("prepareEditorForUnification", _ => {
         )
         assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
         assertEq(st.stmts[3].stmtErr->Belt_Option.isNone, true)
+    })
+    
+    it("detects an error when a provable expression is empty", _ => {
+        //given
+        let st = createEditorState(demo0, ())
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let prId = st.stmts[0].id
+        let hypId = st.stmts[1].id
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("", ()),
+            contEditMode:false
+        })
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
+
+        //when
+        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+
+        //then
+        assertEq(st.varsErr->Belt_Option.isNone, true)
+        assertEq(st.disjErr->Belt_Option.isNone, true)
+        assertEq(st.wrkCtx->Belt_Option.isSome, true)
+        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        assertEq(st.stmts[0].stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
+        assertEq(
+            st.stmts[1].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Any statement must begin with a constant."
+        )
+    })
+    
+    it("detects an error when a provable expression begins with a variable", _ => {
+        //given
+        let st = createEditorState(demo0, ())
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let prId = st.stmts[0].id
+        let hypId = st.stmts[1].id
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t", ()),
+            contEditMode:false
+        })
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
+
+        //when
+        let st = updateEditorStateWithPostupdateActions(st, s=>s)
+
+        //then
+        assertEq(st.varsErr->Belt_Option.isNone, true)
+        assertEq(st.disjErr->Belt_Option.isNone, true)
+        assertEq(st.wrkCtx->Belt_Option.isSome, true)
+        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        assertEq(st.stmts[0].stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
+        assertEq(
+            st.stmts[1].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            "Any statement must begin with a constant."
+        )
     })
 
     it("detects a syntax error in a provable's justification", _ => {

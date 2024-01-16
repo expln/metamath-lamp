@@ -1174,7 +1174,14 @@ let validateStmtExpr = (
                                                         msg:`This statement is the same as the previous` 
                                                             ++ ` one - '${prevStmtLabel}'`})}
                             }
-                            | None => stmt
+                            | None => {
+                                if (!stmt.contEditMode && (expr->Js_array2.length == 0 || expr[0] >= 0)) {
+                                    {...stmt, stmtErr:Some({code:someStmtErrCode, 
+                                        msg:`Any statement must begin with a constant.`})}
+                                } else {
+                                    stmt
+                                }
+                            }
                         }
                     }
                 }
