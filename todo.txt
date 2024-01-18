@@ -6,6 +6,7 @@
 - implement "a macro is running" mode when popups are not appearing (so the screen is not blinking)
 - add a few options to the proof tree explorer: show essentials only, show unproved steps only, show number of unproved steps for each source.
 - write tests for example macros
+- build syntax trees on request only
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source

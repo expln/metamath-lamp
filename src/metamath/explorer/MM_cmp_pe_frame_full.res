@@ -54,6 +54,8 @@ type state = {
     syntaxProofTableError: option<string>,
 }
 
+type frameProofData = state
+
 let createVDataRec = (
     ~ctx:mmContext,
     ~pRec:proofRecord,
@@ -422,6 +424,42 @@ let convertMmScopesToMmCtxSrcDtos = (
             })
         )
     }
+}
+
+let makeFrameProofData = (
+    ~preCtxData:preCtxData,
+    ~label:string,
+    ~onProgress: float => unit,
+):promise<result<frameProofData,string>> => {
+    promise(resolve => {
+        loadFrameContext(
+            ~srcs=preCtxData.srcs,
+            ~label,
+            ~descrRegexToDisc=preCtxData.settingsV.val.descrRegexToDisc,
+            ~labelRegexToDisc=preCtxData.settingsV.val.labelRegexToDisc,
+            ~descrRegexToDepr=preCtxData.settingsV.val.descrRegexToDepr,
+            ~labelRegexToDepr=preCtxData.settingsV.val.labelRegexToDepr,
+            ~onProgress,
+            ~onDone = res => {
+                switch res {
+                    | Error(msg) => resolve(Error(msg))
+                    | Ok((frmMmScopes,frmCtx)) => {
+                        resolve(
+                            Ok(
+                                createInitialState(
+                                    ~settings=preCtxData.settingsV.val, 
+                                    ~frmMmScopes,
+                                    ~preCtx=preCtxData.ctxV.val,
+                                    ~frmCtx,
+                                    ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                                )
+                            )
+                        )
+                    }
+                }
+            },
+        )
+    })
 }
 
 let make = React.memoCustomCompareProps(({
