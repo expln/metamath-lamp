@@ -17,6 +17,7 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
 open MM_proof_tree_dto
+open MM_cmp_pe_frame_full
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
@@ -283,6 +284,16 @@ let make = (
 
     let showInfoMsg = (~title:string, ~text:string) => {
         openInfoDialog( ~modalRef, ~title, ~text, () )
+    }
+    
+    let showErrMsg = (~title:string, ~text:string) => {
+        openInfoDialog( ~modalRef, ~text, 
+            ~icon=
+                <span style=ReactDOM.Style.make(~color="red", () ) >
+                    <MM_Icons.PriorityHigh/>
+                </span>,
+            ()
+        )
     }
 
     let notifyEditInTempMode = (continue:unit=>'a):'a => {
@@ -1305,6 +1316,41 @@ let make = (
         }
     }
 
+    let frameProofDataToStmtsDto = (
+        wrkCtx:mmContext,
+        proofTreeDto:proofTreeDto,
+        args:array<int>, 
+        frmData:frameProofData,
+    ):stmtsDto => {
+        let frmVarToCtxExpr:Belt_HashMapInt.t<expr> = args->Js_array2.mapi((arg,i) => {
+                if (frmData.frame.hyps[i].typ == F) {
+                    Some(
+                        // [
+                        //     wrkCtx->frmIntToSymExn(frmData.frame, frmData.frame.hyps[i].expr[1]), 
+                        //     wrkCtx->ctxIntsToStrExn(proofTreeDto.nodes[arg].expr->Js_array2.sliceFrom(1)), 
+                        // ]
+                        (
+                            frmData.frame.hyps[i].expr[1], 
+                            proofTreeDto.nodes[arg].expr->Js_array2.sliceFrom(1), 
+                        )
+                    )
+                } else {
+                    None
+                }
+            })
+            ->Js_array2.filter(Belt_Option.isSome)
+            ->Js_array2.map(Belt_Option.getExn)
+            ->Belt_HashMapInt.fromArray
+        // Js.Console.log2(`frmVarToCtxExpr`, frmVarToCtxExpr)
+        {
+            newVars: [],
+            newVarTypes: [],
+            newDisj: disjMake(),
+            newDisjStr: [],
+            stmts: [],
+        }
+    }
+
     let actInlineProof = () => {
         switch state->getTheOnlyCheckedStmt {
             | Some(stmt) => {
@@ -1320,25 +1366,55 @@ let make = (
                             showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
                         }
                         | Some(Assertion({args, label})) => {
-                            let progressText = "Inlining proof"
-                            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
-                                updateModal( 
-                                    modalRef, modalId, () => rndProgress(
-                                        ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
-                                    )
-                                )
-                                MM_cmp_pe_frame_full.makeFrameProofData(
-                                    ~preCtxData,
-                                    ~label,
-                                    ~onProgress = pct => updateModal(
-                                        modalRef, modalId, () => rndProgress(
-                                            ~text=progressText, ~pct, ~onTerminate=makeActTerminate(modalId), ()
-                                        )
-                                    )
-                                )->promiseMap(_ => {
-                                    closeModal(modalRef, modalId)
-                                })
-                            })->ignore
+                            switch stmt.proofTreeDto {
+                                | None => showErrMsg(~title="Internal error", ~text="proofTree is not set.")
+                                | Some(proofTreeDto) => {
+                                    switch state.wrkCtx {
+                                        | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.")
+                                        | Some(wrkCtx) => {
+                                            let progressText = "Inlining proof"
+                                            openModal(
+                                                modalRef, () => rndProgress(~text=progressText, ~pct=0., ())
+                                            )->promiseMap(modalId => {
+                                                updateModal( 
+                                                    modalRef, modalId, () => rndProgress(
+                                                        ~text=progressText, ~pct=0., 
+                                                        ~onTerminate=makeActTerminate(modalId), ()
+                                                    )
+                                                )
+                                                MM_cmp_pe_frame_full.makeFrameProofData(
+                                                    ~preCtxData,
+                                                    ~label,
+                                                    ~onProgress = pct => updateModal(
+                                                        modalRef, modalId, () => rndProgress(
+                                                            ~text=progressText, ~pct, 
+                                                            ~onTerminate=makeActTerminate(modalId), ()
+                                                        )
+                                                    )
+                                                )->promiseMap(frameProofData => {
+                                                    switch frameProofData {
+                                                        | Error(msg) => {
+                                                            closeModal(modalRef, modalId)
+                                                            showErrMsg(~title="Error", ~text=msg)
+                                                        }
+                                                        | Ok(frameProofData) => {
+                                                            setState(st => {
+                                                                st->addNewStatements(
+                                                                    frameProofDataToStmtsDto(
+                                                                        wrkCtx, proofTreeDto, args, frameProofData
+                                                                    ), 
+                                                                    ()
+                                                                )
+                                                            })
+                                                            closeModal(modalRef, modalId)
+                                                        }
+                                                    }
+                                                })
+                                            })->ignore
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -2035,7 +2111,7 @@ let make = (
         openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, () )
     }
 
-    let showErrMsg = (msg:string) => {
+    let showErrMsgForApi = (msg:string) => {
         openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, 
             ~icon=
                 <span style=ReactDOM.Style.make(~color="red", () ) >
@@ -2048,7 +2124,7 @@ let make = (
     MM_cmp_api.updateEditorApi(
         ~state,
         ~showInfoMsg=showInfoMsgForApi,
-        ~showErrMsg,
+        ~showErrMsg=showErrMsgForApi,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
