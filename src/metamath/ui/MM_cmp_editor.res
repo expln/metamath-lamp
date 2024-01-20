@@ -287,7 +287,7 @@ let make = (
     }
     
     let showErrMsg = (~title:string, ~text:string) => {
-        openInfoDialog( ~modalRef, ~text, 
+        openInfoDialog( ~modalRef, ~title, ~text,
             ~icon=
                 <span style=ReactDOM.Style.make(~color="red", () ) >
                     <MM_Icons.PriorityHigh/>

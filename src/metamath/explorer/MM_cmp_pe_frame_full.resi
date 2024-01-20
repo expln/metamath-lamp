@@ -42,6 +42,13 @@ let makeFrameProofData: (
   ~onProgress: float => unit,
 ) => promise<result<frameProofData, string>>
 
+let frameProofDataToEditorStateLocStor: (
+    ~preCtxData:preCtxData,
+    ~state:frameProofData, 
+    ~adjustContext:bool, 
+    ~loadSteps:bool
+) => editorStateLocStor
+
 type props = {
     top:int,
     modalRef:modalRef,

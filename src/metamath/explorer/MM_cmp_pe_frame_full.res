@@ -462,6 +462,173 @@ let makeFrameProofData = (
     })
 }
 
+let getStepNum = (state,pRecIdx:int):int => {
+    if (state.showTypes) {
+        pRecIdx + 1
+    } else {
+        state.stepRenum->Belt_HashMapInt.get(pRecIdx)->Belt.Option.map(n => n + 1)->Belt.Option.getWithDefault(0)
+    }
+}
+
+let pRecIdxToLabel = (state, proofTable, pRecIdx:int, maxUsedStepNum:option<int>):string => {
+    switch proofTable[pRecIdx].proof {
+        | Hypothesis({label}) => label
+        | Assertion(_) => {
+            let stepNum = getStepNum(state,pRecIdx)
+            if (
+                maxUsedStepNum->Belt_Option.map(maxUsedStepNum => stepNum <= maxUsedStepNum)
+                    ->Belt_Option.getWithDefault(false)
+            ) {
+                maxUsedStepNum->Belt_Option.getExn + 1
+            } else {
+                stepNum
+            }->Belt_Int.toString
+        }
+    }
+}
+
+let frameProofDataToEditorStateLocStor = (
+    ~preCtxData:preCtxData,
+    ~state:frameProofData, 
+    ~adjustContext:bool, 
+    ~loadSteps:bool
+):editorStateLocStor => {
+    let vars = []
+    state.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
+        if (hyp.typ == F) {
+            switch preCtxData.ctxV.val->getTokenType(state.frmCtx->ctxIntToSymExn(hyp.expr[1])) {
+                | Some(V) => ()
+                | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
+                    vars->Js.Array2.push(`${hyp.label} ${state.frmCtx->ctxIntsToStrExn(hyp.expr)}`)->ignore
+                }
+            }
+        }
+        None
+    })->ignore
+
+    let disjArr = []
+    let frmDisj = disjMake()
+    state.frame.disj->Belt_MapInt.forEach((n,ms) => {
+        ms->Belt_SetInt.forEach(m => {
+            frmDisj->disjAddPair(n,m)
+        })
+    })
+    frmDisj->disjForEachArr(disjGrp => {
+        disjArr->Js.Array2.push(
+            preCtxData.ctxV.val->frmIntsToSymsExn(state.frame, disjGrp)->Js.Array2.joinWith(",")
+        )->ignore
+    })
+    switch state.dummyVarDisj {
+        | None => ()
+        | Some(dummyVarDisj) => {
+            dummyVarDisj->disjForEachArr(disjGrp => {
+                disjArr->Js.Array2.push(
+                    state.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(",")
+                )->ignore
+            })
+        }
+    }
+    
+    let maxUsedStepNum = ref(0)
+    let stmts = []
+    state.frame.hyps->Js_array2.forEach(hyp => {
+        if (hyp.typ == E) {
+            switch Belt_Int.fromString(hyp.label) {
+                | None => ()
+                | Some(i) => {
+                    if (maxUsedStepNum.contents < i) {
+                        maxUsedStepNum := i
+                    }
+                }
+            }
+            stmts->Js.Array2.push(
+                {
+                    label: hyp.label, 
+                    typ: userStmtTypeToStr(E), 
+                    isGoal: false,
+                    isBkm: false,
+                    cont: preCtxData.ctxV.val->frmIntsToStrExn(state.frame, hyp.expr),
+                    jstfText: "",
+                }
+            )->ignore
+        }
+    })
+    switch state.proofTable {
+        | None => ()
+        | Some(proofTable) => {
+            let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Js_array2.length)
+            proofTable
+                ->Js_array2.mapi((pRec,idx) => (pRec,idx))
+                ->Js_array2.filter(((_,idx)) => state.essIdxs->Belt_HashSetInt.has(idx))
+                ->Js.Array2.forEach(((pRec,idx)) => {
+                    switch pRec.proof {
+                        | Hypothesis({label}) => idxToLabel->Belt_HashMapInt.set(idx,label)
+                        | Assertion({args,label}) => {
+                            let isGoal = idx == proofTable->Js_array2.length - 1
+                            if (loadSteps || isGoal) {
+                                let jstfArgs = []
+                                for i in 0 to args->Js.Array2.length-1 {
+                                    let argIdx = args[i]
+                                    if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
+                                        let label = switch idxToLabel->Belt_HashMapInt.get(argIdx) {
+                                            | None => "err_" ++ argIdx->Belt_Int.toString
+                                            | Some(str) => str
+                                        }
+                                        jstfArgs->Js.Array2.push(label)->ignore
+                                    }
+                                }
+                                let jstfText = if (loadSteps) {
+                                    jstfToStr({args:jstfArgs, label})
+                                } else {
+                                    ""
+                                }
+                                let label = if (isGoal) {
+                                    state.frame.label
+                                } else {
+                                    pRecIdxToLabel(state,proofTable,idx,Some(maxUsedStepNum.contents))
+                                }
+                                idxToLabel->Belt_HashMapInt.set(idx,label)
+                                switch Belt_Int.fromString(label) {
+                                    | None => ()
+                                    | Some(i) => {
+                                        if (maxUsedStepNum.contents < i) {
+                                            maxUsedStepNum := i
+                                        }
+                                    }
+                                }
+                                stmts->Js.Array2.push(
+                                    {
+                                        label, 
+                                        typ: userStmtTypeToStr(P), 
+                                        isGoal,
+                                        isBkm:false,
+                                        cont: state.frmCtx->ctxIntsToStrExn(pRec.expr),
+                                        jstfText,
+                                    }
+                                )->ignore
+                            }
+                        }
+                    }
+                })
+        }
+    }
+    let srcs = if (adjustContext) {
+        switch convertMmScopesToMmCtxSrcDtos(~origMmCtxSrcDtos=preCtxData.srcs, ~mmScopes=state.frmMmScopes) {
+            | None => []
+            | Some(srcs) => srcs
+        }
+    } else {
+        []
+    }
+    {
+        srcs,
+        descr: state.frame.descr->Belt.Option.getWithDefault(""),
+        varsText: vars->Js.Array2.joinWith("\n"),
+        disjText: disjArr->Js.Array2.joinWith("\n"),
+        stmts,
+    }
+}
+
 let make = React.memoCustomCompareProps(({
     top,
     modalRef,
@@ -586,168 +753,15 @@ let make = React.memoCustomCompareProps(({
 
     let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
 
-    let getStepNum = (state,pRecIdx:int):int => {
-        if (state.showTypes) {
-            pRecIdx + 1
-        } else {
-            state.stepRenum->Belt_HashMapInt.get(pRecIdx)->Belt.Option.map(n => n + 1)->Belt.Option.getWithDefault(0)
-        }
-    }
-
-    let pRecIdxToLabel = (state, proofTable, pRecIdx:int, maxUsedStepNum:option<int>):string => {
-        switch proofTable[pRecIdx].proof {
-            | Hypothesis({label}) => label
-            | Assertion(_) => {
-                let stepNum = getStepNum(state,pRecIdx)
-                if (
-                    maxUsedStepNum->Belt_Option.map(maxUsedStepNum => stepNum <= maxUsedStepNum)
-                        ->Belt_Option.getWithDefault(false)
-                ) {
-                    maxUsedStepNum->Belt_Option.getExn + 1
-                } else {
-                    stepNum
-                }->Belt_Int.toString
-            }
-        }
-    }
-
     let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
         loadEditorState.current->Js.Nullable.toOption->Belt.Option.forEach(loadEditorState => {
-            let vars = []
-            state.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
-                if (hyp.typ == F) {
-                    switch preCtxData.ctxV.val->getTokenType(state.frmCtx->ctxIntToSymExn(hyp.expr[1])) {
-                        | Some(V) => ()
-                        | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
-                            vars->Js.Array2.push(`${hyp.label} ${state.frmCtx->ctxIntsToStrExn(hyp.expr)}`)->ignore
-                        }
-                    }
-                }
-                None
-            })->ignore
-
-            let disjArr = []
-            let frmDisj = disjMake()
-            state.frame.disj->Belt_MapInt.forEach((n,ms) => {
-                ms->Belt_SetInt.forEach(m => {
-                    frmDisj->disjAddPair(n,m)
-                })
-            })
-            frmDisj->disjForEachArr(disjGrp => {
-                disjArr->Js.Array2.push(
-                    preCtxData.ctxV.val->frmIntsToSymsExn(state.frame, disjGrp)->Js.Array2.joinWith(",")
-                )->ignore
-            })
-            switch state.dummyVarDisj {
-                | None => ()
-                | Some(dummyVarDisj) => {
-                    dummyVarDisj->disjForEachArr(disjGrp => {
-                        disjArr->Js.Array2.push(
-                            state.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(",")
-                        )->ignore
-                    })
-                }
-            }
-            
-            let maxUsedStepNum = ref(0)
-            let stmts = []
-            state.frame.hyps->Js_array2.forEach(hyp => {
-                if (hyp.typ == E) {
-                    switch Belt_Int.fromString(hyp.label) {
-                        | None => ()
-                        | Some(i) => {
-                            if (maxUsedStepNum.contents < i) {
-                                maxUsedStepNum := i
-                            }
-                        }
-                    }
-                    stmts->Js.Array2.push(
-                        {
-                            label: hyp.label, 
-                            typ: userStmtTypeToStr(E), 
-                            isGoal: false,
-                            isBkm: false,
-                            cont: preCtxData.ctxV.val->frmIntsToStrExn(state.frame, hyp.expr),
-                            jstfText: "",
-                        }
-                    )->ignore
-                }
-            })
-            switch state.proofTable {
-                | None => ()
-                | Some(proofTable) => {
-                    let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Js_array2.length)
-                    proofTable
-                        ->Js_array2.mapi((pRec,idx) => (pRec,idx))
-                        ->Js_array2.filter(((_,idx)) => state.essIdxs->Belt_HashSetInt.has(idx))
-                        ->Js.Array2.forEach(((pRec,idx)) => {
-                            switch pRec.proof {
-                                | Hypothesis({label}) => idxToLabel->Belt_HashMapInt.set(idx,label)
-                                | Assertion({args,label}) => {
-                                    let isGoal = idx == proofTable->Js_array2.length - 1
-                                    if (loadSteps || isGoal) {
-                                        let jstfArgs = []
-                                        for i in 0 to args->Js.Array2.length-1 {
-                                            let argIdx = args[i]
-                                            if (state.essIdxs->Belt_HashSetInt.has(argIdx)) {
-                                                let label = switch idxToLabel->Belt_HashMapInt.get(argIdx) {
-                                                    | None => "err_" ++ argIdx->Belt_Int.toString
-                                                    | Some(str) => str
-                                                }
-                                                jstfArgs->Js.Array2.push(label)->ignore
-                                            }
-                                        }
-                                        let jstfText = if (loadSteps) {
-                                            jstfToStr({args:jstfArgs, label})
-                                        } else {
-                                            ""
-                                        }
-                                        let label = if (isGoal) {
-                                            state.frame.label
-                                        } else {
-                                            pRecIdxToLabel(state,proofTable,idx,Some(maxUsedStepNum.contents))
-                                        }
-                                        idxToLabel->Belt_HashMapInt.set(idx,label)
-                                        switch Belt_Int.fromString(label) {
-                                            | None => ()
-                                            | Some(i) => {
-                                                if (maxUsedStepNum.contents < i) {
-                                                    maxUsedStepNum := i
-                                                }
-                                            }
-                                        }
-                                        stmts->Js.Array2.push(
-                                            {
-                                                label, 
-                                                typ: userStmtTypeToStr(P), 
-                                                isGoal,
-                                                isBkm:false,
-                                                cont: state.frmCtx->ctxIntsToStrExn(pRec.expr),
-                                                jstfText,
-                                            }
-                                        )->ignore
-                                    }
-                                }
-                            }
-                        })
-                }
-            }
-            let srcs = if (adjustContext) {
-                switch convertMmScopesToMmCtxSrcDtos(~origMmCtxSrcDtos=preCtxData.srcs, ~mmScopes=state.frmMmScopes) {
-                    | None => []
-                    | Some(srcs) => srcs
-                }
-            } else {
-                []
-            }
             loadEditorState(
-                {
-                    srcs,
-                    descr: state.frame.descr->Belt.Option.getWithDefault(""),
-                    varsText: vars->Js.Array2.joinWith("\n"),
-                    disjText: disjArr->Js.Array2.joinWith("\n"),
-                    stmts,
-                }
+                frameProofDataToEditorStateLocStor(
+                    ~preCtxData,
+                    ~state, 
+                    ~adjustContext, 
+                    ~loadSteps
+                )
             )
             focusEditorTab()
         })
