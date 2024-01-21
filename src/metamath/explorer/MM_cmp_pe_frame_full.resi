@@ -1,6 +1,9 @@
 open Expln_React_Modal
 open MM_wrk_pre_ctx_data
 open MM_wrk_editor_json
+open MM_context
+open MM_proof_tree_dto
+open MM_statements_dto
 
 type vDataRec = {
     hyps: array<array<string>>,
@@ -44,10 +47,18 @@ let makeFrameProofData: (
 
 let frameProofDataToEditorStateLocStor: (
     ~preCtxData:preCtxData,
-    ~state:frameProofData, 
+    ~frameProofData:frameProofData, 
     ~adjustContext:bool, 
     ~loadSteps:bool
 ) => editorStateLocStor
+
+let frameProofDataToStmtsDto: (
+    ~preCtxData:preCtxData,
+    ~wrkCtx:mmContext,
+    ~proofTreeDto:proofTreeDto,
+    ~args:array<int>, 
+    ~frameProofData:frameProofData,
+) => result<stmtsDto,string>
 
 type props = {
     top:int,

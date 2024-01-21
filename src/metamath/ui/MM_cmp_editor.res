@@ -17,7 +17,6 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
 open MM_proof_tree_dto
-open MM_cmp_pe_frame_full
 
 let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
     if (!tempMode) {
@@ -282,12 +281,12 @@ let make = (
         })
     }
 
-    let showInfoMsg = (~title:string, ~text:string) => {
-        openInfoDialog( ~modalRef, ~title, ~text, () )
+    let showInfoMsg = (~title:option<string>=?, ~text:string, ()) => {
+        openInfoDialog( ~modalRef, ~title?, ~text, () )
     }
     
-    let showErrMsg = (~title:string, ~text:string) => {
-        openInfoDialog( ~modalRef, ~title, ~text,
+    let showErrMsg = (~title:option<string>=?, ~text:string, ()) => {
+        openInfoDialog( ~modalRef, ~title?, ~text,
             ~icon=
                 <span style=ReactDOM.Style.make(~color="red", () ) >
                     <MM_Icons.PriorityHigh/>
@@ -1309,45 +1308,10 @@ let make = (
                 switch stmt.proofStatus {
                     | Some(Ready) => actExportProof(stmt.id)
                     | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
-                        showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof)
+                        showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof, ())
                 }
             }
-            | _ => showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof)
-        }
-    }
-
-    let frameProofDataToStmtsDto = (
-        wrkCtx:mmContext,
-        proofTreeDto:proofTreeDto,
-        args:array<int>, 
-        frmData:frameProofData,
-    ):stmtsDto => {
-        let frmVarToCtxExpr:Belt_HashMapInt.t<expr> = args->Js_array2.mapi((arg,i) => {
-                if (frmData.frame.hyps[i].typ == F) {
-                    Some(
-                        // [
-                        //     wrkCtx->frmIntToSymExn(frmData.frame, frmData.frame.hyps[i].expr[1]), 
-                        //     wrkCtx->ctxIntsToStrExn(proofTreeDto.nodes[arg].expr->Js_array2.sliceFrom(1)), 
-                        // ]
-                        (
-                            frmData.frame.hyps[i].expr[1], 
-                            proofTreeDto.nodes[arg].expr->Js_array2.sliceFrom(1), 
-                        )
-                    )
-                } else {
-                    None
-                }
-            })
-            ->Js_array2.filter(Belt_Option.isSome)
-            ->Js_array2.map(Belt_Option.getExn)
-            ->Belt_HashMapInt.fromArray
-        // Js.Console.log2(`frmVarToCtxExpr`, frmVarToCtxExpr)
-        {
-            newVars: [],
-            newVarTypes: [],
-            newDisj: disjMake(),
-            newDisjStr: [],
-            stmts: [],
+            | _ => showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof, ())
         }
     }
 
@@ -1357,20 +1321,21 @@ let make = (
                 if (stmt.typ != P) {
                     showInfoMsg(
                         ~title=`Cannot inline proof`, 
-                        ~text=`Proof inlining is applicable to provable steps only.`
+                        ~text=`Proof inlining is applicable to provable steps only.`,
+                        ()
                     )
                 } else {
                     switch stmt.src {
-                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
+                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof, ())
                         | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => {
-                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
+                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof, ())
                         }
                         | Some(Assertion({args, label})) => {
                             switch stmt.proofTreeDto {
-                                | None => showErrMsg(~title="Internal error", ~text="proofTree is not set.")
+                                | None => showErrMsg(~title="Internal error", ~text="proofTree is not set.", ())
                                 | Some(proofTreeDto) => {
                                     switch state.wrkCtx {
-                                        | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.")
+                                        | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.", ())
                                         | Some(wrkCtx) => {
                                             let progressText = "Inlining proof"
                                             openModal(
@@ -1395,18 +1360,21 @@ let make = (
                                                     switch frameProofData {
                                                         | Error(msg) => {
                                                             closeModal(modalRef, modalId)
-                                                            showErrMsg(~title="Error", ~text=msg)
+                                                            showErrMsg(~title="Error", ~text=msg, ())
                                                         }
                                                         | Ok(frameProofData) => {
-                                                            setState(st => {
-                                                                st->addNewStatements(
-                                                                    frameProofDataToStmtsDto(
-                                                                        wrkCtx, proofTreeDto, args, frameProofData
-                                                                    ), 
-                                                                    ()
-                                                                )
-                                                            })
                                                             closeModal(modalRef, modalId)
+                                                            switch MM_cmp_pe_frame_full.frameProofDataToStmtsDto(
+                                                                ~preCtxData, ~wrkCtx, 
+                                                                ~proofTreeDto, ~args, ~frameProofData
+                                                            ) {
+                                                                | Error(msg) => {
+                                                                    showErrMsg(~title="Error", ~text=msg, ())
+                                                                }
+                                                                | Ok(stmtsDto) => {
+                                                                    setState(addNewStatements(_, stmtsDto, ()))
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 })
@@ -1422,7 +1390,8 @@ let make = (
             | None => {
                 showInfoMsg(
                         ~title=`Cannot inline proof`, 
-                        ~text=`Please select a step you want to inline the proof for.`
+                        ~text=`Please select a step you want to inline the proof for.`,
+                        ()
                     )
             }
         }
