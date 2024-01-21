@@ -122,6 +122,16 @@ let editingInTempModeText =
         ++ ` 2) open a new tab (or switch to an already opened tab) with metamath-lamp in regular mode;`
         ++ ` 3) use "Import from JSON" to load the copied editor state from the clipboard.`
 
+let infoAboutGettingCompletedProof = `In order to show a completed proof please do the following: ` 
+                ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
+                ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
+                ++ `3) Select "Show completed proof" menu item.`
+
+let infoAboutInliningProof = `In order to inline a proof please do the following: ` 
+                ++ `1) Make sure the step you want to inline the proof for is marked with a green chekmark. ` 
+                ++ `If it is not, try to "unify all"; 2) Select the step you want to inline the proof for; ` 
+                ++ `3) Select "Inline proof" menu item.`
+
 @react.component
 let make = (
     ~modalRef:modalRef, 
@@ -269,6 +279,20 @@ let make = (
             let st = st->setNextAction(Some(Action(nextAction)))
             st
         })
+    }
+
+    let showInfoMsg = (~title:option<string>=?, ~text:string, ()) => {
+        openInfoDialog( ~modalRef, ~title?, ~text, () )
+    }
+    
+    let showErrMsg = (~title:option<string>=?, ~text:string, ()) => {
+        openInfoDialog( ~modalRef, ~title?, ~text,
+            ~icon=
+                <span style=ReactDOM.Style.make(~color="red", () ) >
+                    <MM_Icons.PriorityHigh/>
+                </span>,
+            ()
+        )
     }
 
     let notifyEditInTempMode = (continue:unit=>'a):'a => {
@@ -1278,28 +1302,98 @@ let make = (
         })->ignore
     }
 
-    let actShowInfoAboutGettingCompletedProof = (title:string) => {
-        openInfoDialog( 
-            ~modalRef, 
-            ~title,
-            ~text=`In order to show a completed proof please do the following: ` 
-                ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
-                ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
-                ++ `3) Select "Show completed proof" menu item.`, 
-            () 
-        )
-    }
-
     let actShowCompletedProof = () => {
         switch state->getTheOnlyCheckedStmt {
             | Some(stmt) if stmt.typ == P => {
                 switch stmt.proofStatus {
                     | Some(Ready) => actExportProof(stmt.id)
                     | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
-                        actShowInfoAboutGettingCompletedProof(`A proof is not available`)
+                        showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof, ())
                 }
             }
-            | _ => actShowInfoAboutGettingCompletedProof(`A single provable step should be selected`)
+            | _ => showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof, ())
+        }
+    }
+
+    let actInlineProof = () => {
+        switch state->getTheOnlyCheckedStmt {
+            | Some(stmt) => {
+                if (stmt.typ != P) {
+                    showInfoMsg(
+                        ~title=`Cannot inline proof`, 
+                        ~text=`Proof inlining is applicable to provable steps only.`,
+                        ()
+                    )
+                } else {
+                    switch stmt.src {
+                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof, ())
+                        | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => {
+                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof, ())
+                        }
+                        | Some(Assertion({args, label})) => {
+                            switch stmt.proofTreeDto {
+                                | None => showErrMsg(~title="Internal error", ~text="proofTree is not set.", ())
+                                | Some(proofTreeDto) => {
+                                    switch state.wrkCtx {
+                                        | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.", ())
+                                        | Some(wrkCtx) => {
+                                            let progressText = "Inlining proof"
+                                            openModal(
+                                                modalRef, () => rndProgress(~text=progressText, ~pct=0., ())
+                                            )->promiseMap(modalId => {
+                                                updateModal( 
+                                                    modalRef, modalId, () => rndProgress(
+                                                        ~text=progressText, ~pct=0., 
+                                                        ~onTerminate=makeActTerminate(modalId), ()
+                                                    )
+                                                )
+                                                MM_cmp_pe_frame_full.makeFrameProofData(
+                                                    ~preCtxData,
+                                                    ~label,
+                                                    ~onProgress = pct => updateModal(
+                                                        modalRef, modalId, () => rndProgress(
+                                                            ~text=progressText, ~pct, 
+                                                            ~onTerminate=makeActTerminate(modalId), ()
+                                                        )
+                                                    )
+                                                )->promiseMap(frameProofData => {
+                                                    switch frameProofData {
+                                                        | Error(msg) => {
+                                                            closeModal(modalRef, modalId)
+                                                            showErrMsg(~title="Error", ~text=msg, ())
+                                                        }
+                                                        | Ok(frameProofData) => {
+                                                            closeModal(modalRef, modalId)
+                                                            switch MM_cmp_pe_frame_full.frameProofDataToStmtsDto(
+                                                                ~preCtxData, ~wrkCtx, 
+                                                                ~proofTreeDto, ~args, ~frameProofData
+                                                            ) {
+                                                                | Error(msg) => {
+                                                                    showErrMsg(~title="Error", ~text=msg, ())
+                                                                }
+                                                                | Ok(stmtsDto) => {
+                                                                    setState(addNewStatements(_, stmtsDto, ()))
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                })
+                                            })->ignore
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            | None => {
+                showInfoMsg(
+                        ~title=`Cannot inline proof`, 
+                        ~text=`Please select a step you want to inline the proof for.`,
+                        ()
+                    )
+            }
         }
     }
 
@@ -1506,6 +1600,14 @@ let make = (
                             }}
                         >
                             {"Show completed proof"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actInlineProof()
+                            }}
+                        >
+                            {"Inline proof"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
@@ -1974,11 +2076,11 @@ let make = (
         promiseResolved(())
     }
 
-    let showInfoMsg = (msg:string) => {
+    let showInfoMsgForApi = (msg:string) => {
         openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, () )
     }
 
-    let showErrMsg = (msg:string) => {
+    let showErrMsgForApi = (msg:string) => {
         openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, 
             ~icon=
                 <span style=ReactDOM.Style.make(~color="red", () ) >
@@ -1990,8 +2092,8 @@ let make = (
 
     MM_cmp_api.updateEditorApi(
         ~state,
-        ~showInfoMsg,
-        ~showErrMsg,
+        ~showInfoMsg=showInfoMsgForApi,
+        ~showErrMsg=showErrMsgForApi,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,

@@ -1,4 +1,4 @@
-- fix a bug: set "autounify all" = true. Update settings - an error occurs.
+- fix a bug: set "auto unify all" = true. Update settings - an error occurs.
 - fix a bug: completed proof should not be shown in macros.
 - simplify actUnify() in MM_cmp_editors.
 - the macro display name should be a functions of the global context
@@ -6,6 +6,9 @@
 - implement "a macro is running" mode when popups are not appearing (so the screen is not blinking)
 - add a few options to the proof tree explorer: show essentials only, show unproved steps only, show number of unproved steps for each source.
 - write tests for example macros
+- write tests for different cases of "inline proof"
+- check where MM_context and MM_parser may throw an exception
+- implement "reorder steps"
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source
