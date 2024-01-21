@@ -643,10 +643,6 @@ let frameProofDataToStmtsDto = (
                         wrkCtx->frmIntToSymExn(frameProofData.frame, frameProofData.frame.hyps[i].expr[1]), 
                         wrkCtx->ctxIntsToStrExn(proofTreeDto.nodes[arg].expr->Js_array2.sliceFrom(1)), 
                     )
-                    // (
-                    //     frameProofData.frame.hyps[i].expr[1], 
-                    //     proofTreeDto.nodes[arg].expr->Js_array2.sliceFrom(1), 
-                    // )
                 )
             } else {
                 None
@@ -655,7 +651,6 @@ let frameProofDataToStmtsDto = (
         ->Js_array2.filter(Belt_Option.isSome)
         ->Js_array2.map(Belt_Option.getExn)
         ->Belt_HashMapString.fromArray
-    // Js.Console.log2(`frmVarToCtxExpr`, frmVarToCtxExpr)
     let locSt = frameProofDataToEditorStateLocStor(
         ~preCtxData, ~frameProofData, ~adjustContext=false, ~loadSteps=true
     )
