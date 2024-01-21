@@ -86,20 +86,24 @@ let parseMmFile = (
         }
     }
 
-    let readAllTextTill = (tillToken:string):option<string> => {
+    let readAllCommentText = ():option<string> => {
         let result = ref(None)
         let beginIdx = idx.contents
         while (result.contents->Belt_Option.isNone) {
-            let foundIdx = text->Js_string2.indexOfFrom(tillToken, idx.contents)
+            let foundIdx = text->Js_string2.indexOfFrom("$)", idx.contents)
             if (foundIdx < 0) {
                 result.contents = Some(None)
             } else {
-                let nextIdx = foundIdx + tillToken->Js_string2.length
+                let nextIdx = foundIdx + 2
                 setIdx(nextIdx)
-                if (endOfFile.contents || ch.contents->isWhitespace) {
-                    result.contents = Some(Some(text->Js_string2.substring(~from=beginIdx, ~to_=foundIdx)))
-                } else {
+                if text->Js.String2.charAt(nextIdx - 3)->isWhitespace == false { // need leading whitespace
                     setIdx(foundIdx+1)
+                }
+                else if !(endOfFile.contents || ch.contents->isWhitespace) { // need trailing whitespace or endOfFile
+                    setIdx(foundIdx+1)
+                }
+                else {
+                    result.contents = Some(Some(text->Js_string2.substring(~from=beginIdx, ~to_=foundIdx)))
                 }
             }
         }
@@ -109,7 +113,7 @@ let parseMmFile = (
     let textAt = textAt(text, _)
 
     let parseComment = (~beginIdx:int):mmAstNode => {
-        switch readAllTextTill("$)") {
+        switch readAllCommentText() {
             | None => raise(MmException({msg:`A comment is not closed at ${textAt(beginIdx)}`}))
             | Some(commentText) => {begin:beginIdx, end:idx.contents-1, stmt:Comment({text:commentText})}
         }
