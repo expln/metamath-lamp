@@ -126,8 +126,21 @@ async function getEditorStateWithSyntaxTrees() {
     exn([!@#]Cannot get an editor state with syntax trees.[!@#])
 }
 
+async function allIsProved() {
+    let state = await getEditorState()
+    if (state.steps.every(step => step.isHyp || step.status !== null)) {
+        return state.steps.every(step => step.isHyp || step.status === 'v')
+    }
+    state = await unifyAll()
+    return state.steps.every(step => step.isHyp || step.status === 'v')
+}
+
 async function updateSteps(steps) {
     return getResponse(await api.editor.updateSteps(steps))
+}
+
+async function deleteSteps(labels) {
+    return getResponse(await api.editor.deleteSteps(labels))
 }
 
 function undefToNull(value) {
@@ -526,8 +539,18 @@ function getVarExpr(step) {
 async function eliminateVar(varHypStep) {
     const [lp, ph, ar, [v, eq, expr], rp] = matchExn(varHypStep.tree.root, VARIABLE_HYPOTHESIS_PATTERN)
     await substitute({what: getVarName(v), with_: syntaxTreeToText(expr)})
-    await updateSteps([{label:varHypStep.label, type:'p'}])
-    return await mergeDuplicatedSteps()
+    const renames = await mergeDuplicatedSteps()
+    await deleteSteps([varHypStep.label])
+    const stepsToDeleteJstf = (await getEditorState()).steps
+        .filter(step => step.jstf?.args?.includes(varHypStep.label))
+        .map(step => step.label)
+    if (stepsToDeleteJstf.length > 0) {
+        await updateSteps(stepsToDeleteJstf.map(label => ({label, jstf:''})))
+    }
+    if (!(await allIsProved())) {
+        exn('There are unproved steps.')
+    }
+    return renames
 }
 
 async function eliminateVariables(varNames) {
@@ -1350,8 +1373,8 @@ async function showNewAssertions(ctx, frmParams) {
 }
 
 const macros = [
-    makeMacro([!@#]Prove "element of"[!@#], async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
     makeMacro('Prove "equals"', async () => await proveSelected({frmParams:FPR_EQUALS, debugLevel:0})),
+    makeMacro([!@#]Prove "element of"[!@#], async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
     makeMacro('Introduce variables +', introduceVariablesSum),
     makeMacro('Introduce variables x.', introduceVariablesMul),
     makeMacro('Distribute x.', distributeMul),
