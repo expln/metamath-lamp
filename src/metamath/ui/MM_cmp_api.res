@@ -378,6 +378,24 @@ let optArrayToMatchers = (
     }
 }
 
+let lastPreCtxV = ref(-100)
+let sortedFrames = ref(Belt_HashMapString.make(~hintSize=0))
+let sortFrames = (st:editorState, frames:array<string>):array<string> => {
+    if (lastPreCtxV.contents != st.preCtxV) {
+        lastPreCtxV := st.preCtxV
+        sortedFrames := Belt_HashMapString.make(~hintSize=64)
+    }
+    let framesStr = frames->Js_array2.joinWith(" ")
+    switch sortedFrames.contents->Belt_HashMapString.get(framesStr) {
+        | Some(sorted) => sorted
+        | None => {
+            let sorted = MM_substitution.sortFrames(st.frms, frames)
+            sortedFrames.contents->Belt_HashMapString.set(framesStr, sorted)
+            sorted
+        }
+    }
+}
+
 type apiBottomUpProverFrameParams = {
     minDist:option<int>,
     maxDist:option<int>,
@@ -523,7 +541,8 @@ let proveBottomUp = (
                                                             minDist: frameParams.minDist,
                                                             maxDist: frameParams.maxDist,
                                                             matches: matches[i],
-                                                            frmsToUse: frameParams.framesToUse,
+                                                            frmsToUse: frameParams.framesToUse
+                                                                ->Belt.Option.map(sortFrames(state,_)),
                                                             args: args[i],
                                                             allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
                                                             allowNewStmts: frameParams.allowNewSteps,

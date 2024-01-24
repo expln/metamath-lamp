@@ -592,6 +592,13 @@ let prepareFrmSubsData = (
     }
 }
 
+let sortFrames = (frms:frms, frames:array<string>):array<string> => {
+    let framesSet = frames->Belt_HashSetString.fromArray
+    frms.all
+        ->Js.Array2.filter(frm => framesSet->Belt_HashSetString.has(frm.frame.label))
+        ->Js.Array2.map(frm => frm.frame.label)
+}
+
 let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
     let resultSize = ref(0)
     frmExpr->Js_array2.forEach(s => {

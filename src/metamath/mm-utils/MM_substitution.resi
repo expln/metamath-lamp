@@ -57,6 +57,7 @@ let prepareFrmSubsData: (
     ~ctx:mmContext,
     ()
 ) => frms
+let sortFrames: (frms, array<string>) => array<string>
 let iterateSubstitutions: (
     ~frmExpr:expr, 
     ~expr:expr, 
