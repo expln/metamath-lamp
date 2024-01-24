@@ -1678,7 +1678,7 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actRenameHypotheses()
+                                actOpenMoveStepsDialog()
                             }}
                         >
                             {"Move steps"->React.string}
@@ -1686,7 +1686,7 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actOpenMoveStepsDialog()
+                                actRenameHypotheses()
                             }}
                         >
                             {"Rename hypotheses"->React.string}

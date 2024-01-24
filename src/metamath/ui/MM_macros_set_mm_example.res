@@ -1237,7 +1237,7 @@ function getSubtreeToGroup(tree, isSym, symToKey) {
         const aKeys = getAllKeys(A)
         const bKeys = getAllKeys(B)
         console.log('aKeys', JSON.stringify(aKeys))
-        console.log('bKeys', bKeys)
+        console.log('bKeys', JSON.stringify(bKeys))
         return arIntersect(aKeys, bKeys).length > 0
     })
 }
