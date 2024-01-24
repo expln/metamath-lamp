@@ -1439,6 +1439,56 @@ let make = (
         })
     }
 
+    let actOpenMoveStepsDialog = () => {
+        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+            updateModal(modalRef, modalId, () => {
+                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+                    <Col>
+                        <List disablePadding=true>
+                            <ListItem disablePadding=true >
+                                <ListItemButton 
+                                    onClick={_=>{
+                                        closeModal(modalRef, modalId)
+                                        setState(moveCheckedStmtsToTop)
+                                    }}
+                                >
+                                    <ListItemText>
+                                        {React.string("Move selected steps to the top")}
+                                    </ListItemText>
+                                </ListItemButton>
+                            </ListItem>
+                            <ListItem disablePadding=true >
+                                <ListItemButton 
+                                    onClick={_=>{
+                                        closeModal(modalRef, modalId)
+                                        setState(moveCheckedStmtsToBottom)
+                                    }}
+                                >
+                                    <ListItemText>
+                                        {React.string("Move selected steps to the bottom")}
+                                    </ListItemText>
+                                </ListItemButton>
+                            </ListItem>
+                        </List>
+                        <Row>
+                            <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
+                                {React.string("Cancel")}
+                            </Button>
+                            {
+                                rndHiddenTextField(
+                                    ~onKeyDown=kbrdHnds([
+                                        kbrdClbkMake(~key=keyEsc, ~act=()=>closeModal(modalRef, modalId), ()),
+                                    ]),
+                                    ()
+                                )
+                            }
+                        </Row>
+                    </Col>
+                </Paper>
+            })
+        })->ignore
+    }
+
     let actDebugUnifyAll = (stmtId) => {
         let st = state
         let st = st->uncheckAllStmts
@@ -1629,6 +1679,14 @@ let make = (
                             onClick={() => {
                                 actCloseMainMenu()
                                 actRenameHypotheses()
+                            }}
+                        >
+                            {"Move steps"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actOpenMoveStepsDialog()
                             }}
                         >
                             {"Rename hypotheses"->React.string}

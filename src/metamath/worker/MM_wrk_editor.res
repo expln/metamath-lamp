@@ -428,6 +428,24 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
     }
 }
 
+let moveCheckedStmtsToTop = (st:editorState):editorState => {
+    let checkedStmts = st.stmts->Js_array2.filter(stmt => st->isStmtChecked(stmt.id))
+    let uncheckedStmts = st.stmts->Js_array2.filter(stmt => !(st->isStmtChecked(stmt.id)))
+    {
+        ...st,
+        stmts: Belt_Array.concatMany([checkedStmts, uncheckedStmts])
+    }
+}
+
+let moveCheckedStmtsToBottom = (st:editorState):editorState => {
+    let checkedStmts = st.stmts->Js_array2.filter(stmt => st->isStmtChecked(stmt.id))
+    let uncheckedStmts = st.stmts->Js_array2.filter(stmt => !(st->isStmtChecked(stmt.id)))
+    {
+        ...st,
+        stmts: Belt_Array.concatMany([uncheckedStmts, checkedStmts])
+    }
+}
+
 let getRootStmtsForUnification = (st):array<userStmt> => {
     let checkedStmtIds = st.checkedStmtIds->Js.Array2.map(((stmtId,_)) => stmtId)->Belt_HashSetString.fromArray
     if (checkedStmtIds->Belt_HashSetString.size == 0) {
