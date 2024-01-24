@@ -9,6 +9,7 @@
 - write tests for different cases of "inline proof"
 - check where MM_context and MM_parser may throw an exception
 - implement "reorder steps"
+- implement pagination in MM_cmp_pe_frame_full.res
 
 - export in uncompressed-essential and compressed-essential formats
 - remember last selected scope for each source

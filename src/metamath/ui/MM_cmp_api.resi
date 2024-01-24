@@ -20,6 +20,7 @@ let api: {
         "unifyAll": api,
         "addSteps": api,
         "updateSteps": api,
+        "deleteSteps": api,
         "getTokenType": api,
         "substitute": api,
         "mergeDuplicatedSteps": api,
