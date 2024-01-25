@@ -50,9 +50,9 @@ frms[FPR_EQUALS] = [
     FPR_ELEM_OF,
     makeFrmParams([
         'oveq1d', 'oveq2d','eqtrd','eqtr2d','eqtr3d', 'eqtr4d', 'eqcomd', 'adddid', 'adddird', 'addcomd', 'addassd', 'negsubd',
-        'addid2d','addid1d','negeqd','mulneg1d','mulexpd','mulcomd','mulassd','negidd',
+        'addid2d','addid1d','negeqd','mulneg1d','mulexpd','mulcomd','mulassd','negidd','sqnegd','mulid1d','mulid2d', 'mulm1d',
         'sq0','sq1','sq2','sq3',
-        'expp1d','expaddd','expmuld','mulid2d','syl5reqr','mulcomli',
+        'expp1d','expaddd','expmuld','mulid2d','syl5reqr','mulcomli','exp1d','2timesd',
         'df-2','df-3','df-4','df-5','df-6','df-7','df-8','df-9',
         '0p1e1','1p0e1','1p1e2','2p1e3','2p2e4','1p2e3','2t2e4','3p1e4','4p1e5','5p1e6','6p1e7','7p1e8','8p1e9','3p2e5','3p3e6',
         '4p2e6','4p3e7','4p4e8','5p2e7','5p3e8','5p4e9','6p2e8','6p3e9','7p2e9',
