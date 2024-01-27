@@ -281,6 +281,9 @@ let parseMmFile = (
                 if (!skipComments) {
                     pushStmt(comment)
                 }
+            } else if (token == "$[") {
+                //skipping include statements
+                readAllTextTill("$]")->ignore
             } else if (token == "$c") {
                 pushStmt(parseConst(~beginIdx=tokenIdx))
             } else if (token == "$v") {

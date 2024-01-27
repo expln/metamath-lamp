@@ -378,6 +378,24 @@ let optArrayToMatchers = (
     }
 }
 
+let lastPreCtxV = ref(-100)
+let sortedFrames = ref(Belt_HashMapString.make(~hintSize=0))
+let sortFrames = (st:editorState, frames:array<string>):array<string> => {
+    if (lastPreCtxV.contents != st.preCtxV) {
+        lastPreCtxV := st.preCtxV
+        sortedFrames := Belt_HashMapString.make(~hintSize=64)
+    }
+    let framesStr = frames->Js_array2.joinWith(" ")
+    switch sortedFrames.contents->Belt_HashMapString.get(framesStr) {
+        | Some(sorted) => sorted
+        | None => {
+            let sorted = MM_substitution.sortFrames(st.frms, frames)
+            sortedFrames.contents->Belt_HashMapString.set(framesStr, sorted)
+            sorted
+        }
+    }
+}
+
 type apiBottomUpProverFrameParams = {
     minDist:option<int>,
     maxDist:option<int>,
@@ -523,7 +541,8 @@ let proveBottomUp = (
                                                             minDist: frameParams.minDist,
                                                             maxDist: frameParams.maxDist,
                                                             matches: matches[i],
-                                                            frmsToUse: frameParams.framesToUse,
+                                                            frmsToUse: frameParams.framesToUse
+                                                                ->Belt.Option.map(sortFrames(state,_)),
                                                             args: args[i],
                                                             allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
                                                             allowNewStmts: frameParams.allowNewSteps,
@@ -845,6 +864,27 @@ let updateSteps = (
     }
 }
 
+let deleteSteps = (
+    ~params:Js_json.t,
+    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+):promise<result<Js_json.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_, ()), ()), ())
+    switch parseResult {
+        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(stepLabelsToDelete) => {
+            setState(st => {
+                let labelToStmtId = st.stmts->Js_array2.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
+                let stepIdsToDelete = stepLabelsToDelete
+                    ->Js_array2.map(label => labelToStmtId->Belt_HashMapString.get(label))
+                    ->Js_array2.filter(Belt.Option.isSome)
+                    ->Js_array2.map(Belt.Option.getExn)
+                Ok( st->deleteStmts(stepIdsToDelete), Js_json.null )
+            })
+        }
+    }
+}
+
 let editorBuildSyntaxTrees = (
     ~params:Js_json.t,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
@@ -929,6 +969,7 @@ let proveBottomUpRef:ref<option<api>> = ref(None)
 let unifyAllRef:ref<option<api>> = ref(None)
 let addStepsRef:ref<option<api>> = ref(None)
 let updateStepsRef:ref<option<api>> = ref(None)
+let deleteStepsRef:ref<option<api>> = ref(None)
 let getTokenTypeRef:ref<option<api>> = ref(None)
 let substituteRef:ref<option<api>> = ref(None)
 let mergeDuplicatedStepsRef:ref<option<api>> = ref(None)
@@ -954,6 +995,7 @@ let api = {
         "unifyAll": makeApiFuncRef(unifyAllRef),
         "addSteps": makeApiFuncRef(addStepsRef),
         "updateSteps": makeApiFuncRef(updateStepsRef),
+        "deleteSteps": makeApiFuncRef(deleteStepsRef),
         "getTokenType": makeApiFuncRef(getTokenTypeRef),
         "substitute": makeApiFuncRef(substituteRef),
         "mergeDuplicatedSteps": makeApiFuncRef(mergeDuplicatedStepsRef),
@@ -1016,6 +1058,9 @@ let updateEditorApi = (
     }))
     updateStepsRef := Some(makeApiFunc("editor.updateSteps", params => {
         updateSteps( ~paramsJson=params, ~setState, )
+    }))
+    deleteStepsRef := Some(makeApiFunc("editor.deleteSteps", params => {
+        deleteSteps( ~params, ~setState, )
     }))
     getTokenTypeRef := Some(makeApiFunc("editor.getTokenType", params => {
         getTokenType( ~paramsJson=params, ~state, )

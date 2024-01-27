@@ -50,9 +50,9 @@ frms[FPR_EQUALS] = [
     FPR_ELEM_OF,
     makeFrmParams([
         'oveq1d', 'oveq2d','eqtrd','eqtr2d','eqtr3d', 'eqtr4d', 'eqcomd', 'adddid', 'adddird', 'addcomd', 'addassd', 'negsubd',
-        'addid2d','addid1d','negeqd','mulneg1d','mulexpd','mulcomd','mulassd','negidd',
+        'addid2d','addid1d','negeqd','mulneg1d','mulexpd','mulcomd','mulassd','negidd','sqnegd','mulid1d','mulid2d', 'mulm1d',
         'sq0','sq1','sq2','sq3',
-        'expp1d','expaddd','expmuld','mulid2d','syl5reqr','mulcomli',
+        'expp1d','expaddd','expmuld','mulid2d','syl5reqr','mulcomli','exp1d','2timesd','mulneg2d',
         'df-2','df-3','df-4','df-5','df-6','df-7','df-8','df-9',
         '0p1e1','1p0e1','1p1e2','2p1e3','2p2e4','1p2e3','2t2e4','3p1e4','4p1e5','5p1e6','6p1e7','7p1e8','8p1e9','3p2e5','3p3e6',
         '4p2e6','4p3e7','4p4e8','5p2e7','5p3e8','5p4e9','6p2e8','6p3e9','7p2e9',
@@ -126,8 +126,21 @@ async function getEditorStateWithSyntaxTrees() {
     exn([!@#]Cannot get an editor state with syntax trees.[!@#])
 }
 
+async function allIsProved() {
+    let state = await getEditorState()
+    if (state.steps.every(step => step.isHyp || step.status !== null)) {
+        return state.steps.every(step => step.isHyp || step.status === 'v')
+    }
+    state = await unifyAll()
+    return state.steps.every(step => step.isHyp || step.status === 'v')
+}
+
 async function updateSteps(steps) {
     return getResponse(await api.editor.updateSteps(steps))
+}
+
+async function deleteSteps(labels) {
+    return getResponse(await api.editor.deleteSteps(labels))
 }
 
 function undefToNull(value) {
@@ -526,8 +539,18 @@ function getVarExpr(step) {
 async function eliminateVar(varHypStep) {
     const [lp, ph, ar, [v, eq, expr], rp] = matchExn(varHypStep.tree.root, VARIABLE_HYPOTHESIS_PATTERN)
     await substitute({what: getVarName(v), with_: syntaxTreeToText(expr)})
-    await updateSteps([{label:varHypStep.label, type:'p'}])
-    return await mergeDuplicatedSteps()
+    const renames = await mergeDuplicatedSteps()
+    await deleteSteps([varHypStep.label])
+    const stepsToDeleteJstf = (await getEditorState()).steps
+        .filter(step => step.jstf?.args?.includes(varHypStep.label))
+        .map(step => step.label)
+    if (stepsToDeleteJstf.length > 0) {
+        await updateSteps(stepsToDeleteJstf.map(label => ({label, jstf:''})))
+    }
+    if (!(await allIsProved())) {
+        exn('There are unproved steps.')
+    }
+    return renames
 }
 
 async function eliminateVariables(varNames) {
@@ -1214,7 +1237,7 @@ function getSubtreeToGroup(tree, isSym, symToKey) {
         const aKeys = getAllKeys(A)
         const bKeys = getAllKeys(B)
         console.log('aKeys', JSON.stringify(aKeys))
-        console.log('bKeys', bKeys)
+        console.log('bKeys', JSON.stringify(bKeys))
         return arIntersect(aKeys, bKeys).length > 0
     })
 }
@@ -1350,8 +1373,8 @@ async function showNewAssertions(ctx, frmParams) {
 }
 
 const macros = [
-    makeMacro([!@#]Prove "element of"[!@#], async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
     makeMacro('Prove "equals"', async () => await proveSelected({frmParams:FPR_EQUALS, debugLevel:0})),
+    makeMacro([!@#]Prove "element of"[!@#], async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
     makeMacro('Introduce variables +', introduceVariablesSum),
     makeMacro('Introduce variables x.', introduceVariablesMul),
     makeMacro('Distribute x.', distributeMul),
