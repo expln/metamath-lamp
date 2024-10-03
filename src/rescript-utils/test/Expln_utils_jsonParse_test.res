@@ -42,15 +42,15 @@ describe("Expln_utils_json.parseObj", _ => {
         //then
         switch p {
             | Ok(param) =>
-                assertEq("AAA", param["name"])
-                assertEq("BBB", param["value"])
-                assertEq(123.4, param["num"])
-                assertEq(None, param["numOpt"])
-                assertEq(78, param["int"])
-                assertEq(None, param["intOpt"])
-                assertEq(false, param["boolFalse"])
-                assertEq(true, param["boolTrue"])
-                assertEq(None, param["boolOpt"])
+                assertEq(param["name"], "AAA")
+                assertEq(param["value"], "BBB")
+                assertEq(param["num"], 123.4)
+                assertEq(param["numOpt"], None)
+                assertEq(param["int"], 78)
+                assertEq(param["intOpt"], None)
+                assertEq(param["boolFalse"], false)
+                assertEq(param["boolTrue"], true)
+                assertEq(param["boolOpt"], None)
             | Error(msg) => {
                 log2("Error: ", msg)
                 fail()
@@ -74,7 +74,7 @@ describe("Expln_utils_json.parseObj", _ => {
         //then
         switch p {
             | Error(msg) =>
-                assertEq("Parse error: an object was expected at '/'.", msg)
+                assertEq(msg, "Parse error: an object was expected at '/'.")
             | _ => fail()
         }
     })
@@ -91,7 +91,7 @@ describe("Expln_utils_json.parseObj", _ => {
         //then
         switch p {
             | Error(msg) =>
-                assertEq("Parse error: Unexpected number in JSON at position 4", msg)
+                assertEq(msg, "Parse error: Unexpected non-whitespace character after JSON at position 4")
             | _ => fail()
         }
     })
@@ -111,7 +111,7 @@ describe("Expln_utils_json.parseObj", _ => {
         //then
         switch p {
             | Error(msg) =>
-                assertEq("Parse error: a string was expected at '/name'.", msg)
+                assertEq(msg, "Parse error: a string was expected at '/name'.")
             | _ => fail()
         }
     })
@@ -130,7 +130,7 @@ describe("Expln_utils_json.parseObj", _ => {
         //then
         switch p {
             | Error(msg) =>
-                assertEq("Parse error: a string was expected at '/value'.", msg)
+                assertEq(msg, "Parse error: a string was expected at '/value'.")
             | _ => fail()
         }
     })
