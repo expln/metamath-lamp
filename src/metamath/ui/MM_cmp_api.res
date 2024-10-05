@@ -180,7 +180,7 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
             ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
             ("disj",
                 state.disjText->multilineTextToNonEmptyLines->Js_array2.map(disjLine => {
-                    disjLine->Js.String2.split(",")
+                    disjLine->Js.String2.split(" ")
                         ->Js_array2.map(Js_string2.trim)
                         ->Js.Array2.filter(str => str != "")
                         ->Js_array2.map(Js_json.string)

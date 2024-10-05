@@ -4,7 +4,7 @@ var2 class class1
 var3 setvar setvar2
 
 Disjoints:
-A,setvar1
+A setvar1
 
 
 --- p -------------------------------------------------------------------------------

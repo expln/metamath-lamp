@@ -88,7 +88,12 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
 }
 
 let addDisjFromString = (wrkCtx, disjStr) => {
-    wrkCtx->applySingleStmt(Disj({vars:disjStr->Js.String2.split(",")->Js_array2.map(Js_string2.trim)}), ())
+    wrkCtx->applySingleStmt(Disj({
+        vars:disjStr
+            ->Js.String2.split(" ")
+            ->Js_array2.map(Js_string2.trim)
+            ->Js.Array2.filter(str => str != "")
+    }), ())
 }
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {

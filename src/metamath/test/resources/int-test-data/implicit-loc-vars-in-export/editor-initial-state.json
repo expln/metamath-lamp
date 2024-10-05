@@ -1,6 +1,6 @@
 {
   "varsText": ".any setvar any",
-  "disjText": "x,y,any",
+  "disjText": "x y any",
   "stmts": [
     {
       "label": "1",

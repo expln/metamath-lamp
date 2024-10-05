@@ -1,6 +1,6 @@
 {
   "varsText": "",
-  "disjText": "x,y,v,u,A,r\nx,y,v,u,F,r",
+  "disjText": "x y v u A r\nx y v u F r",
   "stmts": [
     {
       "label": "stmt8",

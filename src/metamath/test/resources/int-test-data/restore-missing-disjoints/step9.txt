@@ -2,10 +2,10 @@ Variables:
 
 
 Disjoints:
-F,x
-A,r,u,v,x
-A,r,u,v,y
-F,r,u,v,y
+F x
+A r u v x
+A r u v y
+F r u v y
 
 
 --- e -------------------------------------------------------------------------------

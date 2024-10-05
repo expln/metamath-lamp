@@ -1,6 +1,6 @@
 {
   "varsText": "",
-  "disjText": "y,k,A,u,r,v,F\nk,r,F\nA,k,r,F\nu,k,A,r,F\nF,r\nv,k,A,u,r,F\nx,y,k,A,u,r,v,F\nr,u,v,x,y,A\nr,u,v,x,y,F",
+  "disjText": "y k A u r v F\nk r F\nA k r F\nu k A r F\nF r\nv k A u r F\nx y k A u r v F\nr u v x y A\nr u v x y F",
   "stmts": [
     {
       "label": "description",

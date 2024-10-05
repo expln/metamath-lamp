@@ -2,7 +2,7 @@ Variables:
 var3 setvar setvar2
 
 Disjoints:
-A,setvar2
+A setvar2
 
 
 --- p -------------------------------------------------------------------------------

@@ -1377,7 +1377,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
             newDisj->disjForEachArr(varInts => {
                 let varsStr = wrkCtx->ctxIntsToSymsExn(varInts)
                 wrkCtx->applySingleStmt(Disj({vars:varsStr}), ())
-                newDisjTextLines->Js.Array2.push(varsStr->Js.Array2.joinWith(","))->ignore
+                newDisjTextLines->Js.Array2.push(varsStr->Js.Array2.joinWith(" "))->ignore
             })
             if (newDisjTextLines->Js.Array2.length == 0) {
                 st
@@ -1636,7 +1636,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ~typeOrder=st.typeOrderInDisj,
                 ()
             )
-                ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(","))
+                ->Js_array2.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Js_array2.joinWith(" "))
                 ->Js.Array2.joinWith("\n")
             let st = if (st.disjText != newDisjText) {
                 completeDisjEditMode(st, newDisjText)

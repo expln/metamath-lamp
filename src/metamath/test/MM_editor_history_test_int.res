@@ -98,7 +98,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let st2 = st
         assertEditorState(st2, "st2")
 
-        let st = st->completeDisjEditMode("tmp-var,t")
+        let st = st->completeDisjEditMode("tmp-var t")
             ->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st3 = st
