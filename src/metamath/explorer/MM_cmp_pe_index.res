@@ -48,6 +48,7 @@ let make = React.memoCustomCompareProps(({
     let (labelFilter, setLabelFilter) = React.useState(() => "")
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
+    let (descrFilterStr, setDescrFilterStr) = React.useState(() => "")
     let (discFilter, setDiscFilter) = React.useState(() => false)
     let (deprFilter, setDeprFilter) = React.useState(() => false)
     let (tranDeprFilter, setTranDeprFilter) = React.useState(() => false)
@@ -66,6 +67,7 @@ let make = React.memoCustomCompareProps(({
         setLabelFilter(_ => "")
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
+        setDescrFilterStr(_ => "")
         setDiscFilter(_ => false)
         setDeprFilter(_ => false)
         setTranDeprFilter(_ => false)
@@ -97,6 +99,9 @@ let make = React.memoCustomCompareProps(({
                     ~constPat,
                     ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
                 )
+                let labelFilterTrim = labelFilter->Js_string2.trim->Js_string2.toLowerCase
+                let descrFilterStrTrim = descrFilterStr->Js_string2.trim->Js_string2.toLowerCase
+                let filterByDescr = descrFilterStrTrim->Js.String2.length > 0
                 setFilteredLabels(_ => {
                     allLabels->Js.Array2.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
@@ -111,7 +116,13 @@ let make = React.memoCustomCompareProps(({
                         && (!discFilter || frame.isDisc)
                         && (!deprFilter || frame.isDepr)
                         && (!tranDeprFilter || frame.isTranDepr)
-                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilter->Js_string2.toLowerCase)
+                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilterTrim)
+                        && (
+                            !filterByDescr
+                            || frame.descr->Belt.Option.mapWithDefault(false, descr => {
+                                descr->Js_string2.toLowerCase->Js.String2.includes(descrFilterStrTrim)
+                            })
+                        )
                         && frameMatchesPattern(frame)
                     })
                 })
@@ -218,6 +229,10 @@ let make = React.memoCustomCompareProps(({
 
     let actPatternFilterStrUpdated = newPatternFilterStr => {
         setPatternFilterStr(_ => newPatternFilterStr)
+    }
+
+    let actDescrFilterStrUpdated = newDescrFilterStr => {
+        setDescrFilterStr(_ => newDescrFilterStr)
     }
 
     let actDiscFilterUpdated = newDiscFilter => {
@@ -331,6 +346,17 @@ let make = React.memoCustomCompareProps(({
         />
     }
 
+    let rndDescrFilter = () => {
+        <TextField 
+            label="Description"
+            size=#small
+            style=ReactDOM.Style.make(~width="300px", ())
+            value=descrFilterStr
+            onChange=evt2str(actDescrFilterStrUpdated)
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters, ())
+        />
+    }
+
     let rndPatternError = () => {
         switch patternFilterErr {
             | None => <></>
@@ -411,6 +437,7 @@ let make = React.memoCustomCompareProps(({
                 {rndIsAxiomFilter()}
                 {rndLabelFilter()}
                 {rndPatternFilter()}
+                {rndDescrFilter()}
                 {rndApplyFiltersBtn()}
                 {rndClearFiltersBtn()}
                 {rndMainMenuBtn()}

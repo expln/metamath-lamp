@@ -203,9 +203,9 @@ let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
             <span 
                 key={"g-" ++ i->Belt_Int.toString} 
                 style=ReactDOM.Style.make(
-                    ~border="1px solid grey", 
-                    ~borderRadius="5px", 
-                    ~paddingLeft="3px", ~paddingRight="3px", 
+                    ~border="1px solid grey",
+                    ~borderRadius="5px",
+                    ~paddingLeft="3px", ~paddingRight="3px",
                     ()
                 )
             >
