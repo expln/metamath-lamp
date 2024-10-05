@@ -162,7 +162,7 @@ let rndDisjGrp = (grp:array<(string,option<string>)>):React.element => {
                         ()
                     )
                 >
-                    {","->React.string}
+                    {" "->React.string}
                 </span>
             )->ignore
         }

@@ -146,7 +146,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step1")
         
-        let st = st->addDisj("x,ph")
+        let st = st->addDisj("x ph")
         let st = st->unifyAll
         assertEditorState(st, "step2")
         assertProof(st, trgtStmtId, "proof1")
@@ -198,7 +198,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = createEditorState(~mmFilePath=setMmPath, ~stopAfter="df-sgn", ~debug, ())
 
         let (st, trgtStmtId) = st->addStmt( ~stmt="|- ( x = A -> if ( x = 0 , 0 , if ( x < 0 , -u 1 , 1 ) ) = if ( A = 0 , 0 , if ( A < 0 , -u 1 , 1 ) ) )", () )
-        let st = st->addDisj("x,A")
+        let st = st->addDisj("x A")
 
         let (st, stmts1) = st->unifyBottomUp(~stmtId=trgtStmtId, ~maxSearchDepth=3, ~allowNewVars=false, ~chooseLabel="ifbieq2d", ())
         let resultsWhenDepth3 = stmts1->getSingleStmtsDto->newStmtsDtoToStr
@@ -554,11 +554,11 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let st = st->updateStmt(st->getStmtId(~label="stmt9", ()), 
             ~jstf="stmt9-opabex2.11 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.41: opabex2", ())
-        let st = st->setDisj("x,y,v,u,A\nx,y,v,u,F,r")
+        let st = st->setDisj("x y v u A\nx y v u F r")
         let st = st->unifyAll
         assertEditorState(st, "step5")
 
-        let st = st->setDisj("x,y,v,u,A,r\nx,y,v,u,F,r")
+        let st = st->setDisj("x y v u A r\nx y v u F r")
         let st = st->unifyAll
         assertEditorState(st, "step6")
 

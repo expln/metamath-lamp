@@ -200,7 +200,7 @@ describe("prepareEditorForUnification", _ => {
     it("detects an error in disjoints declaration", _ => {
         //given
         let st = createEditorState(demo0, ())
-        let st = completeDisjEditMode(st, "t, r \n r, s-")
+        let st = completeDisjEditMode(st, "t r \n r s-")
 
         //when
         let st = verifyEditorState(st)
@@ -214,7 +214,7 @@ describe("prepareEditorForUnification", _ => {
     it("creates wrkCtx when only additional disjoints are defined and there are no errors", _ => {
         //given
         let st = createEditorState(demo0, ())
-        let st = completeDisjEditMode(st, "t, r \n r, s")
+        let st = completeDisjEditMode(st, "t r \n r s")
         let (st,s1) = st->addNewStmt(())
         let st = st->completeContEditMode(s1, "t r s")
 
@@ -696,7 +696,7 @@ describe("findPossibleSubs", _ => {
         let st = createEditorState(findPossibleSubsDisjointsCase, ())
         let (st,s1) = st->addNewStmt(())
         let st = st->completeContEditMode(s1, "x y")
-        let st = completeDisjEditMode(st, "x, y")
+        let st = completeDisjEditMode(st, "x y")
         let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -775,7 +775,7 @@ describe("findPossibleSubs", _ => {
 
         let (st,s1) = st->addNewStmt(())
         let st = st->completeContEditMode(s1, "x y")
-        let st = completeDisjEditMode(st, "x, y")
+        let st = completeDisjEditMode(st, "x y")
         let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -929,7 +929,7 @@ describe("removeUnusedVars", _ => {
         //given
         let st = createEditorState(demo0, ())
         let st = completeVarsEditMode(st,"v1 term a \n v2 term b \n v3 term c \n v4 term d")
-        let st = completeDisjEditMode(st,"a,b,c \n d,c")
+        let st = completeDisjEditMode(st,"a b c \n d c")
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let pr1Id = st.stmts[0].id
@@ -943,7 +943,7 @@ describe("removeUnusedVars", _ => {
 
         //then
         assertEq( st.varsText, "v1 term a\nv3 term c" )
-        assertEq( st.disjText, "a,c" )
+        assertEq( st.disjText, "a c" )
         assertEq( st.stmts[0].cont->contToStr, "|- t + a" )
         assertEq( st.stmts[1].cont->contToStr, "|- r = c" )
     })

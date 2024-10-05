@@ -1,6 +1,6 @@
 {
   "varsText": ".var1 class width",
-  "disjText": "x,y,v,u,F,r\nx,y,v,u,r,width",
+  "disjText": "x y v u F r\nx y v u r width",
   "stmts": [
     {
       "label": "stmt8",

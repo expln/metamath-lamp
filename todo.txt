@@ -1,3 +1,5 @@
+- check how disjoints look in the explorer
+
 - fix a bug: set "auto unify all" = true. Update settings - an error occurs.
 - fix a bug: completed proof should not be shown in macros.
 - simplify actUnify() in MM_cmp_editors.

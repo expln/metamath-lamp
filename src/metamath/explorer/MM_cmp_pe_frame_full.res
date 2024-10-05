@@ -515,7 +515,7 @@ let frameProofDataToEditorStateLocStor = (
     })
     frmDisj->disjForEachArr(disjGrp => {
         disjArr->Js.Array2.push(
-            preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Js.Array2.joinWith(",")
+            preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Js.Array2.joinWith(" ")
         )->ignore
     })
     switch frameProofData.dummyVarDisj {
@@ -523,7 +523,7 @@ let frameProofDataToEditorStateLocStor = (
         | Some(dummyVarDisj) => {
             dummyVarDisj->disjForEachArr(disjGrp => {
                 disjArr->Js.Array2.push(
-                    frameProofData.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(",")
+                    frameProofData.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(" ")
                 )->ignore
             })
         }

@@ -2,7 +2,7 @@ Variables:
 .vvv term tmp-var
 
 Disjoints:
-t,tmp-var
+t tmp-var
 
 
 --- p -------------------------------------------------------------------------------
