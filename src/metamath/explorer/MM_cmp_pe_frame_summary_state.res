@@ -200,7 +200,15 @@ let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
             )->ignore
         }
         disjGrpArr->Js.Array2.push(
-            <span key={"g-" ++ i->Belt_Int.toString} >
+            <span 
+                key={"g-" ++ i->Belt_Int.toString} 
+                style=ReactDOM.Style.make(
+                    ~border="1px solid grey", 
+                    ~borderRadius="5px", 
+                    ~paddingLeft="3px", ~paddingRight="3px", 
+                    ()
+                )
+            >
                 {rndDisjGrp(grp)}
             </span>
         )->ignore
