@@ -301,7 +301,7 @@ let findAsrtParentsWithNewVars = (
         ~onMatchFound = res => {
             applResults->Js_array2.push(res)->ignore
 
-            let foundCnt = applResults->Js.Array2.length
+            let foundCnt = applResults->Array.length
             switch onProgress {
                 | Some(onProgress) => {
                     if (mod(foundCnt, 100) == 0) {
@@ -324,24 +324,24 @@ let findAsrtParentsWithNewVars = (
         switch applResult.err {
             | Some(NoUnifForAsrt(_)) | Some(NoUnifForArg(_)) | Some(NewVarsAreDisabled(_)) => {
                 if (debugLevel != 0) {
-                    foundParents->Js.Array2.push( 
+                    foundParents->Array.push(
                         AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
-                    )->ignore
+                    )
                 }
             }
             | Some(TooManyCombinations(_)) => {
-                foundParents->Js.Array2.push( 
+                foundParents->Array.push(
                     AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
-                )->ignore
+                )
             }
             | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
                 let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
-                applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
+                applResult.newVars->Array.forEachWithIndex((applResNewVar,i) => {
                     let newVarType = applResult.newVarTypes[i]
                     let treeNewVar = tree->ptAddNewVar(newVarType)
                     applNewVarToTreeNewVar->Belt_MutableMapInt.set(applResNewVar,treeNewVar)
                 })
-                let numOfArgs = frame.hyps->Js_array2.length
+                let numOfArgs = frame.hyps->Array.length
                 let args = Expln_utils_common.createArray(numOfArgs)
                 let unprovedFloating = ref(None)
                 let argIdx = ref(0)
@@ -388,11 +388,11 @@ let findAsrtParentsWithNewVars = (
                 }
                 switch err {
                     | None => {
-                        foundParents->Js.Array2.push( Assertion({ args, frame, }) )->ignore
+                        foundParents->Array.push( Assertion({ args, frame, }) )
                     }
                     | Some(err) => {
                         if (debugLevel != 0) {
-                            foundParents->Js.Array2.push( AssertionWithErr({ args, frame, err }) )->ignore
+                            foundParents->Array.push( AssertionWithErr({ args, frame, err }) )
                         }
                     }
                 }
@@ -408,7 +408,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allow
         let parents = findAsrtParentsWithNewVars(
             ~tree, 
             ~expr, 
-            ~args=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr),
+            ~args=tree->ptGetRootStmts->Array.map(stmt => stmt.expr),
             ~exactOrderOfArgs=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
@@ -430,7 +430,7 @@ let getStatementsFromJustification = (
     ~jstf: jstf,
 ):option<array<expr>> => {
     let getStmtByLabel = label => {
-        switch tree->ptGetRootStmts->Js.Array2.find(stmt => stmt.label == label) {
+        switch tree->ptGetRootStmts->Array.find(stmt => stmt.label == label) {
             | Some(stmt) => Some(stmt.expr)
             | None => {
                 switch tree->ptGetHypByLabel(label) {
@@ -444,7 +444,7 @@ let getStatementsFromJustification = (
         ->Js_array2.map(getStmtByLabel)
         ->Js_array2.filter(Belt_Option.isSome)
         ->Js_array2.map(Belt_Option.getExn)
-    if (foundStmts->Js_array2.length == jstf.args->Js.Array2.length) {
+    if (foundStmts->Js_array2.length == jstf.args->Array.length) {
         Some(foundStmts)
     } else {
         None
@@ -547,7 +547,7 @@ let proveBottomUp = (
                         progressState.contents = progressTrackerMake(
                             ~step=0.01,
                             ~onProgress= pct => {
-                                let pctStr = (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
+                                let pctStr = (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString
                                 onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
                             }, 
                             ()
@@ -569,7 +569,7 @@ let proveBottomUp = (
                 | None => {
                     let newDist = curDist + 1
                     if (newDist <= maxSearchDepth) {
-                        getParents(curExpr, curDist, onProgressP.contents)->Js.Array2.forEach(src => {
+                        getParents(curExpr, curDist, onProgressP.contents)->Array.forEach(src => {
                             if (!srcIsBackRef(curExpr, src)) {
                                 curNode->pnAddParent(src, true, false)
                                 switch src {
@@ -692,7 +692,7 @@ let proveStmtBottomUp = (
                     | No => parents
                     | LessEq | Less => {
                         let exprLen = expr->Js_array2.length
-                        parents->Js.Array2.filter(parent => {
+                        parents->Array.filter(parent => {
                             switch parent {
                                 | VarType | Hypothesis(_) | AssertionWithErr(_) => true
                                 | Assertion({args, frame}) => {
@@ -720,8 +720,8 @@ let proveStmtBottomUp = (
                 let parents = switch paramsI.matches {
                     | None => parents
                     | Some(matchers) => {
-                        parents->Js.Array2.filter(parent => {
-                            matchers->Js.Array2.some(matcher => {
+                        parents->Array.filter(parent => {
+                            matchers->Array.some(matcher => {
                                 exprSrcMatches(
                                     ~expr,
                                     ~src=parent,
@@ -782,7 +782,7 @@ let makeExprToStr = (ctx, ctxMaxVar) => {
                 "&" ++ i->Belt.Int.toString
             }
         }
-        Some(expr => expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" "))
+        Some(expr => expr->Js_array2.map(intToSym)->Array.joinWith(" "))
     } else {
         None
     }
@@ -832,7 +832,7 @@ let proveFloatings = (
     )
     let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
 
-    floatingsToProve->Js.Array2.forEach(expr => {
+    floatingsToProve->Array.forEach(expr => {
         proveFloating( 
             ~tree, 
             ~node=tree->ptGetNode(expr), 
@@ -880,7 +880,7 @@ let proveSyntaxTypes = (
         let lastType = ref(syntaxTypes[0])
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs[ei]
-            let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
+            let node = ref(tree->ptGetNode([lastType.contents]->Array.concat(expr)))
             proveFloating( 
                 ~tree, 
                 ~node=node.contents, 
@@ -892,7 +892,7 @@ let proveSyntaxTypes = (
                 let typ = syntaxTypes[ti.contents]
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
-                    node := tree->ptGetNode([typ]->Js.Array2.concat(expr))
+                    node := tree->ptGetNode([typ]->Array.concat(expr))
                     proveFloating( 
                         ~tree, 
                         ~node=node.contents, 
@@ -983,7 +983,7 @@ let unifyAll = (
     let rootProvables = rootStmts->Js_array2.filter(stmt => !stmt.isHyp)
     let numOfStmts = rootProvables->Js_array2.length
     let maxStmtIdx = numOfStmts - 1
-    rootProvables->Js.Array2.forEachi((stmt,stmtIdx) => {
+    rootProvables->Array.forEachWithIndex((stmt,stmtIdx) => {
         proveStmt(
             ~tree, 
             ~expr=stmt.expr, 
@@ -1010,7 +1010,7 @@ let unifyAll = (
 }
 
 let getOrderedSubarray = (arr:array<string>, start:int, end:int):array<string> => {
-    arr->Js.Array2.slice(~start, ~end_=end)->Js.Array2.sortInPlace
+    arr->Array.slice(~start, ~end_=end)->Array.sortInPlace
 }
 
 let compareUnorderedSubArrays = (arr1:array<string>, arr2:array<string>, start:int, end:int):bool => {
@@ -1030,30 +1030,30 @@ let makeParenCnt = (
         canBeLastMax,
     } = ctx->ctxGetOptimizedConstsOrder(~parens)
     let allConstsActual = ctx->getAllConsts
-    if (allConsts->Js.Array2.length != allConstsActual->Js.Array2.length) {
+    if (allConsts->Array.length != allConstsActual->Array.length) {
         raise(MmException({msg:`allConsts.length != allConstsActual.length`}))
     }
     if (parenMin < 0) {
-        // let allConstsStr = allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin)->Js.Array2.joinWith(" ")
-        // Js.Console.log2(`allConsts:`, allConstsStr)
+        // let allConstsStr = allConsts->Array.slice(~start=0, ~end=-parenMin)->Array.joinWith(" ")
+        // Console.log2(`allConsts:`, allConstsStr)
         if (
-            allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin) 
+            allConsts->Array.slice(~start=0, ~end=-parenMin)
             != 
-            allConstsActual->Js.Array2.slice(~start=0, ~end_=-parenMin)
+            allConstsActual->Array.slice(~start=0, ~end=-parenMin)
         ) {
             raise(MmException({msg:`allConsts.parens != allConstsActual.parens`}))
         }
     }
     if (canBeFirstMin <= canBeFirstMax) {
-        // let canBeFirstStr = allConsts->Js.Array2.slice(~start=(-canBeFirstMax-1), ~end_=-canBeFirstMin)->Js.Array2.joinWith(" ")
-        // Js.Console.log2(`canBeFirst:`, canBeFirstStr)
+        // let canBeFirstStr = allConsts->Array.slice(~start=(-canBeFirstMax-1), ~end=-canBeFirstMin)->Array.joinWith(" ")
+        // Console.log2(`canBeFirst:`, canBeFirstStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeFirstMax-1), -canBeFirstMin)) {
             raise(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
         }
     }
     if (canBeLastMin <= canBeLastMax) {
-        // let canBeLastStr = allConsts->Js.Array2.slice(~start=(-canBeLastMax-1), ~end_=-canBeLastMin)->Js.Array2.joinWith(" ")
-        // Js.Console.log2(`canBeLast:`, canBeLastStr)
+        // let canBeLastStr = allConsts->Array.slice(~start=(-canBeLastMax-1), ~end=-canBeLastMin)->Array.joinWith(" ")
+        // Console.log2(`canBeLast:`, canBeLastStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeLastMax-1), -canBeLastMin)) {
             raise(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))
         }

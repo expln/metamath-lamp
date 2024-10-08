@@ -128,7 +128,7 @@ describe("iterateCombinations", _ => {
         iterateCombinations(
             ~numOfStmts=3,
             ~numOfHyps=2,
-            ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Js.Math.abs_int, 2) == 1,
+            ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Math.Int.abs, 2) == 1,
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
@@ -193,7 +193,7 @@ let testApplyAssertions = (
         let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
 
         workCtx->applySingleStmt(Var({symbols:workVarNames}), ())
-        workVarHypLabels->Js.Array2.forEachi((label,i) => {
+        workVarHypLabels->Array.forEachWithIndex((label,i) => {
             workCtx->applySingleStmt(Floating({label, expr:[workVarTypes[i], workVarNames[i]]}), ())
         })
         let args = []
@@ -206,10 +206,10 @@ let testApplyAssertions = (
                     ~subs=res.subs,
                     ~createWorkVar=_=>raise(MmException({msg:`Cannot create work var in testApplyAssertions[1]`}))
                 )
-                switch statements->Js.Array2.find(({expr}) => exprEq(expr,argExpr)) {
+                switch statements->Array.find(({expr}) => exprEq(expr,argExpr)) {
                     | Some({label}) => {
-                        args->Js_array2.push(`[${label}]`)->ignore
-                        argLabels->Js_array2.push(label)->ignore
+                        args->Array.push(`[${label}]`)
+                        argLabels->Array.push(label)
                     }
                     | None => {
                         let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
@@ -238,12 +238,12 @@ let testApplyAssertions = (
         let workVarsStr = if (workVarHypLabels->Js_array2.length == 0) {
             ""
         } else {
-            "    " ++ workVarHypLabels->Js.Array2.mapi((label,i) => {
+            "    " ++ workVarHypLabels->Array.mapWithIndex((label,i) => {
                 `${label} ${workVarTypes[i]} ${workVarNames[i]}`
-            })->Js_array2.joinWith("\n    ")
+            })->Array.joinWith("\n    ")
         }
-        let argsStr = if (args->Js.Array2.length > 0) {
-            "    " ++ args->Js_array2.joinWith("\n    ")
+        let argsStr = if (args->Array.length > 0) {
+            "    " ++ args->Array.joinWith("\n    ")
         } else {
             ""
         }
@@ -290,11 +290,11 @@ let testApplyAssertions = (
                     actualResults->Belt_MutableMapString.set(res.frame.label, [printApplyAssertionResult(workCtx, statements, res)])
                 }
                 | Some(arr) => {
-                    arr->Js.Array2.push(printApplyAssertionResult(workCtx, statements, res))->ignore
+                    arr->Array.push(printApplyAssertionResult(workCtx, statements, res))
                 }
             }
-            // Js.Console.log("onMatchFound ------------------------------------------------------------------")
-            // Js.Console.log(printApplyAssertionResult(res))
+            // Console.log("onMatchFound ------------------------------------------------------------------")
+            // Console.log(printApplyAssertionResult(res))
             Continue
         },
         ()
@@ -311,7 +311,7 @@ let testApplyAssertions = (
         })
         ->Js_array2.joinWith("\n")
     let expectedResultStr = Expln_utils_files.readStringFromFile(fileWithExpectedResult)
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+        ->String.replaceRegExp(%re("/\r/g"), "")
     if (actualResultsStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
         Expln_utils_files.writeStringToFile(actualResultsStr, fileWithActualResult)

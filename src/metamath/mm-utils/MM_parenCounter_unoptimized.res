@@ -36,8 +36,8 @@ let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
             parens->Js_array2.push({code: closeCode, isOpen: false, opposite: openCode})->ignore
         }
         let min = parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses[0])
-        if (checkParensOptimized && Js.Math.abs_int(min) != parenLen) {
-            Js.Console.log("Warning: parentheses are not optimized (this may slow down the unification process).")
+        if (checkParensOptimized && Math.Int.abs(min) != parenLen) {
+            Console.log("Warning: parentheses are not optimized (this may slow down the unification process).")
         }
         {
             min,

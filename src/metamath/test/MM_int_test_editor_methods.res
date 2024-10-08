@@ -146,8 +146,8 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)
     let st = st->duplicateCheckedStmt(false)
-    if (st.checkedStmtIds->Js.Array2.length != 1) {
-        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
+    if (st.checkedStmtIds->Array.length != 1) {
+        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Array.length != 1`}))
     } else {
         let (newStmtId,_) = st.checkedStmtIds[0]
         let st = st->uncheckAllStmts
@@ -194,7 +194,7 @@ let updateStmt = (
                             ...stmt, 
                             cont: stmt.cont
                                     ->contToStr
-                                    ->Js.String2.replace(contReplaceWhat, contReplaceWith)
+                                    ->String.replace(contReplaceWhat, contReplaceWith)
                                     ->strToCont(_, ())
                         }
                     }
@@ -277,7 +277,7 @@ let getStmt = (
     }
     let predicate = switch contains {
         | None => predicate
-        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->Js.String2.includes(contains)
+        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->String.includes(contains)
     }
     let predicate = switch label {
         | None => predicate
@@ -322,8 +322,8 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
                 wrkCtx->ctxStrToIntsExn(replaceWith),
                 useMatching
-            )->Belt.Result.getExn->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
-            if (wrkSubs->Js.Array2.length != 1) {
+            )->Belt.Result.getExn->Array.filter(subs => subs.err->Belt_Option.isNone)
+            if (wrkSubs->Array.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {
                 st->applySubstitutionForEditor(wrkSubs[0])
@@ -338,7 +338,7 @@ let unifyAll = (st):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
-            let rootStmts = st->getRootStmtsForUnification->Js.Array2.map(userStmtToRootStmt)
+            let rootStmts = st->getRootStmtsForUnification->Array.map(userStmtToRootStmt)
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
@@ -424,11 +424,11 @@ let unifyBottomUp = (
                     }
                 },
                 ~combCntMax,
-                //~onProgress = msg => Js.Console.log(msg),
+                //~onProgress = msg => Console.log(msg),
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
-            let rootExprToLabel = st.stmts->Js.Array2.map(userStmtToRootStmt)
+            let rootExprToLabel = st.stmts->Array.map(userStmtToRootStmt)
                 ->Js_array2.map(stmt => (stmt.expr,stmt.label))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
@@ -474,21 +474,21 @@ let getSingleStmtsDto = (stmtsDtoArr:array<stmtsDto>):stmtsDto => {
 }
 
 let removeAllJstf = (st:editorState):editorState => {
-    let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
+    let st = {...st, stmts: st.stmts->Array.map(stmt => {...stmt, jstfText:""})}
     st->verifyEditorState
 }
 
 let addDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
     disjLines->Js_array2.push(disj)->ignore
-    let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
+    let st = st->completeDisjEditMode( disjLines->Array.joinWith("\n") )
     st->verifyEditorState
 }
 
 let removeDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
     let st = st->completeDisjEditMode(
-        disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
+        disjLines->Array.filter(line => line != disj)->Array.joinWith("\n")
     )
     st->verifyEditorState
 }

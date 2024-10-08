@@ -215,7 +215,7 @@ type unifSubs = Belt_HashMapString.t<array<string>>
 
 let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> => {
     @warning("-8")
-    switch expr.children->Js.Array2.length {
+    switch expr.children->Array.length {
         | 1 => {
             switch expr.children[0] {
                 | Subtree(_) => None
@@ -300,10 +300,10 @@ let rec unify = (
                         continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                     }
                     | None => {
-                        if (a.children->Js.Array2.length != b.children->Js.Array2.length) {
+                        if (a.children->Array.length != b.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = a.children->Js.Array2.length-1
+                            let maxI = a.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
                                 switch a.children[i.contents] {
@@ -357,7 +357,7 @@ let syntaxTreeGetIdsOfAllChildSymbols = (tree:childNode):Belt_SetInt.t => {
     tree->syntaxTreeForEachNode(node => {
         switch node {
             | Subtree(_) => ()
-            | Symbol({id}) => res->Js.Array2.push(id)->ignore
+            | Symbol({id}) => res->Array.push(id)
         }
         None
     })->ignore
@@ -369,11 +369,11 @@ let syntaxTreeToText = (node:childNode):string => {
     node->syntaxTreeForEachNode(node => {
         switch node {
             | Subtree(_) => ()
-            | Symbol({sym}) => res->Js.Array2.push(sym)->ignore
+            | Symbol({sym}) => res->Array.push(sym)
         }
         None
     })->ignore
-    res->Js.Array2.joinWith(" ")
+    res->Array.joinWith(" ")
 }
 
 let syntaxTreeGetNumberOfSymbols = (node:childNode):int => {

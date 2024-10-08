@@ -135,7 +135,7 @@ let validateTopOfStackMatchesFrame = (stack:proofStack, frame, subs:array<expr>)
     })
 }
 
-let charCode = (str:string,pos:int):int => str->Js.String2.codePointAt(pos)->Belt_Option.getExn
+let charCode = (str:string,pos:int):int => str->String.codePointAt(pos)->Belt_Option.getExn
 let charToInt = ch => charCode(ch, 0)
 let zCode = charToInt("Z")
 let aCode = charToInt("A")

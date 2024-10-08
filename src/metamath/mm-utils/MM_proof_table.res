@@ -46,7 +46,7 @@ let exprSourceToLabelStr = src => {
 }
 
 let maxLength = (arr:array<string>):int => {
-    arr->Js.Array2.map(Js_string2.length)->Js.Array2.reduce(Js_math.max_int, 0)
+    arr->Array.map(Js_string2.length)->Array.reduce(0, Math.Int.max)
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
@@ -75,7 +75,7 @@ let proofTableToStr = (ctx,tbl,title):string => {
         ++ rightPad(~content="", ~char="-", ~totalLen=maxLength(proofTableArrStr))
 }
 
-let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
+let proofTablePrint = (ctx,tbl,title):unit => Console.log(proofTableToStr(ctx,tbl,title))
 
 let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReuse:int=>unit) => {
     let saved = Belt_HashSetInt.make(~hintSize=64)
@@ -126,7 +126,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     if (tblLen <= rootIdx) {
         raise(MmException({msg:`tblLen <= rootIdx`}))
     }
-    let mandHypLen = mandHyps->Js.Array2.length
+    let mandHypLen = mandHyps->Array.length
     let mandHypLabelToInt = Belt_HashMapString.fromArray(
         mandHyps->Js_array2.mapi(({label}, i) => (label, i+1))
     )
@@ -139,8 +139,8 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
                 switch labelToIntMap->Belt_HashMapString.get(label) {
                     | Some(i) => i
                     | None => {
-                        labels->Js.Array2.push(label)->ignore
-                        let res = mandHypLen + labels->Js.Array2.length
+                        labels->Array.push(label)
+                        let res = mandHypLen + labels->Array.length
                         labelToIntMap->Belt_HashMapString.set(label, res)
                         res
                     }
@@ -166,7 +166,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
             proofSteps->Js_array2.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))->ignore
         }
     )
-    let labelsLastIdx = mandHypLen + labels->Js.Array2.length
+    let labelsLastIdx = mandHypLen + labels->Array.length
     Compressed({
         labels,
         compressedProofBlock: proofSteps->Js_array2.map(i => {
@@ -204,7 +204,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
             raise(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
         }
         if (mergeSameRows) {
-            switch tbl->Js.Array2.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
+            switch tbl->Array.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
                 | -1 => saveExprToTblWithoutChecks(nodeId,expr,proof)
                 | idx => nodeIdToIdx->Belt_HashMapInt.set(nodeId, idx)
             }

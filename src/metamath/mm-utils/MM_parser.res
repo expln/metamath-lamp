@@ -38,7 +38,7 @@ let textAt = (text,i) => {
     let textLength = text->Js_string2.length
     let lengthToShow = 20
     let ellipsis = if (i+lengthToShow < textLength) {"..."} else {""}
-    "'" ++ text->Js.String2.substrAtMost(~from=i, ~length=lengthToShow) ++ ellipsis ++ "'"
+    "'" ++ text->String.substrAtMost(~from=i, ~length=lengthToShow) ++ ellipsis ++ "'"
 }
 
 let parseMmFile = (
@@ -243,7 +243,7 @@ let parseMmFile = (
                                             None
                                         } else {
                                             Some(Uncompressed({
-                                                labels:[firstProofToken]->Js.Array2.concat(proofLabels)
+                                                labels:[firstProofToken]->Array.concat(proofLabels)
                                             }))
                                         },
                                 })
@@ -368,7 +368,7 @@ let stmtToStr: mmAstNode => string = node => {
 }
 
 let stmtToStrRec: mmAstNode => array<string> = stmt => {
-    let makePrefix = level => "    "->Js.String2.repeat(level)
+    let makePrefix = level => "    "->String.repeat(level)
     let ((_,result),_) = traverseAst(
         (ref(0),[]),
         stmt,

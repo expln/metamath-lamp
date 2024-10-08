@@ -54,10 +54,10 @@ type frms = {
 let subsClone = subs => {
     {
         size: subs.size,
-        begins: subs.begins->Js.Array2.copy,
-        ends: subs.ends->Js.Array2.copy,
-        exprs: subs.exprs->Js.Array2.copy,
-        isDefined: subs.isDefined->Js.Array2.copy,
+        begins: subs.begins->Array.copy,
+        ends: subs.ends->Array.copy,
+        exprs: subs.exprs->Array.copy,
+        isDefined: subs.isDefined->Array.copy,
     }
 }
 
@@ -373,7 +373,7 @@ let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:e
                 grp.exprEndIdx = constParts.begins[grp.leftConstPartIdx+1]-1
             }
         })
-        varGroups->Js.Array2.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
+        varGroups->Array.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
     }
 }
 
@@ -500,7 +500,7 @@ let iterateSubstitutions = (
                         ~idxToMatch=0,
                         ~parenCnt,
                         ~consumer = constParts => {
-                            if (varGroups->Js.Array2.length > 0) {
+                            if (varGroups->Array.length > 0) {
                                 initVarGroups(~varGroups, ~constParts, ~expr)
                                 iterateVarGroups(
                                     ~expr,
@@ -534,7 +534,7 @@ let createSubs = (~numOfVars:int) => {
 }
 
 let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
-    let hypsE = frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)
+    let hypsE = frame.hyps->Array.filter(hyp => hyp.typ == E)
 
     let frmConstPartsArr:array<constParts> = []
     let constPartsArr:array<constParts> = []
@@ -544,23 +544,23 @@ let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
         let frmConstParts = createConstParts(hyp.expr)
         let constParts = createMatchingConstParts(frmConstParts)
         let varGroups = createVarGroups(~frmExpr=hyp.expr, ~frmConstParts)
-        frmConstPartsArr->Js.Array2.push(frmConstParts)->ignore
-        constPartsArr->Js.Array2.push(constParts)->ignore
-        varGroupsArr->Js.Array2.push(varGroups)->ignore
+        frmConstPartsArr->Array.push(frmConstParts)
+        constPartsArr->Array.push(constParts)
+        varGroupsArr->Array.push(varGroups)
     })
 
     let frmConstParts = createConstParts(frame.asrt)
     let constParts = createMatchingConstParts(frmConstParts)
     let varGroups = createVarGroups(~frmExpr=frame.asrt, ~frmConstParts)
-    frmConstPartsArr->Js.Array2.push(frmConstParts)->ignore
-    constPartsArr->Js.Array2.push(constParts)->ignore
-    varGroupsArr->Js.Array2.push(varGroups)->ignore
+    frmConstPartsArr->Array.push(frmConstParts)->ignore
+    constPartsArr->Array.push(constParts)
+    varGroupsArr->Array.push(varGroups)
 
     let subs = createSubs(~numOfVars=frame.numOfVars)
     {
         frame:frame,
         hypsE,
-        numOfHypsE: hypsE->Js.Array2.length,
+        numOfHypsE: hypsE->Array.length,
         frmConstParts:frmConstPartsArr,
         constParts:constPartsArr,
         varGroups:varGroupsArr,
@@ -574,7 +574,7 @@ let prepareFrmSubsData = (
 ):frms => {
     let frmCmp = comparatorBy(frm => frm.hypsE->Js_array2.length)
         ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
-    let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Js_array2.sortInPlaceWith(frmCmp)
+    let all = ctx->getAllFramesArr->Array.map(prepareFrmSubsDataForFrame)->Array.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)
     all->Js_array2.forEach(frm => {
@@ -595,8 +595,8 @@ let prepareFrmSubsData = (
 let sortFrames = (frms:frms, frames:array<string>):array<string> => {
     let framesSet = frames->Belt_HashSetString.fromArray
     frms.all
-        ->Js.Array2.filter(frm => framesSet->Belt_HashSetString.has(frm.frame.label))
-        ->Js.Array2.map(frm => frm.frame.label)
+        ->Array.filter(frm => framesSet->Belt_HashSetString.has(frm.frame.label))
+        ->Array.map(frm => frm.frame.label)
 }
 
 let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
@@ -714,7 +714,7 @@ let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):ar
     switch typ {
         | None => {
             switch label {
-                | None => frms.all->Js.Array2.copy
+                | None => frms.all->Array.copy
                 | Some(label) => {
                     switch frms.byLabel ->Belt_HashMapString.get(label) {
                         | None => []

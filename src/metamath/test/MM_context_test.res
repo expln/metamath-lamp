@@ -101,7 +101,7 @@ describe("moveConstsToBegin", _ => {
         let ctx = ctx->ctxOptimizeForProver(~parens=constsToMove, ())
 
         //then
-        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
+        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Array.sortInPlace, [-1,-2,-3,-4,-5,-6])
     })
 
     it("doesn't fail if variables or unrecognized symbols are provided", _ => {
@@ -116,7 +116,7 @@ describe("moveConstsToBegin", _ => {
         let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ t ] { } abc yyy", ())
 
         //then
-        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
+        assertEq(ctx->ctxStrToIntsExn(constsToMove)->Array.sortInPlace, [-1,-2,-3,-4,-5,-6])
     })
 
     it("doesn't break var types", _ => {

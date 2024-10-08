@@ -163,7 +163,7 @@ let createProofTable = (
             let essentialArgs = []
             (ctx->Belt_Option.getExn->getFrameExn(label)).hyps->Js_array2.forEachi((hyp,i) => {
                 if (hyp.typ == E) {
-                    essentialArgs->Js.Array2.push(args[i])->ignore
+                    essentialArgs->Array.push(args[i])
                 }
             })
             essentialArgs
@@ -203,7 +203,7 @@ let createProofTable = (
                     raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [1].`}))
                 | Some(Hypothesis(_)) => None
                 | Some(Assertion({args,label})) => {
-                    Some(filterArgs(args,label)->Js.Array2.map(idx => tree.nodes[idx]))
+                    Some(filterArgs(args,label)->Array.map(idx => tree.nodes[idx]))
                 }
             }
         },
