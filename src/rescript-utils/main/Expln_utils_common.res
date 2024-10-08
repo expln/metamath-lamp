@@ -10,7 +10,7 @@ let arrForEach = (arr: array<'a>, consumer: 'a => option<'b>):option<'b> => {
     let i = ref(0)
     let res = ref(None)
     while (i.contents < len && res.contents->Belt_Option.isNone) {
-        res.contents = consumer(arr[i.contents])
+        res.contents = consumer(arr->Array.getUnsafe(i.contents))
         i.contents = i.contents + 1
     }
     res.contents
@@ -23,7 +23,7 @@ let arrJoin = (arr:array<'a>, sep:'a):array<'a> => {
         let res = createArray(arrLen*2-1)
         let maxI = arrLen - 1
         for i in 0 to maxI {
-            res[2*i] = arr[i]
+            res[2*i] = arr->Array.getUnsafe(i)
             if (i != maxI) {
                 res[2*i+1] = sep
             }
@@ -39,7 +39,7 @@ let copySubArray = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx
     let dstLen = dst->Js_array2.length
     let sMax = Js_math.min_int(srcLen - 1, srcFromIdx + len - 1)
     while (s.contents <= sMax && d.contents < dstLen) {
-        dst[d.contents] = src[s.contents]
+        dst[d.contents] = src->Array.getUnsafe(s.contents)
         d.contents = d.contents + 1
         s.contents = s.contents + 1
     }
@@ -50,7 +50,7 @@ let toIntCmp: (('a,'a)=>float) => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
     ->Js_math.floor_int
 let intCmp = (a:int, b:int) => if a < b {-1} else if a == b {0} else {1}
 let floatCmp = (a:float ,b:float) => if a < b {-1} else if a == b {0} else {1}
-let strCmp = Js.String2.localeCompare->toIntCmp
+let strCmp = String.localeCompare->toIntCmp
 let strCmpI = (s1,s2) => strCmp(s1->Js_string2.toLocaleUpperCase ,s2->Js_string2.toLocaleUpperCase)
 let cmpRev = cmp => (a,b) => -cmp(a,b)
 
@@ -108,7 +108,7 @@ let hashArrInt: array<int> => int = %raw(`
     arr => {
         let hash = 0;
         for (let i = 0; i < arr.length; i++) {
-            hash = ( ( hash << 5 ) - hash ) + arr[i];
+            hash = ( ( hash << 5 ) - hash ) + arr->Array.getUnsafe(i);
             hash |= 0;  // Convert to 32-bit integer
         }
         return hash;
@@ -119,7 +119,7 @@ let hashArrIntFromTo: (array<int>, int, int) => int = %raw(`
     (arr,from,to) => {
         let hash = 0;
         for (let i = from; i <= to; i++) {
-            hash = ( ( hash << 5 ) - hash ) + arr[i];
+            hash = ( ( hash << 5 ) - hash ) + arr->Array.getUnsafe(i);
             hash |= 0;  // Convert to 32-bit integer
         }
         return hash;

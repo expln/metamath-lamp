@@ -8,7 +8,7 @@ let useClientSizeObserver = (ref:React.ref<Js.Nullable.t<Dom.element>>, onClient
                 let observer = makeResizeObserver(mutations => {
                     // Js.Console.log2("mutations", mutations)
                     if (mutations->Js.Array2.length != 0) {
-                        let target = mutations[mutations->Js.Array2.length - 1]["target"]
+                        let target = (mutations->Array.getUnsafe(mutations->Js.Array2.length - 1))["target"]
                         let clientWidth = target["clientWidth"]
                         let clientHeight = target["clientHeight"]
                         // Js.Console.log2("clientWidth", clientWidth)

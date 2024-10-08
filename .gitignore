@@ -25,7 +25,7 @@ yarn-error.log*
 /*.iml
 /lib/bs
 /.merlin
-/src/**/*.bs.js
+/src/**/*.res.js
 /.bsb.lock
 /src/tmp/
 /dist/

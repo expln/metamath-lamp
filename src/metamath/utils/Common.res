@@ -151,7 +151,7 @@ let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
 
 let arrayQueuePop = (q:arrayQueue<'a>):option<'a> => {
     if (q.begin <= q.end) {
-        let res = q.data[q.begin]
+        let res = q.data->Array.getUnsafe(q.begin)
         q.begin = q.begin + 1
         Some(res)
     } else {
