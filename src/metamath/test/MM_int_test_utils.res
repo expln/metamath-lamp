@@ -42,13 +42,13 @@ let editorStateToStr = st => {
     lines->Js_array2.push("Disjoints:")->ignore
     lines->Js_array2.push(st.disjText)->ignore
     lines->Js_array2.push("")->ignore
-    st.stmts->Js.Array2.forEach(stmt => {
-        lines->Js_array2.push("")->ignore
-        lines->Js_array2.push(
+    st.stmts->Array.forEach(stmt => {
+        lines->Array.push("")
+        lines->Array.push(
             "--- "
             ++ (stmt->userStmtTypeToStr)
             ++ " -------------------------------------------------------------------------------"
-        )->ignore
+        )
         lines->Js_array2.push(stmt.label)->ignore
         lines->Js_array2.push(stmt.jstfText)->ignore
         lines->Js_array2.push(contToStr(stmt.cont))->ignore
@@ -78,13 +78,13 @@ let editorStateToStr = st => {
             | Some(msg) => lines->Js_array2.push("Unif Error: " ++ msg)->ignore
         }
     })
-    lines->Js.Array2.joinWith("\n")
+    lines->Array.joinWith("\n")
 }
 
 let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
-    let disjStr = newStmtsDto.newDisjStr->Js.Array2.joinWith("\n")
+    let disjStr = newStmtsDto.newDisjStr->Array.joinWith("\n")
     let stmtsStr = newStmtsDto.stmts
-        ->Js.Array2.map(stmt => {
+        ->Array.map(stmt => {
             [
                 stmt.label,
                 switch stmt.jstf {
@@ -93,26 +93,26 @@ let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
                 },
                 if (stmt.isProved) {"\u2713"} else {" "},
                 stmt.exprStr
-            ]->Js.Array2.joinWith(" ")
-        })->Js.Array2.joinWith("\n")
+            ]->Array.joinWith(" ")
+        })->Array.joinWith("\n")
     disjStr ++ "\n" ++ stmtsStr
 }
 
 let readTestFileToString = (fileName:string):string => {
     Expln_utils_files.readStringFromFile(curTestDataDir.contents ++ "/" ++ fileName ++ ".txt")
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+        ->String.replaceRegExp(%re("/\r/g"), "")
 }
 
 let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
-        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
+        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->String.replaceRegExp(%re("/\r/g"), "")
     } catch {
-        | Js.Exn.Error(exn) => {
+        | Exn.Error(exn) => {
             if (
-                exn->Js.Exn.message
+                exn->Exn.message
                     ->Belt_Option.getWithDefault("")
-                    ->Js_string2.includes("no such file or directory")
+                    ->String.includes("no such file or directory")
             ) {
                 ""
             } else {
@@ -155,7 +155,7 @@ let assertStmtsDto = (stmtsDto, expectedStrFileName:string) => {
 let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
     let actualStr = switch st->generateCompressedProof(stmtId) {
         | None => "no proof generated"
-        | Some((actualStr, _, _)) => actualStr->Js.String2.replaceByRe(%re("/\r/g"), "")
+        | Some((actualStr, _, _)) => actualStr->String.replaceRegExp(%re("/\r/g"), "")
     }
     assertStrEqFile(actualStr, expectedStrFileName)
 }
@@ -239,7 +239,7 @@ let testProgressTrackerMake = (
         ~step, 
         ~maxCnt,
         ~onProgress = pct => {
-            Js.Console.log2(Js.Date.make()->Js.Date.toISOString, pct->floatToPctStr)
+            Console.log2(Js.Date.make()->Js.Date.toISOString, pct->floatToPctStr)
         }, 
         ()
     )

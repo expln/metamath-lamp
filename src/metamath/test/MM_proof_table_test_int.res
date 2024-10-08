@@ -33,7 +33,7 @@ let compareCompressedProofsAfterRenumbering = (
 
     let minLabelIdx = mandHypsNum + 1
     let maxLabelIdx = mandHypsNum + actualLabels->Js_array2.length
-    let newBlock = actualBlock->compressedProofBlockToArray->Js.Array2.map(oldNumStr => {
+    let newBlock = actualBlock->compressedProofBlockToArray->Array.map(oldNumStr => {
         if (oldNumStr == "Z") {
             "Z"
         } else {
@@ -45,22 +45,22 @@ let compareCompressedProofsAfterRenumbering = (
             }
             intToCompressedProofStr(newNum)
         }
-    })->Js.Array2.joinWith("")
+    })->Array.joinWith("")
 
     if (expectedBlock != newBlock) {
-        Js.Console.log("-------------------------------------------------------------------------------------------")
-        Js.Console.log2("mandHypsNum", mandHypsNum)
-        Js.Console.log("actualLabels:")
-        actualLabels->Js.Array2.forEachi((label,i) => Js.Console.log(`${(i+1)->Belt_Int.toString}:${label}`))
-        Js.Console.log("actualBlock:")
-        actualBlock->compressedProofBlockToArray->Js.Array2.map(numStr => {
+        Console.log("-------------------------------------------------------------------------------------------")
+        Console.log2("mandHypsNum", mandHypsNum)
+        Console.log("actualLabels:")
+        actualLabels->Array.forEachWithIndex((label,i) => Console.log(`${(i+1)->Belt_Int.toString}:${label}`))
+        Console.log("actualBlock:")
+        actualBlock->compressedProofBlockToArray->Array.map(numStr => {
             if (numStr == "Z") {
                 "Z"
             } else {
                 compressedProofStrToInt(numStr)->Belt.Int.toString
             }
-        })->Js.Array2.joinWith(" ")->Js.Console.log
-        Js.Console.log("-------------------------------------------------------------------------------------------")
+        })->Array.joinWith(" ")->Console.log
+        Console.log("-------------------------------------------------------------------------------------------")
         false
     } else {
         true
@@ -79,7 +79,7 @@ let proofEq = (~expectedProof:proof, ~actualProof:proof, ~getMandHypsNum:()=>int
             switch actualProof {
                 | Uncompressed(_) => false
                 | Compressed({labels:actualLabels, compressedProofBlock:actualBlock}) => {
-                    if (expectedLabels->Js.Array2.length != actualLabels->Js.Array2.length) {
+                    if (expectedLabels->Array.length != actualLabels->Array.length) {
                         false
                     } else if (expectedLabels == actualLabels) {
                         expectedBlock == actualBlock
@@ -135,11 +135,11 @@ describe("createProof", _ => {
                         !proofEq(
                             ~expectedProof, 
                             ~actualProof, 
-                            ~getMandHypsNum = () => getMandHyps(ctx, expr, ())->Js.Array2.length
+                            ~getMandHypsNum = () => getMandHyps(ctx, expr, ())->Array.length
                         )
                     ) {
-                        Js.Console.log2("expected", expectedProof)
-                        Js.Console.log2("actual", actualProof)
+                        Console.log2("expected", expectedProof)
+                        Console.log2("actual", actualProof)
                         failMsg(`Proof comparison failed for ${label}`)
                     }
 
