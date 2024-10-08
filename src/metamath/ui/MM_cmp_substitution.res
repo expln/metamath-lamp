@@ -203,7 +203,7 @@ let make = (
                         switch state.checkedResultIdx {
                             | Some(idx) => {
                                 if (0 <= idx && idx < results->Js.Array2.length) {
-                                    onSubstitutionSelected(results[idx])
+                                    onSubstitutionSelected(results->Array.getUnsafe(idx))
                                 }
                             }
                             | None => ()

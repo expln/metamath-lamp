@@ -18,8 +18,8 @@ let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapStrin
     let syms = ctx->ctxIntsToSymsExn(stmt)
     {
         cont:Text({
-            text: syms->Js.Array2.joinWith(" "),
-            syms: syms->Js_array2.map(sym => {
+            text: syms->Array.joinWith(" "),
+            syms: syms->Array.map(sym => {
                 {sym, color:symColors->Belt_HashMapString.get(sym)}
             })
         }),

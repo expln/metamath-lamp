@@ -490,14 +490,14 @@ module VisualizedJstf = {
                                     if (hyp.typ == E) {
                                         hyps->Js.Array2.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))->ignore
                                     } else {
-                                        let frmSym = wrkCtx->frmIntToSymExn(frame, hyp.expr[1])
+                                        let frmSym = wrkCtx->frmIntToSymExn(frame, hyp.expr->Array.getUnsafe(1))
                                         subs->Belt_HashMapString.set(
                                             frmSym,
                                             wrkCtx->ctxIntsToSymsExn( 
-                                                proofTreeDto.nodes[args[i]].expr->Js_array2.sliceFrom(1) 
+                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Js_array2.sliceFrom(1)
                                             )
                                         )
-                                        let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr[0])
+                                        let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0))
                                         switch typeColors->Belt_HashMapString.get(typeSym) {
                                             | None => ()
                                             | Some(color) => frmColors->Belt_HashMapString.set( frmSym, color )
@@ -764,7 +764,7 @@ let make = React.memoCustomCompareProps( ({
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTrees) => {
-                                switch (syntaxTrees[0]) {
+                                switch (syntaxTrees->Array.getUnsafe(0)) {
                                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                                     | Ok(syntaxTree) => {
                                         let stmtContTreeData = {

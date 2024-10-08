@@ -108,7 +108,7 @@ let hashArrInt: array<int> => int = %raw(`
     arr => {
         let hash = 0;
         for (let i = 0; i < arr.length; i++) {
-            hash = ( ( hash << 5 ) - hash ) + arr->Array.getUnsafe(i);
+            hash = ( ( hash << 5 ) - hash ) + arr[i];
             hash |= 0;  // Convert to 32-bit integer
         }
         return hash;
@@ -119,7 +119,7 @@ let hashArrIntFromTo: (array<int>, int, int) => int = %raw(`
     (arr,from,to) => {
         let hash = 0;
         for (let i = from; i <= to; i++) {
-            hash = ( ( hash << 5 ) - hash ) + arr->Array.getUnsafe(i);
+            hash = ( ( hash << 5 ) - hash ) + arr[i];
             hash |= 0;  // Convert to 32-bit integer
         }
         return hash;

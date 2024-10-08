@@ -50,7 +50,7 @@ let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<s
             ?key
             points={
                 ps->Js_array2.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
-                    ->Js.Array2.joinWith(" ")
+                    ->Array.joinWith(" ")
             } 
             style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={lineWidth->Belt_Float.toString}, ())
         />,
@@ -128,8 +128,8 @@ let rndStmt = (
             ~key, 
             ()
         )
-        elems->Js.Array2.push(elem)->ignore
-        bnds->Js.Array2.push(bnd)->ignore
+        elems->Array.push(elem)
+        bnds->Array.push(bnd)
         curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth))
     }
 
@@ -138,7 +138,7 @@ let rndStmt = (
         let subKey = `${key}-${i->Belt_Int.toString}`
         printSymbol(~sym=stmt[i], ~key=`${subKey}-S`)
         if (i == stmt->Js_array2.length-1) {
-            contentOnlyBnd->Js.Array2.push(bndMergeAll(bnds))->ignore
+            contentOnlyBnd->Array.push(bndMergeAll(bnds))
         }
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
     }
@@ -159,15 +159,15 @@ let testTextRendering = ():reElem => {
 
     let testText2 = "|- AbCdEf       WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... |||"
     let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false, ())
-    let charWidth = textBnd3->bndWidth /. (testText2->Js.String2.length->Belt.Int.toFloat)
+    let charWidth = textBnd3->bndWidth /. (testText2->String.length->Belt.Int.toFloat)
     let textBnd4Arr = []
     let textElem4Arr = []
     let ex4 = ref(ex->vecTr(ey->vecRev->vecMul(3. *. textHeight *. 1.1)))
     let dx = ex->vecMul(charWidth)
-    for i in 0 to testText2->Js.String2.length-1 {
+    for i in 0 to testText2->String.length-1 {
         let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
-        textElem4Arr->Js.Array2.push(textElem4)->ignore
-        textBnd4Arr->Js.Array2.push(textBnd4)->ignore
+        textElem4Arr->Array.push(textElem4)
+        textBnd4Arr->Array.push(textBnd4)
         ex4 := ex4.contents->vecTr(dx)
     }
 
@@ -235,13 +235,13 @@ let rndStmtAndHyp = (
             }
         }
 
-        let rndCtxStmt = ctxFirst || frmStmt->Js.Array2.some(subs->Belt_HashMapString.has)
+        let rndCtxStmt = ctxFirst || frmStmt->Array.some(subs->Belt_HashMapString.has)
         let (_, bndSample) = text(~ex, ~text=".", ())
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
-        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Js.Array2.joinWith(" ")
-        let ctxStmtLen = ctxStmtStr->Js.String2.length->Belt_Int.toFloat *. charWidth
-        let frmStmtLen = frmStmt->Js.Array2.joinWith(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
+        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Array.joinWith(" ")
+        let ctxStmtLen = ctxStmtStr->String.length->Belt_Int.toFloat *. charWidth
+        let frmStmtLen = frmStmt->Array.joinWith(" ")->String.length->Belt_Int.toFloat *. charWidth
         let dx = (ctxStmtLen -. frmStmtLen) /. 2.
         let exL = ex
         let exS = ex->vecTr(ex->vecMul(dx))
@@ -316,7 +316,7 @@ let rndStmtAndHyp = (
                 ctxElems->Js_array2.push(labelElem)->ignore
             }
         }
-        (conElems->Js.Array2.concat(frmElems)->Js.Array2.concat(ctxElems)->React.array, bndMergeAll(bnds))
+        (conElems->Array.concat(frmElems)->Array.concat(ctxElems)->React.array, bndMergeAll(bnds))
     }
 }
 
@@ -337,8 +337,8 @@ let make = (
     let delimLineWidth = charHeight *. 0.05
     let delimLineMargin = charHeight *. 0.5
 
-    let numOfColors = subsAvailableColors->Js.Array2.length
-    let subsColors = subs->Belt_HashMapString.toArray->Js.Array2.mapi(((frmSym,_),i) => {
+    let numOfColors = subsAvailableColors->Array.length
+    let subsColors = subs->Belt_HashMapString.toArray->Array.mapWithIndex(((frmSym,_),i) => {
         (frmSym, subsAvailableColors[mod(i, numOfColors)])
     })->Belt_HashMapString.fromArray
 
@@ -346,14 +346,14 @@ let make = (
         let curEx = ref(ex)
         let hypElems = []
         let hypBnds = []
-        hyps->Js.Array2.forEachi((hyp,i) => {
+        hyps->Array.forEachWithIndex((hyp,i) => {
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
                 ~hypLabel=Some(hypLabels[i]), ~noFrameForBottomBnd=true,
                 ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels[i]), ()) ),
             )(curEx.contents)
-            hypElems->Js.Array2.push(elem)->ignore
-            hypBnds->Js.Array2.push(bnd)->ignore
+            hypElems->Array.push(elem)
+            hypBnds->Array.push(bnd)
             curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth +. hypMargin))
         })
         let asrtComp = rndStmtAndHyp( 
@@ -361,7 +361,7 @@ let make = (
             ~hypLabel=None, ~noFrameForBottomBnd=false, ~onLabelClick=None,
         )
         let (_, asrtSampleBnd) = asrtComp(ex)
-        let (hypsElem, hypsBnd) = if (hyps->Js.Array2.length == 0) {
+        let (hypsElem, hypsBnd) = if (hyps->Array.length == 0) {
             let (sepElem, sepBnd) = pntVec(asrtSampleBnd->bndLeftTop, asrtSampleBnd->bndRightTop)->vecToLine(
                 ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
             )
@@ -375,7 +375,7 @@ let make = (
                     ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
                 )
             (
-                hypElems->Js.Array2.concat([sepElem])->React.array,
+                hypElems->Array.concat([sepElem])->React.array,
                 bndMergeAll([hypsBnd, sepBnd])
             )
         }

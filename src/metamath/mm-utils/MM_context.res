@@ -131,7 +131,7 @@ let disjAddPair = (disjMap:disjMutable, n, m) => {
 
 let disjMutToDisjImm = (disj:disjMutable):Belt_MapInt.t<Belt_SetInt.t> => {
     disj->Belt_HashMapInt.toArray
-        ->Js.Array2.map(((n,ms)) => (n,ms->Belt_HashSetInt.toArray->Belt_SetInt.fromArray))
+        ->Array.map(((n,ms)) => (n,ms->Belt_HashSetInt.toArray->Belt_SetInt.fromArray))
         ->Belt_MapInt.fromArray
 }
 
@@ -347,7 +347,7 @@ let disjToArr = (
     } else {
         Expln_utils_common.intCmp
     }
-    res->Js.Array2.forEach(d =>
+    res->Array.forEach(d =>
         d->Js_array2.sortInPlaceWith(sortBy)->ignore
     )
     res->Js_array2.sortInPlaceWith(exprCmp)
@@ -627,7 +627,7 @@ let extractMandatoryHypotheses = (
             hyp.typ == E && (!skipEssentials && overrideHyps->Belt_Option.isNone)
             || hyp.typ == F && mandatoryVars->Belt_HashSetInt.has(hyp.expr[1])
         ) {
-            res->Js.Array2.push(hyp)->ignore
+            res->Array.push(hyp)
         }
         None
     })->ignore
@@ -635,11 +635,11 @@ let extractMandatoryHypotheses = (
         | None => ()
         | Some(overrideHyps) => {
             overrideHyps->Js_array2.forEachi((hypExpr,i) => {
-                res->Js.Array2.push({
+                res->Array.push({
                     typ: E,
                     label: i->Belt.Int.toString,
                     expr: hypExpr
-                })->ignore
+                })
             })
         }
     }
@@ -664,7 +664,7 @@ let getMandHyps = (
 let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
     let hyps = []
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        hyps->Js.Array2.push(hyp)->ignore
+        hyps->Array2.push(hyp)
         None
     })->ignore
     Belt_MapString.fromArray(hyps->Js_array2.map(hyp => (hyp.label, hyp)))
@@ -673,7 +673,7 @@ let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
 let getAllFramesArr = (ctx:mmContext):array<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        frames->Js.Array2.pushMany(ctx.frames->Belt_HashMapString.valuesToArray)->ignore
+        frames->Array2.pushMany(ctx.frames->Belt_HashMapString.valuesToArray)
         None
     })->ignore
     frames
@@ -682,7 +682,7 @@ let getAllFramesArr = (ctx:mmContext):array<frame> => {
 let getAllFrames = (ctx:mmContext):Belt_MapString.t<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.frames->Belt_HashMapString.forEach((k,v) => frames->Js.Array2.push((k,v))->ignore)
+        ctx.frames->Belt_HashMapString.forEach((k,v) => frames->Array.push((k,v)))
         None
     })->ignore
     Belt_MapString.fromArray(frames)
@@ -759,24 +759,24 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
     let allExprs = getAllExprs(ctx)
     let allConsts = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
         ->getSpaceSeparatedValuesAsArray
-        ->Js.Array2.filter(ctx->isConst)
+        ->Array.filter(ctx->isConst)
         ->ctxSymsToIntsExn(ctx, _)
         ->Js_array2.concat(
             Belt_Array.range(
                 1,
-                (ctx.contents.root->Belt.Option.getExn).consts->Js.Array2.length - 1
+                (ctx.contents.root->Belt.Option.getExn).consts->Array.length - 1
             )->Js_array2.map(i => -i)
         )
 
-    let maxC = allConsts->Js.Array2.length - 2
+    let maxC = allConsts->Array.length - 2
     let maxCF = maxC->Belt_Int.toFloat
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let foundParens = []
     for c in 0 to maxC {
         let openParen = allConsts[c]
         let closeParen = allConsts[c+1]
-        if (!(foundParens->Js.Array2.includes(openParen))
-            && !(foundParens->Js.Array2.includes(closeParen))
+        if (!(foundParens->Array.includes(openParen))
+            && !(foundParens->Array.includes(closeParen))
             && checkValidParens(allExprs, openParen, closeParen)
         ) {
             foundParens->Js_array2.push(openParen)->ignore
@@ -1014,7 +1014,7 @@ let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMuta
     })
     res
         ->Belt_HashMapInt.toArray
-        ->Js.Array2.map(((n,ms)) => {
+        ->Array.map(((n,ms)) => {
             (
                 n,
                 ms->Belt_HashSetInt.toArray->Belt_SetInt.fromArray
@@ -1075,8 +1075,8 @@ let getAsrtVarHyps = (numOfVars:int, asrtHyps:array<hypothesis>):array<int> => {
             }
         }
     })
-    if (varHyps->Js.Array2.some(idx => idx < 0)) {
-        raise(MmException({msg:`Internal error: varHyps->Js.Array2.some(idx => idx < 0)`}))
+    if (varHyps->Array.some(idx => idx < 0)) {
+        raise(MmException({msg:`Internal error: varHyps->Array.some(idx => idx < 0)`}))
     } else {
         varHyps
     }
@@ -1321,7 +1321,7 @@ let generateNewVarNames = (
     let getCnt = prefix => prefixToCnt->Belt_HashMapString.get(prefix)->Belt.Option.getWithDefault(0)
     let incCnt = prefix => prefixToCnt->Belt_HashMapString.set(prefix,getCnt(prefix)+1)
 
-    let maxI = types->Js.Array2.length - 1
+    let maxI = types->Array.length - 1
     let res = []
     for i in 0 to maxI {
         let typeStr = ctx->ctxIntToSymExn(types[i])
@@ -1336,7 +1336,7 @@ let generateNewVarNames = (
             incCnt(prefix)
             newName.contents = prefix ++ getCnt(prefix)->Belt_Int.toString
         }
-        res->Js.Array2.push(newName.contents)->ignore
+        res->Array.push(newName.contents)
     }
     res
 }
@@ -1365,7 +1365,7 @@ let generateNewLabels = (
             cnt.contents = cnt.contents + 1
             newName.contents = prefix ++ cnt.contents->Belt_Int.toString
         }
-        res->Js.Array2.push(newName.contents)->ignore
+        res->Array.push(newName.contents)
     }
     res
 }
@@ -1392,8 +1392,8 @@ let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
             newConstOrder->Js_array2.push(i)->ignore
         }
     }
-    let oldConstOrder:array<string> = rootCtx.consts->Js.Array2.copy
-    let constRenum = Belt_HashMapInt.make(~hintSize=rootCtx.consts->Js.Array2.length)
+    let oldConstOrder:array<string> = rootCtx.consts->Array.copy
+    let constRenum = Belt_HashMapInt.make(~hintSize=rootCtx.consts->Array.length)
     newConstOrder->Js_array2.forEachi((symOldInt,i) => {
         let sym = oldConstOrder[-symOldInt]
         let symNewInt = -(i+1)
@@ -1422,7 +1422,7 @@ let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
             }
         }
         ctx.exprToHyp->Belt_HashMapInt.clear
-        ctx.hyps->Js.Array2.forEach(ctx->exprToHypAdd)
+        ctx.hyps->Array.forEach(ctx->exprToHypAdd)
         None
     })->ignore
 }
@@ -1481,7 +1481,7 @@ let rec ctxRemoveRedundantText = (
 }
 
 let sortBySym = (ctx:mmContext, expr:array<int>):array<int> => {
-    ctx->ctxIntsToSymsExn(expr)->Js.Array2.sortInPlace->ctxSymsToIntsExn(ctx, _)
+    ctx->ctxIntsToSymsExn(expr)->Array.sortInPlace->ctxSymsToIntsExn(ctx, _)
 }
 
 let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConstsOrder => {
@@ -1502,23 +1502,23 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
         None
     })->ignore
     let canBeFirstAndLast = canBeFirst->Belt_HashSetInt.toArray
-        ->Js.Array2.filter(canBeLast->Belt_HashSetInt.has)
+        ->Array.filter(canBeLast->Belt_HashSetInt.has)
         ->Belt_HashSetInt.fromArray
     canBeFirstAndLast->Belt_HashSetInt.forEach(canBeFirst->Belt_HashSetInt.remove)
     canBeFirstAndLast->Belt_HashSetInt.forEach(canBeLast->Belt_HashSetInt.remove)
 
     let parenInts = parens->getSpaceSeparatedValuesAsArray
-        ->Js_array2.map(ctx->ctxSymToInt)
-        ->Js.Array2.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
-        ->Js.Array2.map(Belt_Option.getExn)
-    parenInts->Js.Array2.forEach(i => {
+        ->Array.map(ctx->ctxSymToInt)
+        ->Array.filter(intOpt => intOpt->Belt_Option.mapWithDefault(false, i => i < 0))
+        ->Array.map(Belt_Option.getExn)
+    parenInts->Array.forEach(i => {
         canBeFirst->Belt_HashSetInt.remove(i)
         canBeFirstAndLast->Belt_HashSetInt.remove(i)
         canBeLast->Belt_HashSetInt.remove(i)
     })
 
-    let remainingConsts = allConsts->Belt_HashSetInt.toArray->Js.Array2.filter(i => {
-        !(parenInts->Js.Array2.includes(i))
+    let remainingConsts = allConsts->Belt_HashSetInt.toArray->Array.filter(i => {
+        !(parenInts->Array.includes(i))
         && !(canBeFirst->Belt_HashSetInt.has(i))
         && !(canBeFirstAndLast->Belt_HashSetInt.has(i))
         && !(canBeLast->Belt_HashSetInt.has(i))
@@ -1532,7 +1532,7 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
         remainingConsts->Belt_HashSetInt.toArray->sortBySym(ctx,_),
     ])
 
-    let parenMin = -(parenInts->Js.Array2.length)
+    let parenMin = -(parenInts->Array.length)
 
     let canBeFirstMax = parenMin-1
     let canBeFirstMin = canBeFirstMax - canBeFirst->Belt_HashSetInt.size + 1

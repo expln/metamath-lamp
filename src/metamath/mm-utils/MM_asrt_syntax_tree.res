@@ -95,7 +95,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
 
 let isVar = (expr:asrtSyntaxTreeNode):option<int> => {
     @warning("-8")
-    switch expr.children->Js.Array2.length {
+    switch expr.children->Array.length {
         | 1 => {
             switch expr.children[0] {
                 | Subtree(_) => None
@@ -176,10 +176,10 @@ let rec unify = (
                         continue := assignSubs(foundSubs, CtxVar(ctxVar), asrtExpr->getAllSymbols)
                     }
                     | None => {
-                        if (asrtExpr.children->Js.Array2.length != ctxExpr.children->Js.Array2.length) {
+                        if (asrtExpr.children->Array.length != ctxExpr.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = asrtExpr.children->Js.Array2.length-1
+                            let maxI = asrtExpr.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
                                 switch asrtExpr.children[i.contents] {
@@ -225,7 +225,7 @@ let unifyMayBePossible = (
             | None => {
                 switch ctxExpr->MM_syntax_tree.isVar(isMetavar) {
                     | Some(_) => true
-                    | None => asrtExpr.children->Js.Array2.length == ctxExpr.children->Js.Array2.length
+                    | None => asrtExpr.children->Array.length == ctxExpr.children->Array.length
                 }
             }
         }

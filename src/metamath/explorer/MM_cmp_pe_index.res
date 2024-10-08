@@ -86,7 +86,7 @@ let make = React.memoCustomCompareProps(({
             | None => {
                 setPatternFilterErr(_ => None)
                 let varPat = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
-                let constPat = varPat->Js.Array2.map(sym => {
+                let constPat = varPat->Array.map(sym => {
                     if (sym < 0) {
                         sym
                     } else {
@@ -101,9 +101,9 @@ let make = React.memoCustomCompareProps(({
                 )
                 let labelFilterTrim = labelFilter->Js_string2.trim->Js_string2.toLowerCase
                 let descrFilterStrTrim = descrFilterStr->Js_string2.trim->Js_string2.toLowerCase
-                let filterByDescr = descrFilterStrTrim->Js.String2.length > 0
+                let filterByDescr = descrFilterStrTrim->String.length > 0
                 setFilteredLabels(_ => {
-                    allLabels->Js.Array2.filter(((_,label)) => {
+                    allLabels->Array.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
@@ -116,11 +116,11 @@ let make = React.memoCustomCompareProps(({
                         && (!discFilter || frame.isDisc)
                         && (!deprFilter || frame.isDepr)
                         && (!tranDeprFilter || frame.isTranDepr)
-                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilterTrim)
+                        && label->Js_string2.toLowerCase->String.includes(labelFilterTrim)
                         && (
                             !filterByDescr
                             || frame.descr->Belt.Option.mapWithDefault(false, descr => {
-                                descr->Js_string2.toLowerCase->Js.String2.includes(descrFilterStrTrim)
+                                descr->String.toLowerCase->String.includes(descrFilterStrTrim)
                             })
                         )
                         && frameMatchesPattern(frame)
@@ -155,14 +155,14 @@ let make = React.memoCustomCompareProps(({
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
             let stmtTyp = frame.asrt[0]
-            if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
-                allStmtIntTypes->Js.Array2.push(stmtTyp)->ignore
+            if (!(allStmtIntTypes->Array.includes(stmtTyp))) {
+                allStmtIntTypes->Array.push(stmtTyp)
             }
             None
         })->ignore
-        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
+        let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Array.sortInPlace
         setAllStmtTypes(_ => allStmtTypes)
-        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
+        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinWith(""))
 
         let typeOrderInDisj = createTypeOrderFromStr(
             ~sortDisjByType=settings.sortDisjByType, 
@@ -267,7 +267,7 @@ let make = React.memoCustomCompareProps(({
     let actSetAsrtsPerPage = (strNum:string):unit => {
         switch strNum->Belt_Int.fromString {
             | None => ()
-            | Some(num) => setAsrtsPerPage(_ => Js.Math.max_int(1, Js.Math.min_int(num, 100)))
+            | Some(num) => setAsrtsPerPage(_ => Math.Int.max(1, Math.Int.min(num, 100)))
         }
     }
 

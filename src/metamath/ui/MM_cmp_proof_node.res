@@ -75,7 +75,7 @@ module rec ProofNodeDtoCmp: {
     }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
-        let node = tree.nodes[nodeIdx]
+        let node = tree.nodes->Array.getUnsafe(nodeIdx)
 
         let getParents = () => {
             if (node.parents->Js.Array2.length == 0) {

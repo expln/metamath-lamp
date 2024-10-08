@@ -36,8 +36,8 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
         label: "",
         allTypes,
         typ: initialTyp
-                ->Belt_Option.map(iniTyp => if (allTypes->Js.Array2.includes(iniTyp)) {iniTyp} else {allTypes[0]})
-                ->Belt_Option.getWithDefault(allTypes[0]),
+                ->Belt_Option.map(iniTyp => if (allTypes->Js.Array2.includes(iniTyp)) {iniTyp} else {allTypes->Array.getUnsafe(0)})
+                ->Belt_Option.getWithDefault(allTypes->Array.getUnsafe(0)),
         patternStr: "",
         patternErr: None,
         results: None,
@@ -362,7 +362,7 @@ let make = (
                 let minI = (state.resultsPage - 1) * state.resultsPerPage
                 let maxI = Js.Math.min_int(minI + state.resultsPerPage - 1, resultsForRender->Js_array2.length-1)
                 for i in minI to maxI {
-                    let resultForRender = resultsForRender[i]
+                    let resultForRender = resultsForRender->Array.getUnsafe(i)
                     items->Js.Array2.push(resultForRender)->ignore
                 }
                 let totalNumOfResults = resultsForRender->Js.Array2.length
