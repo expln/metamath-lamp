@@ -2899,11 +2899,11 @@ let textToSyntaxProofTable = (
                 let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(ctxSymToInt(wrkCtx, _))->Belt.Option.getWithDefault(0)
                 let syntaxTypes = syntaxTypes->Js.Array2.copy->Expln_utils_common.sortInPlaceWith((a,b) => {
                     if (a == lastSyntaxTypeInt) {
-                        -1
+                        -1.0
                     } else if (b == lastSyntaxTypeInt) {
-                        1
+                        1.0
                     } else {
-                        a - b
+                        Belt_Float.fromInt(a - b)
                     }
                 })
                 let exprs = syms->Js_array2.map(ctxSymsToIntsExn(wrkCtx, _))

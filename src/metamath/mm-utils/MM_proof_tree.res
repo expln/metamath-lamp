@@ -364,7 +364,7 @@ let ptPrintStats = ( tree:proofTree ):string => {
                     // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
                 )
             unprovedNodes->Expln_utils_common.sortInPlaceWith((a,b) =>
-                a.expr->Js_array2.length - b.expr->Js_array2.length
+                Belt_Float.fromInt(a.expr->Js_array2.length - b.expr->Js_array2.length)
             )->ignore
             let unprovedExprs = unprovedNodes->Js.Array2.map(node => node.expr)
             unprovedExprs->Js.Array2.map(dbg.exprToStr)->Js.Array2.joinWith("\n")
