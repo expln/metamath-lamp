@@ -75,8 +75,8 @@ let parseMatch = (~match:string, ~ord:int):warning => {
         | Some(groups) => {
             {
                 ord,
-                code: groups[1]->Belt_Option.flatMap(Belt_Int.fromString)->Belt.Option.getWithDefault(-1),
-                path:groups[2]->Belt.Option.getWithDefault("???"),
+                code: groups->Array.getUnsafe(1)->Belt_Option.flatMap(Belt_Int.fromString)->Belt.Option.getWithDefault(-1),
+                path:groups->Array.getUnsafe(2)->Belt.Option.getWithDefault("???"),
             }
         }
     }

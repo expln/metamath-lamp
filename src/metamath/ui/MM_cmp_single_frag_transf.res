@@ -119,8 +119,8 @@ let make = (
             {
                 options
                     ->Js_array2.map(option => {
-                        let value = option[0]
-                        let label = option[1]
+                        let value = option->Array.getUnsafe(0)
+                        let label = option->Array.getUnsafe(1)
                         <FormControlLabel 
                             key=value value label control={ <Radio/> } 
                             style=ReactDOM.Style.make(~marginRight="30px", ())

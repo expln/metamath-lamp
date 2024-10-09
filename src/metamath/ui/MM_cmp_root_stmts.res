@@ -38,7 +38,7 @@ let invertFlags = flags => flags->Js_array2.map(v => !v)
 
 let selectProvedStmts = (rootStmtsRendered,flags:array<bool>):array<bool> => {
     flags->Js_array2.mapi((_,i) => {
-        getProofStatus(rootStmtsRendered[i])
+        getProofStatus(rootStmtsRendered->Array.getUnsafe(i))
             ->Belt_Option.map(status => status == Ready)
             ->Belt.Option.getWithDefault(false)
     })
@@ -109,7 +109,7 @@ let make = (
             <tbody>
                 {
                     state.flags->Js_array2.mapi((flag,i) => {
-                        let stmt = rootStmtsRendered[i]
+                        let stmt = rootStmtsRendered->Array.getUnsafe(i)
                         <tr key={i->Belt_Int.toString} style=ReactDOM.Style.make(~verticalAlign="top", ())>
                             <td>
                                 <Checkbox

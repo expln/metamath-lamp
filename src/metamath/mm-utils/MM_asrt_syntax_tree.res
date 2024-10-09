@@ -42,7 +42,7 @@ let symEq = (a,b) => {
 
 let arrSymEq = (a:array<sym>,b:array<sym>):bool => {
     a->Js_array2.length == b->Js_array2.length
-    && a->Js_array2.everyi((sa,i) => sa->symEq(b[i]))
+    && a->Js_array2.everyi((sa,i) => sa->symEq(b->Array.getUnsafe(i)))
 }
 
 module SymHash = Belt.Id.MakeHashable({
@@ -66,9 +66,9 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
             let maxI = expr->Js_array2.length - 1
             let children = Expln_utils_common.createArray(maxI)
             for i in 1 to maxI {
-                children[i-1] = Symbol(expr[i]->ctxIntToAsrtInt)
+                children[i-1] = Symbol(expr->Array.getUnsafe(i)->ctxIntToAsrtInt)
             }
-            Ok({typ:expr[0], children})
+            Ok({typ:expr->Array.getUnsafe(0), children})
         }
         | Some(Assertion({args, frame})) => {
             let children = Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1)
@@ -78,7 +78,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
                     if (s < 0) {
                         children[i-1] = Symbol(s)
                     } else {
-                        switch buildAsrtSyntaxTree(args[frame.varHyps[s]], ctxIntToAsrtInt) {
+                        switch buildAsrtSyntaxTree(args->Array.getUnsafe(frame.varHyps->Array.getUnsafe(s)), ctxIntToAsrtInt) {
                             | Error(msg) => err := Some(Error(msg))
                             | Ok(subtree) => children[i-1] = Subtree(subtree)
                         }
@@ -87,7 +87,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
             })
             switch err.contents {
                 | Some(err) => err
-                | None => Ok({typ:frame.asrt[0], children})
+                | None => Ok({typ:frame.asrt->Array.getUnsafe(0), children})
             }
         }
     }
@@ -97,7 +97,7 @@ let isVar = (expr:asrtSyntaxTreeNode):option<int> => {
     @warning("-8")
     switch expr.children->Js.Array2.length {
         | 1 => {
-            switch expr.children[0] {
+            switch expr.children->Array.getUnsafe(0) {
                 | Subtree(_) => None
                 | Symbol(i) => if (i >= 0) { Some(i) } else { None }
             }
@@ -109,7 +109,7 @@ let isVar = (expr:asrtSyntaxTreeNode):option<int> => {
 let substituteInPlace = (expr:array<sym>, e:sym, subExpr:array<sym>):unit => {
     let i = ref(0)
     while (i.contents < expr->Js_array2.length) {
-        if (expr[i.contents]->symEq(e)) {
+        if (expr->Array.getUnsafe(i.contents)->symEq(e)) {
             expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
             i := i.contents + subExpr->Js_array2.length
         } else {
@@ -182,9 +182,9 @@ let rec unify = (
                             let maxI = asrtExpr.children->Js.Array2.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
-                                switch asrtExpr.children[i.contents] {
+                                switch asrtExpr.children->Array.getUnsafe(i.contents) {
                                     | Symbol(asrtSymInt) => {
-                                        switch ctxExpr.children[i.contents] {
+                                        switch ctxExpr.children->Array.getUnsafe(i.contents) {
                                             | Symbol({symInt:ctxSymInt, isVar:ctxSymIsVar}) => {
                                                 if (asrtSymInt >= 0 || ctxSymIsVar || asrtSymInt != ctxSymInt) {
                                                     continue := false
@@ -194,7 +194,7 @@ let rec unify = (
                                         }
                                     }
                                     | Subtree(asrtCh) => {
-                                        switch ctxExpr.children[i.contents] {
+                                        switch ctxExpr.children->Array.getUnsafe(i.contents) {
                                             | Symbol(_) => continue := false
                                             | Subtree(ctxCh) => {
                                                 unify(~asrtExpr=asrtCh, ~ctxExpr=ctxCh, ~isMetavar, ~foundSubs, ~continue)

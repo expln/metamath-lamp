@@ -14,7 +14,7 @@ let exprEq: (expr,expr) => bool = (a,b) => {
         let eq = ref(true)
         let i = ref(0)
         while (eq.contents && i.contents < len1) {
-            eq.contents = a[i.contents] == b[i.contents]
+            eq.contents = a[i.contents] == b->Array.getUnsafe(i.contents)
             i.contents = i.contents + 1
         }
         eq.contents
@@ -29,7 +29,7 @@ let exprCmp = (e1,e2) => {
             let res = ref(0)
             let i = ref(0)
             while (i.contents < len1 && res.contents == 0) {
-                res.contents = Expln_utils_common.intCmp(e1[i.contents], e2[i.contents])
+                res.contents = Expln_utils_common.intCmp(e1->Array.getUnsafe(i.contents), e2->Array.getUnsafe(i.contents))
                 i.contents = i.contents + 1
             }
             res.contents
@@ -289,8 +289,8 @@ let disjToArr = (
             if (found.contents->Belt_Option.isNone) {
                 for j in i+1 to res->Js_array2.length-1 {
                     if (found.contents->Belt_Option.isNone) {
-                        let d1 = res[i]
-                        let d2 = res[j]
+                        let d1 = res->Array.getUnsafe(i)
+                        let d2 = res->Array.getUnsafe(j)
                         if (canMerge(d1,d2)) {
                             found.contents = Some((d1,d2))
                         }
@@ -393,8 +393,8 @@ let getHypothesis = (ctx:mmContext,label):option<hypothesis> => {
 let exprToHypAdd = (ctx:mmContextContents, hyp:hypothesis):unit => {
     let expr = hyp.expr
     let len = expr->Js_array2.length
-    let fstSym = if len > 0 {expr[0]} else {0}
-    let sndSym = if len > 1 {expr[1]} else {0}
+    let fstSym = if len > 0 {expr->Array.getUnsafe(0)} else {0}
+    let sndSym = if len > 1 {expr->Array.getUnsafe(1)} else {0}
     switch ctx.exprToHyp->Belt_HashMapInt.get(len) {
         | None => {
             ctx.exprToHyp->Belt_HashMapInt.set( 
@@ -426,11 +426,11 @@ let exprToHypGet = (ctx:mmContextContents, expr:expr):option<hypothesis> => {
     switch ctx.exprToHyp->Belt_HashMapInt.get(len) {
         | None => None
         | Some(fstSymToHyp) => {
-            let fstSym = if len > 0 {expr[0]} else {0}
+            let fstSym = if len > 0 {expr->Array.getUnsafe(0)} else {0}
             switch fstSymToHyp->Belt_HashMapInt.get(fstSym) {
                 | None => None
                 | Some(sndSymToHyp) => {
-                    let sndSym = if len > 1 {expr[1]} else {0}
+                    let sndSym = if len > 1 {expr->Array.getUnsafe(1)} else {0}
                     switch sndSymToHyp->Belt_HashMapInt.get(sndSym) {
                         | None => None
                         | Some(hypsArr) => hypsArr->Js_array2.find(h => h.expr->exprEq(expr))
@@ -511,7 +511,7 @@ let ctxIntToSym = (ctx:mmContext,i:int):option<string> => {
             if (i < ctx.varsBaseIdx) {
                 None
             } else {
-                Some(ctx.vars[i-ctx.varsBaseIdx])
+                Some(ctx.vars->Array.getUnsafe(i-ctx.varsBaseIdx))
             }
         })
     }
@@ -625,7 +625,7 @@ let extractMandatoryHypotheses = (
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
         if (
             hyp.typ == E && (!skipEssentials && overrideHyps->Belt_Option.isNone)
-            || hyp.typ == F && mandatoryVars->Belt_HashSetInt.has(hyp.expr[1])
+            || hyp.typ == F && mandatoryVars->Belt_HashSetInt.has(hyp.expr->Array.getUnsafe(1))
         ) {
             res->Js.Array2.push(hyp)->ignore
         }
@@ -735,11 +735,11 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
         let allExprsLen = allExprs->Js_array2.length
         let e = ref(0)
         while (e.contents < allExprsLen && res.contents) {
-            let expr = allExprs[e.contents]
+            let expr = allExprs->Array.getUnsafe(e.contents)
             let exprLen = expr->Js_array2.length
             let s = ref(0)
             while (s.contents < exprLen && res.contents) {
-                let sym = expr[s.contents]
+                let sym = expr->Array.getUnsafe(s.contents)
                 if (!openUsed.contents && sym == openSym) {
                     openUsed.contents = true
                 }
@@ -773,8 +773,8 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
     let foundParens = []
     for c in 0 to maxC {
-        let openParen = allConsts[c]
-        let closeParen = allConsts[c+1]
+        let openParen = allConsts->Array.getUnsafe(c)
+        let closeParen = allConsts->Array.getUnsafe(c+1)
         if (!(foundParens->Js.Array2.includes(openParen))
             && !(foundParens->Js.Array2.includes(closeParen))
             && checkValidParens(allExprs, openParen, closeParen)
@@ -928,7 +928,7 @@ let addDisj = (ctx:mmContext, vars:array<string>):unit => {
             let maxIdx = varInts->Js_array2.length - 1
             for i in 0 to maxIdx {
                 for j in i+1 to maxIdx {
-                    ctx.contents.disj->disjAddPair(varInts[i],varInts[j])
+                    ctx.contents.disj->disjAddPair(varInts->Array.getUnsafe(i),varInts->Array.getUnsafe(j))
                 }
             }
         }
@@ -940,8 +940,8 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
         raise(MmException({msg:`Length of a floating expression must be 2.`}))
     } else {
         assertNameIsUnique(ctx,label,"a floating label")
-        let typName = exprStr[0]
-        let varName = exprStr[1]
+        let typName = exprStr->Array.getUnsafe(0)
+        let varName = exprStr->Array.getUnsafe(1)
         if (!(ctx->isConst(typName))) {
             raise(MmException({msg:`The first symbol in the floating '${typName}' must be a constant.`}))
         } else if (!(ctx->isVar(varName))) {
@@ -967,7 +967,7 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
 let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit => {
     if (exprStr->Js_array2.length < 1) {
         raise(MmException({msg:`Length of an essential expression must be at least 1.`}))
-    } else if (!(ctx->isConst(exprStr[0]))) {
+    } else if (!(ctx->isConst(exprStr->Array.getUnsafe(0)))) {
         raise(MmException({msg:`The first symbol in an essential expression must be a constant.`}))
     } else {
         let expr = ctx->ctxSymsToIntsExn(exprStr)
@@ -1067,7 +1067,7 @@ let getAsrtVarHyps = (numOfVars:int, asrtHyps:array<hypothesis>):array<int> => {
     let varHyps = Belt_Array.make(numOfVars, -1)
     asrtHyps->Js_array2.forEachi((hyp,i) => {
         if (hyp.typ == F) {
-            let asrtVarNum = hyp.expr[1]
+            let asrtVarNum = hyp.expr->Array.getUnsafe(1)
             if (asrtVarNum >= numOfVars) {
                 raise(MmException({msg:`Internal error: hyp.expr[1] >= numOfVars`}))
             } else {
@@ -1103,7 +1103,7 @@ let createFrame = (
     assertNameIsUnique(ctx,label,tokenType)
     if (exprStr->Js_array2.length < 1) {
         raise(MmException({msg:`Length of an assertion expression must be at least 1.`}))
-    } else if (!skipFirstSymCheck && !(ctx->isConst(exprStr[0]))) {
+    } else if (!skipFirstSymCheck && !(ctx->isConst(exprStr->Array.getUnsafe(0)))) {
         raise(MmException({msg:`The first symbol in an assertion expression must be a constant.`}))
     } else {
         switch exprStr->Js_array2.find(sym => ctx->ctxSymToInt(sym)->Belt_Option.isNone) {
@@ -1324,7 +1324,7 @@ let generateNewVarNames = (
     let maxI = types->Js.Array2.length - 1
     let res = []
     for i in 0 to maxI {
-        let typeStr = ctx->ctxIntToSymExn(types[i])
+        let typeStr = ctx->ctxIntToSymExn(types->Array.getUnsafe(i))
         let prefix = typeToPrefix->Belt_MapString.getWithDefault(typeStr, typeStr)
         incCnt(prefix)
         let newName = ref(prefix ++ getCnt(prefix)->Belt_Int.toString)
@@ -1377,7 +1377,7 @@ let renumberConst = (constRenum:Belt_HashMapInt.t<int>, c:int):int => {
 let renumberConstsInExpr = (constRenum:Belt_HashMapInt.t<int>, expr:expr):unit => {
     let maxI = expr->Js_array2.length-1
     for i in 0 to maxI {
-        let sym = expr[i]
+        let sym = expr->Array.getUnsafe(i)
         if (sym < 0) {
             expr[i] = constRenum->renumberConst(sym)
         }
@@ -1395,7 +1395,7 @@ let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
     let oldConstOrder:array<string> = rootCtx.consts->Js.Array2.copy
     let constRenum = Belt_HashMapInt.make(~hintSize=rootCtx.consts->Js.Array2.length)
     newConstOrder->Js_array2.forEachi((symOldInt,i) => {
-        let sym = oldConstOrder[-symOldInt]
+        let sym = oldConstOrder->Array.getUnsafe(-symOldInt)
         let symNewInt = -(i+1)
         constRenum->Belt_HashMapInt.set(symOldInt, symNewInt)
         rootCtx.consts[-symNewInt] = sym
@@ -1491,11 +1491,11 @@ let ctxGetOptimizedConstsOrder = (ctx:mmContext, ~parens:string):optimizedConsts
     let canBeFirst = Belt_HashSetInt.make(~hintSize=numOfConsts)
     let canBeLast = Belt_HashSetInt.make(~hintSize=numOfConsts)
     ctx->forEachFrame(frame => {
-        let first = frame.asrt[1]
+        let first = frame.asrt->Array.getUnsafe(1)
         if (first < 0) {
             canBeFirst->Belt_HashSetInt.add(first)
         }
-        let last = frame.asrt[frame.asrt->Js_array2.length-1]
+        let last = frame.asrt->Array.getUnsafe(frame.asrt->Js_array2.length-1)
         if (last < 0) {
             canBeLast->Belt_HashSetInt.add(last)
         }

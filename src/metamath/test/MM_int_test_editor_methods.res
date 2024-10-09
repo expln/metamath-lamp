@@ -149,7 +149,7 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     if (st.checkedStmtIds->Js.Array2.length != 1) {
         raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
     } else {
-        let (newStmtId,_) = st.checkedStmtIds[0]
+        let (newStmtId,_) = st.checkedStmtIds->Array.getUnsafe(0)
         let st = st->uncheckAllStmts
         (st->verifyEditorState, newStmtId)
     }
@@ -288,7 +288,7 @@ let getStmt = (
     if (found->Js_array2.length != 1) {
         raise(MmException({msg:`getStmt:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
     } else {
-        found[0]
+        found->Array.getUnsafe(0)
     }
 }
 
@@ -326,7 +326,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
             if (wrkSubs->Js.Array2.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {
-                st->applySubstitutionForEditor(wrkSubs[0])
+                st->applySubstitutionForEditor(wrkSubs->Array.getUnsafe(0))
             }
         }
     }
@@ -433,7 +433,7 @@ let unifyBottomUp = (
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~exprToProve=rootStmts[rootStmts->Js_array2.length-1].expr,
+                ~exprToProve=rootStmts->Array.getUnsafe(rootStmts->Js_array2.length-1).expr,
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
@@ -446,7 +446,7 @@ let unifyBottomUp = (
                 | None => result
                 | Some(chooseLabel) => {
                     result->Js_array2.filter(newStmtsDto => {
-                        let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
+                        let lastStmt = newStmtsDto.stmts->Array.getUnsafe(newStmtsDto.stmts->Js_array2.length - 1)
                         switch lastStmt.jstf {
                             | Some({label}) => label == chooseLabel
                             | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
@@ -469,7 +469,7 @@ let getSingleStmtsDto = (stmtsDtoArr:array<stmtsDto>):stmtsDto => {
     } else if (stmtsDtoArr->Js_array2.length == 0) {
         raise(MmException({msg:`stmtsDtoArr is empty.`}))
     } else {
-        stmtsDtoArr[0]
+        stmtsDtoArr->Array.getUnsafe(0)
     }
 }
 

@@ -254,8 +254,8 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         raise(MmException({msg:`aModLen != bLen`}))
     }
     for i in 0 to bLen-1 {
-        let stmtA = aMod.contents.stmts[i]
-        let stmtB = b.stmts[i]
+        let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
+        let stmtB = b.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
             let move = StmtMove({stmtId:stmtB.id, idx:i})
             diffs->Js_array2.push(move)->ignore
@@ -264,7 +264,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     }
 
     b.stmts->Js_array2.forEachi((stmtB,i) => {
-        let stmtA = aMod.contents.stmts[i]
+        let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
             raise(MmException({msg:`stmtA.id != stmtB.id`}))
         }
@@ -321,7 +321,7 @@ let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDif
     if (prev->Js_array2.length == 0) {
         raise(MmException({msg:`prev->Js_array2.length == 0`}))
     }
-    [ diff->Js.Array2.concat(prev[0]) ]->Js.Array2.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
+    [ diff->Js.Array2.concat(prev->Array.getUnsafe(0)) ]->Js.Array2.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
 }
 
 let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => {
@@ -351,7 +351,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
                         prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
                     }
                 }
-            } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev[0]->allMoveAndStatusSet) {
+            } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev->Array.getUnsafe(0)->allMoveAndStatusSet) {
                 {
                     ...ht,
                     head: newHead,
@@ -398,7 +398,7 @@ let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): 
         } else {
             let curSn = ref(ht.head)
             for i in 0 to idx {
-                curSn := curSn.contents->applyDiff(ht.prev[i])
+                curSn := curSn.contents->applyDiff(ht.prev->Array.getUnsafe(i))
             }
             Ok(st->updateEditorStateFromSnapshot(curSn.contents)->recalcWrkColors)
         }
@@ -754,8 +754,8 @@ let a:editorSnapshot = {
 let moveStmtTest = (a:editorSnapshot, stmtId:stmtId, dIdx:int):editorSnapshot => {
     let newStmts = a.stmts->Js_array2.copy
     let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
-    let tmp = newStmts[idx]
-    newStmts[idx] = newStmts[idx+dIdx]
+    let tmp = newStmts->Array.getUnsafe(idx)
+    newStmts[idx] = newStmts->Array.getUnsafe(idx+dIdx)
     newStmts[idx+dIdx] = tmp
     {
         ...a,

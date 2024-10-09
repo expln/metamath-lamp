@@ -111,7 +111,7 @@ let make = React.memoCustomCompareProps(({
                         ) 
                         && stmtTypeFilter->Belt_Option.mapWithDefault(
                             true, 
-                            stmtType => stmtType === frame.asrt[0]
+                            stmtType => stmtType === frame.asrt->Array.getUnsafe(0)
                         ) 
                         && (!discFilter || frame.isDisc)
                         && (!deprFilter || frame.isDepr)
@@ -154,7 +154,7 @@ let make = React.memoCustomCompareProps(({
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
-            let stmtTyp = frame.asrt[0]
+            let stmtTyp = frame.asrt->Array.getUnsafe(0)
             if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
                 allStmtIntTypes->Js.Array2.push(stmtTyp)->ignore
             }

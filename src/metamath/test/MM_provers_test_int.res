@@ -66,7 +66,7 @@ describe("proveSyntaxTypes", _ => {
                                 typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
                                 newVar
                             } else {
-                                let existingVar = locVars[idx]
+                                let existingVar = locVars->Array.getUnsafe(idx)
                                 typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
                                 existingVar
                             }
@@ -90,7 +90,7 @@ describe("proveSyntaxTypes", _ => {
             if (i < 0) {
                 i
             } else {
-                asrtVarToLocVar[i]
+                asrtVarToLocVar->Array.getUnsafe(i)
             }
         }
 
@@ -213,7 +213,7 @@ describe("proveSyntaxTypes", _ => {
         ) {
             | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
             | Ok(arr) => {
-                switch arr[0] {
+                switch arr->Array.getUnsafe(0) {
                     | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
                     | Ok(ctxSyntaxTree) => {
                         syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {

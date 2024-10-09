@@ -221,7 +221,7 @@ let validateColor = (color:string):string => {
     if (allColors->Js_array2.includes(color)) {
         color
     } else {
-        allColors[0]
+        allColors->Array.getUnsafe(0)
     }
 }
 
@@ -280,7 +280,7 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
         let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
         let typIsEmpty = newTyp->Js_string2.length == 0
         let newColor = if (!(allColors->Js_array2.includes(ts.color))) {
-            allColors[0]
+            allColors->Array.getUnsafe(0)
         } else {
             ts.color
         }
@@ -792,9 +792,9 @@ let eqState = (st1, st2) => {
         && st1.autoMergeStmts == st2.autoMergeStmts
         && st1.autoUnifyAll == st2.autoUnifyAll
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
-        && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
+        && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings->Array.getUnsafe(i)))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
-        && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings[i]))
+        && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings->Array.getUnsafe(i)))
         && st1.longClickEnabled == st2.longClickEnabled
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector
@@ -900,7 +900,7 @@ let addTypeSetting = st => {
         typeSettings: st.typeSettings->Js_array2.concat([{
             id: newId,
             typ: "",
-            color: allColors[0],
+            color: allColors->Array.getUnsafe(0),
             prefix: "",
             err: None,
         }]),

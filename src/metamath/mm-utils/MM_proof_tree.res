@@ -74,7 +74,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
                 | Assertion({ args:bArgs, frame:bFrame, }) => {
                     aFrame.label == bFrame.label
                     && aArgs->Js.Array2.length == bArgs->Js.Array2.length
-                    && aArgs->Js.Array2.everyi((aArg,idx) => aArg.id == bArgs[idx].id)
+                    && aArgs->Js.Array2.everyi((aArg,idx) => aArg.id == bArgs->Array.getUnsafe(idx).id)
                 }
                 | _ => false
             }
@@ -323,11 +323,11 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
                     let hi = ref(0)
                     let eq = ref(true)
                     while (eq.contents && ji.contents < jLen && hi.contents < hLen) {
-                        let hyp = frame.hyps[hi.contents]
+                        let hyp = frame.hyps->Array.getUnsafe(hi.contents)
                         if (hyp.typ == F) {
                             hi := hi.contents + 1
                         } else {
-                            eq := jstfArgs[ji.contents]->exprEq(srcArgs[hi.contents]->pnGetExpr)
+                            eq := jstfArgs->Array.getUnsafe(ji.contents)->exprEq(srcArgs->Array.getUnsafe(hi.contents)->pnGetExpr)
                             ji := ji.contents + 1
                             hi := hi.contents + 1
                         }

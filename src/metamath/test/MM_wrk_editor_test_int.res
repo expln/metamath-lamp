@@ -77,7 +77,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step10")
 
         let (st, _) = st->addStmt(
-            ~before=st.stmts[0].id,
+            ~before=st.stmts->Array.getUnsafe(0).id,
             ~stmt="|- ( A e. CC -> ( cos ` A ) e. CC )",
             ()
         )
@@ -116,8 +116,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step14")
         assertProof(st, trgtStmtId, "proof1-no-hyps")
 
-        let hyp1Id = st.stmts[0].id
-        let hyp2Id = st.stmts[1].id
+        let hyp1Id = st.stmts->Array.getUnsafe(0).id
+        let hyp2Id = st.stmts->Array.getUnsafe(1).id
 
         let st = st->updateStmt(hyp1Id, ~typ=E, ~label=_=>"hyp1", () )
         let st = st->updateStmt(hyp2Id, ~typ=E, ~label=_=>"hyp2", () )

@@ -112,7 +112,7 @@ let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
 }
 
 let getSummary = st => {
-    if (st.singleScopes->Js.Array2.length == 1 && st.singleScopes[0].fileSrc->Belt_Option.isNone) {
+    if (st.singleScopes->Js.Array2.length == 1 && st.singleScopes->Array.getUnsafe(0).fileSrc->Belt_Option.isNone) {
         "No Metamath database is loaded; please select a database to load."
     } else {
         let filesInfo = st.singleScopes->Js_array2.map(ss => {
@@ -182,7 +182,7 @@ let isSingleScopeSame = (ss:mmSingleScope,srcDto:mmCtxSrcDto):bool => {
 
 let isScopeSame = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>):bool => {
     singleScopes->Js.Array2.length == srcs->Js_array2.length
-        && singleScopes->Js.Array2.everyi((ss,i) => isSingleScopeSame(ss, srcs[i]))
+        && singleScopes->Js.Array2.everyi((ss,i) => isSingleScopeSame(ss, srcs->Array.getUnsafe(i)))
 }
 
 let canLoadContext = (srcs: array<mmCtxSrcDto>):bool => {
@@ -255,7 +255,7 @@ let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ss
     if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
         promise(rslv => rslv(Ok(mmScope)))
     } else {
-        let ss = mmScope.singleScopes[ssIdx]
+        let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
         parseMmFileForSingleScope(mmScope, ~singleScopeId=ss.id, ~modalRef)->promiseFlatMap(mmScope => {
             switch mmScope.singleScopes->Js_array2.find(s => s.id == ss.id) {
                 | None => raise(MmException({msg:`None == singleScopes->find(s => s.id == ss.id)`}))
@@ -272,7 +272,7 @@ let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ss
 }
 
 let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool => 
-    singleScopes->Js.Array2.length == 1 && singleScopes[0].fileSrc->Belt_Option.isNone
+    singleScopes->Js.Array2.length == 1 && singleScopes->Array.getUnsafe(0).fileSrc->Belt_Option.isNone
 
 let loadMmContext = (
     ~singleScopes: array<mmSingleScope>, 
@@ -386,7 +386,7 @@ let rec loadMmFileTextForSingleScope = (
     if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
         promise(rslv => rslv(Ok(mmScope)))
     } else {
-        let ss = mmScope.singleScopes[ssIdx]
+        let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
         let continue = (text:fileText):promise<result<mmScope,string>> => {
             let mmScope = mmScope->updateSingleScope(ss.id, setFileText(_,Some(text)))
             loadMmFileTextForSingleScope(
@@ -457,7 +457,7 @@ let makeMmScopeFromSrcDtos = (
     let mmScope = srcs->Js_array2.reduce(
         (mmScope, src) => {
             let mmScope = mmScope->addSingleScope(~defaultSrcType=src.typ->mmFileSourceTypeFromStr)
-            let ssId = mmScope.singleScopes[mmScope.singleScopes->Js_array2.length-1].id
+            let ssId = mmScope.singleScopes->Array.getUnsafe(mmScope.singleScopes->Js_array2.length-1).id
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
             let mmScope = mmScope->updateSingleScope( ssId,setAst(_,src.ast->Belt_Option.map(ast => Ok(ast))))
             let mmScope = mmScope->updateSingleScope( ssId,setAllLabels(_,src.allLabels))
@@ -546,7 +546,7 @@ let make = (
     }, [state.expanded])
 
     let rndSingleScopeSelectors = () => {
-        let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || state.singleScopes[0].fileSrc->Belt_Option.isSome
+        let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || state.singleScopes->Array.getUnsafe(0).fileSrc->Belt_Option.isSome
         state.singleScopes->Js_array2.map(singleScope => {
             <MM_cmp_context_selector_single 
                 key=singleScope.id

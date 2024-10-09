@@ -154,12 +154,12 @@ let make = React.memoCustomCompareProps( ({
                 ) {
                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                     | Ok(syntaxTrees) => {
-                        switch syntaxTrees[0] {
+                        switch syntaxTrees->Array.getUnsafe(0) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
                                 let stmtContTreeData = {
                                     text,
-                                    exprTyp:syms[0].sym, 
+                                    exprTyp:syms->Array.getUnsafe(0).sym, 
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
                                                         ->Belt.Option.map(id => (id,Js_date.make())),

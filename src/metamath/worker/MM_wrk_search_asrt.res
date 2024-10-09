@@ -36,10 +36,10 @@ let frameMatchesConstPattern = (frm:frame, pat:array<int>):bool => {
     let pIdx = ref(0)
     let aIdx = ref(0)
     while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
-        let asrtSym = frm.asrt[aIdx.contents]
+        let asrtSym = frm.asrt->Array.getUnsafe(aIdx.contents)
         if (
-            asrtSym < 0 && asrtSym == pat[pIdx.contents]
-            || asrtSym >= 0 && frm.varTypes[asrtSym] == pat[pIdx.contents]
+            asrtSym < 0 && asrtSym == pat->Array.getUnsafe(pIdx.contents)
+            || asrtSym >= 0 && frm.varTypes->Array.getUnsafe(asrtSym) == pat->Array.getUnsafe(pIdx.contents)
         ) {
             pIdx.contents = pIdx.contents + 1
         }
@@ -74,11 +74,11 @@ let rec frameMatchesVarPatternRec = (
         let found = ref(false)
         let maxAIdx = frm.asrt->Js_array2.length - (varPat->Js_array2.length - pIdx)
         while (!found.contents && aIdx.contents <= maxAIdx) {
-            let asrtSym = frm.asrt[aIdx.contents]
-            let varPatSym = varPat[pIdx]
+            let asrtSym = frm.asrt->Array.getUnsafe(aIdx.contents)
+            let varPatSym = varPat->Array.getUnsafe(pIdx)
             if ( asrtSym < 0 && asrtSym == varPatSym ) {
                 found := remainingMatches()
-            } else if ( asrtSym >= 0 && frm.varTypes[asrtSym] == constPat[pIdx] ) {
+            } else if ( asrtSym >= 0 && frm.varTypes->Array.getUnsafe(asrtSym) == constPat->Array.getUnsafe(pIdx) ) {
                 if ( varPatSym < 0 ) {
                     found := remainingMatches()
                 } else {

@@ -30,12 +30,12 @@ let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
         let parens = []
         let maxI = parenLen / 2 - 1
         for i in 0 to maxI {
-            let openCode = parentheses[i*2]
-            let closeCode = parentheses[i*2+1]
+            let openCode = parentheses->Array.getUnsafe(i*2)
+            let closeCode = parentheses->Array.getUnsafe(i*2+1)
             parens->Js_array2.push({code: openCode, isOpen: true, opposite: closeCode})->ignore
             parens->Js_array2.push({code: closeCode, isOpen: false, opposite: openCode})->ignore
         }
-        let min = parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses[0])
+        let min = parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses->Array.getUnsafe(0))
         if (checkParensOptimized && Js.Math.abs_int(min) != parenLen) {
             Js.Console.log("Warning: parentheses are not optimized (this may slow down the unification process).")
         }

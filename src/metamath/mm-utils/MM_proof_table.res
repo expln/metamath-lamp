@@ -63,7 +63,7 @@ let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
         leftPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=numColWidth)
             ++ "| " ++ rightPad(~content=srcsArgs[i], ~char=" ", ~totalLen=argsColWidth)
             ++ "| " ++ rightPad(~content=srcsLabels[i], ~char=" ", ~totalLen=labelColWidth)
-            ++ "| " ++ exprs[i]
+            ++ "| " ++ exprs->Array.getUnsafe(i)
     })
 }
 
@@ -83,7 +83,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
         (),
         rootIdx,
         (_, idx) => {
-            switch tbl[idx].proof {
+            switch tbl->Array.getUnsafe(idx).proof {
                 | Hypothesis(_) => None
                 | Assertion({args}) => {
                     if (saved->Belt_HashSetInt.has(idx)) {
@@ -95,7 +95,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
             }
         },
         ~postProcess = (_, idx) => {
-            switch tbl[idx].proof {
+            switch tbl->Array.getUnsafe(idx).proof {
                 | Hypothesis(_) => onUse(idx)
                 | Assertion(_) => {
                     if (!(saved->Belt_HashSetInt.has(idx))) {
@@ -153,7 +153,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     let proofSteps = []
     traverseIdxsInRpnOrder(tbl,rootIdx,
         ~onUse = idx => {
-            let stepNum = switch tbl[idx].proof {
+            let stepNum = switch tbl->Array.getUnsafe(idx).proof {
                 | Hypothesis({label}) | Assertion({label}) => labelToInt(label)
             }
             proofSteps->Js_array2.push(stepNum)->ignore

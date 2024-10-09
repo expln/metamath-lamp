@@ -194,7 +194,7 @@ let testApplyAssertions = (
 
         workCtx->applySingleStmt(Var({symbols:workVarNames}), ())
         workVarHypLabels->Js.Array2.forEachi((label,i) => {
-            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes[i], workVarNames[i]]}), ())
+            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes->Array.getUnsafe(i), workVarNames->Array.getUnsafe(i)]}), ())
         })
         let args = []
         let argLabels = []
@@ -213,7 +213,7 @@ let testApplyAssertions = (
                     }
                     | None => {
                         let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
-                        let label = newStmtLabel[0]
+                        let label = newStmtLabel->Array.getUnsafe(0)
                         let exprArrStr = argExpr->Js_array2.map(workCtx->ctxIntToSymExn)
                         workCtx->applySingleStmt(Provable({
                             label, 

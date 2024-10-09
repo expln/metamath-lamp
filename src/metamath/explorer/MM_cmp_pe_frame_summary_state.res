@@ -81,7 +81,7 @@ let makeInitialState = (
     }
 
     for frmVarInt in 0 to frame.numOfVars-1 {
-        let frmVarName = frame.frameVarToSymb[frmVarInt]
+        let frmVarName = frame.frameVarToSymb->Array.getUnsafe(frmVarInt)
         let ctxVarName = switch frmCtx->getTokenType(frmVarName) {
             | Some(V) => {
                 let ctxVarInt = frmCtx->ctxSymToIntExn(frmVarName)
@@ -90,24 +90,24 @@ let makeInitialState = (
                     frmVarIntToCtxInt->Js.Array2.push(ctxVarInt)->ignore
                     frmVarName
                 } else {
-                    let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~typInt=frame.varTypes[frmVarInt])
+                    let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~typInt=frame.varTypes->Array.getUnsafe(frmVarInt))
                     frmVarIntToCtxInt->Js.Array2.push(ctxNewVarInt)->ignore
                     frmCtx->ctxIntToSymExn(ctxNewVarInt)
                 }
             }
             | _ => {
-                let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~typInt=frame.varTypes[frmVarInt])
+                let ctxNewVarInt = createLocalCtxVar(~frmVarName, ~typInt=frame.varTypes->Array.getUnsafe(frmVarInt))
                 frmVarIntToCtxInt->Js.Array2.push(ctxNewVarInt)->ignore
                 frmCtx->ctxIntToSymExn(ctxNewVarInt)
             }
         }
-        let frmVarTypSym = frmCtx->ctxIntToSymExn(frame.varTypes[frmVarInt])
+        let frmVarTypSym = frmCtx->ctxIntToSymExn(frame.varTypes->Array.getUnsafe(frmVarInt))
         typeColors->Belt_HashMapString.get(frmVarTypSym)->Belt.Option.forEach(color => {
             symColors->Belt_HashMapString.set(ctxVarName, color)
         })
     }
 
-    let frameIntToCtxInt = i => if (i < 0) {i} else {frmVarIntToCtxInt[i]}
+    let frameIntToCtxInt = i => if (i < 0) {i} else {frmVarIntToCtxInt->Array.getUnsafe(i)}
 
     let frameExprToCtxExpr = (frmExpr:expr):expr => {
         frmExpr->Js_array2.map(frameIntToCtxInt)
@@ -166,7 +166,7 @@ let rndDisjGrp = (grp:array<(string,option<string>)>):React.element => {
                 </span>
             )->ignore
         }
-        let (sym,colorOpt) = grp[i]
+        let (sym,colorOpt) = grp->Array.getUnsafe(i)
         res->Js.Array2.push(
             <span
                 key={"v-" ++ i->Belt_Int.toString}
@@ -190,7 +190,7 @@ let disjGrpDelim = nbsp ++ nbsp ++ nbsp ++ nbsp
 let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
     let disjGrpArr = []
     for i in 0 to disj->Js.Array2.length-1 {
-        let grp = disj[i]
+        let grp = disj->Array.getUnsafe(i)
         if (i > 0) {
             disjGrpArr->Js.Array2.push(
                 <span 

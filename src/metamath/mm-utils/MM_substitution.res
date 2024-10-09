@@ -66,19 +66,19 @@ let subsEq = (a:subs, b:subs):bool => {
         let res = ref(true)
         let v = ref(0)
         while (res.contents && v.contents < a.size) {
-            let aExpr = a.exprs[v.contents]
-            let aBegin = a.begins[v.contents]
-            let aEnd = a.ends[v.contents]
+            let aExpr = a.exprs->Array.getUnsafe(v.contents)
+            let aBegin = a.begins->Array.getUnsafe(v.contents)
+            let aEnd = a.ends->Array.getUnsafe(v.contents)
             let aExprLen = aEnd - aBegin + 1
-            let bExpr = b.exprs[v.contents]
-            let bBegin = b.begins[v.contents]
-            let bEnd = b.ends[v.contents]
+            let bExpr = b.exprs->Array.getUnsafe(v.contents)
+            let bBegin = b.begins->Array.getUnsafe(v.contents)
+            let bEnd = b.ends->Array.getUnsafe(v.contents)
             let bExprLen = bEnd - bBegin + 1
             if (aExprLen == bExprLen) {
                 let ai = ref(aBegin)
                 let bi = ref(bBegin)
                 while (res.contents && ai.contents <= aEnd) {
-                    res.contents = aExpr[ai.contents] == bExpr[bi.contents]
+                    res.contents = aExpr[ai.contents] == bExpr->Array.getUnsafe(bi.contents)
                     ai.contents = ai.contents + 1
                     bi.contents = bi.contents + 1
                 }
@@ -101,9 +101,9 @@ let subsHash = (subs:subs):int => {
             hash.contents = Expln_utils_common.hash2(
                 hash.contents,
                 Expln_utils_common.hashArrIntFromTo(
-                    subs.exprs[v.contents],
-                    subs.begins[v.contents],
-                    subs.ends[v.contents],
+                    subs.exprs->Array.getUnsafe(v.contents),
+                    subs.begins->Array.getUnsafe(v.contents),
+                    subs.ends->Array.getUnsafe(v.contents),
                 )
             )
             v.contents = v.contents + 1
@@ -116,21 +116,21 @@ let subsHash = (subs:subs):int => {
 
 let lengthOfGap = (leftConstPartIdx:int, constParts:array<array<int>>, exprLength:int):int => {
     if (leftConstPartIdx < 0) {
-        constParts[0][0]
+        constParts->Array.getUnsafe(0)->Array.getUnsafe(0)
     } else if (leftConstPartIdx < constParts->Js_array2.length - 1) {
-        constParts[leftConstPartIdx+1][0] - constParts[leftConstPartIdx][1] - 1
+        constParts->Array.getUnsafe(leftConstPartIdx+1)->Array.getUnsafe(0) - constParts->Array.getUnsafe(leftConstPartIdx)->Array.getUnsafe(1) - 1
     } else {
-        exprLength - constParts[leftConstPartIdx][1] - 1
+        exprLength - constParts->Array.getUnsafe(leftConstPartIdx)->Array.getUnsafe(1) - 1
     }
 }
 
 let lengthOfGap2 = (leftConstPartIdx:int, constParts:constParts, exprLength:int):int => {
     if (leftConstPartIdx < 0) {
-        constParts.begins[0]
+        constParts.begins->Array.getUnsafe(0)
     } else if (leftConstPartIdx < constParts.length - 1) {
-        constParts.begins[leftConstPartIdx+1] - constParts.ends[leftConstPartIdx] - 1
+        constParts.begins->Array.getUnsafe(leftConstPartIdx+1) - constParts.ends->Array.getUnsafe(leftConstPartIdx) - 1
     } else {
-        exprLength - constParts.ends[leftConstPartIdx] - 1
+        exprLength - constParts.ends->Array.getUnsafe(leftConstPartIdx) - 1
     }
 }
 
@@ -138,18 +138,18 @@ let createConstParts = expr => {
     let constParts = []
     for i in 0 to expr->Js_array2.length-1 {
         let constPartsLength = constParts->Js_array2.length
-        if (expr[i] < 0) {
-            if (constPartsLength == 0 || constParts[constPartsLength-1][1] >= 0) {
+        if (expr->Array.getUnsafe(i) < 0) {
+            if (constPartsLength == 0 || constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) >= 0) {
                 constParts->Js_array2.push([i,-1])->ignore
             }
-        } else if (constPartsLength > 0 && constParts[constPartsLength-1][1] < 0) {
-            constParts[constPartsLength-1][1] = i-1
+        } else if (constPartsLength > 0 && constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) < 0) {
+            constParts->Array.getUnsafe(constPartsLength-1)[1] = i-1
         }
     }
     let constPartsLength = constParts->Js_array2.length
     let exprLength = expr->Js_array2.length
-    if (constPartsLength > 0 && constParts[constPartsLength-1][1] < 0) {
-        constParts[constPartsLength-1][1] = exprLength-1
+    if (constPartsLength > 0 && constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) < 0) {
+        constParts->Array.getUnsafe(constPartsLength-1)[1] = exprLength-1
     }
     let result = {
         length: constPartsLength,
@@ -159,9 +159,9 @@ let createConstParts = expr => {
     }
     let remainingMinLength = ref(0)
     for i in constPartsLength-1 downto 0 {
-        result.begins[i] = constParts[i][0]
-        result.ends[i] = constParts[i][1]
-        remainingMinLength.contents = remainingMinLength.contents + (result.ends[i] - result.begins[i] + 1) + lengthOfGap(i, constParts, exprLength)
+        result.begins[i] = constParts->Array.getUnsafe(i)->Array.getUnsafe(0)
+        result.ends[i] = constParts->Array.getUnsafe(i)->Array.getUnsafe(1)
+        remainingMinLength.contents = remainingMinLength.contents + (result.ends->Array.getUnsafe(i) - result.begins->Array.getUnsafe(i) + 1) + lengthOfGap(i, constParts, exprLength)
         result.remainingMinLength[i] = remainingMinLength.contents
     }
     result
@@ -214,16 +214,16 @@ let rec iterateConstParts = (
                         Continue
                     } else {
                         if (
-                            !(parenCnt->parenCntCanBeFirst(expr[constParts.ends[idxToMatch-1]+1]))
-                            || !(parenCnt->parenCntCanBeLast(expr[exprLen-1]))
+                            !(parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(constParts.ends->Array.getUnsafe(idxToMatch-1)+1)))
+                            || !(parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(exprLen-1)))
                         ) {
                             Continue
                         } else {
                             parenCnt->parenCntReset
                             let pState = ref(Balanced)
-                            let i = ref(constParts.ends[idxToMatch-1]+1)
+                            let i = ref(constParts.ends->Array.getUnsafe(idxToMatch-1)+1)
                             while (i.contents < exprLen && pState.contents != Failed) {
-                                pState.contents = parenCnt->parenCntPut(expr[i.contents])
+                                pState.contents = parenCnt->parenCntPut(expr->Array.getUnsafe(i.contents))
                                 i.contents = i.contents + 1
                             }
                             if (pState.contents == Balanced) {
@@ -237,20 +237,20 @@ let rec iterateConstParts = (
             } else {
                 consumer(constParts)
             }
-        } else if (parenCnt->parenCntCanBeFirst(expr[0]) && parenCnt->parenCntCanBeLast(expr[exprLen-1])) {
+        } else if (parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(0)) && parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(exprLen-1))) {
             consumer(constParts)
         } else {
             Continue
         }
     } else if (idxToMatch == 0 && frmConstParts.begins[0] == 0) {
-        if (exprLen-1 < frmConstParts.ends[0]) {
+        if (exprLen-1 < frmConstParts.ends->Array.getUnsafe(0)) {
             Continue
         } else {
             let res = ref(None)
-            let maxI = frmConstParts.ends[0]
+            let maxI = frmConstParts.ends->Array.getUnsafe(0)
             let i = ref(0)
             while (res.contents->Belt_Option.isNone && i.contents <= maxI) {
-                if (frmExpr[i.contents] != expr[i.contents]) {
+                if (frmExpr->Array.getUnsafe(i.contents) != expr->Array.getUnsafe(i.contents)) {
                     res.contents = Some(Continue)
                 }
                 i.contents = i.contents + 1
@@ -258,7 +258,7 @@ let rec iterateConstParts = (
             switch res.contents {
                 | Some(instr) => instr
                 | None => {
-                    if (maxI == exprLen-1 || parenCnt->parenCntCanBeFirst(expr[maxI+1])) {
+                    if (maxI == exprLen-1 || parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(maxI+1))) {
                         constParts.begins[0] = 0
                         constParts.ends[0] = maxI
                         invokeNext()
@@ -269,30 +269,30 @@ let rec iterateConstParts = (
             }
         }
     } else {
-        let begin = ref(if (idxToMatch == 0) {0} else {constParts.ends[idxToMatch-1]+1})
-        let maxBegin = exprLen - frmConstParts.remainingMinLength[idxToMatch]
+        let begin = ref(if (idxToMatch == 0) {0} else {constParts.ends->Array.getUnsafe(idxToMatch-1)+1})
+        let maxBegin = exprLen - frmConstParts.remainingMinLength->Array.getUnsafe(idxToMatch)
         parenCnt->parenCntReset
         let pState = ref(Balanced)
         let numOfVars = lengthOfGap2(idxToMatch-1,frmConstParts,frmExprLen)
         for _ in 1 to numOfVars {
-            pState.contents = parenCnt->parenCntPut(expr[begin.contents])
+            pState.contents = parenCnt->parenCntPut(expr->Array.getUnsafe(begin.contents))
             begin.contents = begin.contents + 1
         }
-        let partLen = frmConstParts.ends[idxToMatch] - frmConstParts.begins[idxToMatch] + 1
+        let partLen = frmConstParts.ends->Array.getUnsafe(idxToMatch) - frmConstParts.begins->Array.getUnsafe(idxToMatch) + 1
         let instr = ref(Continue)
         while (begin.contents <= maxBegin && pState.contents != Failed && instr.contents == Continue) {
             if (pState.contents == Balanced) {
                 let matchedLen = ref(0)
                 let cmpRes = ref(true)
                 while (matchedLen.contents < partLen && cmpRes.contents) {
-                    cmpRes.contents = frmExpr[frmConstParts.begins[idxToMatch]+matchedLen.contents] == expr[begin.contents+matchedLen.contents]
+                    cmpRes.contents = frmExpr[frmConstParts.begins->Array.getUnsafe(idxToMatch)+matchedLen.contents] == expr->Array.getUnsafe(begin.contents+matchedLen.contents)
                     matchedLen.contents = matchedLen.contents + 1
                 }
                 let end = begin.contents+partLen-1
                 if (
                     matchedLen.contents == partLen && cmpRes.contents
-                    && parenCnt->parenCntCanBeLast(expr[begin.contents-1])
-                    && (end == exprLen-1 || parenCnt->parenCntCanBeFirst(expr[end+1]))
+                    && parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(begin.contents-1))
+                    && (end == exprLen-1 || parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(end+1)))
                 ) {
                     constParts.begins[idxToMatch] = begin.contents
                     constParts.ends[idxToMatch] = end
@@ -300,7 +300,7 @@ let rec iterateConstParts = (
                     parenCnt->parenCntReset
                 }
             }
-            pState.contents = parenCnt->parenCntPut(expr[begin.contents])
+            pState.contents = parenCnt->parenCntPut(expr->Array.getUnsafe(begin.contents))
             begin.contents = begin.contents + 1
         }
         instr.contents
@@ -325,7 +325,7 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
                 leftConstPartIdx: -1,
                 frmExpr:frmExpr,
                 varsBeginIdx:0,
-                numOfVars:frmConstParts.begins[0],
+                numOfVars:frmConstParts.begins->Array.getUnsafe(0),
                 exprBeginIdx: 0,
                 exprEndIdx: 0
             })->ignore
@@ -334,7 +334,7 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
             res->Js_array2.push({
                 leftConstPartIdx: i,
                 frmExpr:frmExpr,
-                varsBeginIdx: frmConstParts.ends[i]+1,
+                varsBeginIdx: frmConstParts.ends->Array.getUnsafe(i)+1,
                 numOfVars: lengthOfGap2(i, frmConstParts, frmExprLen),
                 exprBeginIdx: 0,
                 exprEndIdx: 0
@@ -345,7 +345,7 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
             res->Js_array2.push({
                 leftConstPartIdx: lastConstPartIdx,
                 frmExpr:frmExpr,
-                varsBeginIdx: frmConstParts.ends[lastConstPartIdx]+1,
+                varsBeginIdx: frmConstParts.ends->Array.getUnsafe(lastConstPartIdx)+1,
                 numOfVars: lengthOfGap2(lastConstPartIdx, frmConstParts, frmExprLen),
                 exprBeginIdx: 0,
                 exprEndIdx: 0
@@ -364,13 +364,13 @@ let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:e
         varGroups->Js_array2.forEach(grp => {
             if (grp.leftConstPartIdx == -1) {
                 grp.exprBeginIdx = 0
-                grp.exprEndIdx = constParts.begins[0] - 1
+                grp.exprEndIdx = constParts.begins->Array.getUnsafe(0) - 1
             } else if (grp.leftConstPartIdx == constParts.length-1) {
-                grp.exprBeginIdx = constParts.ends[grp.leftConstPartIdx]+1
+                grp.exprBeginIdx = constParts.ends->Array.getUnsafe(grp.leftConstPartIdx)+1
                 grp.exprEndIdx = exprLen-1
             } else {
-                grp.exprBeginIdx = constParts.ends[grp.leftConstPartIdx]+1
-                grp.exprEndIdx = constParts.begins[grp.leftConstPartIdx+1]-1
+                grp.exprBeginIdx = constParts.ends->Array.getUnsafe(grp.leftConstPartIdx)+1
+                grp.exprEndIdx = constParts.begins->Array.getUnsafe(grp.leftConstPartIdx+1)-1
             }
         })
         varGroups->Js.Array2.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
@@ -387,8 +387,8 @@ let rec iterateVarGroups = (
     ~parenCnt:parenCnt,
     ~consumer: subs=>contunieInstruction
 ): contunieInstruction => {
-    let grp = varGroups[curGrpIdx]
-    let frmVar = grp.frmExpr[grp.varsBeginIdx+curVarIdx]
+    let grp = varGroups->Array.getUnsafe(curGrpIdx)
+    let frmVar = grp.frmExpr->Array.getUnsafe(grp.varsBeginIdx+curVarIdx)
     let maxSubExprLength = grp.exprEndIdx - subExprBeginIdx + 1 - (grp.numOfVars - curVarIdx - 1)
     
     let invokeNext = (subExprLength:int):contunieInstruction => {
@@ -410,7 +410,7 @@ let rec iterateVarGroups = (
                 ~varGroups,
                 ~curGrpIdx = curGrpIdx+1,
                 ~curVarIdx = 0,
-                ~subExprBeginIdx = varGroups[curGrpIdx+1].exprBeginIdx,
+                ~subExprBeginIdx = varGroups->Array.getUnsafe(curGrpIdx+1).exprBeginIdx,
                 ~parenCnt,
                 ~consumer
             )
@@ -420,22 +420,22 @@ let rec iterateVarGroups = (
     }
 
     let continueInstr = ref(Continue)
-    if (!subs.isDefined[frmVar]) {
+    if (!subs.isDefined->Array.getUnsafe(frmVar)) {
         subs.isDefined[frmVar] = true
         subs.exprs[frmVar] = expr
         subs.begins[frmVar] = subExprBeginIdx
         if (curVarIdx == grp.numOfVars-1) {
             subs.ends[frmVar] = grp.exprEndIdx
             continueInstr.contents = invokeNext(maxSubExprLength)
-        } else if (parenCnt->parenCntCanBeFirst(expr[subExprBeginIdx])) {
+        } else if (parenCnt->parenCntCanBeFirst(expr->Array.getUnsafe(subExprBeginIdx))) {
             let subExprLength = ref(1)
             let end = ref(subExprBeginIdx)
             parenCnt->parenCntReset
             let pStatus = ref(Balanced)
             while (subExprLength.contents <= maxSubExprLength && continueInstr.contents == Continue && pStatus.contents != Failed) {
                 subs.ends[frmVar] = end.contents
-                pStatus.contents = parenCnt->parenCntPut(expr[end.contents])
-                if (pStatus.contents == Balanced && parenCnt->parenCntCanBeLast(expr[end.contents])) {
+                pStatus.contents = parenCnt->parenCntPut(expr->Array.getUnsafe(end.contents))
+                if (pStatus.contents == Balanced && parenCnt->parenCntCanBeLast(expr->Array.getUnsafe(end.contents))) {
                     continueInstr.contents = invokeNext(subExprLength.contents)
                     parenCnt->parenCntReset
                 }
@@ -445,13 +445,13 @@ let rec iterateVarGroups = (
         }
         subs.isDefined[frmVar] = false
     } else {
-        let existingExpr = subs.exprs[frmVar]
-        let existingExprBeginIdx = subs.begins[frmVar]
-        let existingExprLen = subs.ends[frmVar] - existingExprBeginIdx + 1
+        let existingExpr = subs.exprs->Array.getUnsafe(frmVar)
+        let existingExprBeginIdx = subs.begins->Array.getUnsafe(frmVar)
+        let existingExprLen = subs.ends->Array.getUnsafe(frmVar) - existingExprBeginIdx + 1
         if (existingExprLen <= maxSubExprLength && (curVarIdx < grp.numOfVars-1 || existingExprLen == maxSubExprLength)) {
             let checkedLen = ref(0)
             while (checkedLen.contents < existingExprLen 
-                    && existingExpr[existingExprBeginIdx+checkedLen.contents] == expr[subExprBeginIdx+checkedLen.contents]) {
+                    && existingExpr->Array.getUnsafe(existingExprBeginIdx+checkedLen.contents) == expr->Array.getUnsafe(subExprBeginIdx+checkedLen.contents)) {
                         checkedLen.contents = checkedLen.contents + 1
             }
             if (checkedLen.contents == existingExprLen) {
@@ -508,7 +508,7 @@ let iterateSubstitutions = (
                                     ~varGroups,
                                     ~curGrpIdx = 0,
                                     ~curVarIdx = 0,
-                                    ~subExprBeginIdx = varGroups[0].exprBeginIdx,
+                                    ~subExprBeginIdx = varGroups->Array.getUnsafe(0).exprBeginIdx,
                                     ~parenCnt,
                                     ~consumer
                                 )
@@ -579,7 +579,7 @@ let prepareFrmSubsData = (
     let byType = Belt_HashMapInt.make(~hintSize=16)
     all->Js_array2.forEach(frm => {
         byLabel->Belt_HashMapString.set(frm.frame.label, frm)
-        let typ = frm.frame.asrt[0]
+        let typ = frm.frame.asrt->Array.getUnsafe(0)
         switch byType->Belt_HashMapInt.get(typ) {
             | None => byType->Belt_HashMapInt.set(typ,[frm])
             | Some(arr) => arr->Js_array2.push(frm)->ignore
@@ -604,8 +604,8 @@ let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
     frmExpr->Js_array2.forEach(s => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
-        } else if (subs.isDefined[s]) {
-            resultSize.contents = resultSize.contents + (subs.ends[s]-subs.begins[s]+1)
+        } else if (subs.isDefined->Array.getUnsafe(s)) {
+            resultSize.contents = resultSize.contents + (subs.ends->Array.getUnsafe(s)-subs.begins->Array.getUnsafe(s)+1)
         } else {
             resultSize.contents = resultSize.contents + 1
         }
@@ -614,13 +614,13 @@ let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
     let e = ref(0)
     let r = ref(0)
     while (r.contents < resultSize.contents) {
-        let s = frmExpr[e.contents]
+        let s = frmExpr->Array.getUnsafe(e.contents)
         if (s < 0) {
             res[r.contents] = s
             r.contents = r.contents + 1
-        } else if (subs.isDefined[s]) {
-            let subExpr = subs.exprs[s]
-            let len = (subs.ends[s]-subs.begins[s]+1)
+        } else if (subs.isDefined->Array.getUnsafe(s)) {
+            let subExpr = subs.exprs->Array.getUnsafe(s)
+            let len = (subs.ends->Array.getUnsafe(s)-subs.begins->Array.getUnsafe(s)+1)
             Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=subs.begins[s], ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
         } else {
@@ -643,19 +643,19 @@ let verifyDisjoints = (
         if (res.contents->Belt.Option.isNone) {
             ms->Belt_SetInt.forEach(m => {
                 if (res.contents->Belt.Option.isNone) {
-                    let nExpr = subs.exprs[n]
-                    let nExprBegin = subs.begins[n]
-                    let nExprEnd = subs.ends[n]
-                    let mExpr = subs.exprs[m]
-                    let mExprBegin = subs.begins[m]
-                    let mExprEnd = subs.ends[m]
+                    let nExpr = subs.exprs->Array.getUnsafe(n)
+                    let nExprBegin = subs.begins->Array.getUnsafe(n)
+                    let nExprEnd = subs.ends->Array.getUnsafe(n)
+                    let mExpr = subs.exprs->Array.getUnsafe(m)
+                    let mExprBegin = subs.begins->Array.getUnsafe(m)
+                    let mExprEnd = subs.ends->Array.getUnsafe(m)
                     for nExprI in nExprBegin to nExprEnd {
                         if (res.contents->Belt.Option.isNone) {
-                            let nExprSym = nExpr[nExprI]
+                            let nExprSym = nExpr->Array.getUnsafe(nExprI)
                             if (nExprSym >= 0) {
                                 for mExprI in mExprBegin to mExprEnd {
                                     if (res.contents->Belt.Option.isNone) {
-                                        let mExprSym = mExpr[mExprI]
+                                        let mExprSym = mExpr->Array.getUnsafe(mExprI)
                                         if (mExprSym >= 0) {
                                             if (nExprSym == mExprSym) {
                                                 if (debugLevel == 0) {
@@ -755,7 +755,7 @@ let frmsGetAllGroupedByLabel = (frms:frms):Belt_HashMapString.t<frmSubsData> => 
 
 let test_iterateConstParts = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):(array<(int,int)>, array<array<(int,int)>>) => {
     let constPartsToArr = (constParts:constParts) => {
-        constParts.begins->Js_array2.mapi((b,i)=>(b,constParts.ends[i]))
+        constParts.begins->Js_array2.mapi((b,i)=>(b,constParts.ends->Array.getUnsafe(i)))
     }
     let frmConstParts = createConstParts(frmExpr)
     let constParts = createMatchingConstParts(frmConstParts)
@@ -802,7 +802,7 @@ let test_iterateSubstitutions = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):
             let res = []
             for i in 0 to numOfVars-1 {
                 res->Js_array2.push(
-                    subs.exprs[i]->Js_array2.slice(~start=subs.begins[i], ~end_=subs.ends[i]+1)
+                    subs.exprs->Array.getUnsafe(i)->Js_array2.slice(~start=subs.begins->Array.getUnsafe(i), ~end_=subs.ends->Array.getUnsafe(i)+1)
                 )->ignore
             }
             result->Js_array2.push(res)->ignore

@@ -75,7 +75,7 @@ module rec ProofNodeDtoCmp: {
     }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
-        let node = tree.nodes[nodeIdx]
+        let node = tree.nodes->Array.getUnsafe(nodeIdx)
 
         let getParents = () => {
             if (node.parents->Js.Array2.length == 0) {
@@ -160,7 +160,7 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndExpandedArgs = (args, srcIdx) => {
-            let src = parents[srcIdx]
+            let src = parents->Array.getUnsafe(srcIdx)
             <table>
                 <tbody>
                     <tr key="c-args">
@@ -226,7 +226,7 @@ module rec ProofNodeDtoCmp: {
             switch src {
                 | VarType | Hypothesis(_) => validProofIcon
                 | Assertion({args}) => {
-                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
+                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes->Array.getUnsafe(arg).proof->Belt_Option.isSome)
                     if (allArgsAreProved) {
                         validProofIcon
                     } else {
@@ -325,7 +325,7 @@ module rec ProofNodeDtoCmp: {
                             style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ())
                             onClick={_=>actToggleExpanded()}
                         > 
-                            {exprToReElem(tree.nodes[nodeIdx].expr)} 
+                            {exprToReElem(tree.nodes->Array.getUnsafe(nodeIdx).expr)} 
                         </td>
                     </tr>
                     {

@@ -30,7 +30,7 @@ let make = (
     let (state, _) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
 
     let nodeIdxToLabel = idx => {
-        switch state.exprToLabel->Belt_HashMap.get(tree.nodes[idx].expr) {
+        switch state.exprToLabel->Belt_HashMap.get(tree.nodes->Array.getUnsafe(idx).expr) {
             | Some(label) => label
             | None => idx->Belt_Int.toString
         }
@@ -59,7 +59,7 @@ let make = (
         }
     }
 
-    let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has(tree.nodes[idx].expr)
+    let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has(tree.nodes->Array.getUnsafe(idx).expr)
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
         switch wrkCtx->getFrame(label) {

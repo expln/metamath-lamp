@@ -23,7 +23,7 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSu
     )
     varToExprArr->Js_array2.forEachi(((var,expr), i) =>
         if (wrkSubs.err->Belt_Option.isNone) {
-            let typeExpr = typesToProve[i]
+            let typeExpr = typesToProve->Array.getUnsafe(i)
             if (proofTree->ptGetNode(typeExpr)->pnGetProof->Belt_Option.isNone) {
                 wrkSubs.err = Some(TypeMismatch({ var, subsExpr:expr, typeExpr, }))
             }
@@ -90,7 +90,7 @@ let applyWrkSubs = (expr, wrkSubs:wrkSubs): expr => {
     let e = ref(0)
     let r = ref(0)
     while (r.contents < resultSize.contents) {
-        let s = expr[e.contents]
+        let s = expr->Array.getUnsafe(e.contents)
         if (s < 0) {
             res[r.contents] = s
             r.contents = r.contents + 1
@@ -177,9 +177,9 @@ let findPossibleSubsByMatch = (
         iterateSubstitutions(
             ~frmExpr=tmpFrame.asrt,
             ~expr,
-            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-            ~constParts = frm.constParts[frm.numOfHypsE], 
-            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = subs => {
@@ -274,7 +274,7 @@ let buildSyntaxTreesOfSameType = (
 }
 
 let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
-    if (expr->Js_array2.length > 0 && allTypes->Js_array2.includes(expr[0])) {
+    if (expr->Js_array2.length > 0 && allTypes->Js_array2.includes(expr->Array.getUnsafe(0))) {
         expr->Js_array2.sliceFrom(1)
     } else {
         expr
@@ -397,7 +397,7 @@ let substitute = (st:editorState, ~what:string, ~with_:string):result<editorStat
                                     } else if (validSubs->Js_array2.length > 1) {
                                         Error(`More than 1 substitution found.`)
                                     } else {
-                                        Ok(st->applySubstitutionForEditor(validSubs[0]))
+                                        Ok(st->applySubstitutionForEditor(validSubs->Array.getUnsafe(0)))
                                     }
                                 }
                             }

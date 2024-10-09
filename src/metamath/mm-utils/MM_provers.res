@@ -121,9 +121,9 @@ let findAsrtParentsWithoutNewVars = (
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
-                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE],
-                ~constParts = frm.constParts[frm.numOfHypsE],
-                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE),
+                ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE),
+                ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
                 ~subs = frm.subs,
                 ~parenCnt=tree->ptGetParenCnt,
                 ~consumer = subs => {
@@ -143,7 +143,7 @@ let findAsrtParentsWithoutNewVars = (
                         let maxArgIdx = numOfArgs - 1
                         while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                             let newExpr = applySubs(
-                                ~frmExpr = hyps[argIdx.contents].expr, 
+                                ~frmExpr = hyps->Array.getUnsafe(argIdx.contents).expr, 
                                 ~subs,
                                 ~createWorkVar = _ => raise(MmException({
                                     msg:`Work variables are not supported in findAsrtParentsWithoutNewVars().`
@@ -337,7 +337,7 @@ let findAsrtParentsWithNewVars = (
             | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
                 let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
                 applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
-                    let newVarType = applResult.newVarTypes[i]
+                    let newVarType = applResult.newVarTypes->Array.getUnsafe(i)
                     let treeNewVar = tree->ptAddNewVar(newVarType)
                     applNewVarToTreeNewVar->Belt_MutableMapInt.set(applResNewVar,treeNewVar)
                 })
@@ -349,7 +349,7 @@ let findAsrtParentsWithNewVars = (
 
                 while (argIdx.contents <= maxArgIdx && (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0)) {
                     let argExpr = applySubs(
-                        ~frmExpr = frame.hyps[argIdx.contents].expr, 
+                        ~frmExpr = frame.hyps->Array.getUnsafe(argIdx.contents).expr, 
                         ~subs=applResult.subs,
                         ~createWorkVar = _ => raise(MmException({
                             msg:`New work variables are not expected here [findAsrtParentsWithNewVars].`
@@ -357,7 +357,7 @@ let findAsrtParentsWithNewVars = (
                     )
                     let maxI = argExpr->Js_array2.length-1
                     for i in 0 to maxI {
-                        let sym = argExpr[i]
+                        let sym = argExpr->Array.getUnsafe(i)
                         if (sym > maxVarBeforeSearch) {
                             argExpr[i] = switch applNewVarToTreeNewVar->Belt_MutableMapInt.get(sym) {
                                 | None => raise(MmException({msg:`Could not replace an applVar with a treeVar.`}))
@@ -622,16 +622,16 @@ let exprMatchesAsrtMatcher = (
         true
     } else {
         let frm = matcher.frm
-        if (expr[0] != frm.frame.asrt[0]) {
+        if (expr[0] != frm.frame.asrt->Array.getUnsafe(0)) {
             false
         } else {
             let res = ref(false)
             iterateSubstitutions(
                 ~frmExpr = frm.frame.asrt,
                 ~expr,
-                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-                ~constParts = frm.constParts[frm.numOfHypsE], 
-                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+                ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+                ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
                 ~subs = frm.subs,
                 ~parenCnt,
                 ~consumer = _ => {
@@ -667,7 +667,7 @@ let proveStmtBottomUp = (
     let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSrc> => {
         let res = []
         for i in 0 to params.frameParams->Js_array2.length-1 {
-            let paramsI = params.frameParams[i]
+            let paramsI = params.frameParams->Array.getUnsafe(i)
             if (
                 isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist) 
                 && exprMatchesAsrtMatchers(~expr, ~matchers=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
@@ -701,7 +701,7 @@ let proveStmtBottomUp = (
                                     let maxArgIdx = numOfArgs - 1
                                     let argIdx = ref(0)
                                     while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                                        let arg = args[argIdx.contents]
+                                        let arg = args->Array.getUnsafe(argIdx.contents)
                                         if (frame.hyps[argIdx.contents].typ == E) {
                                             argsAreCorrect.contents = switch paramsI.lengthRestrict {
                                                 | No => true
@@ -877,9 +877,9 @@ let proveSyntaxTypes = (
         tree
     } else {
         let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
-        let lastType = ref(syntaxTypes[0])
+        let lastType = ref(syntaxTypes->Array.getUnsafe(0))
         for ei in 0 to exprs->Js_array2.length-1 {
-            let expr = exprs[ei]
+            let expr = exprs->Array.getUnsafe(ei)
             let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
             proveFloating( 
                 ~tree, 
@@ -889,7 +889,7 @@ let proveSyntaxTypes = (
             )
             let ti = ref(0)
             while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Js_array2.length ) {
-                let typ = syntaxTypes[ti.contents]
+                let typ = syntaxTypes->Array.getUnsafe(ti.contents)
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
                     node := tree->ptGetNode([typ]->Js.Array2.concat(expr))

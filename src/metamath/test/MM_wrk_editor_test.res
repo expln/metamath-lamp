@@ -115,7 +115,7 @@ let getVarType = (ctx:mmContext, vName:string) => {
     let varInt = (ctx->ctxSymsToIntsExn([vName]))[0]
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F && hyp.expr[1] == varInt) {
-            Some(ctx->ctxIntToSymExn(hyp.expr[0]))
+            Some(ctx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0)))
         } else {
             None
         }
@@ -243,8 +243,8 @@ describe("prepareEditorForUnification", _ => {
         let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let prId = st.stmts[0].id
-        let hypId = st.stmts[1].id
+        let prId = st.stmts->Array.getUnsafe(0).id
+        let hypId = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- 0 + 0.", ())})
 
@@ -255,13 +255,13 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.varsErr->Belt_Option.isNone, true)
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
-        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        assertEqMsg(st.stmts->Array.getUnsafe(0).id, hypId, "the hypothesis is the first")
         assertEq(
-            st.stmts[0].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(0).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "The symbol '0.' is not declared."
         )
-        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
-        assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(1).id, prId, "the provable is the second")
+        assertEq(st.stmts->Array.getUnsafe(1).stmtErr->Belt_Option.isNone, true)
     })
     
     it("detects an error when a hypothesis is empty", _ => {
@@ -269,8 +269,8 @@ describe("prepareEditorForUnification", _ => {
         let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let prId = st.stmts[0].id
-        let hypId = st.stmts[1].id
+        let prId = st.stmts->Array.getUnsafe(0).id
+        let hypId = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("", ()),contEditMode:false})
 
@@ -281,13 +281,13 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.varsErr->Belt_Option.isNone, true)
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
-        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        assertEqMsg(st.stmts->Array.getUnsafe(0).id, hypId, "the hypothesis is the first")
         assertEq(
-            st.stmts[0].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(0).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "Any statement must begin with a constant."
         )
-        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
-        assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(1).id, prId, "the provable is the second")
+        assertEq(st.stmts->Array.getUnsafe(1).stmtErr->Belt_Option.isNone, true)
     })
     
     it("detects an error when a hypothesis begins with a variable", _ => {
@@ -295,8 +295,8 @@ describe("prepareEditorForUnification", _ => {
         let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let prId = st.stmts[0].id
-        let hypId = st.stmts[1].id
+        let prId = st.stmts->Array.getUnsafe(0).id
+        let hypId = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("t = t", ()),
             contEditMode:false
@@ -309,14 +309,14 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.varsErr->Belt_Option.isNone, true)
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
-        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
+        assertEqMsg(st.stmts->Array.getUnsafe(0).id, hypId, "the hypothesis is the first")
         Js.Console.log2(`st`, st)
         assertEq(
-            st.stmts[0].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(0).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "Any statement must begin with a constant."
         )
-        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
-        assertEq(st.stmts[1].stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(1).id, prId, "the provable is the second")
+        assertEq(st.stmts->Array.getUnsafe(1).stmtErr->Belt_Option.isNone, true)
     })
 
     it("detects an error in a provable expression", _ => {
@@ -326,10 +326,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 +- 0", ())})
@@ -339,13 +339,13 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
         assertEq(
-            st.stmts[2].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(2).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "The symbol '+-' is not declared."
         )
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
+        assertEq(st.stmts->Array.getUnsafe(3).stmtErr->Belt_Option.isNone, true)
     })
     
     it("detects an error when a provable expression is empty", _ => {
@@ -353,8 +353,8 @@ describe("prepareEditorForUnification", _ => {
         let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let prId = st.stmts[0].id
-        let hypId = st.stmts[1].id
+        let prId = st.stmts->Array.getUnsafe(0).id
+        let hypId = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("", ()),
             contEditMode:false
         })
@@ -367,11 +367,11 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.varsErr->Belt_Option.isNone, true)
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
-        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
-        assertEq(st.stmts[0].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
+        assertEqMsg(st.stmts->Array.getUnsafe(0).id, hypId, "the hypothesis is the first")
+        assertEq(st.stmts->Array.getUnsafe(0).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(1).id, prId, "the provable is the second")
         assertEq(
-            st.stmts[1].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(1).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "Any statement must begin with a constant."
         )
     })
@@ -381,8 +381,8 @@ describe("prepareEditorForUnification", _ => {
         let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let prId = st.stmts[0].id
-        let hypId = st.stmts[1].id
+        let prId = st.stmts->Array.getUnsafe(0).id
+        let hypId = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t", ()),
             contEditMode:false
         })
@@ -395,11 +395,11 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.varsErr->Belt_Option.isNone, true)
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
-        assertEqMsg(st.stmts[0].id, hypId, "the hypothesis is the first")
-        assertEq(st.stmts[0].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[1].id, prId, "the provable is the second")
+        assertEqMsg(st.stmts->Array.getUnsafe(0).id, hypId, "the hypothesis is the first")
+        assertEq(st.stmts->Array.getUnsafe(0).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(1).id, prId, "the provable is the second")
         assertEq(
-            st.stmts[1].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(1).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "Any statement must begin with a constant."
         )
     })
@@ -411,10 +411,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -426,11 +426,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "Cannot parse justification: 'pr1 hyp1'. A justification must contain exactly one colon symbol."
         )
     })
@@ -442,10 +442,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -457,11 +457,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "The label 'hyp1' doesn't refer to any assertion."
         )
     })
@@ -473,10 +473,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -488,11 +488,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "The label 'pr1' doesn't refer to any assertion."
         )
     })
@@ -504,10 +504,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -519,11 +519,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "The label 'hyp--' is not defined."
         )
     })
@@ -535,10 +535,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -550,11 +550,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "[4] Cannot reuse label 'tt'."
         )
     })
@@ -566,10 +566,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -581,11 +581,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "[4] Cannot reuse label 'hyp2'."
         )
     })
@@ -597,10 +597,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -612,11 +612,11 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
         assertEq(
-            st.stmts[3].stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
+            st.stmts->Array.getUnsafe(3).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""), 
             "[4] Cannot reuse label 'pr1'."
         )
     })
@@ -628,10 +628,10 @@ describe("prepareEditorForUnification", _ => {
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
-        let hyp1Id = st.stmts[2].id
-        let hyp2Id = st.stmts[3].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
+        let hyp1Id = st.stmts->Array.getUnsafe(2).id
+        let hyp2Id = st.stmts->Array.getUnsafe(3).id
         let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
         let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
         let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
@@ -643,15 +643,15 @@ describe("prepareEditorForUnification", _ => {
         let st = verifyEditorState(st)
 
         //then
-        assertEqMsg(st.stmts[2].id, pr1Id, "pr1 is the third")
-        assertEq(st.stmts[2].stmtErr->Belt_Option.isNone, true)
-        assertEq(st.stmts[2].expr->Belt_Option.isSome, true)
-        assertEq(st.stmts[2].jstf->Belt_Option.isNone, true)
+        assertEqMsg(st.stmts->Array.getUnsafe(2).id, pr1Id, "pr1 is the third")
+        assertEq(st.stmts->Array.getUnsafe(2).stmtErr->Belt_Option.isNone, true)
+        assertEq(st.stmts->Array.getUnsafe(2).expr->Belt_Option.isSome, true)
+        assertEq(st.stmts->Array.getUnsafe(2).jstf->Belt_Option.isNone, true)
 
-        assertEqMsg(st.stmts[3].id, pr2Id, "pr2 is the fourth")
-        assertEq(st.stmts[3].stmtErr->Belt_Option.isNone, true)
-        assertEq(st.stmts[3].expr->Belt_Option.isSome, true)
-        assertEq(st.stmts[3].jstf, Some({args:["pr1", "hyp1"], label:"mp"}))
+        assertEqMsg(st.stmts->Array.getUnsafe(3).id, pr2Id, "pr2 is the fourth")
+        assertEq(st.stmts->Array.getUnsafe(3).stmtErr->Belt_Option.isNone, true)
+        assertEq(st.stmts->Array.getUnsafe(3).expr->Belt_Option.isSome, true)
+        assertEq(st.stmts->Array.getUnsafe(3).jstf, Some({args:["pr1", "hyp1"], label:"mp"}))
     })
 })
 
@@ -718,7 +718,7 @@ describe("findPossibleSubs", _ => {
         let expectedDisj = disjMake()
         expectedDisj->disjAddPair(x,z)
         assertEq(
-            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
                 {
                     newDisj: expectedDisj,
@@ -757,7 +757,7 @@ describe("findPossibleSubs", _ => {
 
         assertEq(possibleSubs->Js.Array2.length, 1)
         assertEqMsg(
-            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
@@ -790,7 +790,7 @@ describe("findPossibleSubs", _ => {
         //then
         assertEq(possibleSubs->Js.Array2.length, 1)
         assertEqMsg(
-            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
@@ -832,7 +832,7 @@ describe("findPossibleSubs", _ => {
         //then
         assertEq(possibleSubs->Js.Array2.length, 2)
         assertEq(
-            ctx->wrkSubsToStr(possibleSubs[0]),
+            ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
@@ -851,7 +851,7 @@ describe("findPossibleSubs", _ => {
             ),
         )
         assertEq(
-            ctx->wrkSubsToStr(possibleSubs[1]),
+            ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(1)),
             ctx->wrkSubsToStr(
                 {
                     newDisj: disjMake(),
@@ -896,8 +896,8 @@ describe("applySubstitutionForEditor", _ => {
         let st = createEditorState(demo0, ())
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + s", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0", ())})
         let st = verifyEditorState(st)
@@ -914,11 +914,11 @@ describe("applySubstitutionForEditor", _ => {
 
         //then
         assertEq(
-            st.stmts[0].cont->contToStr,
+            st.stmts->Array.getUnsafe(0).cont->contToStr,
             "|- r + ( t + r )"
         )
         assertEq(
-            st.stmts[1].cont->contToStr,
+            st.stmts->Array.getUnsafe(1).cont->contToStr,
             "|- r = 0"
         )
     })
@@ -932,8 +932,8 @@ describe("removeUnusedVars", _ => {
         let st = completeDisjEditMode(st,"a b c \n d c")
         let (st, _) = addNewStmt(st, ())
         let (st, _) = addNewStmt(st, ())
-        let pr1Id = st.stmts[0].id
-        let pr2Id = st.stmts[1].id
+        let pr1Id = st.stmts->Array.getUnsafe(0).id
+        let pr2Id = st.stmts->Array.getUnsafe(1).id
         let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a", ())})
         let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = c", ())})
         let st = verifyEditorState(st)
@@ -944,7 +944,7 @@ describe("removeUnusedVars", _ => {
         //then
         assertEq( st.varsText, "v1 term a\nv3 term c" )
         assertEq( st.disjText, "a c" )
-        assertEq( st.stmts[0].cont->contToStr, "|- t + a" )
+        assertEq( st.stmts->Array.getUnsafe(0).cont->contToStr, "|- t + a" )
         assertEq( st.stmts[1].cont->contToStr, "|- r = c" )
     })
 })
@@ -1355,9 +1355,9 @@ describe("defaults for G steps", _ => {
         //given
         let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
         let (st, s1) = addNewStmt(st, ())
-        assertEq( st.stmts[0].typ, P)
-        assertEq( st.stmts[0].isGoal, true)
-        assertEq( st.stmts[0].label, "qed")
+        assertEq( st.stmts->Array.getUnsafe(0).typ, P)
+        assertEq( st.stmts->Array.getUnsafe(0).isGoal, true)
+        assertEq( st.stmts->Array.getUnsafe(0).label, "qed")
 
         //when
         let st = st->toggleStmtChecked(s1)
@@ -1365,12 +1365,12 @@ describe("defaults for G steps", _ => {
         let st = st->verifyEditorState
 
         //then
-        assertEqMsg( st.stmts[0].typ, P , "st.stmts[0].typ")
-        assertEqMsg( st.stmts[0].isGoal, false , "st.stmts[0].isGoal")
-        assertEqMsg( st.stmts[0].label, "1" , "st.stmts[0].label")
-        assertEqMsg( st.stmts[1].typ, P , "st.stmts[1].typ")
-        assertEqMsg( st.stmts[1].isGoal, true , "st.stmts[1].isGoal")
-        assertEqMsg( st.stmts[1].label, "qed" , "st.stmts[1].label")
+        assertEqMsg( st.stmts->Array.getUnsafe(0).typ, P , "st.stmts[0].typ")
+        assertEqMsg( st.stmts->Array.getUnsafe(0).isGoal, false , "st.stmts[0].isGoal")
+        assertEqMsg( st.stmts->Array.getUnsafe(0).label, "1" , "st.stmts[0].label")
+        assertEqMsg( st.stmts->Array.getUnsafe(1).typ, P , "st.stmts[1].typ")
+        assertEqMsg( st.stmts->Array.getUnsafe(1).isGoal, true , "st.stmts[1].isGoal")
+        assertEqMsg( st.stmts->Array.getUnsafe(1).label, "qed" , "st.stmts[1].label")
     })
 })
 

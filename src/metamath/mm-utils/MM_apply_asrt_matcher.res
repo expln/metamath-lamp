@@ -22,13 +22,13 @@ let getArgToMatchPriv = (
     let eHypI = ref(0)
     let maxI = frame.hyps->Js_array2.length - 1
     while (i.contents <= maxI && res.contents->Belt_Option.isNone) {
-        let hyp = frame.hyps[i.contents]
+        let hyp = frame.hyps->Array.getUnsafe(i.contents)
         if (hyp.typ == E) {
             if (
                 hypLabelToMatch->Belt_Option.map(label => label == hyp.label)->Belt_Option.getWithDefault(false)
                 || hypIdxToMatch->Belt_Option.map(idx => idx == eHypI.contents)->Belt_Option.getWithDefault(false)
             ) {
-                res := Some(args[i.contents]->pnGetExpr)
+                res := Some(args->Array.getUnsafe(i.contents)->pnGetExpr)
             } else {
                 eHypI := eHypI.contents + 1
             }
@@ -46,7 +46,7 @@ let getArgToMatch = (
     switch src {
         | VarType | Hypothesis(_) | AssertionWithErr(_) => None
         | Assertion({args, frame}) => {
-            switch matcher.hypMatchers[idx] {
+            switch matcher.hypMatchers->Array.getUnsafe(idx) {
                 | Label(label) => getArgToMatchPriv(~frame, ~args, ~hypLabelToMatch=Some(label), ~hypIdxToMatch=None)
                 | Idx(idx) => getArgToMatchPriv(~frame, ~args, ~hypLabelToMatch=None, ~hypIdxToMatch=Some(idx))
             }
@@ -69,9 +69,9 @@ let rec exprSrcMatchesPriv = (
         iterateSubstitutions(
             ~frmExpr = frm.frame.asrt,
             ~expr,
-            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-            ~constParts = frm.constParts[frm.numOfHypsE], 
-            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = _ => {
@@ -92,11 +92,11 @@ let rec exprSrcMatchesPriv = (
                 let res = ref(false)
                 let frm = matcher.frm
                 iterateSubstitutions(
-                    ~frmExpr = frm.hypsE[idx].expr,
+                    ~frmExpr = frm.hypsE->Array.getUnsafe(idx).expr,
                     ~expr=argToMatch,
-                    ~frmConstParts = frm.frmConstParts[idx], 
-                    ~constParts = frm.constParts[idx], 
-                    ~varGroups = frm.varGroups[idx],
+                    ~frmConstParts = frm.frmConstParts->Array.getUnsafe(idx), 
+                    ~constParts = frm.constParts->Array.getUnsafe(idx), 
+                    ~varGroups = frm.varGroups->Array.getUnsafe(idx),
                     ~subs = frm.subs,
                     ~parenCnt,
                     ~consumer = _ => {

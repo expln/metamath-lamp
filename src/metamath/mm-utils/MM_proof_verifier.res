@@ -27,7 +27,7 @@ let proofNodeGetId = (node:proofNode):int => {
     }
 }
 
-let stGetExpr = (stack:proofStack, i:int):expr => stack.nodes[i]->proofNodeGetExpr
+let stGetExpr = (stack:proofStack, i:int):expr => stack.nodes->Array.getUnsafe(i)->proofNodeGetExpr
 
 let compareSubArrays = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx:int, ~len:int): bool => {
     let s = ref(srcFromIdx)
@@ -38,7 +38,7 @@ let compareSubArrays = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFro
         false
     } else {
         let sMax = srcFromIdx+len-1
-        while (s.contents <= sMax && src[s.contents] == dst[d.contents]) {
+        while (s.contents <= sMax && src[s.contents] == dst->Array.getUnsafe(d.contents)) {
             d.contents = d.contents + 1
             s.contents = s.contents + 1
         }
@@ -53,12 +53,12 @@ let compareExprAfterSubstitution = (expr:expr, subs, eqTo:expr): bool => {
     let eLen = expr->Js_array2.length
     let tLen = eqTo->Js_array2.length
     while (eq.contents && e.contents < eLen && t.contents < tLen) {
-        let s = expr[e.contents]
+        let s = expr->Array.getUnsafe(e.contents)
         if (s < 0) {
-            eq.contents = s == eqTo[t.contents]
+            eq.contents = s == eqTo->Array.getUnsafe(t.contents)
             t.contents = t.contents + 1
         } else {
-            let subExpr = subs[s]
+            let subExpr = subs->Array.getUnsafe(s)
             let len = subExpr->Js_array2.length-1
             eq.contents = compareSubArrays(~src=subExpr, ~srcFromIdx=1, ~dst=eqTo, ~dstFromIdx=t.contents, ~len)
             t.contents = t.contents + len
@@ -74,19 +74,19 @@ let applySubs = (expr, subs): expr => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
         } else {
-            resultSize.contents = resultSize.contents + (subs[s]->Js_array2.length) - 1
+            resultSize.contents = resultSize.contents + (subs->Array.getUnsafe(s)->Js_array2.length) - 1
         }
     })
     let res = Expln_utils_common.createArray(resultSize.contents)
     let e = ref(0)
     let r = ref(0)
     while (r.contents < resultSize.contents) {
-        let s = expr[e.contents]
+        let s = expr->Array.getUnsafe(e.contents)
         if (s < 0) {
             res[r.contents] = s
             r.contents = r.contents + 1
         } else {
-            let subExpr = subs[s]
+            let subExpr = subs->Array.getUnsafe(s)
             let len = subExpr->Js_array2.length-1
             Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=1, ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
@@ -102,9 +102,9 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
     let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
     frame.hyps->Js_array2.forEachi((hyp,i) => {
         if (hyp.typ == F) {
-            let t = hyp.expr[0]
-            let v = hyp.expr[1]
-            if (subsLock[v]) {
+            let t = hyp.expr->Array.getUnsafe(0)
+            let v = hyp.expr->Array.getUnsafe(1)
+            if (subsLock->Array.getUnsafe(v)) {
                 raise(MmException({msg:`subsLock[v]`}))
             } else {
                 let subsExpr = stack->stGetExpr(baseIdx+i)
@@ -204,19 +204,19 @@ let verifyDisjoints = (
         if (res.contents->Belt.Option.isNone) {
             ms->Belt_SetInt.forEach(m => {
                 if (res.contents->Belt.Option.isNone) {
-                    let nExpr = subs[n]
+                    let nExpr = subs->Array.getUnsafe(n)
                     let nExprBegin = 1
                     let nExprEnd = nExpr->Js_array2.length-1
-                    let mExpr = subs[m]
+                    let mExpr = subs->Array.getUnsafe(m)
                     let mExprBegin = 1
                     let mExprEnd = mExpr->Js_array2.length-1
                     for nExprI in nExprBegin to nExprEnd {
                         if (res.contents->Belt.Option.isNone) {
-                            let nExprSym = nExpr[nExprI]
+                            let nExprSym = nExpr->Array.getUnsafe(nExprI)
                             if (nExprSym >= 0) {
                                 for mExprI in mExprBegin to mExprEnd {
                                     if (res.contents->Belt.Option.isNone) {
-                                        let mExprSym = mExpr[mExprI]
+                                        let mExprSym = mExpr->Array.getUnsafe(mExprI)
                                         if (mExprSym >= 0) {
                                             if (nExprSym == mExprSym) {
                                                 res.contents = Some(DisjCommonVar({
@@ -359,16 +359,16 @@ let applyCompressedProof = (
             if (stackLen == 0) {
                 raise(MmException({msg:`Cannot execute 'Z' command because the stack is empty.`}))
             } else {
-                savedNodes->Js_array2.push(stack.nodes[stackLen-1])->ignore
+                savedNodes->Js_array2.push(stack.nodes->Array.getUnsafe(stackLen-1))->ignore
             }
         } else {
             let i = compressedProofStrToInt(step)
             if (i < 1) {
                 raise(MmException({msg:`Unexpected condition when applying compressed proof: i < 1.`}))
             } else if (i <= hypLen) {
-                pushHypToStack(hyps[i-1])
+                pushHypToStack(hyps->Array.getUnsafe(i-1))
             } else if (i <= hypLenPlusLabelsLen) {
-                let labelToApply = labels[i-hypLen-1]
+                let labelToApply = labels->Array.getUnsafe(i-hypLen-1)
                 switch ctx->getHypothesis(labelToApply) {
                     | Some(hyp) => pushHypToStack(hyp)
                     | None => {
@@ -412,7 +412,7 @@ let verifyProof = (
                 ++ `\nexpr is     '${expr->ctxIntsToStrExn(ctx,_)}'`
         }))
     } else {
-        stack.nodes[0]
+        stack.nodes->Array.getUnsafe(0)
     }
 }
 

@@ -393,7 +393,7 @@ let deleteStmts = (st:editorState, stmtIds:array<stmtId>):editorState => {
 let canMoveCheckedStmts = (st:editorState, up):bool => {
     let len = st.stmts->Js_array2.length
     len != 0 && st.checkedStmtIds->Js_array2.length != 0 && (
-        (up && !isStmtChecked(st,st.stmts[0].id)) || (!up && !isStmtChecked(st,st.stmts[len-1].id))
+        (up && !isStmtChecked(st,st.stmts->Array.getUnsafe(0).id)) || (!up && !isStmtChecked(st,st.stmts->Array.getUnsafe(len-1).id))
     )
 }
 
@@ -406,17 +406,17 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
         if up {
             let maxI = len-2
             for i in 0 to maxI {
-                if (!isStmtChecked(st,res[i].id) && isStmtChecked(st,res[i+1].id)) {
-                    let tmp = res[i]
-                    res[i] = res[i+1]
+                if (!isStmtChecked(st,res->Array.getUnsafe(i).id) && isStmtChecked(st,res->Array.getUnsafe(i+1).id)) {
+                    let tmp = res->Array.getUnsafe(i)
+                    res[i] = res->Array.getUnsafe(i+1)
                     res[i+1] = tmp
                 }
             }
         } else {
             for i in len-1 downto 1 {
-                if (isStmtChecked(st,res[i-1].id) && !isStmtChecked(st,res[i].id)) {
-                    let tmp = res[i]
-                    res[i] = res[i-1]
+                if (isStmtChecked(st,res->Array.getUnsafe(i-1).id) && !isStmtChecked(st,res->Array.getUnsafe(i).id)) {
+                    let tmp = res->Array.getUnsafe(i)
+                    res[i] = res->Array.getUnsafe(i-1)
                     res[i-1] = tmp
                 }
             }
@@ -454,7 +454,7 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
         let lowestCheckedStmtIdx = ref(None)
         let i = ref(st.stmts->Js.Array2.length-1)
         while (i.contents >= 0 && lowestCheckedStmtIdx.contents->Belt_Option.isNone) {
-            let stmt = st.stmts[i.contents]
+            let stmt = st.stmts->Array.getUnsafe(i.contents)
             if (checkedStmtIds->Belt_HashSetString.has(stmt.id)) {
                 lowestCheckedStmtIdx := Some(i.contents)
             }
@@ -473,7 +473,7 @@ let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=fal
         | Error(_) => ()
         | Ok(varDefs) => {
             varDefs->Js_array2.forEach(varDef => {
-                reservedLabels->Belt_HashSetString.add(varDef[0])
+                reservedLabels->Belt_HashSetString.add(varDef->Array.getUnsafe(0))
             })
         }
     }
@@ -580,7 +580,7 @@ let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorS
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
     let st = if (0 <= idx && idx < st.stmts->Js_array2.length) {
-        st->toggleStmtChecked(st.stmts[idx].id)
+        st->toggleStmtChecked(st.stmts->Array.getUnsafe(idx).id)
     } else {
         st
     }
@@ -596,7 +596,7 @@ let duplicateCheckedStmt = (st:editorState, top:bool) => {
         st
     } else {
         let newId = st.nextStmtId->Belt_Int.toString
-        let (idToAddAfter,_) = st.checkedStmtIds[0]
+        let (idToAddAfter,_) = st.checkedStmtIds->Array.getUnsafe(0)
         let st = {
             ...st,
             nextStmtId: st.nextStmtId+1,
@@ -763,8 +763,8 @@ let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapStri
         | Error(_) => ()
         | Ok(varDefs) => {
             varDefs->Js_array2.forEach(varDef => {
-                let varName = varDef[2]
-                let typ = varDef[1]
+                let varName = varDef->Array.getUnsafe(2)
+                let typ = varDef->Array.getUnsafe(1)
                 switch typeColors->Belt_HashMapString.get(typ) {
                     | None => ()
                     | Some(color) => res->Belt_HashMapString.set(varName, color)
@@ -786,14 +786,14 @@ let createSymbolColors = (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<stri
     let symbolColors = Belt_HashMapString.make(~hintSize=100)
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F) {
-            switch ctx->ctxIntToSym(hyp.expr[0]) {
+            switch ctx->ctxIntToSym(hyp.expr->Array.getUnsafe(0)) {
                 | None => ()
                 | Some(typeStr) => {
                     switch typeColors->Belt_HashMapString.get(typeStr) {
                         | None => ()
                         | Some(color) => {
                             symbolColors->Belt_HashMapString.set(
-                                ctx->ctxIntToSymExn(hyp.expr[1]),
+                                ctx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)),
                                 color
                             )
                         }
@@ -840,8 +840,8 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
     let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
     for i in 0 to numOfParens-1 {
         parensMap->Belt_HashMapString.set(
-            preCtx->ctxIntToSymExn(parenInts[2*i]), 
-            preCtx->ctxIntToSymExn(parenInts[2*i+1])
+            preCtx->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i)), 
+            preCtx->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i+1))
         )
     }
     let typeOrderInDisj = createTypeOrderFromStr(
@@ -904,9 +904,9 @@ let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {
         while (e.contents >= 0 && changed.contents) {
             changed.contents = false
             for i in 0 to e.contents {
-                if (comp(newStmts[i], newStmts[i+1]) > 0) {
-                    let tmp = newStmts[i]
-                    newStmts[i] = newStmts[i+1]
+                if (comp(newStmts->Array.getUnsafe(i), newStmts->Array.getUnsafe(i+1)) > 0) {
+                    let tmp = newStmts->Array.getUnsafe(i)
+                    newStmts[i] = newStmts->Array.getUnsafe(i+1)
                     newStmts[i+1] = tmp
                     changed.contents = true
                 }
@@ -1035,8 +1035,8 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
             Error(`Cannot parse justification: '${jstfText}'. Reference must not be empty.`)
         } else {
             Ok(Some({
-                args: argsAndAsrt[0]->getSpaceSeparatedValuesAsArray,
-                label: argsAndAsrt[1]->Js_string2.trim
+                args: argsAndAsrt->Array.getUnsafe(0)->getSpaceSeparatedValuesAsArray,
+                label: argsAndAsrt->Array.getUnsafe(1)->Js_string2.trim
             }))
         }
     }
@@ -1351,7 +1351,7 @@ let createNewVars = (
                 if (!dontAddVariablesToContext) {
                     wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
                     newHypLabels->Js.Array2.forEachi((label,i) => {
-                        wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames[i], newVarNames[i]]}), ())
+                        wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames->Array.getUnsafe(i), newVarNames->Array.getUnsafe(i)]}), ())
                     })
                 }
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
@@ -1537,7 +1537,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false, ()
     let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes,())
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Js.Array2.forEachi((newStmtsVarInt,i) => {
-        newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts[i])
+        newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts->Array.getUnsafe(i))
     })
     let newStmts = replaceDtoVarsWithCtxVarsInExprs(newStmts, newStmtsVarToCtxVar)
 
@@ -1606,7 +1606,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ->Belt_HashSetString.fromArray
             wrkCtx->getLocalHyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == F && hyp.label->Js_string2.startsWith(".")) {
-                    usedSymbols->Belt_HashSetString.add(wrkCtx->ctxIntToSymExn(hyp.expr[1]))
+                    usedSymbols->Belt_HashSetString.add(wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
                 }
             })
             let unusedVars = wrkCtx->getLocalVars->Js_array2.filter(var => !(usedSymbols->Belt_HashSetString.has(var)))
@@ -1615,7 +1615,7 @@ let removeUnusedVars = (st:editorState):editorState => {
             } else {
                 let unusedVarInts = wrkCtx->ctxSymsToIntsExn(unusedVars)->Belt_HashSetInt.fromArray
                 let usedLocalVarsStr = wrkCtx->getLocalHyps
-                    ->Js_array2.filter(hyp => hyp.typ == F && !(unusedVarInts->Belt_HashSetInt.has(hyp.expr[1])))
+                    ->Js_array2.filter(hyp => hyp.typ == F && !(unusedVarInts->Belt_HashSetInt.has(hyp.expr->Array.getUnsafe(1))))
                     ->Js_array2.map(hyp => 
                         `${hyp.label} ${wrkCtx->ctxIntToSymExn(hyp.expr[0])} ${wrkCtx->ctxIntToSymExn(hyp.expr[1])}`
                     )
@@ -1666,7 +1666,7 @@ let srcToJstf = (
                             switch args->Belt_Array.get(i) {
                                 | None => raise(MmException({msg:`Too few arguments for '${label}' in srcToJstf.`}))
                                 | Some(nodeIdx) => {
-                                    switch exprToUserStmt->Belt_HashMap.get(proofTree.nodes[nodeIdx].expr) {
+                                    switch exprToUserStmt->Belt_HashMap.get(proofTree.nodes->Array.getUnsafe(nodeIdx).expr) {
                                         | None => argLabelsValid.contents = false //todo: return a meaningful error from here
                                         | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
@@ -1842,7 +1842,7 @@ let checkParensMatch = (expr,parenCnt):bool => {
     parenCnt->parenCntReset
     let i = ref(0)
     while (i.contents < expr->Js_array2.length && parenState.contents != Failed) {
-        parenState := parenCnt->parenCntPut(expr[i.contents])
+        parenState := parenCnt->parenCntPut(expr->Array.getUnsafe(i.contents))
         i := i.contents + 1
     }
     parenState.contents == Balanced
@@ -1885,7 +1885,7 @@ let stmtSetSyntaxTree = (
                         ...stmt,
                         cont: Tree({
                             text,
-                            exprTyp: syms[0].sym, 
+                            exprTyp: syms->Array.getUnsafe(0).sym, 
                             root: addColorsToSyntaxTree( 
                                 ~tree=syntaxTree, 
                                 ~preCtxColors=st.preCtxColors, 
@@ -1994,7 +1994,7 @@ let proofToText = (
                 result->Js.Array2.push("${")->ignore
             }
             let varsArrStr = newHyps->Js_array2.filter(hyp => hyp.typ == F)
-                ->Js.Array2.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr[1]))
+                ->Js.Array2.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
             if (varsArrStr->Js.Array2.length > 0) {
                 result->Js.Array2.push("$v " ++ varsArrStr->Js.Array2.joinWith(" ") ++ " $.")->ignore
             }
@@ -2078,10 +2078,10 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                             }
                                         })
                                     })
-                                    let mandVars = mandHyps->Js.Array2.map(hyp => hyp.expr[1])->Belt_HashSetInt.fromArray
+                                    let mandVars = mandHyps->Js.Array2.map(hyp => hyp.expr->Array.getUnsafe(1))->Belt_HashSetInt.fromArray
                                     wrkCtx->getLocalHyps->Js.Array2.forEach(hyp => {
                                         if (hyp.typ == F) {
-                                            let var = hyp.expr[1]
+                                            let var = hyp.expr->Array.getUnsafe(1)
                                             if (varsUsedInProof->Belt_HashSetInt.has(var) 
                                                 && !(mandVars->Belt_HashSetInt.has(var))) {
                                                 newHyps->Js.Array2.push(hyp)->ignore
@@ -2533,7 +2533,7 @@ let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
             stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)->Belt.Option.getWithDefault(false)
         })
     } else {
-        let (checkedStmtId,_) = st.checkedStmtIds[0]
+        let (checkedStmtId,_) = st.checkedStmtIds->Array.getUnsafe(0)
         st->editorGetStmtById(checkedStmtId)
     }
     switch stmt1 {
@@ -2755,7 +2755,7 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     st.stmts->Js.Array2.forEachi((stmt,i) => {
         switch stmt.cont {
             | Tree(_) => ()
-            | Text(_) => res->Js.Array2.push(rootStmts[i].expr->Js_array2.sliceFrom(1))->ignore
+            | Text(_) => res->Js.Array2.push(rootStmts->Array.getUnsafe(i).expr->Js_array2.sliceFrom(1))->ignore
         }
     })
     res
@@ -2924,9 +2924,9 @@ let textToSyntaxProofTable = (
                     | Some(None) => ()
                     | Some(Some(typeStmt)) => {
                         switch lastSyntaxType {
-                            | None => wrkCtx->ctxIntToSym(typeStmt[0])->Belt_Option.forEach(onLastSyntaxTypeChange)
+                            | None => wrkCtx->ctxIntToSym(typeStmt->Array.getUnsafe(0))->Belt_Option.forEach(onLastSyntaxTypeChange)
                             | Some(lastSyntaxType) => {
-                                wrkCtx->ctxIntToSym(typeStmt[0])->Belt_Option.forEach(provedSyntaxType => {
+                                wrkCtx->ctxIntToSym(typeStmt->Array.getUnsafe(0))->Belt_Option.forEach(provedSyntaxType => {
                                     if (lastSyntaxType != provedSyntaxType) {
                                         onLastSyntaxTypeChange(provedSyntaxType)
                                     }

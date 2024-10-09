@@ -114,16 +114,16 @@ let exprMayMatchAsrt = (
     ~frm:frmSubsData,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (expr[0] != frm.frame.asrt[0]) {
+    if (expr[0] != frm.frame.asrt->Array.getUnsafe(0)) {
         false
     } else {
         let res = ref(false)
         iterateSubstitutions(
             ~frmExpr = frm.frame.asrt,
             ~expr,
-            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-            ~constParts = frm.constParts[frm.numOfHypsE], 
-            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = _ => {
@@ -160,7 +160,7 @@ let makeInitialState = (
     let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Js_array2.length
     let maxRootStmtIdx = rootStmtsLen-1
-    let exprToProve = rootStmts[maxRootStmtIdx].expr
+    let exprToProve = rootStmts->Array.getUnsafe(maxRootStmtIdx).expr
     let possibleArgs = rootStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js_array2.map(stmt => stmt.expr)
 
     let params = switch initialParams {
@@ -193,24 +193,24 @@ let makeInitialState = (
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up "->React.string}
                 </span>
-                { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts[maxRootStmtIdx].cont, ()) }
+                { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts->Array.getUnsafe(maxRootStmtIdx).cont, ()) }
             </span>,
 
         initialParams:params,
         args0: possibleArgs->Js_array2.map(possibleArg => {
-            frameParamsLen > 0 && frameParams[0].args->Js_array2.some(arg => arg->exprEq(possibleArg))
+            frameParamsLen > 0 && frameParams->Array.getUnsafe(0).args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
         args1: possibleArgs->Js_array2.map(possibleArg => {
-            frameParamsLen > 1 && frameParams[1].args->Js_array2.some(arg => arg->exprEq(possibleArg))
+            frameParamsLen > 1 && frameParams->Array.getUnsafe(1).args->Js_array2.some(arg => arg->exprEq(possibleArg))
         }),
         args1EqArgs0:false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label:
             if (frameParamsLen > 0) {
-                frameParams[0].frmsToUse
+                frameParams->Array.getUnsafe(0).frmsToUse
                     ->Belt_Option.flatMap(arr => {
                         if (arr->Js_array2.length > 0) {
-                            Some(arr[0])
+                            Some(arr->Array.getUnsafe(0))
                         } else {
                             None
                         }
@@ -222,25 +222,25 @@ let makeInitialState = (
         depth: params.maxSearchDepth,
         lengthRestrict:
             if (frameParamsLen > 1) {
-                frameParams[1].lengthRestrict
+                frameParams->Array.getUnsafe(1).lengthRestrict
             } else {
                 Less
             },
         allowNewDisjForExistingVars:
             if (frameParamsLen > 0) {
-                frameParams[0].allowNewDisjForExistingVars
+                frameParams->Array.getUnsafe(0).allowNewDisjForExistingVars
             } else {
                 true
             },
         allowNewStmts:
             if (frameParamsLen > 0) {
-                frameParams[0].allowNewStmts
+                frameParams->Array.getUnsafe(0).allowNewStmts
             } else {
                 true
             },
         allowNewVars:
             if (frameParamsLen > 0) {
-                frameParams[0].allowNewVars
+                frameParams->Array.getUnsafe(0).allowNewVars
             } else {
                 false
             },
@@ -251,7 +251,7 @@ let makeInitialState = (
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
             if (frameParamsLen > 0) {
-                frameParams[0].maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
+                frameParams->Array.getUnsafe(0).maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
             } else {
                 ""
             },
@@ -445,7 +445,7 @@ let stmtsDtoToResultRendered = (
                 </tbody>
             </table>
         </Col>
-    let lastStmt = stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1]
+    let lastStmt = stmtsDto.stmts->Array.getUnsafe(stmtsDto.stmts->Js.Array2.length-1)
     {
         idx,
         elem,
@@ -747,7 +747,7 @@ let make = (
             state.initialParams
         } else {
             let args0=state.rootStmtsRendered
-                    ->Js_array2.filteri((_,i) => state.args0[i])
+                    ->Js_array2.filteri((_,i) => state.args0->Array.getUnsafe(i))
                     ->Js_array2.map(stmt => stmt.expr)
             bottomUpProverParamsMakeDefault(
                 ~asrtLabel=?state.label,
@@ -762,7 +762,7 @@ let make = (
                         args0
                     } else {
                         state.rootStmtsRendered
-                            ->Js_array2.filteri((_,i) => state.args1[i])
+                            ->Js_array2.filteri((_,i) => state.args1->Array.getUnsafe(i))
                             ->Js_array2.map(stmt => stmt.expr)
                     },
                 ~maxNumberOfBranches=
@@ -804,7 +804,7 @@ let make = (
                     {
                         label,
                         idx,
-                        pat: wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.hypsE[i].expr),
+                        pat: wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.hypsE->Array.getUnsafe(i).expr),
                     }
                 }),
             }
@@ -813,7 +813,7 @@ let make = (
 
     let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
         {
-            stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
+            stepToProve: state.rootStmts->Array.getUnsafe(state.rootStmts->Js_array2.length-1).label,
             debugLevel: state.debugLevel,
             maxSearchDepth: params.maxSearchDepth,
             frameParams: params.frameParams->Js_array2.map(p => {
@@ -922,19 +922,19 @@ let make = (
             | Some(results) => {
                 if (onlyOneResultIsAvailable) {
                     setState(setResultHasBeenSelected)
-                    onResultSelected(Some(results[0]))
+                    onResultSelected(Some(results->Array.getUnsafe(0)))
                 } else {
                     switch idxToSelect {
                         | Some(checkedResultIdx) => {
                             setState(setResultHasBeenSelected)
-                            onResultSelected(Some(results[checkedResultIdx]))
+                            onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
                         }
                         | None => {
                             switch state.checkedResultIdx {
                                 | None => ()
                                 | Some(checkedResultIdx) => {
                                     setState(setResultHasBeenSelected)
-                                    onResultSelected(Some(results[checkedResultIdx]))
+                                    onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
                                 }
                             }
                         }
@@ -950,8 +950,8 @@ let make = (
                 | None => ()
                 | Some(resultsSorted) => {
                     setState(setResultHasBeenSelected)
-                    if (resultsSorted->Js_array2.length > 0 && resultsSorted[0].isProved) {
-                        actChooseSelected(Some(resultsSorted[0].idx))
+                    if (resultsSorted->Js_array2.length > 0 && resultsSorted->Array.getUnsafe(0).isProved) {
+                        actChooseSelected(Some(resultsSorted->Array.getUnsafe(0).idx))
                     } else {
                         onResultSelected(None)
                     }

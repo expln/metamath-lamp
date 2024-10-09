@@ -203,7 +203,7 @@ let make = (
                         switch state.checkedResultIdx {
                             | Some(idx) => {
                                 if (0 <= idx && idx < results->Js.Array2.length) {
-                                    onSubstitutionSelected(results[idx])
+                                    onSubstitutionSelected(results->Array.getUnsafe(idx))
                                 }
                             }
                             | None => ()
@@ -416,7 +416,7 @@ let make = (
             <tbody>
             {React.array(
                 wrkSubs.subs->Belt_MapInt.toArray->Js_array2.map(((v,expr)) => {
-                    if (expr->Js_array2.length == 1 && v == expr[0]) {
+                    if (expr->Js_array2.length == 1 && v == expr->Array.getUnsafe(0)) {
                         React.null
                     } else {
                         <tr key={v->Belt_Int.toString}>

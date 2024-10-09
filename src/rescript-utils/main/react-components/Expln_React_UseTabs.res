@@ -100,7 +100,7 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
                 ""
             } else if (st.activeTabId == tabId) {
                 newTabHistory->Belt_Array.get(newTabHistory->Js_array2.length-1)
-                    ->Belt.Option.getWithDefault(newTabs[0].id)
+                    ->Belt.Option.getWithDefault((newTabs->Array.getUnsafe(0)).id)
             } else {
                 st.activeTabId
             },

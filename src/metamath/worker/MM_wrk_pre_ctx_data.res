@@ -43,7 +43,7 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
     let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
     let allTypes = Belt_HashSetInt.make(~hintSize=16)
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        let typ = hyp.expr[0]
+        let typ = hyp.expr->Array.getUnsafe(0)
         allTypes->Belt_HashSetInt.add(typ)
         if (hyp.typ == F) {
             syntaxTypes->Belt_HashSetInt.add(typ)
@@ -51,9 +51,9 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
         None
     })->ignore
     ctx->forEachFrame(frame => {
-        allTypes->Belt_HashSetInt.add(frame.asrt[0])
+        allTypes->Belt_HashSetInt.add(frame.asrt->Array.getUnsafe(0))
         frame.hyps->Js_array2.forEach(hyp => {
-            let typ = hyp.expr[0]
+            let typ = hyp.expr->Array.getUnsafe(0)
             allTypes->Belt_HashSetInt.add(typ)
             if (hyp.typ == F) {
                 syntaxTypes->Belt_HashSetInt.add(typ)

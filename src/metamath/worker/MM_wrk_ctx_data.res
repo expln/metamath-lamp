@@ -17,8 +17,8 @@ let prepareParenInts = (wrkCtx, parenStr) => {
     let parenInts = []
     let maxI = parenSyms->Js_array2.length / 2 - 1
     for i in 0 to maxI {
-        let leftParen = parenSyms[i*2]
-        let rightParen = parenSyms[i*2+1]
+        let leftParen = parenSyms->Array.getUnsafe(i*2)
+        let rightParen = parenSyms->Array.getUnsafe(i*2+1)
         switch wrkCtx->ctxSymToInt(leftParen) {
             | Some(leftParenInt) if wrkCtx->isConst(leftParen) => {
                 switch wrkCtx->ctxSymToInt(rightParen) {
@@ -76,8 +76,8 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
         | Ok(varDefs) => {
             try {
                 varDefs->Js_array2.forEach(varDef => {
-                    wrkCtx->applySingleStmt(Var({symbols:[varDef[2]]}), ())
-                    wrkCtx->applySingleStmt(Floating({label:varDef[0], expr:[varDef[1], varDef[2]]}), ())
+                    wrkCtx->applySingleStmt(Var({symbols:[varDef->Array.getUnsafe(2)]}), ())
+                    wrkCtx->applySingleStmt(Floating({label:varDef->Array.getUnsafe(0), expr:[varDef->Array.getUnsafe(1), varDef->Array.getUnsafe(2)]}), ())
                 })
                 None
             } catch {

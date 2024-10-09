@@ -22,12 +22,12 @@ let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,strin
         let err = ref(None)
         frame.hyps->Js_array2.forEachi((hyp,i) => {
             if (err.contents->Belt_Option.isNone && hyp.typ == F) {
-                let v = hyp.expr[1]
-                if (locks[v]) {
+                let v = hyp.expr->Array.getUnsafe(1)
+                if (locks->Array.getUnsafe(v)) {
                     err := Some(Error(`extractVarToRecIdxMapping: locks[v]`))
                 } else {
                     locks[v] = true
-                    varToRecIdxMapping[v] = args[i]
+                    varToRecIdxMapping[v] = args->Array.getUnsafe(i)
                 }
             }
         })
@@ -65,7 +65,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
             let this = {
                 id: idSeq(),
                 parent,
-                typ:r.expr[0],
+                typ:r.expr->Array.getUnsafe(0),
                 label,
                 children: Expln_utils_common.createArray(maxI),
                 height:0,
@@ -74,9 +74,9 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                 this.children[i-1] = Symbol({
                     id: idSeq(),
                     parent:this,
-                    symInt: r.expr[i],
-                    sym: ctx->ctxIntToSymExn(r.expr[i]),
-                    isVar: r.expr[i] >= 0,
+                    symInt: r.expr->Array.getUnsafe(i),
+                    sym: ctx->ctxIntToSymExn(r.expr->Array.getUnsafe(i)),
+                    isVar: r.expr->Array.getUnsafe(i) >= 0,
                     color: None,
                 })
             }
@@ -95,7 +95,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                             let this = {
                                 id: idSeq(),
                                 parent,
-                                typ:frame.asrt[0],
+                                typ:frame.asrt->Array.getUnsafe(0),
                                 label,
                                 children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1),
                                 height:0,
@@ -113,7 +113,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                             color: None,
                                         })
                                     } else {
-                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl->Array.getUnsafe(varToRecIdxMapping->Array.getUnsafe(s))) {
                                             | Error(msg) => err := Some(Error(msg))
                                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
                                         }
@@ -144,7 +144,7 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
         nextId := nextId.contents + 1
         nextId.contents - 1
     }
-    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
+    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl->Array.getUnsafe(targetIdx))
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
@@ -217,7 +217,7 @@ let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> =
     @warning("-8")
     switch expr.children->Js.Array2.length {
         | 1 => {
-            switch expr.children[0] {
+            switch expr.children->Array.getUnsafe(0) {
                 | Subtree(_) => None
                 | Symbol({isVar,symInt,sym}) => if (isVar && isMetavar(sym)) { Some((symInt,sym)) } else { None }
             }
@@ -306,9 +306,9 @@ let rec unify = (
                             let maxI = a.children->Js.Array2.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
-                                switch a.children[i.contents] {
+                                switch a.children->Array.getUnsafe(i.contents) {
                                     | Symbol({sym:aSym, isVar:aIsVar}) => {
-                                        switch b.children[i.contents] {
+                                        switch b.children->Array.getUnsafe(i.contents) {
                                             | Symbol({sym:bSym, isVar:bIsVar}) => {
                                                 if (aIsVar || bIsVar || aSym != bSym) {
                                                     continue := false
@@ -318,7 +318,7 @@ let rec unify = (
                                         }
                                     }
                                     | Subtree(aCh) => {
-                                        switch b.children[i.contents] {
+                                        switch b.children->Array.getUnsafe(i.contents) {
                                             | Symbol(_) => continue := false
                                             | Subtree(bCh) => {
                                                 unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)

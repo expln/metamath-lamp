@@ -55,7 +55,7 @@ describe("hashArrIntFromTo", _ => {
 describe("comparatorBy", _ => {
     it("produces correct comparators", _ => {
         //given
-        let cmp1 = comparatorBy(a => a[1])
+        let cmp1 = comparatorBy(a => a->Array.getUnsafe(1))
 
         //when/then
         assertEq(-1, cmp1([1,30], [2,40]))
@@ -67,7 +67,7 @@ describe("comparatorBy", _ => {
 describe("comparatorInverse", _ => {
     it("creates inverted comparator", _ => {
         //given
-        let cmp1 = comparatorBy(a => a[1])->comparatorInverse
+        let cmp1 = comparatorBy(a => a->Array.getUnsafe(1))->comparatorInverse
 
         //when/then
         assertEq(1, cmp1([1,30], [2,40]))
@@ -79,8 +79,8 @@ describe("comparatorInverse", _ => {
 describe("comparatorAndThen", _ => {
     it("produces correct results when two comparators are combined", _ => {
         //given
-        let cmp1 = (a,b) => a[0] - b[0]
-        let cmp2 = (a,b) => a[1] - b[1]
+        let cmp1 = (a,b) => a->Array.getUnsafe(0) - b->Array.getUnsafe(0)
+        let cmp2 = (a,b) => a->Array.getUnsafe(1) - b->Array.getUnsafe(1)
         let cmp12 = cmp1->comparatorAndThen(cmp2)
         let cmp21 = cmp2->comparatorAndThen(cmp1)
         let arr = [
@@ -127,9 +127,9 @@ describe("comparatorAndThen", _ => {
 
     it("produces correct results when three comparators are combined", _ => {
         //given
-        let cmp1 = (a,b) => a[0] - b[0]
-        let cmp2 = (a,b) => a[1] - b[1]
-        let cmp3 = (a,b) => a[2] - b[2]
+        let cmp1 = (a,b) => a->Array.getUnsafe(0) - b->Array.getUnsafe(0)
+        let cmp2 = (a,b) => a->Array.getUnsafe(1) - b->Array.getUnsafe(1)
+        let cmp3 = (a,b) => a->Array.getUnsafe(2) - b->Array.getUnsafe(2)
         let cmp123 = cmp1->comparatorAndThen(cmp2)->comparatorAndThen(cmp3)
         let cmp321 = cmp3->comparatorAndThen(cmp2)->comparatorAndThen(cmp1)
         let arr = [

@@ -940,7 +940,7 @@ let make = (
         if (checkedStmts->Js_array2.length == 0 || checkedStmts[checkedStmts->Js_array2.length-1].typ != P) {
             None
         } else {
-            let stmtToProve = checkedStmts[checkedStmts->Js_array2.length-1]
+            let stmtToProve = checkedStmts->Array.getUnsafe(checkedStmts->Js_array2.length-1)
             switch stmtToProve.jstfText->parseJstf {
                 | Ok(Some({args:argLabels, label})) => Some((prepareArgs0(argLabels, rootStmts), Some(label)))
                 | Error(_) | Ok(None) => {
@@ -2007,7 +2007,7 @@ let make = (
         if (pagesWithErrors->Js_array2.length > 0) {
             switch getPagesWithErrors()->Js_array2.find(i => pageIdx < i) {
                 | Some(i) => actGoToPage(i)
-                | None => actGoToPage(pagesWithErrors[0])
+                | None => actGoToPage(pagesWithErrors->Array.getUnsafe(0))
             }
         }
     }
@@ -2017,7 +2017,7 @@ let make = (
         if (pagesWithErrors->Js_array2.length > 0) {
             switch getPagesWithErrors()->Js_array2.find(i => i < pageIdx) {
                 | Some(i) => actGoToPage(i)
-                | None => actGoToPage(pagesWithErrors[pagesWithErrors->Js_array2.length-1])
+                | None => actGoToPage(pagesWithErrors->Array.getUnsafe(pagesWithErrors->Js_array2.length-1))
             }
         }
     }
@@ -2175,7 +2175,7 @@ let make = (
                                             `bottom-up prover returned stmtsDto.stmts->Js_array2.length == 0.`
                                         )
                                     } else {
-                                        resolve(Some(stmtsDto.stmts[len-1].isProved))
+                                        resolve(Some(stmtsDto.stmts->Array.getUnsafe(len-1).isProved))
                                     }
                                 }
                             }

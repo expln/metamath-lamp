@@ -142,7 +142,7 @@ let rndStmt = (
         }
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
     }
-    (elems, bndMergeAll(bnds), contentOnlyBnd[0])
+    (elems, bndMergeAll(bnds), contentOnlyBnd->Array.getUnsafe(0))
 }
 
 let testTextRendering = ():reElem => {
@@ -339,7 +339,7 @@ let make = (
 
     let numOfColors = subsAvailableColors->Js.Array2.length
     let subsColors = subs->Belt_HashMapString.toArray->Js.Array2.mapi(((frmSym,_),i) => {
-        (frmSym, subsAvailableColors[mod(i, numOfColors)])
+        (frmSym, subsAvailableColors->Array.getUnsafe(mod(i, numOfColors)))
     })->Belt_HashMapString.fromArray
 
     let rndContent = () => {
@@ -349,8 +349,8 @@ let make = (
         hyps->Js.Array2.forEachi((hyp,i) => {
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
-                ~hypLabel=Some(hypLabels[i]), ~noFrameForBottomBnd=true,
-                ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels[i]), ()) ),
+                ~hypLabel=Some(hypLabels->Array.getUnsafe(i)), ~noFrameForBottomBnd=true,
+                ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels->Array.getUnsafe(i)), ()) ),
             )(curEx.contents)
             hypElems->Js.Array2.push(elem)->ignore
             hypBnds->Js.Array2.push(bnd)->ignore

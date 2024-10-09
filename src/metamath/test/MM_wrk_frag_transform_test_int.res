@@ -35,7 +35,7 @@ let rec extractResult = (reactElemDto:{..}):option<string> => {
 let rec getAnySymNodeId = (node:childNode):int => {
     switch node {
         | Symbol({id}) => id
-        | Subtree({children}) => getAnySymNodeId(children[0])
+        | Subtree({children}) => getAnySymNodeId(children->Array.getUnsafe(0))
     }
 }
 
@@ -76,7 +76,7 @@ let testTransform = (
             text:"", 
             exprTyp:"|-", 
             root:syntaxTreeNode, 
-            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children[0]),Js_date.make())), 
+            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children->Array.getUnsafe(0)),Js_date.make())), 
             expLvl:100
         }),
         contEditMode: false,
@@ -92,7 +92,7 @@ let testTransform = (
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
     let filteredTransforms = allTransforms->Js.Array2.filter(tr => tr.displayName(param) == transformName)
     assertEqMsg(filteredTransforms->Js.Array2.length, 1, "filteredTransforms->Js.Array2.length")
-    let transform = filteredTransforms[0]
+    let transform = filteredTransforms->Array.getUnsafe(0)
     assertEqMsg(transform.canApply(param), true, "transform.canApply(param)")
 
     let initState = transform.createInitialState(param)

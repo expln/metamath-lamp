@@ -51,7 +51,7 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
     let actualSubsStr = actualSubs
         ->Js_array2.map(exprs => {
             exprs->Js_array2.mapi((s,i) => {
-                frm.frameVarToSymb[i]
+                frm.frameVarToSymb->Array.getUnsafe(i)
                     ++ ": "
                     ++ ctxIntsToStrExn(ctx,s)
             })

@@ -325,7 +325,7 @@ let apiMatcherToMatcher = (
                         ~overrideHyps,
                         ~exprStr = switch matcher.res {
                             | Some(res) => res
-                            | None => matcher.hyps[0].pat
+                            | None => matcher.hyps->Array.getUnsafe(0).pat
                         }->getSpaceSeparatedValuesAsArray,
                         ()
                     )
@@ -540,10 +540,10 @@ let proveBottomUp = (
                                                         {
                                                             minDist: frameParams.minDist,
                                                             maxDist: frameParams.maxDist,
-                                                            matches: matches[i],
+                                                            matches: matches->Array.getUnsafe(i),
                                                             frmsToUse: frameParams.framesToUse
                                                                 ->Belt.Option.map(sortFrames(state,_)),
-                                                            args: args[i],
+                                                            args: args->Array.getUnsafe(i),
                                                             allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
                                                             allowNewStmts: frameParams.allowNewSteps,
                                                             allowNewVars: frameParams.allowNewVariables,
@@ -634,7 +634,7 @@ let validateVarNamesAreUnique = (vars: option<array<array<string>>>):result<unit
         | None => Ok(())
         | Some(vars) => {
             let allVarNames = vars->Js_array2.filter(var => var->Js_array2.length > 1)
-                ->Js_array2.map(var => var[1])
+                ->Js_array2.map(var => var->Array.getUnsafe(1))
             let uniqueVarNames = allVarNames->Belt_HashSetString.fromArray
             if (allVarNames->Js_array2.length == uniqueVarNames->Belt_HashSetString.size) {
                 Ok(())
@@ -653,7 +653,7 @@ let validateVarNamesNotPresentInCtx = (st:editorState, vars: option<array<array<
                 | None => Error("Cannot add new variables because of errors in the editor.")
                 | Some(wrkCtx) => {
                     let definedVars:array<(string,tokenType)> = vars->Js_array2.filter(var => var->Js_array2.length > 1)
-                        ->Js_array2.map(var => var[1])
+                        ->Js_array2.map(var => var->Array.getUnsafe(1))
                         ->Js_array2.map(varName => (varName, wrkCtx->MM_context.getTokenType(varName)))
                         ->Js_array2.filter(((_,tokenTypeOpt)) => tokenTypeOpt->Belt_Option.isSome)
                         ->Js_array2.map(((varName,tokenTypeOpt)) => (varName,tokenTypeOpt->Belt_Option.getExn))
@@ -741,7 +741,7 @@ let addSteps = (
                                     }
                                 })
                                 let vars = parseResult.vars
-                                    ->Belt.Option.map(vars => vars->Js_array2.map(var => (var[0], Some(var[1]))))
+                                    ->Belt.Option.map(vars => vars->Js_array2.map(var => (var->Array.getUnsafe(0), Some(var->Array.getUnsafe(1)))))
                                 setState(st => {
                                     let dontAddVariablesToContext = 
                                         switch validateVarNamesNotPresentInCtx(st, parseResult.vars) {
