@@ -236,7 +236,7 @@ let addStmtsBySearch = (
                 ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
                 ()
             )
-            let st = switch searchResults->Js_array2.find(res => res.stmts->Array.getUnsafe(res.stmts->Js_array2.length-1).label == chooseLabel) {
+            let st = switch searchResults->Js_array2.find(res => (res.stmts->Array.getUnsafe(res.stmts->Js_array2.length-1)).label == chooseLabel) {
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
@@ -433,7 +433,7 @@ let unifyBottomUp = (
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~exprToProve=rootStmts->Array.getUnsafe(rootStmts->Js_array2.length-1).expr,
+                ~exprToProve=(rootStmts->Array.getUnsafe(rootStmts->Js_array2.length-1)).expr,
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(

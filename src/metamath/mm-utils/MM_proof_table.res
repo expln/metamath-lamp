@@ -95,7 +95,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
             }
         },
         ~postProcess = (_, idx) => {
-            switch tbl->Array.getUnsafe(idx).proof {
+            switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis(_) => onUse(idx)
                 | Assertion(_) => {
                     if (!(saved->Belt_HashSetInt.has(idx))) {
@@ -153,7 +153,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     let proofSteps = []
     traverseIdxsInRpnOrder(tbl,rootIdx,
         ~onUse = idx => {
-            let stepNum = switch tbl->Array.getUnsafe(idx).proof {
+            let stepNum = switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis({label}) | Assertion({label}) => labelToInt(label)
             }
             proofSteps->Js_array2.push(stepNum)->ignore

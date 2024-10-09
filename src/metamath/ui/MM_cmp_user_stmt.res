@@ -494,7 +494,7 @@ module VisualizedJstf = {
                                         subs->Belt_HashMapString.set(
                                             frmSym,
                                             wrkCtx->ctxIntsToSymsExn( 
-                                                proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i)).expr->Js_array2.sliceFrom(1) 
+                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Js_array2.sliceFrom(1)
                                             )
                                         )
                                         let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0))
@@ -769,7 +769,7 @@ let make = React.memoCustomCompareProps( ({
                                     | Ok(syntaxTree) => {
                                         let stmtContTreeData = {
                                             text,
-                                            exprTyp:syms->Array.getUnsafe(0).sym, 
+                                            exprTyp:(syms->Array.getUnsafe(0)).sym,
                                             root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
                                             clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
                                                                 ->Belt.Option.map(id => (id,Js_date.make())),

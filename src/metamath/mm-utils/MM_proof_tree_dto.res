@@ -225,7 +225,7 @@ let createProofTable = (
                             Assertion({
                                 label,
                                 args: filterArgs(args,label)
-                                        ->Js_array2.map(nodeIdx => getIdxByExprExn(tree.nodes->Array.getUnsafe(nodeIdx).expr))
+                                        ->Js_array2.map(nodeIdx => getIdxByExprExn((tree.nodes->Array.getUnsafe(nodeIdx)).expr))
                             })
                         )
                     }

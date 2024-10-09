@@ -226,7 +226,7 @@ module rec ProofNodeDtoCmp: {
             switch src {
                 | VarType | Hypothesis(_) => validProofIcon
                 | Assertion({args}) => {
-                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes->Array.getUnsafe(arg).proof->Belt_Option.isSome)
+                    let allArgsAreProved = args->Js_array2.every(arg => (tree.nodes->Array.getUnsafe(arg)).proof->Belt_Option.isSome)
                     if (allArgsAreProved) {
                         validProofIcon
                     } else {
@@ -325,7 +325,7 @@ module rec ProofNodeDtoCmp: {
                             style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ())
                             onClick={_=>actToggleExpanded()}
                         > 
-                            {exprToReElem(tree.nodes->Array.getUnsafe(nodeIdx).expr)} 
+                            {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
                         </td>
                     </tr>
                     {

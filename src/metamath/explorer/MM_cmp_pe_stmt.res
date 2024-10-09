@@ -159,7 +159,7 @@ let make = React.memoCustomCompareProps( ({
                             | Ok(syntaxTree) => {
                                 let stmtContTreeData = {
                                     text,
-                                    exprTyp:syms->Array.getUnsafe(0).sym, 
+                                    exprTyp:(syms->Array.getUnsafe(0)).sym,
                                     root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
                                                         ->Belt.Option.map(id => (id,Js_date.make())),

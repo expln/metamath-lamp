@@ -392,7 +392,7 @@ let convertMmScopesToMmCtxSrcDtos = (
 ):option<array<mmCtxSrcDto>> => {
     let canConvert = mmScopes->Js_array2.length <= origMmCtxSrcDtos->Js_array2.length 
                         && mmScopes->Js_array2.everyi((mmScope,i) => {
-                            origMmCtxSrcDtos->Array.getUnsafe(i).ast
+                            (origMmCtxSrcDtos->Array.getUnsafe(i)).ast
                                 ->Belt_Option.map(origAst => origAst == mmScope.ast)
                                 ->Belt.Option.getWithDefault(false)
                         })
@@ -471,7 +471,7 @@ let getStepNum = (state,pRecIdx:int):int => {
 }
 
 let pRecIdxToLabel = (state, proofTable, pRecIdx:int, maxUsedStepNum:option<int>):string => {
-    switch proofTable->Array.getUnsafe(pRecIdx).proof {
+    switch (proofTable->Array.getUnsafe(pRecIdx)).proof {
         | Hypothesis({label}) => label
         | Assertion(_) => {
             let stepNum = getStepNum(state,pRecIdx)
@@ -637,11 +637,11 @@ let frameProofDataToStmtsDto = (
     ~frameProofData:frameProofData,
 ):result<stmtsDto,string> => {
     let frmVarToCtxExpr:Belt_HashMapString.t<string> = args->Js_array2.mapi((arg,i) => {
-            if (frameProofData.frame.hyps->Array.getUnsafe(i).typ == F) {
+            if ((frameProofData.frame.hyps->Array.getUnsafe(i)).typ == F) {
                 Some(
                     (
-                        wrkCtx->frmIntToSymExn(frameProofData.frame, frameProofData.frame.hyps->Array.getUnsafe(i).expr->Array.getUnsafe(1)), 
-                        wrkCtx->ctxIntsToStrExn(proofTreeDto.nodes->Array.getUnsafe(arg).expr->Js_array2.sliceFrom(1)), 
+                        wrkCtx->frmIntToSymExn(frameProofData.frame, (frameProofData.frame.hyps->Array.getUnsafe(i)).expr->Array.getUnsafe(1)),
+                        wrkCtx->ctxIntsToStrExn((proofTreeDto.nodes->Array.getUnsafe(arg)).expr->Js_array2.sliceFrom(1)),
                     )
                 )
             } else {

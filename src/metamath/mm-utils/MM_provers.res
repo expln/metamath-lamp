@@ -143,7 +143,7 @@ let findAsrtParentsWithoutNewVars = (
                         let maxArgIdx = numOfArgs - 1
                         while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                             let newExpr = applySubs(
-                                ~frmExpr = hyps->Array.getUnsafe(argIdx.contents).expr, 
+                                ~frmExpr = (hyps->Array.getUnsafe(argIdx.contents)).expr,
                                 ~subs,
                                 ~createWorkVar = _ => raise(MmException({
                                     msg:`Work variables are not supported in findAsrtParentsWithoutNewVars().`
@@ -349,7 +349,7 @@ let findAsrtParentsWithNewVars = (
 
                 while (argIdx.contents <= maxArgIdx && (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0)) {
                     let argExpr = applySubs(
-                        ~frmExpr = frame.hyps->Array.getUnsafe(argIdx.contents).expr, 
+                        ~frmExpr = (frame.hyps->Array.getUnsafe(argIdx.contents)).expr,
                         ~subs=applResult.subs,
                         ~createWorkVar = _ => raise(MmException({
                             msg:`New work variables are not expected here [findAsrtParentsWithNewVars].`
@@ -367,7 +367,7 @@ let findAsrtParentsWithNewVars = (
                     }
                     let argNode = tree->ptGetNode(argExpr)
                     args[argIdx.contents] = argNode
-                    if (frame.hyps->Array.getUnsafe(argIdx.contents).typ == F
+                    if ((frame.hyps->Array.getUnsafe(argIdx.contents)).typ == F
                             && applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
                     ) {
                         proveFloating(
@@ -702,7 +702,7 @@ let proveStmtBottomUp = (
                                     let argIdx = ref(0)
                                     while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                                         let arg = args->Array.getUnsafe(argIdx.contents)
-                                        if (frame.hyps->Array.getUnsafe(argIdx.contents).typ == E) {
+                                        if ((frame.hyps->Array.getUnsafe(argIdx.contents)).typ == E) {
                                             argsAreCorrect.contents = switch paramsI.lengthRestrict {
                                                 | No => true
                                                 | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen

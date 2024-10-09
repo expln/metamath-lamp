@@ -325,7 +325,7 @@ let apiMatcherToMatcher = (
                         ~overrideHyps,
                         ~exprStr = switch matcher.res {
                             | Some(res) => res
-                            | None => matcher.hyps->Array.getUnsafe(0).pat
+                            | None => (matcher.hyps->Array.getUnsafe(0)).pat
                         }->getSpaceSeparatedValuesAsArray,
                         ()
                     )

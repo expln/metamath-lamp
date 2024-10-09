@@ -393,7 +393,7 @@ let deleteStmts = (st:editorState, stmtIds:array<stmtId>):editorState => {
 let canMoveCheckedStmts = (st:editorState, up):bool => {
     let len = st.stmts->Js_array2.length
     len != 0 && st.checkedStmtIds->Js_array2.length != 0 && (
-        (up && !isStmtChecked(st,st.stmts->Array.getUnsafe(0).id)) || (!up && !isStmtChecked(st,st.stmts->Array.getUnsafe(len-1).id))
+        (up && !isStmtChecked(st,(st.stmts->Array.getUnsafe(0)).id)) || (!up && !isStmtChecked(st,(st.stmts->Array.getUnsafe(len-1)).id))
     )
 }
 
@@ -406,7 +406,7 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
         if up {
             let maxI = len-2
             for i in 0 to maxI {
-                if (!isStmtChecked(st,res->Array.getUnsafe(i).id) && isStmtChecked(st,res->Array.getUnsafe(i+1).id)) {
+                if (!isStmtChecked(st,(res->Array.getUnsafe(i)).id) && isStmtChecked(st,(res->Array.getUnsafe(i+1)).id)) {
                     let tmp = res->Array.getUnsafe(i)
                     res[i] = res->Array.getUnsafe(i+1)
                     res[i+1] = tmp
@@ -414,7 +414,7 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
             }
         } else {
             for i in len-1 downto 1 {
-                if (isStmtChecked(st,res->Array.getUnsafe(i-1).id) && !isStmtChecked(st,res->Array.getUnsafe(i).id)) {
+                if (isStmtChecked(st,(res->Array.getUnsafe(i-1)).id) && !isStmtChecked(st,(res->Array.getUnsafe(i)).id)) {
                     let tmp = res->Array.getUnsafe(i)
                     res[i] = res->Array.getUnsafe(i-1)
                     res[i-1] = tmp
@@ -580,7 +580,7 @@ let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorS
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
     let st = if (0 <= idx && idx < st.stmts->Js_array2.length) {
-        st->toggleStmtChecked(st.stmts->Array.getUnsafe(idx).id)
+        st->toggleStmtChecked((st.stmts->Array.getUnsafe(idx)).id)
     } else {
         st
     }
@@ -1666,7 +1666,7 @@ let srcToJstf = (
                             switch args->Belt_Array.get(i) {
                                 | None => raise(MmException({msg:`Too few arguments for '${label}' in srcToJstf.`}))
                                 | Some(nodeIdx) => {
-                                    switch exprToUserStmt->Belt_HashMap.get(proofTree.nodes->Array.getUnsafe(nodeIdx).expr) {
+                                    switch exprToUserStmt->Belt_HashMap.get((proofTree.nodes->Array.getUnsafe(nodeIdx)).expr) {
                                         | None => argLabelsValid.contents = false //todo: return a meaningful error from here
                                         | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
                                     }
@@ -1885,7 +1885,7 @@ let stmtSetSyntaxTree = (
                         ...stmt,
                         cont: Tree({
                             text,
-                            exprTyp: syms->Array.getUnsafe(0).sym, 
+                            exprTyp: (syms->Array.getUnsafe(0)).sym,
                             root: addColorsToSyntaxTree( 
                                 ~tree=syntaxTree, 
                                 ~preCtxColors=st.preCtxColors, 
@@ -2755,7 +2755,7 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     st.stmts->Js.Array2.forEachi((stmt,i) => {
         switch stmt.cont {
             | Tree(_) => ()
-            | Text(_) => res->Js.Array2.push(rootStmts->Array.getUnsafe(i).expr->Js_array2.sliceFrom(1))->ignore
+            | Text(_) => res->Js.Array2.push((rootStmts->Array.getUnsafe(i)).expr->Js_array2.sliceFrom(1))->ignore
         }
     })
     res

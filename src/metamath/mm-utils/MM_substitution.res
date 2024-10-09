@@ -358,8 +358,8 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
 let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:expr) => {
     let exprLen = expr->Js_array2.length
     if (constParts.length == 0) {
-        varGroups->Array.getUnsafe(0).exprBeginIdx = 0
-        varGroups->Array.getUnsafe(0).exprEndIdx = exprLen-1
+        (varGroups->Array.getUnsafe(0)).exprBeginIdx = 0
+        (varGroups->Array.getUnsafe(0)).exprEndIdx = exprLen-1
     } else {
         varGroups->Js_array2.forEach(grp => {
             if (grp.leftConstPartIdx == -1) {
@@ -410,7 +410,7 @@ let rec iterateVarGroups = (
                 ~varGroups,
                 ~curGrpIdx = curGrpIdx+1,
                 ~curVarIdx = 0,
-                ~subExprBeginIdx = varGroups->Array.getUnsafe(curGrpIdx+1).exprBeginIdx,
+                ~subExprBeginIdx = (varGroups->Array.getUnsafe(curGrpIdx+1)).exprBeginIdx,
                 ~parenCnt,
                 ~consumer
             )
@@ -508,7 +508,7 @@ let iterateSubstitutions = (
                                     ~varGroups,
                                     ~curGrpIdx = 0,
                                     ~curVarIdx = 0,
-                                    ~subExprBeginIdx = varGroups->Array.getUnsafe(0).exprBeginIdx,
+                                    ~subExprBeginIdx = (varGroups->Array.getUnsafe(0)).exprBeginIdx,
                                     ~parenCnt,
                                     ~consumer
                                 )

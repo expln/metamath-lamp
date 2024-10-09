@@ -92,7 +92,7 @@ let rec exprSrcMatchesPriv = (
                 let res = ref(false)
                 let frm = matcher.frm
                 iterateSubstitutions(
-                    ~frmExpr = frm.hypsE->Array.getUnsafe(idx).expr,
+                    ~frmExpr = (frm.hypsE->Array.getUnsafe(idx)).expr,
                     ~expr=argToMatch,
                     ~frmConstParts = frm.frmConstParts->Array.getUnsafe(idx), 
                     ~constParts = frm.constParts->Array.getUnsafe(idx), 

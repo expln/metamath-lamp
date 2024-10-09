@@ -198,7 +198,7 @@ let iterateSubstitutionsWithWorkVars = (
     let newVars = []
     let newVarTypes = []
     applySubs(
-        ~frmExpr = if (hypIdx < frm.hypsE->Js.Array2.length) {frm.hypsE->Array.getUnsafe(hypIdx).expr} else {frm.frame.asrt},
+        ~frmExpr = if (hypIdx < frm.hypsE->Js.Array2.length) {(frm.hypsE->Array.getUnsafe(hypIdx)).expr} else {frm.frame.asrt},
         ~subs=frm.subs,
         ~createWorkVar = frmVar => {
             switch frmVars->Js_array2.indexOf(frmVar) {
@@ -329,7 +329,7 @@ let rec iterateSubstitutionsForHyps = (
     } else if (comb->Array.getUnsafe(hypIdx) >= 0) {
         let subsFound = ref(false)
         let contunieInstruction = iterateSubstitutions(
-            ~frmExpr = frm.hypsE->Array.getUnsafe(hypIdx).expr,
+            ~frmExpr = (frm.hypsE->Array.getUnsafe(hypIdx)).expr,
             ~expr = statements->Array.getUnsafe(comb->Array.getUnsafe(hypIdx)),
             ~frmConstParts = frm.frmConstParts->Array.getUnsafe(hypIdx), 
             ~constParts = frm.constParts->Array.getUnsafe(hypIdx), 
@@ -549,7 +549,7 @@ let applyAssertions = (
                                         ~frm,
                                         ~hypIdx=h,
                                         ~stmt = statements->Array.getUnsafe(s),
-                                        ~hyp = frm.hypsE->Array.getUnsafe(h).expr,
+                                        ~hyp = (frm.hypsE->Array.getUnsafe(h)).expr,
                                         ~parenCnt,
                                     )
                                 }

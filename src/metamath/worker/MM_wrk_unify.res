@@ -129,7 +129,7 @@ let extractSubstitution = (~frame:frame, ~args:array<int>, ~tree:proofTreeDto):a
     let subs = Expln_utils_common.createArray(frame.numOfVars)
     frame.hyps->Js_array2.forEachi((hyp,i) => {
         if (hyp.typ == F) {
-            subs[hyp.expr->Array.getUnsafe(1)] = tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)).expr
+            subs[hyp.expr->Array.getUnsafe(1)] = (tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr
         }
     })
     subs
@@ -245,7 +245,7 @@ let srcToNewStmts = (
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                             if (hyp.typ == E) {
                                 argLabels->Js_array2.push(
-                                    getLabelForExpr(tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)).expr)
+                                    getLabelForExpr((tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr)
                                 )->ignore
                             }
                         })
@@ -360,7 +360,7 @@ let srcToNewStmts = (
                     ~label=getLabelForExpr(exprToProve),
                     ~expr = exprToProve,
                     ~src = Some(src),
-                    ~isProved = args->Js_array2.every(idx => tree.nodes->Array.getUnsafe(idx).proof->Belt_Option.isSome)
+                    ~isProved = args->Js_array2.every(idx => (tree.nodes->Array.getUnsafe(idx)).proof->Belt_Option.isSome)
                 )
                 verifyDisjoints(
                     ~subs = extractSubstitution(~frame, ~args, ~tree),
