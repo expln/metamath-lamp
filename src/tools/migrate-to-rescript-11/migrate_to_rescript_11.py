@@ -25,7 +25,7 @@ def insert_get_unsafe(node: Node) -> None:
                 and (
                         n.left_sibling is not None and n.left_sibling.text is not None
                         and len(n.left_sibling.text) > 0
-                        and n.left_sibling.text[-1] not in [' ', '(', '[', '{']
+                        and n.left_sibling.text[-1].isalnum()
                 )
         )
 
