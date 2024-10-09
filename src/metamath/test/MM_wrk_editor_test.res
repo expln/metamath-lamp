@@ -122,13 +122,13 @@ let getVarType = (ctx:mmContext, vName:string) => {
     })->Belt_Option.getWithDefault("type-not-found")
 }
 
-let subsToSortedArr = subs => subs->Belt_MapInt.toArray->Js.Array2.sortInPlaceWith(((i1,_),(i2,_)) => i1-i2)
+let subsToSortedArr = subs => subs->Belt_MapInt.toArray->Expln_utils_common.sortInPlaceWith(((i1,_),(i2,_)) => i1-i2)
 let disjToSortedArr = disj => {
     let res = []
     disj->disjForEach((n,m) => res->Js_array2.push((n,m))->ignore)
     {
         open Expln_utils_common
-        res->Js_array2.sortInPlaceWith(
+        res->sortInPlaceWith(
         comparatorBy(((l,_)) => l)
             ->comparatorAndThen(
                 comparatorBy(((_,r)) => r)

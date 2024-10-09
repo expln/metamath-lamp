@@ -486,7 +486,7 @@ let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> =>
 
 let sortResultsRendered = (resultsRendered, sortBy) => {
     resultsRendered->Belt_Option.map(resultsRendered =>
-        resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(createComparator(sortBy))
+        resultsRendered->Js_array2.copy->Expln_utils_common.sortInPlaceWith(createComparator(sortBy))
     )
 }
 

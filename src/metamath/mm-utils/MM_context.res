@@ -21,7 +21,7 @@ let exprEq: (expr,expr) => bool = (a,b) => {
     }
 }
 
-let exprCmp = (e1,e2) => {
+let exprCmp = (e1:expr, e2:expr):float => {
     let len1 = e1->Js_array2.length
     let len2 = e2->Js_array2.length
     switch Expln_utils_common.intCmp(len1, len2) {
@@ -38,12 +38,12 @@ let exprCmp = (e1,e2) => {
     }
 }
 
-module ExprCmp = Belt.Id.MakeComparable({
+module ExprCmp = Belt.Id.MakeComparableU({
     type t = expr
-    let cmp = exprCmp
+    let cmp = exprCmp->Expln_utils_common.toIntCmp
 })
 
-module ExprHash = Belt.Id.MakeHashable({
+module ExprHash = Belt.Id.MakeHashableU({
     type t = expr
     let hash = Expln_utils_common.hashArrInt
     let eq = exprEq
@@ -348,9 +348,9 @@ let disjToArr = (
         Expln_utils_common.intCmp
     }
     res->Js.Array2.forEach(d =>
-        d->Js_array2.sortInPlaceWith(sortBy)->ignore
+        d->Expln_utils_common.sortInPlaceWith(sortBy)->ignore
     )
-    res->Js_array2.sortInPlaceWith(exprCmp)
+    res->Expln_utils_common.sortInPlaceWith(exprCmp)
 }
 
 let disjForEachArr = (

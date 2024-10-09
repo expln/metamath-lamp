@@ -2897,7 +2897,7 @@ let textToSyntaxProofTable = (
             | Some(unrecognizedSymbol) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
             | None => {
                 let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
-                let syntaxTypes = syntaxTypes->Js.Array2.copy->Js.Array2.sortInPlaceWith((a,b) => {
+                let syntaxTypes = syntaxTypes->Js.Array2.copy->Expln_utils_common.sortInPlaceWith((a,b) => {
                     if (a == lastSyntaxTypeInt) {
                         -1
                     } else if (b == lastSyntaxTypeInt) {

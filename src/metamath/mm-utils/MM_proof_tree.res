@@ -363,7 +363,7 @@ let ptPrintStats = ( tree:proofTree ):string => {
                     node.proof->Belt_Option.isNone && !node.isInvalidFloating
                     // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
                 )
-            unprovedNodes->Js.Array2.sortInPlaceWith((a,b) => 
+            unprovedNodes->Expln_utils_common.sortInPlaceWith((a,b) =>
                 a.expr->Js_array2.length - b.expr->Js_array2.length
             )->ignore
             let unprovedExprs = unprovedNodes->Js.Array2.map(node => node.expr)

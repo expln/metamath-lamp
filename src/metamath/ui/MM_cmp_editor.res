@@ -887,7 +887,7 @@ let make = (
         let selections = st.stmts->Js.Array2.map(stmt => getSelectedExpr(st,stmt))
             ->Js.Array2.filter(Belt_Option.isSome)
             ->Js.Array2.map(Belt_Option.getExn)
-            ->Js.Array2.sortInPlaceWith(((_,time1),(_,time2)) => compareDates(time1,time2) )
+            ->Expln_utils_common.sortInPlaceWith(((_,time1),(_,time2)) => compareDates(time1,time2) )
         let len = selections->Js.Array2.length
         let sel1 = selections->Belt_Array.get(len-2)->Belt.Option.map(((str,_)) => str)
         let sel2 = selections->Belt_Array.get(len-1)->Belt.Option.map(((str,_)) => str)

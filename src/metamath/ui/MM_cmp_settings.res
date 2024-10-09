@@ -369,7 +369,7 @@ let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string)
     }
     {
         ...state,
-        webSrcSettings: state.webSrcSettings->Js.Array2.sortInPlaceWith((s1,s2) => {
+        webSrcSettings: state.webSrcSettings->Expln_utils_common.sortInPlaceWith((s1,s2) => {
             let i1 = if defaultAliases->Js.Array2.includes(s1.alias) {0} else {1}
             let i2 = if defaultAliases->Js.Array2.includes(s2.alias) {0} else {1}
             i1 - i2

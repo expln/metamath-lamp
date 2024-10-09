@@ -115,7 +115,7 @@ describe("proveSyntaxTypes", _ => {
         })->ignore
         let asrtExprsToProve = asrtExprs->Belt_HashMapString.valuesToArray
             ->Js.Array2.map(obj => obj["ctxExpr"])
-            ->Js.Array2.sortInPlaceWith(compareExprBySize->comparatorInverse)
+            ->Expln_utils_common.sortInPlaceWith(compareExprBySize->comparatorInverse)
 
         Js.Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
 

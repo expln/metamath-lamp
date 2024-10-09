@@ -373,7 +373,7 @@ let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:e
                 grp.exprEndIdx = constParts.begins->Array.getUnsafe(grp.leftConstPartIdx+1)-1
             }
         })
-        varGroups->Js.Array2.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
+        varGroups->Expln_utils_common.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
     }
 }
 
@@ -574,7 +574,7 @@ let prepareFrmSubsData = (
 ):frms => {
     let frmCmp = comparatorBy(frm => frm.hypsE->Js_array2.length)
         ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
-    let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Js_array2.sortInPlaceWith(frmCmp)
+    let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Expln_utils_common.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)
     all->Js_array2.forEach(frm => {

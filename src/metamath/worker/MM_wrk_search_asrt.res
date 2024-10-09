@@ -186,7 +186,7 @@ let doSearchAssertions = (
 
     let results = []
     let framesInDeclarationOrder = frms->frmsSelect(())
-        ->Js.Array2.sortInPlaceWith((a,b) => a.frame.ord - b.frame.ord)
+        ->Expln_utils_common.sortInPlaceWith((a,b) => a.frame.ord - b.frame.ord)
     framesInDeclarationOrder->Js.Array2.forEach(frm => {
         let frame = frm.frame
         if (

@@ -92,11 +92,11 @@ let addToGroup = (~groups:Belt_HashMapInt.t<array<warning>>, ~warning:warning):u
 let printToStr = (groups:Belt_HashMapInt.t<array<warning>>):string => {
     let res = []
     groups->Belt_HashMapInt.toArray
-        ->Js.Array2.sortInPlaceWith(((code1,_),(code2,_)) => code1 - code2)
+        ->Expln_utils_common.sortInPlaceWith(((code1,_),(code2,_)) => (code1 - code2)->Belt_Float.fromInt)
         ->Js.Array2.forEach(((code,arr)) => {
             res->Js.Array2.push("")->ignore
             res->Js.Array2.push(`Warning number ${code->Belt_Int.toString}: ${getWarningDescr(code)}`)->ignore
-            arr->Js.Array2.sortInPlaceWith((a,b) => a.ord - b.ord)->Js.Array2.forEach(warning => {
+            arr->Expln_utils_common.sortInPlaceWith((a,b) => (a.ord - b.ord)->Belt_Float.fromInt)->Js.Array2.forEach(warning => {
                 res->Js.Array2.push(warning.path)->ignore
             })
         })

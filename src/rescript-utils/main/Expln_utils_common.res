@@ -131,3 +131,8 @@ let hashArrIntFromTo: (array<int>, int, int) => int = %raw(`
 let hash2: (int, int) => int = %raw(`
     (a,b) => ( ( ( a << 5 ) - a ) + b ) | 0
 `)
+
+let sortInPlaceWith: 'a. (array<'a>, comparator<'a>) => array<'a> = (arr, cmp) => {
+    arr->Array.sort(cmp)
+    arr
+}
