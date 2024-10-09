@@ -10,10 +10,15 @@ def insert_get_unsafe(node: Node) -> None:
     def is_assignment(n: Node) -> bool:
         if n.right_sibling is None or n.right_sibling.text is None or '=' not in n.right_sibling.text:
             return False
+        if len(n.right_sibling.text) > 1 and n.right_sibling.text[0] == '.':
+            return False
         text = n.right_sibling.text
-        if '\n' not in text:
-            return True
-        return '=' in text[:text.index('\n')]
+        this_line_text = text[:text.index('\n')] if '\n' in text else text
+        return (
+                '=' in this_line_text
+                and ('!=' not in this_line_text or this_line_text.index('=') < this_line_text.index('!='))
+                and ('==' not in this_line_text or this_line_text.index('=') < this_line_text.index('=='))
+        )
 
     def is_node_to_update(n: Node) -> bool:
         return (
@@ -47,7 +52,7 @@ def rewrite_file(path: Path) -> None:
 
 
 def main() -> None:
-    # rewrite_file(Path('../../metamath/ui/MM_cmp_export_state_to_url.res'))
+    # rewrite_file(Path('../../metamath/mm-utils/MM_substitution.res'))
 
     for path in get_all_rescript_files():
         print(f'processing: {path.absolute()}')
