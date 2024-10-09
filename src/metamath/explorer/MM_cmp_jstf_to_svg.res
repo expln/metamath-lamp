@@ -136,7 +136,7 @@ let rndStmt = (
     let contentOnlyBnd = []
     for i in 0 to stmt->Js_array2.length-1 {
         let subKey = `${key}-${i->Belt_Int.toString}`
-        printSymbol(~sym=stmt[i], ~key=`${subKey}-S`)
+        printSymbol(~sym=stmt->Array.getUnsafe(i), ~key=`${subKey}-S`)
         if (i == stmt->Js_array2.length-1) {
             contentOnlyBnd->Js.Array2.push(bndMergeAll(bnds))->ignore
         }

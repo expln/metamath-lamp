@@ -98,7 +98,7 @@ let addDisjFromString = (wrkCtx, disjStr) => {
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {
     try {
-        disjText->multilineTextToNonEmptyLines->Js_array2.forEach(addDisjFromString(wrkCtx))
+        disjText->multilineTextToNonEmptyLines->Js_array2.forEach(addDisjFromString(wrkCtx, _))
         None
     } catch {
         | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), disjErr:Some(msg)})

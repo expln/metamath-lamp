@@ -78,7 +78,7 @@ let subsEq = (a:subs, b:subs):bool => {
                 let ai = ref(aBegin)
                 let bi = ref(bBegin)
                 while (res.contents && ai.contents <= aEnd) {
-                    res.contents = aExpr[ai.contents] == bExpr->Array.getUnsafe(bi.contents)
+                    res.contents = aExpr->Array.getUnsafe(ai.contents) == bExpr->Array.getUnsafe(bi.contents)
                     ai.contents = ai.contents + 1
                     bi.contents = bi.contents + 1
                 }
@@ -143,13 +143,13 @@ let createConstParts = expr => {
                 constParts->Js_array2.push([i,-1])->ignore
             }
         } else if (constPartsLength > 0 && constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) < 0) {
-            constParts->Array.getUnsafe(constPartsLength-1)[1] = i-1
+            (constParts->Array.getUnsafe(constPartsLength-1))[1] = i-1
         }
     }
     let constPartsLength = constParts->Js_array2.length
     let exprLength = expr->Js_array2.length
     if (constPartsLength > 0 && constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) < 0) {
-        constParts->Array.getUnsafe(constPartsLength-1)[1] = exprLength-1
+        (constParts->Array.getUnsafe(constPartsLength-1))[1] = exprLength-1
     }
     let result = {
         length: constPartsLength,

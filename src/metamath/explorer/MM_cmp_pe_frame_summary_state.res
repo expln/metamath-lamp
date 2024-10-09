@@ -86,7 +86,7 @@ let makeInitialState = (
             | Some(V) => {
                 let ctxVarInt = frmCtx->ctxSymToIntExn(frmVarName)
                 let ctxVarTypInt = frmCtx->getTypeOfVarExn(ctxVarInt)
-                if (frame.varTypes[frmVarInt] == ctxVarTypInt) {
+                if (frame.varTypes->Array.getUnsafe(frmVarInt) == ctxVarTypInt) {
                     frmVarIntToCtxInt->Js.Array2.push(ctxVarInt)->ignore
                     frmVarName
                 } else {

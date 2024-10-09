@@ -474,7 +474,7 @@ let make = (
             switch prevSt->deleteMacros(~id=collId) {
                 | Error(_) => prevSt
                 | Ok(st) => {
-                    switch st->setActiveCollOfMacrosId(st.collsOfMacros->Array.getUnsafe(0).id) {
+                    switch st->setActiveCollOfMacrosId((st.collsOfMacros->Array.getUnsafe(0)).id) {
                         | Error(_) => prevSt
                         | Ok(st) => {
                             saveStateToLocStor(st)

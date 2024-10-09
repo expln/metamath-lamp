@@ -38,7 +38,7 @@ let compareSubArrays = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFro
         false
     } else {
         let sMax = srcFromIdx+len-1
-        while (s.contents <= sMax && src[s.contents] == dst->Array.getUnsafe(d.contents)) {
+        while (s.contents <= sMax && src->Array.getUnsafe(s.contents) == dst->Array.getUnsafe(d.contents)) {
             d.contents = d.contents + 1
             s.contents = s.contents + 1
         }
@@ -110,7 +110,7 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
                 let subsExpr = stack->stGetExpr(baseIdx+i)
                 if (subsExpr->Js_array2.length < 2) {
                     raise(MmException({msg:`subsExpr->Js_array2.length < 2`}))
-                } else if (subsExpr[0] != t) {
+                } else if (subsExpr->Array.getUnsafe(0) != t) {
                     raise(MmException({msg:`subsExpr[0] != t`}))
                 } else {
                     subsLock[v] = true
@@ -264,7 +264,7 @@ let applyAsrt = (
             | Some(err) => {
                 let errMsg = unifErrToStr(
                     err,
-                    ~exprToStr = ctx->ctxIntsToStrExn,
+                    ~exprToStr = ctxIntsToStrExn(ctx, _),
                     ~frmExprToStr = expr => ctx->frmIntsToStrExn(frame, expr),
                 )
                 raise(MmException({msg:`Disjoint verification failed: ${errMsg}`}))
