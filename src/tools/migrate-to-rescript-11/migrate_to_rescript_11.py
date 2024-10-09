@@ -45,9 +45,31 @@ def insert_get_unsafe(node: Node) -> None:
     iterate_nodes_rec(node, process)
 
 
+def add_parens_to_get_unsafe(node: Node) -> None:
+    def is_node_to_update(n: Node) -> bool:
+        return (
+                n.left_sibling is not None
+                and n.left_sibling.text is not None
+                and n.left_sibling.text.endswith('->Array.getUnsafe')
+                and n.right_sibling is not None
+                and n.right_sibling.text is not None
+                and n.right_sibling.text.startswith('.')
+        )
+
+    def update_node(n: Node) -> None:
+        n.right_paren = '))'
+
+    def process(n: Node) -> None:
+        if is_node_to_update(n):
+            update_node(n)
+
+    iterate_nodes_rec(node, process)
+
+
 def rewrite_file(path: Path) -> None:
     parsed = parse(read_text_from_path(path))
-    insert_get_unsafe(parsed)
+    # insert_get_unsafe(parsed)
+    add_parens_to_get_unsafe(parsed)
     write_text_to_path(path, node_to_str(parsed))
 
 
