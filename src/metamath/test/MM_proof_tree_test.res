@@ -13,7 +13,7 @@ let createSrc = (hypTypes:array<hypothesisType>, args:array<expr>, label:string)
         ~exprToStr = None,
     )
     Assertion({
-        args: args->Js_array2.map(proofTree->ptGetNode),
+        args: args->Js_array2.map(ptGetNode(proofTree, _)),
         frame: {
             ord:0,
             isAxiom:false,

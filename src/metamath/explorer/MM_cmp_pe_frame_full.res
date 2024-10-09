@@ -200,7 +200,7 @@ let createInitialState = (
 
     let typeOrderInDisj = createTypeOrderFromStr(
         ~sortDisjByType=settings.sortDisjByType, 
-        ~typeNameToInt=frmCtx->ctxSymToInt
+        ~typeNameToInt=ctxSymToInt(frmCtx,_)
     )
 
     let disjStr = if (frame.disj->Belt_MapInt.size > 0) {

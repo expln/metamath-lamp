@@ -131,7 +131,7 @@ let findAsrtParentsWithoutNewVars = (
                         && verifyDisjoints(
                                 ~frmDisj=frm.frame.disj, 
                                 ~subs, 
-                                ~isDisjInCtx=tree->ptIsDisjInCtx, 
+                                ~isDisjInCtx=ptIsDisjInCtx(tree, ...),
                                 ~debugLevel=0
                             )->Belt.Option.isNone
                     ) {
@@ -288,7 +288,7 @@ let findAsrtParentsWithNewVars = (
         ~frms = tree->ptGetFrms,
         ~frmsToUse?,
         ~isFrameAllowed,
-        ~isDisjInCtx = tree->ptIsDisjInCtx,
+        ~isDisjInCtx = ptIsDisjInCtx(tree, ...),
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = args,
         ~exactOrderOfStmts = exactOrderOfArgs,
@@ -905,7 +905,7 @@ let proveSyntaxTypes = (
                 | None => ()
                 | Some(_) => {
                     tree->ptAddSyntaxProof(expr, node.contents)
-                    lastType := (node.contents->pnGetExpr)[0]
+                    lastType := (node.contents->pnGetExpr)->Array.getUnsafe(0)
                 }
             }
             progressState->progressTrackerSetCurrPct( 

@@ -846,7 +846,7 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
     }
     let typeOrderInDisj = createTypeOrderFromStr(
         ~sortDisjByType=settings.sortDisjByType, 
-        ~typeNameToInt=preCtx->ctxSymToInt
+        ~typeNameToInt=ctxSymToInt(preCtx, _)
     )
     let st = {
         ...st, 

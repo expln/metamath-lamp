@@ -166,7 +166,7 @@ let make = React.memoCustomCompareProps(({
 
         let typeOrderInDisj = createTypeOrderFromStr(
             ~sortDisjByType=settings.sortDisjByType, 
-            ~typeNameToInt=preCtx->ctxSymToInt
+            ~typeNameToInt=ctxSymToInt(preCtx, _)
         )
         setTypeOrderInDisj(_ => typeOrderInDisj)
 
