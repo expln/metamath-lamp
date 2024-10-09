@@ -8,8 +8,16 @@ from utils import read_text_from_path, node_to_str, write_text_to_path, get_all_
 
 def insert_get_unsafe(node: Node) -> None:
     def is_node_to_update(node: Node) -> bool:
-        return node.left_paren == '[' and node.right_paren == ']' and node.begin[0] == node.end[
-            0] and '"' not in node_to_str(node)
+        return (
+                node.left_paren == '[' and node.right_paren == ']'
+                and node.begin[0] == node.end[0]
+                and '"' not in node_to_str(node) and '#' not in node_to_str(node)
+                and (
+                        node.right_sibling is None
+                        or node.right_sibling.text is None
+                        or '=' not in node.right_sibling.text
+                )
+        )
 
     def update_node(node: Node) -> None:
         node.left_paren = '->Array.getUnsafe('

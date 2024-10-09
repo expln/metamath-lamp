@@ -14,6 +14,8 @@ class Node:
     right_paren: str = ''
     parent: Node | None = None
     children: list[Node] | None = None
+    left_sibling: Node | None = None
+    right_sibling: Node | None = None
 
     def to_dict(self) -> dict[str, Any]:
         result = vars(self).copy()
@@ -71,6 +73,9 @@ def parse(text: str) -> Node:
             end=(line_num, pos),
             text=text[begin_i:i]
         ))
+        if len(cur_node.children) > 1:
+            cur_node.children[-2].right_sibling = cur_node.children[-1]
+            cur_node.children[-1].left_sibling = cur_node.children[-2]
 
     def process_paren() -> None:
         nonlocal begin_i
@@ -88,6 +93,9 @@ def parse(text: str) -> Node:
                 cur_node.children = []
             cur_node.children.append(child_node)
             stack.append(child_node)
+            if len(cur_node.children) > 1:
+                cur_node.children[-2].right_sibling = cur_node.children[-1]
+                cur_node.children[-1].left_sibling = cur_node.children[-2]
         else:
             if cur_node.left_paren != paren.opposite:
                 raise Exception(f'cur_node.left_paren != paren.opposite, {line_num=}, {pos=}')
