@@ -50,7 +50,7 @@ let testTransform = (
     let syntaxTree = MM_wrk_editor.textToSyntaxTree(
         ~wrkCtx,
         ~syms=[selectedFragment->getSpaceSeparatedValuesAsArray],
-        ~syntaxTypes=["wff", "class", "setvar"]->Js.Array2.map(wrkCtx->ctxSymToIntExn),
+        ~syntaxTypes=["wff", "class", "setvar"]->Js.Array2.map(ctxSymToIntExn(wrkCtx, _)),
         ~frms=editorState.frms,
         ~frameRestrict=editorState.settings.allowedFrms.inSyntax,
         ~parenCnt=editorState.parenCnt,
@@ -87,7 +87,7 @@ let testTransform = (
         expr: None, jstf: None, proofTreeDto: None, src: None, proof: None, proofStatus: None, unifErr: None, 
         syntaxErr: None,
     }
-    let stepJson = MM_cmp_api.stmtToJson(step, Some(wrkCtx->ctxIntToSymExn))
+    let stepJson = MM_cmp_api.stmtToJson(step, Some(ctxIntToSymExn(wrkCtx, _)))
     let param = {"step":stepJson}
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
     let filteredTransforms = allTransforms->Js.Array2.filter(tr => tr.displayName(param) == transformName)

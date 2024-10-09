@@ -144,7 +144,7 @@ let wrkSubsToStr = (ctx:mmContext, wrkSubs:wrkSubs):string => {
             ->Js.Array2.joinWith(",")
         ++ "], subs:["
         ++ subsToSortedArr(wrkSubs.subs)
-            ->Js.Array2.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)} -> [${r->Js_array2.map(ctx->ctxIntToSymExn)->Js.Array2.joinWith(",")}])`)
+            ->Js.Array2.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)} -> [${r->Js_array2.map(ctxIntToSymExn(ctx, _))->Js.Array2.joinWith(",")}])`)
             ->Js.Array2.joinWith(",")
         ++ "], err: "
         ++ switch wrkSubs.err {

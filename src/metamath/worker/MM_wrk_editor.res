@@ -1631,8 +1631,8 @@ let removeUnusedVars = (st:editorState):editorState => {
             })
             let newDisjText = newDisj->disjToArr(
                 ~sortByTypeAndName=true,
-                ~varIntToVarName=wrkCtx->ctxIntToSym,
-                ~varIntToVarType=wrkCtx->getTypeOfVar,
+                ~varIntToVarName=ctxIntToSym(wrkCtx, _),
+                ~varIntToVarType=getTypeOfVar(wrkCtx, _),
                 ~typeOrder=st.typeOrderInDisj,
                 ()
             )
@@ -1751,7 +1751,7 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                     let unifErr = if (partialAsrtLabels->Js.Array2.length > 0) {
                         Some(unifErrToStr(
                             TooManyCombinations({frmLabels:Some(partialAsrtLabels)}),
-                            ~exprToStr = wrkCtx->ctxIntsToStrExn,
+                            ~exprToStr = ctxIntsToStrExn(wrkCtx, _),
                             ~frmExprToStr = _ => "<frmExprToStr is not defined>"
                         ))
                     } else {
@@ -1778,7 +1778,7 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                                     errors->Js_array2.map(((asrtLabel,err)) => {
                                         unifErrToStr(
                                             err,
-                                            ~exprToStr = wrkCtx->ctxIntsToStrExn,
+                                            ~exprToStr = ctxIntsToStrExn(wrkCtx, _),
                                             ~frmExprToStr = 
                                                 expr => wrkCtx->frmIntsToStrExn(wrkCtx->getFrameExn(asrtLabel),expr)
                                         )
@@ -2005,8 +2005,8 @@ let proofToText = (
             })
             newDisj->disjForEachArr(
                 ~sortByTypeAndName=true,
-                ~varIntToVarType=wrkCtx->getTypeOfVar,
-                ~varIntToVarName=wrkCtx->ctxIntToSym,
+                ~varIntToVarType=getTypeOfVar(wrkCtx, _),
+                ~varIntToVarName=ctxIntToSym(wrkCtx, _),
                 ~typeOrder=typeOrderInDisj,
                 vars => {
                     result->Js.Array2.push("$d " ++ wrkCtx->ctxIntsToStrExn(vars) ++ " $.")->ignore
@@ -2423,7 +2423,7 @@ let addSteps = (
             | None => Error("Cannot add new variables because of errors in the editor.")
             | Some(wrkCtx) => {
                 let varTypesStr = vars->Js.Array2.map(((typStr,_)) => typStr)
-                let varTypesOpt = varTypesStr->Js.Array2.map(wrkCtx->ctxSymToInt)
+                let varTypesOpt = varTypesStr->Js.Array2.map(ctxSymToInt(wrkCtx, _))
                 let unknownTypeIdx = varTypesOpt->Js.Array2.findIndex(Belt_Option.isNone)
                 if (unknownTypeIdx >= 0) {
                     Error(`Unknown type - ${varTypesStr[unknownTypeIdx]}`)
@@ -2896,7 +2896,7 @@ let textToSyntaxProofTable = (
         switch Belt_Array.concatMany(syms)->findUndefinedSym {
             | Some(unrecognizedSymbol) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
             | None => {
-                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(wrkCtx->ctxSymToInt)->Belt.Option.getWithDefault(0)
+                let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(ctxSymToInt(wrkCtx, _))->Belt.Option.getWithDefault(0)
                 let syntaxTypes = syntaxTypes->Js.Array2.copy->Expln_utils_common.sortInPlaceWith((a,b) => {
                     if (a == lastSyntaxTypeInt) {
                         -1
@@ -2906,7 +2906,7 @@ let textToSyntaxProofTable = (
                         a - b
                     }
                 })
-                let exprs = syms->Js_array2.map(wrkCtx->ctxSymsToIntsExn)
+                let exprs = syms->Js_array2.map(ctxSymsToIntsExn(wrkCtx, _))
                 let proofTree = MM_provers.proveSyntaxTypes(
                     ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ~frameRestrict, ()
                 )

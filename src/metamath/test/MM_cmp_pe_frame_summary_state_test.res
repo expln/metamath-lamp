@@ -89,7 +89,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
             [("a","w-color"),("b","w-color")],
         )
         assertEq(
-            state.eHyps->Js_array2.map(state.frmCtx->ctxIntsToStrExn)->Js.Array2.joinWith(" ; "),
+            state.eHyps->Js_array2.map(ctxIntsToStrExn(state.frmCtx, _))->Js.Array2.joinWith(" ; "),
             "( ) a a a ; ( ) b b b",
         )
         assertEq(

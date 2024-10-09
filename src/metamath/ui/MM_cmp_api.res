@@ -145,7 +145,7 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_jso
 }
 
 let getAllSteps = (~state:editorState):Js_json.t => {
-    let ctxConstIntToSymExn = state.wrkCtx->Belt_Option.map(wrkCtx => wrkCtx->ctxIntToSymExn)
+    let ctxConstIntToSymExn = state.wrkCtx->Belt_Option.map(wrkCtx => ctxIntToSymExn(wrkCtx, _))
     state.stmts->Js.Array2.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
 }
 
@@ -914,7 +914,7 @@ let editorBuildSyntaxTrees = (
                                             | Ok(syntaxTree) => {
                                                 Js_dict.fromArray([
                                                     ("err", Js_json.null),
-                                                    ("tree", syntaxTreeNodeToJson(syntaxTree, wrkCtx->ctxIntToSymExn)),
+                                                    ("tree", syntaxTreeNodeToJson(syntaxTree, ctxIntToSymExn(wrkCtx, _))),
                                                 ])->Js_json.object_ 
                                             }
                                         }

@@ -23,7 +23,7 @@ describe("verifyProof", _ => {
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
                     //then
-                    verifyProof(~ctx, ~expr, ~proof, ~isDisjInCtx=ctx->isDisj)->ignore
+                    verifyProof(~ctx, ~expr, ~proof, ~isDisjInCtx=isDisj(ctx, ...))->ignore
 
                     progressTracker->testProgressTrackerIncCnt
                 }

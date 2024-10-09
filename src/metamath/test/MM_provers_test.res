@@ -34,7 +34,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
 
     //then
     try {
-        verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=ctx->isDisj)
+        verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=isDisj(ctx, ...))
         //let proof = verifyProof(ctx, expr, actualProof)
         //let tbl = createOrderedProofTableFromProof(proof)
         //proofTablePrint(ctx,tbl,exprStr)

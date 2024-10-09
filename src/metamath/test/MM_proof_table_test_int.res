@@ -116,19 +116,19 @@ describe("createProof", _ => {
                 | Provable({label,expr:exprStr,proof:Some(expectedProof)}) => {
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
-                    let proofNode = verifyProof(~ctx, ~expr, ~proof=expectedProof, ~isDisjInCtx=ctx->isDisj)
+                    let proofNode = verifyProof(~ctx, ~expr, ~proof=expectedProof, ~isDisjInCtx=isDisj(ctx, ...))
 
                     let proofTableOptimized = createProofTableFromProof(~proofNode, ~mergeSameRows=true, ())
                     let actualProofOptimized = createProof(
                         ctx->getMandHyps(expr, ()), proofTableOptimized, proofTableOptimized->Js_array2.length-1
                     )
-                    verifyProof(~ctx, ~expr, ~proof=actualProofOptimized, ~isDisjInCtx=ctx->isDisj)->ignore
+                    verifyProof(~ctx, ~expr, ~proof=actualProofOptimized, ~isDisjInCtx=isDisj(ctx, ...))->ignore
 
                     let proofTable = createProofTableFromProof(~proofNode, ~mergeSameRows=false, ())
                     let actualProof = createProof(
                         ctx->getMandHyps(expr, ()), proofTable, proofTable->Js_array2.length-1
                     )
-                    verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=ctx->isDisj)->ignore
+                    verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=isDisj(ctx, ...))->ignore
 
                     //then
                     if (

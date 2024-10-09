@@ -189,7 +189,7 @@ let testApplyAssertions = (
     let printApplyAssertionResult = (workCtx, statements:array<labeledExpr>, res:applyAssertionResult):string => {
         workCtx->openChildContext
         let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length, ())
-        let workVarTypes = res.newVarTypes->Js_array2.map(workCtx->ctxIntToSymExn)
+        let workVarTypes = res.newVarTypes->Js_array2.map(ctxIntToSymExn(workCtx, _))
         let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
 
         workCtx->applySingleStmt(Var({symbols:workVarNames}), ())
@@ -214,7 +214,7 @@ let testApplyAssertions = (
                     | None => {
                         let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
                         let label = newStmtLabel->Array.getUnsafe(0)
-                        let exprArrStr = argExpr->Js_array2.map(workCtx->ctxIntToSymExn)
+                        let exprArrStr = argExpr->Js_array2.map(ctxIntToSymExn(workCtx, _))
                         workCtx->applySingleStmt(Provable({
                             label, 
                             expr:exprArrStr,
@@ -276,7 +276,7 @@ let testApplyAssertions = (
     //when
     applyAssertions(
         ~maxVar = workCtx->getNumOfVars-1,
-        ~isDisjInCtx = workCtx->isDisj,
+        ~isDisjInCtx = isDisj(workCtx, ...),
         ~frms,
         ~statements = stmtsForAppl,
         ~parenCnt,

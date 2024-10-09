@@ -119,7 +119,7 @@ describe("proveSyntaxTypes", _ => {
 
         Js.Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
 
-        // let asrtExprStr = asrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // let asrtExprStr = asrtExprs->Js.Array2.map(ctxIntsToStrExn(ctx, _))->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
         let numOfExpr = asrtExprsToProve->Js.Array2.length
@@ -171,7 +171,7 @@ describe("proveSyntaxTypes", _ => {
 
         let unprovedAsrtExprs = asrtExprsToProve
             ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
-        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctx->ctxIntsToStrExn)->Js.Array2.joinWith("\n")
+        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctxIntsToStrExn(ctx, _))->Js.Array2.joinWith("\n")
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
         assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 
