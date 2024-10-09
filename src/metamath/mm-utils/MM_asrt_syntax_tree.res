@@ -233,5 +233,5 @@ let unifyMayBePossible = (
 }
 
 let unifSubsMake = () => Belt_HashMap.make(~hintSize=16, ~id=module(SymHash))
-let unifSubsGet = Belt_HashMap.get
-let unifSubsSize = Belt_HashMap.size
+let unifSubsGet = (unifSubs,sym) => unifSubs->Belt_HashMap.get(sym)
+let unifSubsSize = unifSubs => Belt_HashMap.size(unifSubs)
