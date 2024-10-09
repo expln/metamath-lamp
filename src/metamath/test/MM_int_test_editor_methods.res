@@ -240,7 +240,7 @@ let addStmtsBySearch = (
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
-                            ++ `Available: ${searchResults->Js_array2.map(res => res.stmts[res.stmts->Js_array2.length-1].label)->Js_array2.joinWith(", ")} `
+                            ++ `Available: ${searchResults->Js_array2.map(res => (res.stmts->Array.getUnsafe(res.stmts->Js_array2.length-1)).label)->Js_array2.joinWith(", ")} `
                     }))
                 | Some(searchResult) => st->addNewStatements(searchResult, ())
             }

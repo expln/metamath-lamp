@@ -1193,7 +1193,7 @@ let validateStmtExpr = (
                                                             ++ ` one - '${prevStmtLabel}'`})}
                             }
                             | None => {
-                                if (!stmt.contEditMode && (expr->Js_array2.length == 0 || expr[0] >= 0)) {
+                                if (!stmt.contEditMode && (expr->Js_array2.length == 0 || expr->Array.getUnsafe(0) >= 0)) {
                                     {...stmt, stmtErr:Some({code:someStmtErrCode, 
                                         msg:`Any statement must begin with a constant.`})}
                                 } else {
@@ -1356,7 +1356,7 @@ let createNewVars = (
                 }
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
                 let newVarsText = newHypLabels->Js.Array2.mapi((label,i) => {
-                    `${label} ${varTypeNames[i]} ${newVarNames[i]}`
+                    `${label} ${varTypeNames->Array.getUnsafe(i)} ${newVarNames->Array.getUnsafe(i)}`
                 })->Js_array2.joinWith("\n")
                 let st = {
                     ...st,
@@ -1617,7 +1617,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 let usedLocalVarsStr = wrkCtx->getLocalHyps
                     ->Js_array2.filter(hyp => hyp.typ == F && !(unusedVarInts->Belt_HashSetInt.has(hyp.expr->Array.getUnsafe(1))))
                     ->Js_array2.map(hyp => 
-                        `${hyp.label} ${wrkCtx->ctxIntToSymExn(hyp.expr[0])} ${wrkCtx->ctxIntToSymExn(hyp.expr[1])}`
+                        `${hyp.label} ${wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0))} ${wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))}`
                     )
                     ->Js_array2.joinWith("\n")
                 completeVarsEditMode(st, usedLocalVarsStr)
@@ -2426,7 +2426,7 @@ let addSteps = (
                 let varTypesOpt = varTypesStr->Js.Array2.map(ctxSymToInt(wrkCtx, _))
                 let unknownTypeIdx = varTypesOpt->Js.Array2.findIndex(Belt_Option.isNone)
                 if (unknownTypeIdx >= 0) {
-                    Error(`Unknown type - ${varTypesStr[unknownTypeIdx]}`)
+                    Error(`Unknown type - ${varTypesStr->Array.getUnsafe(unknownTypeIdx)}`)
                 } else {
                     let varTypes = varTypesOpt->Js.Array2.map(Belt_Option.getExn)
                     if (!validateVarNames(vars)) {
