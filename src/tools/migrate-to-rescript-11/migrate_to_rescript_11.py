@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import glob
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -123,7 +124,15 @@ def write_text_to_path(path: Path, text: str) -> None:
     path.write_text(text, 'utf-8')
 
 
+def get_all_rescript_files() -> list[Path]:
+    roots = [f'../../**/*.{ext}' for ext in ['res', 'resi']]
+    return [Path(file_name) for root in roots for file_name in glob.iglob(root, recursive=True)]
+
+
 if __name__ == '__main__':
-    path = Path('../../metamath/mm-utils/MM_parser.res')
-    parsed = parse(read_text_from_path(path))
-    write_text_to_path(path, node_to_str(parsed))
+    # path = Path('../../metamath/mm-utils/MM_parser.res')
+
+    for path in get_all_rescript_files():
+        print(f'processing: {path.absolute()}')
+        parsed = parse(read_text_from_path(path))
+        write_text_to_path(path, node_to_str(parsed))
