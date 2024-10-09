@@ -373,7 +373,7 @@ let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:e
                 grp.exprEndIdx = constParts.begins->Array.getUnsafe(grp.leftConstPartIdx+1)-1
             }
         })
-        varGroups->Expln_utils_common.sortInPlaceWith((g1,g2) => g1.numOfVars - g2.numOfVars)->ignore
+        varGroups->Expln_utils_common.sortInPlaceWith((g1,g2) => Belt_Float.fromInt(g1.numOfVars - g2.numOfVars))->ignore
     }
 }
 
@@ -420,7 +420,7 @@ let rec iterateVarGroups = (
     }
 
     let continueInstr = ref(Continue)
-    if (!subs.isDefined->Array.getUnsafe(frmVar)) {
+    if (!(subs.isDefined->Array.getUnsafe(frmVar))) {
         subs.isDefined[frmVar] = true
         subs.exprs[frmVar] = expr
         subs.begins[frmVar] = subExprBeginIdx
