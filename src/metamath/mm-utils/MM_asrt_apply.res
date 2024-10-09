@@ -24,7 +24,7 @@ let applyAssertionResultHash = (a:applyAssertionResult):int => {
     )
 }
 
-module ApplyAssertionResultHash = Belt.Id.MakeHashable({
+module ApplyAssertionResultHash = Belt.Id.MakeHashableU({
     type t = applyAssertionResult
     let hash = applyAssertionResultHash
     let eq = applyAssertionResultEq

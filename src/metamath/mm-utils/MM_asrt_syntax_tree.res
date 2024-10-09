@@ -45,7 +45,7 @@ let arrSymEq = (a:array<sym>,b:array<sym>):bool => {
     && a->Js_array2.everyi((sa,i) => sa->symEq(b->Array.getUnsafe(i)))
 }
 
-module SymHash = Belt.Id.MakeHashable({
+module SymHash = Belt.Id.MakeHashableU({
     type t = sym
     let hash = var => {
         switch var {
