@@ -24,11 +24,11 @@ type clickAttrs = {
 type state = {
     lastClickBeginTime: float,
     lastClickEndTime: float,
-    timerId:option<timeoutID>,
+    timerId:option<timeoutId>,
     clickBeginScreenX:int,
     clickBeginScreenY:int,
     doShortClick: option<option<clickAttrs>>,
-    doLongClick: option<timeoutID>,
+    doLongClick: option<timeoutId>,
 }
 
 let makeInitialState = () => {
@@ -58,7 +58,7 @@ let resetState = (st:state):state => {
     }
 }
 
-let markLongClickIsRequested = (st:state, timerId:timeoutID):state => {
+let markLongClickIsRequested = (st:state, timerId:timeoutId):state => {
     {
         ...st,
         doShortClick: None,
@@ -82,12 +82,17 @@ let updateStateOnClickBegin = (
             clickBeginScreenX:screenX,
             clickBeginScreenY:screenY,
             timerId: {
-                let timerIdLocal = ref(stubTimeoutId)
-                timerIdLocal := setTimeout( 
-                    () => updateState(markLongClickIsRequested(_, timerIdLocal.contents)), 
+                let timerIdLocal = ref(None)
+                timerIdLocal := Some(setTimeout( 
+                    () => {
+                        switch timerIdLocal.contents {
+                            | None => ()
+                            | Some(timerId) => updateState(markLongClickIsRequested(_, timerId))
+                        }
+                    }, 
                     longClickDelayMs 
-                )
-                Some(timerIdLocal.contents)
+                ))
+                timerIdLocal.contents
             }
         }
     } else {

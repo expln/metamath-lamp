@@ -98,11 +98,6 @@ let safeBase64ToStr = safeBase64 => {
         ->base64ToStr
 }
 
-type timeoutID = int
-@val external setTimeout: (unit => unit, int) => timeoutID = "setTimeout"
-@val external clearTimeout: (timeoutID) => unit = "clearTimeout"
-let stubTimeoutId: timeoutID = 0
-
 type version<'a> = {
     ver:int,
     val:'a
