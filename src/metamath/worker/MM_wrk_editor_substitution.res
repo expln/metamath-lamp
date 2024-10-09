@@ -167,7 +167,7 @@ let findPossibleSubsByMatch = (
     ~expr:expr
 ):result<array<wrkSubs>,string> => {
     try {
-        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
+        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())->Array.getUnsafe(0)
         let tmpFrame = createFrame(
             ~ctx=wrkCtx, ~ord=0, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
             ~skipEssentials=true, ~skipFirstSymCheck=true, ()

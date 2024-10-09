@@ -239,7 +239,7 @@ let testApplyAssertions = (
             ""
         } else {
             "    " ++ workVarHypLabels->Js.Array2.mapi((label,i) => {
-                `${label} ${workVarTypes[i]} ${workVarNames[i]}`
+                `${label} ${workVarTypes->Array.getUnsafe(i)} ${workVarNames->Array.getUnsafe(i)}`
             })->Js_array2.joinWith("\n    ")
         }
         let argsStr = if (args->Js.Array2.length > 0) {

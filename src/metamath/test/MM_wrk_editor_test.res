@@ -112,7 +112,7 @@ let createEditorState = (
 }
 
 let getVarType = (ctx:mmContext, vName:string) => {
-    let varInt = (ctx->ctxSymsToIntsExn([vName]))[0]
+    let varInt = (ctx->ctxSymsToIntsExn([vName]))->Array.getUnsafe(0)
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F && hyp.expr->Array.getUnsafe(1) == varInt) {
             Some(ctx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0)))
@@ -224,9 +224,9 @@ describe("prepareEditorForUnification", _ => {
         //then
         switch st.wrkCtx {
             | Some(wrkCtx) => {
-                let ti = (wrkCtx->ctxSymsToIntsExn(["t"]))[0]
-                let ri = (wrkCtx->ctxSymsToIntsExn(["r"]))[0]
-                let si = (wrkCtx->ctxSymsToIntsExn(["s"]))[0]
+                let ti = (wrkCtx->ctxSymsToIntsExn(["t"]))->Array.getUnsafe(0)
+                let ri = (wrkCtx->ctxSymsToIntsExn(["r"]))->Array.getUnsafe(0)
+                let si = (wrkCtx->ctxSymsToIntsExn(["s"]))->Array.getUnsafe(0)
                 assertEqMsg(wrkCtx->isDisj(ti,ri), true, "t and r are disjoint")
                 assertEqMsg(wrkCtx->isDisj(ri,ti), true, "r and t are disjoint")
                 assertEqMsg(wrkCtx->isDisj(ri,si), true, "r and s are disjoint")
@@ -907,7 +907,7 @@ describe("applySubstitutionForEditor", _ => {
             ctx->ctxStrToIntsExn("t = s"),
             ctx->ctxStrToIntsExn("r = ( t + r )"),
             true,
-        )->Belt.Result.getExn)[0]
+        )->Belt.Result.getExn)->Array.getUnsafe(0)
 
         //when
         let st = applySubstitutionForEditor(st, wrkSubs)

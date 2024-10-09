@@ -173,7 +173,7 @@ let srcToNewStmts = (
                                 if (createIfAbsent) {
                                     let newLabel = generateNewLabels(
                                         ~ctx, ~prefix, ~amount=1, ~reservedLabels, ~checkHypsOnly=true, ()
-                                    )[0]
+                                    )->Array.getUnsafe(0)
                                     exprToLabel->Belt_HashMap.set(expr, newLabel)
                                     reservedLabels->Belt_HashSetString.add(newLabel)
                                     newLabel
@@ -196,7 +196,7 @@ let srcToNewStmts = (
                 res.newVarTypes->Js_array2.push(newVarType)->ignore
                 let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
                     ~typeToPrefix, ~reservedNames=reservedVarNames, ()
-                )[0]
+                )->Array.getUnsafe(0)
                 newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
                 reservedVarNames->Belt_HashSetString.add(newVarName)
                 createLabelForExpr([newVarType, newVarInt], "v")->ignore
