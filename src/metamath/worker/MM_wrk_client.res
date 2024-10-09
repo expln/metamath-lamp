@@ -43,7 +43,7 @@ let regClient = (~callback:clientCallback, ~enableTrace:bool) => {
 let unregClient = id => {
     let i = ref(0)
     while (i.contents < clients->Js_array2.length) {
-        if (clients[i.contents].id == id) {
+        if ((clients->Array.getUnsafe(i.contents)).id == id) {
             clients->Js_array2.removeCountInPlace(~pos=i.contents, ~count=1)->ignore
         } else {
             i.contents = i.contents + 1

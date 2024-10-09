@@ -14,7 +14,7 @@ let exprEq: (expr,expr) => bool = (a,b) => {
         let eq = ref(true)
         let i = ref(0)
         while (eq.contents && i.contents < len1) {
-            eq.contents = a[i.contents] == b->Array.getUnsafe(i.contents)
+            eq.contents = a->Array.getUnsafe(i.contents) == b->Array.getUnsafe(i.contents)
             i.contents = i.contents + 1
         }
         eq.contents

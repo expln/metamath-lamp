@@ -152,8 +152,8 @@ module Std2D: Utils2D = {
         if (ps->Js.Array2.length == 0) {
             exn("Cannot create boundaries from an empty array of points.")
         }
-        let minX = ref(ps->Array.getUnsafe(0).x)
-        let minY = ref(ps->Array.getUnsafe(0).y)
+        let minX = ref((ps->Array.getUnsafe(0)).x)
+        let minY = ref((ps->Array.getUnsafe(0)).y)
         let maxX = ref(minX.contents)
         let maxY = ref(minY.contents)
         for i in 1 to ps->Js.Array2.length - 1 {

@@ -50,7 +50,7 @@ let toIntCmp: (('a,'a)=>float) => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
     ->Js_math.floor_int
 let intCmp = (a:int, b:int) => if a < b {-1} else if a == b {0} else {1}
 let floatCmp = (a:float ,b:float) => if a < b {-1} else if a == b {0} else {1}
-let strCmp = Js.String2.localeCompare->toIntCmp
+let strCmp = String.localeCompare->toIntCmp
 let strCmpI = (s1,s2) => strCmp(s1->Js_string2.toLocaleUpperCase ,s2->Js_string2.toLocaleUpperCase)
 let cmpRev = cmp => (a,b) => -cmp(a,b)
 

@@ -59,7 +59,7 @@ let parenCntPut = (cnt:parenCnt, i:int):state => {
         if (isOpen) {
             cnt->parenCntStackPush(i)
             Opened
-        } else if (cnt.len == 0 || cnt.stack[cnt.len-1] != i+1) {
+        } else if (cnt.len == 0 || cnt.stack->Array.getUnsafe(cnt.len-1) != i+1) {
             cnt.failed = true
             Failed
         } else {
