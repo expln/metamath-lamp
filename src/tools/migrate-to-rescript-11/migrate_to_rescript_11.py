@@ -19,6 +19,8 @@ def insert_get_unsafe(node: Node) -> None:
                 and ('!=' not in this_line_text or this_line_text.index('=') < this_line_text.index('!='))
                 and ('==' not in this_line_text or this_line_text.index('=') < this_line_text.index('=='))
                 and (',' not in this_line_text or this_line_text.index('=') < this_line_text.index(','))
+                and ('<=' not in this_line_text or this_line_text.index('=') < this_line_text.index('<='))
+                and ('>=' not in this_line_text or this_line_text.index('=') < this_line_text.index('>='))
         )
 
     def is_node_to_update(n: Node) -> bool:
