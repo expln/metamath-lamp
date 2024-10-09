@@ -236,7 +236,7 @@ let addStmtsBySearch = (
                 ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
                 ()
             )
-            let st = switch searchResults->Js_array2.find(res => res.stmts[res.stmts->Js_array2.length-1].label == chooseLabel) {
+            let st = switch searchResults->Js_array2.find(res => res.stmts->Array.getUnsafe(res.stmts->Js_array2.length-1).label == chooseLabel) {
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 

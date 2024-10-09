@@ -367,7 +367,7 @@ let findAsrtParentsWithNewVars = (
                     }
                     let argNode = tree->ptGetNode(argExpr)
                     args[argIdx.contents] = argNode
-                    if (frame.hyps[argIdx.contents].typ == F
+                    if (frame.hyps->Array.getUnsafe(argIdx.contents).typ == F
                             && applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
                     ) {
                         proveFloating(
@@ -622,7 +622,7 @@ let exprMatchesAsrtMatcher = (
         true
     } else {
         let frm = matcher.frm
-        if (expr[0] != frm.frame.asrt->Array.getUnsafe(0)) {
+        if (expr->Array.getUnsafe(0) != frm.frame.asrt->Array.getUnsafe(0)) {
             false
         } else {
             let res = ref(false)
@@ -702,7 +702,7 @@ let proveStmtBottomUp = (
                                     let argIdx = ref(0)
                                     while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                                         let arg = args->Array.getUnsafe(argIdx.contents)
-                                        if (frame.hyps[argIdx.contents].typ == E) {
+                                        if (frame.hyps->Array.getUnsafe(argIdx.contents).typ == E) {
                                             argsAreCorrect.contents = switch paramsI.lengthRestrict {
                                                 | No => true
                                                 | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen

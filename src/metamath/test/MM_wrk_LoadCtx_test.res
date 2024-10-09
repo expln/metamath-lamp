@@ -27,7 +27,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 3 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -56,7 +56,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 3 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -85,7 +85,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 3 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -114,7 +114,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 3 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -143,7 +143,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 3 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -183,7 +183,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 2 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("C") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -223,7 +223,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 2 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("C") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -263,7 +263,7 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 3 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, None )
@@ -303,13 +303,13 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 2 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 4 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, None )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).resetNestingLevel, true )
 
-        assertEq( mmScopes[1].ast === ast2, true )
+        assertEq( mmScopes->Array.getUnsafe(1).ast === ast2, true )
         assertEq( mmScopes->Array.getUnsafe(1).expectedNumOfAssertions, 1 )
         assertEq( mmScopes->Array.getUnsafe(1).stopBefore, Some("Y") )
         assertEq( mmScopes->Array.getUnsafe(1).stopAfter, None )
@@ -349,13 +349,13 @@ describe("createMmScopesForFrame", _ => {
         //then
         assertEq( mmScopes->Js_array2.length, 2 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
+        assertEq( mmScopes->Array.getUnsafe(0).ast === ast1, true )
         assertEq( mmScopes->Array.getUnsafe(0).expectedNumOfAssertions, 4 )
         assertEq( mmScopes->Array.getUnsafe(0).stopBefore, None )
         assertEq( mmScopes->Array.getUnsafe(0).stopAfter, Some("D") )
         assertEq( mmScopes->Array.getUnsafe(0).resetNestingLevel, true )
 
-        assertEq( mmScopes[1].ast === ast2, true )
+        assertEq( mmScopes->Array.getUnsafe(1).ast === ast2, true )
         assertEq( mmScopes->Array.getUnsafe(1).expectedNumOfAssertions, 0 )
         assertEq( mmScopes->Array.getUnsafe(1).stopBefore, Some("E") )
         assertEq( mmScopes->Array.getUnsafe(1).stopAfter, None )

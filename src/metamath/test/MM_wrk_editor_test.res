@@ -114,7 +114,7 @@ let createEditorState = (
 let getVarType = (ctx:mmContext, vName:string) => {
     let varInt = (ctx->ctxSymsToIntsExn([vName]))[0]
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        if (hyp.typ == F && hyp.expr[1] == varInt) {
+        if (hyp.typ == F && hyp.expr->Array.getUnsafe(1) == varInt) {
             Some(ctx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0)))
         } else {
             None

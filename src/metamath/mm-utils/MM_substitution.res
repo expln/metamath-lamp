@@ -341,7 +341,7 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
             })->ignore
         }
         let lastConstPartIdx = frmConstParts.length-1
-        if (frmConstParts.ends[lastConstPartIdx] != frmExprLen-1) {
+        if (frmConstParts.ends->Array.getUnsafe(lastConstPartIdx) != frmExprLen-1) {
             res->Js_array2.push({
                 leftConstPartIdx: lastConstPartIdx,
                 frmExpr:frmExpr,
@@ -358,8 +358,8 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
 let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:expr) => {
     let exprLen = expr->Js_array2.length
     if (constParts.length == 0) {
-        varGroups[0].exprBeginIdx = 0
-        varGroups[0].exprEndIdx = exprLen-1
+        varGroups->Array.getUnsafe(0).exprBeginIdx = 0
+        varGroups->Array.getUnsafe(0).exprEndIdx = exprLen-1
     } else {
         varGroups->Js_array2.forEach(grp => {
             if (grp.leftConstPartIdx == -1) {
@@ -732,7 +732,7 @@ let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):ar
                     }
                 }
                 | Some(label) => {
-                    switch frms.byLabel->Belt_HashMapString.get(label)->Belt.Option.keep(frm=>frm.frame.asrt[0]==typ) {
+                    switch frms.byLabel->Belt_HashMapString.get(label)->Belt.Option.keep(frm=>frm.frame.asrt->Array.getUnsafe(0)==typ) {
                         | None => []
                         | Some(frm) => [frm]
                     }

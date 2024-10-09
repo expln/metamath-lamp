@@ -88,7 +88,7 @@ describe("iterateCombinations", _ => {
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
                 res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
-                if (comb[0] == 1 && comb[1] == -1) {
+                if (comb->Array.getUnsafe(0) == 1 && comb->Array.getUnsafe(1) == -1) {
                     Stop
                 } else {
                     Continue

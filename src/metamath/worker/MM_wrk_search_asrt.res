@@ -191,7 +191,7 @@ let doSearchAssertions = (
         let frame = frm.frame
         if (
             frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
-            && frame.asrt[0] == typ 
+            && frame.asrt->Array.getUnsafe(0) == typ 
             && frameMatchesPattern(frame)
         ) {
             let newDisj = disjMake()

@@ -333,7 +333,7 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
                         }
                     }
                     while (eq.contents && hi.contents < hLen) {
-                        if (frame.hyps[hi.contents].typ == F) {
+                        if (frame.hyps->Array.getUnsafe(hi.contents).typ == F) {
                             hi := hi.contents + 1
                         } else {
                             eq := false

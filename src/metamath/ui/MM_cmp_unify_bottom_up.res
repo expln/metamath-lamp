@@ -114,7 +114,7 @@ let exprMayMatchAsrt = (
     ~frm:frmSubsData,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (expr[0] != frm.frame.asrt->Array.getUnsafe(0)) {
+    if (expr->Array.getUnsafe(0) != frm.frame.asrt->Array.getUnsafe(0)) {
         false
     } else {
         let res = ref(false)

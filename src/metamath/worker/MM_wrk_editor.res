@@ -1031,7 +1031,7 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
         let argsAndAsrt = jstfText->Js_string2.split(":")
         if (argsAndAsrt->Js_array2.length != 2) {
             Error(`Cannot parse justification: '${jstfText}'. A justification must contain exactly one colon symbol.`)
-        } else if (argsAndAsrt[1]->Js_string2.trim == "") {
+        } else if (argsAndAsrt->Array.getUnsafe(1)->Js_string2.trim == "") {
             Error(`Cannot parse justification: '${jstfText}'. Reference must not be empty.`)
         } else {
             Ok(Some({

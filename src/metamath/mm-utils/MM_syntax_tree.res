@@ -229,7 +229,7 @@ let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> =
 let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):unit => {
     let i = ref(0)
     while (i.contents < expr->Js_array2.length) {
-        if (expr[i.contents] == e) {
+        if (expr->Array.getUnsafe(i.contents) == e) {
             expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
             i := i.contents + subExpr->Js_array2.length
         } else {

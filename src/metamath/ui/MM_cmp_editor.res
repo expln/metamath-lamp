@@ -994,7 +994,7 @@ let make = (
                         ->Belt_HashSetString.fromArray
                     let checkedStmts = state.stmts
                         ->Js.Array2.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
-                    if (checkedStmts->Js.Array2.length > 0 && checkedStmts[checkedStmts->Js.Array2.length-1].typ == P) {
+                    if (checkedStmts->Js.Array2.length > 0 && checkedStmts->Array.getUnsafe(checkedStmts->Js.Array2.length-1).typ == P) {
                         let initialParams = switch params {
                             | Some(_) => params
                             | None => {
