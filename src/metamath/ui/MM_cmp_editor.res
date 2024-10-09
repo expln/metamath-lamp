@@ -937,7 +937,7 @@ let make = (
     }
 
     let getArgs0AndAsrtLabel = (checkedStmts:array<userStmt>, rootStmts:array<rootStmt>):option<(array<expr>,option<string>)> => {
-        if (checkedStmts->Js_array2.length == 0 || checkedStmts[checkedStmts->Js_array2.length-1].typ != P) {
+        if (checkedStmts->Js_array2.length == 0 || checkedStmts->Array.getUnsafe(checkedStmts->Js_array2.length-1).typ != P) {
             None
         } else {
             let stmtToProve = checkedStmts->Array.getUnsafe(checkedStmts->Js_array2.length-1)

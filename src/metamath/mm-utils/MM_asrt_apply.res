@@ -66,8 +66,8 @@ let rec iterateCombinationsRec = (
         let c = ref(0)
         let maxC = candidatesPerHyp->Array.getUnsafe(hypIdx)->Js.Array2.length-1
         while (res.contents == Continue && c.contents <= maxC && combCnt.contents <= combCntMax) {
-            comb[hypIdx] = candidatesPerHyp->Array.getUnsafe(hypIdx)[c.contents]
-            if (!(comb[hypIdx] == -1 && skipCombinationsWithEmptyArgs)) {
+            comb[hypIdx] = candidatesPerHyp->Array.getUnsafe(hypIdx)->Array.getUnsafe(c.contents)
+            if (!(comb->Array.getUnsafe(hypIdx) == -1 && skipCombinationsWithEmptyArgs)) {
                 res.contents = iterateCombinationsRec(
                     ~candidatesPerHyp,
                     ~comb,
@@ -162,7 +162,7 @@ let stmtCanMatchHyp = (
     ~hyp:expr,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (hyp[0] != stmt->Array.getUnsafe(0)) {
+    if (hyp->Array.getUnsafe(0) != stmt->Array.getUnsafe(0)) {
         false
     } else {
         let res = ref(false)
@@ -247,7 +247,7 @@ let getNextNonBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
     while (idx.contents < comb->Js_array2.length && comb->Array.getUnsafe(idx.contents) < 0) {
         idx := idx.contents + 1
     }
-    if (idx.contents < comb->Js_array2.length && comb[idx.contents] >= 0) {
+    if (idx.contents < comb->Js_array2.length && comb->Array.getUnsafe(idx.contents) >= 0) {
         Some(idx.contents)
     } else {
         None
@@ -256,7 +256,7 @@ let getNextNonBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
 
 let getNextBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
     let idx = ref(hypIdx+1)
-    while (idx.contents < comb->Js_array2.length && comb[idx.contents] >= 0) {
+    while (idx.contents < comb->Js_array2.length && comb->Array.getUnsafe(idx.contents) >= 0) {
         idx := idx.contents + 1
     }
     if (idx.contents < comb->Js_array2.length && comb->Array.getUnsafe(idx.contents) < 0) {
@@ -269,7 +269,7 @@ let getNextBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
 let getNextHypIdxToMatch = (hypIdx:int, comb:array<int>):int => {
     if (hypIdx >= comb->Js_array2.length) {
         raise(MmException({msg:`getNextHypIdxToMatch: hypIdx >= comb->Js_array2.length`}))
-    } else if (hypIdx < 0 || comb[hypIdx] >= 0) {
+    } else if (hypIdx < 0 || comb->Array.getUnsafe(hypIdx) >= 0) {
         switch getNextNonBlankIdx(hypIdx, comb) {
             | Some(idx) => idx
             | None => {
@@ -326,7 +326,7 @@ let rec iterateSubstitutionsForHyps = (
         } else {
             contunieInstruction
         }
-    } else if (comb[hypIdx] >= 0) {
+    } else if (comb->Array.getUnsafe(hypIdx) >= 0) {
         let subsFound = ref(false)
         let contunieInstruction = iterateSubstitutions(
             ~frmExpr = frm.hypsE->Array.getUnsafe(hypIdx).expr,
@@ -520,7 +520,7 @@ let applyAssertions = (
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
     iterateFrms( ~frms, ~frmsToUse, ~isFrameAllowed, ~result, ~frmConsumer = frm => {
         if ( continueInstr.contents == Continue ) {
-            if (result->Belt.Option.map(result => result[0] != frm.frame.asrt->Array.getUnsafe(0))->Belt_Option.getWithDefault(false)) {
+            if (result->Belt.Option.map(result => result->Array.getUnsafe(0) != frm.frame.asrt->Array.getUnsafe(0))->Belt_Option.getWithDefault(false)) {
                 if (debugLevel >= 2) {
                     continueInstr.contents = sendNoUnifForAsrt(frm)
                 }

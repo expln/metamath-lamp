@@ -204,8 +204,8 @@ let rec iterateConstParts = (
         Continue
     } else if (idxToMatch == frmConstParts.length) {
         if (frmConstParts.length > 0) {
-            if (constParts.ends[idxToMatch-1] != exprLen-1) {
-                if (frmConstParts.ends[idxToMatch-1] == frmExprLen-1) {
+            if (constParts.ends->Array.getUnsafe(idxToMatch-1) != exprLen-1) {
+                if (frmConstParts.ends->Array.getUnsafe(idxToMatch-1) == frmExprLen-1) {
                     Continue
                 } else {
                     let frmRemainingGapLength = lengthOfGap2(idxToMatch-1, frmConstParts, frmExprLen)
@@ -242,7 +242,7 @@ let rec iterateConstParts = (
         } else {
             Continue
         }
-    } else if (idxToMatch == 0 && frmConstParts.begins[0] == 0) {
+    } else if (idxToMatch == 0 && frmConstParts.begins->Array.getUnsafe(0) == 0) {
         if (exprLen-1 < frmConstParts.ends->Array.getUnsafe(0)) {
             Continue
         } else {
@@ -285,7 +285,7 @@ let rec iterateConstParts = (
                 let matchedLen = ref(0)
                 let cmpRes = ref(true)
                 while (matchedLen.contents < partLen && cmpRes.contents) {
-                    cmpRes.contents = frmExpr[frmConstParts.begins->Array.getUnsafe(idxToMatch)+matchedLen.contents] == expr->Array.getUnsafe(begin.contents+matchedLen.contents)
+                    cmpRes.contents = frmExpr->Array.getUnsafe(frmConstParts.begins->Array.getUnsafe(idxToMatch)+matchedLen.contents) == expr->Array.getUnsafe(begin.contents+matchedLen.contents)
                     matchedLen.contents = matchedLen.contents + 1
                 }
                 let end = begin.contents+partLen-1
@@ -320,7 +320,7 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
         }]
     } else {
         let res = []
-        if (frmConstParts.begins[0] != 0) {
+        if (frmConstParts.begins->Array.getUnsafe(0) != 0) {
             res->Js_array2.push({
                 leftConstPartIdx: -1,
                 frmExpr:frmExpr,

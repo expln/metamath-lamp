@@ -61,8 +61,8 @@ let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
 
     tbl->Js_array2.mapi((_,i) => {
         leftPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=numColWidth)
-            ++ "| " ++ rightPad(~content=srcsArgs[i], ~char=" ", ~totalLen=argsColWidth)
-            ++ "| " ++ rightPad(~content=srcsLabels[i], ~char=" ", ~totalLen=labelColWidth)
+            ++ "| " ++ rightPad(~content=srcsArgs->Array.getUnsafe(i), ~char=" ", ~totalLen=argsColWidth)
+            ++ "| " ++ rightPad(~content=srcsLabels->Array.getUnsafe(i), ~char=" ", ~totalLen=labelColWidth)
             ++ "| " ++ exprs->Array.getUnsafe(i)
     })
 }
@@ -83,7 +83,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
         (),
         rootIdx,
         (_, idx) => {
-            switch tbl->Array.getUnsafe(idx).proof {
+            switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis(_) => None
                 | Assertion({args}) => {
                     if (saved->Belt_HashSetInt.has(idx)) {

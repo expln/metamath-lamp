@@ -637,7 +637,7 @@ let frameProofDataToStmtsDto = (
     ~frameProofData:frameProofData,
 ):result<stmtsDto,string> => {
     let frmVarToCtxExpr:Belt_HashMapString.t<string> = args->Js_array2.mapi((arg,i) => {
-            if (frameProofData.frame.hyps[i].typ == F) {
+            if (frameProofData.frame.hyps->Array.getUnsafe(i).typ == F) {
                 Some(
                     (
                         wrkCtx->frmIntToSymExn(frameProofData.frame, frameProofData.frame.hyps->Array.getUnsafe(i).expr->Array.getUnsafe(1)), 
