@@ -945,7 +945,7 @@ describe("removeUnusedVars", _ => {
         assertEq( st.varsText, "v1 term a\nv3 term c" )
         assertEq( st.disjText, "a c" )
         assertEq( st.stmts->Array.getUnsafe(0).cont->contToStr, "|- t + a" )
-        assertEq( st.stmts[1].cont->contToStr, "|- r = c" )
+        assertEq( st.stmts->Array.getUnsafe(1).cont->contToStr, "|- r = c" )
     })
 })
 
