@@ -25,10 +25,10 @@ let exprCmp = (e1,e2) => {
     let len1 = e1->Js_array2.length
     let len2 = e2->Js_array2.length
     switch Expln_utils_common.intCmp(len1, len2) {
-        | 0 => {
-            let res = ref(0)
+        | 0.0 => {
+            let res = ref(0.0)
             let i = ref(0)
-            while (i.contents < len1 && res.contents == 0) {
+            while (i.contents < len1 && res.contents == 0.0) {
                 res.contents = Expln_utils_common.intCmp(e1->Array.getUnsafe(i.contents), e2->Array.getUnsafe(i.contents))
                 i.contents = i.contents + 1
             }

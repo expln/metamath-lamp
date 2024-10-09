@@ -180,13 +180,13 @@ let createVarTypeComparator = (
         switch varOrderByType->Belt_HashMapInt.get(a) {
             | None => {
                 switch varOrderByType->Belt_HashMapInt.get(b) {
-                    | None => 0
-                    | Some(_) => 1
+                    | None => 0.0
+                    | Some(_) => 1.0
                 }
             }
             | Some(aTypOrder) => {
                 switch varOrderByType->Belt_HashMapInt.get(b) {
-                    | None => -1
+                    | None => -1.0
                     | Some(bTypOrder) => Expln_utils_common.intCmp(aTypOrder,bTypOrder)
                 }
             }
@@ -199,14 +199,14 @@ let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_
         switch varNames->Belt_HashMapInt.get(a) {
             | None => {
                 switch varNames->Belt_HashMapInt.get(b) {
-                    | None => 0
-                    | Some(_) => 1
+                    | None => 0.0
+                    | Some(_) => 1.0
                 }
             }
             | Some(aStr) => {
                 switch varNames->Belt_HashMapInt.get(b) {
-                    | None => -1
-                    | Some(bStr) => aStr->Js_string2.localeCompare(bStr)->Belt.Float.toInt
+                    | None => -1.0
+                    | Some(bStr) => aStr->String.localeCompare(bStr)
                 }
             }
         }

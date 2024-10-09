@@ -45,14 +45,17 @@ let copySubArray = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx
     }
 }
 
-let toIntCmp: (('a,'a)=>float) => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
+type comparator<'a> = ('a, 'a) => float
+
+let toIntCmp: 'a. comparator<'a> => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
     ->Js_math.sign_float
     ->Js_math.floor_int
-let intCmp = (a:int, b:int) => if a < b {-1} else if a == b {0} else {1}
-let floatCmp = (a:float ,b:float) => if a < b {-1} else if a == b {0} else {1}
-let strCmp = String.localeCompare->toIntCmp
-let strCmpI = (s1,s2) => strCmp(s1->Js_string2.toLocaleUpperCase ,s2->Js_string2.toLocaleUpperCase)
-let cmpRev = cmp => (a,b) => -cmp(a,b)
+
+let intCmp: comparator<int> = (a:int, b:int) => if a < b {-1.0} else if a == b {0.0} else {1.0}
+let floatCmp: comparator<float> = (a:float ,b:float) => if a < b {-1.0} else if a == b {0.0} else {1.0}
+let strCmp: comparator<string> = String.localeCompare
+let strCmpI: comparator<string> = (s1,s2) => strCmp(s1->Js_string2.toLocaleUpperCase ,s2->Js_string2.toLocaleUpperCase)
+let cmpRev: 'a. comparator<'a> => comparator<'a> = cmp => (a,b) => -.cmp(a,b)
 
 let stringify = (a:'a):string => switch Js.Json.stringifyAny(a) {
     | Some(str) => str
@@ -64,18 +67,17 @@ type explnUtilsException = {
 }
 exception ExplnUtilsException(explnUtilsException)
 
-type comparator<'a> = ('a, 'a) => int
 
 let comparatorBy = (prop:'a=>int):comparator<'a> => {
     (a,b) => {
         let propA = prop(a)
         let propB = prop(b)
         if (propA < propB) {
-            -1
+            -1.0
         } else if (propA == propB) {
-            0
+            0.0
         } else {
-            1
+            1.0
         }
     }
 }
@@ -83,13 +85,13 @@ let comparatorBy = (prop:'a=>int):comparator<'a> => {
 let comparatorAndThen = (cmp1:comparator<'a>, cmp2:comparator<'a>):comparator<'a> => {
     (x,y) => {
         switch cmp1(x,y) {
-            | 0 => cmp2(x,y)
-            | i => i
+            | 0.0 => cmp2(x,y)
+            | f => f
         }
     }
 }
 
-let comparatorInverse = (cmp:comparator<'a>):comparator<'a> => (x,y) => -cmp(x,y)
+let comparatorInverse = (cmp:comparator<'a>):comparator<'a> => (x,y) => -.cmp(x,y)
 
 //https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
 //https://stackoverflow.com/questions/194846/is-there-hash-code-function-accepting-any-object-type

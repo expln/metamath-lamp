@@ -94,6 +94,6 @@ let useStateFromLocalStorageInt = (~key:string,~default:int):(int, (int=>int) =>
                 | Some(str) => str->Belt_Int.fromString->Belt.Option.getWithDefault(default)
             }
         },
-        ~toString = Belt_Int.toString,
+        ~toString = Belt_Int.toString(_),
     )
 }
