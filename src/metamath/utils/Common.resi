@@ -2,7 +2,7 @@ let nbsp:string
 let circleChar:string
 
 let currTimeStr: unit => string
-let compareDates: (Js_date.t, Js_date.t) => int
+let compareDates: (Js_date.t, Js_date.t) => float
 let floatToPctStr: float => string
 
 type cache<'depVer,'dep,'data>

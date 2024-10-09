@@ -1084,7 +1084,7 @@ let make = React.memoCustomCompareProps( ({
                     let closeDialog = ()=>closeModal(modalRef, modalId)
                     <MM_cmp_frag_transform
                         step=stmt
-                        ctxConstIntToSymExn={wrkCtx->ctxIntToSymExn}
+                        ctxConstIntToSymExn={ctxIntToSymExn(wrkCtx, _)}
                         transformsText
                         onCancel=closeDialog
                         onInsertAbove={(replaceSelection, transformedSelectionText) => {

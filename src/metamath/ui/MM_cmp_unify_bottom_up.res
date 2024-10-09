@@ -467,7 +467,7 @@ let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.num
 let compareByNumOfNewStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
 let compareByAsrtLabel = (a:resultRendered,b:resultRendered) => {
-    a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
+    a.asrtLabel->String.localeCompare(b.asrtLabel)
 }
 
 let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> => {

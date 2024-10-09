@@ -70,11 +70,11 @@ let make = (
     }
     
     let actToggleStmt = (idx) => {
-        setState(updateFlags(_, toggleFlag(idx)))
+        setState(updateFlags(_, toggleFlag(idx, _)))
     }
     
     let actSelectProvedStmts = () => {
-        setState(updateFlags(_, selectProvedStmts(rootStmtsRendered)))
+        setState(updateFlags(_, selectProvedStmts(rootStmtsRendered, _)))
     }
 
     let rndButtons = () => {

@@ -208,7 +208,7 @@ let make = (
     let rndCustomContent = (state:fragmentTransformState) => {
         let params = {
             "state":state, 
-            "setState": mapper => setState(Belt_Option.map(_, mapper))
+            "setState": mapper => setState(Belt_Option.map(_, mapper(_)))
         }
         let reElemDto = invokeExnFunc("Rendering dialog (getting a DTO)", 
             () => transform.renderDialog(params)

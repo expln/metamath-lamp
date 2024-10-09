@@ -2,15 +2,15 @@ let nbsp = Js_string2.fromCharCode(160)
 let circleChar = Js_string2.fromCharCode(9679)
 
 let currTimeStr = () => Js.Date.now()->Js.Date.fromFloat->Js.Date.toISOString
-let compareDates = (a:Js_date.t, b:Js_date.t):int => {
+let compareDates = (a:Js_date.t, b:Js_date.t):float => {
     let t1 = a->Js_date.getTime
     let t2 = b->Js_date.getTime
     if (t1 < t2) {
-        -1
+        -1.0
     } else if (t2 < t1) {
-        1
+        1.0
     } else {
-        0
+        0.0
     }
 }
 
