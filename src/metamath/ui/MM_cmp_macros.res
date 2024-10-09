@@ -679,7 +679,7 @@ let make = (
                         rndError(`There was an error during initialization of this collection of macros:\n${msg}`)
                     }
                     | Ok(macros) => {
-                        <List disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
+                        <ListCmp disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
                             {
                                 macros->Js_array2.mapi((macro,i) => {
                                     <ListItem 
@@ -702,7 +702,7 @@ let make = (
                                     </ListItem>
                                 })->React.array
                             }
-                        </List>
+                        </ListCmp>
                     }
                 }
             }

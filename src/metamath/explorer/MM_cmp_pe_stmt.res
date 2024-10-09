@@ -7,7 +7,6 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open Expln_React_Modal
-open Common
 open MM_cmp_user_stmt
 
 type state = {

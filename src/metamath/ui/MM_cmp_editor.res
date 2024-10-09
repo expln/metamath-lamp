@@ -1444,7 +1444,7 @@ let make = (
             updateModal(modalRef, modalId, () => {
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col>
-                        <List disablePadding=true>
+                        <ListCmp disablePadding=true>
                             <ListItem disablePadding=true >
                                 <ListItemButton 
                                     onClick={_=>{
@@ -1469,7 +1469,7 @@ let make = (
                                     </ListItemText>
                                 </ListItemButton>
                             </ListItem>
-                        </List>
+                        </ListCmp>
                         <Row>
                             <Button onClick={_=>closeModal(modalRef, modalId)} variant=#outlined>
                                 {React.string("Cancel")}

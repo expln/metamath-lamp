@@ -69,9 +69,9 @@ let make = (
             | Error(msg) => Error(msg)
             | Ok(listItems) => {
                 Ok(
-                    <List disablePadding=true>
+                    <ListCmp disablePadding=true>
                         listItems
-                    </List>
+                    </ListCmp>
                 )
             }
         }
