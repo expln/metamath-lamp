@@ -115,7 +115,7 @@ let findAsrtParentsWithoutNewVars = (
     ~onResult: exprSrc => unit,
 ):unit => {
     let exprLen = expr->Js_array2.length
-    tree->ptGetFrms->frmsForEach(~typ=expr[0], frm => {
+    tree->ptGetFrms->frmsForEach(~typ=expr->Array.getUnsafe(0), frm => {
         if (frm.frame->frameIsAllowed(frameRestrict)) {
             let frmExpr = frm.frame.asrt
             iterateSubstitutions(

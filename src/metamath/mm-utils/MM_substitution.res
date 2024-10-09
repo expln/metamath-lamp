@@ -621,7 +621,7 @@ let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
         } else if (subs.isDefined->Array.getUnsafe(s)) {
             let subExpr = subs.exprs->Array.getUnsafe(s)
             let len = (subs.ends->Array.getUnsafe(s)-subs.begins->Array.getUnsafe(s)+1)
-            Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=subs.begins[s], ~dst=res, ~dstFromIdx=r.contents, ~len)
+            Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=subs.begins->Array.getUnsafe(s), ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
         } else {
             res[r.contents] = createWorkVar(s)
