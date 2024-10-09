@@ -7,25 +7,31 @@ from utils import read_text_from_path, node_to_str, write_text_to_path, get_all_
 
 
 def insert_get_unsafe(node: Node) -> None:
-    def is_node_to_update(node: Node) -> bool:
+    def is_node_to_update(n: Node) -> bool:
         return (
-                node.left_paren == '[' and node.right_paren == ']'
-                and node.begin[0] == node.end[0]
-                and '"' not in node_to_str(node) and '#' not in node_to_str(node)
+                n.left_paren == '[' and n.right_paren == ']'
+                and n.begin[0] == n.end[0]
+                and '"' not in node_to_str(n) and '#' not in node_to_str(n)
                 and (
-                        node.right_sibling is None
-                        or node.right_sibling.text is None
-                        or '=' not in node.right_sibling.text
+                        n.right_sibling is None
+                        or n.right_sibling.text is None
+                        or '=' not in n.right_sibling.text
+                )
+                and node_to_str(n) != ''
+                and (
+                        n.left_sibling is not None and n.left_sibling.text is not None
+                        and len(n.left_sibling.text) > 0
+                        and n.left_sibling.text[-1] not in [' ', '(', '[', '{']
                 )
         )
 
-    def update_node(node: Node) -> None:
-        node.left_paren = '->Array.getUnsafe('
-        node.right_paren = ')'
+    def update_node(n: Node) -> None:
+        n.left_paren = '->Array.getUnsafe('
+        n.right_paren = ')'
 
-    def process(node: Node) -> None:
-        if is_node_to_update(node):
-            update_node(node)
+    def process(n: Node) -> None:
+        if is_node_to_update(n):
+            update_node(n)
 
     iterate_nodes_rec(node, process)
 
