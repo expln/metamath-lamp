@@ -7,16 +7,20 @@ from utils import read_text_from_path, node_to_str, write_text_to_path, get_all_
 
 
 def insert_get_unsafe(node: Node) -> None:
+    def is_assignment(n: Node) -> bool:
+        if n.right_sibling is None or n.right_sibling.text is None or '=' not in n.right_sibling.text:
+            return False
+        text = n.right_sibling.text
+        if '\n' not in text:
+            return True
+        return '=' in text[:text.index('\n')]
+
     def is_node_to_update(n: Node) -> bool:
         return (
                 n.left_paren == '[' and n.right_paren == ']'
                 and n.begin[0] == n.end[0]
                 and '"' not in node_to_str(n) and '#' not in node_to_str(n)
-                and (
-                        n.right_sibling is None
-                        or n.right_sibling.text is None
-                        or '=' not in n.right_sibling.text
-                )
+                and not is_assignment(n)
                 and node_to_str(n) != ''
                 and (
                         n.left_sibling is not None and n.left_sibling.text is not None
