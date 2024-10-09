@@ -18,6 +18,7 @@ def insert_get_unsafe(node: Node) -> None:
                 '=' in this_line_text
                 and ('!=' not in this_line_text or this_line_text.index('=') < this_line_text.index('!='))
                 and ('==' not in this_line_text or this_line_text.index('=') < this_line_text.index('=='))
+                and (',' not in this_line_text or this_line_text.index('=') < this_line_text.index(','))
         )
 
     def is_node_to_update(n: Node) -> bool:
@@ -68,8 +69,8 @@ def add_parens_to_get_unsafe(node: Node) -> None:
 
 def rewrite_file(path: Path) -> None:
     parsed = parse(read_text_from_path(path))
-    # insert_get_unsafe(parsed)
-    add_parens_to_get_unsafe(parsed)
+    insert_get_unsafe(parsed)
+    # add_parens_to_get_unsafe(parsed)
     write_text_to_path(path, node_to_str(parsed))
 
 
