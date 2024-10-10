@@ -94,7 +94,7 @@ let anyToJson = (jsonAny):result<option<JSON.t>,string> => {
         | JsonNull(_) => Ok(None)
         | JsonBool(bool, _) => Ok(Some(bool->JSON.Encode.bool))
         | JsonNum(float, _) => Ok(Some(float->JSON.Encode.float))
-        | JsonStr(string, _) => Ok(Some(string->Js_json.string))
+        | JsonStr(string, _) => Ok(Some(string->JSON.Encode.string))
         | JsonArr(array, _) => Ok(Some(array->JSON.Encode.array))
         | JsonObj(dict, _) => Ok(Some(dict->JSON.Encode.object))
     }

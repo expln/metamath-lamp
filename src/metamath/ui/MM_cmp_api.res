@@ -35,9 +35,9 @@ let errResp = (msg:string):apiResp => {
 let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
     Dict.fromArray([
         ("id", node.id->Belt.Int.toFloat->JSON.Encode.float),
-        ("nodeType", "expr"->Js_json.string),
-        ("exprType", ctxConstIntToSymExn(node.typ)->Js_json.string),
-        ("label", node.label->Js_json.string),
+        ("nodeType", "expr"->JSON.Encode.string),
+        ("exprType", ctxConstIntToSymExn(node.typ)->JSON.Encode.string),
+        ("label", node.label->JSON.Encode.string),
         ("children", node.children->Array.map(childNodeToJson(_, ctxConstIntToSymExn))->JSON.Encode.array ),
     ])->JSON.Encode.object 
 } and childNodeToJson = (node:childNode, ctxConstIntToSymExn:int=>string):JSON.t => {
@@ -46,8 +46,8 @@ let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>st
         | Symbol({id, sym, isVar}) => {
             Dict.fromArray([
                 ("id", id->Belt.Int.toFloat->JSON.Encode.float),
-                ("nodeType", "sym"->Js_json.string),
-                ("sym", sym->Js_json.string),
+                ("nodeType", "sym"->JSON.Encode.string),
+                ("sym", sym->JSON.Encode.string),
                 ("isVar", isVar->JSON.Encode.bool),
             ])->JSON.Encode.object 
         }
@@ -59,7 +59,7 @@ let syntaxTreeToJson = (stmt:userStmt, ctxConstIntToSymExn:int=>string):JSON.t =
         | Text(_) => JSON.Encode.null
         | Tree({exprTyp, root}) => {
             Dict.fromArray([
-                ("exprType", exprTyp->Js_json.string),
+                ("exprType", exprTyp->JSON.Encode.string),
                 ("root", syntaxTreeNodeToJson(root, ctxConstIntToSymExn)),
             ])->JSON.Encode.object
         }
@@ -84,7 +84,7 @@ let getSelectedFragmentId = (stmt:userStmt):JSON.t => {
 
 let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t => {
     Dict.fromArray([
-        ("id", stmt.id->Js_json.string),
+        ("id", stmt.id->JSON.Encode.string),
         ("status", 
             switch stmt.proofStatus {
                 | None => JSON.Encode.null
@@ -94,15 +94,15 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t
                         | Waiting => "~"
                         | NoJstf => "?"
                         | JstfIsIncorrect => "x"
-                    }->Js_json.string
+                    }->JSON.Encode.string
                 }
             }
         ),
-        ("label", stmt.label->Js_json.string),
+        ("label", stmt.label->JSON.Encode.string),
         ("isHyp", (stmt.typ == E)->JSON.Encode.bool),
         ("isGoal", stmt.isGoal->JSON.Encode.bool),
         ("isBkm", stmt.isBkm->JSON.Encode.bool),
-        ("jstfText", stmt.jstfText->Js_json.string),
+        ("jstfText", stmt.jstfText->JSON.Encode.string),
         (
             "jstf", 
             stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
@@ -113,14 +113,14 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t
                         | Some(jstf) => {
                             Dict.fromArray([
                                 ("args", jstf.args->Array.map(JSON.Encode.string(_))->JSON.Encode.array),
-                                ("asrt", jstf.label->Js_json.string),
+                                ("asrt", jstf.label->JSON.Encode.string),
                             ])->JSON.Encode.object
                         }
                     }
                 }
             )
         ),
-        ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
+        ("stmt", stmt.cont->MM_wrk_editor.contToStr->JSON.Encode.string),
         ("tree", 
             switch ctxConstIntToSymExn {
                 | None => JSON.Encode.null
@@ -134,13 +134,13 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t
                 | Some({ code, msg }) => {
                     Dict.fromArray([
                         ("code", code->Belt.Int.toFloat->JSON.Encode.float),
-                        ("msg", msg->Js_json.string),
+                        ("msg", msg->JSON.Encode.string),
                     ])->JSON.Encode.object
                 }
             }
         ),
-        ("unifErr", stmt.unifErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(JSON.Encode.null)),
-        ("syntaxErr", stmt.syntaxErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(JSON.Encode.null)),
+        ("unifErr", stmt.unifErr->Belt.Option.map(JSON.Encode.string)->Belt.Option.getWithDefault(JSON.Encode.null)),
+        ("syntaxErr", stmt.syntaxErr->Belt.Option.map(JSON.Encode.string)->Belt.Option.getWithDefault(JSON.Encode.null)),
     ])->JSON.Encode.object
 }
 
@@ -163,9 +163,9 @@ let getEditorState = (~state:editorState):promise<result<JSON.t,string>> => {
             state.stmts->Array.map(stmt => (stmt.id, stmt.label))
         )
         let stateJson = Dict.fromArray([
-            ("descr", state.descr->Js_json.string),
-            ("varsText", state.varsText->Js_json.string),
-            ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
+            ("descr", state.descr->JSON.Encode.string),
+            ("varsText", state.varsText->JSON.Encode.string),
+            ("varsErr", state.varsErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
             ("vars", 
                 switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
                     | Error(_) => JSON.Encode.null
@@ -176,8 +176,8 @@ let getEditorState = (~state:editorState):promise<result<JSON.t,string>> => {
                     }
                 }
             ),
-            ("disjText", state.disjText->Js_json.string),
-            ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
+            ("disjText", state.disjText->JSON.Encode.string),
+            ("disjErr", state.disjErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
             ("disj",
                 state.disjText->multilineTextToNonEmptyLines->Array.map(disjLine => {
                     disjLine->String.split(" ")
@@ -191,7 +191,7 @@ let getEditorState = (~state:editorState):promise<result<JSON.t,string>> => {
             ("selectedSteps", 
                 state.checkedStmtIds->Array.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
                     ->Array.filter(Belt.Option.isSome(_))
-                    ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->Js_json.string)
+                    ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->JSON.Encode.string)
                     ->JSON.Encode.array
             ),
         ])->JSON.Encode.object
@@ -222,7 +222,7 @@ let getTokenType = (
                                     | E => "e"
                                     | A => "a"
                                     | P => "p"
-                                }->Js_json.string
+                                }->JSON.Encode.string
                             }
                         }
                     ))
@@ -589,7 +589,7 @@ let mergeDuplicatedSteps = (
     setState(st => {
         let (st,renames) = st->autoMergeDuplicatedStatements(~selectFirst=true)
         let renamesJson = renames->Array.map(((from,to_)) => {
-            [from->Js_json.string, to_->Js_json.string]->JSON.Encode.array
+            [from->JSON.Encode.string, to_->JSON.Encode.string]->JSON.Encode.array
         })->JSON.Encode.array
         Ok( st, renamesJson )
     })
@@ -771,7 +771,7 @@ let addSteps = (
                                                 st,
                                                 stmtIds->Array.map(stmtId => {
                                                     stmtIdToLabel->Belt_HashMapString.get(stmtId)
-                                                        ->Belt.Option.getExn->Js_json.string
+                                                        ->Belt.Option.getExn->JSON.Encode.string
                                                 })->JSON.Encode.array
                                             )
                                         }
@@ -907,7 +907,7 @@ let editorBuildSyntaxTrees = (
                                         switch syntaxTree {
                                             | Error(msg) => {
                                                 Dict.fromArray([
-                                                    ("err", msg->Js_json.string),
+                                                    ("err", msg->JSON.Encode.string),
                                                     ("tree", JSON.Encode.null),
                                                 ])->JSON.Encode.object 
                                             }
