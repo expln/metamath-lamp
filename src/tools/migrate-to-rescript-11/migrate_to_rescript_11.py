@@ -163,10 +163,41 @@ def make_simple_replacements() -> None:
         'includes(': 'includes(',
         'indexOf(': 'indexOf(',
         'joinWith(': 'joinUnsafe(',
-        'length(': 'length(',
         'map(': 'map(',
         'mapi(': 'mapWithIndex(',
         'some(': 'some(',
+        'length': 'length',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Console'], new_module='Console', functions={
+        'log(': 'log(',
+        'log2(': 'log2(',
+        'log3(': 'log3(',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Date', 'Js_date'], new_module='Date', functions={
+        'fromFloat': 'fromTime',
+        'getTime': 'getTime',
+        'make': 'make',
+        'now': 'now',
+        'toISOString': 'toISOString',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Exn', 'Js_exn'], new_module='Exn', functions={
+        '': '',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Math', 'Js_math'], new_module='Math', functions={
+        '_PI': 'Constants.pi',
+        'abs_int': 'Int.abs',
+        'ceil_float': 'ceil',
+        'cos': 'cos',
+        'floor_int': 'Int.floor',
+        'max_int': 'Int.max',
+        'min_int': 'Int.min',
+        'log10': 'log10',
+        'max_float': 'max',
+        'min_float': 'min',
+        'round': 'round',
+        'sign_float': 'sign',
+        'sin': 'sin',
+        'sqrt': 'sqrt',
     }))
     print(f'{replacements=}')
     for path in get_all_rescript_files():
