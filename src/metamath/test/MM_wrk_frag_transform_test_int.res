@@ -76,7 +76,7 @@ let testTransform = (
             text:"", 
             exprTyp:"|-", 
             root:syntaxTreeNode, 
-            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children->Array.getUnsafe(0)),Js_date.make())), 
+            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children->Array.getUnsafe(0)),Date.make())), 
             expLvl:100
         }),
         contEditMode: false,

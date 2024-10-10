@@ -890,7 +890,7 @@ let make = (
         switch apiCallStartTime {
             | None => ()
             | Some(apiCallStartTime) => {
-                let apiCallStartTimeStr = apiCallStartTime->Js_date.toISOString
+                let apiCallStartTimeStr = apiCallStartTime->Date.toISOString
                 if (!(startedForApiCalls->Array.includes(apiCallStartTimeStr))) {
                     startedForApiCalls->Array.push(apiCallStartTimeStr)
                     startedForApiCalls->Js_array2.removeCountInPlace(

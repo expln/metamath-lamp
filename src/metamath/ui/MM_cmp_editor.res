@@ -1031,7 +1031,7 @@ let make = (
                                         )
                                     }
                                     initialParams=?initialParams
-                                    apiCallStartTime={if (isApiCall) {Some(Js_date.make())} else {None} }
+                                    apiCallStartTime={if (isApiCall) {Some(Date.make())} else {None} }
                                     delayBeforeStartMs
                                     initialDebugLevel=?initialDebugLevel
                                     selectFirstFoundProof

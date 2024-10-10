@@ -772,7 +772,7 @@ let make = React.memoCustomCompareProps( ({
                                             exprTyp:(syms->Array.getUnsafe(0)).sym,
                                             root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
                                             clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
-                                                                ->Belt.Option.map(id => (id,Js_date.make())),
+                                                                ->Belt.Option.map(id => (id,Date.make())),
                                             expLvl:0,
                                         }
                                         onSyntaxTreeUpdatedWithoutContentChange(Tree(stmtContTreeData->incExpLvlIfConstClicked))
@@ -921,7 +921,7 @@ let make = React.memoCustomCompareProps( ({
 
     let actTreeNodeClicked = (nodeId) => {
         actUpdateSyntaxTreeWithoutContentChange(treeData => {
-            {...treeData, clickedNodeId:Some((nodeId,Js_date.make())), expLvl:0}->incExpLvlIfConstClicked
+            {...treeData, clickedNodeId:Some((nodeId,Date.make())), expLvl:0}->incExpLvlIfConstClicked
         })
     }
 
@@ -1184,7 +1184,7 @@ let make = React.memoCustomCompareProps( ({
             None
         }
         let clickedTimeStr = switch stmt.cont {
-            | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
+            | Tree({clickedNodeId:Some(_,time)}) => time->Date.toISOString
             | _ => "1"
         }
         <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>

@@ -344,7 +344,7 @@ let toggleStmtChecked = (st,stmtId:stmtId) => {
     } else {
         {
             ...st,
-            checkedStmtIds: st.checkedStmtIds->Array.concat([(stmtId,Js_date.make())])
+            checkedStmtIds: st.checkedStmtIds->Array.concat([(stmtId,Date.make())])
         }
     }
 }
@@ -352,7 +352,7 @@ let toggleStmtChecked = (st,stmtId:stmtId) => {
 let checkAllStmts = (st:editorState):editorState => {
     {
         ...st,
-        checkedStmtIds: st.stmts->Array.map(stmt => (stmt.id, Js_date.make()))
+        checkedStmtIds: st.stmts->Array.map(stmt => (stmt.id, Date.make()))
     }
 }
 
@@ -618,7 +618,7 @@ let duplicateCheckedStmt = (st:editorState, top:bool) => {
                         [stmt]
                     }
                 })->Belt_Array.concatMany,
-            checkedStmtIds: [(newId,Js_date.make())],
+            checkedStmtIds: [(newId,Date.make())],
         }
         if (top) {
             st->moveCheckedStmts(true)

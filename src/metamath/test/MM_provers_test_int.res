@@ -10,7 +10,7 @@ open MM_asrt_syntax_tree
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
 
-let getCurrMillis = () => Js.Date.make()->Js.Date.getTime
+let getCurrMillis = () => Date.make()->Date.getTime
 let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Float.toInt
 let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
 let compareExprBySize = comparatorBy(Array.length(_))

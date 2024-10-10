@@ -73,10 +73,10 @@ let updateStateOnClickBegin = (
     longClickDelayMs:int,
     updateState: (state=>state)=>unit
 ):state => {
-    if (Js.Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
+    if (Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
         {
             ...resetState(st),
-            lastClickBeginTime: Js.Date.now(),
+            lastClickBeginTime: Date.now(),
             clickBeginScreenX:screenX,
             clickBeginScreenY:screenY,
             timerId: {
@@ -99,10 +99,10 @@ let updateStateOnClickBegin = (
 }
 
 let updateStateOnClickEnd = (st:state, evt:option<ReactEvent.Mouse.t>):state => {
-    if (Js.Date.now() -. st.lastClickEndTime > repeatDelayMs) {
+    if (Date.now() -. st.lastClickEndTime > repeatDelayMs) {
         {
             ...st,
-            lastClickEndTime: Js.Date.now(),
+            lastClickEndTime: Date.now(),
             timerId: {
                 switch st.timerId {
                     | None => ()
