@@ -1,9 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 from parser import parse, Node
 from utils import read_text_from_path, node_to_str, write_text_to_path, get_all_rescript_files, iterate_nodes_rec
+
+
+def process_all_nodes(root: Node, is_node_to_update: Callable[[Node], bool],
+                      update_node: Callable[[Node], None]) -> None:
+    def process(n: Node) -> None:
+        if is_node_to_update(n):
+            update_node(n)
+
+    iterate_nodes_rec(root, process)
 
 
 def insert_get_unsafe(node: Node) -> None:
@@ -41,11 +51,7 @@ def insert_get_unsafe(node: Node) -> None:
         n.left_paren = '->Array.getUnsafe('
         n.right_paren = ')'
 
-    def process(n: Node) -> None:
-        if is_node_to_update(n):
-            update_node(n)
-
-    iterate_nodes_rec(node, process)
+    process_all_nodes(node, is_node_to_update, update_node)
 
 
 def add_parens_to_get_unsafe(node: Node) -> None:
@@ -62,11 +68,7 @@ def add_parens_to_get_unsafe(node: Node) -> None:
     def update_node(n: Node) -> None:
         n.right_paren = '))'
 
-    def process(n: Node) -> None:
-        if is_node_to_update(n):
-            update_node(n)
-
-    iterate_nodes_rec(node, process)
+    process_all_nodes(node, is_node_to_update, update_node)
 
 
 def rewrite_array_push(node: Node) -> None:
@@ -88,18 +90,42 @@ def rewrite_array_push(node: Node) -> None:
             if text.startswith('->ignore'):
                 n.right_sibling.text = text[8:]
 
-    def process(n: Node) -> None:
-        if is_node_to_update(n):
-            update_node(n)
+    process_all_nodes(node, is_node_to_update, update_node)
 
-    iterate_nodes_rec(node, process)
+
+def replace_functions(node: Node, replacements: dict[str, str]) -> None:
+    def is_node_to_update(n: Node) -> bool:
+        if n.left_sibling is None or n.left_sibling.text is None:
+            return False
+        text = n.left_sibling.text
+        for old_func in replacements:
+            if text.endswith(old_func):
+                return True
+        return False
+
+    def update_node(n: Node) -> None:
+        if n.left_sibling is not None and n.left_sibling.text is not None:
+            text = n.left_sibling.text
+            for old_func in replacements:
+                if text.endswith(old_func):
+                    n.left_sibling.text = text[:-len(old_func)] + replacements[old_func]
+                    return
+
+    process_all_nodes(node, is_node_to_update, update_node)
 
 
 def rewrite_file(path: Path) -> None:
     parsed = parse(read_text_from_path(path))
     # insert_get_unsafe(parsed)
     # add_parens_to_get_unsafe(parsed)
-    rewrite_array_push(parsed)
+    # rewrite_array_push(parsed)
+    # replace_functions(
+    #     parsed,
+    #     {
+    #         'Js.Array2.length': 'Array.length',
+    #         'Js_array2.length': 'Array.length',
+    #     }
+    # )
     write_text_to_path(path, node_to_str(parsed))
 
 
