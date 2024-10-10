@@ -69,10 +69,37 @@ def add_parens_to_get_unsafe(node: Node) -> None:
     iterate_nodes_rec(node, process)
 
 
+def rewrite_array_push(node: Node) -> None:
+    def is_node_to_update(n: Node) -> bool:
+        return (
+                n.left_sibling is not None
+                and n.left_sibling.text is not None
+                and n.left_sibling.text.endswith('rray2.push')
+        )
+
+    def update_node(n: Node) -> None:
+        if n.left_sibling is not None and n.left_sibling.text is not None:
+            text = n.left_sibling.text
+            if text.endswith('->Js.Array2.push') or text.endswith('->Js_array2.push'):
+                n.left_sibling.text = text[:-14] + 'Array.push'
+
+        if n.right_sibling is not None and n.right_sibling.text is not None:
+            text = n.right_sibling.text
+            if text.startswith('->ignore'):
+                n.right_sibling.text = text[8:]
+
+    def process(n: Node) -> None:
+        if is_node_to_update(n):
+            update_node(n)
+
+    iterate_nodes_rec(node, process)
+
+
 def rewrite_file(path: Path) -> None:
     parsed = parse(read_text_from_path(path))
-    insert_get_unsafe(parsed)
+    # insert_get_unsafe(parsed)
     # add_parens_to_get_unsafe(parsed)
+    rewrite_array_push(parsed)
     write_text_to_path(path, node_to_str(parsed))
 
 
