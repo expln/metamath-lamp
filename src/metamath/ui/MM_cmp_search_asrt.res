@@ -54,7 +54,7 @@ let setResults = (
     ~results: array<stmtsDto>,
     ~getFrmLabelBkgColor: string=>option<string>,
 ):state => {
-    let maxPage = Js.Math.ceil_int(results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
+    let maxPage = Math.Int.ceil(results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
         ...st,
         results:Some(results),

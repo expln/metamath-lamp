@@ -1965,7 +1965,7 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
         [str]
     } else {
         let res = []
-        let numberOfChunks = Js.Math.ceil_int(len->Belt_Int.toFloat /. chunkMaxSize->Belt_Int.toFloat)
+        let numberOfChunks = Math.Int.ceil(len->Belt_Int.toFloat /. chunkMaxSize->Belt_Int.toFloat)
         for i in 1 to numberOfChunks {
             let begin = (i-1)*chunkMaxSize
             res->Array.push(str->Js_string2.substrAtMost(~from=begin, ~length=chunkMaxSize))

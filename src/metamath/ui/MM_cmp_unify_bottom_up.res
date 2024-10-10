@@ -546,7 +546,7 @@ let setResults = (
                 results:Some(results),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
-                resultsMaxPage: Js.Math.ceil_int(
+                resultsMaxPage: Math.Int.ceil(
                     results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat
                 ),
                 resultsPage: 1,
