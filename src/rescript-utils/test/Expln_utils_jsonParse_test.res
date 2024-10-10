@@ -1,4 +1,4 @@
-let {log,log2} = module(Js.Console)
+let {log,log2} = module(Console)
 let {describe,it,assertEq,fail} = module(Expln_test)
 
 open Expln_utils_jsonParse

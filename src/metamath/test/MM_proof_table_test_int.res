@@ -59,7 +59,7 @@ let compareCompressedProofsAfterRenumbering = (
             } else {
                 compressedProofStrToInt(numStr)->Belt.Int.toString
             }
-        })->Array.joinUnsafe(" ")->Js.Console.log
+        })->Array.joinUnsafe(" ")->Console.log
         Console.log("-------------------------------------------------------------------------------------------")
         false
     } else {

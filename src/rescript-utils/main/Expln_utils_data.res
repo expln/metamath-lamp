@@ -1,6 +1,6 @@
 open Expln_utils_common
 
-let {log,log2} = module(Js.Console)
+let {log,log2} = module(Console)
 
 type nodeToProcess<'n> = {
     node: 'n,

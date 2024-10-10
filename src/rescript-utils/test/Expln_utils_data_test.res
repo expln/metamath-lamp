@@ -1,5 +1,5 @@
 open Expln_utils_common
-let {log,log2} = module(Js.Console)
+let {log,log2} = module(Console)
 let {traverseTree} = module(Expln_utils_data)
 let {parseJson, asObj, arrOpt, num, str} = module(Expln_utils_jsonParse)
 let {describe,it,assertEq,fail} = module(Expln_test)
