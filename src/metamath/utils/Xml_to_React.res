@@ -16,7 +16,7 @@ let allowedTags = [
 ]
 let styleAttrs = ["color", "font-weight", "font-family", "font-style", "font-size"]
 let otherAttrs = ["href"]
-let supportedAttrs = styleAttrs->Js_array2.concat(otherAttrs)
+let supportedAttrs = styleAttrs->Array.concat(otherAttrs)
 
 let validateTagName = tagName => validateValue(~value=tagName, ~allowedValues=allowedTags, ~valueType="Tag")
 let validateAttrName = attrName => validateValue(~value=attrName, ~allowedValues=supportedAttrs, ~valueType="Attribute")

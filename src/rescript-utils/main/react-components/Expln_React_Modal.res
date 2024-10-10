@@ -51,7 +51,7 @@ let openModalPriv = (st, fullScreen, render) => {
     (
         {
             nextId: st.nextId+1,
-            modals: st.modals->Js_array2.concat([{
+            modals: st.modals->Array.concat([{
                 id,
                 fullScreen,
                 render

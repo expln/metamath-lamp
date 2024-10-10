@@ -47,7 +47,7 @@ let arrStrToFragTransforms = (texts:array<string>):result<array<fragmentTransfor
                 | Ok(arr) => {
                     switch stringToFragTransforms(text) {
                         | Error(msg) => Error(msg)
-                        | Ok(newArr) => Ok(arr->Js_array2.concat(newArr))
+                        | Ok(newArr) => Ok(arr->Array.concat(newArr))
                     }
                 }
             }

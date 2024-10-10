@@ -321,7 +321,7 @@ let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDif
     if (prev->Js_array2.length == 0) {
         raise(MmException({msg:`prev->Js_array2.length == 0`}))
     }
-    [ diff->Js.Array2.concat(prev->Array.getUnsafe(0)) ]->Js.Array2.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
+    [ diff->Array.concat(prev->Array.getUnsafe(0)) ]->Array.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
 }
 
 let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => {
@@ -361,7 +361,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
                 {
                     ...ht,
                     head: newHead,
-                    prev: [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
+                    prev: [diff]->Array.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
                 }
             }
         }

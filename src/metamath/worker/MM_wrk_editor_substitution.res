@@ -12,7 +12,7 @@ open Common
 let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
     let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
-        [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
+        [ctx->getTypeOfVarExn(var)]->Array.concat(expr)
     )
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,

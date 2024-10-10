@@ -297,7 +297,7 @@ let toggleIdxExpanded = (st:state, idx:int):state => {
     } else {
         {
             ...st, 
-            expandedIdxs: st.expandedIdxs->Js.Array2.concat([idx])
+            expandedIdxs: st.expandedIdxs->Array.concat([idx])
         }
     }
 }

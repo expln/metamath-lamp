@@ -33,7 +33,7 @@ let expandCollapseSrc = (st,srcIdx) => {
     } else {
         {
             ...st,
-            expandedSrcs: st.expandedSrcs->Js.Array2.concat([srcIdx])
+            expandedSrcs: st.expandedSrcs->Array.concat([srcIdx])
         }
     }
 }

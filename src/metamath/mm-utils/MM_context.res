@@ -761,7 +761,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
         ->getSpaceSeparatedValuesAsArray
         ->Js.Array2.filter(isConst(ctx, _))
         ->ctxSymsToIntsExn(ctx, _)
-        ->Js_array2.concat(
+        ->Array.concat(
             Belt_Array.range(
                 1,
                 (ctx.contents.root->Belt.Option.getExn).consts->Js.Array2.length - 1

@@ -173,7 +173,7 @@ let testTextRendering = ():reElem => {
 
     rndSvg(
         ~boundaries=
-            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Js_array2.concat(textBnd4Arr))
+            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Array.concat(textBnd4Arr))
             ->bndAddMarginPct(~all=0.01, ()), 
         ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>, 
         ()
@@ -316,7 +316,7 @@ let rndStmtAndHyp = (
                 ctxElems->Array.push(labelElem)
             }
         }
-        (conElems->Js.Array2.concat(frmElems)->Js.Array2.concat(ctxElems)->React.array, bndMergeAll(bnds))
+        (conElems->Array.concat(frmElems)->Array.concat(ctxElems)->React.array, bndMergeAll(bnds))
     }
 }
 
@@ -375,7 +375,7 @@ let make = (
                     ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
                 )
             (
-                hypElems->Js.Array2.concat([sepElem])->React.array,
+                hypElems->Array.concat([sepElem])->React.array,
                 bndMergeAll([hypsBnd, sepBnd])
             )
         }

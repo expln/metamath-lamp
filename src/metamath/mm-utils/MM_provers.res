@@ -880,7 +880,7 @@ let proveSyntaxTypes = (
         let lastType = ref(syntaxTypes->Array.getUnsafe(0))
         for ei in 0 to exprs->Js_array2.length-1 {
             let expr = exprs->Array.getUnsafe(ei)
-            let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
+            let node = ref(tree->ptGetNode([lastType.contents]->Array.concat(expr)))
             proveFloating( 
                 ~tree, 
                 ~node=node.contents, 
@@ -892,7 +892,7 @@ let proveSyntaxTypes = (
                 let typ = syntaxTypes->Array.getUnsafe(ti.contents)
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
-                    node := tree->ptGetNode([typ]->Js.Array2.concat(expr))
+                    node := tree->ptGetNode([typ]->Array.concat(expr))
                     proveFloating( 
                         ~tree, 
                         ~node=node.contents, 

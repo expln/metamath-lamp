@@ -153,7 +153,7 @@ let toggleResultChecked = (st,idx) => {
     } else {
         {
             ...st,
-            checkedResultsIdx: st.checkedResultsIdx->Js.Array2.concat([idx])
+            checkedResultsIdx: st.checkedResultsIdx->Array.concat([idx])
         }
     }
 }

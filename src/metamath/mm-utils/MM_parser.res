@@ -243,7 +243,7 @@ let parseMmFile = (
                                             None
                                         } else {
                                             Some(Uncompressed({
-                                                labels:[firstProofToken]->Js.Array2.concat(proofLabels)
+                                                labels:[firstProofToken]->Array.concat(proofLabels)
                                             }))
                                         },
                                 })

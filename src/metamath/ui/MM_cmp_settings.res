@@ -185,7 +185,7 @@ let addWebSrcSetting = st => {
     {
         ...st,
         webSrcNextId: st.webSrcNextId + 1,
-        webSrcSettings: st.webSrcSettings->Js_array2.concat([{
+        webSrcSettings: st.webSrcSettings->Array.concat([{
             id: newId,
             alias: "",
             url: "",
@@ -897,7 +897,7 @@ let addTypeSetting = st => {
     {
         ...st,
         typeNextId: st.typeNextId + 1,
-        typeSettings: st.typeSettings->Js_array2.concat([{
+        typeSettings: st.typeSettings->Array.concat([{
             id: newId,
             typ: "",
             color: allColors->Array.getUnsafe(0),

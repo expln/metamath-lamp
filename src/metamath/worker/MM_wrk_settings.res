@@ -76,7 +76,7 @@ let markUrlAsTrusted = (settings:settings, url:string):settings => {
     } else {
         {
             ...settings,
-            webSrcSettings: settings.webSrcSettings->Js.Array2.concat([
+            webSrcSettings: settings.webSrcSettings->Array.concat([
                 {
                     alias:"",
                     url,

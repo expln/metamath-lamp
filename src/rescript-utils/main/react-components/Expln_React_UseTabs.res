@@ -47,7 +47,7 @@ let getTabs = (st:state<'a>) => st.tabs
 
 let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false, ()) => {
     let (st, newId) = st->getNextId
-    let newTabs = st.tabs->Js_array2.concat([{id:newId, label, closable, color, data}])
+    let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, data}])
     let newActiveTabId = if (newTabs->Js_array2.length == 1) {
         newId
     } else {
@@ -56,7 +56,7 @@ let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:
     let newTabHistory = if (newTabs->Js_array2.length == 1) {
         [newId]
     } else {
-        if (doOpen) {st.tabHistory->Js.Array2.concat([newId])} else {st.tabHistory}
+        if (doOpen) {st.tabHistory->Array.concat([newId])} else {st.tabHistory}
     }
     (
         {
@@ -81,7 +81,7 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
                 ) {
                     st.tabHistory
                 } else {
-                    st.tabHistory->Js_array2.concat([tabId])
+                    st.tabHistory->Array.concat([tabId])
                 }
         }
     } else {

@@ -344,7 +344,7 @@ let toggleStmtChecked = (st,stmtId:stmtId) => {
     } else {
         {
             ...st,
-            checkedStmtIds: st.checkedStmtIds->Js_array2.concat([(stmtId,Js_date.make())])
+            checkedStmtIds: st.checkedStmtIds->Array.concat([(stmtId,Js_date.make())])
         }
     }
 }
@@ -563,7 +563,7 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):
                         })->Belt_Array.concatMany
                     }
                     | None => {
-                        st.stmts->Js_array2.concat([
+                        st.stmts->Array.concat([
                             {
                                 ...createEmptyUserStmt(newId, P, newLabel, isGoal), 
                                 isBkm:isBkm->Belt_Option.getWithDefault(false)
