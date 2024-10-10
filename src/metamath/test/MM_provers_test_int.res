@@ -58,7 +58,7 @@ describe("proveSyntaxTypes", _ => {
                 }
                 | Some(locVars) => {
                     switch typToNextLocVarIdx->Belt_HashMapInt.get(typ) {
-                        | None => Js.Exn.raiseError("None == typToNextLocVarIdx->Belt_HashMapInt.get(typ)")
+                        | None => Exn.raiseError("None == typToNextLocVarIdx->Belt_HashMapInt.get(typ)")
                         | Some(idx) => {
                             if (locVars->Array.length <= idx) {
                                 let newVar = createNewVar(typ)
@@ -190,7 +190,7 @@ describe("proveSyntaxTypes", _ => {
             Belt_HashMapString.make(~hintSize=asrtExprs->Belt_HashMapString.size)
         asrtExprs->Belt_HashMapString.forEach((label,obj) => {
             switch buildAsrtSyntaxTree(proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Js_array2.sliceFrom(1))->Belt_Option.getExn, ctxIntToAsrtInt(label)) {
-                | Error(msg) => Js.Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
+                | Error(msg) => Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
                 | Ok(syntaxTree) => {
                     syntaxTrees->Belt_HashMapString.set(label, syntaxTree)
                 }
@@ -211,10 +211,10 @@ describe("proveSyntaxTypes", _ => {
             ~lastSyntaxType=None,
             ~onLastSyntaxTypeChange= _ => (),
         ) {
-            | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+            | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
             | Ok(arr) => {
                 switch arr->Array.getUnsafe(0) {
-                    | Error(msg) => Js.Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
+                    | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
                     | Ok(ctxSyntaxTree) => {
                         syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {
                             if (

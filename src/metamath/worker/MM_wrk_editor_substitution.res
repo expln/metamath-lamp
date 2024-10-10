@@ -191,7 +191,7 @@ let findPossibleSubsByMatch = (
         Ok(foundSubs)
     } catch {
         | MmException({msg}) => Error(msg)
-        | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+        | Exn.Error(exn) => Error(exn->Exn.message->Belt_Option.getWithDefault("Unknown error."))
     }
 }
 

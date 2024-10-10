@@ -108,7 +108,7 @@ let createDomProps = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<Re
 let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
     let saveChild = (childrenStack:Belt_MutableStack.t<(string,array<reElem>)>, child:reElem):unit => {
         switch childrenStack->Belt_MutableStack.top {
-            | None => Js.Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
+            | None => Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
             | Some((_,children)) => children->Array.push(child)
         }
     }
@@ -192,7 +192,7 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
     )
 
     switch resOpt {
-        | None => Js.Exn.raiseError("Got None as a result of convertion from XML to React Elem.")
+        | None => Exn.raiseError("Got None as a result of convertion from XML to React Elem.")
         | Some(res) => res
     }
 }

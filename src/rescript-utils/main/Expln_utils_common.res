@@ -1,4 +1,4 @@
-let exn = str => Js.Exn.raiseError(str)
+let exn = str => Exn.raiseError(str)
 
 @new external createArray: int => array<'a> = "Array"
 let clearArray:array<'a> => unit = %raw(`arr => arr.length = 0`)

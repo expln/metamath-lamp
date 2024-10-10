@@ -122,8 +122,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 | MmException({msg}) => {
                     sendToClient(MmContextLoaded({ctx:Error(msg)}))
                 }
-                | Js.Exn.Error(exn) => {
-                    sendToClient(MmContextLoaded({ctx:Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Internal error."))}))
+                | Exn.Error(exn) => {
+                    sendToClient(MmContextLoaded({ctx:Error(exn->Exn.message->Belt_Option.getWithDefault("Internal error."))}))
                 }
             }
         }

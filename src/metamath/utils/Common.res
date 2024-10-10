@@ -58,7 +58,7 @@ let strToRegex = (str:string):result<Js_re.t,string> => {
     } catch {
         | exn => {
             Error(
-                exn->Js_exn.asJsExn->Belt_Option.flatMap(Js_exn.message)
+                exn->Exn.asJsExn->Belt_Option.flatMap(Exn.message)
                     ->Belt.Option.getWithDefault(`could not create a regular expression from string '${str}'`)
             )
         }

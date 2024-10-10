@@ -338,7 +338,7 @@ let apiMatcherToMatcher = (
                     )
                 } catch {
                     | MmException({msg}) => Error(msg)
-                    | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+                    | Exn.Error(exn) => Error(exn->Exn.message->Belt_Option.getWithDefault("Unknown error."))
                 }
             }
         }
@@ -979,7 +979,7 @@ let editorBuildSyntaxTreesRef:ref<option<api>> = ref(None)
 let makeApiFuncRef = (ref:ref<option<api>>):api => {
     params => {
         switch ref.contents {
-            | None => Js.Exn.raiseError("api function is not defined")
+            | None => Exn.raiseError("api function is not defined")
             | Some(func) => func(params)
         }
     }

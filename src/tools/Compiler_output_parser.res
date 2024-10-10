@@ -71,7 +71,7 @@ let getWarningDescr = (code:int):string => {
 
 let parseMatch = (~match:string, ~ord:int):warning => {
     switch match->Js.String2.match_(%re("/Warning number (\d+)\s+(C:[^:]+:\d+)/")) {
-        | None => Js.Exn.raiseError(`Could not parse a match: ${match}`)
+        | None => Exn.raiseError(`Could not parse a match: ${match}`)
         | Some(groups) => {
             {
                 ord,

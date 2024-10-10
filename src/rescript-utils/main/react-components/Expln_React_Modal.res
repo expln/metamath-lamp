@@ -18,7 +18,7 @@ let useModalRef = () => {
 
 let modalRefToModalMethods: modalRef => modalMethods = modalRef => {
     switch modalRef.current->Js.Nullable.toOption {
-        | None => Js.Exn.raiseError(`modalRef.current is null`)
+        | None => Exn.raiseError(`modalRef.current is null`)
         | Some(modalMethods) => modalMethods
     }
 }

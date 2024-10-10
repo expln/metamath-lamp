@@ -108,9 +108,9 @@ let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let expectedResultStr = try {
         Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
     } catch {
-        | Js.Exn.Error(exn) => {
+        | Exn.Error(exn) => {
             if (
-                exn->Js.Exn.message
+                exn->Exn.message
                     ->Belt_Option.getWithDefault("")
                     ->Js_string2.includes("no such file or directory")
             ) {

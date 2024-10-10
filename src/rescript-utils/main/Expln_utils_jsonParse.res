@@ -333,8 +333,8 @@ let fromJson = (
                 | Some(default) => Ok(default())
                 | None => {
                     let msg = ex 
-                        -> Js.Exn.asJsExn
-                        -> Belt.Option.flatMap(Js.Exn.message)
+                        -> Exn.asJsExn
+                        -> Belt.Option.flatMap(Exn.message)
                         -> Belt.Option.getWithDefault("no message was provided.")
                     Error("Parse error: " ++ msg)
                 }
@@ -358,8 +358,8 @@ let parseJson = (
                 | Some(default) => Ok(default())
                 | None => {
                     let msg = ex 
-                        -> Js.Exn.asJsExn
-                        -> Belt.Option.flatMap(Js.Exn.message)
+                        -> Exn.asJsExn
+                        -> Belt.Option.flatMap(Exn.message)
                         -> Belt.Option.getWithDefault("no message was provided.")
                     Error("Parse error: " ++ msg)
                 }

@@ -2171,7 +2171,7 @@ let make = (
                                 | Some(stmtsDto) => {
                                     let len = stmtsDto.stmts->Array.length
                                     if (len == 0) {
-                                        Js_exn.raiseError(
+                                        Exn.raiseError(
                                             `bottom-up prover returned stmtsDto.stmts->Array.length == 0.`
                                         )
                                     } else {
