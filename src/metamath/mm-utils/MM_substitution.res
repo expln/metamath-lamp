@@ -62,7 +62,7 @@ let subsClone = subs => {
 }
 
 let subsEq = (a:subs, b:subs):bool => {
-    if (a.size == b.size && a.isDefined->Js_array2.every(b => b) && b.isDefined->Js_array2.every(b => b)) {
+    if (a.size == b.size && a.isDefined->Array.every(b => b) && b.isDefined->Array.every(b => b)) {
         let res = ref(true)
         let v = ref(0)
         while (res.contents && v.contents < a.size) {
@@ -94,7 +94,7 @@ let subsEq = (a:subs, b:subs):bool => {
 }
 
 let subsHash = (subs:subs):int => {
-    if (subs.isDefined->Js_array2.every(b => b)) {
+    if (subs.isDefined->Array.every(b => b)) {
         let hash = ref(0)
         let v = ref(0)
         while (v.contents < subs.size) {

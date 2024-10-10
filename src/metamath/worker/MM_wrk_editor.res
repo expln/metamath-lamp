@@ -2404,8 +2404,8 @@ let addStepsWithoutVars = (
 }
 
 let validateVarNames = (vars:array<(string,option<string>)>):bool => {
-    vars->Js.Array2.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isNone)
-    || vars->Js.Array2.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isSome)
+    vars->Array.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isNone)
+    || vars->Array.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isSome)
 }
 
 let addSteps = (

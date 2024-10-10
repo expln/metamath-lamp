@@ -320,10 +320,10 @@ let make = (
         ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
         ->Belt.Option.isSome
     let checkedStmtIds = state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtId)
-    let allCheckedStmtsAreBookmarked = state.stmts->Js_array2.every(stmt => {
+    let allCheckedStmtsAreBookmarked = state.stmts->Array.every(stmt => {
         !(checkedStmtIds->Js_array2.includes(stmt.id)) || stmt.isBkm
     })
-    let allCheckedStmtsAreUnbookmarked = state.stmts->Js_array2.every(stmt => {
+    let allCheckedStmtsAreUnbookmarked = state.stmts->Array.every(stmt => {
         !(checkedStmtIds->Js_array2.includes(stmt.id)) || !stmt.isBkm
     })
     let mainCheckboxState = {

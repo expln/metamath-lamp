@@ -186,7 +186,7 @@ let isScopeSame = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>)
 }
 
 let canLoadContext = (srcs: array<mmCtxSrcDto>):bool => {
-    srcs->Js_array2.length > 0 && srcs->Js_array2.every(src => {
+    srcs->Js_array2.length > 0 && srcs->Array.every(src => {
         src.ast->Belt.Option.isSome || src.typ == webTypStr
     })
 }
@@ -712,7 +712,7 @@ let make = (
         if (thereAreNoChanges) {
             React.null
         } else {
-            let scopeIsCorrect = state.singleScopes->Js.Array2.every(ss => {
+            let scopeIsCorrect = state.singleScopes->Array.every(ss => {
                 switch ss.ast {
                     | Some(Ok(_)) => {
                         switch ss.readInstr {

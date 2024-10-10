@@ -1414,7 +1414,7 @@ let make = (
         ~setFlags: array<bool> => unit,
     ) => {
 
-        let proofStatusesAreAvailable = state.rootStmtsRendered->Js.Array2.every(stmt => 
+        let proofStatusesAreAvailable = state.rootStmtsRendered->Array.every(stmt => 
             getProofStatus(stmt)->Belt_Option.isSome
         )
 
@@ -1449,8 +1449,8 @@ let make = (
             </Row>
         } else {
             let flags = state->getFlags
-            let allSelected = flags->Js_array2.every(b => b)
-            let noneSelected = flags->Js_array2.every(b => !b)
+            let allSelected = flags->Array.every(b => b)
+            let noneSelected = flags->Array.every(b => !b)
             let numberOfSelected = if (allSelected) {
                 "All"
             } else if (noneSelected) {

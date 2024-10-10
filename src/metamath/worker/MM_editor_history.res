@@ -62,15 +62,15 @@ let isStmtMove = (diff:editorDiff):bool => {
 }
 
 let allStatusUnset = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtStatusRemove)
+    diff->Array.every(isStmtStatusRemove)
 }
 
 let allStatusSet = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtStatusSet)
+    diff->Array.every(isStmtStatusSet)
 }
 
 let allMoveAndStatusSet = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(d => isStmtMove(d) || isStmtStatusSet(d))
+    diff->Array.every(d => isStmtMove(d) || isStmtStatusSet(d))
 }
 
 let editorSnapshotMake = (st:editorState):editorSnapshot => {

@@ -360,7 +360,7 @@ let srcToNewStmts = (
                     ~label=getLabelForExpr(exprToProve),
                     ~expr = exprToProve,
                     ~src = Some(src),
-                    ~isProved = args->Js_array2.every(idx => (tree.nodes->Array.getUnsafe(idx)).proof->Belt_Option.isSome)
+                    ~isProved = args->Array.every(idx => (tree.nodes->Array.getUnsafe(idx)).proof->Belt_Option.isSome)
                 )
                 verifyDisjoints(
                     ~subs = extractSubstitution(~frame, ~args, ~tree),

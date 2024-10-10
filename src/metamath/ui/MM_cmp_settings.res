@@ -755,8 +755,8 @@ let isValid = st => {
         && st.labelRegexToDiscErr->Belt_Option.isNone
         && st.descrRegexToDeprErr->Belt_Option.isNone
         && st.labelRegexToDeprErr->Belt_Option.isNone
-        && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
-        && st.webSrcSettings->Js_array2.every(s => s.err->Belt_Option.isNone)
+        && st.typeSettings->Array.every(ts => ts.err->Belt_Option.isNone)
+        && st.webSrcSettings->Array.every(s => s.err->Belt_Option.isNone)
 }
 
 let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {

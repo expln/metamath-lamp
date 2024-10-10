@@ -127,7 +127,7 @@ let findAsrtParentsWithoutNewVars = (
                 ~subs = frm.subs,
                 ~parenCnt=tree->ptGetParenCnt,
                 ~consumer = subs => {
-                    if (subs.isDefined->Js_array2.every(b=>b)
+                    if (subs.isDefined->Array.every(b=>b)
                         && verifyDisjoints(
                                 ~frmDisj=frm.frame.disj, 
                                 ~subs, 
