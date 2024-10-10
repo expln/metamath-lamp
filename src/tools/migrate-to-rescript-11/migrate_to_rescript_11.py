@@ -151,6 +151,22 @@ def make_simple_replacements() -> None:
     replacements.update(make_replacement_dict(old_modules=['Js.Array2', 'Js_array2'], new_module='Array', functions={
         'concat': 'concat',
         'copy': 'copy',
+        'every(': 'every(',
+        'everyi(': 'everyWithIndex(',
+        'filter(': 'filter(',
+        'filteri(': 'filterWithIndex(',
+        'find(': 'find(',
+        'findIndex(': 'findIndex(',
+        'findIndexi(': 'findIndexWithIndex(',
+        'forEach(': 'forEach(',
+        'forEachi(': 'forEachWithIndex(',
+        'includes(': 'includes(',
+        'indexOf(': 'indexOf(',
+        'joinWith(': 'joinUnsafe(',
+        'length(': 'length(',
+        'map(': 'map(',
+        'mapi(': 'mapWithIndex(',
+        'some(': 'some(',
     }))
     print(f'{replacements=}')
     for path in get_all_rescript_files():
