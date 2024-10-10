@@ -182,7 +182,7 @@ let isSingleScopeSame = (ss:mmSingleScope,srcDto:mmCtxSrcDto):bool => {
 
 let isScopeSame = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>):bool => {
     singleScopes->Js.Array2.length == srcs->Js_array2.length
-        && singleScopes->Js.Array2.everyi((ss,i) => isSingleScopeSame(ss, srcs->Array.getUnsafe(i)))
+        && singleScopes->Array.everyWithIndex((ss,i) => isSingleScopeSame(ss, srcs->Array.getUnsafe(i)))
 }
 
 let canLoadContext = (srcs: array<mmCtxSrcDto>):bool => {

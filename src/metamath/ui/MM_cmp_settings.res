@@ -792,9 +792,9 @@ let eqState = (st1, st2) => {
         && st1.autoMergeStmts == st2.autoMergeStmts
         && st1.autoUnifyAll == st2.autoUnifyAll
         && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
-        && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings->Array.getUnsafe(i)))
+        && st1.typeSettings->Array.everyWithIndex((ts1,i) => eqTypeSetting(ts1, st2.typeSettings->Array.getUnsafe(i)))
         && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
-        && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings->Array.getUnsafe(i)))
+        && st1.webSrcSettings->Array.everyWithIndex((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings->Array.getUnsafe(i)))
         && st1.longClickEnabled == st2.longClickEnabled
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector

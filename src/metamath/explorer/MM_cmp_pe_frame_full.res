@@ -391,7 +391,7 @@ let convertMmScopesToMmCtxSrcDtos = (
     ~mmScopes:array<mmScope>,
 ):option<array<mmCtxSrcDto>> => {
     let canConvert = mmScopes->Js_array2.length <= origMmCtxSrcDtos->Js_array2.length 
-                        && mmScopes->Js_array2.everyi((mmScope,i) => {
+                        && mmScopes->Array.everyWithIndex((mmScope,i) => {
                             (origMmCtxSrcDtos->Array.getUnsafe(i)).ast
                                 ->Belt_Option.map(origAst => origAst == mmScope.ast)
                                 ->Belt.Option.getWithDefault(false)

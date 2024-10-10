@@ -74,7 +74,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
                 | Assertion({ args:bArgs, frame:bFrame, }) => {
                     aFrame.label == bFrame.label
                     && aArgs->Js.Array2.length == bArgs->Js.Array2.length
-                    && aArgs->Js.Array2.everyi((aArg,idx) => aArg.id == (bArgs->Array.getUnsafe(idx)).id)
+                    && aArgs->Array.everyWithIndex((aArg,idx) => aArg.id == (bArgs->Array.getUnsafe(idx)).id)
                 }
                 | _ => false
             }

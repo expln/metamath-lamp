@@ -42,7 +42,7 @@ let symEq = (a,b) => {
 
 let arrSymEq = (a:array<sym>,b:array<sym>):bool => {
     a->Js_array2.length == b->Js_array2.length
-    && a->Js_array2.everyi((sa,i) => sa->symEq(b->Array.getUnsafe(i)))
+    && a->Array.everyWithIndex((sa,i) => sa->symEq(b->Array.getUnsafe(i)))
 }
 
 module SymHash = Belt.Id.MakeHashableU({
