@@ -15,7 +15,7 @@ let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Floa
 let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
 let compareExprBySize = comparatorBy(Array.length(_))
 
-let log = msg => Js.Console.log(`${currTimeStr()} ${msg}`)
+let log = msg => Console.log(`${currTimeStr()} ${msg}`)
 
 describe("proveSyntaxTypes", _ => {
 
@@ -117,7 +117,7 @@ describe("proveSyntaxTypes", _ => {
             ->Array.map(obj => obj["ctxExpr"])
             ->Expln_utils_common.sortInPlaceWith(compareExprBySize->comparatorInverse)
 
-        Js.Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
+        Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
 
         // let asrtExprStr = asrtExprs->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
@@ -136,7 +136,7 @@ describe("proveSyntaxTypes", _ => {
             },
             0
         )
-        Js.Console.log2(`totalSize`, totalSize)
+        Console.log2(`totalSize`, totalSize)
 
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
@@ -196,9 +196,9 @@ describe("proveSyntaxTypes", _ => {
                 }
             }
         })
-        Js.Console.log2(`syntaxTrees->Belt_HashMapString.size`, syntaxTrees->Belt_HashMapString.size)
+        Console.log2(`syntaxTrees->Belt_HashMapString.size`, syntaxTrees->Belt_HashMapString.size)
         // let asrtToPrint = "sylcom"
-        // Js.Console.log2(`${asrtToPrint}:`, syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Expln_utils_common.stringify)
+        // Console.log2(`${asrtToPrint}:`, syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Expln_utils_common.stringify)
         let ctxExprStr = "( ( ch -> ph ) -> th )"
         Expln_test.startTimer("find match")
         switch MM_wrk_editor.textToSyntaxTree(
@@ -234,7 +234,7 @@ describe("proveSyntaxTypes", _ => {
                                     ~continue,
                                 )
                                 if (continue.contents && foundSubs->MM_asrt_syntax_tree.unifSubsSize > 1) {
-                                    Js.Console.log(`found match: ${label}`)
+                                    Console.log(`found match: ${label}`)
                                 }
                             }
                         })

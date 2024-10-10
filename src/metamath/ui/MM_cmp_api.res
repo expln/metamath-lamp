@@ -1011,7 +1011,7 @@ let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>
         apiCallCnt := apiCallCnt.contents + 1
         let apiCallId = apiCallCnt.contents
         if (logApiCallsToConsole.contents) {
-            Js.Console.log2(`[${apiCallId->Belt.Int.toString}] <<< ${name}`, params)
+            Console.log2(`[${apiCallId->Belt.Int.toString}] <<< ${name}`, params)
         }
         func(params)->promiseMap(res => {
             let resp = switch res {
@@ -1019,7 +1019,7 @@ let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>
                 | Ok(json) => okResp(json)
             }
             if (logApiCallsToConsole.contents) {
-                Js.Console.log2(`[${apiCallId->Belt.Int.toString}] >>> `, resp)
+                Console.log2(`[${apiCallId->Belt.Int.toString}] >>> `, resp)
             }
             resp
         })

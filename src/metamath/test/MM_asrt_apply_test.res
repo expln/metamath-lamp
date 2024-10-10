@@ -293,8 +293,8 @@ let testApplyAssertions = (
                     arr->Array.push(printApplyAssertionResult(workCtx, statements, res))
                 }
             }
-            // Js.Console.log("onMatchFound ------------------------------------------------------------------")
-            // Js.Console.log(printApplyAssertionResult(res))
+            // Console.log("onMatchFound ------------------------------------------------------------------")
+            // Console.log(printApplyAssertionResult(res))
             Continue
         },
         ()

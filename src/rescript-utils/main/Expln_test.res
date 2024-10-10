@@ -21,9 +21,9 @@ let it: (string, unit=>unit) => unit = (name, test) => {
             test()
         } catch {
             | exn => {
-                Js.Console.log("##############################################################")
-                Js.Console.log2("error in test", exn)
-                Js.Console.log("##############################################################")
+                Console.log("##############################################################")
+                Console.log2("error in test", exn)
+                Console.log("##############################################################")
                 raise(exn)
             }
         }

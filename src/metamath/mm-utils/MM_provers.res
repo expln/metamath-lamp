@@ -1035,7 +1035,7 @@ let makeParenCnt = (
     }
     if (parenMin < 0) {
         // let allConstsStr = allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin)->Array.joinUnsafe(" ")
-        // Js.Console.log2(`allConsts:`, allConstsStr)
+        // Console.log2(`allConsts:`, allConstsStr)
         if (
             allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin) 
             != 
@@ -1046,14 +1046,14 @@ let makeParenCnt = (
     }
     if (canBeFirstMin <= canBeFirstMax) {
         // let canBeFirstStr = allConsts->Js.Array2.slice(~start=(-canBeFirstMax-1), ~end_=-canBeFirstMin)->Array.joinUnsafe(" ")
-        // Js.Console.log2(`canBeFirst:`, canBeFirstStr)
+        // Console.log2(`canBeFirst:`, canBeFirstStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeFirstMax-1), -canBeFirstMin)) {
             raise(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
         }
     }
     if (canBeLastMin <= canBeLastMax) {
         // let canBeLastStr = allConsts->Js.Array2.slice(~start=(-canBeLastMax-1), ~end_=-canBeLastMin)->Array.joinUnsafe(" ")
-        // Js.Console.log2(`canBeLast:`, canBeLastStr)
+        // Console.log2(`canBeLast:`, canBeLastStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeLastMax-1), -canBeLastMin)) {
             raise(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))
         }

@@ -239,7 +239,7 @@ let testProgressTrackerMake = (
         ~step, 
         ~maxCnt,
         ~onProgress = pct => {
-            Js.Console.log2(Js.Date.make()->Js.Date.toISOString, pct->floatToPctStr)
+            Console.log2(Js.Date.make()->Js.Date.toISOString, pct->floatToPctStr)
         }, 
         ()
     )

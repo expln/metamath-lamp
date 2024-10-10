@@ -350,11 +350,11 @@ let ptPrintStats = ( tree:proofTree ):string => {
     let nodes = tree.nodes->Belt_HashMap.toArray->Array.map(((_,node)) => node)
     let nodeCnt = nodes->Array.length
     let nodeCntFl = nodeCnt->Belt.Int.toFloat
-    Js.Console.log2(`nodeCnt`, nodeCnt)
+    Console.log2(`nodeCnt`, nodeCnt)
     let provedNodeCnt = nodes->Array.filter(node => node.proof->Belt_Option.isSome)->Array.length
-    Js.Console.log3(`provedNodeCnt`, provedNodeCnt, Common.floatToPctStr(provedNodeCnt->Belt_Int.toFloat /. nodeCntFl))
+    Console.log3(`provedNodeCnt`, provedNodeCnt, Common.floatToPctStr(provedNodeCnt->Belt_Int.toFloat /. nodeCntFl))
     let invalidFloatingCnt = nodes->Array.filter(node => node.isInvalidFloating)->Array.length
-    Js.Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
+    Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
     switch tree.ptDbg {
         | None => "Debug is off"
         | Some(dbg) => {

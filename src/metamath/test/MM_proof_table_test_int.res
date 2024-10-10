@@ -48,11 +48,11 @@ let compareCompressedProofsAfterRenumbering = (
     })->Array.joinUnsafe("")
 
     if (expectedBlock != newBlock) {
-        Js.Console.log("-------------------------------------------------------------------------------------------")
-        Js.Console.log2("mandHypsNum", mandHypsNum)
-        Js.Console.log("actualLabels:")
-        actualLabels->Array.forEachWithIndex((label,i) => Js.Console.log(`${(i+1)->Belt_Int.toString}:${label}`))
-        Js.Console.log("actualBlock:")
+        Console.log("-------------------------------------------------------------------------------------------")
+        Console.log2("mandHypsNum", mandHypsNum)
+        Console.log("actualLabels:")
+        actualLabels->Array.forEachWithIndex((label,i) => Console.log(`${(i+1)->Belt_Int.toString}:${label}`))
+        Console.log("actualBlock:")
         actualBlock->compressedProofBlockToArray->Array.map(numStr => {
             if (numStr == "Z") {
                 "Z"
@@ -60,7 +60,7 @@ let compareCompressedProofsAfterRenumbering = (
                 compressedProofStrToInt(numStr)->Belt.Int.toString
             }
         })->Array.joinUnsafe(" ")->Js.Console.log
-        Js.Console.log("-------------------------------------------------------------------------------------------")
+        Console.log("-------------------------------------------------------------------------------------------")
         false
     } else {
         true
@@ -138,8 +138,8 @@ describe("createProof", _ => {
                             ~getMandHypsNum = () => getMandHyps(ctx, expr, ())->Array.length
                         )
                     ) {
-                        Js.Console.log2("expected", expectedProof)
-                        Js.Console.log2("actual", actualProof)
+                        Console.log2("expected", expectedProof)
+                        Console.log2("actual", actualProof)
                         failMsg(`Proof comparison failed for ${label}`)
                     }
 

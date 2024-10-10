@@ -424,7 +424,7 @@ let unifyBottomUp = (
                     }
                 },
                 ~combCntMax,
-                //~onProgress = msg => Js.Console.log(msg),
+                //~onProgress = msg => Console.log(msg),
                 ()
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))

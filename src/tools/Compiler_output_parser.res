@@ -106,7 +106,7 @@ let printToStr = (groups:Belt_HashMapInt.t<array<warning>>):string => {
 let parseCompilerOutput = (~compilerOutputFilePath:string):unit => {
     let compilerOutputText = readStringFromFile(compilerOutputFilePath)
     switch compilerOutputText->Js.String2.match_(%re("/Warning number \d+\s+C:[^:]+:\d+/g")) {
-        | None => Js.Console.log(`Could not find warnings`)
+        | None => Console.log(`Could not find warnings`)
         | Some(matches) => {
             let matches = matches
                 ->Array.filter(Belt_Option.isSome(_))

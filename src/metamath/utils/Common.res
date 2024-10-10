@@ -136,7 +136,7 @@ let arrayQueueMake = (initSize:int):arrayQueue<'a> => {
 
 let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
     if (q.end == q.maxEnd) {
-        Js.Console.log(`q.end == q.maxEnd`)
+        Console.log(`q.end == q.maxEnd`)
         q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Array.length))
         q.maxEnd = q.data->Array.length-1
     }

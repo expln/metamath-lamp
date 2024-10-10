@@ -4,15 +4,15 @@ let useClientSizeObserver = (ref:React.ref<Js.Nullable.t<Dom.element>>, onClient
     React.useEffect1(() => {
         switch ref.current->Js.Nullable.toOption {
             | Some(domElem) => {
-                // Js.Console.log2("domElem", domElem)
+                // Console.log2("domElem", domElem)
                 let observer = makeResizeObserver(mutations => {
-                    // Js.Console.log2("mutations", mutations)
+                    // Console.log2("mutations", mutations)
                     if (mutations->Array.length != 0) {
                         let target = (mutations->Array.getUnsafe(mutations->Array.length - 1))["target"]
                         let clientWidth = target["clientWidth"]
                         let clientHeight = target["clientHeight"]
-                        // Js.Console.log2("clientWidth", clientWidth)
-                        // Js.Console.log2("clientHeight", clientHeight)
+                        // Console.log2("clientWidth", clientWidth)
+                        // Console.log2("clientHeight", clientHeight)
                         onClientSizeChange(clientWidth, clientHeight)
                     }
                 })

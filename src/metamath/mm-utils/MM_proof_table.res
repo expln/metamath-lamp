@@ -75,7 +75,7 @@ let proofTableToStr = (ctx,tbl,title):string => {
         ++ rightPad(~content="", ~char="-", ~totalLen=maxLength(proofTableArrStr))
 }
 
-let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
+let proofTablePrint = (ctx,tbl,title):unit => Console.log(proofTableToStr(ctx,tbl,title))
 
 let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReuse:int=>unit) => {
     let saved = Belt_HashSetInt.make(~hintSize=64)
