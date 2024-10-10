@@ -125,7 +125,8 @@ def find_function_names() -> None:
             # print(f'Found: match.group(0)    groups: {match.groups()}')
             first_group = match.group(2) if match.group(2) is not None else match.group(6)
             # print(f'{first_group=}')
-            if 'js' in first_group.lower():
+            first_group_lower = first_group.lower()
+            if 'js' in first_group_lower and 'expln' not in first_group_lower and 'jstf' not in first_group_lower and 'state' not in first_group_lower:
                 names.add(match.group(0))
     unique_names = list(names)
     unique_names.sort()
@@ -139,12 +140,14 @@ def replace_in_file(path: Path, replacements: dict[str, str]) -> None:
         text = text.replace(old, new)
     write_text_to_path(path, text)
 
-def make_replacement_dict(old_modules:list[str], new_module:str, functions:dict[str,str]) -> dict[str,str]:
+
+def make_replacement_dict(old_modules: list[str], new_module: str, functions: dict[str, str]) -> dict[str, str]:
     res = {}
     for old_module in old_modules:
-        for old_func,new_func in functions.items():
+        for old_func, new_func in functions.items():
             res[f'{old_module}.{old_func}'] = f'{new_module}.{new_func}'
     return res
+
 
 def make_simple_replacements() -> None:
     replacements = {}
@@ -169,9 +172,7 @@ def make_simple_replacements() -> None:
         'length': 'length',
     }))
     replacements.update(make_replacement_dict(old_modules=['Js.Console'], new_module='Console', functions={
-        'log(': 'log(',
-        'log2(': 'log2(',
-        'log3(': 'log3(',
+        '': '',
     }))
     replacements.update(make_replacement_dict(old_modules=['Js.Date', 'Js_date'], new_module='Date', functions={
         'fromFloat': 'fromTime',
@@ -199,7 +200,26 @@ def make_simple_replacements() -> None:
         'sin': 'sin',
         'sqrt': 'sqrt',
     }))
-    print(f'{replacements=}')
+    replacements.update(make_replacement_dict(old_modules=['Js.String2', 'Js_string2'], new_module='String', functions={
+        'charAt': 'charAt',
+        'codePointAt': 'codePointAt',
+        'concatMany': 'concatMany',
+        'fromCharCode': 'fromCharCode',
+        'includes': 'includes',
+        'indexOfFrom': 'indexOfFrom',
+        'lastIndexOf': 'lastIndexOf',
+        'length': 'length',
+        'repeat': 'repeat',
+        'replace(': 'replace(',
+        'replaceByRe': 'replaceRegExp',
+        'split(': 'split(',
+        'splitByRe': 'splitByRegExp',
+        'startsWith': 'startsWith',
+        'toLocaleUpperCase': 'toLocaleUpperCase',
+        'toLowerCase': 'toLowerCase',
+        'toUpperCase': 'toUpperCase',
+        'trim': 'trim',
+    }))
     for path in get_all_rescript_files():
         print(f'processing: {path.absolute()}')
         replace_in_file(path, replacements)
@@ -227,9 +247,8 @@ def main() -> None:
     #     print(f'processing: {path.absolute()}')
     #     rewrite_file(path)
 
-    # find_function_names()
-
-    make_simple_replacements()
+    find_function_names()
+    # make_simple_replacements()
 
 
 if __name__ == '__main__':
