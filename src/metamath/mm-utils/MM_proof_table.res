@@ -14,20 +14,20 @@ type proofRecord = {
 type proofTable = array<proofRecord>
 
 let rightPad = (~content:string, ~char:string, ~totalLen:int):string => {
-    let contentLen = content->Js_string2.length
+    let contentLen = content->String.length
     if (totalLen <= contentLen) {
         content
     } else {
-        content ++ Js_string2.repeat(char, totalLen - contentLen)
+        content ++ String.repeat(char, totalLen - contentLen)
     }
 }
 
 let leftPad = (~content:string, ~char:string, ~totalLen:int):string => {
-    let contentLen = content->Js_string2.length
+    let contentLen = content->String.length
     if (totalLen <= contentLen) {
         content
     } else {
-        Js_string2.repeat(char, totalLen - contentLen) ++ content
+        String.repeat(char, totalLen - contentLen) ++ content
     }
 }
 
@@ -46,7 +46,7 @@ let exprSourceToLabelStr = src => {
 }
 
 let maxLength = (arr:array<string>):int => {
-    arr->Array.map(Js_string2.length(_))->Js.Array2.reduce(Math.Int.max, 0)
+    arr->Array.map(String.length(_))->Js.Array2.reduce(Math.Int.max, 0)
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {

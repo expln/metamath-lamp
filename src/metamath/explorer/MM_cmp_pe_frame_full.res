@@ -878,7 +878,7 @@ let make = React.memoCustomCompareProps(({
     let classColRef = "ref"
 
     React.useEffect1(() => {
-        let proofTableIdCssSelector = proofTableId->Js_string2.replaceByRe(dotPattern, "\\.")
+        let proofTableIdCssSelector = proofTableId->String.replaceRegExp(dotPattern, "\\.")
         setStepWidth(_ => calcColumnWidth(`#${proofTableIdCssSelector} .${classColStep}`, 30, 1000)->Belt.Int.toString ++ "px")
         setHypWidth(_ => (calcColumnWidth(`#${proofTableIdCssSelector} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
         setRefWidth(_ => calcColumnWidth(`#${proofTableIdCssSelector} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")

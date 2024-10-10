@@ -669,19 +669,19 @@ let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
 
     res->Array.push("Description")
     res->Array.push(sn.descr)
-    if (sn.descr->Js.String2.length > 0) {
+    if (sn.descr->String.length > 0) {
         res->Array.push("")
     }
 
     res->Array.push("Variables")
     res->Array.push(sn.varsText)
-    if (sn.varsText->Js.String2.length > 0) {
+    if (sn.varsText->String.length > 0) {
         res->Array.push("")
     }
 
     res->Array.push("Disjoints")
     res->Array.push(sn.disjText)
-    if (sn.disjText->Js.String2.length > 0) {
+    if (sn.disjText->String.length > 0) {
         res->Array.push("")
     }
 
@@ -694,8 +694,8 @@ let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
 let diffToStringExtendedSingle = (diff:editorDiff):string => {
     switch diff {
         | Descr(descr) => `Descr(${descr})`
-        | Vars(varsText) => `Vars(${varsText->Js.String2.replaceByRe(%re("/[\n\r]+/g"), " ; ")})`
-        | Disj(disjText) => `Disj(${disjText->Js.String2.replaceByRe(%re("/[\n\r]+/g"), " ; ")})`
+        | Vars(varsText) => `Vars(${varsText->String.replaceRegExp(%re("/[\n\r]+/g"), " ; ")})`
+        | Disj(disjText) => `Disj(${disjText->String.replaceRegExp(%re("/[\n\r]+/g"), " ; ")})`
         | StmtLabel({stmtId, label}) => `StmtLabel({stmtId=${stmtId}, label=${label}})`
         | StmtTyp({stmtId, typ, isGoal}) => 
             `StmtTyp({stmtId=${stmtId}, typ=${typ->userStmtTypeToStr}, isGoal=${isGoal->Expln_utils_common.stringify}})`

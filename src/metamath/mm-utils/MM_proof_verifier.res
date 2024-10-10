@@ -135,7 +135,7 @@ let validateTopOfStackMatchesFrame = (stack:proofStack, frame, subs:array<expr>)
     })
 }
 
-let charCode = (str:string,pos:int):int => str->Js.String2.codePointAt(pos)->Belt_Option.getExn
+let charCode = (str:string,pos:int):int => str->String.codePointAt(pos)->Belt_Option.getExn
 let charToInt = ch => charCode(ch, 0)
 let zCode = charToInt("Z")
 let aCode = charToInt("A")
@@ -145,7 +145,7 @@ let uCode = charToInt("U")
 let uCodePrev = uCode-1
 
 let compressedProofBlockToArray = (str:string):array<string> => {
-    let len = str->Js_string2.length
+    let len = str->String.length
     let res = []
     let b = ref(0)
     let e = ref(0)
@@ -172,7 +172,7 @@ let compressedProofCharCodeToInt = (code:int):int =>
 let compressedProofStrToInt = (str:string):int => {
     let res = ref(0)
     let base = ref(1)
-    let len = str->Js_string2.length
+    let len = str->String.length
     for i in len-2 downto 0 {
         res.contents = res.contents + base.contents*compressedProofCharCodeToInt(charCode(str,i))
         base.contents = base.contents*5
@@ -184,10 +184,10 @@ let intToCompressedProofStr: int => string = i => {
     if (i < 1) {
         raise(MmException({msg:`intToCompressedProofStr: i < 1`}))
     } else {
-        let res = [Js_string2.fromCharCode(aCode + mod(i-1,20))]
+        let res = [String.fromCharCode(aCode + mod(i-1,20))]
         let i = ref((i-1)/20)
         while (i.contents > 0) {
-            res->Array.push(Js_string2.fromCharCode(uCode + mod(i.contents-1, 5)))
+            res->Array.push(String.fromCharCode(uCode + mod(i.contents-1, 5)))
             i.contents = (i.contents-1) / 5
         }
         res->Js_array2.reverseInPlace->Array.joinUnsafe("")

@@ -91,8 +91,8 @@ let removeStaleMacrosFromCache = (st:state):unit => {
 }
 
 let setMmExampleScript = MM_macros_set_mm_example.setMmExampleMacros
-    ->Js.String2.replaceByRe(%re("/\[!@#\]/g"), "`")
-    ->Js.String2.replaceByRe(%re("/\{!@#\}/g"), "$")
+    ->String.replaceRegExp(%re("/\[!@#\]/g"), "`")
+    ->String.replaceRegExp(%re("/\{!@#\}/g"), "$")
 let setMmExampleDisplayName = "set.mm example macros"
 
 let makeEmptyState = () => {

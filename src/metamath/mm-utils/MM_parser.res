@@ -35,7 +35,7 @@ exception MmException(mmException)
 let isWhitespace = str => str == " " || str == "\t" || str == "\n" || str == "\r"
 
 let textAt = (text,i) => {
-    let textLength = text->Js_string2.length
+    let textLength = text->String.length
     let lengthToShow = 20
     let ellipsis = if (i+lengthToShow < textLength) {"..."} else {""}
     "'" ++ text->Js.String2.substrAtMost(~from=i, ~length=lengthToShow) ++ ellipsis ++ "'"
@@ -48,7 +48,7 @@ let parseMmFile = (
     ~onProgress: float=>unit = _ => (), 
     ()
 ): (mmAstNode,array<string>) => {
-    let textLength = text->Js_string2.length
+    let textLength = text->String.length
     let textLengthFlt = textLength->Belt_Int.toFloat
     let idx = ref(0) // index of the next char to read.
     let endOfFile = ref(false) // if idx is outside of text then endOfFile is true.
@@ -63,7 +63,7 @@ let parseMmFile = (
             ch.contents = ""
         } else {
             endOfFile.contents = false
-            ch.contents = text->Js_string2.charAt(idx.contents)
+            ch.contents = text->String.charAt(idx.contents)
         }
     }
     setIdx(0)
@@ -75,7 +75,7 @@ let parseMmFile = (
                 endOfFile.contents = true
                 ch.contents = ""
             } else {
-                ch.contents = text->Js_string2.charAt(idx.contents)
+                ch.contents = text->String.charAt(idx.contents)
             }
         }
     }
@@ -90,11 +90,11 @@ let parseMmFile = (
         let result = ref(None)
         let beginIdx = idx.contents
         while (result.contents->Belt_Option.isNone) {
-            let foundIdx = text->Js_string2.indexOfFrom(tillToken, idx.contents)
+            let foundIdx = text->String.indexOfFrom(tillToken, idx.contents)
             if (foundIdx < 0) {
                 result.contents = Some(None)
             } else {
-                let nextIdx = foundIdx + tillToken->Js_string2.length
+                let nextIdx = foundIdx + tillToken->String.length
                 setIdx(nextIdx)
                 if (endOfFile.contents || ch.contents->isWhitespace) {
                     result.contents = Some(Some(text->Js_string2.substring(~from=beginIdx, ~to_=foundIdx)))
@@ -219,7 +219,7 @@ let parseMmFile = (
                                                     Some(Compressed({
                                                         labels:proofLabels, 
                                                         compressedProofBlock:
-                                                            ""->Js_string2.concatMany(compressedProofBlocks)
+                                                            ""->String.concatMany(compressedProofBlocks)
                                                     }))
                                                 }
                                         })
@@ -265,7 +265,7 @@ let parseMmFile = (
 
         while (result.contents->Belt_Option.isNone) {
             let token = readNextToken(~skipComments=false, ())
-            let tokenIdx = idx.contents - token->Js_string2.length
+            let tokenIdx = idx.contents - token->String.length
             if (token == "") {
                 if (level == 0) {
                     result.contents = Some({begin:beginIdx, end:idx.contents-1, stmt:Block({level, statements:statements})})
@@ -293,7 +293,7 @@ let parseMmFile = (
             } else {
                 let label = token
                 let token2 = readNextToken(())
-                let token2Idx = idx.contents - token2->Js_string2.length
+                let token2Idx = idx.contents - token2->String.length
                 if (token2 == "") {
                     raise(MmException({msg:`Unexpected end of file at ${textAt(tokenIdx)}`}))
                 } else if (token2 == "$f") {
@@ -368,7 +368,7 @@ let stmtToStr: mmAstNode => string = node => {
 }
 
 let stmtToStrRec: mmAstNode => array<string> = stmt => {
-    let makePrefix = level => "    "->Js.String2.repeat(level)
+    let makePrefix = level => "    "->String.repeat(level)
     let ((_,result),_) = traverseAst(
         (ref(0),[]),
         stmt,

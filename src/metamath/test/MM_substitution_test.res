@@ -9,7 +9,7 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
     let ctx = loadContext(ast, ())
-    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->Js_string2.split(" ")}), ())
+    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->String.split(" ")}), ())
     let parens = "( ) { } [ ]"
     let ctx = ctx->ctxOptimizeForProver(~parens, ())
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
@@ -18,7 +18,7 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
         | None => failMsg("Cannot find 'test' frame in testIterateConstParts.")
     }
     let frmExpr = frm.asrt->Js_array2.sliceFrom(1)
-    let expr = ctx->ctxSymsToIntsExn(exprStr->Js_string2.split(" "))
+    let expr = ctx->ctxSymsToIntsExn(exprStr->String.split(" "))
 
     //when
     let (actualConstParts, actualMatchingConstParts) = test_iterateConstParts(~frmExpr, ~expr, ~parenCnt)

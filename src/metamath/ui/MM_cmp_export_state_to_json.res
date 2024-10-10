@@ -25,14 +25,14 @@ let make = (
         ""
     }
 
-    let notesStr = if (notes->Js.String2.length > 0) {
+    let notesStr = if (notes->String.length > 0) {
         notes ++ " "
     } else {
         ""
     }
 
     let textToShow = [timestampStr, notesStr, jsonStr]
-        ->Array.filter(str => str->Js_string2.trim != "")
+        ->Array.filter(str => str->String.trim != "")
         ->Array.joinUnsafe("\n")
 
     let actCopyToClipboard = () => {

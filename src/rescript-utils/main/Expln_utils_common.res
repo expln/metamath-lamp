@@ -54,7 +54,7 @@ let toIntCmp: 'a. comparator<'a> => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
 let intCmp: comparator<int> = (a:int, b:int) => if a < b {-1.0} else if a == b {0.0} else {1.0}
 let floatCmp: comparator<float> = (a:float ,b:float) => if a < b {-1.0} else if a == b {0.0} else {1.0}
 let strCmp: comparator<string> = String.localeCompare
-let strCmpI: comparator<string> = (s1,s2) => strCmp(s1->Js_string2.toLocaleUpperCase ,s2->Js_string2.toLocaleUpperCase)
+let strCmpI: comparator<string> = (s1,s2) => strCmp(s1->String.toLocaleUpperCase ,s2->String.toLocaleUpperCase)
 let cmpRev: 'a. comparator<'a> => comparator<'a> = cmp => (a,b) => -.cmp(a,b)
 
 let stringify = (a:'a):string => switch Js.Json.stringifyAny(a) {

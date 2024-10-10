@@ -331,7 +331,7 @@ let rndContText = (
 }
 
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
-let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
+let removeSymbolsNotAllowedInLabel = str => str->String.replaceRegExp(symbolsNotAllowedInLabelRegex, "")
 
 let stmtPartMarginLeft = "10px"
 let stmtPartMarginTopInt = 5
@@ -833,18 +833,18 @@ let make = React.memoCustomCompareProps( ({
     let after = (str:string, pos:int):string => str->Js.String2.substringToEnd(~from=pos+1)
 
     let getLastSymbol = (str:string):string => {
-        switch str->Js_string2.lastIndexOf(" ") {
+        switch str->String.lastIndexOf(" ") {
             | -1 => str
             | idx => str->Js_string2.substringToEnd(~from=idx+1)
         }
     }
 
     let actStmtContentUpdated = (newText:string,selectionStart:int):unit => {
-        let prevLen = state.newText->Js.String2.length
-        let newLen = newText->Js.String2.length
+        let prevLen = state.newText->String.length
+        let newLen = newText->String.length
         let newText = 
             if (parenAc) {
-                if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->Js.String2.charAt(selectionStart - 1)) {
+                if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->String.charAt(selectionStart - 1)) {
                     let pos = selectionStart-1
                     let prevBefore = state.newText->before(pos)
                     let newBefore = newText->before(pos)
@@ -890,20 +890,20 @@ let make = React.memoCustomCompareProps( ({
     }
     
     let actContEditDone = () => {
-        onContEditDone(state.newText->Js_string2.trim)
+        onContEditDone(state.newText->String.trim)
     }
     
     let actContEditCancel = () => {
-        onContEditCancel(state.newText->Js_string2.trim)
+        onContEditCancel(state.newText->String.trim)
     }
     
     let actJstfEditDone = () => {
         actExpandProof(true)
-        onJstfEditDone(state.newText->Js_string2.trim)
+        onJstfEditDone(state.newText->String.trim)
     }
     
     let actJstfEditCancel = () => {
-        onJstfEditCancel(state.newText->Js_string2.trim)
+        onJstfEditCancel(state.newText->String.trim)
     }
     
     let actJstfDeleted = () => {
@@ -988,7 +988,7 @@ let make = React.memoCustomCompareProps( ({
                 let idxFrom = ref(None)
                 let idxTo = ref(None)
                 Expln_utils_data.traverseTree(
-                    (ref(false),ref(exprTyp->Js_string2.length)),
+                    (ref(false),ref(exprTyp->String.length)),
                     Subtree(root),
                     (_, node) => {
                         switch node {
@@ -1007,7 +1007,7 @@ let make = React.memoCustomCompareProps( ({
                                 if (!(selectionIsOn.contents) && symbolIsHighlighted) {
                                     idxFrom := Some(charsPassed.contents + 1)
                                 }
-                                charsPassed := charsPassed.contents + 1 + sym->Js_string2.length
+                                charsPassed := charsPassed.contents + 1 + sym->String.length
                                 selectionIsOn := symbolIsHighlighted
                             }
                         }
@@ -1016,7 +1016,7 @@ let make = React.memoCustomCompareProps( ({
                     ()
                 )->ignore
                 switch (idxFrom.contents, idxTo.contents) {
-                    | (Some(idxFrom), None) => Some((idxFrom, stmt.cont->contToStr->Js.String2.length))
+                    | (Some(idxFrom), None) => Some((idxFrom, stmt.cont->contToStr->String.length))
                     | (Some(idxFrom), Some(idxTo)) => Some((idxFrom, idxTo))
                     | _ => None
                 }
@@ -1128,7 +1128,7 @@ let make = React.memoCustomCompareProps( ({
                     title="Enter to save, Esc to cancel"
                 />
                 <Row>
-                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->String.trim != "",  
                         ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
                         ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
@@ -1325,7 +1325,7 @@ let make = React.memoCustomCompareProps( ({
                             )
                         }
                     }
-                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->String.trim != "",  
                         ~onClick=actContEditDone, ~title="Save, Enter", ())}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
                         ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
@@ -1591,7 +1591,7 @@ let make = React.memoCustomCompareProps( ({
                     }
                 }
             }
-            let padding = if (jstfTextStr->Js_string2.trim == "") { "11px 16px" } else { "1px" }
+            let padding = if (jstfTextStr->String.trim == "") { "11px 16px" } else { "1px" }
             let title =
                 if (longClickEnabled) {
                     "<long-click> (Alt+<left-click>) to change; click on the label to open a proof explorer tab"
@@ -1636,7 +1636,7 @@ let make = React.memoCustomCompareProps( ({
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
                         let btns = []
-                        if (jstfTextStr->Js_string2.trim != "") {
+                        if (jstfTextStr->String.trim != "") {
                             btns->Array.push(
                                 rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~key="d",
                                     ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()

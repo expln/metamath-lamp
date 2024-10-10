@@ -68,7 +68,7 @@ let make = (
                 onClick=(_=>actTestRegex()) 
                 variant=#contained 
                 color="grey" 
-                disabled={regex->Js.String2.trim->Js.String2.length == 0}
+                disabled={regex->String.trim->String.length == 0}
             > 
                 { React.string("Test") }
             </Button>

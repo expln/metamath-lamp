@@ -311,7 +311,7 @@ let testApplyAssertions = (
         })
         ->Array.joinUnsafe("\n")
     let expectedResultStr = Expln_utils_files.readStringFromFile(fileWithExpectedResult)
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+        ->String.replaceRegExp(%re("/\r/g"), "")
     if (actualResultsStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
         Expln_utils_files.writeStringToFile(actualResultsStr, fileWithActualResult)

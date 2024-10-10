@@ -13,7 +13,7 @@ let make = (
 
     let location = window["location"]
     let origin = location["origin"]
-    let pathname = location["pathname"]->Js.String2.replaceByRe(%re("/\/v\d+\//g"), "/latest/")
+    let pathname = location["pathname"]->String.replaceRegExp(%re("/\/v\d+\//g"), "/latest/")
     let url = origin ++ pathname ++ "?editorState=" ++ editorStateBase64
 
     let actCopyToClipboard = () => {

@@ -886,7 +886,7 @@ let addComment = (ctx:mmContext,str:string):unit => {
 }
 
 let assertNameIsUnique = (ctx:mmContext,name:string,tokenType:string):unit => {
-    if (name->Js_string2.trim == "") {
+    if (name->String.trim == "") {
         raise(MmException({msg:`Cannot use an empty string as a name of ${tokenType}.`}))
     } else {
         switch getTokenType(ctx,name) {

@@ -90,8 +90,8 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
 let addDisjFromString = (wrkCtx, disjStr) => {
     wrkCtx->applySingleStmt(Disj({
         vars:disjStr
-            ->Js.String2.split(" ")
-            ->Array.map(Js_string2.trim(_))
+            ->String.split(" ")
+            ->Array.map(String.trim(_))
             ->Array.filter(str => str != "")
     }), ())
 }

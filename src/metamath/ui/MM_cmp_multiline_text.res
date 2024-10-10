@@ -120,11 +120,11 @@ let make = (
     }
     
     let actEditDone = () => {
-        onEditDone(state.newText->Js_string2.trim)
+        onEditDone(state.newText->String.trim)
     }
     
     let actEditCancel = () => {
-        onEditCancel(state.newText->Js_string2.trim)
+        onEditCancel(state.newText->String.trim)
     }
     
     let actStartNewLine = () => {
@@ -195,7 +195,7 @@ let make = (
                 {rndButtons()}
             </Col>
         } else {
-            let style = if (text->Js.String2.trim == "") {
+            let style = if (text->String.trim == "") {
                 ReactDOM.Style.make(~padding="4px", ())
             } else {
                 ReactDOM.Style.make(~padding="0px 4px", ())
@@ -218,7 +218,7 @@ let make = (
                 title
             >
                 {
-                    if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {
+                    if (text->String.trim == "" || renderer->Belt.Option.isNone) {
                         <pre>
                             {React.string(text)}
                         </pre>

@@ -194,7 +194,7 @@ let updateStmt = (
                             ...stmt, 
                             cont: stmt.cont
                                     ->contToStr
-                                    ->Js.String2.replace(contReplaceWhat, contReplaceWith)
+                                    ->String.replace(contReplaceWhat, contReplaceWith)
                                     ->strToCont(_, ())
                         }
                     }
@@ -277,7 +277,7 @@ let getStmt = (
     }
     let predicate = switch contains {
         | None => predicate
-        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->Js.String2.includes(contains)
+        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->String.includes(contains)
     }
     let predicate = switch label {
         | None => predicate

@@ -196,7 +196,7 @@ let addWebSrcSetting = st => {
 }
 
 let validateAndCorrectParens = (st:settingsState):settingsState => {
-    let newParens = st.parens->Js_string2.trim
+    let newParens = st.parens->String.trim
     let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Array.length, 2) == 0) {
         None
     } else {
@@ -228,10 +228,10 @@ let validateColor = (color:string):string => {
 let validateAndCorrectDiscAndDeprSettings = (st:settingsState):settingsState => {
     let st = {
         ...st,
-        descrRegexToDisc: st.descrRegexToDisc->Js_string2.trim,
-        labelRegexToDisc: st.labelRegexToDisc->Js_string2.trim,
-        descrRegexToDepr: st.descrRegexToDepr->Js_string2.trim,
-        labelRegexToDepr: st.labelRegexToDepr->Js_string2.trim,
+        descrRegexToDisc: st.descrRegexToDisc->String.trim,
+        labelRegexToDisc: st.labelRegexToDisc->String.trim,
+        descrRegexToDepr: st.descrRegexToDepr->String.trim,
+        labelRegexToDepr: st.labelRegexToDepr->String.trim,
     }
     let st = {
         ...st,
@@ -248,20 +248,20 @@ let validateAndCorrectDiscAndDeprSettings = (st:settingsState):settingsState => 
 }
 
 let validateDefaultStmtLabel = (label:string):string => {
-    label->Js.String2.replaceByRe(%re("/[^A-Za-z0-9._-]/g"), "")
+    label->String.replaceRegExp(%re("/[^A-Za-z0-9._-]/g"), "")
 }
 
 let validateAndCorrectDefaultStmtType = (st:settingsState):settingsState => {
     {
         ...st,
-        defaultStmtType: st.defaultStmtType->Js_string2.trim,
+        defaultStmtType: st.defaultStmtType->String.trim,
     }
 }
 
 let validateAndCorrectUnifMetavarPrefix = (st:settingsState):settingsState => {
     {
         ...st,
-        unifMetavarPrefix: st.unifMetavarPrefix->Js_string2.trim,
+        unifMetavarPrefix: st.unifMetavarPrefix->String.trim,
     }
 }
 
@@ -276,17 +276,17 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
     let strContainsWhitespaceRegex = %re("/\s+/")
     let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
         let newId = ts.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
-        let newTyp = ts.typ->Js_string2.trim
+        let newTyp = ts.typ->String.trim
         let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
-        let typIsEmpty = newTyp->Js_string2.length == 0
+        let typIsEmpty = newTyp->String.length == 0
         let newColor = if (!(allColors->Array.includes(ts.color))) {
             allColors->Array.getUnsafe(0)
         } else {
             ts.color
         }
-        let newPrefix = ts.prefix->Js_string2.trim
+        let newPrefix = ts.prefix->String.trim
         let prefixHasWhitespace = newPrefix->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
-        let prefixIsEmpty = newPrefix->Js_string2.length == 0
+        let prefixIsEmpty = newPrefix->String.length == 0
         let err = if (typHasWhitespace) {
             Some("Type should not contain whitespaces.")
         } else if (typIsEmpty) {
@@ -388,9 +388,9 @@ let restoreDefaultWebSrcSettings = (state: settingsState):settingsState => {
 let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
     let validateAndCorrectWebSrcSetting = (src:webSrcSettingsState):webSrcSettingsState => {
         let newId = src.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
-        let newAlias = src.alias->Js.String2.trim
-        let newUrl = src.url->Js.String2.trim
-        let err = if (newUrl->Js_string2.length == 0) {
+        let newAlias = src.alias->String.trim
+        let newUrl = src.url->String.trim
+        let err = if (newUrl->String.length == 0) {
             Some("URL should not be empty.")
         } else {
             None

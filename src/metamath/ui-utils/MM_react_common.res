@@ -114,7 +114,7 @@ let kbrdClbkMake = (
     ~act:unit=>unit,
     ()
 ) => {
-    { key:key->Js_string2.toLowerCase, alt, shift, ctrl, act, }
+    { key:key->String.toLowerCase, alt, shift, ctrl, act, }
 }
 
 let kbrdHnd = (
@@ -125,10 +125,10 @@ let kbrdHnd = (
     ~act:unit=>unit,
     ()
 ):(ReactEvent.Keyboard.t => unit) => {
-    let key = key->Js_string2.toLowerCase
+    let key = key->String.toLowerCase
     evt => {
         if (
-            evt->ReactEvent.Keyboard.key->Js_string2.toLowerCase === key
+            evt->ReactEvent.Keyboard.key->String.toLowerCase === key
             && evt->ReactEvent.Keyboard.altKey === alt
             && evt->ReactEvent.Keyboard.ctrlKey === ctrl
             && evt->ReactEvent.Keyboard.shiftKey === shift
@@ -142,7 +142,7 @@ let kbrdHnd = (
 
 let runKbrdCallback = (evt:ReactEvent.Keyboard.t, clbk:kbrdCallback):unit => {
     if (
-        evt->ReactEvent.Keyboard.key->Js_string2.toLowerCase === clbk.key
+        evt->ReactEvent.Keyboard.key->String.toLowerCase === clbk.key
         && evt->ReactEvent.Keyboard.altKey === clbk.alt
         && evt->ReactEvent.Keyboard.ctrlKey === clbk.ctrl
         && evt->ReactEvent.Keyboard.shiftKey === clbk.shift

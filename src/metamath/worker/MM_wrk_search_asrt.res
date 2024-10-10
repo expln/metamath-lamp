@@ -140,7 +140,7 @@ let searchAssertions = (
             ~varsText,
             ~disjText,
             ~procName,
-            ~initialRequest = FindAssertions({label:label->Js.String2.toLowerCase, typ, pattern}),
+            ~initialRequest = FindAssertions({label:label->String.toLowerCase, typ, pattern}),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -190,7 +190,7 @@ let doSearchAssertions = (
     framesInDeclarationOrder->Array.forEach(frm => {
         let frame = frm.frame
         if (
-            frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
+            frame.label->String.toLowerCase->String.includes(label)
             && frame.asrt->Array.getUnsafe(0) == typ 
             && frameMatchesPattern(frame)
         ) {

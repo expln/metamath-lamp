@@ -100,19 +100,19 @@ let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
 
 let readTestFileToString = (fileName:string):string => {
     Expln_utils_files.readStringFromFile(curTestDataDir.contents ++ "/" ++ fileName ++ ".txt")
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+        ->String.replaceRegExp(%re("/\r/g"), "")
 }
 
 let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
-        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
+        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->String.replaceRegExp(%re("/\r/g"), "")
     } catch {
         | Exn.Error(exn) => {
             if (
                 exn->Exn.message
                     ->Belt_Option.getWithDefault("")
-                    ->Js_string2.includes("no such file or directory")
+                    ->String.includes("no such file or directory")
             ) {
                 ""
             } else {
@@ -155,7 +155,7 @@ let assertStmtsDto = (stmtsDto, expectedStrFileName:string) => {
 let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
     let actualStr = switch st->generateCompressedProof(stmtId) {
         | None => "no proof generated"
-        | Some((actualStr, _, _)) => actualStr->Js.String2.replaceByRe(%re("/\r/g"), "")
+        | Some((actualStr, _, _)) => actualStr->String.replaceRegExp(%re("/\r/g"), "")
     }
     assertStrEqFile(actualStr, expectedStrFileName)
 }

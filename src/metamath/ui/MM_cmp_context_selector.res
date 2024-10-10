@@ -102,7 +102,7 @@ let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
         | None => None
         | Some(Local({fileName})) => Some(fileName)
         | Some(Web({alias,url})) => {
-            if (alias->Js_string2.trim != "") {
+            if (alias->String.trim != "") {
                 Some(alias)
             } else {
                 Some(url)
@@ -431,7 +431,7 @@ let srcDtoToFileSrc = (~src:mmCtxSrcDto, ~webSrcSettings:array<webSrcSettings>):
         Web({
             alias: switch webSrcSettings->Array.find(ws => ws.url == src.url) {
                 | Some({alias}) => {
-                    if (alias->Js_string2.trim != "") {
+                    if (alias->String.trim != "") {
                         alias
                     } else {
                         src.url
@@ -553,7 +553,7 @@ let make = (
                 modalRef
                 availableWebSrcs={
                     settings.webSrcSettings
-                        ->Array.filter(s => s.alias->Js_string2.trim->Js_string2.length > 0)
+                        ->Array.filter(s => s.alias->String.trim->String.length > 0)
                         ->Array.map(s => {
                             {
                                 alias:s.alias,

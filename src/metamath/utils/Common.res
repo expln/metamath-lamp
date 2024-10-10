@@ -1,5 +1,5 @@
-let nbsp = Js_string2.fromCharCode(160)
-let circleChar = Js_string2.fromCharCode(9679)
+let nbsp = String.fromCharCode(160)
+let circleChar = String.fromCharCode(9679)
 
 let currTimeStr = () => Date.now()->Date.fromTime->Date.toISOString
 let compareDates = (a:Js_date.t, b:Js_date.t):float => {
@@ -67,9 +67,9 @@ let strToRegex = (str:string):result<Js_re.t,string> => {
 
 let splitByRegex = (str,regex) => {
     str
-        ->Js_string2.splitByRe(regex)
-        ->Array.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Array.filter(str => str->Js_string2.length > 0)
+        ->String.splitByRegExp(regex)
+        ->Array.map(strOpt => strOpt->Belt_Option.getWithDefault("")->String.trim)
+        ->Array.filter(str => str->String.length > 0)
 }
 
 let newLineRegex = %re("/[\n\r]/")
@@ -88,13 +88,13 @@ let underscoreSignRegex = %re("/_/g")
 let strToSafeBase64 = str => {
     str
         ->strToBase64
-        ->Js.String2.replaceByRe(plusSignRegex, "-")
-        ->Js.String2.replaceByRe(forwardSlashSignRegex, "_")
+        ->String.replaceRegExp(plusSignRegex, "-")
+        ->String.replaceRegExp(forwardSlashSignRegex, "_")
 }
 let safeBase64ToStr = safeBase64 => {
     safeBase64
-        ->Js.String2.replaceByRe(underscoreSignRegex, "/")
-        ->Js.String2.replaceByRe(minusSignRegex, "+")
+        ->String.replaceRegExp(underscoreSignRegex, "/")
+        ->String.replaceRegExp(minusSignRegex, "+")
         ->base64ToStr
 }
 

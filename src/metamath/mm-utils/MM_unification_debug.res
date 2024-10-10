@@ -34,20 +34,20 @@ let unifErrToStr = (
             }
         }
         | DisjCommonVar({frmVar1, expr1, frmVar2, expr2, commonVar}) => {
-            let arrow = Js_string2.fromCharCode(8594)
+            let arrow = String.fromCharCode(8594)
             `Unsatisfied disjoint, common variable ${exprToStr([commonVar])}:\n`
                 ++ `${frmExprToStr([frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
                 ++ `${frmExprToStr([frmVar2])} ${arrow} ${exprToStr(expr2)}`
         }
         | Disj({frmVar1, expr1, var1, frmVar2, expr2, var2}) => {
-            let arrow = Js_string2.fromCharCode(8594)
+            let arrow = String.fromCharCode(8594)
             `Missing disjoint ${exprToStr([var1])},${exprToStr([var2])}:\n`
                 ++ `${frmExprToStr([frmVar1])} ${arrow} ${exprToStr(expr1)}\n`
                 ++ `${frmExprToStr([frmVar2])} ${arrow} ${exprToStr(expr2)}`
         }
         | UnprovedFloating({expr:expr}) => `Could not prove this floating statement:\n` ++ exprToStr(expr)
         | NoUnifForAsrt({asrtExpr, expr}) => {
-            let arrow = Js_string2.fromCharCode(8594)
+            let arrow = String.fromCharCode(8594)
             `Could not find a match for assertion:\n`
                 ++ `${frmExprToStr(asrtExpr)}\n${arrow}\n${exprToStr(expr)}`
         }

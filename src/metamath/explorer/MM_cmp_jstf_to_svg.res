@@ -102,7 +102,7 @@ let text = (
             {text->React.string}
         </text>,
         bndFromVectors([
-            ex->vecMul(charWidth *. text->Js_string2.length->Belt_Int.toFloat),
+            ex->vecMul(charWidth *. text->String.length->Belt_Int.toFloat),
             ey->vecMul(charHeight),
         ])
     )
@@ -159,13 +159,13 @@ let testTextRendering = ():reElem => {
 
     let testText2 = "|- AbCdEf       WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... |||"
     let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false, ())
-    let charWidth = textBnd3->bndWidth /. (testText2->Js.String2.length->Belt.Int.toFloat)
+    let charWidth = textBnd3->bndWidth /. (testText2->String.length->Belt.Int.toFloat)
     let textBnd4Arr = []
     let textElem4Arr = []
     let ex4 = ref(ex->vecTr(ey->vecRev->vecMul(3. *. textHeight *. 1.1)))
     let dx = ex->vecMul(charWidth)
-    for i in 0 to testText2->Js.String2.length-1 {
-        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
+    for i in 0 to testText2->String.length-1 {
+        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->String.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
         textElem4Arr->Array.push(textElem4)
         textBnd4Arr->Array.push(textBnd4)
         ex4 := ex4.contents->vecTr(dx)
@@ -240,8 +240,8 @@ let rndStmtAndHyp = (
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
         let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Array.joinUnsafe(" ")
-        let ctxStmtLen = ctxStmtStr->Js.String2.length->Belt_Int.toFloat *. charWidth
-        let frmStmtLen = frmStmt->Array.joinUnsafe(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
+        let ctxStmtLen = ctxStmtStr->String.length->Belt_Int.toFloat *. charWidth
+        let frmStmtLen = frmStmt->Array.joinUnsafe(" ")->String.length->Belt_Int.toFloat *. charWidth
         let dx = (ctxStmtLen -. frmStmtLen) /. 2.
         let exL = ex
         let exS = ex->vecTr(ex->vecMul(dx))

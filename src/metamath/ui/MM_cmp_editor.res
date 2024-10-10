@@ -512,7 +512,7 @@ let make = (
     }
 
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
-        let newLabel = newLabel->Js_string2.trim
+        let newLabel = newLabel->String.trim
         switch state->renameStmt(stmtId, newLabel) {
             | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this step: ${msg}`, () )
             | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabel))
@@ -560,7 +560,7 @@ let make = (
                 let contNew = newContText->strToCont(())
                 let textOld = contOld->contToStr
                 let textNew = contNew->contToStr
-                if (textOld == textNew || (textOld == "" && textNew == state.settings.defaultStmtType->Js.String2.trim)) {
+                if (textOld == textNew || (textOld == "" && textNew == state.settings.defaultStmtType->String.trim)) {
                     if (textOld == "") {
                         setState(deleteStmt(_,stmtId))
                     } else {
@@ -606,13 +606,13 @@ let make = (
             | Some(stmt) => {
                 let textOld = switch stmt.typ {
                     | E => defaultJstfForHyp
-                    | P => stmt.jstfText->Js_string2.trim
+                    | P => stmt.jstfText->String.trim
                 }
-                let newJstfTextTrim = newJstfText->Js_string2.trim
+                let newJstfTextTrim = newJstfText->String.trim
                 let textNew = switch stmt.typ {
                     | P => newJstfTextTrim
                     | E => {
-                        if (defaultJstfForHyp == newJstfTextTrim->Js.String2.toUpperCase) {
+                        if (defaultJstfForHyp == newJstfTextTrim->String.toUpperCase) {
                             defaultJstfForHyp
                         } else {
                             newJstfTextTrim
@@ -648,8 +648,8 @@ let make = (
     }
 
     let actCancelEditDescr = (newText):unit => {
-        let textOld = state.descr->Js_string2.trim
-        let textNew = newText->Js_string2.trim
+        let textOld = state.descr->String.trim
+        let textNew = newText->String.trim
         if (textOld == textNew || textNew == "") {
             setState(completeDescrEditMode(_,textOld))
         } else {
@@ -676,8 +676,8 @@ let make = (
     }
 
     let actCancelEditVars = (newText):unit => {
-        let textOld = state.varsText->Js_string2.trim
-        let textNew = newText->Js_string2.trim
+        let textOld = state.varsText->String.trim
+        let textNew = newText->String.trim
         if (textOld == textNew || textNew == "") {
             setState(completeVarsEditMode(_,textOld))
         } else {
@@ -704,8 +704,8 @@ let make = (
     }
 
     let actCancelEditDisj = (newText):unit => {
-        let textOld = state.disjText->Js_string2.trim
-        let textNew = newText->Js_string2.trim
+        let textOld = state.disjText->String.trim
+        let textNew = newText->String.trim
         if (textOld == textNew || textNew == "") {
             setState(completeDisjEditMode(_,textOld))
         } else {

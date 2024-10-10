@@ -221,7 +221,7 @@ let make = (
                         ~preCtx,
                         ~varsText,
                         ~disjText,
-                        ~label=state.label->Js_string2.trim,
+                        ~label=state.label->String.trim,
                         ~typ=state.typ,
                         ~pattern=wrkCtx->ctxStrToIntsExn(state.patternStr),
                         ~onProgress = pct => updateModal(

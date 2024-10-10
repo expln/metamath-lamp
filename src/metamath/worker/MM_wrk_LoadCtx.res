@@ -73,8 +73,8 @@ let beginLoadingMmContext = (
 }
 
 let strToRegexOpt = (str:string):option<Js_re.t> => {
-    let str = str->Js_string2.trim
-    if (str->Js.String2.length == 0) {
+    let str = str->String.trim
+    if (str->String.length == 0) {
         None
     } else {
         switch str->strToRegex {

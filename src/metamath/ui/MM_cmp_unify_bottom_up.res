@@ -352,7 +352,7 @@ let nonDigitPattern = %re("/\D/g")
 let setMaxNumberOfBranchesStr = (st, maxNumberOfBranchesStr) => {
     {
         ...st,
-        maxNumberOfBranchesStr: maxNumberOfBranchesStr->Js.String2.replaceByRe(nonDigitPattern, "")
+        maxNumberOfBranchesStr: maxNumberOfBranchesStr->String.replaceRegExp(nonDigitPattern, "")
     }
 }
 
@@ -681,7 +681,7 @@ let make = (
     }
 
     let actDepthUpdated = depthStr => {
-        setState(setDepthStr(_,depthStr->Js.String2.replaceByRe(nonDigitPattern, "")))
+        setState(setDepthStr(_,depthStr->String.replaceRegExp(nonDigitPattern, "")))
     }
 
     let actLengthRestrictUpdated = lengthRestrict => {
@@ -833,8 +833,8 @@ let make = (
 
     let actProve = () => {
         setState(st => {
-            let depthStr = st.depthStr->Js_string2.trim
-            let st = if (depthStr->Js_string2.length == 0) {
+            let depthStr = st.depthStr->String.trim
+            let st = if (depthStr->String.length == 0) {
                 {...st, depth:1, depthStr:"1"}
             } else {
                 let depth = Math.Int.max(depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(1), 1)

@@ -66,14 +66,14 @@ let make = (
     }
 
     let rndMultilineText = (text:string, renderer:option<string=>reElem>) => {
-        let style = if (text->Js.String2.trim == "") {
+        let style = if (text->String.trim == "") {
             ReactDOM.Style.make(~padding="4px", ())
         } else {
             ReactDOM.Style.make(~padding="0px", ())
         }
         <Paper variant=#outlined style >
             {
-                if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {
+                if (text->String.trim == "" || renderer->Belt.Option.isNone) {
                     <pre>
                         {React.string(text)}
                     </pre>

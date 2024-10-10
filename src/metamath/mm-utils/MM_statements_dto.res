@@ -26,5 +26,5 @@ let jstfEq = (a:jstf, b:jstf):bool => {
 }
 
 let jstfToStr = (jstf:jstf):string => {
-    (jstf.args->Array.joinUnsafe(" ") ++ " : " ++ jstf.label)->Js_string2.trim
+    (jstf.args->Array.joinUnsafe(" ") ++ " : " ++ jstf.label)->String.trim
 }

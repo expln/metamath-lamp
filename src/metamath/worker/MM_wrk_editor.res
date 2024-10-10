@@ -45,7 +45,7 @@ type stmtCont =
 
 let contIsEmpty = cont => {
     switch cont {
-        | Text({text}) | Tree({text}) => text->Js_string2.length == 0
+        | Text({text}) | Tree({text}) => text->String.length == 0
     }
 }
 
@@ -528,9 +528,9 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
         0
     )
-    let defaultStmtLabel = st.settings.defaultStmtLabel->Js.String2.trim
+    let defaultStmtLabel = st.settings.defaultStmtLabel->String.trim
     let newLabel = 
-        if (pCnt == 0 && defaultStmtLabel->Js.String2.length > 0) {
+        if (pCnt == 0 && defaultStmtLabel->String.length > 0) {
             if (st.stmts->Array.some(stmt => stmt.label == defaultStmtLabel)) {
                 createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp, ())
             } else {
@@ -687,7 +687,7 @@ let setLabelEditMode = (st:editorState, stmtId) => {
 
 let completeLabelEditMode = (st, stmtId, newLabel):editorState => {
     updateStmt(st, stmtId, stmt => {
-        if (newLabel->Js_string2.trim != "") {
+        if (newLabel->String.trim != "") {
             {
                 ...stmt,
                 label:newLabel,
@@ -709,7 +709,7 @@ let setContEditMode = (st, stmtId) => {
 
 let completeContEditMode = (st, stmtId, newContText):editorState => {
     updateStmt(st, stmtId, stmt => {
-        if (newContText->Js_string2.trim == "") {
+        if (newContText->String.trim == "") {
             stmt
         } else {
             {
@@ -1024,19 +1024,19 @@ let refreshWrkCtx = (st:editorState):editorState => {
 }
 
 let parseJstf = (jstfText:string):result<option<jstf>,string> => {
-    let jstfText = jstfText->Js_string2.trim
-    if (jstfText->Js_string2.length == 0) {
+    let jstfText = jstfText->String.trim
+    if (jstfText->String.length == 0) {
         Ok(None)
     } else {
-        let argsAndAsrt = jstfText->Js_string2.split(":")
+        let argsAndAsrt = jstfText->String.split(":")
         if (argsAndAsrt->Array.length != 2) {
             Error(`Cannot parse justification: '${jstfText}'. A justification must contain exactly one colon symbol.`)
-        } else if (argsAndAsrt->Array.getUnsafe(1)->Js_string2.trim == "") {
+        } else if (argsAndAsrt->Array.getUnsafe(1)->String.trim == "") {
             Error(`Cannot parse justification: '${jstfText}'. Reference must not be empty.`)
         } else {
             Ok(Some({
                 args: argsAndAsrt->Array.getUnsafe(0)->getSpaceSeparatedValuesAsArray,
-                label: argsAndAsrt->Array.getUnsafe(1)->Js_string2.trim
+                label: argsAndAsrt->Array.getUnsafe(1)->String.trim
             }))
         }
     }
@@ -1360,7 +1360,7 @@ let createNewVars = (
                 })->Array.joinUnsafe("\n")
                 let st = {
                     ...st,
-                    varsText: [st.varsText, newVarsText]->Array.joinUnsafe("\n")->Js.String2.trim
+                    varsText: [st.varsText, newVarsText]->Array.joinUnsafe("\n")->String.trim
                 }
                 let st = recalcWrkCtxColors(st)
                 ( st, newVarInts )
@@ -1385,7 +1385,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
                 let newDisjText = newDisjTextLines->Array.joinUnsafe("\n")
                 {
                     ...st,
-                    disjText: [st.disjText, newDisjText]->Array.joinUnsafe("\n")->Js.String2.trim
+                    disjText: [st.disjText, newDisjText]->Array.joinUnsafe("\n")->String.trim
                 }
             }
         }
@@ -1605,7 +1605,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ->Expln_utils_common.arrFlatMap(stmt=>stmt.cont->contToArrStr)
                 ->Belt_HashSetString.fromArray
             wrkCtx->getLocalHyps->Array.forEach(hyp => {
-                if (hyp.typ == F && hyp.label->Js_string2.startsWith(".")) {
+                if (hyp.typ == F && hyp.label->String.startsWith(".")) {
                     usedSymbols->Belt_HashSetString.add(wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
                 }
             })
@@ -1960,7 +1960,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
 }
 
 let splitIntoChunks = (str, chunkMaxSize): array<string> => {
-    let len = str->Js_string2.length
+    let len = str->String.length
     if (len <= chunkMaxSize) {
         [str]
     } else {
@@ -1987,7 +1987,7 @@ let proofToText = (
         | Compressed({labels, compressedProofBlock}) => {
             let blk = splitIntoChunks(compressedProofBlock, 50)->Array.joinUnsafe(" ")
             let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Array.joinUnsafe(" ")} ) ${blk} $.`
-            let descrIsEmpty = descr->Js_string2.trim->Js_string2.length == 0
+            let descrIsEmpty = descr->String.trim->String.length == 0
             let blockIsRequired = newHyps->Array.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
             if (blockIsRequired) {
@@ -2166,7 +2166,7 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
 }
 
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
-let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
+let removeSymbolsNotAllowedInLabel = str => str->String.replaceRegExp(symbolsNotAllowedInLabelRegex, "")
 
 let renameStmt = (st:editorState, stmtId:stmtId, newLabel:string):result<editorState,string> => {
     let newLabel = newLabel->removeSymbolsNotAllowedInLabel
@@ -2280,9 +2280,9 @@ let defaultJstfForHyp = "HYP"
 let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
     let oldStmt = st->editorGetStmtByIdExn(stmtId)
     let st = updateStmt(st, stmtId, stmt => {
-        let jstfTrimUpperCase = newJstfInp->Js.String2.trim->Js.String2.toLocaleUpperCase
+        let jstfTrimUpperCase = newJstfInp->String.trim->String.toLocaleUpperCase
         let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
-        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->Js.String2.trim}
+        let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->String.trim}
 
         let pCnt = st.stmts->Js.Array2.reduce(
             (cnt,stmt) => {
@@ -2296,7 +2296,7 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
         )
         
         let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal || st.settings.initStmtIsGoal && pCnt == 0 }
-        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->Js.String2.length > 0) {
+        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->String.length > 0) {
             st.settings.defaultStmtLabel
         } else { 
             stmt.label
@@ -2338,7 +2338,7 @@ let addStepsWithoutVars = (
             switch step.cont {
                 | None => Error(`Steps must not have empty statements.`)
                 | Some(cont) => {
-                    if (cont->Js_string2.trim == "") {
+                    if (cont->String.trim == "") {
                         Error(`Steps must not have empty statements.`)
                     } else {
                         Ok(st->completeContEditMode(stmtId, cont))
@@ -2350,7 +2350,7 @@ let addStepsWithoutVars = (
             switch step.label {
                 | None => Ok(st)
                 | Some(label) => {
-                    if (label->Js_string2.trim == "") {
+                    if (label->String.trim == "") {
                         Error(`Steps must not have empty labels.`)
                     } else {
                         Ok(st->completeLabelEditMode(stmtId, label))
@@ -2457,7 +2457,7 @@ let updateSteps = (
             switch step.cont {
                 | None => Ok(stmt)
                 | Some(cont) => {
-                    if (cont->Js_string2.trim == "") {
+                    if (cont->String.trim == "") {
                         Error(`Steps must not have empty statements.`)
                     } else {
                         Ok({
@@ -2582,8 +2582,8 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorS
                 switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
                     | None => continue := false
                     | Some(stmt2) => {
-                        let jstf1 = stmt1.jstfText->Js_string2.trim
-                        let jstf2 = stmt2.jstfText->Js_string2.trim
+                        let jstf1 = stmt1.jstfText->String.trim
+                        let jstf2 = stmt2.jstfText->String.trim
                         if (selectFirst) {
                             if (jstf1 == "") {
                                 continue := false

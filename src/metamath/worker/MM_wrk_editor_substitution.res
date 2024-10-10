@@ -302,7 +302,7 @@ let findPossibleSubsByUnif = (
         | Ok((tree1,tree2)) => {
             let continue = ref(true)
             let foundSubs = Belt_HashMapString.make(~hintSize = expr1->Array.length + expr2->Array.length)
-            unify(tree1, tree2, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,metavarPrefix))
+            unify(tree1, tree2, ~foundSubs, ~continue, ~isMetavar=String.startsWith(_,metavarPrefix))
             if (!continue.contents) {
                 Error(`Cannot unify these expressions.`)
             } else {

@@ -96,7 +96,7 @@ let make = React.memoCustomCompareProps(({
                 style=ReactDOM.Style.make(~width="150px", ())
                 label="Go to page" 
                 value=goToPageText 
-                onChange=evt2str(newPage => setGoToPageText(_ => newPage->Js.String2.replaceByRe(nonDigitPattern, "")))
+                onChange=evt2str(newPage => setGoToPageText(_ => newPage->String.replaceRegExp(nonDigitPattern, "")))
                 onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage, ())
             />
         </Row>

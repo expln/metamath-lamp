@@ -135,7 +135,7 @@ let make = (
                     value=stepsPerPageTextEffective
                     autoFocus=true
                     onChange=evt2str(newStepsPerPage => {
-                        setStepsPerPageText(_ => Some(newStepsPerPage->Js.String2.replaceByRe(nonDigitPattern, "")))
+                        setStepsPerPageText(_ => Some(newStepsPerPage->String.replaceRegExp(nonDigitPattern, "")))
                     })
                     onKeyDown=kbrdHnd2(
                         kbrdClbkMake(~key=keyEnter, ~act=actChangeStepsPerPage, ()),

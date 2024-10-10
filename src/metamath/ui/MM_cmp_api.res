@@ -180,8 +180,8 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
             ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
             ("disj",
                 state.disjText->multilineTextToNonEmptyLines->Array.map(disjLine => {
-                    disjLine->Js.String2.split(" ")
-                        ->Array.map(Js_string2.trim(_))
+                    disjLine->String.split(" ")
+                        ->Array.map(String.trim(_))
                         ->Array.filter(str => str != "")
                         ->Array.map(Js_json.string(_))
                         ->Js.Json.array
@@ -704,7 +704,7 @@ let addSteps = (
                 }
             }, ()), ()),
             vars: d->arrOpt("vars", asArr(_, asStr(_, ~validator=str=>{
-                let trimed = str->Js_string2.trim
+                let trimed = str->String.trim
                 if (trimed == "") {
                     Error("Variable type and name must not be empty")
                 } else {

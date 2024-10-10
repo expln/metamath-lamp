@@ -99,9 +99,9 @@ let make = React.memoCustomCompareProps(({
                     ~constPat,
                     ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Array.length)
                 )
-                let labelFilterTrim = labelFilter->Js_string2.trim->Js_string2.toLowerCase
-                let descrFilterStrTrim = descrFilterStr->Js_string2.trim->Js_string2.toLowerCase
-                let filterByDescr = descrFilterStrTrim->Js.String2.length > 0
+                let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
+                let descrFilterStrTrim = descrFilterStr->String.trim->String.toLowerCase
+                let filterByDescr = descrFilterStrTrim->String.length > 0
                 setFilteredLabels(_ => {
                     allLabels->Array.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
@@ -116,11 +116,11 @@ let make = React.memoCustomCompareProps(({
                         && (!discFilter || frame.isDisc)
                         && (!deprFilter || frame.isDepr)
                         && (!tranDeprFilter || frame.isTranDepr)
-                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilterTrim)
+                        && label->String.toLowerCase->String.includes(labelFilterTrim)
                         && (
                             !filterByDescr
                             || frame.descr->Belt.Option.mapWithDefault(false, descr => {
-                                descr->Js_string2.toLowerCase->Js.String2.includes(descrFilterStrTrim)
+                                descr->String.toLowerCase->String.includes(descrFilterStrTrim)
                             })
                         )
                         && frameMatchesPattern(frame)

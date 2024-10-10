@@ -60,7 +60,7 @@ let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
                     ~allowedValues=["aqua", "black", "blue", "fuchsia", "gray", "green", "lime", "maroon", "navy", "olive", 
                                     "purple", "red", "silver", "teal", "white", "yellow"])
                 | "href" => {
-                    if (attrValue->Js_string2.startsWith("http://") || attrValue->Js_string2.startsWith("https://")) {
+                    if (attrValue->String.startsWith("http://") || attrValue->String.startsWith("https://")) {
                         Ok(())
                     } else {
                         Error(`A link url should start with http or https, but got: ${attrValue}`)

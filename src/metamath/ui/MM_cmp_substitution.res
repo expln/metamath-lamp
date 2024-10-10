@@ -228,7 +228,7 @@ let make = (
     }
 
     let actExpr1OnEnter = () => {
-        if (state.expr2Str->Js_string2.trim == "") {
+        if (state.expr2Str->String.trim == "") {
             actFocus(expr2TextFieldRef)
         } else {
             actDetermineSubs()
@@ -236,7 +236,7 @@ let make = (
     }
 
     let actExpr2OnEnter = () => {
-        if (state.expr1Str->Js_string2.trim == "") {
+        if (state.expr1Str->String.trim == "") {
             actFocus(expr1TextFieldRef)
         } else {
             actDetermineSubs()
@@ -448,7 +448,7 @@ let make = (
                     }
                     | TypeMismatch({var, subsExpr, typeExpr}) => {
                         `could not prove [${wrkCtx->ctxIntsToStrExn(typeExpr)}] for ${wrkCtx->ctxIntToSymExn(var)} `
-                            ++ Js_string2.fromCharCode(8594) ++ ` [${wrkCtx->ctxIntsToStrExn(subsExpr)}]`
+                            ++ String.fromCharCode(8594) ++ ` [${wrkCtx->ctxIntsToStrExn(subsExpr)}]`
                     }
                 }
                 <div>
