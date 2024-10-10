@@ -23,10 +23,10 @@ let asStr: (jsonAny, ~validator:validator<string>=?, ~default:default<string>=?,
 let strOpt: (jsonAny, string, ~validator:validator<option<string>>=?, ~default:default<option<string>>=?, ()) => option<string>
 let str: (jsonAny, string, ~validator:validator<string>=?, ~default:default<string>=?, ()) => string
 
-let asJsonOpt: (jsonAny, ~validator:validator<option<Js_json.t>>=?, ~default:default<option<Js_json.t>>=?, ()) => option<Js_json.t>
-let asJson: (jsonAny, ~validator:validator<Js_json.t>=?, ~default:default<Js_json.t>=?, ()) => Js_json.t
-let jsonOpt: (jsonAny, string, ~validator:validator<option<Js_json.t>>=?, ~default:default<option<Js_json.t>>=?, ()) => option<Js_json.t>
-let json: (jsonAny, string, ~validator:validator<Js_json.t>=?, ~default:default<Js_json.t>=?, ()) => Js_json.t
+let asJsonOpt: (jsonAny, ~validator:validator<option<JSON.t>>=?, ~default:default<option<JSON.t>>=?, ()) => option<JSON.t>
+let asJson: (jsonAny, ~validator:validator<JSON.t>=?, ~default:default<JSON.t>=?, ()) => JSON.t
+let jsonOpt: (jsonAny, string, ~validator:validator<option<JSON.t>>=?, ~default:default<option<JSON.t>>=?, ()) => option<JSON.t>
+let json: (jsonAny, string, ~validator:validator<JSON.t>=?, ~default:default<JSON.t>=?, ()) => JSON.t
 
 let asArrOpt: (jsonAny, jsonAny => 'a, ~validator:validator<option<array<'a>>>=?, ~default:default<option<array<'a>>>=?, ()) => option<array<'a>>
 let asArr: (jsonAny, jsonAny => 'a, ~validator:validator<array<'a>>=?, ~default:default<array<'a>>=?, ()) => array<'a>
@@ -39,7 +39,7 @@ let objOpt: (jsonAny, string, jsonAny => 'a, ~validator:validator<option<'a>>=?,
 let obj: (jsonAny, string, jsonAny => 'a, ~validator:validator<'a>=?, ~default:default<'a>=?, ()) => 'a
 
 let parseJson: (string, jsonAny => 'a, ~validator: validator<'a>=?, ~default: default<'a>=?, ()) => result<'a, string>
-let fromJson: (Js.Json.t, jsonAny => 'a, ~validator: validator<'a>=?, ~default: default<'a>=?, ()) => result<'a, string>
+let fromJson: (JSON.t, jsonAny => 'a, ~validator: validator<'a>=?, ~default: default<'a>=?, ()) => result<'a, string>
 
 
 

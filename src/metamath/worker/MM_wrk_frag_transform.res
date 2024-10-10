@@ -4,9 +4,9 @@ type fragmentTransformState = string
 type reactElemDto = string
 
 type fragmentTransform = {
-    canApply: {"step":Js_json.t} => bool,
-    displayName: {"step":Js_json.t} => string,
-    createInitialState: {"step":Js_json.t} => fragmentTransformState,
+    canApply: {"step":JSON.t} => bool,
+    displayName: {"step":JSON.t} => string,
+    createInitialState: {"step":JSON.t} => fragmentTransformState,
     renderDialog: 
         {
             "state":fragmentTransformState, 

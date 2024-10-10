@@ -4,11 +4,11 @@ open MM_apply_asrt_matcher
 
 type apiResp = {
     "isOk": bool,
-    "res": option<Js_json.t>,
+    "res": option<JSON.t>,
     "err": option<string>,
 }
 
-type api = Js.Json.t => promise<apiResp>
+type api = JSON.t => promise<apiResp>
 
 let api: {
     "setLogApiCallsToConsole": api,
@@ -41,7 +41,7 @@ let updateEditorApi: (
     ~state: editorState,
     ~showInfoMsg:string=>unit,
     ~showErrMsg:string=>unit,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
@@ -50,7 +50,7 @@ let updateEditorApi: (
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
 ) => unit
 
-let stmtToJson: (userStmt, option<int=>string>) => Js_json.t
+let stmtToJson: (userStmt, option<int=>string>) => JSON.t
 
 type apiApplyAsrtResultHypMatcher = {
     label: option<string>,

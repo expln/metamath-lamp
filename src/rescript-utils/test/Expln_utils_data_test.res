@@ -4,7 +4,7 @@ let {traverseTree} = module(Expln_utils_data)
 let {parseJson, asObj, arrOpt, num, str} = module(Expln_utils_jsonParse)
 let {describe,it,assertEq,fail} = module(Expln_test)
 
-let anyToJson = a => stringify(a) -> Js.Json.parseExn
+let anyToJson = a => stringify(a) -> JSON.parseExn
 let id = x=>x
 
 type rec testNode = {

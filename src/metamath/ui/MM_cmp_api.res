@@ -10,13 +10,13 @@ open MM_apply_asrt_matcher
 
 type apiResp = {
     "isOk": bool,
-    "res": option<Js_json.t>,
+    "res": option<JSON.t>,
     "err": option<string>,
 }
 
-type api = Js.Json.t => promise<apiResp>
+type api = JSON.t => promise<apiResp>
 
-let okResp = (res:Js_json.t):apiResp => {
+let okResp = (res:JSON.t):apiResp => {
     {
         "isOk": true,
         "res": Some(res),
@@ -32,49 +32,49 @@ let errResp = (msg:string):apiResp => {
     }
 }
 
-let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):Js_json.t => {
+let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
     Js_dict.fromArray([
-        ("id", node.id->Belt.Int.toFloat->Js_json.number),
+        ("id", node.id->Belt.Int.toFloat->JSON.Encode.float),
         ("nodeType", "expr"->Js_json.string),
         ("exprType", ctxConstIntToSymExn(node.typ)->Js_json.string),
         ("label", node.label->Js_json.string),
-        ("children", node.children->Array.map(childNodeToJson(_, ctxConstIntToSymExn))->Js_json.array ),
-    ])->Js_json.object_ 
-} and childNodeToJson = (node:childNode, ctxConstIntToSymExn:int=>string):Js_json.t => {
+        ("children", node.children->Array.map(childNodeToJson(_, ctxConstIntToSymExn))->JSON.Encode.array ),
+    ])->JSON.Encode.object 
+} and childNodeToJson = (node:childNode, ctxConstIntToSymExn:int=>string):JSON.t => {
     switch node {
         | Subtree(subtree) => syntaxTreeNodeToJson(subtree, ctxConstIntToSymExn)
         | Symbol({id, sym, isVar}) => {
             Js_dict.fromArray([
-                ("id", id->Belt.Int.toFloat->Js_json.number),
+                ("id", id->Belt.Int.toFloat->JSON.Encode.float),
                 ("nodeType", "sym"->Js_json.string),
                 ("sym", sym->Js_json.string),
-                ("isVar", isVar->Js_json.boolean),
-            ])->Js_json.object_ 
+                ("isVar", isVar->JSON.Encode.bool),
+            ])->JSON.Encode.object 
         }
     }
 }
 
-let syntaxTreeToJson = (stmt:userStmt, ctxConstIntToSymExn:int=>string):Js_json.t => {
+let syntaxTreeToJson = (stmt:userStmt, ctxConstIntToSymExn:int=>string):JSON.t => {
     switch stmt.cont {
-        | Text(_) => Js_json.null
+        | Text(_) => JSON.Encode.null
         | Tree({exprTyp, root}) => {
             Js_dict.fromArray([
                 ("exprType", exprTyp->Js_json.string),
                 ("root", syntaxTreeNodeToJson(root, ctxConstIntToSymExn)),
-            ])->Js_json.object_
+            ])->JSON.Encode.object
         }
     }
 }
 
-let getSelectedFragmentId = (stmt:userStmt):Js_json.t => {
+let getSelectedFragmentId = (stmt:userStmt):JSON.t => {
     switch stmt.cont {
-        | Text(_) => Js_json.null
+        | Text(_) => JSON.Encode.null
         | Tree(stmtContTreeData) => {
             switch getSelectedSubtree(stmtContTreeData) {
-                | None => Js_json.null
+                | None => JSON.Encode.null
                 | Some(node) => {
                     switch node {
-                        | Subtree({id}) | Symbol({id}) => id->Belt.Int.toFloat->Js_json.number
+                        | Subtree({id}) | Symbol({id}) => id->Belt.Int.toFloat->JSON.Encode.float
                     }
                 }
             }
@@ -82,12 +82,12 @@ let getSelectedFragmentId = (stmt:userStmt):Js_json.t => {
     }
 }
 
-let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_json.t => {
+let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t => {
     Js_dict.fromArray([
         ("id", stmt.id->Js_json.string),
         ("status", 
             switch stmt.proofStatus {
-                | None => Js_json.null
+                | None => JSON.Encode.null
                 | Some(proofStatus) => {
                     switch proofStatus {
                         | Ready => "v"
@@ -99,22 +99,22 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_jso
             }
         ),
         ("label", stmt.label->Js_json.string),
-        ("isHyp", (stmt.typ == E)->Js_json.boolean),
-        ("isGoal", stmt.isGoal->Js_json.boolean),
-        ("isBkm", stmt.isBkm->Js_json.boolean),
+        ("isHyp", (stmt.typ == E)->JSON.Encode.bool),
+        ("isGoal", stmt.isGoal->JSON.Encode.bool),
+        ("isBkm", stmt.isBkm->JSON.Encode.bool),
         ("jstfText", stmt.jstfText->Js_json.string),
         (
             "jstf", 
             stmt.jstfText->MM_wrk_editor.parseJstf->Belt.Result.mapWithDefault(
-                Js_json.null, 
+                JSON.Encode.null, 
                 (jstf:option<MM_statements_dto.jstf>) => {
                     switch jstf {
-                        | None => Js_json.null
+                        | None => JSON.Encode.null
                         | Some(jstf) => {
                             Js_dict.fromArray([
-                                ("args", jstf.args->Array.map(Js_json.string(_))->Js_json.array),
+                                ("args", jstf.args->Array.map(JSON.Encode.string(_))->JSON.Encode.array),
                                 ("asrt", jstf.label->Js_json.string),
-                            ])->Js_json.object_
+                            ])->JSON.Encode.object
                         }
                     }
                 }
@@ -123,35 +123,35 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_jso
         ("stmt", stmt.cont->MM_wrk_editor.contToStr->Js_json.string),
         ("tree", 
             switch ctxConstIntToSymExn {
-                | None => Js_json.null
+                | None => JSON.Encode.null
                 | Some(ctxConstIntToSymExn) => syntaxTreeToJson(stmt, ctxConstIntToSymExn)
             }
         ),
         ("fragId", getSelectedFragmentId(stmt)),
         ("stmtErr", 
             switch stmt.stmtErr {
-                | None => Js_json.null
+                | None => JSON.Encode.null
                 | Some({ code, msg }) => {
                     Js_dict.fromArray([
-                        ("code", code->Belt.Int.toFloat->Js_json.number),
+                        ("code", code->Belt.Int.toFloat->JSON.Encode.float),
                         ("msg", msg->Js_json.string),
-                    ])->Js_json.object_
+                    ])->JSON.Encode.object
                 }
             }
         ),
-        ("unifErr", stmt.unifErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
-        ("syntaxErr", stmt.syntaxErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(Js_json.null)),
-    ])->Js_json.object_
+        ("unifErr", stmt.unifErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(JSON.Encode.null)),
+        ("syntaxErr", stmt.syntaxErr->Belt.Option.map(Js_json.string)->Belt.Option.getWithDefault(JSON.Encode.null)),
+    ])->JSON.Encode.object
 }
 
-let getAllSteps = (~state:editorState):Js_json.t => {
+let getAllSteps = (~state:editorState):JSON.t => {
     let ctxConstIntToSymExn = state.wrkCtx->Belt_Option.map(wrkCtx => ctxIntToSymExn(wrkCtx, _))
-    state.stmts->Array.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
+    state.stmts->Array.map(stmtToJson(_, ctxConstIntToSymExn))->JSON.Encode.array
 }
 
 let stateCached = ref(None)
 let stateJsonCached = ref(None)
-let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
+let getEditorState = (~state:editorState):promise<result<JSON.t,string>> => {
     let canUseCachedValue = switch stateCached.contents {
         | None => false
         | Some(stateCached) => stateCached === state
@@ -165,36 +165,36 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
         let stateJson = Js_dict.fromArray([
             ("descr", state.descr->Js_json.string),
             ("varsText", state.varsText->Js_json.string),
-            ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
+            ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
             ("vars", 
                 switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
-                    | Error(_) => Js_json.null
+                    | Error(_) => JSON.Encode.null
                     | Ok(varDefs) => {
                         varDefs->Array.map(varDef => {
-                            varDef->Array.map(Js_json.string(_))->Js.Json.array
-                        })->Js.Json.array
+                            varDef->Array.map(JSON.Encode.string(_))->JSON.Encode.array
+                        })->JSON.Encode.array
                     }
                 }
             ),
             ("disjText", state.disjText->Js_json.string),
-            ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
+            ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
             ("disj",
                 state.disjText->multilineTextToNonEmptyLines->Array.map(disjLine => {
                     disjLine->String.split(" ")
                         ->Array.map(String.trim(_))
                         ->Array.filter(str => str != "")
-                        ->Array.map(Js_json.string(_))
-                        ->Js.Json.array
-                })->Js.Json.array
+                        ->Array.map(JSON.Encode.string(_))
+                        ->JSON.Encode.array
+                })->JSON.Encode.array
             ),
             ("steps", getAllSteps(~state)),
             ("selectedSteps", 
                 state.checkedStmtIds->Array.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
                     ->Array.filter(Belt.Option.isSome(_))
                     ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->Js_json.string)
-                    ->Js.Json.array
+                    ->JSON.Encode.array
             ),
-        ])->Js_json.object_
+        ])->JSON.Encode.object
         stateCached := Some(state)
         stateJsonCached := Some(stateJson)
         promiseResolved(Ok(stateJson))
@@ -202,18 +202,18 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
 }
 
 let getTokenType = (
-    ~paramsJson:Js_json.t,
+    ~paramsJson:JSON.t,
     ~state:editorState,
-):promise<result<Js_json.t,string>> => {
+):promise<result<JSON.t,string>> => {
     switch state.wrkCtx {
         | None => promiseResolved(Error("Cannot determine token type because the editor contains errors."))
         | Some(wrkCtx) => {
-            switch Js_json.decodeString(paramsJson) {
+            switch JSON.Decode.string(paramsJson) {
                 | None => promiseResolved(Error("The parameter of getTokenType() must me a string."))
                 | Some(token) => {
                     promiseResolved(Ok(
                         switch wrkCtx->getTokenType(token) {
-                            | None => Js_json.null
+                            | None => JSON.Encode.null
                             | Some(tokenType) => {
                                 switch tokenType {
                                     | C => "c"
@@ -424,11 +424,11 @@ type proverParams = {
     selectFirstFoundProof:bool,
 }
 let proveBottomUp = (
-    ~paramsJson:Js_json.t,
+    ~paramsJson:JSON.t,
     ~state:editorState,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
-):promise<result<Js_json.t,string>> => {
+):promise<result<JSON.t,string>> => {
     if (!canStartProvingBottomUp) {
         promiseResolved(Error(
             "Cannot start proving bottom-up because either there are syntax errors in the editor" 
@@ -555,8 +555,8 @@ let proveBottomUp = (
                                             }
                                         })->promiseMap(proved => {
                                             switch proved {
-                                                | None => Ok(Js_json.null)
-                                                | Some(proved) => Ok(proved->Js_json.boolean)
+                                                | None => Ok(JSON.Encode.null)
+                                                | Some(proved) => Ok(proved->JSON.Encode.bool)
                                             }
                                         })
                                     }
@@ -573,35 +573,35 @@ let proveBottomUp = (
 let unifyAll = (
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
-):promise<result<Js_json.t,string>> => {
+):promise<result<JSON.t,string>> => {
     if (!canStartUnifyAll) {
         promiseResolved(Error(
             "Cannot start \"Unify All\" because either there are syntax errors in the editor or edit is in progress."
         ))
     } else {
-        startUnifyAll()->promiseMap(_ => Ok(Js_json.null))
+        startUnifyAll()->promiseMap(_ => Ok(JSON.Encode.null))
     }
 }
 
 let mergeDuplicatedSteps = (
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<result<Js_json.t,string>> => {
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
     setState(st => {
         let (st,renames) = st->autoMergeDuplicatedStatements(~selectFirst=true)
         let renamesJson = renames->Array.map(((from,to_)) => {
-            [from->Js_json.string, to_->Js_json.string]->Js_json.array
-        })->Js_json.array
+            [from->Js_json.string, to_->Js_json.string]->JSON.Encode.array
+        })->JSON.Encode.array
         Ok( st, renamesJson )
     })
 }
 
 let editorSetContIsHidden = (
-    ~params:Js_json.t,
+    ~params:JSON.t,
     ~setEditorContIsHidden:bool=>promise<unit>,
-):promise<result<Js_json.t,string>> => {
-    switch Js_json.decodeBoolean(params) {
+):promise<result<JSON.t,string>> => {
+    switch JSON.Decode.bool(params) {
         | None => promiseResolved(Error("The parameter of setContentIsHidden() must me a boolean."))
-        | Some(bool) => setEditorContIsHidden(bool)->promiseMap(_ => Ok(Js_json.null))
+        | Some(bool) => setEditorContIsHidden(bool)->promiseMap(_ => Ok(JSON.Encode.null))
     }
 }
 
@@ -687,9 +687,9 @@ type addStepsInputParams = {
 }
 let addSteps = (
     ~state:editorState,
-    ~paramsJson:Js_json.t,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<result<Js_json.t,string>> => {
+    ~paramsJson:JSON.t,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<addStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
         {
@@ -772,7 +772,7 @@ let addSteps = (
                                                 stmtIds->Array.map(stmtId => {
                                                     stmtIdToLabel->Belt_HashMapString.get(stmtId)
                                                         ->Belt.Option.getExn->Js_json.string
-                                                })->Js_json.array
+                                                })->JSON.Encode.array
                                             )
                                         }
                                     }
@@ -791,9 +791,9 @@ type substituteInputParams = {
     with_: string,
 }
 let substitute = (
-    ~paramsJson:Js_json.t,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<result<Js_json.t,string>> => {
+    ~paramsJson:JSON.t,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<substituteInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
         {
@@ -806,7 +806,7 @@ let substitute = (
         | Ok(parseResult) => {
             setState(st => {
                 st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
-                    ->Belt.Result.map(st => (st,Js_json.null))
+                    ->Belt.Result.map(st => (st,JSON.Encode.null))
             })
         }
     }
@@ -820,9 +820,9 @@ type updateStepInputParams = {
     isBkm: option<bool>,
 }
 let updateSteps = (
-    ~paramsJson:Js_json.t,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<result<Js_json.t,string>> => {
+    ~paramsJson:JSON.t,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson, asArr(_, asObj(_, d=>{
         {
@@ -855,7 +855,7 @@ let updateSteps = (
                         })
                         switch st->updateSteps(steps) {
                             | Error(msg) => Error(msg)
-                            | Ok(st) => Ok( st, true->Js_json.boolean )
+                            | Ok(st) => Ok( st, true->JSON.Encode.bool )
                         }
                     }
                 }
@@ -865,9 +865,9 @@ let updateSteps = (
 }
 
 let deleteSteps = (
-    ~params:Js_json.t,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
-):promise<result<Js_json.t,string>> => {
+    ~params:JSON.t,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
     let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_, ()), ()), ())
     switch parseResult {
@@ -879,17 +879,17 @@ let deleteSteps = (
                     ->Array.map(label => labelToStmtId->Belt_HashMapString.get(label))
                     ->Array.filter(Belt.Option.isSome(_))
                     ->Array.map(Belt.Option.getExn(_))
-                Ok( st->deleteStmts(stepIdsToDelete), Js_json.null )
+                Ok( st->deleteStmts(stepIdsToDelete), JSON.Encode.null )
             })
         }
     }
 }
 
 let editorBuildSyntaxTrees = (
-    ~params:Js_json.t,
+    ~params:JSON.t,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     ~state:editorState,
-):promise<result<Js_json.t,string>> => {
+):promise<result<JSON.t,string>> => {
     switch state.wrkCtx {
         | None => promiseResolved(Error( "Cannot build syntax trees because there are errors in the editor." ))
         | Some(wrkCtx) => {
@@ -908,17 +908,17 @@ let editorBuildSyntaxTrees = (
                                             | Error(msg) => {
                                                 Js_dict.fromArray([
                                                     ("err", msg->Js_json.string),
-                                                    ("tree", Js_json.null),
-                                                ])->Js_json.object_ 
+                                                    ("tree", JSON.Encode.null),
+                                                ])->JSON.Encode.object 
                                             }
                                             | Ok(syntaxTree) => {
                                                 Js_dict.fromArray([
-                                                    ("err", Js_json.null),
+                                                    ("err", JSON.Encode.null),
                                                     ("tree", syntaxTreeNodeToJson(syntaxTree, ctxIntToSymExn(wrkCtx, _))),
-                                                ])->Js_json.object_ 
+                                                ])->JSON.Encode.object 
                                             }
                                         }
-                                    })->Js_json.array
+                                    })->JSON.Encode.array
                                 )
                             )
                         }
@@ -931,32 +931,32 @@ let editorBuildSyntaxTrees = (
 
 let logApiCallsToConsole = ref(false)
 
-let setLogApiCallsToConsole = (params:Js_json.t):promise<result<Js_json.t,string>> => {
-    switch Js_json.decodeBoolean(params) {
+let setLogApiCallsToConsole = (params:JSON.t):promise<result<JSON.t,string>> => {
+    switch JSON.Decode.bool(params) {
         | None => promiseResolved(Error("The parameter of setLogApiCallsToConsole() must be a boolean."))
         | Some(bool) => {
             logApiCallsToConsole := bool
-            promiseResolved(Ok(Js_json.null))
+            promiseResolved(Ok(JSON.Encode.null))
         }
     }
 }
 
-let apiShowInfoMsg = (params:Js_json.t, showInfoMsg:string=>unit):promise<result<Js_json.t,string>> => {
-    switch Js_json.decodeString(params) {
+let apiShowInfoMsg = (params:JSON.t, showInfoMsg:string=>unit):promise<result<JSON.t,string>> => {
+    switch JSON.Decode.string(params) {
         | None => promiseResolved(Error("The parameter of showInfoMsg() must be a string."))
         | Some(msg) => {
             showInfoMsg(msg)
-            promiseResolved(Ok(Js_json.null))
+            promiseResolved(Ok(JSON.Encode.null))
         }
     }
 }
 
-let apiShowErrMsg = (params:Js_json.t, showErrMsg:string=>unit):promise<result<Js_json.t,string>> => {
-    switch Js_json.decodeString(params) {
+let apiShowErrMsg = (params:JSON.t, showErrMsg:string=>unit):promise<result<JSON.t,string>> => {
+    switch JSON.Decode.string(params) {
         | None => promiseResolved(Error("The parameter of showErrMsg() must be a string."))
         | Some(msg) => {
             showErrMsg(msg)
-            promiseResolved(Ok(Js_json.null))
+            promiseResolved(Ok(JSON.Encode.null))
         }
     }
 }
@@ -1006,7 +1006,7 @@ let api = {
 
 let apiCallCnt = ref(0)
 
-let makeApiFunc = (name:string, func:Js_json.t=>promise<result<Js_json.t,string>>):api => {
+let makeApiFunc = (name:string, func:JSON.t=>promise<result<JSON.t,string>>):api => {
     params => {
         apiCallCnt := apiCallCnt.contents + 1
         let apiCallId = apiCallCnt.contents
@@ -1030,7 +1030,7 @@ let updateEditorApi = (
     ~state:editorState,
     ~showInfoMsg:string=>unit,
     ~showErrMsg:string=>unit,
-    ~setState:(editorState=>result<(editorState,Js_json.t),string>)=>promise<result<Js_json.t,string>>,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,

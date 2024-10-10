@@ -1,6 +1,6 @@
 open Common
 
-type serialized = Js.Json.t
+type serialized = JSON.t
 
 type workerRequest = {
     clientId: int,

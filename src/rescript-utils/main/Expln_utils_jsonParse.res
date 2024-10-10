@@ -7,8 +7,8 @@ type jsonAny =
     | JsonBool(bool, path)
     | JsonNum(float, path)
     | JsonStr(string, path)
-    | JsonArr(array<Js_json.t>, path)
-    | JsonObj(Js_dict.t<Js_json.t>, path)
+    | JsonArr(array<JSON.t>, path)
+    | JsonObj(Js_dict.t<JSON.t>, path)
 
 let rootPath = list{}
 
@@ -19,15 +19,14 @@ let pathToStr = path => {
     }
 }
 
-let jsonToAny = (json:Js.Json.t, path:path):jsonAny => {
-    switch json->Js.Json.classify {
-        | JSONNull => JsonNull(path)
-        | JSONFalse => JsonBool(false,path)
-        | JSONTrue => JsonBool(true,path)
-        | JSONNumber(num) => JsonNum(num,path)
-        | JSONString(str) => JsonStr(str,path)
-        | JSONArray(arr) => JsonArr(arr,path)
-        | JSONObject(dict) => JsonObj(dict,path)
+let jsonToAny = (json:JSON.t, path:path):jsonAny => {
+    switch json->JSON.Classify.classify {
+        | Null => JsonNull(path)
+        | Bool(b) => JsonBool(b,path)
+        | Number(num) => JsonNum(num,path)
+        | String(str) => JsonStr(str,path)
+        | Array(arr) => JsonArr(arr,path)
+        | Object(dict) => JsonObj(dict,path)
     }
 }
     
@@ -90,14 +89,14 @@ let anyToObj = (jsonAny, mapper: jsonAny=>'a):result<option<'a>,string> => {
     }
 }
 
-let anyToJson = (jsonAny):result<option<Js_json.t>,string> => {
+let anyToJson = (jsonAny):result<option<JSON.t>,string> => {
     switch jsonAny {
         | JsonNull(_) => Ok(None)
-        | JsonBool(bool, _) => Ok(Some(bool->Js_json.boolean))
-        | JsonNum(float, _) => Ok(Some(float->Js_json.number))
+        | JsonBool(bool, _) => Ok(Some(bool->JSON.Encode.bool))
+        | JsonNum(float, _) => Ok(Some(float->JSON.Encode.float))
         | JsonStr(string, _) => Ok(Some(string->Js_json.string))
-        | JsonArr(array, _) => Ok(Some(array->Js_json.array))
-        | JsonObj(dict, _) => Ok(Some(dict->Js_json.object_))
+        | JsonArr(array, _) => Ok(Some(array->JSON.Encode.array))
+        | JsonObj(dict, _) => Ok(Some(dict->JSON.Encode.object))
     }
 }
 
@@ -318,7 +317,7 @@ let obj = (
 }
 
 let fromJson = (
-    json:Js.Json.t, 
+    json:JSON.t, 
     mapper:jsonAny=>'a, 
     ~validator:option<validator<'a>>=?, 
     ~default:option<default<'a>>=?, 
@@ -351,7 +350,7 @@ let parseJson = (
     ()
 ):result<'a,string> => {
     try {
-        fromJson(jsonStr->Js.Json.parseExn, mapper, ~validator?, ~default?, ())
+        fromJson(jsonStr->JSON.parseExn, mapper, ~validator?, ~default?, ())
     } catch {
         | ex => {
             switch default {

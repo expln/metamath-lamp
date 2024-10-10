@@ -10,7 +10,7 @@ let transformsTextCache:ref<array<string>> = ref([])
 let allTransformsCache: ref<array<fragmentTransform>> = ref([])
 
 type state = {
-    step:Js_json.t,
+    step:JSON.t,
     transformsParseErr:option<string>,
     availableTransforms:option<reElem>,
     selectedTransform: option<fragmentTransform>,

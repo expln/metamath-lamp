@@ -29,7 +29,7 @@ let rec syntaxTreeToSyntaxTreeTest = (node:syntaxTreeNode) => {
     }
 }
 
-let rec syntaxTreeToJson = (node:syntaxTreeNode):Js_json.t => {
+let rec syntaxTreeToJson = (node:syntaxTreeNode):JSON.t => {
     [
         ("label", node.label->Js_json.string),
         ("children", 
@@ -38,9 +38,9 @@ let rec syntaxTreeToJson = (node:syntaxTreeNode):Js_json.t => {
                     | Subtree(childNode) => syntaxTreeToJson(childNode)
                     | Symbol({sym}) => sym->Js_json.string
                 }
-            })->Js_json.array
+            })->JSON.Encode.array
         )
-    ]->Js.Dict.fromArray->Js_json.object_
+    ]->Js.Dict.fromArray->JSON.Encode.object
 }
 
 let buildSyntaxTreeForTest = (

@@ -907,7 +907,7 @@ let make = React.memoCustomCompareProps(({
             alignItems=#center
             childXsOffset = {idx => {
                 switch idx {
-                    | 1 => Some(Js.Json.string("auto"))
+                    | 1 => Some(JSON.Encode.string("auto"))
                     | _ => None
                 }
             }}

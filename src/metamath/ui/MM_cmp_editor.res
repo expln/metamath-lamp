@@ -1730,7 +1730,7 @@ let make = (
                 spacing = 0.
                 childXsOffset = {idx => {
                     switch idx {
-                        | 16 => Some(Js.Json.string("auto"))
+                        | 16 => Some(JSON.Encode.string("auto"))
                         | _ => None
                     }
                 }}
@@ -2092,7 +2092,7 @@ let make = (
         </Col>
     }
 
-    let actSetStateFromApi = (update:editorState=>result<(editorState,Js_json.t),string>):promise<result<Js_json.t,string>> => {
+    let actSetStateFromApi = (update:editorState=>result<(editorState,JSON.t),string>):promise<result<JSON.t,string>> => {
         promise(resolve => {
             setState(st => {
                 switch update(st) {

@@ -8,7 +8,7 @@ open Raw_js_utils
 
 @react.component
 let make = (
-    ~step:Js_json.t,
+    ~step:JSON.t,
     ~transform:fragmentTransform,
     ~onBack:unit=>unit,
     ~onInsertAbove:(bool,string)=>unit,

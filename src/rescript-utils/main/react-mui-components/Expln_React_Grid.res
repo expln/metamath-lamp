@@ -12,6 +12,6 @@ external make: (
     ~alignItems:alignItems=?,
     ~spacing:float=?,
     ~style:reStyle=?, 
-    ~xsOffset:Js.Json.t=?,
+    ~xsOffset:JSON.t=?,
     ~children: reElem=?
 ) => reElem = "default"

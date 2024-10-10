@@ -57,7 +57,7 @@ let strCmp: comparator<string> = String.localeCompare
 let strCmpI: comparator<string> = (s1,s2) => strCmp(s1->String.toLocaleUpperCase ,s2->String.toLocaleUpperCase)
 let cmpRev: 'a. comparator<'a> => comparator<'a> = cmp => (a,b) => -.cmp(a,b)
 
-let stringify = (a:'a):string => switch Js.Json.stringifyAny(a) {
+let stringify = (a:'a):string => switch JSON.stringifyAny(a) {
     | Some(str) => str
     | None => "undefined"
 }
