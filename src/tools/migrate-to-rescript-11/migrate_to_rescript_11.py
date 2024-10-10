@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Callable
 
@@ -114,6 +115,49 @@ def replace_functions(node: Node, replacements: dict[str, str]) -> None:
     process_all_nodes(node, is_node_to_update, update_node)
 
 
+def find_function_names() -> None:
+    name_regex = r'(([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+))|(([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+))'
+    names = set()
+    for path in get_all_rescript_files():
+        print(f'processing: {path.absolute()}')
+        text = read_text_from_path(path)
+        for match in re.finditer(name_regex, text):
+            # print(f'Found: match.group(0)    groups: {match.groups()}')
+            first_group = match.group(2) if match.group(2) is not None else match.group(6)
+            # print(f'{first_group=}')
+            if 'js' in first_group.lower():
+                names.add(match.group(0))
+    unique_names = list(names)
+    unique_names.sort()
+    unique_names_str = '\n'.join(unique_names)
+    print(unique_names_str)
+
+
+def replace_in_file(path: Path, replacements: dict[str, str]) -> None:
+    text = read_text_from_path(path)
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    write_text_to_path(path, text)
+
+def make_replacement_dict(old_modules:list[str], new_module:str, functions:dict[str,str]) -> dict[str,str]:
+    res = {}
+    for old_module in old_modules:
+        for old_func,new_func in functions.items():
+            res[f'{old_module}.{old_func}'] = f'{new_module}.{new_func}'
+    return res
+
+def make_simple_replacements() -> None:
+    replacements = {}
+    replacements.update(make_replacement_dict(old_modules=['Js.Array2', 'Js_array2'], new_module='Array', functions={
+        'concat': 'concat',
+        'copy': 'copy',
+    }))
+    print(f'{replacements=}')
+    for path in get_all_rescript_files():
+        print(f'processing: {path.absolute()}')
+        replace_in_file(path, replacements)
+
+
 def rewrite_file(path: Path) -> None:
     parsed = parse(read_text_from_path(path))
     # insert_get_unsafe(parsed)
@@ -132,9 +176,13 @@ def rewrite_file(path: Path) -> None:
 def main() -> None:
     # rewrite_file(Path('../../metamath/mm-utils/MM_substitution.res'))
 
-    for path in get_all_rescript_files():
-        print(f'processing: {path.absolute()}')
-        rewrite_file(path)
+    # for path in get_all_rescript_files():
+    #     print(f'processing: {path.absolute()}')
+    #     rewrite_file(path)
+
+    # find_function_names()
+
+    make_simple_replacements()
 
 
 if __name__ == '__main__':
