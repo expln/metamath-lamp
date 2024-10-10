@@ -230,7 +230,7 @@ let rndContText = (
                 } else {
                     syms
                 }
-            syms->Js.Array2.mapi((stmtSym,i) => {
+            syms->Array.mapWithIndex((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
                     ~key=i->Belt.Int.toString,
@@ -486,7 +486,7 @@ module VisualizedJstf = {
                                 let hyps = []
                                 let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
                                 let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
-                                frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                                frame.hyps->Array.forEachWithIndex((hyp,i) => {
                                     if (hyp.typ == E) {
                                         hyps->Array.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))
                                     } else {
@@ -755,7 +755,7 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                            ~wrkCtx, ~syms=[syms->Array.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
                             ~syntaxTypes, ~frms, 
                             ~frameRestrict=settings.allowedFrms.inSyntax,
                             ~parenCnt,
@@ -1571,7 +1571,7 @@ let make = React.memoCustomCompareProps( ({
                     | Error(_) | Ok(None) => jstfTextStr->React.string
                     | Ok(Some({args, label})) => {
                         <span>
-                            {React.string(args->Js_array2.joinWith(" ") ++ " : ")}
+                            {React.string(args->Array.joinUnsafe(" ") ++ " : ")}
                             <span 
                                 className="underline-on-hover"
                                 style=ReactDOM.Style.make(

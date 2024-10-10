@@ -73,7 +73,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
         | Some(Assertion({args, frame})) => {
             let children = Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1)
             let err = ref(None)
-            frame.asrt->Js_array2.forEachi((s,i) => {
+            frame.asrt->Array.forEachWithIndex((s,i) => {
                 if (i > 0 && err.contents->Belt_Option.isNone) {
                     if (s < 0) {
                         children[i-1] = Symbol(s)
@@ -123,7 +123,7 @@ let applySubsInPlace = (expr:array<sym>, subs:unifSubs):unit => {
 }
 
 let assignSubs = (foundSubs:unifSubs, var:sym, expr:array<sym>):bool => {
-    if (expr->Js_array2.some(s => s->symEq(var))) {
+    if (expr->Array.some(s => s->symEq(var))) {
         false
     } else {
         applySubsInPlace(expr, foundSubs)

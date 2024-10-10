@@ -28,7 +28,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
 
     //then
     let proofTreeDto = proofTreeToDto(proofTree, [expr])
-    let node = proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
+    let node = proofTreeDto.nodes->Array.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
     let proofTable = createProofTable(~tree=proofTreeDto, ~root=node, ())
     let actualProof = createProof(ctx->getMandHyps(node.expr, ()), proofTable, proofTable->Js_array2.length-1)
 
@@ -44,7 +44,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     }->ignore
     let actualProofStr = switch actualProof {
         | Compressed({labels, compressedProofBlock}) => {
-            "( " ++ (labels->Js_array2.joinWith(" ")) ++ " ) " ++ compressedProofBlock
+            "( " ++ (labels->Array.joinUnsafe(" ")) ++ " ) " ++ compressedProofBlock
         }
         | p => failMsg(`Unexpected form of proof: ${Expln_utils_common.stringify(p)}`)
     }

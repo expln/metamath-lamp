@@ -185,7 +185,7 @@ let make = (
 
     let stmtsToShow =
         if (showBkmOnly) {
-            state.stmts->Js_array2.filter(stmt => {
+            state.stmts->Array.filter(stmt => {
                 stmt.typ == E || stmt.isGoal || stmt.isBkm
                 || stmt->userStmtHasAnyErrors
                 || stmt.labelEditMode || stmt.typEditMode || stmt.contEditMode || stmt.jstfEditMode
@@ -238,7 +238,7 @@ let make = (
                     let editIsActive = st->isEditMode
                     let thereAreCriticalErrorsInEditor = st->editorStateHasCriticalErrors
                     let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
-                    let proofStatusIsMissing = st.stmts->Js.Array2.some(stmt => {
+                    let proofStatusIsMissing = st.stmts->Array.some(stmt => {
                         stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
                     })
                     if (
@@ -317,14 +317,14 @@ let make = (
     let thereAreAnyErrorsInEditor = editorStateHasAnyErrors(state)
     let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
-        ->Js.Array2.find(stmt => stmt.cont->hasSelectedText)
+        ->Array.find(stmt => stmt.cont->hasSelectedText)
         ->Belt.Option.isSome
-    let checkedStmtIds = state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtId)
+    let checkedStmtIds = state.checkedStmtIds->Array.map(((stmtId,_)) => stmtId)
     let allCheckedStmtsAreBookmarked = state.stmts->Array.every(stmt => {
-        !(checkedStmtIds->Js_array2.includes(stmt.id)) || stmt.isBkm
+        !(checkedStmtIds->Array.includes(stmt.id)) || stmt.isBkm
     })
     let allCheckedStmtsAreUnbookmarked = state.stmts->Array.every(stmt => {
-        !(checkedStmtIds->Js_array2.includes(stmt.id)) || !stmt.isBkm
+        !(checkedStmtIds->Array.includes(stmt.id)) || !stmt.isBkm
     })
     let mainCheckboxState = {
         let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
@@ -872,7 +872,7 @@ let make = (
     }
 
     let getStmtTextIfChecked = (st:editorState,stmt:userStmt):option<(string,Js_date.t)> => {
-        st.checkedStmtIds->Js.Array2.find(((id,_)) => id == stmt.id)
+        st.checkedStmtIds->Array.find(((id,_)) => id == stmt.id)
             ->Belt_Option.map(((_,time)) => (stmt.cont->contToStr, time))
     }
 
@@ -884,9 +884,9 @@ let make = (
     }
 
     let getExprsToSubstitute = (st:editorState):(option<string>,option<string>) => {
-        let selections = st.stmts->Js.Array2.map(stmt => getSelectedExpr(st,stmt))
-            ->Js.Array2.filter(Belt_Option.isSome)
-            ->Js.Array2.map(Belt_Option.getExn)
+        let selections = st.stmts->Array.map(stmt => getSelectedExpr(st,stmt))
+            ->Array.filter(Belt_Option.isSome(_))
+            ->Array.map(Belt_Option.getExn(_))
             ->Expln_utils_common.sortInPlaceWith(((_,time1),(_,time2)) => compareDates(time1,time2) )
         let len = selections->Js.Array2.length
         let sel1 = selections->Belt_Array.get(len-2)->Belt.Option.map(((str,_)) => str)
@@ -932,8 +932,8 @@ let make = (
 
     let prepareArgs0 = (argLabels:array<string>, rootStmts:array<rootStmt>):array<expr> => {
         rootStmts
-            ->Js_array2.filter(stmt => argLabels->Js_array2.includes(stmt.label))
-            ->Js_array2.map(stmt => stmt.expr)
+            ->Array.filter(stmt => argLabels->Array.includes(stmt.label))
+            ->Array.map(stmt => stmt.expr)
     }
 
     let getArgs0AndAsrtLabel = (checkedStmts:array<userStmt>, rootStmts:array<rootStmt>):option<(array<expr>,option<string>)> => {
@@ -950,7 +950,7 @@ let make = (
                         Some((
                             prepareArgs0(
                                 checkedStmts->Js_array2.slice(~start=0,~end_=checkedStmts->Js_array2.length - 1)
-                                    ->Js_array2.map(stmt => stmt.label), 
+                                    ->Array.map(stmt => stmt.label), 
                                 rootStmts
                             ), 
                             None
@@ -989,11 +989,11 @@ let make = (
                         }
                     }
                     let rootUserStmts = state->getRootStmtsForUnification
-                    let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-                    let checkedStmtIds = state.checkedStmtIds->Js.Array2.map(((stmtId,_)) => stmtId)
+                    let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
+                    let checkedStmtIds = state.checkedStmtIds->Array.map(((stmtId,_)) => stmtId)
                         ->Belt_HashSetString.fromArray
                     let checkedStmts = state.stmts
-                        ->Js.Array2.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
+                        ->Array.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
                     if (checkedStmts->Js.Array2.length > 0 && (checkedStmts->Array.getUnsafe(checkedStmts->Js.Array2.length-1)).typ == P) {
                         let initialParams = switch params {
                             | Some(_) => params
@@ -1024,10 +1024,10 @@ let make = (
                                     frms=state.frms parenCnt=state.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
-                                    reservedLabels={state.stmts->Js_array2.map(stmt => stmt.label)}
+                                    reservedLabels={state.stmts->Array.map(stmt => stmt.label)}
                                     typeToPrefix = {
                                         Belt_MapString.fromArray(
-                                            state.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                                            state.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                                         )
                                     }
                                     initialParams=?initialParams
@@ -1055,7 +1055,7 @@ let make = (
                                         ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
                                     )
                                 )
-                                let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
+                                let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
                                 unify(
                                     ~settingsVer=state.settingsV,
                                     ~settings=state.settings,
@@ -1144,7 +1144,7 @@ let make = (
     }
 
     let currGoalStmtStatus:option<(stmtId,string,option<proofStatus>)> = state.stmts
-        ->Js.Array2.find(stmt => stmt.isGoal)
+        ->Array.find(stmt => stmt.isGoal)
         ->Belt.Option.map(stmt => (stmt.id, stmt.cont->contToStr, stmt.proofStatus))
     let prevGoalStmtStatus:React.ref<(string,proofStatus)> = React.useRef(("",NoJstf))
     React.useEffect1(() => {
@@ -1196,7 +1196,7 @@ let make = (
     let rndSrcDtos = (srcs:array<mmCtxSrcDto>):reElem => {
         <Col>
         {
-            srcs->Js_array2.mapi((src,i) => {
+            srcs->Array.mapWithIndex((src,i) => {
                 <Paper key={i->Belt.Int.toString} style=ReactDOM.Style.make(~padding="3px", ())>
                     <Col>
                         {src.url->React.string}
@@ -1400,7 +1400,7 @@ let make = (
     let actDeleteUnrelatedSteps = (~deleteHyps:bool) => {
         notifyEditInTempMode(() => {
             switch state->deleteUnrelatedSteps(
-                ~stepIdsToKeep=state.checkedStmtIds->Js_array2.map(((id,_)) => id),
+                ~stepIdsToKeep=state.checkedStmtIds->Array.map(((id,_)) => id),
                 ~deleteHyps
             ) {
                 | Ok(state) => setState(_ => state)
@@ -1420,7 +1420,7 @@ let make = (
 
     let actRenameHypotheses = () => {
         notifyEditInTempMode(() => {
-            switch state.stmts->Js.Array2.find(stmt => stmt.isGoal) {
+            switch state.stmts->Array.find(stmt => stmt.isGoal) {
                 | None => {
                     openInfoDialog( 
                         ~modalRef, 
@@ -1501,7 +1501,7 @@ let make = (
             | None => ()
             | Some(singleProvableChecked) => {
                 let rootUserStmts = st->getRootStmtsForUnification
-                let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
+                let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
                 let (params,debugLevel) = switch getArgs0AndAsrtLabel([singleProvableChecked], rootStmts) {
                     | Some((args0,asrtLabel)) => {
                         (
@@ -1523,7 +1523,7 @@ let make = (
                     | None => {
                         (
                             bottomUpProverParamsMakeDefault(
-                                ~args0=rootStmts->Js_array2.map(stmt => stmt.expr), 
+                                ~args0=rootStmts->Array.map(stmt => stmt.expr), 
                                 ~args1=[],
                                 ~asrtLabel=?None, 
                                 ~maxSearchDepth=1,
@@ -1997,15 +1997,15 @@ let make = (
             let minIdx = pageIdx * stepsPerPage
             let maxIdx = minIdx + stepsPerPage - 1
             stmtsToShow
-                ->Js.Array2.findIndexi((stmt,i) => minIdx <= i && i <= maxIdx && stmt->userStmtHasAnyErrors) >= 0
+                ->Array.findIndexWithIndex((stmt,i) => minIdx <= i && i <= maxIdx && stmt->userStmtHasAnyErrors) >= 0
         }
-        Belt_Array.range(minPageIdx, maxPageIdx)->Js.Array2.filter(pageHasErrors)
+        Belt_Array.range(minPageIdx, maxPageIdx)->Array.filter(pageHasErrors)
     }
 
     let actGoToNextPageWithErrors = () => {
         let pagesWithErrors = getPagesWithErrors()
         if (pagesWithErrors->Js_array2.length > 0) {
-            switch getPagesWithErrors()->Js_array2.find(i => pageIdx < i) {
+            switch getPagesWithErrors()->Array.find(i => pageIdx < i) {
                 | Some(i) => actGoToPage(i)
                 | None => actGoToPage(pagesWithErrors->Array.getUnsafe(0))
             }
@@ -2015,7 +2015,7 @@ let make = (
     let actGoToPrevPageWithErrors = () => {
         let pagesWithErrors = getPagesWithErrors()
         if (pagesWithErrors->Js_array2.length > 0) {
-            switch getPagesWithErrors()->Js_array2.find(i => i < pageIdx) {
+            switch getPagesWithErrors()->Array.find(i => i < pageIdx) {
                 | Some(i) => actGoToPage(i)
                 | None => actGoToPage(pagesWithErrors->Array.getUnsafe(pagesWithErrors->Js_array2.length-1))
             }
@@ -2069,8 +2069,8 @@ let make = (
             {rndGoToNextPageWithErrorsBtn()}
             { 
                 stmtsToShow
-                    ->Js.Array2.filteri((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
-                    ->Js_array2.map(rndStmtAndErrors)->React.array 
+                    ->Array.filterWithIndex((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
+                    ->Array.map(rndStmtAndErrors)->React.array 
             }
             {rndGoToNextPageWithErrorsBtn()}
             {rndPagination()}
@@ -2078,7 +2078,7 @@ let make = (
     }
 
     let rndFooter = () => {
-        Belt_Array.range(1,12)->Js.Array2.map(i => {
+        Belt_Array.range(1,12)->Array.map(i => {
             <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
         })->React.array
     }
@@ -2107,11 +2107,11 @@ let make = (
         switch state.wrkCtx {
             | None => Error(`There are errors in the editor.`)
             | Some(wrkCtx) => {
-                let syms = exprs->Js_array2.map(getSpaceSeparatedValuesAsArray)
+                let syms = exprs->Array.map(getSpaceSeparatedValuesAsArray)
                 let unrecognizedSymbol = syms->Expln_utils_common.arrFlatMap(a => a)
                     ->Belt_HashSetString.fromArray
                     ->Belt_HashSetString.toArray
-                    ->Js_array2.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
+                    ->Array.find(sym => wrkCtx->ctxSymToInt(sym)->Belt_Option.isNone)
                 switch unrecognizedSymbol {
                     | Some(sym) => Error(`Unrecognized symbol '${sym}'`)
                     | None => {

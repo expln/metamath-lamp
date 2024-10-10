@@ -120,7 +120,7 @@ let make = () => {
     }
 
     let actCloseFrmTabs = () => {
-        tabs->Js.Array2.forEach(tab => {
+        tabs->Array.forEach(tab => {
             if (isFrameExplorerTab(tab.data, ())) {
                 removeTab(tab.id)
             }
@@ -167,7 +167,7 @@ let make = () => {
                 | Some(_) => {
                     updateTabs(tabsSt => {
                         let tabsSt = switch tabsSt->Expln_React_UseTabs.getTabs
-                                                ->Js.Array2.find(tab => isFrameExplorerTab(tab.data, ~label, ())) {
+                                                ->Array.find(tab => isFrameExplorerTab(tab.data, ~label, ())) {
                             | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                             | None => {
                                 let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
@@ -199,7 +199,7 @@ let make = () => {
 
     let focusEditorTab = ():unit => {
         updateTabs(tabsSt => {
-            switch tabsSt->Expln_React_UseTabs.getTabs->Js.Array2.find(tab => isEditorTab(tab.data)) {
+            switch tabsSt->Expln_React_UseTabs.getTabs->Array.find(tab => isEditorTab(tab.data)) {
                 | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                 | None => tabsSt
             }
@@ -314,7 +314,7 @@ let make = () => {
             }
             content={contentTop => {
                 <Col>
-                    {React.array(tabs->Js_array2.map(rndTabContent(contentTop, _)))}
+                    {React.array(tabs->Array.map(rndTabContent(contentTop, _)))}
                     <Expln_React_Modal modalRef />
                 </Col>
             }}

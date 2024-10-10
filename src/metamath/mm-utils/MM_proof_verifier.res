@@ -70,7 +70,7 @@ let compareExprAfterSubstitution = (expr:expr, subs, eqTo:expr): bool => {
 
 let applySubs = (expr, subs): expr => {
     let resultSize = ref(0)
-    expr->Js_array2.forEach(s => {
+    expr->Array.forEach(s => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
         } else {
@@ -100,7 +100,7 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
     let subs = Expln_utils_common.createArray(frame.numOfVars)
     let subsLock = Belt_Array.make(frame.numOfVars, false)
     let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
-    frame.hyps->Js_array2.forEachi((hyp,i) => {
+    frame.hyps->Array.forEachWithIndex((hyp,i) => {
         if (hyp.typ == F) {
             let t = hyp.expr->Array.getUnsafe(0)
             let v = hyp.expr->Array.getUnsafe(1)
@@ -119,8 +119,8 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
             }
         }
     })
-    if (subsLock->Js_array2.some(lock => !lock)) {
-        raise(MmException({msg:`subsLock->Js_array2.some(lock => !lock)`}))
+    if (subsLock->Array.some(lock => !lock)) {
+        raise(MmException({msg:`subsLock->Array.some(lock => !lock)`}))
     } else {
         subs
     }
@@ -128,7 +128,7 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
 
 let validateTopOfStackMatchesFrame = (stack:proofStack, frame, subs:array<expr>):unit => {
     let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
-    frame.hyps->Js_array2.forEachi((hyp,i) => {
+    frame.hyps->Array.forEachWithIndex((hyp,i) => {
         if (hyp.typ == E && !compareExprAfterSubstitution(hyp.expr, subs, stack->stGetExpr(baseIdx+i))) {
             raise(MmException({msg:`!compareExprAfterSubstitution(ess, subs, stack->stGetExpr(baseIdx+i))`}))
         }
@@ -190,7 +190,7 @@ let intToCompressedProofStr: int => string = i => {
             res->Array.push(Js_string2.fromCharCode(uCode + mod(i.contents-1, 5)))
             i.contents = (i.contents-1) / 5
         }
-        res->Js_array2.reverseInPlace->Js_array2.joinWith("")
+        res->Js_array2.reverseInPlace->Array.joinUnsafe("")
     }
 }
 
@@ -299,7 +299,7 @@ let applyUncompressedProof = (
     ~proofLabels:array<string>,
     ~isDisjInCtx: (int,int) => bool,
 ) => {
-    proofLabels->Js_array2.forEach(step => {
+    proofLabels->Array.forEach(step => {
         switch ctx->getHypothesis(step) {
             | Some(hyp) => {
                 stack.nodes->Array.push(Hypothesis({

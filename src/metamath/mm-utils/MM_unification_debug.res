@@ -11,9 +11,9 @@ type unifErr =
     | TooManyCombinations({frmLabels:option<array<string>>})
 
 let argsToString = (args:array<expr>, exprToStr:expr=>string):string => {
-    args->Js_array2.mapi((arg,i) => {
+    args->Array.mapWithIndex((arg,i) => {
         `${(i+1)->Belt.Int.toString}: ${if (arg->Js_array2.length == 0) { "?" } else { exprToStr(arg) } }`
-    })->Js.Array2.joinWith("\n")
+    })->Array.joinUnsafe("\n")
 }
 
 let unifErrToStr = (
@@ -30,7 +30,7 @@ let unifErrToStr = (
                                 ++ " Only part of that search space was examined."
                 | Some(frmLabels) => "Some assertions produce too big search space." 
                                 ++ " Only part of that search space was examined."
-                                ++ " Those assertions are: " ++ frmLabels->Js_array2.joinWith(", ") ++ " ."
+                                ++ " Those assertions are: " ++ frmLabels->Array.joinUnsafe(", ") ++ " ."
             }
         }
         | DisjCommonVar({frmVar1, expr1, frmVar2, expr2, commonVar}) => {

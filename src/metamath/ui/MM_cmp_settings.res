@@ -218,7 +218,7 @@ let validateRegex = (regex:string):option<string> => {
 }
 
 let validateColor = (color:string):string => {
-    if (allColors->Js_array2.includes(color)) {
+    if (allColors->Array.includes(color)) {
         color
     } else {
         allColors->Array.getUnsafe(0)
@@ -279,7 +279,7 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
         let newTyp = ts.typ->Js_string2.trim
         let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
         let typIsEmpty = newTyp->Js_string2.length == 0
-        let newColor = if (!(allColors->Js_array2.includes(ts.color))) {
+        let newColor = if (!(allColors->Array.includes(ts.color))) {
             allColors->Array.getUnsafe(0)
         } else {
             ts.color
@@ -308,15 +308,15 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
         }
     }
 
-    let validatedTypeSettings = st.typeSettings->Js_array2.map(validateAndCorrectTypeSetting)
+    let validatedTypeSettings = st.typeSettings->Array.map(validateAndCorrectTypeSetting)
     let distinctTypeIds = Belt_SetInt.fromArray(
-        validatedTypeSettings->Js_array2.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getExn)
+        validatedTypeSettings->Array.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getExn)
     )
     let validatedTypeSettings = if (distinctTypeIds->Belt_SetInt.size == validatedTypeSettings->Js_array2.length) {
         validatedTypeSettings
     } else {
         let maxId = distinctTypeIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
-        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
+        validatedTypeSettings->Array.mapWithIndex((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
     }
     let maxTypSettId = validatedTypeSettings->Js_array2.reduce(
         (maxId,ts) => {
@@ -335,14 +335,14 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
 }
     
 let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string):settingsState => {
-    let state = if (state.webSrcSettings->Js.Array2.find(ws => ws.alias == alias)->Belt.Option.isSome) {
+    let state = if (state.webSrcSettings->Array.find(ws => ws.alias == alias)->Belt.Option.isSome) {
         state
     } else {
         let newId = state.webSrcNextId->Belt_Int.toString
         let state = state->addWebSrcSetting
         {
             ...state,
-            webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+            webSrcSettings: state.webSrcSettings->Array.map(ws => {
                 if (ws.id == newId) {
                     {
                         ...ws,
@@ -356,7 +356,7 @@ let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string)
     }
     let state = {
         ...state,
-        webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+        webSrcSettings: state.webSrcSettings->Array.map(ws => {
             if (ws.alias == alias) {
                 {
                     ...ws,
@@ -370,8 +370,8 @@ let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string)
     {
         ...state,
         webSrcSettings: state.webSrcSettings->Expln_utils_common.sortInPlaceWith((s1,s2) => {
-            let i1 = if defaultAliases->Js.Array2.includes(s1.alias) {0} else {1}
-            let i2 = if defaultAliases->Js.Array2.includes(s2.alias) {0} else {1}
+            let i1 = if defaultAliases->Array.includes(s1.alias) {0} else {1}
+            let i2 = if defaultAliases->Array.includes(s2.alias) {0} else {1}
             Belt_Float.fromInt(i1 - i2)
         })
     }
@@ -405,15 +405,15 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
         }
     }
 
-    let validatedWebSrcSettings = st.webSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
+    let validatedWebSrcSettings = st.webSrcSettings->Array.map(validateAndCorrectWebSrcSetting)
     let distinctIds = Belt_SetInt.fromArray(
-        validatedWebSrcSettings->Js_array2.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
+        validatedWebSrcSettings->Array.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
     )
     let validatedWebSrcSettings = if (distinctIds->Belt_SetInt.size == validatedWebSrcSettings->Js_array2.length) {
         validatedWebSrcSettings
     } else {
         let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
-        validatedWebSrcSettings->Js_array2.mapi((src,i) => {...src, id:(maxId+i+1)->Belt_Int.toString})
+        validatedWebSrcSettings->Array.mapWithIndex((src,i) => {...src, id:(maxId+i+1)->Belt_Int.toString})
     }
     let maxId = validatedWebSrcSettings->Js_array2.reduce(
         (maxId,src) => {
@@ -544,12 +544,12 @@ let stateToSettings = (st:settingsState):settings => {
         stickGoalToBottom:st.stickGoalToBottom,
         autoMergeStmts:st.autoMergeStmts,
         autoUnifyAll:st.autoUnifyAll,
-        typeSettings: st.typeSettings->Js_array2.map(typSett => {
+        typeSettings: st.typeSettings->Array.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
             prefix: typSett.prefix,
         }),
-        webSrcSettings: st.webSrcSettings->Js_array2.map(s => {
+        webSrcSettings: st.webSrcSettings->Array.map(s => {
             alias: s.alias,
             url: s.url,
             trusted: s.trusted,
@@ -597,7 +597,7 @@ let settingsToState = (ls:settings):settingsState => {
         autoMergeStmts:ls.autoMergeStmts,
         autoUnifyAll:ls.autoUnifyAll,
         typeNextId: 0,
-        typeSettings: ls.typeSettings->Js_array2.map(lts => {
+        typeSettings: ls.typeSettings->Array.map(lts => {
             id: "0",
             typ: lts.typ,
             color: lts.color,
@@ -605,7 +605,7 @@ let settingsToState = (ls:settings):settingsState => {
             err: None,
         }),
         webSrcNextId: 0,
-        webSrcSettings: ls.webSrcSettings->Js_array2.map(s => {
+        webSrcSettings: ls.webSrcSettings->Array.map(s => {
             id: "0",
             alias: s.alias,
             url: s.url,
@@ -876,7 +876,7 @@ let updateUseTranDeprInEssen = (st, useTranDeprInEssen) => {
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
         ...st,
-        typeSettings: st.typeSettings->Js_array2.map(ts => if (ts.id == id) { update(ts) } else { ts })
+        typeSettings: st.typeSettings->Array.map(ts => if (ts.id == id) { update(ts) } else { ts })
     }
 }
 
@@ -910,14 +910,14 @@ let addTypeSetting = st => {
 let deleteTypeSetting = (st, id) => {
     {
         ...st,
-        typeSettings: st.typeSettings->Js_array2.filter(ts => ts.id != id)
+        typeSettings: st.typeSettings->Array.filter(ts => ts.id != id)
     }
 }
 
 let updateWebSrcSetting = (st,id,update:webSrcSettingsState=>webSrcSettingsState) => {
     {
         ...st,
-        webSrcSettings: st.webSrcSettings->Js_array2.map(s => if (s.id == id) { update(s) } else { s })
+        webSrcSettings: st.webSrcSettings->Array.map(s => if (s.id == id) { update(s) } else { s })
     }
 }
 
@@ -936,7 +936,7 @@ let updateTrusted = (st,id,trusted) => {
 let deleteWebSrcSetting = (st, id) => {
     {
         ...st,
-        webSrcSettings: st.webSrcSettings->Js_array2.filter(s => s.id != id)
+        webSrcSettings: st.webSrcSettings->Array.filter(s => s.id != id)
     }
 }
 
@@ -1133,14 +1133,14 @@ let make = (
     let actCustomTransformsChange = (customTransforms) => { setState(updateCustomTransforms(_, customTransforms)) }
 
     let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
-        let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
+        let state = if (state.typeSettings->Array.find(ts => ts.typ == typ)->Belt.Option.isSome) {
             state
         } else {
             let newId = state.typeNextId->Belt_Int.toString
             let state = state->addTypeSetting
             {
                 ...state,
-                typeSettings: state.typeSettings->Js.Array2.map(ts => {
+                typeSettings: state.typeSettings->Array.map(ts => {
                     if (ts.id == newId) {
                         {
                             ...ts,
@@ -1154,7 +1154,7 @@ let make = (
         }
         {
             ...state,
-            typeSettings: state.typeSettings->Js.Array2.map(ts => {
+            typeSettings: state.typeSettings->Array.map(ts => {
                 if (ts.typ == typ) {
                     {
                         ...ts,
@@ -1780,11 +1780,11 @@ let make = (
             onDelete=actWebSrcSettingDelete
             defaultIds={
                 defaultAliases
-                    ->Js.Array2.map(defaultAlias => 
-                        state.webSrcSettings->Js.Array2.find(webSrc => webSrc.alias == defaultAlias)
+                    ->Array.map(defaultAlias => 
+                        state.webSrcSettings->Array.find(webSrc => webSrc.alias == defaultAlias)
                     )
-                    ->Js_array2.filter(Belt_Option.isSome)
-                    ->Js.Array2.map(webSrcOpt => (webSrcOpt->Belt_Option.getExn).id)
+                    ->Array.filter(Belt_Option.isSome(_))
+                    ->Array.map(webSrcOpt => (webSrcOpt->Belt_Option.getExn).id)
             }
         />
         <Divider/>

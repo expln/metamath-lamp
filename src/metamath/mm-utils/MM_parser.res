@@ -345,9 +345,9 @@ let traverseAst: (
 
 let proofToStr = proof => {
     switch proof {
-        | Some(Uncompressed({labels})) => labels->Js_array2.joinWith(" ")
+        | Some(Uncompressed({labels})) => labels->Array.joinUnsafe(" ")
         | Some(Compressed({labels, compressedProofBlock})) =>
-            "( " ++ labels->Js_array2.joinWith(" ") ++ " ) " ++ compressedProofBlock
+            "( " ++ labels->Array.joinUnsafe(" ") ++ " ) " ++ compressedProofBlock
         | None => "?"
     }
 }
@@ -356,13 +356,13 @@ let stmtToStr: mmAstNode => string = node => {
     switch node {
         | {stmt:Block({level})} => `block(level=${level->Belt_Int.toString})`
         | {stmt:Comment({text})} => "$( " ++ text ++ " $)"
-        | {stmt:Const({symbols})} =>  "$c " ++ symbols->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Var({symbols})} =>  "$v " ++ symbols->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Disj({vars})} =>  "$d " ++ vars->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Floating({label, expr})} =>  label ++ " $f " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Essential({label, expr})} =>  label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Axiom({label, expr})} =>  label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Provable({label, expr, proof})} =>  label ++ " $p " ++ expr->Js_array2.joinWith(" ")
+        | {stmt:Const({symbols})} =>  "$c " ++ symbols->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Var({symbols})} =>  "$v " ++ symbols->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Disj({vars})} =>  "$d " ++ vars->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Floating({label, expr})} =>  label ++ " $f " ++ expr->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Essential({label, expr})} =>  label ++ " $e " ++ expr->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Axiom({label, expr})} =>  label ++ " $a " ++ expr->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Provable({label, expr, proof})} =>  label ++ " $p " ++ expr->Array.joinUnsafe(" ")
             ++ " $= " ++ proofToStr(proof) ++ " $."
     }
 }
@@ -427,14 +427,14 @@ let astToStr = ( ast:mmAstNode ):string => {
         ~process = (_,node) => {
             switch node {
                 | {stmt:Comment({text})} => save("$( " ++ text ++ " $)")
-                | {stmt:Const({symbols})} =>  save( "$c " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Var({symbols})} =>  save( "$v " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Disj({vars})} =>  save( "$d " ++ vars->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Floating({label, expr})} =>  save( label ++ " $f " ++ expr->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Essential({label, expr})} =>  save( label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Axiom({label, expr})} =>  save( label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Const({symbols})} =>  save( "$c " ++ symbols->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Var({symbols})} =>  save( "$v " ++ symbols->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Disj({vars})} =>  save( "$d " ++ vars->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Floating({label, expr})} =>  save( label ++ " $f " ++ expr->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Essential({label, expr})} =>  save( label ++ " $e " ++ expr->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Axiom({label, expr})} =>  save( label ++ " $a " ++ expr->Array.joinUnsafe(" ") ++ " $." )
                 | {stmt:Provable({label, expr, proof})} => save(
-                    label ++ " $p " ++ expr->Js_array2.joinWith(" ") ++ " $= " ++ proofToStr(proof) ++ " $."
+                    label ++ " $p " ++ expr->Array.joinUnsafe(" ") ++ " $= " ++ proofToStr(proof) ++ " $."
                 )
                 | _ => ()
             }
@@ -449,5 +449,5 @@ let astToStr = ( ast:mmAstNode ):string => {
         },
         ()
     )->ignore
-    res->Js_array2.joinWith("\n")
+    res->Array.joinUnsafe("\n")
 }

@@ -140,12 +140,12 @@ let disjToSortedArr = disj => {
 let wrkSubsToStr = (ctx:mmContext, wrkSubs:wrkSubs):string => {
     "{newDisj:["
         ++ disjToSortedArr(wrkSubs.newDisj)
-            ->Js.Array2.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)},${ctx->ctxIntToSymExn(r)})`)
-            ->Js.Array2.joinWith(",")
+            ->Array.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)},${ctx->ctxIntToSymExn(r)})`)
+            ->Array.joinUnsafe(",")
         ++ "], subs:["
         ++ subsToSortedArr(wrkSubs.subs)
-            ->Js.Array2.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)} -> [${r->Js_array2.map(ctxIntToSymExn(ctx, _))->Js.Array2.joinWith(",")}])`)
-            ->Js.Array2.joinWith(",")
+            ->Array.map(((l,r)) => `(${ctx->ctxIntToSymExn(l)} -> [${r->Array.map(ctxIntToSymExn(ctx, _))->Array.joinUnsafe(",")}])`)
+            ->Array.joinUnsafe(",")
         ++ "], err: "
         ++ switch wrkSubs.err {
             | None => "None"
@@ -675,7 +675,7 @@ describe("findPossibleSubs", _ => {
 
         //then
         assertEq(
-            possibleSubs->Js.Array2.map(wrkSubs => wrkSubs.subs),
+            possibleSubs->Array.map(wrkSubs => wrkSubs.subs),
             [
                 Belt_MapInt.fromArray([
                     (t, ctx->ctxStrToIntsExn("( t + t )")),
@@ -1423,7 +1423,7 @@ describe("deleteUnrelatedSteps", _ => {
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")
         assertEqMsg(
-            st.stmts->Js_array2.map(stmt => stmt.id),
+            st.stmts->Array.map(stmt => stmt.id),
             [ idQed1, id1, id2, id3, id4, id5, id6, id7, idQed, id8, ],
             "before"
         )
@@ -1434,7 +1434,7 @@ describe("deleteUnrelatedSteps", _ => {
             | Ok(state) => {
                 //then
                 assertEqMsg(
-                    state.stmts->Js_array2.map(stmt => stmt.id),
+                    state.stmts->Array.map(stmt => stmt.id),
                     [ idQed1, id2, id4, id6, idQed, id8, ],
                     "after"
                 )
@@ -1490,7 +1490,7 @@ describe("deleteUnrelatedSteps", _ => {
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")
         assertEqMsg(
-            st.stmts->Js_array2.map(stmt => stmt.id),
+            st.stmts->Array.map(stmt => stmt.id),
             [ idQed1, id1, id2, id3, id4, id5, id6, id7, idQed, id8, ],
             "before"
         )
@@ -1501,7 +1501,7 @@ describe("deleteUnrelatedSteps", _ => {
             | Ok(state) => {
                 //then
                 assertEqMsg(
-                    state.stmts->Js_array2.map(stmt => stmt.id),
+                    state.stmts->Array.map(stmt => stmt.id),
                     [ id2, id4, id6, idQed, id8, ],
                     "after"
                 )
@@ -1557,7 +1557,7 @@ describe("deleteUnrelatedSteps", _ => {
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")
         assertEqMsg(
-            st.stmts->Js_array2.map(stmt => stmt.id),
+            st.stmts->Array.map(stmt => stmt.id),
             [ idQed1, id1, id2, id3, id4, id5, id6, id7, idQed, id8, ],
             "before"
         )
@@ -1568,7 +1568,7 @@ describe("deleteUnrelatedSteps", _ => {
             | Ok(state) => {
                 //then
                 assertEqMsg(
-                    state.stmts->Js_array2.map(stmt => stmt.id),
+                    state.stmts->Array.map(stmt => stmt.id),
                     [ idQed1, id2, id4, id6, idQed, id8, ],
                     "after"
                 )

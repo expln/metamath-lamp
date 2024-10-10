@@ -68,14 +68,14 @@ let createVDataRec = (
             let frame = ctx->getFrameExn(label)
             let hypsStr = []
             let eHyps = []
-            frame.hyps->Js_array2.forEachi((hyp,i) => {
+            frame.hyps->Array.forEachWithIndex((hyp,i) => {
                 hypsStr->Array.push(ctx->frmIntsToSymsExn(frame, hyp.expr))
                 if (hyp.typ == E) {
                     eHyps->Array.push(i)
                 }
             })
             let subs = Belt_HashMapString.make(~hintSize=frame.numOfVars)
-            frame.hyps->Js.Array2.forEachi((hyp,i) => {
+            frame.hyps->Array.forEachWithIndex((hyp,i) => {
                 if (hyp.typ == F) {
                     subs->Belt_HashMapString.set(
                         frame.frameVarToSymb->Array.getUnsafe(hyp.expr->Array.getUnsafe(1)),
@@ -106,18 +106,18 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
     let frmCtx = st.frmCtx
     let settings = st.settings
     let typeColors = settings->settingsGetTypeColors
-    let exprsStr = proofTable->Js_array2.map(r => frmCtx->ctxIntsToSymsExn(r.expr))
-    let vData = proofTable->Js.Array2.map(pRec => {
+    let exprsStr = proofTable->Array.map(r => frmCtx->ctxIntsToSymsExn(r.expr))
+    let vData = proofTable->Array.map(pRec => {
         createVDataRec( ~ctx=frmCtx, ~pRec, ~typeColors, ~exprsStr)
     })
     let essIdxs = Belt_HashSetInt.make(~hintSize=1000)
     let stepRenum = Belt_HashMapInt.make(~hintSize=1000)
-    proofTable->Js.Array2.forEach(pRec => {
+    proofTable->Array.forEach(pRec => {
         switch pRec.proof {
             | Hypothesis(_) => ()
             | Assertion({args, label}) => {
                 let frame = frmCtx->getFrameExn(label)
-                frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                frame.hyps->Array.forEachWithIndex((hyp,i) => {
                     if (hyp.typ == E) {
                         essIdxs->Belt_HashSetInt.add(args->Array.getUnsafe(i))
                     }
@@ -126,7 +126,7 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
         }
     })
     essIdxs->Belt_HashSetInt.add(proofTable->Js.Array2.length-1)
-    proofTable->Js.Array2.forEachi((_,i) => {
+    proofTable->Array.forEachWithIndex((_,i) => {
         if (essIdxs->Belt_HashSetInt.has(i)) {
             stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
         }
@@ -184,14 +184,14 @@ let createInitialState = (
     }
 
     let ctxVarToFrmVar = (i:int):option<int> => {
-        switch frame.frameVarToSymb->Js.Array2.indexOf(frmCtx->ctxIntToSymExn(i)) {
+        switch frame.frameVarToSymb->Array.indexOf(frmCtx->ctxIntToSymExn(i)) {
             | -1 => None
             | n => Some(n)
         }
     }
 
     let frmExprToCtxExpr = (expr:expr):expr => {
-        expr->Js_array2.map(frmIntToCtxInt)
+        expr->Array.map(frmIntToCtxInt)
     }
 
     let typeColors = settings->settingsGetTypeColors
@@ -234,7 +234,7 @@ let createInitialState = (
         disjStr,
         dummyVarDisj:None,
         dummyVarDisjStr:None,
-        hyps:frame.hyps->Js.Array2.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
+        hyps:frame.hyps->Array.map(hyp => {...hyp, expr:frmExprToCtxExpr(hyp.expr)}),
         asrt,
         proofTable: None,
         symColors,
@@ -289,10 +289,10 @@ let toggleShowTypes = (st:state):state => {
 }
 
 let toggleIdxExpanded = (st:state, idx:int):state => {
-    if (st.expandedIdxs->Js.Array2.includes(idx)) {
+    if (st.expandedIdxs->Array.includes(idx)) {
         {
             ...st, 
-            expandedIdxs: st.expandedIdxs->Js.Array2.filter(i => i != idx)
+            expandedIdxs: st.expandedIdxs->Array.filter(i => i != idx)
         }
     } else {
         {
@@ -400,7 +400,7 @@ let convertMmScopesToMmCtxSrcDtos = (
         None
     } else {
         Some(
-            mmScopes->Js_array2.mapi((mmScope,i) => {
+            mmScopes->Array.mapWithIndex((mmScope,i) => {
                 let origMmCtxSrcDto = origMmCtxSrcDtos->Array.getUnsafe(i)
                 let (readInstr,label) = switch mmScope.stopBefore {
                     | Some(label) => (readInstrToStr(StopBefore), label)
@@ -515,7 +515,7 @@ let frameProofDataToEditorStateLocStor = (
     })
     frmDisj->disjForEachArr(disjGrp => {
         disjArr->Array.push(
-            preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Js.Array2.joinWith(" ")
+            preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
         )
     })
     switch frameProofData.dummyVarDisj {
@@ -523,7 +523,7 @@ let frameProofDataToEditorStateLocStor = (
         | Some(dummyVarDisj) => {
             dummyVarDisj->disjForEachArr(disjGrp => {
                 disjArr->Array.push(
-                    frameProofData.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(" ")
+                    frameProofData.frmCtx->ctxIntsToSymsExn(disjGrp)->Array.joinUnsafe(" ")
                 )
             })
         }
@@ -531,7 +531,7 @@ let frameProofDataToEditorStateLocStor = (
     
     let maxUsedStepNum = ref(0)
     let stmts = []
-    frameProofData.frame.hyps->Js_array2.forEach(hyp => {
+    frameProofData.frame.hyps->Array.forEach(hyp => {
         if (hyp.typ == E) {
             switch Belt_Int.fromString(hyp.label) {
                 | None => ()
@@ -558,9 +558,9 @@ let frameProofDataToEditorStateLocStor = (
         | Some(proofTable) => {
             let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Js_array2.length)
             proofTable
-                ->Js_array2.mapi((pRec,idx) => (pRec,idx))
-                ->Js_array2.filter(((_,idx)) => frameProofData.essIdxs->Belt_HashSetInt.has(idx))
-                ->Js.Array2.forEach(((pRec,idx)) => {
+                ->Array.mapWithIndex((pRec,idx) => (pRec,idx))
+                ->Array.filter(((_,idx)) => frameProofData.essIdxs->Belt_HashSetInt.has(idx))
+                ->Array.forEach(((pRec,idx)) => {
                     switch pRec.proof {
                         | Hypothesis({label}) => idxToLabel->Belt_HashMapInt.set(idx,label)
                         | Assertion({args,label}) => {
@@ -623,8 +623,8 @@ let frameProofDataToEditorStateLocStor = (
     {
         srcs,
         descr: frameProofData.frame.descr->Belt.Option.getWithDefault(""),
-        varsText: vars->Js.Array2.joinWith("\n"),
-        disjText: disjArr->Js.Array2.joinWith("\n"),
+        varsText: vars->Array.joinUnsafe("\n"),
+        disjText: disjArr->Array.joinUnsafe("\n"),
         stmts,
     }
 }
@@ -636,7 +636,7 @@ let frameProofDataToStmtsDto = (
     ~args:array<int>, 
     ~frameProofData:frameProofData,
 ):result<stmtsDto,string> => {
-    let frmVarToCtxExpr:Belt_HashMapString.t<string> = args->Js_array2.mapi((arg,i) => {
+    let frmVarToCtxExpr:Belt_HashMapString.t<string> = args->Array.mapWithIndex((arg,i) => {
             if ((frameProofData.frame.hyps->Array.getUnsafe(i)).typ == F) {
                 Some(
                     (
@@ -648,8 +648,8 @@ let frameProofDataToStmtsDto = (
                 None
             }
         })
-        ->Js_array2.filter(Belt_Option.isSome)
-        ->Js_array2.map(Belt_Option.getExn)
+        ->Array.filter(Belt_Option.isSome(_))
+        ->Array.map(Belt_Option.getExn(_))
         ->Belt_HashMapString.fromArray
     let locSt = frameProofDataToEditorStateLocStor(
         ~preCtxData, ~frameProofData, ~adjustContext=false, ~loadSteps=true
@@ -661,12 +661,12 @@ let frameProofDataToStmtsDto = (
                 stmts->Array.push({
                     label:stmt.label,
                     expr:
-                        stmt.cont->getSpaceSeparatedValuesAsArray->Js.Array2.map(sym => {
+                        stmt.cont->getSpaceSeparatedValuesAsArray->Array.map(sym => {
                             switch frmVarToCtxExpr->Belt_HashMapString.get(sym) {
                                 | Some(exprStr) => exprStr
                                 | None => sym
                             }
-                        })->Js_array2.joinWith(" ")->ctxStrToIntsExn(wrkCtx, _),
+                        })->Array.joinUnsafe(" ")->ctxStrToIntsExn(wrkCtx, _),
                     exprStr:"",
                     jstf:stmt.jstfText->parseJstf->Belt_Result.getWithDefault(None),
                     isProved: true,
@@ -679,7 +679,7 @@ let frameProofDataToStmtsDto = (
     //     let numOfExistingVars = wrkCtx->getNumOfVars
     //     {
     //         newVars: Belt_Array.range(numOfExistingVars, numOfExistingVars + parsedVars->Js_array2.length - 1),
-    //         newVarTypes: parsedVars->Js_array2.map(@warning("-8")([_, typ, _]) => wrkCtx->ctxSymToIntExn(typ)),
+    //         newVarTypes: parsedVars->Array.map(@warning("-8")([_, typ, _]) => wrkCtx->ctxSymToIntExn(typ)),
     //         newDisj: disjMake(),
     //         newDisjStr: [],
     //         stmts: [],
@@ -982,8 +982,8 @@ let make = React.memoCustomCompareProps(({
             <tbody>
                 {
                     state.hyps
-                        ->Js_array2.filter(hyp => hyp.typ == E)
-                        ->Js_array2.mapi((hyp,i) => {
+                        ->Array.filter(hyp => hyp.typ == E)
+                        ->Array.mapWithIndex((hyp,i) => {
                             <tr key={i->Belt_Int.toString}>
                                 <td style={style->ReactDOMStyle.combine(ReactDOM.Style.make(~paddingLeft="15px", ()))}> 
                                     {(circleChar ++ nbsp ++ hyp.label)->React.string} 
@@ -1131,7 +1131,7 @@ let make = React.memoCustomCompareProps(({
             | Some(_) => expBtnBaseStyle
         }
         <a style onClick={_=>actToggleIdxExpanded(pRecIdx)}>
-            {React.string(if (state.expandedIdxs->Js_array2.includes(pRecIdx)) {"-"} else {"+"})}
+            {React.string(if (state.expandedIdxs->Array.includes(pRecIdx)) {"-"} else {"+"})}
         </a>
     }
 
@@ -1155,11 +1155,11 @@ let make = React.memoCustomCompareProps(({
         let labelIdxs = if (state.showTypes) {
             vDataRec.hypLabels
         } else {
-            vDataRec.eHyps->Js_array2.map(i => vDataRec.hypLabels->Array.getUnsafe(i))
+            vDataRec.eHyps->Array.map(i => vDataRec.hypLabels->Array.getUnsafe(i))
         }
         <MM_cmp_jstf_to_svg
-            hyps={if (state.showTypes) {vDataRec.hyps} else {vDataRec.eHyps->Js_array2.map(i => vDataRec.hyps->Array.getUnsafe(i))}}
-            hypLabels={labelIdxs->Js_array2.map(i => getStepNum(state,i)->Belt_Int.toString)}
+            hyps={if (state.showTypes) {vDataRec.hyps} else {vDataRec.eHyps->Array.map(i => vDataRec.hyps->Array.getUnsafe(i))}}
+            hypLabels={labelIdxs->Array.map(i => getStepNum(state,i)->Belt_Int.toString)}
             asrt=vDataRec.asrt
             frmColors=Some(vDataRec.frmColors)
             ctxColors1=Some(state.symColors)
@@ -1183,7 +1183,7 @@ let make = React.memoCustomCompareProps(({
                             switch state.vData->Array.getUnsafe(pRecIdx) {
                                 | None => rndExprText(~state, ~pRec)
                                 | Some(vDataRec) => {
-                                    if (state.expandedIdxs->Js_array2.includes(pRecIdx)) {
+                                    if (state.expandedIdxs->Array.includes(pRecIdx)) {
                                         rndExprSvg(~state, ~vDataRec)
                                     } else {
                                         rndExprText(~state, ~pRec)
@@ -1263,10 +1263,10 @@ let make = React.memoCustomCompareProps(({
                         </thead>
                         <tbody >
                             {
-                                proofTable->Js_array2.mapi((pRec,idx) => (pRec,idx))->Js_array2.filter(((_,idx)) => {
+                                proofTable->Array.mapWithIndex((pRec,idx) => (pRec,idx))->Array.filter(((_,idx)) => {
                                     if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}
                                 })
-                                    ->Js_array2.map(((pRec,idx)) => {
+                                    ->Array.map(((pRec,idx)) => {
                                     <tr 
                                         key={idx->Belt.Int.toString} 
                                         id={proofTableId ++ "-" ++ idx->Belt.Int.toString} 
@@ -1313,7 +1313,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndFooter = () => {
-        Belt_Array.range(1,12)->Js.Array2.map(i => {
+        Belt_Array.range(1,12)->Array.map(i => {
             <span key={i->Belt_Int.toString} style=ReactDOM.Style.make(~fontSize="20px", ())>{nbsp->React.string}</span>
         })->React.array
     }

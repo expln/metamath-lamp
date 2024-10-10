@@ -64,14 +64,14 @@ let openModalPriv = (st, fullScreen, render) => {
 let updateModalPriv = (st,id,newRender) => {
     {
         ...st,
-        modals: st.modals->Js_array2.map(m => if m.id == id {{...m, render:newRender}} else {m})
+        modals: st.modals->Array.map(m => if m.id == id {{...m, render:newRender}} else {m})
     }
 }
 
 let closeModalPriv = (st,id) => {
     {
         ...st,
-        modals: st.modals->Js_array2.filter(m => m.id != id)
+        modals: st.modals->Array.filter(m => m.id != id)
     }
 }
 
@@ -109,7 +109,7 @@ let make = (~modalRef:modalRef) => {
     <>
     {
         state.modals
-            ->Js.Array2.map(modal=>{
+            ->Array.map(modal=>{
                 <Dialog 
                     key=modal.id 
                     opn=true 

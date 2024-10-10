@@ -48,7 +48,7 @@ let make = (
     }
 
     <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
-        { typeSettings->Js_array2.map(rndTypeSetting)->React.array }
+        { typeSettings->Array.map(rndTypeSetting)->React.array }
         <Row alignItems={#baseline} >
             <IconButton key="add-button" onClick={_ => onAdd()}>
                 <MM_Icons.Add/>

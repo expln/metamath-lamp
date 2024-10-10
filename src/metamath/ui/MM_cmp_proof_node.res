@@ -22,13 +22,13 @@ let toggleExpanded = st => {
     }
 }
 
-let isExpandedSrc = (st,srcIdx) => st.expandedSrcs->Js_array2.includes(srcIdx)
+let isExpandedSrc = (st,srcIdx) => st.expandedSrcs->Array.includes(srcIdx)
 
 let expandCollapseSrc = (st,srcIdx) => {
-    if (st.expandedSrcs->Js_array2.includes(srcIdx)) {
+    if (st.expandedSrcs->Array.includes(srcIdx)) {
         {
             ...st,
-            expandedSrcs: st.expandedSrcs->Js.Array2.filter(i => i != srcIdx)
+            expandedSrcs: st.expandedSrcs->Array.filter(i => i != srcIdx)
         }
     } else {
         {
@@ -125,7 +125,7 @@ module rec ProofNodeDtoCmp: {
             >
                 {React.string("( ")}
                 {
-                    args->Js_array2.mapi((arg,i) => {
+                    args->Array.mapWithIndex((arg,i) => {
                         <span
                             key={i->Belt_Int.toString} 
                             style=ReactDOM.Style.make(~color=getColorForLabel(arg), ())
@@ -186,7 +186,7 @@ module rec ProofNodeDtoCmp: {
                                 </td>
                             </tr>
                         } else {
-                            args->Js_array2.mapi((arg,argIdx) => {
+                            args->Array.mapWithIndex((arg,argIdx) => {
                                 <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
                                     <td>
                                         <ProofNodeDtoCmp
@@ -299,7 +299,7 @@ module rec ProofNodeDtoCmp: {
                 <table>
                     <tbody>
                         {
-                            parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
+                            parents->Array.mapWithIndex((src,srcIdx) => rndSrc(src,srcIdx))->React.array
                         }
                     </tbody>
                 </table>

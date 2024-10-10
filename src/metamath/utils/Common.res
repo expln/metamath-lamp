@@ -68,8 +68,8 @@ let strToRegex = (str:string):result<Js_re.t,string> => {
 let splitByRegex = (str,regex) => {
     str
         ->Js_string2.splitByRe(regex)
-        ->Js_array2.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(str => str->Js_string2.length > 0)
+        ->Array.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
+        ->Array.filter(str => str->Js_string2.length > 0)
 }
 
 let newLineRegex = %re("/[\n\r]/")
@@ -210,7 +210,7 @@ let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_
 
 let createTypeOrderFromStr = (~sortDisjByType:string, ~typeNameToInt:string=>option<int>):Belt_HashMapInt.t<int> => {
     let typeOrderInDisj = Belt_HashMapInt.make(~hintSize=4)
-    sortDisjByType->getSpaceSeparatedValuesAsArray->Js.Array2.forEach(typStr => {
+    sortDisjByType->getSpaceSeparatedValuesAsArray->Array.forEach(typStr => {
         switch typeNameToInt(typStr) {
             | Some(i) => typeOrderInDisj->Belt_HashMapInt.set(i,typeOrderInDisj->Belt_HashMapInt.size)
             | None => ()

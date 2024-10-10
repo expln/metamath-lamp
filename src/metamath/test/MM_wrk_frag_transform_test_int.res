@@ -14,8 +14,8 @@ let rec extractResult = (reactElemDto:{..}):option<string> => {
             switch reactElemDto["children"]->Js.Nullable.toOption {
                 | Some(children) => {
                     children
-                        ->Js_array2.filter(child => child->Js.Nullable.toOption->Belt_Option.isSome)
-                        ->Js_array2.map(child => child->Js.Nullable.toOption->Belt_Option.getExn)
+                        ->Array.filter(child => child->Js.Nullable.toOption->Belt_Option.isSome)
+                        ->Array.map(child => child->Js.Nullable.toOption->Belt_Option.getExn)
                         ->Js_array2.reduce(
                             (res,child) => {
                                 switch res {
@@ -50,7 +50,7 @@ let testTransform = (
     let syntaxTree = MM_wrk_editor.textToSyntaxTree(
         ~wrkCtx,
         ~syms=[selectedFragment->getSpaceSeparatedValuesAsArray],
-        ~syntaxTypes=["wff", "class", "setvar"]->Js.Array2.map(ctxSymToIntExn(wrkCtx, _)),
+        ~syntaxTypes=["wff", "class", "setvar"]->Array.map(ctxSymToIntExn(wrkCtx, _)),
         ~frms=editorState.frms,
         ~frameRestrict=editorState.settings.allowedFrms.inSyntax,
         ~parenCnt=editorState.parenCnt,
@@ -90,7 +90,7 @@ let testTransform = (
     let stepJson = MM_cmp_api.stmtToJson(step, Some(ctxIntToSymExn(wrkCtx, _)))
     let param = {"step":stepJson}
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
-    let filteredTransforms = allTransforms->Js.Array2.filter(tr => tr.displayName(param) == transformName)
+    let filteredTransforms = allTransforms->Array.filter(tr => tr.displayName(param) == transformName)
     assertEqMsg(filteredTransforms->Js.Array2.length, 1, "filteredTransforms->Js.Array2.length")
     let transform = filteredTransforms->Array.getUnsafe(0)
     assertEqMsg(transform.canApply(param), true, "transform.canApply(param)")
@@ -100,7 +100,7 @@ let testTransform = (
     let elemDto = transform.renderDialog( { "state":prepareState(initState), "setState":_=>() } )
     assertEq(
         elemDto->reactElemDtoToObj->extractResult->Belt.Option.map(str => {
-            str->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
+            str->getSpaceSeparatedValuesAsArray->Array.joinUnsafe(" ")
         }), 
         Some(expectedResult)
     )

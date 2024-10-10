@@ -206,8 +206,8 @@ let make = (
         <Col spacing=0.>
             { 
                 editorState.stmts
-                    ->Js.Array2.filteri((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
-                    ->Js_array2.map(rndStmt(editorState, _))->React.array 
+                    ->Array.filterWithIndex((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
+                    ->Array.map(rndStmt(editorState, _))->React.array 
             }
         </Col>
     }

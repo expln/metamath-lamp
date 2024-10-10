@@ -27,13 +27,13 @@ let compareCompressedProofsAfterRenumbering = (
         }
     })
 
-    let renum = actualLabels->Js_array2.mapi((actualLabel,i) => 
-        (i, (expectedLabels->Js_array2.indexOf(actualLabel)))
+    let renum = actualLabels->Array.mapWithIndex((actualLabel,i) => 
+        (i, (expectedLabels->Array.indexOf(actualLabel)))
     )->Belt_HashMapInt.fromArray
 
     let minLabelIdx = mandHypsNum + 1
     let maxLabelIdx = mandHypsNum + actualLabels->Js_array2.length
-    let newBlock = actualBlock->compressedProofBlockToArray->Js.Array2.map(oldNumStr => {
+    let newBlock = actualBlock->compressedProofBlockToArray->Array.map(oldNumStr => {
         if (oldNumStr == "Z") {
             "Z"
         } else {
@@ -45,21 +45,21 @@ let compareCompressedProofsAfterRenumbering = (
             }
             intToCompressedProofStr(newNum)
         }
-    })->Js.Array2.joinWith("")
+    })->Array.joinUnsafe("")
 
     if (expectedBlock != newBlock) {
         Js.Console.log("-------------------------------------------------------------------------------------------")
         Js.Console.log2("mandHypsNum", mandHypsNum)
         Js.Console.log("actualLabels:")
-        actualLabels->Js.Array2.forEachi((label,i) => Js.Console.log(`${(i+1)->Belt_Int.toString}:${label}`))
+        actualLabels->Array.forEachWithIndex((label,i) => Js.Console.log(`${(i+1)->Belt_Int.toString}:${label}`))
         Js.Console.log("actualBlock:")
-        actualBlock->compressedProofBlockToArray->Js.Array2.map(numStr => {
+        actualBlock->compressedProofBlockToArray->Array.map(numStr => {
             if (numStr == "Z") {
                 "Z"
             } else {
                 compressedProofStrToInt(numStr)->Belt.Int.toString
             }
-        })->Js.Array2.joinWith(" ")->Js.Console.log
+        })->Array.joinUnsafe(" ")->Js.Console.log
         Js.Console.log("-------------------------------------------------------------------------------------------")
         false
     } else {

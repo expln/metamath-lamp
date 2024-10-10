@@ -17,8 +17,8 @@ let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapStrin
     let syms = ctx->ctxIntsToSymsExn(stmt)
     {
         cont:Text({
-            text: syms->Js.Array2.joinWith(" "),
-            syms: syms->Js_array2.map(sym => {
+            text: syms->Array.joinUnsafe(" "),
+            syms: syms->Array.map(sym => {
                 {sym, color:symColors->Belt_HashMapString.get(sym)}
             })
         }),
@@ -146,7 +146,7 @@ let make = React.memoCustomCompareProps( ({
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
-                    ~wrkCtx=ctx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                    ~wrkCtx=ctx, ~syms=[syms->Array.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
                     ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt,
                     ~lastSyntaxType=getLastSyntaxType(),
                     ~onLastSyntaxTypeChange=setLastSyntaxType,

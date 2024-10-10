@@ -82,7 +82,7 @@ let addSingleScope = (st:mmScope, ~defaultSrcType:mmFileSourceType) => {
         ])
     }
 }
-let updateSingleScope = (st,id,update) => {...st, singleScopes:st.singleScopes->Js_array2.map(ss => if ss.id == id {update(ss)} else {ss})}
+let updateSingleScope = (st,id,update) => {...st, singleScopes:st.singleScopes->Array.map(ss => if ss.id == id {update(ss)} else {ss})}
 let deleteSingleScope = (st,id,~defaultSrcType:mmFileSourceType) => {
     let st = {
         ...st, 
@@ -115,7 +115,7 @@ let getSummary = st => {
     if (st.singleScopes->Js.Array2.length == 1 && (st.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isNone) {
         "No Metamath database is loaded; please select a database to load."
     } else {
-        let filesInfo = st.singleScopes->Js_array2.map(ss => {
+        let filesInfo = st.singleScopes->Array.map(ss => {
             let name = getNameFromFileSrc(ss.fileSrc)->Belt_Option.getWithDefault("")
             let readInstr = switch ss.readInstr {
                 | ReadAll => ""
@@ -124,7 +124,7 @@ let getSummary = st => {
             }
             name ++ readInstr
         })
-        "Loaded: " ++ filesInfo->Js_array2.joinWith("; ")
+        "Loaded: " ++ filesInfo->Array.joinUnsafe("; ")
     }
 }
 
@@ -196,7 +196,7 @@ let shouldReloadContext = (singleScopes: array<mmSingleScope>, srcs: array<mmCtx
 }
 
 let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:modalRef):promise<mmScope> => {
-    switch st.singleScopes->Js_array2.find(ss => ss.id == singleScopeId) {
+    switch st.singleScopes->Array.find(ss => ss.id == singleScopeId) {
         | None => raise(MmException({msg:`Could not find an mmSingleScope with id '${singleScopeId}'`}))
         | Some(ss) => {
             switch ss.fileSrc {
@@ -257,7 +257,7 @@ let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ss
     } else {
         let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
         parseMmFileForSingleScope(mmScope, ~singleScopeId=ss.id, ~modalRef)->promiseFlatMap(mmScope => {
-            switch mmScope.singleScopes->Js_array2.find(s => s.id == ss.id) {
+            switch mmScope.singleScopes->Array.find(s => s.id == ss.id) {
                 | None => raise(MmException({msg:`None == singleScopes->find(s => s.id == ss.id)`}))
                 | Some(ss) => {
                     switch ss.ast {
@@ -289,7 +289,7 @@ let loadMmContext = (
                 let onTerminate = makeActTerminate(modalRef, modalId)
                 updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) )
                 MM_wrk_LoadCtx.beginLoadingMmContext(
-                    ~scopes = singleScopes->Js.Array2.map(ss => {
+                    ~scopes = singleScopes->Array.map(ss => {
                         let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
                         let stopAfter = if (ss.readInstr == StopAfter) {ss.label} else {None}
                         let label = stopBefore->Belt_Option.getWithDefault(
@@ -304,7 +304,7 @@ let loadMmContext = (
                             },
                             stopBefore,
                             stopAfter,
-                            expectedNumOfAssertions: ss.allLabels->Js_array2.indexOf(label) + 1,
+                            expectedNumOfAssertions: ss.allLabels->Array.indexOf(label) + 1,
                             resetNestingLevel:ss.resetNestingLevel,
                         }
                     }),
@@ -359,7 +359,7 @@ let loadMmFileText = (
     promise(rslv => {
         FileLoader.loadFileWithProgress(
             ~modalRef,
-            ~showWarning=!(trustedUrls->Js_array2.includes(url)),
+            ~showWarning=!(trustedUrls->Array.includes(url)),
             ~progressText=`Downloading MM file from "${alias}"`,
             ~url,
             ~onUrlBecomesTrusted,
@@ -429,7 +429,7 @@ let srcDtoToFileSrc = (~src:mmCtxSrcDto, ~webSrcSettings:array<webSrcSettings>):
         Local({ fileName:src.fileName, })
     } else if (src.typ == webTypStr) {
         Web({
-            alias: switch webSrcSettings->Js_array2.find(ws => ws.url == src.url) {
+            alias: switch webSrcSettings->Array.find(ws => ws.url == src.url) {
                 | Some({alias}) => {
                     if (alias->Js_string2.trim != "") {
                         alias
@@ -524,7 +524,7 @@ let make = (
         onChange(srcs,ctx)
     }
 
-    let trustedUrls= settings.webSrcSettings->Js_array2.filter(s => s.trusted)->Js_array2.map(s => s.url)
+    let trustedUrls= settings.webSrcSettings->Array.filter(s => s.trusted)->Array.map(s => s.url)
 
     let actParseMmFileText = (id:string, src:mmFileSource, text:string):unit => {
         let st = state->updateSingleScope(id,setFileSrc(_,Some(src)))
@@ -547,14 +547,14 @@ let make = (
 
     let rndSingleScopeSelectors = () => {
         let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || (state.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isSome
-        state.singleScopes->Js_array2.map(singleScope => {
+        state.singleScopes->Array.map(singleScope => {
             <MM_cmp_context_selector_single 
                 key=singleScope.id
                 modalRef
                 availableWebSrcs={
                     settings.webSrcSettings
-                        ->Js_array2.filter(s => s.alias->Js_string2.trim->Js_string2.length > 0)
-                        ->Js_array2.map(s => {
+                        ->Array.filter(s => s.alias->Js_string2.trim->Js_string2.length > 0)
+                        ->Array.map(s => {
                             {
                                 alias:s.alias,
                                 url:s.url,
@@ -590,7 +590,7 @@ let make = (
     }
 
     let rndAddButton = () => {
-        let thereIsAtLeastOneValidSingleScope = state.singleScopes->Js_array2.some(singleScope => {
+        let thereIsAtLeastOneValidSingleScope = state.singleScopes->Array.some(singleScope => {
             switch singleScope.ast {
                 | Some(Ok(_)) => true
                 | _ => false
@@ -622,7 +622,7 @@ let make = (
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {
-                        let mmCtxSrcDtos = state.singleScopes->Js.Array2.map(ss => {
+                        let mmCtxSrcDtos = state.singleScopes->Array.map(ss => {
                             switch ss.fileSrc {
                                 | None => raise(MmException({msg:`ss.fileSrc is None`}))
                                 | Some(src) => {
@@ -674,7 +674,7 @@ let make = (
                 promise(rslv => rslv(Ok(())))
             } else {
                 let loadedTexts = Belt_HashMapString.fromArray(
-                    prevState.singleScopes->Js_array2.map(ss => {
+                    prevState.singleScopes->Array.map(ss => {
                         switch ss.fileSrc {
                             | None | Some(Local(_)) => None
                             | Some(Web({url})) => {
@@ -685,7 +685,7 @@ let make = (
                             }
                             
                         }
-                    })->Js_array2.filter(Belt_Option.isSome)->Js_array2.map(Belt_Option.getExn)
+                    })->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
                 )
                 makeMmScopeFromSrcDtos(
                     ~modalRef,

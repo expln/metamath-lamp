@@ -158,7 +158,7 @@ let make = React.memoCustomCompareProps( ({
         if (state.eHyps->Js.Array2.length == 0) {
             <></>
         } else {
-            state.eHyps->Js.Array2.mapi((hyp,i) => {
+            state.eHyps->Array.mapWithIndex((hyp,i) => {
                 <React.Fragment key={i->Belt.Int.toString}>
                     <Divider/>
                     <table style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>

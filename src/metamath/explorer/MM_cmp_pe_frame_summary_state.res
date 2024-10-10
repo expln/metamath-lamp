@@ -33,7 +33,7 @@ let createDisjGroups = (
         ~varIntToVarType=intToTyp,
         ~typeOrder,
         grp => {
-            resArr->Array.push( grp->Js_array2.map(intToSym) )
+            resArr->Array.push( grp->Array.map(intToSym) )
         }
     )
     resArr
@@ -110,7 +110,7 @@ let makeInitialState = (
     let frameIntToCtxInt = i => if (i < 0) {i} else {frmVarIntToCtxInt->Array.getUnsafe(i)}
 
     let frameExprToCtxExpr = (frmExpr:expr):expr => {
-        frmExpr->Js_array2.map(frameIntToCtxInt)
+        frmExpr->Array.map(frameIntToCtxInt)
     }
 
     let disj = if (frame.disj->Belt_MapInt.size > 0) {
@@ -135,7 +135,7 @@ let makeInitialState = (
     {
         frmCtx,
         symColors,
-        eHyps:frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)->Js.Array2.map(hyp => hyp.expr->frameExprToCtxExpr),
+        eHyps:frame.hyps->Array.filter(hyp => hyp.typ == E)->Array.map(hyp => hyp.expr->frameExprToCtxExpr),
         asrt:frame.asrt->frameExprToCtxExpr,
         symRename:symRename.contents,
         disj,

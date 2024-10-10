@@ -13,7 +13,7 @@ let mmFilePath = "./src/metamath/test/resources/set._mm"
 let getCurrMillis = () => Js.Date.make()->Js.Date.getTime
 let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Float.toInt
 let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
-let compareExprBySize = comparatorBy(Js_array2.length(_))
+let compareExprBySize = comparatorBy(Array.length(_))
 
 let log = msg => Js.Console.log(`${currTimeStr()} ${msg}`)
 
@@ -77,13 +77,13 @@ describe("proveSyntaxTypes", _ => {
         }
 
         let resetCtxLocVars = () => {
-            typToNextLocVarIdx->Belt_HashMapInt.keysToArray->Js.Array2.forEach(typ => {
+            typToNextLocVarIdx->Belt_HashMapInt.keysToArray->Array.forEach(typ => {
                 typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
             })
         }
 
         let asrtVarsToLocVars = (asrtVarTypes:array<int>):array<int> => {
-            asrtVarTypes->Js_array2.map(getCtxLocVar)
+            asrtVarTypes->Array.map(getCtxLocVar)
         }
 
         let asrtIntToCtxInt = (i:int,asrtVarToLocVar:array<int>):int => {
@@ -103,9 +103,9 @@ describe("proveSyntaxTypes", _ => {
             asrtExprs->Belt_HashMapString.set(
                 frame.label,
                 {
-                    "ctxExpr": frame.asrt->Js_array2.map(asrtIntToCtxInt(_,asrtVarToLocVar)),
+                    "ctxExpr": frame.asrt->Array.map(asrtIntToCtxInt(_,asrtVarToLocVar)),
                     "ctxVarToAsrtVar": 
-                        asrtVarToLocVar->Js_array2.mapi((ctxVar,asrtVar) => (ctxVar,asrtVar))->Belt_HashMapInt.fromArray
+                        asrtVarToLocVar->Array.mapWithIndex((ctxVar,asrtVar) => (ctxVar,asrtVar))->Belt_HashMapInt.fromArray
                 }
             )            
             if (maxNumOfVars.contents < frame.numOfVars) {
@@ -114,19 +114,19 @@ describe("proveSyntaxTypes", _ => {
             None
         })->ignore
         let asrtExprsToProve = asrtExprs->Belt_HashMapString.valuesToArray
-            ->Js.Array2.map(obj => obj["ctxExpr"])
+            ->Array.map(obj => obj["ctxExpr"])
             ->Expln_utils_common.sortInPlaceWith(compareExprBySize->comparatorInverse)
 
         Js.Console.log2(`maxNumOfVars`, maxNumOfVars.contents)
 
-        // let asrtExprStr = asrtExprs->Js.Array2.map(ctxIntsToStrExn(ctx, _))->Js.Array2.joinWith("\n")
+        // let asrtExprStr = asrtExprs->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
         let numOfExpr = asrtExprsToProve->Js.Array2.length
         let from = 0
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprsToProve->Js.Array2.slice(~start=from,~end_=to_)
-            ->Js_array2.map(expr => expr->Js_array2.sliceFrom(1))
+            ->Array.map(expr => expr->Js_array2.sliceFrom(1))
         let frms = prepareFrmSubsData(~ctx, ())
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
 
@@ -170,8 +170,8 @@ describe("proveSyntaxTypes", _ => {
         // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
         let unprovedAsrtExprs = asrtExprsToProve
-            ->Js.Array2.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
-        // let unprovedAsrtExprStr = unprovedAsrtExprs->Js.Array2.map(ctxIntsToStrExn(ctx, _))->Js.Array2.joinWith("\n")
+            ->Array.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
+        // let unprovedAsrtExprStr = unprovedAsrtExprs->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
         assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
 

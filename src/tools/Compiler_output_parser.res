@@ -93,14 +93,14 @@ let printToStr = (groups:Belt_HashMapInt.t<array<warning>>):string => {
     let res = []
     groups->Belt_HashMapInt.toArray
         ->Expln_utils_common.sortInPlaceWith(((code1,_),(code2,_)) => (code1 - code2)->Belt_Float.fromInt)
-        ->Js.Array2.forEach(((code,arr)) => {
+        ->Array.forEach(((code,arr)) => {
             res->Array.push("")
             res->Array.push(`Warning number ${code->Belt_Int.toString}: ${getWarningDescr(code)}`)
-            arr->Expln_utils_common.sortInPlaceWith((a,b) => (a.ord - b.ord)->Belt_Float.fromInt)->Js.Array2.forEach(warning => {
+            arr->Expln_utils_common.sortInPlaceWith((a,b) => (a.ord - b.ord)->Belt_Float.fromInt)->Array.forEach(warning => {
                 res->Array.push(warning.path)
             })
         })
-    res->Js.Array2.joinWith("\n")
+    res->Array.joinUnsafe("\n")
 }
 
 let parseCompilerOutput = (~compilerOutputFilePath:string):unit => {
@@ -109,11 +109,11 @@ let parseCompilerOutput = (~compilerOutputFilePath:string):unit => {
         | None => Js.Console.log(`Could not find warnings`)
         | Some(matches) => {
             let matches = matches
-                ->Js_array2.filter(Belt_Option.isSome)
-                ->Js_array2.map(Belt_Option.getExn)
-                ->Js_array2.mapi((match,i) => parseMatch(~match, ~ord=i))
+                ->Array.filter(Belt_Option.isSome(_))
+                ->Array.map(Belt_Option.getExn(_))
+                ->Array.mapWithIndex((match,i) => parseMatch(~match, ~ord=i))
             let groups = Belt_HashMapInt.make(~hintSize=matches->Js_array2.length)
-            matches->Js.Array2.forEach(warning => addToGroup(~groups, ~warning))
+            matches->Array.forEach(warning => addToGroup(~groups, ~warning))
             groups->printToStr->writeStringToFile(compilerOutputFilePath ++ ".parsed")
         }
     }

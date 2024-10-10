@@ -55,7 +55,7 @@ let make = (
     let rndAvailableTransforms = (availableTransforms:array<fragmentTransform>):result<reElem,string> => {
         let param = {"step":state.step}
         let listItems = invokeExnFunc( "Listing available transforms", () => {
-            availableTransforms->Js_array2.mapi((availableTransform,i) => {
+            availableTransforms->Array.mapWithIndex((availableTransform,i) => {
                 <ListItem key={i->Belt_Int.toString} disablePadding=true >
                     <ListItemButton onClick={_=>{setState(setSelectedTransform(_,Some(availableTransform)))}}>
                         <ListItemText>
@@ -86,7 +86,7 @@ let make = (
                     allTransformsRef := allTransforms
                     invokeExnFunc(
                         "Getting available transforms",
-                        () => allTransforms->Js_array2.filter(tr => tr.canApply(param))
+                        () => allTransforms->Array.filter(tr => tr.canApply(param))
                     )
                 })
                 ->Belt.Result.flatMap(rndAvailableTransforms)
@@ -101,7 +101,7 @@ let make = (
         } else {
             let availableTransformsElem = invokeExnFunc(
                     "Getting available transforms from cache",
-                    () => allTransformsCache.contents->Js_array2.filter(tr => tr.canApply(param))
+                    () => allTransformsCache.contents->Array.filter(tr => tr.canApply(param))
                 )
                 ->Belt.Result.flatMap(rndAvailableTransforms)
             switch availableTransformsElem {

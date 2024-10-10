@@ -19,7 +19,7 @@ let reqToStr = req => {
     switch req {
         | FindAssertions({label, typ, pattern}) => 
             `FindAssertions(label="${label}", typ=${typ->Belt_Int.toString}, `
-                ++ `pattern=[${pattern->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(", ")}])`
+                ++ `pattern=[${pattern->Array.map(Belt_Int.toString(_))->Array.joinUnsafe(", ")}])`
     }
 }
 
@@ -170,7 +170,7 @@ let doSearchAssertions = (
     let framesProcessed = ref(0.)
     let numOfFrames = frms->frmsSize->Belt_Int.toFloat
     let varPat = pattern
-    let constPat = varPat->Js.Array2.map(sym => {
+    let constPat = varPat->Array.map(sym => {
         if (sym < 0) {
             sym
         } else {
@@ -187,7 +187,7 @@ let doSearchAssertions = (
     let results = []
     let framesInDeclarationOrder = frms->frmsSelect(())
         ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
-    framesInDeclarationOrder->Js.Array2.forEach(frm => {
+    framesInDeclarationOrder->Array.forEach(frm => {
         let frame = frm.frame
         if (
             frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
@@ -206,7 +206,7 @@ let doSearchAssertions = (
             })
             let stmts = []
             let argLabels = []
-            frame.hyps->Js_array2.forEach(hyp => {
+            frame.hyps->Array.forEach(hyp => {
                 if (hyp.typ == E) {
                     let argLabel = hyp.label
                     argLabels->Array.push(argLabel)

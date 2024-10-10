@@ -34,7 +34,7 @@ let leftPad = (~content:string, ~char:string, ~totalLen:int):string => {
 let exprSourceToArgsStr = src => {
     switch src {
         | Hypothesis(_) => ""
-        | Assertion({args}) => args->Js_array2.map(i=>i+1)->Js_array2.joinWith(",")
+        | Assertion({args}) => args->Array.map(i=>i+1)->Array.joinUnsafe(",")
     }
 }
 
@@ -46,20 +46,20 @@ let exprSourceToLabelStr = src => {
 }
 
 let maxLength = (arr:array<string>):int => {
-    arr->Js.Array2.map(Js_string2.length)->Js.Array2.reduce(Js_math.max_int, 0)
+    arr->Array.map(Js_string2.length(_))->Js.Array2.reduce(Js_math.max_int, 0)
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
-    let srcsArgs = tbl->Js_array2.map(r => r.proof->exprSourceToArgsStr)
-    let srcsLabels = tbl->Js_array2.map(r => r.proof->exprSourceToLabelStr)
-    let exprs = tbl->Js_array2.map(r => ctx->ctxIntsToStrExn(r.expr))
+    let srcsArgs = tbl->Array.map(r => r.proof->exprSourceToArgsStr)
+    let srcsLabels = tbl->Array.map(r => r.proof->exprSourceToLabelStr)
+    let exprs = tbl->Array.map(r => ctx->ctxIntsToStrExn(r.expr))
 
     let maxNumOfDigits = tbl->Js_array2.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
     let numColWidth = maxNumOfDigits + 1
     let argsColWidth = maxLength(srcsArgs) + 1
     let labelColWidth = maxLength(srcsLabels) + 1
 
-    tbl->Js_array2.mapi((_,i) => {
+    tbl->Array.mapWithIndex((_,i) => {
         leftPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=numColWidth)
             ++ "| " ++ rightPad(~content=srcsArgs->Array.getUnsafe(i), ~char=" ", ~totalLen=argsColWidth)
             ++ "| " ++ rightPad(~content=srcsLabels->Array.getUnsafe(i), ~char=" ", ~totalLen=labelColWidth)
@@ -71,7 +71,7 @@ let proofTableToStr = (ctx,tbl,title):string => {
     let proofTableArrStr = proofTableToArrStr(ctx,tbl)
     let tableWidth = maxLength(proofTableArrStr)
     rightPad(~content=`--- ${title} `, ~char="-", ~totalLen=tableWidth) ++ "\n"
-        ++ proofTableArrStr->Js_array2.joinWith("\n") ++ "\n"
+        ++ proofTableArrStr->Array.joinUnsafe("\n") ++ "\n"
         ++ rightPad(~content="", ~char="-", ~totalLen=maxLength(proofTableArrStr))
 }
 
@@ -128,7 +128,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     }
     let mandHypLen = mandHyps->Js.Array2.length
     let mandHypLabelToInt = Belt_HashMapString.fromArray(
-        mandHyps->Js_array2.mapi(({label}, i) => (label, i+1))
+        mandHyps->Array.mapWithIndex(({label}, i) => (label, i+1))
     )
     let labels = []
     let labelToIntMap = Belt_HashMapString.make(~hintSize=64)
@@ -169,7 +169,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     let labelsLastIdx = mandHypLen + labels->Js.Array2.length
     Compressed({
         labels,
-        compressedProofBlock: proofSteps->Js_array2.map(i => {
+        compressedProofBlock: proofSteps->Array.map(i => {
             if (i == 0) {
                 "Z"
             } else if (i < 0) {
@@ -177,7 +177,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
             } else {
                 intToCompressedProofStr(i)
             }
-        })->Js_array2.joinWith("")
+        })->Array.joinUnsafe("")
     })
 }
 
@@ -205,7 +205,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
             raise(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
         }
         if (mergeSameRows) {
-            switch tbl->Js.Array2.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
+            switch tbl->Array.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
                 | -1 => saveExprToTblWithoutChecks(nodeId,expr,proof)
                 | idx => nodeIdToIdx->Belt_HashMapInt.set(nodeId, idx)
             }
@@ -237,7 +237,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
                             expr, 
                             Assertion({
                                 label:asrtLabel,
-                                args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeIdExn)
+                                args: args->Array.map(argNode => argNode->proofNodeGetId->getIdxByNodeIdExn)
                             })
                         )
                     }

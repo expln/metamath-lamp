@@ -49,8 +49,8 @@ let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<s
         <polyline 
             ?key
             points={
-                ps->Js_array2.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
-                    ->Js.Array2.joinWith(" ")
+                ps->Array.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
+                    ->Array.joinUnsafe(" ")
             } 
             style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={lineWidth->Belt_Float.toString}, ())
         />,
@@ -235,13 +235,13 @@ let rndStmtAndHyp = (
             }
         }
 
-        let rndCtxStmt = ctxFirst || frmStmt->Js.Array2.some(subs->Belt_HashMapString.has)
+        let rndCtxStmt = ctxFirst || frmStmt->Array.some(Belt_HashMapString.has(subs, _))
         let (_, bndSample) = text(~ex, ~text=".", ())
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
-        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Js.Array2.joinWith(" ")
+        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Array.joinUnsafe(" ")
         let ctxStmtLen = ctxStmtStr->Js.String2.length->Belt_Int.toFloat *. charWidth
-        let frmStmtLen = frmStmt->Js.Array2.joinWith(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
+        let frmStmtLen = frmStmt->Array.joinUnsafe(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
         let dx = (ctxStmtLen -. frmStmtLen) /. 2.
         let exL = ex
         let exS = ex->vecTr(ex->vecMul(dx))
@@ -260,7 +260,7 @@ let rndStmtAndHyp = (
         let ctxElems = []
         let conElems = []
         let bnds = []
-        frmStmt->Js_array2.forEachi((frmSym,i) => {
+        frmStmt->Array.forEachWithIndex((frmSym,i) => {
             let (fElems,frmBnd,frmContentOnlyBnd) = rndStmt(
                 ~ex=frmEx.contents,
                 ~stmt=[frmSym],
@@ -338,7 +338,7 @@ let make = (
     let delimLineMargin = charHeight *. 0.5
 
     let numOfColors = subsAvailableColors->Js.Array2.length
-    let subsColors = subs->Belt_HashMapString.toArray->Js.Array2.mapi(((frmSym,_),i) => {
+    let subsColors = subs->Belt_HashMapString.toArray->Array.mapWithIndex(((frmSym,_),i) => {
         (frmSym, subsAvailableColors->Array.getUnsafe(mod(i, numOfColors)))
     })->Belt_HashMapString.fromArray
 
@@ -346,7 +346,7 @@ let make = (
         let curEx = ref(ex)
         let hypElems = []
         let hypBnds = []
-        hyps->Js.Array2.forEachi((hyp,i) => {
+        hyps->Array.forEachWithIndex((hyp,i) => {
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
                 ~hypLabel=Some(hypLabels->Array.getUnsafe(i)), ~noFrameForBottomBnd=true,

@@ -20,7 +20,7 @@ let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,strin
         Error(`extractVarToRecIdxMapping: args.Js_array2.length != frame.numOfArgs`)
     } else {
         let err = ref(None)
-        frame.hyps->Js_array2.forEachi((hyp,i) => {
+        frame.hyps->Array.forEachWithIndex((hyp,i) => {
             if (err.contents->Belt_Option.isNone && hyp.typ == F) {
                 let v = hyp.expr->Array.getUnsafe(1)
                 if (locks->Array.getUnsafe(v)) {
@@ -34,8 +34,8 @@ let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,strin
         switch err.contents {
             | Some(err) => err
             | None => {
-                if (locks->Js_array2.some(lock => !lock)) {
-                    Error(`extractVarToRecIdxMapping: locks->Js_array2.some(lock => !lock)`)
+                if (locks->Array.some(lock => !lock)) {
+                    Error(`extractVarToRecIdxMapping: locks->Array.some(lock => !lock)`)
                 } else {
                     Ok(varToRecIdxMapping)
                 }
@@ -101,7 +101,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                 height:0,
                             }
                             let err = ref(None)
-                            frame.asrt->Js_array2.forEachi((s,i) => {
+                            frame.asrt->Array.forEachWithIndex((s,i) => {
                                 if (i > 0 && err.contents->Belt_Option.isNone) {
                                     if (s < 0) {
                                         this.children[i-1] = Symbol({
@@ -148,7 +148,7 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
-    node.children->Js_array2.map(childNode => {
+    node.children->Array.map(childNode => {
         switch childNode {
             | Subtree(node) => syntaxTreeToSymbols(node)
             | Symbol({sym}) => [sym]
@@ -194,7 +194,7 @@ let buildSyntaxProofTableFromProofTreeDto = (
     ~proofTreeDto:MM_proof_tree_dto.proofTreeDto,
     ~typeStmt:expr,
 ):result<proofTable,string> => {
-    switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(typeStmt)) {
+    switch proofTreeDto.nodes->Array.find(node => node.expr->exprEq(typeStmt)) {
         | None => Error(`buildSyntaxProofTableFromProofTreeDto: could not find a proof for: ${ctx->ctxIntsToStrExn(typeStmt)}`)
         | Some(proofNode) => Ok(MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode, ()))
     }
@@ -243,7 +243,7 @@ let applySubsInPlace = (expr:array<string>, subs:unifSubs):unit => {
 }
 
 let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
-    if (expr->Js_array2.includes(var)) {
+    if (expr->Array.includes(var)) {
         false
     } else {
         applySubsInPlace(expr, foundSubs)
@@ -373,7 +373,7 @@ let syntaxTreeToText = (node:childNode):string => {
         }
         None
     })->ignore
-    res->Js.Array2.joinWith(" ")
+    res->Array.joinUnsafe(" ")
 }
 
 let syntaxTreeGetNumberOfSymbols = (node:childNode):int => {

@@ -67,8 +67,8 @@ let make = (
     }
     and childrenToArray = (children:array<Js.Nullable.t<{..}>>, msg:string):reElem => {
         children
-            ->Js.Array2.filter(child => child->Js.Nullable.toOption->Belt.Option.isSome)
-            ->Js_array2.mapi((child,i) => {
+            ->Array.filter(child => child->Js.Nullable.toOption->Belt.Option.isSome)
+            ->Array.mapWithIndex((child,i) => {
                 let child = reqObjExn(child, `A child element is not a component object: ${msg}`)
                 rndCustomElem(child)->React.cloneElement({
                     "key":optStrExn(child["key"], "optional 'key' attribute of any component must be a string")
@@ -118,7 +118,7 @@ let make = (
         <RadioGroup row value onChange=evt2str(str => onChange(. str)) >
             {
                 options
-                    ->Js_array2.map(option => {
+                    ->Array.map(option => {
                         let value = option->Array.getUnsafe(0)
                         let label = option->Array.getUnsafe(1)
                         <FormControlLabel 
@@ -168,7 +168,7 @@ let make = (
     }
     and rndApplyButtons = (elem:{..}):reElem => {
         let result = reqStrExn(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
-            ->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
+            ->getSpaceSeparatedValuesAsArray->Array.joinUnsafe(" ")
         let replaceSelection = optBoolExn(
             elem["replaceSelection"], 
             "the 'replaceSelection' attribute of ApplyButtons component must be a boolean"

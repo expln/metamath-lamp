@@ -70,7 +70,7 @@ let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:
 }
 
 let openTab = (st:state<'a>, tabId):state<'a> => {
-    if (st.tabs->Js_array2.some(t => t.id == tabId)) {
+    if (st.tabs->Array.some(t => t.id == tabId)) {
         {
             ...st, 
             activeTabId:tabId, 
@@ -90,8 +90,8 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
 }
 
 let removeTab = (st:state<'a>, tabId):state<'a> => {
-    let newTabs = st.tabs->Js_array2.filter(t => t.id != tabId)
-    let newTabHistory = st.tabHistory->Js_array2.filter(id => id != tabId)
+    let newTabs = st.tabs->Array.filter(t => t.id != tabId)
+    let newTabHistory = st.tabHistory->Array.filter(id => id != tabId)
     {
         ...st, 
         tabs: newTabs,
@@ -142,7 +142,7 @@ let useTabs = ():tabMethods<'a> => {
                 )
             >
                 {React.array(
-                    tabs->Js_array2.map(tab => {
+                    tabs->Array.map(tab => {
                         <Tab 
                             key=tab.id 
                             value=tab.id 

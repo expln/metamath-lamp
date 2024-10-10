@@ -81,10 +81,10 @@ let getMacrosFromCache = (~displayName:string, ~script:string):result<array<macr
 
 let removeStaleMacrosFromCache = (st:state):unit => {
     let validKeys = st.collsOfMacros
-        ->Js.Array2.map(coll => getMacrosCacheKey(~displayName=coll.displayName, ~script=coll.scriptText))
+        ->Array.map(coll => getMacrosCacheKey(~displayName=coll.displayName, ~script=coll.scriptText))
     let allKeys = macrosCache->Belt_HashMapString.keysToArray
-    allKeys->Js.Array2.forEach(key => {
-        if (!(validKeys->Js_array2.includes(key))) {
+    allKeys->Array.forEach(key => {
+        if (!(validKeys->Array.includes(key))) {
             macrosCache->Belt_HashMapString.remove(key)
         }
     })
@@ -144,7 +144,7 @@ let deleteMacros = (st:state, ~id:int):result<state,string> => {
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.filter(macros => macros.id != id)
+                collsOfMacros:st.collsOfMacros->Array.filter(macros => macros.id != id)
             }
         )
     }
@@ -156,7 +156,7 @@ let saveEdits = (st:state, ~id:int):result<state,string> => {
     } else {
         let st = {
             ...st,
-            collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+            collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                 if (collOfMacros.id != id) {
                     collOfMacros
                 } else {
@@ -185,7 +185,7 @@ let setDisplayNameEdit = (st:state, ~collOfMacrosId:int, ~displayNameEdit:string
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                     if (collOfMacros.id != collOfMacrosId) {
                         collOfMacros
                     } else {
@@ -204,7 +204,7 @@ let setScriptTextEdit = (st:state, ~collOfMacrosId:int, ~scriptTextEdit:string):
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                     if (collOfMacros.id != collOfMacrosId) {
                         collOfMacros
                     } else {
@@ -223,7 +223,7 @@ let resetEditsForCollOfMacros = (st:state, id:int):result<state,string> => {
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                     if (collOfMacros.id != id) {
                         collOfMacros
                     } else {
@@ -240,7 +240,7 @@ let resetEditsForCollOfMacros = (st:state, id:int):result<state,string> => {
 }
 
 let setActiveCollOfMacrosId = (st:state, newActiveCollOfMacrosId:int):result<state,string> => {
-    switch st.collsOfMacros->Js_array2.find(coll => coll.id == newActiveCollOfMacrosId) {
+    switch st.collsOfMacros->Array.find(coll => coll.id == newActiveCollOfMacrosId) {
         | None => Ok(st)
         | Some(_) => {
             let st = {
@@ -271,8 +271,8 @@ let expBtnBaseStyle = ReactDOM.Style.make(
 
 let stateToStateLocStor = (st:state):stateLocStor => {
     {
-        activeCollOfMacrosIdx: st.collsOfMacros->Js.Array2.findIndex(coll => coll.id == st.activeCollOfMacrosId),
-        collsOfMacros: st.collsOfMacros->Js_array2.filter(coll => coll.id >= 0)->Js_array2.map(coll => {
+        activeCollOfMacrosIdx: st.collsOfMacros->Array.findIndex(coll => coll.id == st.activeCollOfMacrosId),
+        collsOfMacros: st.collsOfMacros->Array.filter(coll => coll.id >= 0)->Array.map(coll => {
             {
                 displayName: coll.displayName,
                 scriptText: coll.scriptText,
@@ -297,7 +297,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
         }
     ]
     let collsOfMacros = Belt_Array.concatMany([
-        ls.collsOfMacros->Js_array2.mapi((coll,i) => {
+        ls.collsOfMacros->Array.mapWithIndex((coll,i) => {
             {
                 id:i,
                 version:1,
@@ -376,7 +376,7 @@ let make = (
     )
 
     let activeCollOfMacros = state.collsOfMacros
-        ->Js_array2.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
+        ->Array.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
 
     let thereAreChangesInActiveCollOfMacros = activeCollOfMacros->Belt.Option.map(coll => {
         coll.displayName != coll.displayNameEdit || coll.scriptText != coll.scriptTextEdit
@@ -548,7 +548,7 @@ let make = (
                     sx={"width": 330}
                 >
                     {
-                        state.collsOfMacros->Js_array2.map(macros => {
+                        state.collsOfMacros->Array.map(macros => {
                             let value = macros.id->Belt_Int.toString
                             <MenuItem key=value value>{React.string(macros.displayName)}</MenuItem>
                         })->React.array
@@ -681,7 +681,7 @@ let make = (
                     | Ok(macros) => {
                         <ListCmp disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
                             {
-                                macros->Js_array2.mapi((macro,i) => {
+                                macros->Array.mapWithIndex((macro,i) => {
                                     <ListItem 
                                         key={
                                             collOfMacros.version->Belt_Int.toString 

@@ -36,7 +36,7 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
         label: "",
         allTypes,
         typ: initialTyp
-                ->Belt_Option.map(iniTyp => if (allTypes->Js.Array2.includes(iniTyp)) {iniTyp} else {allTypes->Array.getUnsafe(0)})
+                ->Belt_Option.map(iniTyp => if (allTypes->Array.includes(iniTyp)) {iniTyp} else {allTypes->Array.getUnsafe(0)})
                 ->Belt_Option.getWithDefault(allTypes->Array.getUnsafe(0)),
         patternStr: "",
         patternErr: None,
@@ -59,13 +59,13 @@ let setResults = (
         ...st,
         results:Some(results),
         resultsForRender:Some(
-            results->Js.Array2.map(result => {
+            results->Array.map(result => {
                 let numOfStmt = result.stmts->Js.Array2.length
                 let lastStmtIdx = numOfStmt - 1
                 <Paper style=ReactDOM.Style.make(~padding="3px", ())>
                     <Col>
                         {React.array(
-                            result.newDisjStr->Js_array2.mapi((disjStr,i) => {
+                            result.newDisjStr->Array.mapWithIndex((disjStr,i) => {
                                 <React.Fragment key={"disj-" ++ i->Belt_Int.toString} >
                                     {React.string("$d " ++ disjStr ++ " $.")}
                                     <Divider/>
@@ -73,7 +73,7 @@ let setResults = (
                             })
                         )}
                         {React.array(
-                            result.stmts->Js_array2.mapi((stmt,i) => {
+                            result.stmts->Array.mapWithIndex((stmt,i) => {
                                 <React.Fragment key={"stmt-" ++ i->Belt_Int.toString} >
                                     <span 
                                         style=ReactDOM.Style.make(
@@ -145,10 +145,10 @@ let setPatternErr = (st,patternErr):state => {
 }
 
 let toggleResultChecked = (st,idx) => {
-    if (st.checkedResultsIdx->Js_array2.includes(idx)) {
+    if (st.checkedResultsIdx->Array.includes(idx)) {
         {
             ...st,
-            checkedResultsIdx: st.checkedResultsIdx->Js.Array2.filter(i => i != idx)
+            checkedResultsIdx: st.checkedResultsIdx->Array.filter(i => i != idx)
         }
     } else {
         {
@@ -198,7 +198,7 @@ let make = (
 
     let actSearch = () => {
         onTypChange(state.typ)
-        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Js_array2.find(sym => {
+        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Array.find(sym => {
             wrkCtx->ctxSymToInt(sym)->Belt.Option.isNone
         })
         switch incorrectSymbol {
@@ -250,7 +250,7 @@ let make = (
         switch state.results {
             | None => ()
             | Some(results) => {
-                onResultsSelected(results->Js_array2.filteri((_,i) => state.checkedResultsIdx->Js.Array2.includes(i)))
+                onResultsSelected(results->Array.filterWithIndex((_,i) => state.checkedResultsIdx->Array.includes(i)))
             }
         }
     }
@@ -313,7 +313,7 @@ let make = (
                 onChange=evt2str(actTypeChange)
             >
                 {React.array(
-                    state.allTypes->Js_array2.map(typI => {
+                    state.allTypes->Array.map(typI => {
                         let typStr = wrkCtx->ctxIntToSymExn(typI)
                         <MenuItem key=typStr value=typStr>{React.string(typStr)}</MenuItem>
                     })
@@ -370,14 +370,14 @@ let make = (
                     {rndResultButtons()}
                     {rndPagination(totalNumOfResults)}
                     {
-                        items->Js_array2.mapi((item,i) => {
+                        items->Array.mapWithIndex((item,i) => {
                             let resIdx = minI + i
                             <table key={resIdx->Belt_Int.toString}>
                                 <tbody>
                                     <tr>
                                         <td>
                                             <Checkbox
-                                                checked={state.checkedResultsIdx->Js.Array2.includes(resIdx)}
+                                                checked={state.checkedResultsIdx->Array.includes(resIdx)}
                                                 onChange={_ => actToggleResultChecked(resIdx)}
                                             />
                                         </td>

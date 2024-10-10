@@ -78,7 +78,7 @@ let make = React.memoCustomCompareProps(({
 
     let actApplyFilters = () => {
         let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
-        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => {
+        let incorrectSymbol = patternFilterSyms->Array.find(sym => {
             preCtxData.ctxV.val->ctxSymToInt(sym)->Belt.Option.isNone
         })
         switch incorrectSymbol {
@@ -86,7 +86,7 @@ let make = React.memoCustomCompareProps(({
             | None => {
                 setPatternFilterErr(_ => None)
                 let varPat = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
-                let constPat = varPat->Js.Array2.map(sym => {
+                let constPat = varPat->Array.map(sym => {
                     if (sym < 0) {
                         sym
                     } else {
@@ -103,7 +103,7 @@ let make = React.memoCustomCompareProps(({
                 let descrFilterStrTrim = descrFilterStr->Js_string2.trim->Js_string2.toLowerCase
                 let filterByDescr = descrFilterStrTrim->Js.String2.length > 0
                 setFilteredLabels(_ => {
-                    allLabels->Js.Array2.filter(((_,label)) => {
+                    allLabels->Array.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
@@ -155,14 +155,14 @@ let make = React.memoCustomCompareProps(({
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
             let stmtTyp = frame.asrt->Array.getUnsafe(0)
-            if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
+            if (!(allStmtIntTypes->Array.includes(stmtTyp))) {
                 allStmtIntTypes->Array.push(stmtTyp)
             }
             None
         })->ignore
         let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
         setAllStmtTypes(_ => allStmtTypes)
-        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
+        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
 
         let typeOrderInDisj = createTypeOrderFromStr(
             ~sortDisjByType=settings.sortDisjByType, 
@@ -315,7 +315,7 @@ let make = React.memoCustomCompareProps(({
             >
                 <MenuItem value=allStmtTypesConcat>{React.string("All")}</MenuItem>
                 {
-                    allStmtTypes->Js_array2.map(stmtType => {
+                    allStmtTypes->Array.map(stmtType => {
                         <MenuItem key=stmtType value=stmtType>{React.string(stmtType)}</MenuItem>
                     })->React.array
                 }

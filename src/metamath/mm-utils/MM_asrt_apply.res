@@ -46,7 +46,7 @@ let rec iterateCombinationsRec = (
         if (combCnt.contents > combCntMax) {
             onCombCntMaxReached()
         } else {
-            let thereIsEmptyArg = comb->Js.Array2.some(a => a == -1)
+            let thereIsEmptyArg = comb->Array.some(a => a == -1)
             if (thereIsEmptyArg) {
                 if (skipCombinationsWithEmptyArgs) {
                     Continue
@@ -105,7 +105,7 @@ let iterateCombinations = (
             }
         }
     }
-    switch candidatesPerHyp->Js_array2.findIndex(candidates => candidates->Js_array2.length == 0) {
+    switch candidatesPerHyp->Array.findIndex(candidates => candidates->Js_array2.length == 0) {
         | -1 => {
             let comb = Belt_Array.make(numOfHyps, 0)
             let tooBigSearchSpaceDetected = ref(false)
@@ -201,7 +201,7 @@ let iterateSubstitutionsWithWorkVars = (
         ~frmExpr = if (hypIdx < frm.hypsE->Js.Array2.length) {(frm.hypsE->Array.getUnsafe(hypIdx)).expr} else {frm.frame.asrt},
         ~subs=frm.subs,
         ~createWorkVar = frmVar => {
-            switch frmVars->Js_array2.indexOf(frmVar) {
+            switch frmVars->Array.indexOf(frmVar) {
                 | -1 => {
                     let newVar = nextVar.contents
                     nextVar.contents = nextVar.contents + 1
@@ -235,7 +235,7 @@ let iterateSubstitutionsWithWorkVars = (
         Continue
     }
 
-    predefinedSubs->Js_array2.forEachi((predefined,i) => frm.subs.isDefined[i]=predefined)
+    predefinedSubs->Array.forEachWithIndex((predefined,i) => frm.subs.isDefined[i]=predefined)
     workVars.newVars->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
     workVars.newVarTypes->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
 
@@ -300,7 +300,7 @@ let rec iterateSubstitutionsForHyps = (
     ~onErrFound: unifErr => contunieInstruction
 ):contunieInstruction => {
     let combToArgs = () => {
-        comb->Js_array2.map(idx => {
+        comb->Array.map(idx => {
             if (idx >= 0) {
                 statements->Array.getUnsafe(idx)
             } else {
@@ -437,7 +437,7 @@ let iterateFrms = (
 ):unit => {
     switch frmsToUse {
         | Some(frmsToUse) => {
-            frmsToUse->Js_array2.forEach(frmLabel => {
+            frmsToUse->Array.forEach(frmLabel => {
                 frms->frmsGetByLabel(frmLabel)->Belt_Option.forEach(frm => {
                     if (isFrameAllowed(frm.frame)) {
                         frmConsumer(frm)

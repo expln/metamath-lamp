@@ -269,7 +269,7 @@ let make = (
 
     let rndStmts = (editorState:editorState) => {
         <Col spacing=0.>
-            { editorState.stmts->Js_array2.map(rndStmtAndErrors)->React.array }
+            { editorState.stmts->Array.map(rndStmtAndErrors)->React.array }
         </Col>
     }
 

@@ -55,7 +55,7 @@ let parenCntReset: parenCnt => unit = cnt => {
 
 let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
     if (!cnt.failed && cnt.min <= i && i < 0) {
-        switch cnt.parens->Js_array2.find(({code}) => code == i) {
+        switch cnt.parens->Array.find(({code}) => code == i) {
             | Some(paren) => {
                 if (paren.isOpen) {
                     cnt.parentStack->Array.push(paren)

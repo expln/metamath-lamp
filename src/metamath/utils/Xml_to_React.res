@@ -1,7 +1,7 @@
 open Expln_React_common
 
 let validateValue = ( ~value:string, ~allowedValues:array<string>, ~valueType:string, ): result<unit,string> => {
-    if (allowedValues->Js_array2.includes(value)) {
+    if (allowedValues->Array.includes(value)) {
         Ok(())
     } else {
         Error(`${valueType} "${value}" is not supported.`)
@@ -26,12 +26,12 @@ let isIncludedIntoAllowedValues = (
     ~allowedValues:array<string>,
     ~attrName:string,
 ): result<unit,string> => {
-    if (allowedValues->Js_array2.includes(value)) {
+    if (allowedValues->Array.includes(value)) {
         Ok(())
     } else {
         Error(
             `Value of "${value}" is not supported by "${attrName}" attribute. All the supported values are: ` 
-            ++ allowedValues->Js.Array2.joinWith(", ") ++ " ."
+            ++ allowedValues->Array.joinUnsafe(", ") ++ " ."
         )
     }
 }
@@ -74,7 +74,7 @@ let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
 
 let createStyle = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<ReactDOM.style> => {
     if (
-        attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Js_array2.includes(attr))->Belt.Option.isSome
+        attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Array.includes(attr))->Belt.Option.isSome
         || addBorder
     ) {
         Some(ReactDOM.Style.make(

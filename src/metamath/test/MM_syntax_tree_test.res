@@ -19,7 +19,7 @@ and childNodeTest =
 let rec syntaxTreeToSyntaxTreeTest = (node:syntaxTreeNode) => {
     {
         label: node.label,
-        children: node.children->Js_array2.map(c => {
+        children: node.children->Array.map(c => {
             switch c {
                 | Subtree(childNode) => Subtree(syntaxTreeToSyntaxTreeTest(childNode))
                 | Symbol({sym}) => Symbol(sym)
@@ -33,7 +33,7 @@ let rec syntaxTreeToJson = (node:syntaxTreeNode):Js_json.t => {
     [
         ("label", node.label->Js_json.string),
         ("children", 
-            node.children->Js_array2.map(c => {
+            node.children->Array.map(c => {
                 switch c {
                     | Subtree(childNode) => syntaxTreeToJson(childNode)
                     | Symbol({sym}) => sym->Js_json.string
@@ -56,7 +56,7 @@ let buildSyntaxTreeForTest = (
     let parens = "( ) { } [ ]"
     let ctx = ctx->ctxOptimizeForProver(~parens, ())
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
-    let expr = exprStr->Js_array2.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
+    let expr = exprStr->Array.map(e => e->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(ctx, _))
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
         ~frms=prepareFrmSubsData(~ctx, ()),
@@ -65,14 +65,14 @@ let buildSyntaxTreeForTest = (
         ~parenCnt,
     )
     let proofTreeDto = proofTreeToDto(proofTree, expr)
-    let nodes = expr->Js.Array2.map(e => {
-        proofTreeDto.nodes->Js.Array2.find(node => node.expr->exprEq(e))->Belt.Option.getExn
+    let nodes = expr->Array.map(e => {
+        proofTreeDto.nodes->Array.find(node => node.expr->exprEq(e))->Belt.Option.getExn
     })
-    let proofTables = nodes->Js.Array2.map(n => createProofTable(~tree=proofTreeDto, ~root=n, ()))
+    let proofTables = nodes->Array.map(n => createProofTable(~tree=proofTreeDto, ~root=n, ()))
 
     (
         ctx,
-        proofTables->Js.Array2.map(proofTable => {
+        proofTables->Array.map(proofTable => {
             switch buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1) {
                 | Error(msg) => failMsg(msg)
                 | Ok(syntaxTree) => syntaxTree
@@ -265,7 +265,7 @@ describe("unify", _ => {
         //then
         // a->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/a.json")
         // b->syntaxTreeToJson->Expln_utils_common.stringify->Expln_utils_files.writeStringToFile("/syntax-trees/b.json")
-        let foundSubsStr = foundSubs->Belt_HashMapString.toArray->Js.Array2.map(((v,expr)) => (v,expr->Js_array2.joinWith(" ")))->Belt_HashMapString.fromArray
+        let foundSubsStr = foundSubs->Belt_HashMapString.toArray->Array.map(((v,expr)) => (v,expr->Array.joinUnsafe(" ")))->Belt_HashMapString.fromArray
         assertEq(continue.contents, true)
         assertEq(foundSubsStr->Belt_HashMapString.size, 4)
         assertEq(foundSubsStr->Belt_HashMapString.get("&W3"), Some("ph"))

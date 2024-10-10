@@ -42,7 +42,7 @@ let editorStateToStr = st => {
     lines->Array.push("Disjoints:")
     lines->Array.push(st.disjText)
     lines->Array.push("")
-    st.stmts->Js.Array2.forEach(stmt => {
+    st.stmts->Array.forEach(stmt => {
         lines->Array.push("")
         lines->Array.push(
             "--- "
@@ -78,23 +78,23 @@ let editorStateToStr = st => {
             | Some(msg) => lines->Array.push("Unif Error: " ++ msg)
         }
     })
-    lines->Js.Array2.joinWith("\n")
+    lines->Array.joinUnsafe("\n")
 }
 
 let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
-    let disjStr = newStmtsDto.newDisjStr->Js.Array2.joinWith("\n")
+    let disjStr = newStmtsDto.newDisjStr->Array.joinUnsafe("\n")
     let stmtsStr = newStmtsDto.stmts
-        ->Js.Array2.map(stmt => {
+        ->Array.map(stmt => {
             [
                 stmt.label,
                 switch stmt.jstf {
                     | None => ""
-                    | Some({args, label}) => "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
+                    | Some({args, label}) => "[" ++ args->Array.joinUnsafe(" ") ++ " : " ++ label ++ " ]"
                 },
                 if (stmt.isProved) {"\u2713"} else {" "},
                 stmt.exprStr
-            ]->Js.Array2.joinWith(" ")
-        })->Js.Array2.joinWith("\n")
+            ]->Array.joinUnsafe(" ")
+        })->Array.joinUnsafe("\n")
     disjStr ++ "\n" ++ stmtsStr
 }
 

@@ -104,7 +104,7 @@ let invokeExnFunc = (title:string, func:unit=>'a):result<'a,string> => {
         | Js.Exn.Error(exn) => {
             let errMsg = `${title}: ${exn->Js.Exn.message->Belt_Option.getWithDefault("unknown error.")}.`
             let stack = exn->Js.Exn.stack->Belt_Option.getWithDefault("")
-            Error([errMsg,stack]->Js.Array2.joinWith("\n"))
+            Error([errMsg,stack]->Array.joinUnsafe("\n"))
         }
         | _ => {
             let errMsg = `${title}: unknown error.`

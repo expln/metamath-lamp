@@ -38,7 +38,7 @@ let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>st
         ("nodeType", "expr"->Js_json.string),
         ("exprType", ctxConstIntToSymExn(node.typ)->Js_json.string),
         ("label", node.label->Js_json.string),
-        ("children", node.children->Js.Array2.map(childNodeToJson(_, ctxConstIntToSymExn))->Js_json.array ),
+        ("children", node.children->Array.map(childNodeToJson(_, ctxConstIntToSymExn))->Js_json.array ),
     ])->Js_json.object_ 
 } and childNodeToJson = (node:childNode, ctxConstIntToSymExn:int=>string):Js_json.t => {
     switch node {
@@ -112,7 +112,7 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_jso
                         | None => Js_json.null
                         | Some(jstf) => {
                             Js_dict.fromArray([
-                                ("args", jstf.args->Js_array2.map(Js_json.string)->Js_json.array),
+                                ("args", jstf.args->Array.map(Js_json.string(_))->Js_json.array),
                                 ("asrt", jstf.label->Js_json.string),
                             ])->Js_json.object_
                         }
@@ -146,7 +146,7 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):Js_jso
 
 let getAllSteps = (~state:editorState):Js_json.t => {
     let ctxConstIntToSymExn = state.wrkCtx->Belt_Option.map(wrkCtx => ctxIntToSymExn(wrkCtx, _))
-    state.stmts->Js.Array2.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
+    state.stmts->Array.map(stmtToJson(_, ctxConstIntToSymExn))->Js.Json.array
 }
 
 let stateCached = ref(None)
@@ -160,7 +160,7 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
         promiseResolved(Ok(stateJsonCached.contents->Belt_Option.getExn))
     } else {
         let stmtIdToLabel = Belt_HashMapString.fromArray(
-            state.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+            state.stmts->Array.map(stmt => (stmt.id, stmt.label))
         )
         let stateJson = Js_dict.fromArray([
             ("descr", state.descr->Js_json.string),
@@ -170,8 +170,8 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
                 switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
                     | Error(_) => Js_json.null
                     | Ok(varDefs) => {
-                        varDefs->Js_array2.map(varDef => {
-                            varDef->Js_array2.map(Js_json.string)->Js.Json.array
+                        varDefs->Array.map(varDef => {
+                            varDef->Array.map(Js_json.string(_))->Js.Json.array
                         })->Js.Json.array
                     }
                 }
@@ -179,19 +179,19 @@ let getEditorState = (~state:editorState):promise<result<Js_json.t,string>> => {
             ("disjText", state.disjText->Js_json.string),
             ("disjErr", state.disjErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(Js_json.null)),
             ("disj",
-                state.disjText->multilineTextToNonEmptyLines->Js_array2.map(disjLine => {
+                state.disjText->multilineTextToNonEmptyLines->Array.map(disjLine => {
                     disjLine->Js.String2.split(" ")
-                        ->Js_array2.map(Js_string2.trim)
-                        ->Js.Array2.filter(str => str != "")
-                        ->Js_array2.map(Js_json.string)
+                        ->Array.map(Js_string2.trim(_))
+                        ->Array.filter(str => str != "")
+                        ->Array.map(Js_json.string(_))
                         ->Js.Json.array
                 })->Js.Json.array
             ),
             ("steps", getAllSteps(~state)),
             ("selectedSteps", 
-                state.checkedStmtIds->Js_array2.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
-                    ->Js_array2.filter(Belt.Option.isSome)
-                    ->Js_array2.map(labelOpt => labelOpt->Belt.Option.getExn->Js_json.string)
+                state.checkedStmtIds->Array.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
+                    ->Array.filter(Belt.Option.isSome(_))
+                    ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->Js_json.string)
                     ->Js.Json.array
             ),
         ])->Js_json.object_
@@ -316,7 +316,7 @@ let apiMatcherToMatcher = (
             | Error(msg) => Error(msg)
             | Ok(hypMatchers) => {
                 try {
-                    let overrideHyps = matcher.hyps->Js_array2.map(hypMatcher => {
+                    let overrideHyps = matcher.hyps->Array.map(hypMatcher => {
                         ctx->ctxStrToIntsExn(hypMatcher.pat)
                     })
                     let frame = createFrame( 
@@ -385,7 +385,7 @@ let sortFrames = (st:editorState, frames:array<string>):array<string> => {
         lastPreCtxV := st.preCtxV
         sortedFrames := Belt_HashMapString.make(~hintSize=64)
     }
-    let framesStr = frames->Js_array2.joinWith(" ")
+    let framesStr = frames->Array.joinUnsafe(" ")
     switch sortedFrames.contents->Belt_HashMapString.get(framesStr) {
         | Some(sorted) => sorted
         | None => {
@@ -480,7 +480,7 @@ let proveBottomUp = (
         switch parseResult {
             | Error(msg) => promiseResolved(Error(msg))
             | Ok(apiParams) => {
-                switch state.stmts->Js.Array2.find(stmt => stmt.label == apiParams.stepToProve) {
+                switch state.stmts->Array.find(stmt => stmt.label == apiParams.stepToProve) {
                     | None => promiseResolved(Error(`Cannot find a step with the label '${apiParams.stepToProve}'`))
                     | Some(stmtToProve) => {
                         let args = apiParams.frameParams->Js_array2.reduce(
@@ -535,7 +535,7 @@ let proveBottomUp = (
                                                 apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
                                             bottomUpProverParams: {
                                                 maxSearchDepth: apiParams.maxSearchDepth,
-                                                frameParams: apiParams.frameParams->Js_array2.mapi(
+                                                frameParams: apiParams.frameParams->Array.mapWithIndex(
                                                     (frameParams,i):MM_provers.bottomUpProverFrameParams => {
                                                         {
                                                             minDist: frameParams.minDist,
@@ -588,7 +588,7 @@ let mergeDuplicatedSteps = (
 ):promise<result<Js_json.t,string>> => {
     setState(st => {
         let (st,renames) = st->autoMergeDuplicatedStatements(~selectFirst=true)
-        let renamesJson = renames->Js.Array2.map(((from,to_)) => {
+        let renamesJson = renames->Array.map(((from,to_)) => {
             [from->Js_json.string, to_->Js_json.string]->Js_json.array
         })->Js_json.array
         Ok( st, renamesJson )
@@ -633,8 +633,8 @@ let validateVarNamesAreUnique = (vars: option<array<array<string>>>):result<unit
     switch vars {
         | None => Ok(())
         | Some(vars) => {
-            let allVarNames = vars->Js_array2.filter(var => var->Js_array2.length > 1)
-                ->Js_array2.map(var => var->Array.getUnsafe(1))
+            let allVarNames = vars->Array.filter(var => var->Js_array2.length > 1)
+                ->Array.map(var => var->Array.getUnsafe(1))
             let uniqueVarNames = allVarNames->Belt_HashSetString.fromArray
             if (allVarNames->Js_array2.length == uniqueVarNames->Belt_HashSetString.size) {
                 Ok(())
@@ -652,17 +652,17 @@ let validateVarNamesNotPresentInCtx = (st:editorState, vars: option<array<array<
             switch st.wrkCtx {
                 | None => Error("Cannot add new variables because of errors in the editor.")
                 | Some(wrkCtx) => {
-                    let definedVars:array<(string,tokenType)> = vars->Js_array2.filter(var => var->Js_array2.length > 1)
-                        ->Js_array2.map(var => var->Array.getUnsafe(1))
-                        ->Js_array2.map(varName => (varName, wrkCtx->MM_context.getTokenType(varName)))
-                        ->Js_array2.filter(((_,tokenTypeOpt)) => tokenTypeOpt->Belt_Option.isSome)
-                        ->Js_array2.map(((varName,tokenTypeOpt)) => (varName,tokenTypeOpt->Belt_Option.getExn))
+                    let definedVars:array<(string,tokenType)> = vars->Array.filter(var => var->Js_array2.length > 1)
+                        ->Array.map(var => var->Array.getUnsafe(1))
+                        ->Array.map(varName => (varName, wrkCtx->MM_context.getTokenType(varName)))
+                        ->Array.filter(((_,tokenTypeOpt)) => tokenTypeOpt->Belt_Option.isSome)
+                        ->Array.map(((varName,tokenTypeOpt)) => (varName,tokenTypeOpt->Belt_Option.getExn))
                     if (definedVars->Js_array2.length == 0) {
                         Ok(())
                     } else {
                         let varTypes = definedVars
-                            ->Js.Array2.map(((varName,tokenType)) => `${varName} is a ${tokenType->tokenTypeToStr}`)
-                            ->Js.Array2.joinWith("; ")
+                            ->Array.map(((varName,tokenType)) => `${varName} is a ${tokenType->tokenTypeToStr}`)
+                            ->Array.joinUnsafe("; ")
                         Error(
                             `Cannot create variables because names of some of them are already in use: ${varTypes}.`
                         )
@@ -717,7 +717,7 @@ let addSteps = (
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
             if (
-                parseResult.vars->Belt.Option.map(vars => vars->Js_array2.some(a => a->Js_array2.length != 2))
+                parseResult.vars->Belt.Option.map(vars => vars->Array.some(a => a->Js_array2.length != 2))
                     ->Belt_Option.getWithDefault(false)
             ) {
                 promiseResolved(
@@ -730,7 +730,7 @@ let addSteps = (
                         switch validateVarNamesNotPresentInCtx(state, parseResult.vars) {
                             | Error(msg) => promiseResolved(Error(msg))
                             | Ok(_) => {
-                                let steps = parseResult.steps->Js_array2.map(step => {
+                                let steps = parseResult.steps->Array.map(step => {
                                     {
                                         id: None,
                                         label: step.label,
@@ -741,7 +741,7 @@ let addSteps = (
                                     }
                                 })
                                 let vars = parseResult.vars
-                                    ->Belt.Option.map(vars => vars->Js_array2.map(var => (var->Array.getUnsafe(0), Some(var->Array.getUnsafe(1)))))
+                                    ->Belt.Option.map(vars => vars->Array.map(var => (var->Array.getUnsafe(0), Some(var->Array.getUnsafe(1)))))
                                 setState(st => {
                                     let dontAddVariablesToContext = 
                                         switch validateVarNamesNotPresentInCtx(st, parseResult.vars) {
@@ -765,11 +765,11 @@ let addSteps = (
                                         | Error(msg) => Error(msg)
                                         | Ok((st,stmtIds)) => {
                                             let stmtIdToLabel = Belt_HashMapString.fromArray(
-                                                st.stmts->Js_array2.map(stmt => (stmt.id, stmt.label))
+                                                st.stmts->Array.map(stmt => (stmt.id, stmt.label))
                                             )
                                             Ok(
                                                 st,
-                                                stmtIds->Js_array2.map(stmtId => {
+                                                stmtIds->Array.map(stmtId => {
                                                     stmtIdToLabel->Belt_HashMapString.get(stmtId)
                                                         ->Belt.Option.getExn->Js_json.string
                                                 })->Js_json.array
@@ -837,13 +837,13 @@ let updateSteps = (
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(inputSteps) => {
             setState(st => {
-                let labelToStmtId = st.stmts->Js_array2.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
+                let labelToStmtId = st.stmts->Array.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
                 let stepWithoutId = inputSteps
-                    ->Js_array2.find(step => labelToStmtId->Belt_HashMapString.get(step.label)->Belt.Option.isNone)
+                    ->Array.find(step => labelToStmtId->Belt_HashMapString.get(step.label)->Belt.Option.isNone)
                 switch stepWithoutId {
                     | Some(step) => Error(`Cannot find step with label '${step.label}'`)
                     | None => {
-                        let steps = inputSteps->Js_array2.map(step => {
+                        let steps = inputSteps->Array.map(step => {
                             {
                                 id: labelToStmtId->Belt_HashMapString.get(step.label),
                                 label: None,
@@ -874,11 +874,11 @@ let deleteSteps = (
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(stepLabelsToDelete) => {
             setState(st => {
-                let labelToStmtId = st.stmts->Js_array2.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
+                let labelToStmtId = st.stmts->Array.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
                 let stepIdsToDelete = stepLabelsToDelete
-                    ->Js_array2.map(label => labelToStmtId->Belt_HashMapString.get(label))
-                    ->Js_array2.filter(Belt.Option.isSome)
-                    ->Js_array2.map(Belt.Option.getExn)
+                    ->Array.map(label => labelToStmtId->Belt_HashMapString.get(label))
+                    ->Array.filter(Belt.Option.isSome(_))
+                    ->Array.map(Belt.Option.getExn(_))
                 Ok( st->deleteStmts(stepIdsToDelete), Js_json.null )
             })
         }
@@ -903,7 +903,7 @@ let editorBuildSyntaxTrees = (
                         | Ok(syntaxTrees) => {
                             promiseResolved(
                                 Ok(
-                                    syntaxTrees->Js_array2.map(syntaxTree => {
+                                    syntaxTrees->Array.map(syntaxTree => {
                                         switch syntaxTree {
                                             | Error(msg) => {
                                                 Js_dict.fromArray([

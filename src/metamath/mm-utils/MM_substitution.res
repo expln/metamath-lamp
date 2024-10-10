@@ -361,7 +361,7 @@ let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:e
         (varGroups->Array.getUnsafe(0)).exprBeginIdx = 0
         (varGroups->Array.getUnsafe(0)).exprEndIdx = exprLen-1
     } else {
-        varGroups->Js_array2.forEach(grp => {
+        varGroups->Array.forEach(grp => {
             if (grp.leftConstPartIdx == -1) {
                 grp.exprBeginIdx = 0
                 grp.exprEndIdx = constParts.begins->Array.getUnsafe(0) - 1
@@ -534,13 +534,13 @@ let createSubs = (~numOfVars:int) => {
 }
 
 let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
-    let hypsE = frame.hyps->Js.Array2.filter(hyp => hyp.typ == E)
+    let hypsE = frame.hyps->Array.filter(hyp => hyp.typ == E)
 
     let frmConstPartsArr:array<constParts> = []
     let constPartsArr:array<constParts> = []
     let varGroupsArr:array<array<varGroup>> = []
 
-    hypsE->Js_array2.forEach(hyp => {
+    hypsE->Array.forEach(hyp => {
         let frmConstParts = createConstParts(hyp.expr)
         let constParts = createMatchingConstParts(frmConstParts)
         let varGroups = createVarGroups(~frmExpr=hyp.expr, ~frmConstParts)
@@ -574,10 +574,10 @@ let prepareFrmSubsData = (
 ):frms => {
     let frmCmp = comparatorBy(frm => frm.hypsE->Js_array2.length)
         ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
-    let all = ctx->getAllFramesArr->Js.Array2.map(prepareFrmSubsDataForFrame)->Expln_utils_common.sortInPlaceWith(frmCmp)
+    let all = ctx->getAllFramesArr->Array.map(prepareFrmSubsDataForFrame)->Expln_utils_common.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
     let byType = Belt_HashMapInt.make(~hintSize=16)
-    all->Js_array2.forEach(frm => {
+    all->Array.forEach(frm => {
         byLabel->Belt_HashMapString.set(frm.frame.label, frm)
         let typ = frm.frame.asrt->Array.getUnsafe(0)
         switch byType->Belt_HashMapInt.get(typ) {
@@ -595,13 +595,13 @@ let prepareFrmSubsData = (
 let sortFrames = (frms:frms, frames:array<string>):array<string> => {
     let framesSet = frames->Belt_HashSetString.fromArray
     frms.all
-        ->Js.Array2.filter(frm => framesSet->Belt_HashSetString.has(frm.frame.label))
-        ->Js.Array2.map(frm => frm.frame.label)
+        ->Array.filter(frm => framesSet->Belt_HashSetString.has(frm.frame.label))
+        ->Array.map(frm => frm.frame.label)
 }
 
 let applySubs = (~frmExpr:expr, ~subs:subs, ~createWorkVar:int=>int): expr => {
     let resultSize = ref(0)
-    frmExpr->Js_array2.forEach(s => {
+    frmExpr->Array.forEach(s => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
         } else if (subs.isDefined->Array.getUnsafe(s)) {
@@ -706,8 +706,8 @@ let frmsEmpty = ():frms => {
 let frmsSize = frms => frms.all->Js_array2.length
 let frmsForEach = (frms:frms, ~typ:option<int>=?, consumer:frmSubsData=>unit):unit => {
     switch typ {
-        | None => frms.all->Js_array2.forEach(consumer)
-        | Some(typ) => frms.byType->Belt_HashMapInt.get(typ)->Belt.Option.forEach(Js_array2.forEach(_, consumer))
+        | None => frms.all->Array.forEach(consumer)
+        | Some(typ) => frms.byType->Belt_HashMapInt.get(typ)->Belt.Option.forEach(Array.forEach(_, consumer))
     }
 }
 let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):array<frmSubsData> => {
@@ -755,7 +755,7 @@ let frmsGetAllGroupedByLabel = (frms:frms):Belt_HashMapString.t<frmSubsData> => 
 
 let test_iterateConstParts = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):(array<(int,int)>, array<array<(int,int)>>) => {
     let constPartsToArr = (constParts:constParts) => {
-        constParts.begins->Js_array2.mapi((b,i)=>(b,constParts.ends->Array.getUnsafe(i)))
+        constParts.begins->Array.mapWithIndex((b,i)=>(b,constParts.ends->Array.getUnsafe(i)))
     }
     let frmConstParts = createConstParts(frmExpr)
     let constParts = createMatchingConstParts(frmConstParts)
@@ -785,7 +785,7 @@ let test_iterateSubstitutions = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):
     let constParts = createMatchingConstParts(frmConstParts)
     let varGroups = createVarGroups(~frmExpr, ~frmConstParts)
     let numOfVars = frmExpr
-        ->Js_array2.filter(i => i >= 0)
+        ->Array.filter(i => i >= 0)
         ->Belt_SetInt.fromArray
         ->Belt_SetInt.size
     let subs = createSubs(~numOfVars)

@@ -52,7 +52,7 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
     })->ignore
     ctx->forEachFrame(frame => {
         allTypes->Belt_HashSetInt.add(frame.asrt->Array.getUnsafe(0))
-        frame.hyps->Js_array2.forEach(hyp => {
+        frame.hyps->Array.forEach(hyp => {
             let typ = hyp.expr->Array.getUnsafe(0)
             allTypes->Belt_HashSetInt.add(typ)
             if (hyp.typ == F) {

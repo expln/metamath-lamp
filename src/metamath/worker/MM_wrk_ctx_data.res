@@ -75,7 +75,7 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
         | Error(msg) => Some({...makeEmptyWrkCtxErr(), varsErr:Some(msg)})
         | Ok(varDefs) => {
             try {
-                varDefs->Js_array2.forEach(varDef => {
+                varDefs->Array.forEach(varDef => {
                     wrkCtx->applySingleStmt(Var({symbols:[varDef->Array.getUnsafe(2)]}), ())
                     wrkCtx->applySingleStmt(Floating({label:varDef->Array.getUnsafe(0), expr:[varDef->Array.getUnsafe(1), varDef->Array.getUnsafe(2)]}), ())
                 })
@@ -91,14 +91,14 @@ let addDisjFromString = (wrkCtx, disjStr) => {
     wrkCtx->applySingleStmt(Disj({
         vars:disjStr
             ->Js.String2.split(" ")
-            ->Js_array2.map(Js_string2.trim)
-            ->Js.Array2.filter(str => str != "")
+            ->Array.map(Js_string2.trim(_))
+            ->Array.filter(str => str != "")
     }), ())
 }
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {
     try {
-        disjText->multilineTextToNonEmptyLines->Js_array2.forEach(addDisjFromString(wrkCtx, _))
+        disjText->multilineTextToNonEmptyLines->Array.forEach(addDisjFromString(wrkCtx, _))
         None
     } catch {
         | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), disjErr:Some(msg)})

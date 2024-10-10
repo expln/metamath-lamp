@@ -169,7 +169,7 @@ let kbrdHnd3 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, clbk3:kbrdCallback, ):(
 }
 
 let kbrdHnds = ( clbks:array<kbrdCallback>):(ReactEvent.Keyboard.t => unit) => {
-    evt => clbks->Js_array2.forEach(runKbrdCallback(evt,_))
+    evt => clbks->Array.forEach(runKbrdCallback(evt,_))
 }
 
 let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
@@ -342,7 +342,7 @@ let rndColorSelect = (
             onChange=evt2str(onNewColorSelected)
         >
             {
-                React.array(availableColors->Js_array2.map(color => {
+                React.array(availableColors->Array.map(color => {
                     <MenuItem key=color value=color>
                         <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
                     </MenuItem>

@@ -31,13 +31,13 @@ let makeInitialState = ( ~flags: array<bool>, ):state => {
     }
 }
 
-let toggleFlag = (idx,flags) => flags->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
-let selectAllFlag = flags => flags->Js_array2.map(_ => true)
-let unselectAllFlags = flags => flags->Js_array2.map(_ => false)
-let invertFlags = flags => flags->Js_array2.map(v => !v)
+let toggleFlag = (idx,flags) => flags->Array.mapWithIndex((v,i) => if (i == idx) {!v} else {v})
+let selectAllFlag = flags => flags->Array.map(_ => true)
+let unselectAllFlags = flags => flags->Array.map(_ => false)
+let invertFlags = flags => flags->Array.map(v => !v)
 
 let selectProvedStmts = (rootStmtsRendered,flags:array<bool>):array<bool> => {
-    flags->Js_array2.mapi((_,i) => {
+    flags->Array.mapWithIndex((_,i) => {
         getProofStatus(rootStmtsRendered->Array.getUnsafe(i))
             ->Belt_Option.map(status => status == Ready)
             ->Belt.Option.getWithDefault(false)
@@ -108,7 +108,7 @@ let make = (
         <table>
             <tbody>
                 {
-                    state.flags->Js_array2.mapi((flag,i) => {
+                    state.flags->Array.mapWithIndex((flag,i) => {
                         let stmt = rootStmtsRendered->Array.getUnsafe(i)
                         <tr key={i->Belt_Int.toString} style=ReactDOM.Style.make(~verticalAlign="top", ())>
                             <td>

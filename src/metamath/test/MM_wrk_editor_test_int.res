@@ -641,7 +641,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let unifSubsToMap = (wrkSubs:MM_wrk_editor.wrkSubs):Belt_MapString.t<string> => {
             wrkSubs.subs->Belt_MapInt.toArray
-                ->Js.Array2.map(((e,expr)) => (ctx->MM_context.ctxIntToSymExn(e), ctx->MM_context.ctxIntsToStrExn(expr)))
+                ->Array.map(((e,expr)) => (ctx->MM_context.ctxIntToSymExn(e), ctx->MM_context.ctxIntsToStrExn(expr)))
                 ->Belt_MapString.fromArray
         }
 
@@ -828,8 +828,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let assertResults = (actual:array<MM_statements_dto.stmtsDto>, expectedFileName:string) => {
             assertTextEqFile(
-                actual->Js.Array2.map(newStmtsDtoToStr)
-                ->Js.Array2.joinWith("\n\n----------------------------------\n"), 
+                actual->Array.map(newStmtsDtoToStr)
+                ->Array.joinUnsafe("\n\n----------------------------------\n"), 
                 expectedFileName
             )
         }

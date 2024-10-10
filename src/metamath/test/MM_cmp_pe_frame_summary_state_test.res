@@ -27,7 +27,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
             [("a","w-color"),("term1","t-color")],
         )
         assertEq(
-            state.eHyps->Js_array2.map(ctxIntsToStrExn(state.frmCtx, _))->Js.Array2.joinWith(" ; "),
+            state.eHyps->Array.map(ctxIntsToStrExn(state.frmCtx, _))->Array.joinUnsafe(" ; "),
             "( ) a term1",
         )
         assertEq(
@@ -58,7 +58,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
             [("a","w-color"),("term1","t-color")],
         )
         assertEq(
-            state.eHyps->Js_array2.map(ctxIntsToStrExn(state.frmCtx, _))->Js.Array2.joinWith(" ; "),
+            state.eHyps->Array.map(ctxIntsToStrExn(state.frmCtx, _))->Array.joinUnsafe(" ; "),
             "( ) a a ; ( ) term1 term1",
         )
         assertEq(
@@ -89,7 +89,7 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
             [("a","w-color"),("b","w-color")],
         )
         assertEq(
-            state.eHyps->Js_array2.map(ctxIntsToStrExn(state.frmCtx, _))->Js.Array2.joinWith(" ; "),
+            state.eHyps->Array.map(ctxIntsToStrExn(state.frmCtx, _))->Array.joinUnsafe(" ; "),
             "( ) a a a ; ( ) b b b",
         )
         assertEq(

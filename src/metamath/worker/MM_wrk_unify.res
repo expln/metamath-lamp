@@ -30,11 +30,11 @@ let bottomUpProverParamsToStr = (params:option<bottomUpProverParams>):string => 
     switch params {
         | None => "None"
         | Some(params) => {
-            params.frameParams->Js_array2.map(p => {
+            params.frameParams->Array.map(p => {
                 `{` 
                     ++ `allowNewDisjForExistingVars=${if (p.allowNewDisjForExistingVars) {"true"} else {"false"}}` 
                     ++ `}`
-            })->Js_array2.joinWith("; ")
+            })->Array.joinUnsafe("; ")
         }
     }
 }
@@ -120,14 +120,14 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~onProgress = msg => sendToClient(OnProgress(msg)),
                 ()
             )
-            sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))))
+            sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))))
         }
     }
 }
 
 let extractSubstitution = (~frame:frame, ~args:array<int>, ~tree:proofTreeDto):array<expr> => {
     let subs = Expln_utils_common.createArray(frame.numOfVars)
-    frame.hyps->Js_array2.forEachi((hyp,i) => {
+    frame.hyps->Array.forEachWithIndex((hyp,i) => {
         if (hyp.typ == F) {
             subs[hyp.expr->Array.getUnsafe(1)] = (tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr
         }
@@ -225,15 +225,15 @@ let srcToNewStmts = (
             }
 
             let addExprToResult = (~label, ~expr, ~src, ~isProved) => {
-                expr->Js_array2.forEach(ei => {
-                    if (ei > maxCtxVar && !(res.newVars->Js_array2.includes(ei))) {
+                expr->Array.forEach(ei => {
+                    if (ei > maxCtxVar && !(res.newVars->Array.includes(ei))) {
                         switch newVarTypes->Belt_HashMapInt.get(ei) {
                             | None => raise(MmException({msg:`Cannot determine type of a new var in srcToNewStmts.`}))
                             | Some(typ) => addNewVarToResult(~newVarInt=ei, ~newVarType=typ)
                         }
                     }
                 })
-                let exprStr = expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
+                let exprStr = expr->Array.map(intToSym)->Array.joinUnsafe(" ")
                 let jstf = switch src {
                     | None | Some(VarType | Hypothesis(_)) => None
                     | Some(AssertionWithErr(_)) => {
@@ -242,7 +242,7 @@ let srcToNewStmts = (
                     }
                     | Some(Assertion({args, label})) => {
                         let argLabels = []
-                        getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
+                        getFrame(label).hyps->Array.forEachWithIndex((hyp,i) => {
                             if (hyp.typ == E) {
                                 argLabels->Array.push(
                                     getLabelForExpr((tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr)
@@ -257,14 +257,14 @@ let srcToNewStmts = (
 
             let frame = getFrame(label)
             let eArgs = []
-            frame.hyps->Js.Array2.forEachi((hyp,i) => {
+            frame.hyps->Array.forEachWithIndex((hyp,i) => {
                 if (hyp.typ == E) {
                     eArgs->Array.push(tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)))
                 }
             })
             let childrenReturnedFor = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
             let savedExprs = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
-            eArgs->Js.Array2.forEach(node => {
+            eArgs->Array.forEach(node => {
                 Expln_utils_data.traverseTree(
                     Belt_HashSet.fromArray([exprToProve], ~id=module(ExprHash)),
                     node,
@@ -281,7 +281,7 @@ let srcToNewStmts = (
                                 }
                                 | Some(Assertion({args,label})) => {
                                     let children = []
-                                    getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
+                                    getFrame(label).hyps->Array.forEachWithIndex((hyp,i) => {
                                         if (hyp.typ == E) {
                                             children->Array.push( tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)) )
                                         }
@@ -374,7 +374,7 @@ let srcToNewStmts = (
                 )->ignore
                 res.newDisj->disjForEachArr(disjArr => {
                     res.newDisjStr->Array.push(
-                        `$d ${disjArr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")} $.`
+                        `$d ${disjArr->Array.map(intToSym)->Array.joinUnsafe(" ")} $.`
                     )
                 })
                 Some(res)
@@ -391,14 +391,14 @@ let proofTreeDtoToNewStmtsDto = (
     ~rootExprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
     ~reservedLabels: array<string>,
 ):array<stmtsDto> => {
-    let newVarTypes = treeDto.newVars->Js_array2.map(@warning("-8")([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
-    let proofNode = switch treeDto.nodes->Js_array2.find(node => node.expr->exprEq(exprToProve)) {
+    let newVarTypes = treeDto.newVars->Array.map(@warning("-8")([typ, var]) => (var, typ))->Belt_HashMapInt.fromArray
+    let proofNode = switch treeDto.nodes->Array.find(node => node.expr->exprEq(exprToProve)) {
         | None => raise(MmException({msg:`the proof tree DTO doesn't contain the node to prove.`}))
         | Some(node) => node
     }
 
     proofNode.parents
-        ->Js_array2.map(src => srcToNewStmts(
+        ->Array.map(src => srcToNewStmts(
             ~exprToProve,
             ~rootExprToLabel,
             ~reservedLabels,
@@ -408,6 +408,6 @@ let proofTreeDtoToNewStmtsDto = (
             ~ctx,
             ~typeToPrefix: Belt_MapString.t<string>,
         ))
-        ->Js.Array2.filter(Belt_Option.isSome)
-        ->Js.Array2.map(Belt_Option.getExn)
+        ->Array.filter(Belt_Option.isSome(_))
+        ->Array.map(Belt_Option.getExn(_))
 }

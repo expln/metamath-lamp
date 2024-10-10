@@ -59,10 +59,10 @@ type settings = {
 }
 
 let markUrlAsTrusted = (settings:settings, url:string):settings => {
-    if (settings.webSrcSettings->Js.Array2.find(ws => ws.url == url)->Belt.Option.isSome) {
+    if (settings.webSrcSettings->Array.find(ws => ws.url == url)->Belt.Option.isSome) {
         {
             ...settings,
-            webSrcSettings: settings.webSrcSettings->Js.Array2.map(ws => {
+            webSrcSettings: settings.webSrcSettings->Array.map(ws => {
                 if (ws.url == url) {
                     {
                         ...ws,
@@ -89,6 +89,6 @@ let markUrlAsTrusted = (settings:settings, url:string):settings => {
 
 let settingsGetTypeColors = (settings:settings):Belt_HashMapString.t<string> => {
     settings.typeSettings
-        ->Js_array2.map(ts => (ts.typ, ts.color))
+        ->Array.map(ts => (ts.typ, ts.color))
         ->Belt_HashMapString.fromArray
 }

@@ -75,7 +75,7 @@ let anyToArr = (jsonAny, mapper: jsonAny=>'a):result<option<array<'a>>,string> =
         | JsonNull(_) => Ok(None)
         | JsonArr(val,path) => {
             Ok(Some(
-                val->Js_array2.mapi((json,i) => mapper(jsonToAny(json,list{i->Belt.Int.toString, ...path})))
+                val->Array.mapWithIndex((json,i) => mapper(jsonToAny(json,list{i->Belt.Int.toString, ...path})))
             ))
         }
         | _ => Error(`an array was expected at '${jsonAny->getPath->pathToStr}'.`)

@@ -32,8 +32,8 @@ let make = (
     }
 
     let textToShow = [timestampStr, notesStr, jsonStr]
-        ->Js.Array2.filter(str => str->Js_string2.trim != "")
-        ->Js.Array2.joinWith("\n")
+        ->Array.filter(str => str->Js_string2.trim != "")
+        ->Array.joinUnsafe("\n")
 
     let actCopyToClipboard = () => {
         copyToClipboard(textToShow)->promiseMap(_ => {

@@ -36,11 +36,11 @@ let makeInitialState = (
 let setResults = (st:state,results:result<array<wrkSubs>,string>):state => {
     let validResults = switch results {
         | Error(msg) => Error(msg)
-        | Ok(results) => Ok(results->Js_array2.filter(res => res.err->Belt_Option.isNone))
+        | Ok(results) => Ok(results->Array.filter(res => res.err->Belt_Option.isNone))
     }
     let invalidResults = switch results {
         | Error(_) => []
-        | Ok(results) => results->Js_array2.filter(res => res.err->Belt_Option.isSome)
+        | Ok(results) => results->Array.filter(res => res.err->Belt_Option.isSome)
     }
     let checkedResultIdx = switch validResults {
         | Error(_) => None
@@ -156,7 +156,7 @@ let make = (
     }
 
     let actDetermineSubs = () => {
-        let findIncorrectSymbol = syms => syms->Js_array2.find(sym => !(wrkCtx->isConst(sym) || wrkCtx->isVar(sym)))
+        let findIncorrectSymbol = syms => syms->Array.find(sym => !(wrkCtx->isConst(sym) || wrkCtx->isVar(sym)))
         let syms1 = state.expr1Str->getSpaceSeparatedValuesAsArray
         let incorrectSymbol1 = findIncorrectSymbol(syms1)
         let syms2 = state.expr2Str->getSpaceSeparatedValuesAsArray
@@ -415,7 +415,7 @@ let make = (
         <table>
             <tbody>
             {React.array(
-                wrkSubs.subs->Belt_MapInt.toArray->Js_array2.map(((v,expr)) => {
+                wrkSubs.subs->Belt_MapInt.toArray->Array.map(((v,expr)) => {
                     if (expr->Js_array2.length == 1 && v == expr->Array.getUnsafe(0)) {
                         React.null
                     } else {
@@ -481,7 +481,7 @@ let make = (
                                 {React.string("Invalid substitutions:")}
                             </span>
                             {
-                                invalidResults->Js_array2.mapi((res,i) => {
+                                invalidResults->Array.mapWithIndex((res,i) => {
                                     <Paper key={i->Belt_Int.toString}>
                                         <table>
                                             <tbody>
@@ -542,7 +542,7 @@ let make = (
                         <Col>
                             summary
                             {
-                                results->Js_array2.mapi((res,i) => {
+                                results->Array.mapWithIndex((res,i) => {
                                     <Paper key={i->Belt_Int.toString}>
                                         <table>
                                             <tbody>

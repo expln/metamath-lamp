@@ -88,7 +88,7 @@ let createInitialEditorState = (
             ->Belt.Option.getWithDefault(0),
         stmts: 
             stateLocStor
-                ->Belt.Option.map(obj => obj.stmts->Js_array2.mapi((stmtLocStor,i) => {
+                ->Belt.Option.map(obj => obj.stmts->Array.mapWithIndex((stmtLocStor,i) => {
                     {
                         ...userStmtLocStorToUserStmt(stmtLocStor),
                         id: i->Belt_Int.toString
@@ -105,11 +105,11 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.srcs->Js.Array2.map(src => {...src, ast:None, allLabels:[]}),
+        srcs: state.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
-        stmts: state.stmts->Js_array2.map(stmt => {
+        stmts: state.stmts->Array.map(stmt => {
             {
                 label: stmt.label,
                 typ: (stmt.typ->userStmtTypeToStr),
