@@ -54,9 +54,9 @@ let make = React.memoCustomCompareProps(({
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
 
-    let pageSize = Js.Math.max_int(1, Js.Math.min_int(asrtsPerPage, 100))
+    let pageSize = Math.Int.max(1, Math.Int.min(asrtsPerPage, 100))
     let numOfPages = (labels->Array.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
-                        ->Js_math.ceil_float->Belt.Float.toInt
+                        ->Math.ceil->Belt.Float.toInt
     let beginIdx = pageIdx * pageSize
     let endIdx = beginIdx + pageSize - 1
 

@@ -46,7 +46,7 @@ let exprSourceToLabelStr = src => {
 }
 
 let maxLength = (arr:array<string>):int => {
-    arr->Array.map(Js_string2.length(_))->Js.Array2.reduce(Js_math.max_int, 0)
+    arr->Array.map(Js_string2.length(_))->Js.Array2.reduce(Math.Int.max, 0)
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
@@ -54,7 +54,7 @@ let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
     let srcsLabels = tbl->Array.map(r => r.proof->exprSourceToLabelStr)
     let exprs = tbl->Array.map(r => ctx->ctxIntsToStrExn(r.expr))
 
-    let maxNumOfDigits = tbl->Array.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
+    let maxNumOfDigits = tbl->Array.length->Belt.Int.toFloat->Math.log10->Math.Int.floor + 1
     let numColWidth = maxNumOfDigits + 1
     let argsColWidth = maxLength(srcsArgs) + 1
     let labelColWidth = maxLength(srcsLabels) + 1

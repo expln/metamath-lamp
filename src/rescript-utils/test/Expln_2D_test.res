@@ -35,7 +35,7 @@ describe("utility test functions", _ => {
 
 describe("Expln_2d", _ => {
     it("test all", _ => {
-        assertEqVec(ex->vecRot((Js.Math._PI /. 2.)->rad), ey, "vecRot")
+        assertEqVec(ex->vecRot((Math.Constants.pi /. 2.)->rad), ey, "vecRot")
 
         assertEqNum(deg(45.) -> toRad, 0.785398, "toRad")
         assertEqNum(rad(2.14675) -> toDeg, 122.9997147, "toDeg")
@@ -78,8 +78,8 @@ describe("Expln_2d", _ => {
 
         //let pntRot: (point, angle) => point
         assertEqPnt(
-            {x:Js.Math.sqrt(3.) /. 2., y: 0.5}->mkp -> pntRot(deg(-150.)),
-            {x:-0.5, y:-.Js.Math.sqrt(3.) /. 2.}->mkp,
+            {x:Math.sqrt(3.) /. 2., y: 0.5}->mkp -> pntRot(deg(-150.)),
+            {x:-0.5, y:-.Math.sqrt(3.) /. 2.}->mkp,
             "pntRot"
         )
         

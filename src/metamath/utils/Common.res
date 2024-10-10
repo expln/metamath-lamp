@@ -14,7 +14,7 @@ let compareDates = (a:Js_date.t, b:Js_date.t):float => {
     }
 }
 
-let floatToPctStr = pct => (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString ++ "%"
+let floatToPctStr = pct => (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString ++ "%"
 
 type cache<'depVer,'dep,'data> = {
     recalc:'dep=>'data,

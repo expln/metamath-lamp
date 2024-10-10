@@ -176,8 +176,8 @@ let useLongClick = (
         if (
             state.timerId->Belt_Option.isSome
             && (
-                (state.clickBeginScreenX - screenX)->Js_math.abs_int > 3
-                || (state.clickBeginScreenY - screenY)->Js_math.abs_int > 3
+                (state.clickBeginScreenX - screenX)->Math.Int.abs > 3
+                || (state.clickBeginScreenY - screenY)->Math.Int.abs > 3
             )
         ) {
             setState(resetState)

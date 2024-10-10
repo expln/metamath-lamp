@@ -73,7 +73,7 @@ let progressTrackerIntMake = (
         ),
         cnt: cnt,
         maxCnt: maxCnt->Belt_Int.toFloat,
-        stepInt: (maxCnt->Belt_Int.toFloat *. step /. 2.)->Belt_Float.toInt->Js_math.max_int(1)
+        stepInt: (maxCnt->Belt_Int.toFloat *. step /. 2.)->Belt_Float.toInt->Math.Int.max(1)
     }
     
 }

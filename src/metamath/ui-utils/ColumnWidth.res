@@ -3,7 +3,7 @@
 @val external document: {..} = "document"
 
 let minMax = (value:int, min:int, max:int):int => {
-    Js_math.min_int(max, Js_math.max_int(min, value))
+    Math.Int.min(max, Math.Int.max(min, value))
 }
 
 let canvas = document["createElement"](. "canvas")
@@ -21,7 +21,7 @@ let calcColumnWidth = (query:string,min:int,max:int):int => {
         let font = (window["getComputedStyle"](. cells["item"](. 0)))["getPropertyValue"](. "font")
         let maxWidth = ref(0)
         for i in 0 to cells["length"] - 1 {
-            maxWidth := Js_math.max_int(maxWidth.contents, getTextWidth(cells["item"](. i)["innerText"], font))
+            maxWidth := Math.Int.max(maxWidth.contents, getTextWidth(cells["item"](. i)["innerText"], font))
         }
         minMax(maxWidth.contents,min,max)
     } else {

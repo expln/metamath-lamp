@@ -112,7 +112,7 @@ let setResults = (
 let setPage = (st,page):state => {
     {
         ...st,
-        resultsPage: Js.Math.max_int(0, Js.Math.min_int(st.resultsMaxPage, page)),
+        resultsPage: Math.Int.max(0, Math.Int.min(st.resultsMaxPage, page)),
     }
 }
 
@@ -360,7 +360,7 @@ let make = (
             | Some(resultsForRender) => {
                 let items = []
                 let minI = (state.resultsPage - 1) * state.resultsPerPage
-                let maxI = Js.Math.min_int(minI + state.resultsPerPage - 1, resultsForRender->Array.length-1)
+                let maxI = Math.Int.min(minI + state.resultsPerPage - 1, resultsForRender->Array.length-1)
                 for i in minI to maxI {
                     let resultForRender = resultsForRender->Array.getUnsafe(i)
                     items->Array.push(resultForRender)

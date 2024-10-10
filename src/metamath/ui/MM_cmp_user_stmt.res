@@ -1270,7 +1270,7 @@ let make = React.memoCustomCompareProps( ({
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
                 } }
-                Js.Math.max_int(
+                Math.Int.max(
                     200,
                     windowWidth - checkBoxWidth - labelWidth - typWidth - jstfWidth - 40
                 )

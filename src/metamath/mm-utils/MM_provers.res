@@ -547,7 +547,7 @@ let proveBottomUp = (
                         progressState.contents = progressTrackerMake(
                             ~step=0.01,
                             ~onProgress= pct => {
-                                let pctStr = (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
+                                let pctStr = (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString
                                 onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
                             }, 
                             ()

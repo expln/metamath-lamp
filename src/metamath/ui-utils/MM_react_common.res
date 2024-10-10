@@ -178,7 +178,7 @@ let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=
             <span style=ReactDOM.Style.make(~paddingLeft="10px", ())>
                 {
                     switch pct {
-                        | Some(pct) => `${text}: ${(pct *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`
+                        | Some(pct) => `${text}: ${(pct *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString}%`
                         | None => text
                     }->React.string
                 }

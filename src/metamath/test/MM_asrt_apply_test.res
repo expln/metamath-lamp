@@ -128,7 +128,7 @@ describe("iterateCombinations", _ => {
         iterateCombinations(
             ~numOfStmts=3,
             ~numOfHyps=2,
-            ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Js.Math.abs_int, 2) == 1,
+            ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Math.Int.abs, 2) == 1,
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {

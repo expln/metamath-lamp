@@ -2739,14 +2739,14 @@ let getSelectedText = (stmtCont:stmtCont):option<string> => {
 let incExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
     {
         ...treeData, 
-        expLvl: Js_math.min_int(treeData.expLvl + 1, treeData.root.height)
+        expLvl: Math.Int.min(treeData.expLvl + 1, treeData.root.height)
     }
 }
 
 let decExpLvl = (treeData:stmtContTreeData):stmtContTreeData => {
     {
         ...treeData, 
-        expLvl: Js_math.max_int(treeData.expLvl - 1, 0)
+        expLvl: Math.Int.max(treeData.expLvl - 1, 0)
     }
 }
 

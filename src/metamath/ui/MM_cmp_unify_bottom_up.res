@@ -837,7 +837,7 @@ let make = (
             let st = if (depthStr->Js_string2.length == 0) {
                 {...st, depth:1, depthStr:"1"}
             } else {
-                let depth = Js.Math.max_int(depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(1), 1)
+                let depth = Math.Int.max(depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(1), 1)
                 let depthStr = depth->Belt_Int.toString
                 {...st, depth, depthStr}
             }

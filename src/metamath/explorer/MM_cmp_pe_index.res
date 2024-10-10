@@ -267,7 +267,7 @@ let make = React.memoCustomCompareProps(({
     let actSetAsrtsPerPage = (strNum:string):unit => {
         switch strNum->Belt_Int.fromString {
             | None => ()
-            | Some(num) => setAsrtsPerPage(_ => Js.Math.max_int(1, Js.Math.min_int(num, 100)))
+            | Some(num) => setAsrtsPerPage(_ => Math.Int.max(1, Math.Int.min(num, 100)))
         }
     }
 

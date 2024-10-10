@@ -88,14 +88,14 @@ module Std2D: Utils2D = {
     let ex = {begin:{x:0., y:0.}, end:{x:1., y:0.}}
     let ey = {begin:{x:0., y:0.}, end:{x:0., y:1.}}
 
-    let deg = (d:float):angle => d /. 180. *. Js.Math._PI
+    let deg = (d:float):angle => d /. 180. *. Math.Constants.pi
     let rad = (r:float):angle => r
-    let toDeg = (a:angle):float => a /. Js.Math._PI *. 180.
+    let toDeg = (a:angle):float => a /. Math.Constants.pi *. 180.
     let toRad = (a:angle):float => a
 
     let pntX = (p:point):float => p.x
     let pntY = (p:point):float => p.y
-    let pntLen = (p:point):float => Js.Math.sqrt(p.x *. p.x +. p.y *. p.y)
+    let pntLen = (p:point):float => Math.sqrt(p.x *. p.x +. p.y *. p.y)
     let pntSub = (a:point,b:point):point => {x: a.x -. b.x, y: a.y -. b.y}
     let pntAdd = (a:point,b:point):point => {x: a.x +. b.x, y: a.y +. b.y}
     let pntTrDelta = (p:point,dx:float,dy:float):point => {x: p.x +. dx, y: p.y +. dy}
@@ -104,8 +104,8 @@ module Std2D: Utils2D = {
     let pntDiv = (p:point, x:float):point => {x: p.x /. x, y: p.y /. x}
     let pntVec = (b:point,e:point):vector => {begin:b, end:e}
     let pntRot = (p:point, a:angle):point => {
-        x: p.x *. Js.Math.cos(a) -. p.y *. Js.Math.sin(a),
-        y: p.x *. Js.Math.sin(a) +. p.y *. Js.Math.cos(a),
+        x: p.x *. Math.cos(a) -. p.y *. Math.sin(a),
+        y: p.x *. Math.sin(a) +. p.y *. Math.cos(a),
     }
 
 
@@ -139,7 +139,7 @@ module Std2D: Utils2D = {
     }
     let vecTrDir = (v:vector, dir:vector, dist:float):vector => v->vecTr(dir->vecNorm->vecMul(dist))
     let pntTrDir = (p:point, dir:vector, dist:float):point => p->pntTr(dir->vecNorm->vecMul(dist))
-    let vecRev = (v:vector):vector => v->vecRot(rad(Js_math._PI))
+    let vecRev = (v:vector):vector => v->vecRot(rad(Math.Constants.pi))
 
     let bndMinX = (b:boundaries):float => b.minX
     let bndMinY = (b:boundaries):float => b.minY
@@ -158,10 +158,10 @@ module Std2D: Utils2D = {
         let maxY = ref(minY.contents)
         for i in 1 to ps->Array.length - 1 {
             let p = ps->Array.getUnsafe(i)
-            minX := Js.Math.min_float(minX.contents, p.x)
-            minY := Js.Math.min_float(minY.contents, p.y)
-            maxX := Js.Math.max_float(maxX.contents, p.x)
-            maxY := Js.Math.max_float(maxY.contents, p.y)
+            minX := Math.min(minX.contents, p.x)
+            minY := Math.min(minY.contents, p.y)
+            maxX := Math.max(maxX.contents, p.x)
+            maxY := Math.max(maxY.contents, p.y)
         }
         {minX:minX.contents, minY:minY.contents, maxX:maxX.contents, maxY:maxY.contents}
     }
@@ -171,31 +171,31 @@ module Std2D: Utils2D = {
         }
         let p1 = vs->Array.getUnsafe(0)->vecBegin
         let p2 = vs->Array.getUnsafe(0)->vecEnd
-        let minX = ref(Js.Math.min_float(p1.x, p2.x))
-        let minY = ref(Js.Math.min_float(p1.y, p2.y))
-        let maxX = ref(Js.Math.max_float(p1.x, p2.x))
-        let maxY = ref(Js.Math.max_float(p1.y, p2.y))
+        let minX = ref(Math.min(p1.x, p2.x))
+        let minY = ref(Math.min(p1.y, p2.y))
+        let maxX = ref(Math.max(p1.x, p2.x))
+        let maxY = ref(Math.max(p1.y, p2.y))
         for i in 1 to vs->Array.length - 1 {
             let p1 = vs->Array.getUnsafe(i)->vecBegin
             let p2 = vs->Array.getUnsafe(i)->vecEnd
-            minX := Js.Math.min_float(minX.contents, Js.Math.min_float(p1.x, p2.x))
-            minY := Js.Math.min_float(minY.contents, Js.Math.min_float(p1.y, p2.y))
-            maxX := Js.Math.max_float(maxX.contents, Js.Math.max_float(p1.x, p2.x))
-            maxY := Js.Math.max_float(maxY.contents, Js.Math.max_float(p1.y, p2.y))
+            minX := Math.min(minX.contents, Math.min(p1.x, p2.x))
+            minY := Math.min(minY.contents, Math.min(p1.y, p2.y))
+            maxX := Math.max(maxX.contents, Math.max(p1.x, p2.x))
+            maxY := Math.max(maxY.contents, Math.max(p1.y, p2.y))
         }
         {minX:minX.contents, minY:minY.contents, maxX:maxX.contents, maxY:maxY.contents}
     }
     let bndAddPoint = (b:boundaries, p:point):boundaries => {
-        minX:Js.Math.min_float(b.minX,p.x),
-        minY:Js.Math.min_float(b.minY,p.y),
-        maxX:Js.Math.max_float(b.maxX,p.x),
-        maxY:Js.Math.max_float(b.maxY,p.y),
+        minX:Math.min(b.minX,p.x),
+        minY:Math.min(b.minY,p.y),
+        maxX:Math.max(b.maxX,p.x),
+        maxY:Math.max(b.maxY,p.y),
     }
     let bndMerge = (b1:boundaries, b2:boundaries):boundaries => {
-        minX:Js.Math.min_float(b1.minX,b2.minX),
-        minY:Js.Math.min_float(b1.minY,b2.minY),
-        maxX:Js.Math.max_float(b1.maxX,b2.maxX),
-        maxY:Js.Math.max_float(b1.maxY,b2.maxY),
+        minX:Math.min(b1.minX,b2.minX),
+        minY:Math.min(b1.minY,b2.minY),
+        maxX:Math.max(b1.maxX,b2.maxX),
+        maxY:Math.max(b1.maxY,b2.maxY),
     }
     let bndAddPoints = (b:boundaries, ps:array<point>):boundaries => {
         if (ps->Array.length == 0) {
@@ -250,7 +250,7 @@ module Std2D: Utils2D = {
     ):boundaries => {
         switch all {
             | Some(allPct) => {
-                let size = Js_math.max_float(b->bndWidth, b->bndHeight)
+                let size = Math.max(b->bndWidth, b->bndHeight)
                 let margin = size *. allPct
                 {minX: b.minX -. margin, minY: b.minY -. margin, maxX: b.maxX +. margin, maxY: b.maxY +. margin}
             }

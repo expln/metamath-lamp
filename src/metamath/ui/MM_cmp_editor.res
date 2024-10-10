@@ -198,13 +198,13 @@ let make = (
         ~key="editor-steps-per-page", ~default=100,
     )
     let maxStepsPerPage = 300
-    let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, maxStepsPerPage))
+    let stepsPerPage = Math.Int.max(1, Math.Int.min(stepsPerPage, maxStepsPerPage))
     let numOfPages = (stmtsToShow->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
-                        ->Js_math.ceil_float->Belt.Float.toInt
+                        ->Math.ceil->Belt.Float.toInt
     let minPageIdx = 0
     let maxPageIdx = numOfPages - 1
     let (pageIdx, setPageIdx) = React.useState(() => 0)
-    let pageIdx = Js.Math.max_int(minPageIdx, Js.Math.min_int(pageIdx, maxPageIdx))
+    let pageIdx = Math.Int.max(minPageIdx, Math.Int.min(pageIdx, maxPageIdx))
     let stmtBeginIdx = pageIdx * stepsPerPage
     let stmtEndIdx = stmtBeginIdx + stepsPerPage - 1
 

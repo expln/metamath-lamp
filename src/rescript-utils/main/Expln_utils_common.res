@@ -37,7 +37,7 @@ let copySubArray = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx
     let d = ref(dstFromIdx)
     let srcLen = src->Array.length
     let dstLen = dst->Array.length
-    let sMax = Js_math.min_int(srcLen - 1, srcFromIdx + len - 1)
+    let sMax = Math.Int.min(srcLen - 1, srcFromIdx + len - 1)
     while (s.contents <= sMax && d.contents < dstLen) {
         dst[d.contents] = src->Array.getUnsafe(s.contents)
         d.contents = d.contents + 1
@@ -48,8 +48,8 @@ let copySubArray = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx
 type comparator<'a> = ('a, 'a) => float
 
 let toIntCmp: 'a. comparator<'a> => (('a,'a)=>int) = cmp => (a,b) => cmp(a,b)
-    ->Js_math.sign_float
-    ->Js_math.floor_int
+    ->Math.sign
+    ->Math.Int.floor
 
 let intCmp: comparator<int> = (a:int, b:int) => if a < b {-1.0} else if a == b {0.0} else {1.0}
 let floatCmp: comparator<float> = (a:float ,b:float) => if a < b {-1.0} else if a == b {0.0} else {1.0}
