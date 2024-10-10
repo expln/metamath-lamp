@@ -16,7 +16,7 @@ type parenCnt = {
 let parenCntStackPush = (cnt:parenCnt, i:int):unit => {
     if (cnt.stack->Js_array2.length == cnt.len) {
         for _ in 1 to 1000 {
-            cnt.stack->Js_array2.push(0)->ignore
+            cnt.stack->Array.push(0)
         }
     }
     cnt.stack[cnt.len] = i

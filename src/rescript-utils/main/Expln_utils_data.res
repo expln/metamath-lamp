@@ -62,7 +62,7 @@ let traverseTree = (
                                             if (i == maxChildIdx) {
                                                 switch currNode.nodesToPostProcess {
                                                     | Some(nodes) => {
-                                                        nodes->Js_array2.push(children->Array.getUnsafe(i))->ignore
+                                                        nodes->Array.push(children->Array.getUnsafe(i))
                                                         Some(nodes)
                                                     }
                                                     | _ => 

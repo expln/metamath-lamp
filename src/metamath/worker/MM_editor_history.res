@@ -238,12 +238,12 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     let bIds = b.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
     a.stmts->Js_array2.forEach(stmtA => {
         if (!(bIds->Belt_HashSetString.has(stmtA.id))) {
-            diffs->Js_array2.push(StmtRemove({stmtId:stmtA.id}))->ignore
+            diffs->Array.push(StmtRemove({stmtId:stmtA.id}))
         }
     })
     b.stmts->Js_array2.forEachi((stmtB,i) => {
         if (!(aIds->Belt_HashSetString.has(stmtB.id))) {
-            diffs->Js_array2.push(StmtAdd({idx:i, stmt:stmtB}))->ignore
+            diffs->Array.push(StmtAdd({idx:i, stmt:stmtB}))
         }
     })
 
@@ -258,7 +258,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         let stmtB = b.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
             let move = StmtMove({stmtId:stmtB.id, idx:i})
-            diffs->Js_array2.push(move)->ignore
+            diffs->Array.push(move)
             aMod := aMod.contents->applyDiffSingle(move)
         }
     }
@@ -269,33 +269,33 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
             raise(MmException({msg:`stmtA.id != stmtB.id`}))
         }
         if (stmtA.label != stmtB.label) {
-            diffs->Js.Array2.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))->ignore
+            diffs->Array.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))
         }
         if (stmtA.typ != stmtB.typ || stmtA.isGoal != stmtB.isGoal) {
-            diffs->Js.Array2.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))->ignore
+            diffs->Array.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))
         }
         if (stmtA.isBkm != stmtB.isBkm) {
-            diffs->Js.Array2.push(StmtBkm({stmtId:stmtA.id, isBkm:stmtB.isBkm}))->ignore
+            diffs->Array.push(StmtBkm({stmtId:stmtA.id, isBkm:stmtB.isBkm}))
         }
         if (stmtA.jstfText != stmtB.jstfText) {
-            diffs->Js.Array2.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))->ignore
+            diffs->Array.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))
         }
         if (stmtA.cont != stmtB.cont) {
-            diffs->Js.Array2.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))->ignore
+            diffs->Array.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))
         }
         if (!(stmtA.proofStatus->proofStatusEq(stmtB.proofStatus))) {
-            diffs->Js.Array2.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))->ignore
+            diffs->Array.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))
         }
     })
 
     if (a.descr != b.descr) {
-        diffs->Js.Array2.push(Descr(b.descr))->ignore
+        diffs->Array.push(Descr(b.descr))
     }
     if (a.varsText != b.varsText) {
-        diffs->Js.Array2.push(Vars(b.varsText))->ignore
+        diffs->Array.push(Vars(b.varsText))
     }
     if (a.disjText != b.disjText) {
-        diffs->Js.Array2.push(Disj(b.disjText))->ignore
+        diffs->Array.push(Disj(b.disjText))
     }
 
     if (diffs->Js.Array2.length > 1 && diffs->allStatusUnset) {
@@ -667,26 +667,26 @@ let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
 let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
     let res = []
 
-    res->Js.Array2.push("Description")->ignore
-    res->Js.Array2.push(sn.descr)->ignore
+    res->Array.push("Description")
+    res->Array.push(sn.descr)
     if (sn.descr->Js.String2.length > 0) {
-        res->Js.Array2.push("")->ignore
+        res->Array.push("")
     }
 
-    res->Js.Array2.push("Variables")->ignore
-    res->Js.Array2.push(sn.varsText)->ignore
+    res->Array.push("Variables")
+    res->Array.push(sn.varsText)
     if (sn.varsText->Js.String2.length > 0) {
-        res->Js.Array2.push("")->ignore
+        res->Array.push("")
     }
 
-    res->Js.Array2.push("Disjoints")->ignore
-    res->Js.Array2.push(sn.disjText)->ignore
+    res->Array.push("Disjoints")
+    res->Array.push(sn.disjText)
     if (sn.disjText->Js.String2.length > 0) {
-        res->Js.Array2.push("")->ignore
+        res->Array.push("")
     }
 
     sn.stmts->Js.Array2.forEach(stmt => {
-        res->Js.Array2.push(stmt->stmtSnapshotToStringExtended)->ignore
+        res->Array.push(stmt->stmtSnapshotToStringExtended)
     })
     res->Js.Array2.joinWith("\n")
 }
@@ -722,14 +722,14 @@ let editorHistToStringExtended = (ht:editorHistory):string => {
     let delim1 = "------------------------------------------------------------------------------------"
     let delim2 = "===================================================================================="
     let curSn = ref(ht.head)
-    res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
-    res->Js.Array2.push(delim2)->ignore
+    res->Array.push(curSn.contents->editorSnapshotToStringExtended)
+    res->Array.push(delim2)
     ht.prev->Js.Array2.forEach(diff => {
-        res->Js.Array2.push(diff->diffToStringExtended)->ignore
-        res->Js.Array2.push(delim1)->ignore
+        res->Array.push(diff->diffToStringExtended)
+        res->Array.push(delim1)
         curSn := curSn.contents->applyDiff(diff)
-        res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
-        res->Js.Array2.push(delim2)->ignore
+        res->Array.push(curSn.contents->editorSnapshotToStringExtended)
+        res->Array.push(delim2)
     })
     res->Js.Array2.joinWith("\n")
 }

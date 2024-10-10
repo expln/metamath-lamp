@@ -44,7 +44,7 @@ describe("iterateCombinations", _ => {
             ~stmtCanMatchHyp = (_,_)=>true,
             ~debugLevel=0,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Js_array2.joinWith(" "))
                 Continue
             },
             ~combCntMax=10000,
@@ -87,7 +87,7 @@ describe("iterateCombinations", _ => {
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Js_array2.joinWith(" "))
                 if (comb->Array.getUnsafe(0) == 1 && comb->Array.getUnsafe(1) == -1) {
                     Stop
                 } else {
@@ -132,7 +132,7 @@ describe("iterateCombinations", _ => {
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Js_array2.joinWith(" "))
                 Continue
             },
             ~errConsumer = _ => Continue
@@ -162,7 +162,7 @@ describe("iterateCombinations", _ => {
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Js_array2.joinWith(" "))
                 Continue
             },
             ~errConsumer = _ => Continue
@@ -208,8 +208,8 @@ let testApplyAssertions = (
                 )
                 switch statements->Js.Array2.find(({expr}) => exprEq(expr,argExpr)) {
                     | Some({label}) => {
-                        args->Js_array2.push(`[${label}]`)->ignore
-                        argLabels->Js_array2.push(label)->ignore
+                        args->Array.push(`[${label}]`)
+                        argLabels->Array.push(label)
                     }
                     | None => {
                         let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
@@ -220,8 +220,8 @@ let testApplyAssertions = (
                             expr:exprArrStr,
                             proof:Some(Uncompressed({labels:[]}))
                         }), ())
-                        args->Js_array2.push(`${label}: ${exprArrStr->Js_array2.joinWith(" ")}`)->ignore
-                        argLabels->Js_array2.push(label)->ignore
+                        args->Array.push(`${label}: ${exprArrStr->Js_array2.joinWith(" ")}`)
+                        argLabels->Array.push(label)
                     }
                 }
             }
@@ -290,7 +290,7 @@ let testApplyAssertions = (
                     actualResults->Belt_MutableMapString.set(res.frame.label, [printApplyAssertionResult(workCtx, statements, res)])
                 }
                 | Some(arr) => {
-                    arr->Js.Array2.push(printApplyAssertionResult(workCtx, statements, res))->ignore
+                    arr->Array.push(printApplyAssertionResult(workCtx, statements, res))
                 }
             }
             // Js.Console.log("onMatchFound ------------------------------------------------------------------")

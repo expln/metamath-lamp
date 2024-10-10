@@ -357,7 +357,7 @@ let syntaxTreeGetIdsOfAllChildSymbols = (tree:childNode):Belt_SetInt.t => {
     tree->syntaxTreeForEachNode(node => {
         switch node {
             | Subtree(_) => ()
-            | Symbol({id}) => res->Js.Array2.push(id)->ignore
+            | Symbol({id}) => res->Array.push(id)
         }
         None
     })->ignore
@@ -369,7 +369,7 @@ let syntaxTreeToText = (node:childNode):string => {
     node->syntaxTreeForEachNode(node => {
         switch node {
             | Subtree(_) => ()
-            | Symbol({sym}) => res->Js.Array2.push(sym)->ignore
+            | Symbol({sym}) => res->Array.push(sym)
         }
         None
     })->ignore

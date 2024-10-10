@@ -244,7 +244,7 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
                             switch stmt.expr {
                                 | None => Error(`Internal error: the step with label '${label}' doesn't have expr.`)
                                 | Some(expr) => {
-                                    arr->Js_array2.push(expr)->ignore
+                                    arr->Array.push(expr)
                                     res
                                 }
                             }
@@ -289,7 +289,7 @@ let apiMatcherToMatcher = (
                                         )
                                     }
                                     | None => {
-                                        hypMatchers->Js_array2.push(Label(label))->ignore
+                                        hypMatchers->Array.push(Label(label))
                                         res
                                     }
                                 }
@@ -297,7 +297,7 @@ let apiMatcherToMatcher = (
                             | None => {
                                 switch hypMatcher.idx {
                                     | Some(idx) => {
-                                        hypMatchers->Js_array2.push(Idx(idx))->ignore
+                                        hypMatchers->Array.push(Idx(idx))
                                         res
                                     }
                                     | None => {
@@ -363,7 +363,7 @@ let optArrayToMatchers = (
                                     switch apiMatcherToMatcher( ~ctx=wrkCtx, ~matcher, ) {
                                         | Error(msg) => Error(msg)
                                         | Ok(parsedMatcher) => {
-                                            res->Js_array2.push(parsedMatcher)->ignore
+                                            res->Array.push(parsedMatcher)
                                             Ok(res)
                                         }
                                     }
@@ -491,7 +491,7 @@ let proveBottomUp = (
                                         switch state->labelsToExprs(frameParams.stepsToUse) {
                                             | Error(msg) => Error(msg)
                                             | Ok(exprs) => {
-                                                args->Js_array2.push(exprs)->ignore
+                                                args->Array.push(exprs)
                                                 Ok(args)
                                             }
                                         }
@@ -514,7 +514,7 @@ let proveBottomUp = (
                                                 ) {
                                                     | Error(msg) => Error(msg)
                                                     | Ok(frms) => {
-                                                        matches->Js_array2.push(frms)->ignore
+                                                        matches->Array.push(frms)
                                                         Ok(matches)
                                                     }
                                                 }

@@ -109,7 +109,7 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
     let saveChild = (childrenStack:Belt_MutableStack.t<(string,array<reElem>)>, child:reElem):unit => {
         switch childrenStack->Belt_MutableStack.top {
             | None => Js.Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
-            | Some((_,children)) => children->Js_array2.push(child)->ignore
+            | Some((_,children)) => children->Array.push(child)
         }
     }
 

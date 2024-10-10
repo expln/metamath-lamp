@@ -139,7 +139,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
                 switch labelToIntMap->Belt_HashMapString.get(label) {
                     | Some(i) => i
                     | None => {
-                        labels->Js.Array2.push(label)->ignore
+                        labels->Array.push(label)
                         let res = mandHypLen + labels->Js.Array2.length
                         labelToIntMap->Belt_HashMapString.set(label, res)
                         res
@@ -156,14 +156,14 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
             let stepNum = switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis({label}) | Assertion({label}) => labelToInt(label)
             }
-            proofSteps->Js_array2.push(stepNum)->ignore
+            proofSteps->Array.push(stepNum)
             if (reusedIdxs->Belt_HashSetInt.has(idx)) {
-                proofSteps->Js_array2.push(0)->ignore
+                proofSteps->Array.push(0)
                 reusedIdxToInt->Belt_HashMapInt.set(idx, reusedIdxToInt->Belt_HashMapInt.size + 1)
             }
         },
         ~onReuse = idx => {
-            proofSteps->Js_array2.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))->ignore
+            proofSteps->Array.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))
         }
     )
     let labelsLastIdx = mandHypLen + labels->Js.Array2.length
@@ -195,7 +195,8 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
     }
 
     let saveExprToTblWithoutChecks = (nodeId:int,expr:expr,proof:exprSource):unit => {
-        let idx = tbl->Js_array2.push({expr, proof})-1
+        tbl->Array.push({expr, proof})
+        let idx = tbl->Array.length-1
         nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
     }
 

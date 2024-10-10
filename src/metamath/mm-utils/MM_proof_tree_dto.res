@@ -163,7 +163,7 @@ let createProofTable = (
             let essentialArgs = []
             (ctx->Belt_Option.getExn->getFrameExn(label)).hyps->Js_array2.forEachi((hyp,i) => {
                 if (hyp.typ == E) {
-                    essentialArgs->Js.Array2.push(args->Array.getUnsafe(i))->ignore
+                    essentialArgs->Array.push(args->Array.getUnsafe(i))
                 }
             })
             essentialArgs
@@ -188,7 +188,8 @@ let createProofTable = (
         if (getIdxByExpr(expr)->Belt_Option.isSome) {
             raise(MmException({ msg:`getIdxByExpr(expr)->Belt_Option.isSome in createProofTable().` }))
         }
-        let idx = tbl->Js_array2.push({expr, proof})-1
+        tbl->Array.push({expr, proof})
+        let idx = tbl->Array.length-1
         exprToIdx->Belt_HashMap.set(expr,idx)
     }
 

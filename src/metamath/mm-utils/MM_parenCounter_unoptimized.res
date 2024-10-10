@@ -32,8 +32,8 @@ let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
         for i in 0 to maxI {
             let openCode = parentheses->Array.getUnsafe(i*2)
             let closeCode = parentheses->Array.getUnsafe(i*2+1)
-            parens->Js_array2.push({code: openCode, isOpen: true, opposite: closeCode})->ignore
-            parens->Js_array2.push({code: closeCode, isOpen: false, opposite: openCode})->ignore
+            parens->Array.push({code: openCode, isOpen: true, opposite: closeCode})
+            parens->Array.push({code: closeCode, isOpen: false, opposite: openCode})
         }
         let min = parentheses->Js_array2.reduce((min,p) => if (min <= p) {min} else {p}, parentheses->Array.getUnsafe(0))
         if (checkParensOptimized && Js.Math.abs_int(min) != parenLen) {
@@ -58,7 +58,7 @@ let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
         switch cnt.parens->Js_array2.find(({code}) => code == i) {
             | Some(paren) => {
                 if (paren.isOpen) {
-                    cnt.parentStack->Js_array2.push(paren)->ignore
+                    cnt.parentStack->Array.push(paren)
                 } else {
                     switch cnt.parentStack->Js_array2.pop {
                         | None => cnt.failed = true

@@ -186,7 +186,7 @@ describe("disjForEachArr", _ => {
 
         //when
         let actual = []
-        disj->disjForEachArr(arr => actual->Js_array2.push(arr)->ignore)
+        disj->disjForEachArr(arr => actual->Array.push(arr))
 
         //then
         assertEq(

@@ -23,8 +23,8 @@ let prepareParenInts = (wrkCtx, parenStr) => {
             | Some(leftParenInt) if wrkCtx->isConst(leftParen) => {
                 switch wrkCtx->ctxSymToInt(rightParen) {
                     | Some(rightParenInt) if wrkCtx->isConst(rightParen) => {
-                        parenInts->Js.Array2.push(leftParenInt)->ignore
-                        parenInts->Js.Array2.push(rightParenInt)->ignore
+                        parenInts->Array.push(leftParenInt)
+                        parenInts->Array.push(rightParenInt)
                     }
                     | _ => ()
                 }
@@ -58,7 +58,7 @@ let textToVarDefs = (text:string):result<array<array<string>>,string> => {
                         switch lineToVarDef(line) {
                             | Error(msg) => Error(msg)
                             | Ok(varDef) => {
-                                varDefs->Js_array2.push(varDef)->ignore
+                                varDefs->Array.push(varDef)
                                 Ok(varDefs)
                             }
                         }

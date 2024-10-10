@@ -1304,7 +1304,7 @@ let make = (
 
     let rndParens = () => {
         let elems = []
-        elems->Js_array2.push(
+        elems->Array.push(
             <Row alignItems=#center key="parens-text-field">
                 <TextField 
                     size=#small
@@ -1321,13 +1321,13 @@ let make = (
                     </IconButton>
                 </span>
             </Row>
-        )->ignore
+        )
         switch state.parensErr {
             | None => ()
             | Some(msg) => {
-                elems->Js_array2.push(
+                elems->Array.push(
                     <pre style=ReactDOM.Style.make(~color="red", ()) key="parens-error">{React.string(msg)}</pre>
-                )->ignore
+                )
             }
         }
         elems->React.array

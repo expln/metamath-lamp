@@ -185,7 +185,7 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
 let ptAddRootStmt = (tree, stmt:rootStmt) => {
     switch tree.rootStmts->Js_array2.find(existingStmt => existingStmt.expr->exprEq(stmt.expr)) {
         | Some(_) => ()
-        | None => tree.rootStmts->Js_array2.push(stmt)->ignore
+        | None => tree.rootStmts->Array.push(stmt)
     }
 }
 
@@ -244,7 +244,7 @@ let pnMarkProved = ( node:proofNode ):unit => {
 let pnAddChild = (node, child): unit => {
     if (node.id != child.id) {
         switch node.children->Js.Array2.find(existingChild => existingChild.id  == child.id) {
-            | None => node.children->Js_array2.push(child)->ignore
+            | None => node.children->Array.push(child)
             | Some(_) => ()
         }
     }
@@ -276,7 +276,7 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bo
                     }
                 }
                 | None => {
-                    parents->Js_array2.push(parent)->ignore
+                    parents->Array.push(parent)
                     newParentWasAdded.contents = true
                 }
             }
@@ -302,7 +302,7 @@ let ptAddNewVar = (tree, typ):int => {
     tree.newVars->Belt_HashSet.add([typ, newVar])
     switch tree.ptDbg {
         | None => ()
-        | Some({exprToStr, newVars}) => newVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
+        | Some({exprToStr, newVars}) => newVars->Array.push(exprToStr([typ, newVar]))
     }
     newVar
 }

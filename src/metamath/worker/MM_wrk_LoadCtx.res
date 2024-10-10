@@ -177,7 +177,7 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
         stopAfter,
         resetNestingLevel,
     }
-    res->Js_array2.push(mmScope)->ignore
+    res->Array.push(mmScope)
     allLabels->Js_array2.length != expectedNumOfAssertions
 }
 

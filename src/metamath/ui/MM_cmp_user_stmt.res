@@ -252,7 +252,7 @@ let rndContText = (
         | Tree({exprTyp, root}) => {
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
-            elems->Js.Array2.push(
+            elems->Array.push(
                 rndSymbol(
                     ~isFirst=true,
                     ~key="expr-type",
@@ -265,7 +265,7 @@ let rndContText = (
                     ~title?,
                     ()
                 )
-            )->ignore
+            )
             Expln_utils_data.traverseTree(
                 ref(false),
                 Subtree(root),
@@ -280,7 +280,7 @@ let rndContText = (
                         | Subtree(_) => ()
                         | Symbol({id, sym, color}) => {
                             let symbolIsHighlighted = selectedIds->Belt_SetInt.has(id)
-                            elems->Js.Array2.push(
+                            elems->Array.push(
                                 rndSymbol(
                                     ~isFirst=false,
                                     ~key=id->Belt.Int.toString,
@@ -317,7 +317,7 @@ let rndContText = (
                                     ~title?,
                                     ()
                                 )
-                            )->ignore
+                            )
                             selectionIsOn := symbolIsHighlighted
                         }
                     }
@@ -488,7 +488,7 @@ module VisualizedJstf = {
                                 let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
                                 frame.hyps->Js.Array2.forEachi((hyp,i) => {
                                     if (hyp.typ == E) {
-                                        hyps->Js.Array2.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                                        hyps->Array.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))
                                     } else {
                                         let frmSym = wrkCtx->frmIntToSymExn(frame, hyp.expr->Array.getUnsafe(1))
                                         subs->Belt_HashMapString.set(
@@ -1415,14 +1415,14 @@ let make = React.memoCustomCompareProps( ({
                 </Paper>
             ]
             if (syntaxTreeWasRequested->Belt.Option.isSome) {
-                elems->Js_array2.push(
+                elems->Array.push(
                     <span> {"Building a syntax tree..."->React.string} </span>
-                )->ignore
+                )
             }
             if (textIsSelected) {
-                elems->Js_array2.push(
+                elems->Array.push(
                     rndSelectionButtons()
-                )->ignore
+                )
             }
 
             <Col 
@@ -1637,25 +1637,25 @@ let make = React.memoCustomCompareProps( ({
                     } else {
                         let btns = []
                         if (jstfTextStr->Js_string2.trim != "") {
-                            btns->Js.Array2.push(
+                            btns->Array.push(
                                 rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~key="d",
                                     ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()
                                 )
-                            )->ignore
+                            )
                         }
-                        btns->Js.Array2.push(
+                        btns->Array.push(
                             rndIconButton(~icon=<MM_Icons.VisibilityOff/>, ~key="h",
                                 ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None, ()
                             )
-                        )->ignore
+                        )
                         if (visualizationIsAvailable) {
-                            btns->Js.Array2.push(
+                            btns->Array.push(
                                 rndIconButton(
                                     ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
                                     ~key="v",
                                     ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
                                 )
-                            )->ignore
+                            )
                         }
                         <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
                             { btns->React.array }

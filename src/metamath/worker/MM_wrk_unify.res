@@ -192,8 +192,8 @@ let srcToNewStmts = (
             let newVarNames = Belt_HashMapInt.make(~hintSize=8)
             let reservedVarNames = Belt_HashSetString.make(~hintSize=8)
             let addNewVarToResult = (~newVarInt:int, ~newVarType:int):unit => {
-                res.newVars->Js_array2.push(newVarInt)->ignore
-                res.newVarTypes->Js_array2.push(newVarType)->ignore
+                res.newVars->Array.push(newVarInt)
+                res.newVarTypes->Array.push(newVarType)
                 let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
                     ~typeToPrefix, ~reservedNames=reservedVarNames, ()
                 )->Array.getUnsafe(0)
@@ -244,22 +244,22 @@ let srcToNewStmts = (
                         let argLabels = []
                         getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                             if (hyp.typ == E) {
-                                argLabels->Js_array2.push(
+                                argLabels->Array.push(
                                     getLabelForExpr((tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr)
-                                )->ignore
+                                )
                             }
                         })
                         Some({ args:argLabels, label})
                     }
                 }
-                res.stmts->Js_array2.push( { label, expr, exprStr, jstf, isProved, } )->ignore
+                res.stmts->Array.push( { label, expr, exprStr, jstf, isProved, } )
             }
 
             let frame = getFrame(label)
             let eArgs = []
             frame.hyps->Js.Array2.forEachi((hyp,i) => {
                 if (hyp.typ == E) {
-                    eArgs->Js_array2.push(tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)))->ignore
+                    eArgs->Array.push(tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)))
                 }
             })
             let childrenReturnedFor = Belt_HashSet.make(~hintSize=16, ~id=module(ExprHash))
@@ -283,7 +283,7 @@ let srcToNewStmts = (
                                     let children = []
                                     getFrame(label).hyps->Js_array2.forEachi((hyp,i) => {
                                         if (hyp.typ == E) {
-                                            children->Js_array2.push( tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)) )->ignore
+                                            children->Array.push( tree.nodes->Array.getUnsafe(args->Array.getUnsafe(i)) )
                                         }
                                     })
                                     Some(children)
@@ -373,9 +373,9 @@ let srcToNewStmts = (
                     },
                 )->ignore
                 res.newDisj->disjForEachArr(disjArr => {
-                    res.newDisjStr->Js.Array2.push(
+                    res.newDisjStr->Array.push(
                         `$d ${disjArr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")} $.`
-                    )->ignore
+                    )
                 })
                 Some(res)
             }

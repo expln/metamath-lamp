@@ -69,9 +69,9 @@ let createVDataRec = (
             let hypsStr = []
             let eHyps = []
             frame.hyps->Js_array2.forEachi((hyp,i) => {
-                hypsStr->Js.Array2.push(ctx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                hypsStr->Array.push(ctx->frmIntsToSymsExn(frame, hyp.expr))
                 if (hyp.typ == E) {
-                    eHyps->Js_array2.push(i)->ignore
+                    eHyps->Array.push(i)
                 }
             })
             let subs = Belt_HashMapString.make(~hintSize=frame.numOfVars)
@@ -499,7 +499,7 @@ let frameProofDataToEditorStateLocStor = (
             switch preCtxData.ctxV.val->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
                 | Some(V) => ()
                 | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
-                    vars->Js.Array2.push(`${hyp.label} ${frameProofData.frmCtx->ctxIntsToStrExn(hyp.expr)}`)->ignore
+                    vars->Array.push(`${hyp.label} ${frameProofData.frmCtx->ctxIntsToStrExn(hyp.expr)}`)
                 }
             }
         }
@@ -514,17 +514,17 @@ let frameProofDataToEditorStateLocStor = (
         })
     })
     frmDisj->disjForEachArr(disjGrp => {
-        disjArr->Js.Array2.push(
+        disjArr->Array.push(
             preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Js.Array2.joinWith(" ")
-        )->ignore
+        )
     })
     switch frameProofData.dummyVarDisj {
         | None => ()
         | Some(dummyVarDisj) => {
             dummyVarDisj->disjForEachArr(disjGrp => {
-                disjArr->Js.Array2.push(
+                disjArr->Array.push(
                     frameProofData.frmCtx->ctxIntsToSymsExn(disjGrp)->Js.Array2.joinWith(" ")
-                )->ignore
+                )
             })
         }
     }
@@ -541,7 +541,7 @@ let frameProofDataToEditorStateLocStor = (
                     }
                 }
             }
-            stmts->Js.Array2.push(
+            stmts->Array.push(
                 {
                     label: hyp.label, 
                     typ: userStmtTypeToStr(E), 
@@ -550,7 +550,7 @@ let frameProofDataToEditorStateLocStor = (
                     cont: preCtxData.ctxV.val->frmIntsToStrExn(frameProofData.frame, hyp.expr),
                     jstfText: "",
                 }
-            )->ignore
+            )
         }
     })
     switch frameProofData.proofTable {
@@ -574,7 +574,7 @@ let frameProofDataToEditorStateLocStor = (
                                             | None => "err_" ++ argIdx->Belt_Int.toString
                                             | Some(str) => str
                                         }
-                                        jstfArgs->Js.Array2.push(label)->ignore
+                                        jstfArgs->Array.push(label)
                                     }
                                 }
                                 let jstfText = if (loadSteps) {
@@ -596,7 +596,7 @@ let frameProofDataToEditorStateLocStor = (
                                         }
                                     }
                                 }
-                                stmts->Js.Array2.push(
+                                stmts->Array.push(
                                     {
                                         label, 
                                         typ: userStmtTypeToStr(P), 
@@ -605,7 +605,7 @@ let frameProofDataToEditorStateLocStor = (
                                         cont: frameProofData.frmCtx->ctxIntsToStrExn(pRec.expr),
                                         jstfText,
                                     }
-                                )->ignore
+                                )
                             }
                         }
                     }
@@ -658,7 +658,7 @@ let frameProofDataToStmtsDto = (
         switch res {
             | Error(_) => res
             | Ok(stmts) => {
-                stmts->Js_array2.push({
+                stmts->Array.push({
                     label:stmt.label,
                     expr:
                         stmt.cont->getSpaceSeparatedValuesAsArray->Js.Array2.map(sym => {
@@ -670,7 +670,7 @@ let frameProofDataToStmtsDto = (
                     exprStr:"",
                     jstf:stmt.jstfText->parseJstf->Belt_Result.getWithDefault(None),
                     isProved: true,
-                })->ignore
+                })
                 res
             }
         }
@@ -1072,17 +1072,17 @@ let make = React.memoCustomCompareProps(({
                     if (state.showTypes || state.essIdxs->Belt_HashSetInt.has(argIdx)) {
                         let iStr = i->Belt_Int.toString
                         if (elems->Js.Array2.length > 0) {
-                            elems->Js.Array2.push(
+                            elems->Array.push(
                                 <span key={"delim-" ++ iStr}>
                                     {React.string(", ")}
                                 </span>
-                            )->ignore
+                            )
                         }
-                        elems->Js.Array2.push(
+                        elems->Array.push(
                             <a href={"#" ++ proofTableId ++ "-" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}>
                                 {React.string(getStepNum(state,argIdx)->Belt_Int.toString)}
                             </a>
-                        )->ignore
+                        )
                     }
                 }
                 elems->React.array

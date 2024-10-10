@@ -140,7 +140,7 @@ let createConstParts = expr => {
         let constPartsLength = constParts->Js_array2.length
         if (expr->Array.getUnsafe(i) < 0) {
             if (constPartsLength == 0 || constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) >= 0) {
-                constParts->Js_array2.push([i,-1])->ignore
+                constParts->Array.push([i,-1])
             }
         } else if (constPartsLength > 0 && constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) < 0) {
             (constParts->Array.getUnsafe(constPartsLength-1))[1] = i-1
@@ -321,35 +321,35 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
     } else {
         let res = []
         if (frmConstParts.begins->Array.getUnsafe(0) != 0) {
-            res->Js_array2.push({
+            res->Array.push({
                 leftConstPartIdx: -1,
                 frmExpr:frmExpr,
                 varsBeginIdx:0,
                 numOfVars:frmConstParts.begins->Array.getUnsafe(0),
                 exprBeginIdx: 0,
                 exprEndIdx: 0
-            })->ignore
+            })
         }
         for i in 0 to frmConstParts.length-2 {
-            res->Js_array2.push({
+            res->Array.push({
                 leftConstPartIdx: i,
                 frmExpr:frmExpr,
                 varsBeginIdx: frmConstParts.ends->Array.getUnsafe(i)+1,
                 numOfVars: lengthOfGap2(i, frmConstParts, frmExprLen),
                 exprBeginIdx: 0,
                 exprEndIdx: 0
-            })->ignore
+            })
         }
         let lastConstPartIdx = frmConstParts.length-1
         if (frmConstParts.ends->Array.getUnsafe(lastConstPartIdx) != frmExprLen-1) {
-            res->Js_array2.push({
+            res->Array.push({
                 leftConstPartIdx: lastConstPartIdx,
                 frmExpr:frmExpr,
                 varsBeginIdx: frmConstParts.ends->Array.getUnsafe(lastConstPartIdx)+1,
                 numOfVars: lengthOfGap2(lastConstPartIdx, frmConstParts, frmExprLen),
                 exprBeginIdx: 0,
                 exprEndIdx: 0
-            })->ignore
+            })
         }
         res
     }
@@ -544,17 +544,17 @@ let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
         let frmConstParts = createConstParts(hyp.expr)
         let constParts = createMatchingConstParts(frmConstParts)
         let varGroups = createVarGroups(~frmExpr=hyp.expr, ~frmConstParts)
-        frmConstPartsArr->Js.Array2.push(frmConstParts)->ignore
-        constPartsArr->Js.Array2.push(constParts)->ignore
-        varGroupsArr->Js.Array2.push(varGroups)->ignore
+        frmConstPartsArr->Array.push(frmConstParts)
+        constPartsArr->Array.push(constParts)
+        varGroupsArr->Array.push(varGroups)
     })
 
     let frmConstParts = createConstParts(frame.asrt)
     let constParts = createMatchingConstParts(frmConstParts)
     let varGroups = createVarGroups(~frmExpr=frame.asrt, ~frmConstParts)
-    frmConstPartsArr->Js.Array2.push(frmConstParts)->ignore
-    constPartsArr->Js.Array2.push(constParts)->ignore
-    varGroupsArr->Js.Array2.push(varGroups)->ignore
+    frmConstPartsArr->Array.push(frmConstParts)
+    constPartsArr->Array.push(constParts)
+    varGroupsArr->Array.push(varGroups)
 
     let subs = createSubs(~numOfVars=frame.numOfVars)
     {
@@ -582,7 +582,7 @@ let prepareFrmSubsData = (
         let typ = frm.frame.asrt->Array.getUnsafe(0)
         switch byType->Belt_HashMapInt.get(typ) {
             | None => byType->Belt_HashMapInt.set(typ,[frm])
-            | Some(arr) => arr->Js_array2.push(frm)->ignore
+            | Some(arr) => arr->Array.push(frm)
         }
     })
     {
@@ -768,9 +768,9 @@ let test_iterateConstParts = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):(ar
         ~idxToMatch=0,
         ~parenCnt,
         ~consumer = constParts => {
-            matchingConstParts->Js_array2.push(
+            matchingConstParts->Array.push(
                 constPartsToArr(constParts)
-            )->ignore
+            )
             Continue
         }
     )->ignore
@@ -801,11 +801,11 @@ let test_iterateSubstitutions = (~frmExpr:expr, ~expr:expr, ~parenCnt:parenCnt):
         ~consumer = subs => {
             let res = []
             for i in 0 to numOfVars-1 {
-                res->Js_array2.push(
+                res->Array.push(
                     subs.exprs->Array.getUnsafe(i)->Js_array2.slice(~start=subs.begins->Array.getUnsafe(i), ~end_=subs.ends->Array.getUnsafe(i)+1)
-                )->ignore
+                )
             }
-            result->Js_array2.push(res)->ignore
+            result->Array.push(res)
             Continue
         }
     )->ignore

@@ -146,7 +146,7 @@ let parseMmFile = (
             } else if (token == tillToken) {
                 result.contents = Some(Some(tokens))
             } else {
-                tokens->Js_array2.push(token)->ignore
+                tokens->Array.push(token)
             }
         }
         result.contents->Belt_Option.getExn
@@ -260,7 +260,7 @@ let parseMmFile = (
         let statements = []
 
         let pushStmt = stmt => {
-            statements->Js_array2.push(stmt)->ignore
+            statements->Array.push(stmt)
         }
 
         while (result.contents->Belt_Option.isNone) {
@@ -301,10 +301,10 @@ let parseMmFile = (
                 } else if (token2 == "$e") {
                     pushStmt(parseEssential(~beginIdx=tokenIdx, ~label))
                 } else if (token2 == "$a") {
-                    allLabels->Js_array2.push(label)->ignore
+                    allLabels->Array.push(label)
                     pushStmt(parseAxiom(~beginIdx=tokenIdx, ~label))
                 } else if (token2 == "$p") {
-                    allLabels->Js_array2.push(label)->ignore
+                    allLabels->Array.push(label)
                     pushStmt(parseProvable(~beginIdx=tokenIdx, ~label))
                 } else {
                     raise(MmException({msg:`Unexpected token '${token2}' at ${textAt(token2Idx)}`}))
@@ -376,7 +376,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
             switch node {
                 | {stmt:Block({level: newLevel})} => {
                     if (newLevel != 0) {
-                        arr->Js_array2.push(makePrefix(level.contents) ++ "${")->ignore
+                        arr->Array.push(makePrefix(level.contents) ++ "${")
                     }
                     level.contents = newLevel
                 }
@@ -390,7 +390,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
                 | _ =>  stmtToStr(node)
             }
             if (str != "") {
-                arr->Js_array2.push(makePrefix(level.contents) ++ str)->ignore
+                arr->Array.push(makePrefix(level.contents) ++ str)
             }
             None
         },
@@ -399,7 +399,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
                 | {stmt:Block({level: newLevel})} => {
                     level.contents = newLevel-1
                     if (newLevel != 0) {
-                        arr->Js_array2.push(makePrefix(level.contents) ++ "$}")->ignore
+                        arr->Array.push(makePrefix(level.contents) ++ "$}")
                     }
                 }
                 | _ => ()
@@ -413,7 +413,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
 
 let astToStr = ( ast:mmAstNode ):string => {
     let res = []
-    let save = str => res->Js_array2.push(str)->ignore
+    let save = str => res->Array.push(str)
     traverseAst(
         (),
         ast,

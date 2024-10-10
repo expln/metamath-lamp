@@ -255,7 +255,7 @@ let disjToArr = (
     ()
 ):array<array<int>> => {
     let res = []
-    disj->disjForEach((n,m) => res->Js_array2.push([n,m])->ignore)
+    disj->disjForEach((n,m) => res->Array.push([n,m]))
 
     let canMerge = (d1:array<int>,d2:array<int>):bool => {
         let canMerge = ref(true)
@@ -278,7 +278,7 @@ let disjToArr = (
         )->ignore
         d2->Js_array2.forEach(v2 => {
             if (!(d1->Js_array2.includes(v2))) {
-                d1->Js_array2.push(v2)->ignore  
+                d1->Array.push(v2)  
             }
         })
     }
@@ -411,7 +411,7 @@ let exprToHypAdd = (ctx:mmContextContents, hyp:hypothesis):unit => {
                         | Some(hypsArr) => {
                             switch hypsArr->Js_array2.find(h => h.expr->exprEq(hyp.expr)) {
                                 | Some(_) => ()
-                                | None => hypsArr->Js_array2.push(hyp)->ignore
+                                | None => hypsArr->Array.push(hyp)
                             }
                         }
                     }
@@ -627,7 +627,7 @@ let extractMandatoryHypotheses = (
             hyp.typ == E && (!skipEssentials && overrideHyps->Belt_Option.isNone)
             || hyp.typ == F && mandatoryVars->Belt_HashSetInt.has(hyp.expr->Array.getUnsafe(1))
         ) {
-            res->Js.Array2.push(hyp)->ignore
+            res->Array.push(hyp)
         }
         None
     })->ignore
@@ -635,11 +635,11 @@ let extractMandatoryHypotheses = (
         | None => ()
         | Some(overrideHyps) => {
             overrideHyps->Js_array2.forEachi((hypExpr,i) => {
-                res->Js.Array2.push({
+                res->Array.push({
                     typ: E,
                     label: i->Belt.Int.toString,
                     expr: hypExpr
-                })->ignore
+                })
             })
         }
     }
@@ -664,7 +664,7 @@ let getMandHyps = (
 let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
     let hyps = []
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        hyps->Js.Array2.push(hyp)->ignore
+        hyps->Array.push(hyp)
         None
     })->ignore
     Belt_MapString.fromArray(hyps->Js_array2.map(hyp => (hyp.label, hyp)))
@@ -682,7 +682,7 @@ let getAllFramesArr = (ctx:mmContext):array<frame> => {
 let getAllFrames = (ctx:mmContext):Belt_MapString.t<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        ctx.frames->Belt_HashMapString.forEach((k,v) => frames->Js.Array2.push((k,v))->ignore)
+        ctx.frames->Belt_HashMapString.forEach((k,v) => frames->Array.push((k,v)))
         None
     })->ignore
     Belt_MapString.fromArray(frames)
@@ -716,10 +716,10 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
         ctx->forEachFrame(frame => {
             frame.hyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == E) {
-                    allExpr->Js_array2.push(hyp.expr)->ignore
+                    allExpr->Array.push(hyp.expr)
                 }
             })
-            allExpr->Js_array2.push(frame.asrt)->ignore
+            allExpr->Array.push(frame.asrt)
             None
         })->ignore
         allExpr
@@ -779,8 +779,8 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
             && !(foundParens->Js.Array2.includes(closeParen))
             && checkValidParens(allExprs, openParen, closeParen)
         ) {
-            foundParens->Js_array2.push(openParen)->ignore
-            foundParens->Js_array2.push(closeParen)->ignore
+            foundParens->Array.push(openParen)
+            foundParens->Array.push(closeParen)
         }
         progressState->progressTrackerSetCurrPct(
             c->Belt_Int.toFloat /. maxCF
@@ -908,7 +908,7 @@ let addConst = (ctx:mmContext,name:string):unit => {
         assertNameIsUnique(ctx,name,"a constant")
         let ctx = ctx.contents
         ctx.symToInt->Belt_HashMapString.set(name, -(ctx.consts->Js_array2.length))
-        ctx.consts->Js_array2.push(name)->ignore
+        ctx.consts->Array.push(name)
     }
 }
 
@@ -916,7 +916,7 @@ let addVar = (ctx:mmContext,name:string):unit => {
     assertNameIsUnique(ctx,name,"a variable")
     let ctx = ctx.contents
     ctx.symToInt->Belt_HashMapString.set(name, ctx.varsBaseIdx + ctx.vars->Js_array2.length)
-    ctx.vars->Js_array2.push(name)->ignore
+    ctx.vars->Array.push(name)
 }
 
 let addDisj = (ctx:mmContext, vars:array<string>):unit => {
@@ -955,7 +955,7 @@ let addFloating = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =>
                 let expr = [typInt, varInt]
                 let hyp = {typ:F, label, expr}
                 let ctx = ctx.contents
-                ctx.hyps->Js_array2.push(hyp)->ignore
+                ctx.hyps->Array.push(hyp)
                 ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
                 ctx->exprToHypAdd(hyp)
                 ctx.varTypes->Belt_HashMapInt.set(varInt, typInt)
@@ -973,7 +973,7 @@ let addEssential = (ctx:mmContext, ~label:string, ~exprStr:array<string>):unit =
         let expr = ctx->ctxSymsToIntsExn(exprStr)
         let hyp = {typ:E, label, expr}
         let ctx = ctx.contents
-        ctx.hyps->Js_array2.push(hyp)->ignore
+        ctx.hyps->Array.push(hyp)
         ctx.labelToHyp->Belt_HashMapString.set(label, hyp)
         ctx->exprToHypAdd(hyp)
    }
@@ -1336,7 +1336,7 @@ let generateNewVarNames = (
             incCnt(prefix)
             newName.contents = prefix ++ getCnt(prefix)->Belt_Int.toString
         }
-        res->Js.Array2.push(newName.contents)->ignore
+        res->Array.push(newName.contents)
     }
     res
 }
@@ -1365,7 +1365,7 @@ let generateNewLabels = (
             cnt.contents = cnt.contents + 1
             newName.contents = prefix ++ cnt.contents->Belt_Int.toString
         }
-        res->Js.Array2.push(newName.contents)->ignore
+        res->Array.push(newName.contents)
     }
     res
 }
@@ -1389,7 +1389,7 @@ let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
     let newConstOrder:array<int> = firstConsts->Js_array2.copy
     for i in -1 downto -(rootCtx.consts->Js_array2.length-1) {
         if (!(newConstOrder->Js_array2.includes(i))) {
-            newConstOrder->Js_array2.push(i)->ignore
+            newConstOrder->Array.push(i)
         }
     }
     let oldConstOrder:array<string> = rootCtx.consts->Js.Array2.copy

@@ -1377,7 +1377,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
             newDisj->disjForEachArr(varInts => {
                 let varsStr = wrkCtx->ctxIntsToSymsExn(varInts)
                 wrkCtx->applySingleStmt(Disj({vars:varsStr}), ())
-                newDisjTextLines->Js.Array2.push(varsStr->Js.Array2.joinWith(" "))->ignore
+                newDisjTextLines->Array.push(varsStr->Js.Array2.joinWith(" "))
             })
             if (newDisjTextLines->Js.Array2.length == 0) {
                 st
@@ -1668,7 +1668,7 @@ let srcToJstf = (
                                 | Some(nodeIdx) => {
                                     switch exprToUserStmt->Belt_HashMap.get((proofTree.nodes->Array.getUnsafe(nodeIdx)).expr) {
                                         | None => argLabelsValid.contents = false //todo: return a meaningful error from here
-                                        | Some(userStmt) => argLabels->Js_array2.push(userStmt.label)->ignore
+                                        | Some(userStmt) => argLabels->Array.push(userStmt.label)
                                     }
                                 }
                             }
@@ -1968,7 +1968,7 @@ let splitIntoChunks = (str, chunkMaxSize): array<string> => {
         let numberOfChunks = Js.Math.ceil_int(len->Belt_Int.toFloat /. chunkMaxSize->Belt_Int.toFloat)
         for i in 1 to numberOfChunks {
             let begin = (i-1)*chunkMaxSize
-            res->Js_array2.push(str->Js_string2.substrAtMost(~from=begin, ~length=chunkMaxSize))->ignore
+            res->Array.push(str->Js_string2.substrAtMost(~from=begin, ~length=chunkMaxSize))
         }
         res
     }
@@ -1991,16 +1991,16 @@ let proofToText = (
             let blockIsRequired = newHyps->Js.Array2.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
             if (blockIsRequired) {
-                result->Js.Array2.push("${")->ignore
+                result->Array.push("${")
             }
             let varsArrStr = newHyps->Js_array2.filter(hyp => hyp.typ == F)
                 ->Js.Array2.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
             if (varsArrStr->Js.Array2.length > 0) {
-                result->Js.Array2.push("$v " ++ varsArrStr->Js.Array2.joinWith(" ") ++ " $.")->ignore
+                result->Array.push("$v " ++ varsArrStr->Js.Array2.joinWith(" ") ++ " $.")
             }
             newHyps->Js.Array2.forEach(hyp => {
                 if (hyp.typ == F) {
-                    result->Js.Array2.push(hyp.label ++ " $f " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
+                    result->Array.push(hyp.label ++ " $f " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")
                 }
             })
             newDisj->disjForEachArr(
@@ -2009,20 +2009,20 @@ let proofToText = (
                 ~varIntToVarName=ctxIntToSym(wrkCtx, _),
                 ~typeOrder=typeOrderInDisj,
                 vars => {
-                    result->Js.Array2.push("$d " ++ wrkCtx->ctxIntsToStrExn(vars) ++ " $.")->ignore
+                    result->Array.push("$d " ++ wrkCtx->ctxIntsToStrExn(vars) ++ " $.")
                 }
             )
             newHyps->Js.Array2.forEach(hyp => {
                 if (hyp.typ == E) {
-                    result->Js.Array2.push(hyp.label ++ " $e " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")->ignore
+                    result->Array.push(hyp.label ++ " $e " ++ wrkCtx->ctxIntsToStrExn(hyp.expr) ++ " $.")
                 }
             })
             if (!descrIsEmpty) {
-                result->Js.Array2.push("$( " ++ descr ++ " $)")->ignore
+                result->Array.push("$( " ++ descr ++ " $)")
             }
-            result->Js.Array2.push(asrt)->ignore
+            result->Array.push(asrt)
             if (blockIsRequired) {
-                result->Js.Array2.push("$}")->ignore
+                result->Array.push("$}")
             }
             result->Js.Array2.joinWith("\r\n")
         }
@@ -2067,7 +2067,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                     let newHyps = []
                                     mandHyps->Js.Array2.forEach(hyp => {
                                         if (preCtx->getHypByExpr(hyp.expr)->Belt.Option.isNone) {
-                                            newHyps->Js.Array2.push(hyp)->ignore
+                                            newHyps->Array.push(hyp)
                                         }
                                     })
                                     let varsUsedInProof = Belt_HashSetInt.make(~hintSize=16)
@@ -2084,7 +2084,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                             let var = hyp.expr->Array.getUnsafe(1)
                                             if (varsUsedInProof->Belt_HashSetInt.has(var) 
                                                 && !(mandVars->Belt_HashSetInt.has(var))) {
-                                                newHyps->Js.Array2.push(hyp)->ignore
+                                                newHyps->Array.push(hyp)
                                             }
                                         }
                                     })
@@ -2390,7 +2390,7 @@ let addStepsWithoutVars = (
                         | None => st->addNewStmt(~isHyp=isHyp(step.typ), ())
                         | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ), ())
                     }
-                    stmtIds->Js.Array2.push(stmtId)->ignore
+                    stmtIds->Array.push(stmtId)
                     updates->Js.Array2.reduce((res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)), Ok(st))
                 }
             }
@@ -2512,7 +2512,7 @@ let updateSteps = (
                     switch newStmtRes {
                         | Error(msg) => Error(msg)
                         | Ok(stmt) => {
-                            newStmts->Js_array2.push(stmt)->ignore
+                            newStmts->Array.push(stmt)
                             Ok(newStmts)
                         }
                     }
@@ -2591,7 +2591,7 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorS
                                 switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
                                     | Error(_) => continue := false
                                     | Ok(stateAfterMerge) => {
-                                        renames->Js.Array2.push((stmt1.label, stmt2.label))->ignore
+                                        renames->Array.push((stmt1.label, stmt2.label))
                                         resultState := stateAfterMerge->prepareEditorForUnification
                                     }
                                 }
@@ -2601,7 +2601,7 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorS
                                 switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
                                     | Error(_) => continue := false
                                     | Ok(stateAfterMerge) => {
-                                        renames->Js.Array2.push((stmt2.label, stmt1.label))->ignore
+                                        renames->Array.push((stmt2.label, stmt1.label))
                                         resultState := stateAfterMerge->prepareEditorForUnification
                                     }
                                 }
@@ -2609,7 +2609,7 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorS
                                 switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
                                     | Error(_) => continue := false
                                     | Ok(stateAfterMerge) => {
-                                        renames->Js.Array2.push((stmt1.label, stmt2.label))->ignore
+                                        renames->Array.push((stmt1.label, stmt2.label))
                                         resultState := stateAfterMerge->prepareEditorForUnification
                                     }
                                 }
@@ -2755,7 +2755,7 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     st.stmts->Js.Array2.forEachi((stmt,i) => {
         switch stmt.cont {
             | Tree(_) => ()
-            | Text(_) => res->Js.Array2.push((rootStmts->Array.getUnsafe(i)).expr->Js_array2.sliceFrom(1))->ignore
+            | Text(_) => res->Array.push((rootStmts->Array.getUnsafe(i)).expr->Js_array2.sliceFrom(1))
         }
     })
     res

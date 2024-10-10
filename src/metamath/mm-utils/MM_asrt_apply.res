@@ -101,7 +101,7 @@ let iterateCombinations = (
     for h in 0 to maxH {
         for s in -1 to maxS {
             if (stmtCanMatchHyp(s,h)) {
-                candidatesPerHyp->Array.getUnsafe(h)->Js_array2.push(s)->ignore
+                candidatesPerHyp->Array.getUnsafe(h)->Array.push(s)
             }
         }
     }
@@ -205,9 +205,9 @@ let iterateSubstitutionsWithWorkVars = (
                 | -1 => {
                     let newVar = nextVar.contents
                     nextVar.contents = nextVar.contents + 1
-                    frmVars->Js_array2.push(frmVar)->ignore
-                    newVars->Js_array2.push(newVar)->ignore
-                    newVarTypes->Js_array2.push(frm.frame.varTypes->Array.getUnsafe(frmVar))->ignore
+                    frmVars->Array.push(frmVar)
+                    newVars->Array.push(newVar)
+                    newVarTypes->Array.push(frm.frame.varTypes->Array.getUnsafe(frmVar))
                     newVar
                 }
                 | idx => newVars->Array.getUnsafe(idx)
@@ -225,8 +225,8 @@ let iterateSubstitutionsWithWorkVars = (
         frm.subs.ends[frmVar] = 0
         frm.subs.isDefined[frmVar] = true
 
-        workVars.newVars->Js_array2.push(newVar)->ignore
-        workVars.newVarTypes->Js_array2.push(newVarType)->ignore
+        workVars.newVars->Array.push(newVar)
+        workVars.newVarTypes->Array.push(newVarType)
     }
 
     let res = if (allowNewVars || workVars.newVars->Js_array2.length == 0) {

@@ -299,7 +299,7 @@ let findAsrtParentsWithNewVars = (
         ~combCntMax,
         ~debugLevel,
         ~onMatchFound = res => {
-            applResults->Js_array2.push(res)->ignore
+            applResults->Array.push(res)
 
             let foundCnt = applResults->Js.Array2.length
             switch onProgress {
@@ -324,15 +324,15 @@ let findAsrtParentsWithNewVars = (
         switch applResult.err {
             | Some(NoUnifForAsrt(_)) | Some(NoUnifForArg(_)) | Some(NewVarsAreDisabled(_)) => {
                 if (debugLevel != 0) {
-                    foundParents->Js.Array2.push( 
+                    foundParents->Array.push( 
                         AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
-                    )->ignore
+                    )
                 }
             }
             | Some(TooManyCombinations(_)) => {
-                foundParents->Js.Array2.push( 
+                foundParents->Array.push( 
                     AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
-                )->ignore
+                )
             }
             | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
                 let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
@@ -388,11 +388,11 @@ let findAsrtParentsWithNewVars = (
                 }
                 switch err {
                     | None => {
-                        foundParents->Js.Array2.push( Assertion({ args, frame, }) )->ignore
+                        foundParents->Array.push( Assertion({ args, frame, }) )
                     }
                     | Some(err) => {
                         if (debugLevel != 0) {
-                            foundParents->Js.Array2.push( AssertionWithErr({ args, frame, err }) )->ignore
+                            foundParents->Array.push( AssertionWithErr({ args, frame, err }) )
                         }
                     }
                 }
@@ -732,7 +732,7 @@ let proveStmtBottomUp = (
                         })
                     }
                 }
-                res->Js_array2.push(parents)->ignore
+                res->Array.push(parents)
             }
         }
         res->Belt.Array.concatMany

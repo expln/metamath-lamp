@@ -395,13 +395,13 @@ let make = (
             let tableRows = []
             wrkSubs.newDisj->disjForEachArr(disjGrp => {
                 let disjGrpStr = "$d " ++ wrkCtx->ctxIntsToStrExn(disjGrp) ++ " $."
-                tableRows->Js.Array2.push(
+                tableRows->Array.push(
                     <tr key=disjGrpStr>
                         <td>
                             {React.string(disjGrpStr)}
                         </td>
                     </tr>
-                )->ignore
+                )
             })
             <table>
                 <tbody>

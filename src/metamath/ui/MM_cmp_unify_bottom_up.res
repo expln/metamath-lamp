@@ -143,7 +143,7 @@ let getAvailableAsrtLabels = (
     let availableAsrtLabels = []
     frms->frmsForEach(frm => {
         if ( exprMayMatchAsrt(~expr=exprToProve, ~frm, ~parenCnt) ) {
-            availableAsrtLabels->Js_array2.push(frm.frame.label)->ignore
+            availableAsrtLabels->Array.push(frm.frame.label)
         }
     })
     availableAsrtLabels
@@ -892,7 +892,7 @@ let make = (
             | Some(apiCallStartTime) => {
                 let apiCallStartTimeStr = apiCallStartTime->Js_date.toISOString
                 if (!(startedForApiCalls->Js_array2.includes(apiCallStartTimeStr))) {
-                    startedForApiCalls->Js_array2.push(apiCallStartTimeStr)->ignore
+                    startedForApiCalls->Array.push(apiCallStartTimeStr)
                     startedForApiCalls->Js_array2.removeCountInPlace(
                         ~pos=0, 
                         ~count=startedForApiCalls->Js_array2.length - 5

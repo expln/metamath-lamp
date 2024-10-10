@@ -42,7 +42,7 @@ let elementGetAttrs = (element:element):Belt_MapString.t<string> => {
                 switch attrs.item(. i)->Js.Nullable.toOption {
                     | None => ()
                     | Some(attr) => {
-                        res->Js_array2.push((attr.name,attr.value))->ignore
+                        res->Array.push((attr.name,attr.value))
                     }
                 }
             }
@@ -70,7 +70,7 @@ let parseStrExn = (str:string):xmlNode => {
                         | None => ()
                         | Some(cNode) => {
                             if (cNode.nodeType == nodeTypeElement || cNode.nodeType == nodeTypeText) {
-                                children->Js_array2.push(cNode)->ignore
+                                children->Array.push(cNode)
                             }
                         }
                     }
@@ -95,7 +95,7 @@ let parseStrExn = (str:string):xmlNode => {
                 }
             switch parents->Belt_MutableStack.top {
                 | None => ()
-                | Some(Node({children})) => children->Js_array2.push(xmlNode)->ignore
+                | Some(Node({children})) => children->Array.push(xmlNode)
                 | Some(Text(_)) => ()
             }
             parents->Belt_MutableStack.push(xmlNode)

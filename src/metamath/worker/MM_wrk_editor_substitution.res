@@ -184,7 +184,7 @@ let findPossibleSubsByMatch = (
             ~parenCnt,
             ~consumer = subs => {
                 let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
-                foundSubs->Js_array2.push(wrkSubs)->ignore
+                foundSubs->Array.push(wrkSubs)
                 Continue
             }
         )->ignore

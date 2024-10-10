@@ -480,7 +480,7 @@ let removeAllJstf = (st:editorState):editorState => {
 
 let addDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
-    disjLines->Js_array2.push(disj)->ignore
+    disjLines->Array.push(disj)
     let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
     st->verifyEditorState
 }

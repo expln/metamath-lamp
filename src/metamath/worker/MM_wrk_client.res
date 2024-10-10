@@ -36,7 +36,7 @@ let getNextClientId = () => {
 
 let regClient = (~callback:clientCallback, ~enableTrace:bool) => {
     let id = getNextClientId()
-    clients->Js_array2.push({ id, callback, traceEnabled:enableTrace })->ignore
+    clients->Array.push({ id, callback, traceEnabled:enableTrace })
     id
 }
 

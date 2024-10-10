@@ -202,15 +202,15 @@ let doSearchAssertions = (
             })
             let newDisjStr = []
             newDisj->disjForEachArr(disjArr => {
-                newDisjStr->Js.Array2.push(frmIntsToStrExn(wrkCtx, frame, disjArr))->ignore
+                newDisjStr->Array.push(frmIntsToStrExn(wrkCtx, frame, disjArr))
             })
             let stmts = []
             let argLabels = []
             frame.hyps->Js_array2.forEach(hyp => {
                 if (hyp.typ == E) {
                     let argLabel = hyp.label
-                    argLabels->Js_array2.push(argLabel)->ignore
-                    stmts->Js_array2.push(
+                    argLabels->Array.push(argLabel)
+                    stmts->Array.push(
                         {
                             label: argLabel,
                             expr:hyp.expr,
@@ -218,10 +218,10 @@ let doSearchAssertions = (
                             jstf:None,
                             isProved: false,
                         }
-                    )->ignore
+                    )
                 }
             })
-            stmts->Js_array2.push(
+            stmts->Array.push(
                 {
                     label: frame.label,
                     expr:frame.asrt,
@@ -229,14 +229,14 @@ let doSearchAssertions = (
                     jstf:Some({args:argLabels,label:frame.label}),
                     isProved: false,
                 }
-            )->ignore
-            results->Js.Array2.push({
+            )
+            results->Array.push({
                 newVars: Belt_Array.range(0, frame.numOfVars-1),
                 newVarTypes: frame.varTypes,
                 newDisj,
                 newDisjStr,
                 stmts,
-            })->ignore
+            })
         }
 
         framesProcessed.contents = framesProcessed.contents +. 1.

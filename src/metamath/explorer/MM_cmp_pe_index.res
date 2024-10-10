@@ -156,7 +156,7 @@ let make = React.memoCustomCompareProps(({
         preCtx->forEachFrame(frame => {
             let stmtTyp = frame.asrt->Array.getUnsafe(0)
             if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
-                allStmtIntTypes->Js.Array2.push(stmtTyp)->ignore
+                allStmtIntTypes->Array.push(stmtTyp)
             }
             None
         })->ignore

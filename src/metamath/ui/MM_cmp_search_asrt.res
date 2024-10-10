@@ -363,7 +363,7 @@ let make = (
                 let maxI = Js.Math.min_int(minI + state.resultsPerPage - 1, resultsForRender->Js_array2.length-1)
                 for i in minI to maxI {
                     let resultForRender = resultsForRender->Array.getUnsafe(i)
-                    items->Js.Array2.push(resultForRender)->ignore
+                    items->Array.push(resultForRender)
                 }
                 let totalNumOfResults = resultsForRender->Js.Array2.length
                 <Col>

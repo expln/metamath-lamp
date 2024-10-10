@@ -36,46 +36,46 @@ let editorStateToStr = st => {
     }
 
     let lines = []
-    lines->Js_array2.push("Variables:")->ignore
-    lines->Js_array2.push(st.varsText)->ignore
-    lines->Js_array2.push("")->ignore
-    lines->Js_array2.push("Disjoints:")->ignore
-    lines->Js_array2.push(st.disjText)->ignore
-    lines->Js_array2.push("")->ignore
+    lines->Array.push("Variables:")
+    lines->Array.push(st.varsText)
+    lines->Array.push("")
+    lines->Array.push("Disjoints:")
+    lines->Array.push(st.disjText)
+    lines->Array.push("")
     st.stmts->Js.Array2.forEach(stmt => {
-        lines->Js_array2.push("")->ignore
-        lines->Js_array2.push(
+        lines->Array.push("")
+        lines->Array.push(
             "--- "
             ++ (stmt->userStmtTypeToStr)
             ++ " -------------------------------------------------------------------------------"
-        )->ignore
-        lines->Js_array2.push(stmt.label)->ignore
-        lines->Js_array2.push(stmt.jstfText)->ignore
-        lines->Js_array2.push(contToStr(stmt.cont))->ignore
-        lines->Js_array2.push(
+        )
+        lines->Array.push(stmt.label)
+        lines->Array.push(stmt.jstfText)
+        lines->Array.push(contToStr(stmt.cont))
+        lines->Array.push(
             stmt.proofStatus
                 ->Belt_Option.map(status => (status->proofStatusToStr))
                 ->Belt_Option.getWithDefault("None")
-        )->ignore
+        )
         switch stmt.stmtErr {
             | None => ()
-            | Some({msg}) => lines->Js_array2.push("Stmt Error: " ++ msg)->ignore
+            | Some({msg}) => lines->Array.push("Stmt Error: " ++ msg)
         }
         switch stmt.syntaxErr {
             | None => ()
             | Some(msg) => {
-                lines->Js_array2.push(
+                lines->Array.push(
                     if (msg == "") {
                         "Syntax error."
                     } else {
                         `Syntax error - ${msg}.`
                     }
-                )->ignore
+                )
             }
         }
         switch stmt.unifErr {
             | None => ()
-            | Some(msg) => lines->Js_array2.push("Unif Error: " ++ msg)->ignore
+            | Some(msg) => lines->Array.push("Unif Error: " ++ msg)
         }
     })
     lines->Js.Array2.joinWith("\n")

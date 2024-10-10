@@ -62,7 +62,7 @@ describe("proveSyntaxTypes", _ => {
                         | Some(idx) => {
                             if (locVars->Js_array2.length <= idx) {
                                 let newVar = createNewVar(typ)
-                                locVars->Js_array2.push(newVar)->ignore
+                                locVars->Array.push(newVar)
                                 typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
                                 newVar
                             } else {

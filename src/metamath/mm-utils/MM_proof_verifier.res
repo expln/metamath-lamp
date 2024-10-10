@@ -152,11 +152,11 @@ let compressedProofBlockToArray = (str:string):array<string> => {
     while (e.contents < len) {
         let c = charCode(str,e.contents)
         if (c == zCode) {
-            res->Js_array2.push("Z")->ignore
+            res->Array.push("Z")
             e.contents=e.contents+1
             b.contents=e.contents
         } else if (aCode <= c && c <= tCode) {
-            res->Js_array2.push(str->Js_string2.substring(~from=b.contents, ~to_=e.contents+1))->ignore
+            res->Array.push(str->Js_string2.substring(~from=b.contents, ~to_=e.contents+1))
             e.contents=e.contents+1
             b.contents=e.contents
         } else {
@@ -187,7 +187,7 @@ let intToCompressedProofStr: int => string = i => {
         let res = [Js_string2.fromCharCode(aCode + mod(i-1,20))]
         let i = ref((i-1)/20)
         while (i.contents > 0) {
-            res->Js_array2.push(Js_string2.fromCharCode(uCode + mod(i.contents-1, 5)))->ignore
+            res->Array.push(Js_string2.fromCharCode(uCode + mod(i.contents-1, 5)))
             i.contents = (i.contents-1) / 5
         }
         res->Js_array2.reverseInPlace->Js_array2.joinWith("")
@@ -289,7 +289,7 @@ let applyAsrt = (
         for _ in 1 to frame.numOfArgs {
             stack.nodes->Js_array2.pop->ignore
         }
-        stack.nodes->Js_array2.push(newNode)->ignore
+        stack.nodes->Array.push(newNode)
     }
 }
 
@@ -302,7 +302,7 @@ let applyUncompressedProof = (
     proofLabels->Js_array2.forEach(step => {
         switch ctx->getHypothesis(step) {
             | Some(hyp) => {
-                stack.nodes->Js_array2.push(Hypothesis({
+                stack.nodes->Array.push(Hypothesis({
                     id: stack.nextId,
                     hypLabel:hyp.label, 
                     expr:hyp.expr,
@@ -312,7 +312,7 @@ let applyUncompressedProof = (
                         } else {
                             None
                         }
-                }))->ignore
+                }))
                 stack.nextId = stack.nextId + 1
             }
             | None => {
@@ -334,7 +334,7 @@ let applyCompressedProof = (
     ~labels:array<string>,
 ):unit => {
     let pushHypToStack = (hyp:hypothesis) => {
-        stack.nodes->Js_array2.push(Hypothesis({
+        stack.nodes->Array.push(Hypothesis({
             id: stack.nextId,
             hypLabel:hyp.label, 
             expr:hyp.expr,
@@ -344,7 +344,7 @@ let applyCompressedProof = (
                 } else {
                     None
                 }
-        }))->ignore
+        }))
         stack.nextId = stack.nextId + 1
     }
 
@@ -359,7 +359,7 @@ let applyCompressedProof = (
             if (stackLen == 0) {
                 raise(MmException({msg:`Cannot execute 'Z' command because the stack is empty.`}))
             } else {
-                savedNodes->Js_array2.push(stack.nodes->Array.getUnsafe(stackLen-1))->ignore
+                savedNodes->Array.push(stack.nodes->Array.getUnsafe(stackLen-1))
             }
         } else {
             let i = compressedProofStrToInt(step)
@@ -381,7 +381,7 @@ let applyCompressedProof = (
             } else {
                 switch savedNodes->Belt_Array.get(i-hypLenPlusLabelsLen-1) {
                     | None => raise(MmException({msg:`Compressed proof refers to a saved step by the index which is out of bounds.`}))
-                    | Some(node) => stack.nodes->Js_array2.push(node)->ignore
+                    | Some(node) => stack.nodes->Array.push(node)
                 }
             }
         }

@@ -38,15 +38,15 @@ describe("traverseTree", _ => {
             tree,
             (_, node) => node.ch,
             ~preProcess=(arr,node)=>{
-                arr->Js_array2.push("preProcess: " ++ node.name)->ignore
+                arr->Array.push("preProcess: " ++ node.name)
                 None
             },
             ~process=(arr,node)=>{
-                arr->Js_array2.push("process: " ++ node.name)->ignore
+                arr->Array.push("process: " ++ node.name)
                 None
             },
             ~postProcess=(arr,node)=>{
-                arr->Js_array2.push("postProcess: " ++ node.name)->ignore
+                arr->Array.push("postProcess: " ++ node.name)
                 None
             },
             ()
@@ -105,7 +105,7 @@ describe("traverseTree", _ => {
             tree,
             (_, node) => node.ch,
             ~preProcess=(arr,node)=>{
-                arr->Js_array2.push("preProcess: " ++ node.name)->ignore
+                arr->Array.push("preProcess: " ++ node.name)
                 if (node.name == "4") {
                     Some(arr)
                 } else {
@@ -113,11 +113,11 @@ describe("traverseTree", _ => {
                 }
             },
             ~process=(arr,node)=>{
-                arr->Js_array2.push("process: " ++ node.name)->ignore
+                arr->Array.push("process: " ++ node.name)
                 None
             },
             ~postProcess=(arr,node)=>{
-                arr->Js_array2.push("postProcess: " ++ node.name)->ignore
+                arr->Array.push("postProcess: " ++ node.name)
                 None
             },
             ()
@@ -165,11 +165,11 @@ describe("traverseTree", _ => {
             tree,
             (_, node) => node.ch,
             ~preProcess=(arr,node)=>{
-                arr->Js_array2.push("preProcess: " ++ node.name)->ignore
+                arr->Array.push("preProcess: " ++ node.name)
                 None
             },
             ~process=(arr,node)=>{
-                arr->Js_array2.push("process: " ++ node.name)->ignore
+                arr->Array.push("process: " ++ node.name)
                 if (node.name == "4") {
                     Some(arr)
                 } else {
@@ -177,7 +177,7 @@ describe("traverseTree", _ => {
                 }
             },
             ~postProcess=(arr,node)=>{
-                arr->Js_array2.push("postProcess: " ++ node.name)->ignore
+                arr->Array.push("postProcess: " ++ node.name)
                 None
             },
             ()
@@ -226,15 +226,15 @@ describe("traverseTree", _ => {
             tree,
             (_, node) => node.ch,
             ~preProcess=(arr,node)=>{
-                arr->Js_array2.push("preProcess: " ++ node.name)->ignore
+                arr->Array.push("preProcess: " ++ node.name)
                 None
             },
             ~process=(arr,node)=>{
-                arr->Js_array2.push("process: " ++ node.name)->ignore
+                arr->Array.push("process: " ++ node.name)
                 None
             },
             ~postProcess=(arr,node)=>{
-                arr->Js_array2.push("postProcess: " ++ node.name)->ignore
+                arr->Array.push("postProcess: " ++ node.name)
                 if (node.name == "5") {
                     Some(arr)
                 } else {
@@ -291,7 +291,7 @@ describe("traverseTree", _ => {
             tree,
             (_, node) => node.ch,
             ~process=(arr,node)=>{
-                arr->Js_array2.push("process: " ++ node.name)->ignore
+                arr->Array.push("process: " ++ node.name)
                 None
             },
             ()

@@ -254,14 +254,14 @@ let make = React.memoCustomCompareProps( ({
             </span>
         ]
         if (syntaxTreeWasRequested->Belt.Option.isSome) {
-            elems->Js_array2.push(
+            elems->Array.push(
                 <span> {"Building a syntax tree..."->React.string} </span>
-            )->ignore
+            )
         }
         if (textIsSelected) {
-            elems->Js_array2.push(
+            elems->Array.push(
                 rndSelectionButtons()
-            )->ignore
+            )
         }
         <Col>
             {elems->React.array}

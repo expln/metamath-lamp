@@ -128,8 +128,8 @@ let rndStmt = (
             ~key, 
             ()
         )
-        elems->Js.Array2.push(elem)->ignore
-        bnds->Js.Array2.push(bnd)->ignore
+        elems->Array.push(elem)
+        bnds->Array.push(bnd)
         curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth))
     }
 
@@ -138,7 +138,7 @@ let rndStmt = (
         let subKey = `${key}-${i->Belt_Int.toString}`
         printSymbol(~sym=stmt->Array.getUnsafe(i), ~key=`${subKey}-S`)
         if (i == stmt->Js_array2.length-1) {
-            contentOnlyBnd->Js.Array2.push(bndMergeAll(bnds))->ignore
+            contentOnlyBnd->Array.push(bndMergeAll(bnds))
         }
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
     }
@@ -166,8 +166,8 @@ let testTextRendering = ():reElem => {
     let dx = ex->vecMul(charWidth)
     for i in 0 to testText2->Js.String2.length-1 {
         let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
-        textElem4Arr->Js.Array2.push(textElem4)->ignore
-        textBnd4Arr->Js.Array2.push(textBnd4)->ignore
+        textElem4Arr->Array.push(textElem4)
+        textBnd4Arr->Array.push(textBnd4)
         ex4 := ex4.contents->vecTr(dx)
     }
 
@@ -268,7 +268,7 @@ let rndStmtAndHyp = (
                 ~key="frm-" ++ i->Belt_Int.toString,
             )
             frmElems->Js_array2.pushMany(fElems)->ignore
-            bnds->Js_array2.push(frmBnd)->ignore
+            bnds->Array.push(frmBnd)
             frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
             if (rndCtxStmt) {
@@ -279,7 +279,7 @@ let rndStmtAndHyp = (
                     ~key="ctx-" ++ i->Belt_Int.toString,
                 )
                 ctxElems->Js_array2.pushMany(cElems)->ignore
-                bnds->Js_array2.push(ctxBnd)->ignore
+                bnds->Array.push(ctxBnd)
                 ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
 
                 switch subsColors->Belt_HashMapString.get(frmSym) {
@@ -292,8 +292,8 @@ let rndStmtAndHyp = (
                             ~key=i->Belt_Int.toString,
                             ~noFrameForBottomBnd,
                         )
-                        conElems->Js_array2.push(conElem)->ignore
-                        bnds->Js_array2.push(conBnd)->ignore
+                        conElems->Array.push(conElem)
+                        bnds->Array.push(conBnd)
                     }
                 }
             }
@@ -312,8 +312,8 @@ let rndStmtAndHyp = (
                     ~onClick=?onLabelClick,
                     ()
                 )
-                bnds->Js_array2.push(labelBnd)->ignore
-                ctxElems->Js_array2.push(labelElem)->ignore
+                bnds->Array.push(labelBnd)
+                ctxElems->Array.push(labelElem)
             }
         }
         (conElems->Js.Array2.concat(frmElems)->Js.Array2.concat(ctxElems)->React.array, bndMergeAll(bnds))
@@ -352,8 +352,8 @@ let make = (
                 ~hypLabel=Some(hypLabels->Array.getUnsafe(i)), ~noFrameForBottomBnd=true,
                 ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels->Array.getUnsafe(i)), ()) ),
             )(curEx.contents)
-            hypElems->Js.Array2.push(elem)->ignore
-            hypBnds->Js.Array2.push(bnd)->ignore
+            hypElems->Array.push(elem)
+            hypBnds->Array.push(bnd)
             curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth +. hypMargin))
         })
         let asrtComp = rndStmtAndHyp( 

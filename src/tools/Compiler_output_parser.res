@@ -85,7 +85,7 @@ let parseMatch = (~match:string, ~ord:int):warning => {
 let addToGroup = (~groups:Belt_HashMapInt.t<array<warning>>, ~warning:warning):unit => {
     switch groups->Belt_HashMapInt.get(warning.code) {
         | None => groups->Belt_HashMapInt.set(warning.code, [warning])
-        | Some(arr) => arr->Js_array2.push(warning)->ignore
+        | Some(arr) => arr->Array.push(warning)
     }
 }
 
@@ -94,10 +94,10 @@ let printToStr = (groups:Belt_HashMapInt.t<array<warning>>):string => {
     groups->Belt_HashMapInt.toArray
         ->Expln_utils_common.sortInPlaceWith(((code1,_),(code2,_)) => (code1 - code2)->Belt_Float.fromInt)
         ->Js.Array2.forEach(((code,arr)) => {
-            res->Js.Array2.push("")->ignore
-            res->Js.Array2.push(`Warning number ${code->Belt_Int.toString}: ${getWarningDescr(code)}`)->ignore
+            res->Array.push("")
+            res->Array.push(`Warning number ${code->Belt_Int.toString}: ${getWarningDescr(code)}`)
             arr->Expln_utils_common.sortInPlaceWith((a,b) => (a.ord - b.ord)->Belt_Float.fromInt)->Js.Array2.forEach(warning => {
-                res->Js.Array2.push(warning.path)->ignore
+                res->Array.push(warning.path)
             })
         })
     res->Js.Array2.joinWith("\n")
