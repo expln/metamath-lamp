@@ -134,10 +134,10 @@ let rndStmt = (
     }
 
     let contentOnlyBnd = []
-    for i in 0 to stmt->Js_array2.length-1 {
+    for i in 0 to stmt->Array.length-1 {
         let subKey = `${key}-${i->Belt_Int.toString}`
         printSymbol(~sym=stmt->Array.getUnsafe(i), ~key=`${subKey}-S`)
-        if (i == stmt->Js_array2.length-1) {
+        if (i == stmt->Array.length-1) {
             contentOnlyBnd->Array.push(bndMergeAll(bnds))
         }
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
@@ -337,7 +337,7 @@ let make = (
     let delimLineWidth = charHeight *. 0.05
     let delimLineMargin = charHeight *. 0.5
 
-    let numOfColors = subsAvailableColors->Js.Array2.length
+    let numOfColors = subsAvailableColors->Array.length
     let subsColors = subs->Belt_HashMapString.toArray->Array.mapWithIndex(((frmSym,_),i) => {
         (frmSym, subsAvailableColors->Array.getUnsafe(mod(i, numOfColors)))
     })->Belt_HashMapString.fromArray
@@ -361,7 +361,7 @@ let make = (
             ~hypLabel=None, ~noFrameForBottomBnd=false, ~onLabelClick=None,
         )
         let (_, asrtSampleBnd) = asrtComp(ex)
-        let (hypsElem, hypsBnd) = if (hyps->Js.Array2.length == 0) {
+        let (hypsElem, hypsBnd) = if (hyps->Array.length == 0) {
             let (sepElem, sepBnd) = pntVec(asrtSampleBnd->bndLeftTop, asrtSampleBnd->bndRightTop)->vecToLine(
                 ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
             )

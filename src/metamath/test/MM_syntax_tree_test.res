@@ -73,7 +73,7 @@ let buildSyntaxTreeForTest = (
     (
         ctx,
         proofTables->Array.map(proofTable => {
-            switch buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1) {
+            switch buildSyntaxTree(ctx, proofTable, proofTable->Array.length-1) {
                 | Error(msg) => failMsg(msg)
                 | Ok(syntaxTree) => syntaxTree
             }

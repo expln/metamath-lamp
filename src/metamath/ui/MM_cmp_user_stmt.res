@@ -225,7 +225,7 @@ let rndContText = (
     switch stmtCont {
         | Text({syms}) => {
             let syms = 
-                if (syms->Js.Array2.length == 0) {
+                if (syms->Array.length == 0) {
                     [{sym:nbsp,color:None},{sym:nbsp,color:None},{sym:nbsp,color:None}]
                 } else {
                     syms
@@ -484,8 +484,8 @@ module VisualizedJstf = {
                             | Some(frame) => {
                                 let asrt = wrkCtx->frmIntsToSymsExn(frame, frame.asrt)
                                 let hyps = []
-                                let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
-                                let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
+                                let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Array.length)
+                                let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Array.length)
                                 frame.hyps->Array.forEachWithIndex((hyp,i) => {
                                     if (hyp.typ == E) {
                                         hyps->Array.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))

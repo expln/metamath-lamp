@@ -301,7 +301,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let (st, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less,
-            ~chooseResult=stmts=>stmts.newVars->Js_array2.length==0, 
+            ~chooseResult=stmts=>stmts.newVars->Array.length==0, 
             ()
         )
         let st = st->addNewStmts(stmts->getSingleStmtsDto, ())
@@ -332,7 +332,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let (_, stmts) = st->unifyBottomUp(~stmtId=trgtStmtId,
             ~asrtLabel="fvmpt", ~maxSearchDepth=4, ~lengthRestrict=Less,
-            ~chooseResult = dto => dto.newVars->Js_array2.length != 0,
+            ~chooseResult = dto => dto.newVars->Array.length != 0,
             ()
         )
         assertStmtsDto(stmts->getSingleStmtsDto, "stmtsDto")

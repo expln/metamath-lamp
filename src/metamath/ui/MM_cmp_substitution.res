@@ -44,7 +44,7 @@ let setResults = (st:state,results:result<array<wrkSubs>,string>):state => {
     }
     let checkedResultIdx = switch validResults {
         | Error(_) => None
-        | Ok(validResults) => if (validResults->Js_array2.length == 1) {Some(0)} else {None}
+        | Ok(validResults) => if (validResults->Array.length == 1) {Some(0)} else {None}
     }
     {
         ...st,
@@ -174,7 +174,7 @@ let make = (
         })
         if (
             incorrectSymbol1->Belt.Option.isNone && incorrectSymbol2->Belt.Option.isNone
-            && syms1->Js.Array2.length > 0 && syms2->Js.Array2.length > 0
+            && syms1->Array.length > 0 && syms2->Array.length > 0
         ) {
             actSaveResults(
                 findPossibleSubs(
@@ -202,7 +202,7 @@ let make = (
                     | Ok(results) => {
                         switch state.checkedResultIdx {
                             | Some(idx) => {
-                                if (0 <= idx && idx < results->Js.Array2.length) {
+                                if (0 <= idx && idx < results->Array.length) {
                                     onSubstitutionSelected(results->Array.getUnsafe(idx))
                                 }
                             }
@@ -370,7 +370,7 @@ let make = (
                 switch results {
                     | Error(_) => React.null
                     | Ok(results) => {
-                        let numOfResults = results->Js_array2.length
+                        let numOfResults = results->Array.length
                         if (numOfResults > 0) {
                             <Row>
                                 <Button onClick={_=>actChooseSelected()} variant=#contained
@@ -416,7 +416,7 @@ let make = (
             <tbody>
             {React.array(
                 wrkSubs.subs->Belt_MapInt.toArray->Array.map(((v,expr)) => {
-                    if (expr->Js_array2.length == 1 && v == expr->Array.getUnsafe(0)) {
+                    if (expr->Array.length == 1 && v == expr->Array.getUnsafe(0)) {
                         React.null
                     } else {
                         <tr key={v->Belt_Int.toString}>
@@ -506,7 +506,7 @@ let make = (
     }
 
     let getNumberOfResults = (arrOpt:option<array<'a>>):int => {
-        arrOpt->Belt_Option.map(arr => arr->Js.Array2.length)->Belt.Option.getWithDefault(0)
+        arrOpt->Belt_Option.map(arr => arr->Array.length)->Belt.Option.getWithDefault(0)
     }
 
     let rndResults = () => {
@@ -522,7 +522,7 @@ let make = (
                                 {
                                     React.string(
                                         `Found substitutions: `
-                                            ++ `${results->Js.Array2.length->Belt_Int.toString} valid, `
+                                            ++ `${results->Array.length->Belt_Int.toString} valid, `
                                     )
                                 }
                                 {
@@ -538,7 +538,7 @@ let make = (
                                     }
                                 }
                             </>
-                        let numOfResults = results->Js.Array2.length
+                        let numOfResults = results->Array.length
                         <Col>
                             summary
                             {

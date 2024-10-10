@@ -84,7 +84,7 @@ let createInitialEditorState = (
         wrkCtx: None,
 
         nextStmtId: stateLocStor
-            ->Belt.Option.map(stateLocStor => stateLocStor.stmts->Js_array2.length)
+            ->Belt.Option.map(stateLocStor => stateLocStor.stmts->Array.length)
             ->Belt.Option.getWithDefault(0),
         stmts: 
             stateLocStor

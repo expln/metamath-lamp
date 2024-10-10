@@ -16,8 +16,8 @@ and childNode =
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
     let locks = Belt_Array.make(frame.numOfVars, false)
-    if (args->Js_array2.length != frame.numOfArgs) {
-        Error(`extractVarToRecIdxMapping: args.Js_array2.length != frame.numOfArgs`)
+    if (args->Array.length != frame.numOfArgs) {
+        Error(`extractVarToRecIdxMapping: args.Array.length != frame.numOfArgs`)
     } else {
         let err = ref(None)
         frame.hyps->Array.forEachWithIndex((hyp,i) => {
@@ -61,7 +61,7 @@ let getMaxHeight = (children:array<childNode>):int => {
 let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
-            let maxI = r.expr->Js_array2.length - 1
+            let maxI = r.expr->Array.length - 1
             let this = {
                 id: idSeq(),
                 parent,
@@ -97,7 +97,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                 parent,
                                 typ:frame.asrt->Array.getUnsafe(0),
                                 label,
-                                children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1),
+                                children: Expln_utils_common.createArray(frame.asrt->Array.length - 1),
                                 height:0,
                             }
                             let err = ref(None)
@@ -157,7 +157,7 @@ let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
 }
 
 let syntaxTreeIsEmpty: syntaxTreeNode => bool = node => {
-    node.children->Js_array2.length == 0
+    node.children->Array.length == 0
 }
 
 let getNodeById = (
@@ -207,7 +207,7 @@ let buildSyntaxTreeFromProofTreeDto = (
 ):result<syntaxTreeNode,string> => {
     switch buildSyntaxProofTableFromProofTreeDto( ~ctx, ~proofTreeDto, ~typeStmt, ) {
         | Error(msg) => Error(msg)
-        | Ok(proofTable) => buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
+        | Ok(proofTable) => buildSyntaxTree(ctx, proofTable, proofTable->Array.length-1)
     }
 }
 
@@ -215,7 +215,7 @@ type unifSubs = Belt_HashMapString.t<array<string>>
 
 let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> => {
     @warning("-8")
-    switch expr.children->Js.Array2.length {
+    switch expr.children->Array.length {
         | 1 => {
             switch expr.children->Array.getUnsafe(0) {
                 | Subtree(_) => None
@@ -228,10 +228,10 @@ let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> =
 
 let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):unit => {
     let i = ref(0)
-    while (i.contents < expr->Js_array2.length) {
+    while (i.contents < expr->Array.length) {
         if (expr->Array.getUnsafe(i.contents) == e) {
             expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
-            i := i.contents + subExpr->Js_array2.length
+            i := i.contents + subExpr->Array.length
         } else {
             i := i.contents + 1
         }
@@ -300,10 +300,10 @@ let rec unify = (
                         continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                     }
                     | None => {
-                        if (a.children->Js.Array2.length != b.children->Js.Array2.length) {
+                        if (a.children->Array.length != b.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = a.children->Js.Array2.length-1
+                            let maxI = a.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
                                 switch a.children->Array.getUnsafe(i.contents) {

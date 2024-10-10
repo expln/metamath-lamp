@@ -7,7 +7,7 @@ let make = (~onChange:option<(string,string)>=>unit) => {
         onChange={evt=>{
             let fr = createFileReader()
             let files = ReactEvent.Synthetic.nativeEvent(evt)["target"]["files"]
-            if (files->Js_array2.length == 0) {
+            if (files->Array.length == 0) {
                 onChange(None)
             } else {
                 let file = files->Array.getUnsafe(0)

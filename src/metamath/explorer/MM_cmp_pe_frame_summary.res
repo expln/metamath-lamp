@@ -155,7 +155,7 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndHyps = () => {
-        if (state.eHyps->Js.Array2.length == 0) {
+        if (state.eHyps->Array.length == 0) {
             <></>
         } else {
             state.eHyps->Array.mapWithIndex((hyp,i) => {

@@ -25,7 +25,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
@@ -54,7 +54,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
@@ -83,7 +83,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
@@ -112,7 +112,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
@@ -141,7 +141,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
@@ -181,7 +181,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="C")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 2 )
@@ -221,7 +221,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="C")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 2 )
@@ -261,7 +261,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
@@ -301,7 +301,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="Y")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 2 )
+        assertEq( mmScopes->Array.length, 2 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 4 )
@@ -347,7 +347,7 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="E")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 2 )
+        assertEq( mmScopes->Array.length, 2 )
 
         assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
         assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 4 )

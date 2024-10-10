@@ -31,8 +31,8 @@ let respToStr = resp => {
 }
 
 let frameMatchesConstPattern = (frm:frame, pat:array<int>):bool => {
-    let patLen = pat->Js.Array2.length
-    let asrtLen = frm.asrt->Js.Array2.length
+    let patLen = pat->Array.length
+    let asrtLen = frm.asrt->Array.length
     let pIdx = ref(0)
     let aIdx = ref(0)
     while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
@@ -56,7 +56,7 @@ let rec frameMatchesVarPatternRec = (
     ~pIdx:int,
     ~minAIdx:int,
 ):bool => {
-    if (pIdx == varPat->Js_array2.length) {
+    if (pIdx == varPat->Array.length) {
         true
     } else {
         let aIdx = ref(minAIdx)
@@ -72,7 +72,7 @@ let rec frameMatchesVarPatternRec = (
         }
 
         let found = ref(false)
-        let maxAIdx = frm.asrt->Js_array2.length - (varPat->Js_array2.length - pIdx)
+        let maxAIdx = frm.asrt->Array.length - (varPat->Array.length - pIdx)
         while (!found.contents && aIdx.contents <= maxAIdx) {
             let asrtSym = frm.asrt->Array.getUnsafe(aIdx.contents)
             let varPatSym = varPat->Array.getUnsafe(pIdx)
@@ -181,7 +181,7 @@ let doSearchAssertions = (
         _, 
         ~varPat,
         ~constPat,
-        ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
+        ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Array.length)
     )
 
     let results = []

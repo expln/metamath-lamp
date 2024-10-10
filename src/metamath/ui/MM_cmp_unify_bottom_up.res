@@ -158,7 +158,7 @@ let makeInitialState = (
     ~allowedFrms:allowedFrms,
 ) => {
     let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
-    let rootStmtsLen = rootStmts->Js_array2.length
+    let rootStmtsLen = rootStmts->Array.length
     let maxRootStmtIdx = rootStmtsLen-1
     let exprToProve = (rootStmts->Array.getUnsafe(maxRootStmtIdx)).expr
     let possibleArgs = rootStmts->Array.filterWithIndex((_,i) => i < maxRootStmtIdx)->Array.map(stmt => stmt.expr)
@@ -169,7 +169,7 @@ let makeInitialState = (
     }
 
     let frameParams = params.frameParams
-    let frameParamsLen = frameParams->Js_array2.length
+    let frameParamsLen = frameParams->Array.length
 
     {
         rootUserStmts,
@@ -209,7 +209,7 @@ let makeInitialState = (
             if (frameParamsLen > 0) {
                 (frameParams->Array.getUnsafe(0)).frmsToUse
                     ->Belt_Option.flatMap(arr => {
-                        if (arr->Js_array2.length > 0) {
+                        if (arr->Array.length > 0) {
                             Some(arr->Array.getUnsafe(0))
                         } else {
                             None
@@ -384,7 +384,7 @@ let stmtsDtoToResultRendered = (
     ~isStmtToShow:stmtDto=>bool,
     ~getFrmLabelBkgColor: string=>option<string>,
 ):resultRendered => {
-    let maxI = stmtsDto.stmts->Js.Array2.length - 1
+    let maxI = stmtsDto.stmts->Array.length - 1
     let stmtsToShow = stmtsDto.stmts->Array.filterWithIndex((stmt,i) => i == maxI || isStmtToShow(stmt))
     let elem = 
         <Col>
@@ -445,18 +445,18 @@ let stmtsDtoToResultRendered = (
                 </tbody>
             </table>
         </Col>
-    let lastStmt = stmtsDto.stmts->Array.getUnsafe(stmtsDto.stmts->Js.Array2.length-1)
+    let lastStmt = stmtsDto.stmts->Array.getUnsafe(stmtsDto.stmts->Array.length-1)
     {
         idx,
         elem,
         asrtLabel: lastStmt.jstf->Belt_Option.map(jstf => jstf.label)->Belt_Option.getWithDefault(""),
-        numOfNewVars: stmtsDto.newVars->Js.Array2.length,
+        numOfNewVars: stmtsDto.newVars->Array.length,
         numOfUnprovedStmts: stmtsDto.stmts->Js.Array2.reduce(
             (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
             0
         ),
         isProved: lastStmt.isProved,
-        numOfStmts: stmtsToShow->Js.Array2.length,
+        numOfStmts: stmtsToShow->Array.length,
     }
 }
 
@@ -547,7 +547,7 @@ let setResults = (
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
                 resultsMaxPage: Js.Math.ceil_int(
-                    results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat
+                    results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat
                 ),
                 resultsPage: 1,
                 checkedResultIdx: None,
@@ -673,7 +673,7 @@ let make = (
 
     let onlyOneResultIsAvailable = switch state.results {
         | None => false
-        | Some(results) => results->Js_array2.length == 1
+        | Some(results) => results->Array.length == 1
     }
 
     let actLabelUpdated = label => {
@@ -813,7 +813,7 @@ let make = (
 
     let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
         {
-            stepToProve: (state.rootStmts->Array.getUnsafe(state.rootStmts->Js_array2.length-1)).label,
+            stepToProve: (state.rootStmts->Array.getUnsafe(state.rootStmts->Array.length-1)).label,
             debugLevel: state.debugLevel,
             maxSearchDepth: params.maxSearchDepth,
             frameParams: params.frameParams->Array.map(p => {
@@ -895,7 +895,7 @@ let make = (
                     startedForApiCalls->Array.push(apiCallStartTimeStr)
                     startedForApiCalls->Js_array2.removeCountInPlace(
                         ~pos=0, 
-                        ~count=startedForApiCalls->Js_array2.length - 5
+                        ~count=startedForApiCalls->Array.length - 5
                     )->ignore
                     setTimeout(() => actProve(), delayBeforeStartMs)->ignore
                 }
@@ -950,7 +950,7 @@ let make = (
                 | None => ()
                 | Some(resultsSorted) => {
                     setState(setResultHasBeenSelected)
-                    if (resultsSorted->Js_array2.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
+                    if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
                         actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
                     } else {
                         onResultSelected(None)
@@ -1017,7 +1017,7 @@ let make = (
         switch state.results {
             | None => React.null
             | Some(results) => {
-                if (results->Js_array2.length < 2) {
+                if (results->Array.length < 2) {
                     React.null
                 } else {
                     <FormControl size=#small>
@@ -1055,7 +1055,7 @@ let make = (
     }
 
     let rndParamsForUsualCall = () => {
-        if (state.availableLabels->Js.Array2.length == 0) {
+        if (state.availableLabels->Array.length == 0) {
             <Col>
                 {
                     React.string("The statement to prove doesn't match any existing assertion. " 
@@ -1299,7 +1299,7 @@ let make = (
     }
 
     let rndWarningsBtn = (warnings:array<string>) => {
-        if (warnings->Js_array2.length == 0) {
+        if (warnings->Array.length == 0) {
             React.null
         } else {
             <IconButton 
@@ -1340,7 +1340,7 @@ let make = (
         switch state.resultsSorted {
             | None => React.null
             | Some(resultsSorted) => {
-                let totalNumOfResults = resultsSorted->Js.Array2.length
+                let totalNumOfResults = resultsSorted->Array.length
                 if (totalNumOfResults == 0) {
                     <Col>
                         <Divider/>
@@ -1457,7 +1457,7 @@ let make = (
                 "None"
             } else {
                 let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
-                let numAll = flags->Js_array2.length
+                let numAll = flags->Array.length
                 numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
             }
             let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
@@ -1496,7 +1496,7 @@ let make = (
     }
 
     let rndRootStmts = () => {
-        if (state.rootStmtsRendered->Js_array2.length == 0) {
+        if (state.rootStmtsRendered->Array.length == 0) {
             React.null
         } else {
             <Row alignItems=#center spacing=0.2>

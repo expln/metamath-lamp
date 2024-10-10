@@ -117,7 +117,7 @@ let subsHash = (subs:subs):int => {
 let lengthOfGap = (leftConstPartIdx:int, constParts:array<array<int>>, exprLength:int):int => {
     if (leftConstPartIdx < 0) {
         constParts->Array.getUnsafe(0)->Array.getUnsafe(0)
-    } else if (leftConstPartIdx < constParts->Js_array2.length - 1) {
+    } else if (leftConstPartIdx < constParts->Array.length - 1) {
         constParts->Array.getUnsafe(leftConstPartIdx+1)->Array.getUnsafe(0) - constParts->Array.getUnsafe(leftConstPartIdx)->Array.getUnsafe(1) - 1
     } else {
         exprLength - constParts->Array.getUnsafe(leftConstPartIdx)->Array.getUnsafe(1) - 1
@@ -136,8 +136,8 @@ let lengthOfGap2 = (leftConstPartIdx:int, constParts:constParts, exprLength:int)
 
 let createConstParts = expr => {
     let constParts = []
-    for i in 0 to expr->Js_array2.length-1 {
-        let constPartsLength = constParts->Js_array2.length
+    for i in 0 to expr->Array.length-1 {
+        let constPartsLength = constParts->Array.length
         if (expr->Array.getUnsafe(i) < 0) {
             if (constPartsLength == 0 || constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) >= 0) {
                 constParts->Array.push([i,-1])
@@ -146,8 +146,8 @@ let createConstParts = expr => {
             (constParts->Array.getUnsafe(constPartsLength-1))[1] = i-1
         }
     }
-    let constPartsLength = constParts->Js_array2.length
-    let exprLength = expr->Js_array2.length
+    let constPartsLength = constParts->Array.length
+    let exprLength = expr->Array.length
     if (constPartsLength > 0 && constParts->Array.getUnsafe(constPartsLength-1)->Array.getUnsafe(1) < 0) {
         (constParts->Array.getUnsafe(constPartsLength-1))[1] = exprLength-1
     }
@@ -197,8 +197,8 @@ let rec iterateConstParts = (
         )
     }
 
-    let exprLen = expr->Js_array2.length
-    let frmExprLen = frmExpr->Js_array2.length
+    let exprLen = expr->Array.length
+    let frmExprLen = frmExpr->Array.length
 
     if (exprLen < frmExprLen) {
         Continue
@@ -308,7 +308,7 @@ let rec iterateConstParts = (
 }
 
 let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup> => {
-    let frmExprLen = frmExpr->Js_array2.length
+    let frmExprLen = frmExpr->Array.length
     if (frmConstParts.length == 0) {
         [{
             leftConstPartIdx: -1,
@@ -356,7 +356,7 @@ let createVarGroups = (~frmExpr:expr, ~frmConstParts:constParts): array<varGroup
 }
 
 let initVarGroups = (~varGroups:array<varGroup>, ~constParts:constParts, ~expr:expr) => {
-    let exprLen = expr->Js_array2.length
+    let exprLen = expr->Array.length
     if (constParts.length == 0) {
         (varGroups->Array.getUnsafe(0)).exprBeginIdx = 0
         (varGroups->Array.getUnsafe(0)).exprEndIdx = exprLen-1
@@ -403,7 +403,7 @@ let rec iterateVarGroups = (
                 ~parenCnt,
                 ~consumer
             )
-        } else if (curGrpIdx < varGroups->Js_array2.length-1) {
+        } else if (curGrpIdx < varGroups->Array.length-1) {
             iterateVarGroups(
                 ~expr,
                 ~subs,
@@ -479,8 +479,8 @@ let iterateSubstitutions = (
             Continue
         }
     } else {
-        let exprLen = expr->Js_array2.length
-        let frmExprLen = frmExpr->Js_array2.length
+        let exprLen = expr->Array.length
+        let frmExprLen = frmExpr->Array.length
         if (exprLen < frmExprLen || exprLen == 0 || frmExprLen == 0) {
             Continue
         } else {
@@ -500,7 +500,7 @@ let iterateSubstitutions = (
                         ~idxToMatch=0,
                         ~parenCnt,
                         ~consumer = constParts => {
-                            if (varGroups->Js.Array2.length > 0) {
+                            if (varGroups->Array.length > 0) {
                                 initVarGroups(~varGroups, ~constParts, ~expr)
                                 iterateVarGroups(
                                     ~expr,
@@ -560,7 +560,7 @@ let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
     {
         frame:frame,
         hypsE,
-        numOfHypsE: hypsE->Js.Array2.length,
+        numOfHypsE: hypsE->Array.length,
         frmConstParts:frmConstPartsArr,
         constParts:constPartsArr,
         varGroups:varGroupsArr,
@@ -572,7 +572,7 @@ let prepareFrmSubsData = (
     ~ctx:mmContext,
     ()
 ):frms => {
-    let frmCmp = comparatorBy(frm => frm.hypsE->Js_array2.length)
+    let frmCmp = comparatorBy(frm => frm.hypsE->Array.length)
         ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
     let all = ctx->getAllFramesArr->Array.map(prepareFrmSubsDataForFrame)->Expln_utils_common.sortInPlaceWith(frmCmp)
     let byLabel = Belt_HashMapString.make(~hintSize=1000)
@@ -703,7 +703,7 @@ let frmsEmpty = ():frms => {
         byLabel:Belt_HashMapString.make(~hintSize=0),
     }
 }
-let frmsSize = frms => frms.all->Js_array2.length
+let frmsSize = frms => frms.all->Array.length
 let frmsForEach = (frms:frms, ~typ:option<int>=?, consumer:frmSubsData=>unit):unit => {
     switch typ {
         | None => frms.all->Array.forEach(consumer)

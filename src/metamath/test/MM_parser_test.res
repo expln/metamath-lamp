@@ -36,8 +36,8 @@ describe("parseMmFile", _ => {
                 "paren2 $a |- { t } = { t } $.",
                 "paren3 $a |- <. t .> = <. t .> $.",
             ]
-        //assertEq(actual->Js_array2.length, expected->Js_array2.length)
-        //for i in 0 to actual->Js_array2.length-1 {
+        //assertEq(actual->Array.length, expected->Array.length)
+        //for i in 0 to actual->Array.length-1 {
             //assertEq(actual[i], expected[i])
         //}
         assertEq(actual, expected)

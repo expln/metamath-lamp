@@ -199,7 +199,7 @@ let make = (
     )
     let maxStepsPerPage = 300
     let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, maxStepsPerPage))
-    let numOfPages = (stmtsToShow->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+    let numOfPages = (stmtsToShow->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                         ->Js_math.ceil_float->Belt.Float.toInt
     let minPageIdx = 0
     let maxPageIdx = numOfPages - 1
@@ -237,7 +237,7 @@ let make = (
                 | None => {
                     let editIsActive = st->isEditMode
                     let thereAreCriticalErrorsInEditor = st->editorStateHasCriticalErrors
-                    let atLeastOneStmtIsChecked = st.checkedStmtIds->Js.Array2.length != 0
+                    let atLeastOneStmtIsChecked = st.checkedStmtIds->Array.length != 0
                     let proofStatusIsMissing = st.stmts->Array.some(stmt => {
                         stmt.typ == P && stmt.proofStatus->Belt_Option.isNone
                     })
@@ -315,7 +315,7 @@ let make = (
     let editIsActive = state->isEditMode
     let thereAreCriticalErrorsInEditor = editorStateHasCriticalErrors(state)
     let thereAreAnyErrorsInEditor = editorStateHasAnyErrors(state)
-    let atLeastOneStmtIsChecked = state.checkedStmtIds->Js.Array2.length != 0
+    let atLeastOneStmtIsChecked = state.checkedStmtIds->Array.length != 0
     let atLeastOneStmtHasSelectedText = state.stmts
         ->Array.find(stmt => stmt.cont->hasSelectedText)
         ->Belt.Option.isSome
@@ -327,7 +327,7 @@ let make = (
         !(checkedStmtIds->Array.includes(stmt.id)) || !stmt.isBkm
     })
     let mainCheckboxState = {
-        let atLeastOneStmtIsNotChecked = state.stmts->Js.Array2.length != state.checkedStmtIds->Js.Array2.length
+        let atLeastOneStmtIsNotChecked = state.stmts->Array.length != state.checkedStmtIds->Array.length
         if ((atLeastOneStmtIsChecked || atLeastOneStmtHasSelectedText) && atLeastOneStmtIsNotChecked) {
             None
         } else if (atLeastOneStmtIsChecked && !atLeastOneStmtIsNotChecked) {
@@ -342,7 +342,7 @@ let make = (
         | Some(stmt) if stmt.typ == P => Some(stmt)
         | _ => None
     }
-    let numOfCheckedStmts = state.checkedStmtIds->Js.Array2.length
+    let numOfCheckedStmts = state.checkedStmtIds->Array.length
     let thereIsDuplicatedStmt = state->editorStateHasDuplicatedStmts
 
     let actPreCtxDataUpdated = () => {
@@ -379,13 +379,13 @@ let make = (
                 <Paper style=ReactDOM.Style.make(~padding="10px", ())>
                     <Col spacing=1.>
                         {
-                            let numOfSelectedStmts = state.checkedStmtIds->Js.Array2.length
-                            if (numOfSelectedStmts == state.stmts->Js.Array2.length) {
+                            let numOfSelectedStmts = state.checkedStmtIds->Array.length
+                            if (numOfSelectedStmts == state.stmts->Array.length) {
                                 React.string("Delete all steps?")
                             } else if (numOfSelectedStmts == 1) {
                                 React.string("Delete the selected step?")
                             } else {
-                                React.string(`Delete ${state.checkedStmtIds->Js.Array2.length->Belt.Int.toString}` 
+                                React.string(`Delete ${state.checkedStmtIds->Array.length->Belt.Int.toString}` 
                                                 ++ ` selected steps?`)
                             }
                         }
@@ -888,7 +888,7 @@ let make = (
             ->Array.filter(Belt_Option.isSome(_))
             ->Array.map(Belt_Option.getExn(_))
             ->Expln_utils_common.sortInPlaceWith(((_,time1),(_,time2)) => compareDates(time1,time2) )
-        let len = selections->Js.Array2.length
+        let len = selections->Array.length
         let sel1 = selections->Belt_Array.get(len-2)->Belt.Option.map(((str,_)) => str)
         let sel2 = selections->Belt_Array.get(len-1)->Belt.Option.map(((str,_)) => str)
         switch len {
@@ -937,19 +937,19 @@ let make = (
     }
 
     let getArgs0AndAsrtLabel = (checkedStmts:array<userStmt>, rootStmts:array<rootStmt>):option<(array<expr>,option<string>)> => {
-        if (checkedStmts->Js_array2.length == 0 || (checkedStmts->Array.getUnsafe(checkedStmts->Js_array2.length-1)).typ != P) {
+        if (checkedStmts->Array.length == 0 || (checkedStmts->Array.getUnsafe(checkedStmts->Array.length-1)).typ != P) {
             None
         } else {
-            let stmtToProve = checkedStmts->Array.getUnsafe(checkedStmts->Js_array2.length-1)
+            let stmtToProve = checkedStmts->Array.getUnsafe(checkedStmts->Array.length-1)
             switch stmtToProve.jstfText->parseJstf {
                 | Ok(Some({args:argLabels, label})) => Some((prepareArgs0(argLabels, rootStmts), Some(label)))
                 | Error(_) | Ok(None) => {
-                    if (checkedStmts->Js_array2.length == 1) {
+                    if (checkedStmts->Array.length == 1) {
                         None
                     } else {
                         Some((
                             prepareArgs0(
-                                checkedStmts->Js_array2.slice(~start=0,~end_=checkedStmts->Js_array2.length - 1)
+                                checkedStmts->Js_array2.slice(~start=0,~end_=checkedStmts->Array.length - 1)
                                     ->Array.map(stmt => stmt.label), 
                                 rootStmts
                             ), 
@@ -994,7 +994,7 @@ let make = (
                         ->Belt_HashSetString.fromArray
                     let checkedStmts = state.stmts
                         ->Array.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
-                    if (checkedStmts->Js.Array2.length > 0 && (checkedStmts->Array.getUnsafe(checkedStmts->Js.Array2.length-1)).typ == P) {
+                    if (checkedStmts->Array.length > 0 && (checkedStmts->Array.getUnsafe(checkedStmts->Array.length-1)).typ == P) {
                         let initialParams = switch params {
                             | Some(_) => params
                             | None => {
@@ -1793,7 +1793,7 @@ let make = (
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
-                                    && state.stmts->Js_array2.length > 0, 
+                                    && state.stmts->Array.length > 0, 
                         ~notifyEditInTempMode=?{
                             if (singleProvableChecked->Belt.Option.isSome) {Some(notifyEditInTempMode)} else {None}
                         },
@@ -2004,7 +2004,7 @@ let make = (
 
     let actGoToNextPageWithErrors = () => {
         let pagesWithErrors = getPagesWithErrors()
-        if (pagesWithErrors->Js_array2.length > 0) {
+        if (pagesWithErrors->Array.length > 0) {
             switch getPagesWithErrors()->Array.find(i => pageIdx < i) {
                 | Some(i) => actGoToPage(i)
                 | None => actGoToPage(pagesWithErrors->Array.getUnsafe(0))
@@ -2014,15 +2014,15 @@ let make = (
 
     let actGoToPrevPageWithErrors = () => {
         let pagesWithErrors = getPagesWithErrors()
-        if (pagesWithErrors->Js_array2.length > 0) {
+        if (pagesWithErrors->Array.length > 0) {
             switch getPagesWithErrors()->Array.find(i => i < pageIdx) {
                 | Some(i) => actGoToPage(i)
-                | None => actGoToPage(pagesWithErrors->Array.getUnsafe(pagesWithErrors->Js_array2.length-1))
+                | None => actGoToPage(pagesWithErrors->Array.getUnsafe(pagesWithErrors->Array.length-1))
             }
         }
     }
 
-    let paginationIsRequired = stmtsToShow->Js.Array2.length > stepsPerPage
+    let paginationIsRequired = stmtsToShow->Array.length > stepsPerPage
 
     let rndPagination = () => {
         if (paginationIsRequired) {
@@ -2169,10 +2169,10 @@ let make = (
                             switch stmtsDto {
                                 | None => resolve(None)
                                 | Some(stmtsDto) => {
-                                    let len = stmtsDto.stmts->Js_array2.length
+                                    let len = stmtsDto.stmts->Array.length
                                     if (len == 0) {
                                         Js_exn.raiseError(
-                                            `bottom-up prover returned stmtsDto.stmts->Js_array2.length == 0.`
+                                            `bottom-up prover returned stmtsDto.stmts->Array.length == 0.`
                                         )
                                     } else {
                                         resolve(Some((stmtsDto.stmts->Array.getUnsafe(len-1)).isProved))

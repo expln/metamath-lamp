@@ -272,7 +272,7 @@ let apiMatcherToMatcher = (
     ~ctx:mmContext,
     ~matcher:apiApplyAsrtResultMatcher,
 ):result<applyAsrtResultMatcher,string> => {
-    if (matcher.res->Belt.Option.isNone && matcher.hyps->Js_array2.length == 0) {
+    if (matcher.res->Belt.Option.isNone && matcher.hyps->Array.length == 0) {
         Error("'res' and 'hyps' must not be empty at the same time.")
     } else {
         let hypMatchers = matcher.hyps->Js_array2.reduce((res,hypMatcher) => {
@@ -633,10 +633,10 @@ let validateVarNamesAreUnique = (vars: option<array<array<string>>>):result<unit
     switch vars {
         | None => Ok(())
         | Some(vars) => {
-            let allVarNames = vars->Array.filter(var => var->Js_array2.length > 1)
+            let allVarNames = vars->Array.filter(var => var->Array.length > 1)
                 ->Array.map(var => var->Array.getUnsafe(1))
             let uniqueVarNames = allVarNames->Belt_HashSetString.fromArray
-            if (allVarNames->Js_array2.length == uniqueVarNames->Belt_HashSetString.size) {
+            if (allVarNames->Array.length == uniqueVarNames->Belt_HashSetString.size) {
                 Ok(())
             } else {
                 Error( `Cannot create variables because two or more variables have same name.` )
@@ -652,12 +652,12 @@ let validateVarNamesNotPresentInCtx = (st:editorState, vars: option<array<array<
             switch st.wrkCtx {
                 | None => Error("Cannot add new variables because of errors in the editor.")
                 | Some(wrkCtx) => {
-                    let definedVars:array<(string,tokenType)> = vars->Array.filter(var => var->Js_array2.length > 1)
+                    let definedVars:array<(string,tokenType)> = vars->Array.filter(var => var->Array.length > 1)
                         ->Array.map(var => var->Array.getUnsafe(1))
                         ->Array.map(varName => (varName, wrkCtx->MM_context.getTokenType(varName)))
                         ->Array.filter(((_,tokenTypeOpt)) => tokenTypeOpt->Belt_Option.isSome)
                         ->Array.map(((varName,tokenTypeOpt)) => (varName,tokenTypeOpt->Belt_Option.getExn))
-                    if (definedVars->Js_array2.length == 0) {
+                    if (definedVars->Array.length == 0) {
                         Ok(())
                     } else {
                         let varTypes = definedVars
@@ -717,7 +717,7 @@ let addSteps = (
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
             if (
-                parseResult.vars->Belt.Option.map(vars => vars->Array.some(a => a->Js_array2.length != 2))
+                parseResult.vars->Belt.Option.map(vars => vars->Array.some(a => a->Array.length != 2))
                     ->Belt_Option.getWithDefault(false)
             ) {
                 promiseResolved(

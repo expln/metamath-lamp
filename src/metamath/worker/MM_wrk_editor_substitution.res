@@ -82,7 +82,7 @@ let applyWrkSubs = (expr, wrkSubs:wrkSubs): expr => {
         } else {
             switch wrkSubs.subs->Belt_MapInt.get(s) {
                 | None => raise(MmException({msg:`Cannot find a substitution for ${s->Belt_Int.toString} in applyWrkSubs.`}))
-                | Some(expr) => resultSize.contents = resultSize.contents + expr->Js_array2.length
+                | Some(expr) => resultSize.contents = resultSize.contents + expr->Array.length
             }
         }
     })
@@ -96,7 +96,7 @@ let applyWrkSubs = (expr, wrkSubs:wrkSubs): expr => {
             r.contents = r.contents + 1
         } else {
             let subExpr = wrkSubs.subs->Belt_MapInt.getExn(s)
-            let len = subExpr->Js_array2.length
+            let len = subExpr->Array.length
             Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=0, ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
         }
@@ -274,7 +274,7 @@ let buildSyntaxTreesOfSameType = (
 }
 
 let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
-    if (expr->Js_array2.length > 0 && allTypes->Array.includes(expr->Array.getUnsafe(0))) {
+    if (expr->Array.length > 0 && allTypes->Array.includes(expr->Array.getUnsafe(0))) {
         expr->Js_array2.sliceFrom(1)
     } else {
         expr
@@ -301,7 +301,7 @@ let findPossibleSubsByUnif = (
         | Error(msg) => Error(msg)
         | Ok((tree1,tree2)) => {
             let continue = ref(true)
-            let foundSubs = Belt_HashMapString.make(~hintSize = expr1->Js_array2.length + expr2->Js_array2.length)
+            let foundSubs = Belt_HashMapString.make(~hintSize = expr1->Array.length + expr2->Array.length)
             unify(tree1, tree2, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,metavarPrefix))
             if (!continue.contents) {
                 Error(`Cannot unify these expressions.`)
@@ -392,9 +392,9 @@ let substitute = (st:editorState, ~what:string, ~with_:string):result<editorStat
                                 | Error(msg) => Error(msg)
                                 | Ok(foundSubs) => {
                                     let validSubs = foundSubs->Array.filter(subs => subs.err->Belt_Option.isNone)
-                                    if (validSubs->Js_array2.length == 0) {
+                                    if (validSubs->Array.length == 0) {
                                         Error(`No substitutions found.`)
-                                    } else if (validSubs->Js_array2.length > 1) {
+                                    } else if (validSubs->Array.length > 1) {
                                         Error(`More than 1 substitution found.`)
                                     } else {
                                         Ok(st->applySubstitutionForEditor(validSubs->Array.getUnsafe(0)))

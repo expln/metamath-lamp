@@ -149,7 +149,7 @@ let toggleDescrIsExpanded = st => {
 
 let rndDisjGrp = (grp:array<(string,option<string>)>):React.element => {
     let res = []
-    for i in 0 to grp->Js.Array2.length-1 {
+    for i in 0 to grp->Array.length-1 {
         if (i > 0) {
             res->Array.push(
                 <span
@@ -189,7 +189,7 @@ let disjGrpDelim = nbsp ++ nbsp ++ nbsp ++ nbsp
 
 let rndDisj = (disj:array<array<(string,option<string>)>>):React.element => {
     let disjGrpArr = []
-    for i in 0 to disj->Js.Array2.length-1 {
+    for i in 0 to disj->Array.length-1 {
         let grp = disj->Array.getUnsafe(i)
         if (i > 0) {
             disjGrpArr->Array.push(

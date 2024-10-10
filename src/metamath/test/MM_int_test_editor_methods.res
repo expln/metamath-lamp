@@ -146,8 +146,8 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)
     let st = st->duplicateCheckedStmt(false)
-    if (st.checkedStmtIds->Js.Array2.length != 1) {
-        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
+    if (st.checkedStmtIds->Array.length != 1) {
+        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Array.length != 1`}))
     } else {
         let (newStmtId,_) = st.checkedStmtIds->Array.getUnsafe(0)
         let st = st->uncheckAllStmts
@@ -236,11 +236,11 @@ let addStmtsBySearch = (
                 ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
                 ()
             )
-            let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Js_array2.length-1)).label == chooseLabel) {
+            let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
-                            ++ `Available: ${searchResults->Array.map(res => (res.stmts->Array.getUnsafe(res.stmts->Js_array2.length-1)).label)->Array.joinUnsafe(", ")} `
+                            ++ `Available: ${searchResults->Array.map(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label)->Array.joinUnsafe(", ")} `
                     }))
                 | Some(searchResult) => st->addNewStatements(searchResult, ())
             }
@@ -285,8 +285,8 @@ let getStmt = (
     }
 
     let found = st.stmts->Array.filter(predicate)
-    if (found->Js_array2.length != 1) {
-        raise(MmException({msg:`getStmt:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
+    if (found->Array.length != 1) {
+        raise(MmException({msg:`getStmt:  found.length = ${found->Array.length->Belt_Int.toString}`}))
     } else {
         found->Array.getUnsafe(0)
     }
@@ -323,7 +323,7 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
                 wrkCtx->ctxStrToIntsExn(replaceWith),
                 useMatching
             )->Belt.Result.getExn->Array.filter(subs => subs.err->Belt_Option.isNone)
-            if (wrkSubs->Js.Array2.length != 1) {
+            if (wrkSubs->Array.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {
                 st->applySubstitutionForEditor(wrkSubs->Array.getUnsafe(0))
@@ -433,7 +433,7 @@ let unifyBottomUp = (
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~exprToProve=(rootStmts->Array.getUnsafe(rootStmts->Js_array2.length-1)).expr,
+                ~exprToProve=(rootStmts->Array.getUnsafe(rootStmts->Array.length-1)).expr,
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
@@ -446,7 +446,7 @@ let unifyBottomUp = (
                 | None => result
                 | Some(chooseLabel) => {
                     result->Array.filter(newStmtsDto => {
-                        let lastStmt = newStmtsDto.stmts->Array.getUnsafe(newStmtsDto.stmts->Js_array2.length - 1)
+                        let lastStmt = newStmtsDto.stmts->Array.getUnsafe(newStmtsDto.stmts->Array.length - 1)
                         switch lastStmt.jstf {
                             | Some({label}) => label == chooseLabel
                             | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
@@ -464,9 +464,9 @@ let unifyBottomUp = (
 }
 
 let getSingleStmtsDto = (stmtsDtoArr:array<stmtsDto>):stmtsDto => {
-    if (stmtsDtoArr->Js_array2.length > 1) {
+    if (stmtsDtoArr->Array.length > 1) {
         raise(MmException({msg:`There are more than 1 element in stmtsDtoArr.`}))
-    } else if (stmtsDtoArr->Js_array2.length == 0) {
+    } else if (stmtsDtoArr->Array.length == 0) {
         raise(MmException({msg:`stmtsDtoArr is empty.`}))
     } else {
         stmtsDtoArr->Array.getUnsafe(0)

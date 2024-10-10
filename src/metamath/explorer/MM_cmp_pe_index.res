@@ -97,7 +97,7 @@ let make = React.memoCustomCompareProps(({
                     _, 
                     ~varPat,
                     ~constPat,
-                    ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
+                    ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Array.length)
                 )
                 let labelFilterTrim = labelFilter->Js_string2.trim->Js_string2.toLowerCase
                 let descrFilterStrTrim = descrFilterStr->Js_string2.trim->Js_string2.toLowerCase

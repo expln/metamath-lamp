@@ -15,7 +15,7 @@ let makeEmptyWrkCtxErr = () => {
 let prepareParenInts = (wrkCtx, parenStr) => {
     let parenSyms = parenStr->getSpaceSeparatedValuesAsArray
     let parenInts = []
-    let maxI = parenSyms->Js_array2.length / 2 - 1
+    let maxI = parenSyms->Array.length / 2 - 1
     for i in 0 to maxI {
         let leftParen = parenSyms->Array.getUnsafe(i*2)
         let rightParen = parenSyms->Array.getUnsafe(i*2+1)
@@ -37,7 +37,7 @@ let prepareParenInts = (wrkCtx, parenStr) => {
 
 let lineToVarDef = (line:string):result<array<string>,string> => {
     let arr = getSpaceSeparatedValuesAsArray(line)
-    if (arr->Js_array2.length != 3) {
+    if (arr->Array.length != 3) {
         Error(`A line representing a variable definition should consist of exactly three parts` 
                         ++ ` separated with a whitespace.`)
     } else {
@@ -47,7 +47,7 @@ let lineToVarDef = (line:string):result<array<string>,string> => {
 
 let textToVarDefs = (text:string):result<array<array<string>>,string> => {
     let varLines = text->multilineTextToNonEmptyLines
-    if (varLines->Js.Array2.length == 0) {
+    if (varLines->Array.length == 0) {
         Ok([])
     } else {
         varLines->Js_array2.reduce(

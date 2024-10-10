@@ -16,7 +16,7 @@ type parenCnt = {
 }
 
 let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
-    let parenLen = parentheses->Js_array2.length
+    let parenLen = parentheses->Array.length
     if (mod(parenLen, 2)  != 0) {
         raise(MmException({msg:`mod(parenLen, 2)  != 0 in parenCntMake`}))
     } else if (parenLen == 0) {
@@ -75,7 +75,7 @@ let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
     }
     if (cnt.failed) {
         Failed
-    } else if (cnt.parentStack->Js_array2.length == 0) {
+    } else if (cnt.parentStack->Array.length == 0) {
         Balanced
     } else {
         Opened

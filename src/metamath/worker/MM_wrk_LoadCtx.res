@@ -91,7 +91,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
             let weights = scopes->Array.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
                 let ctx = createContext(())
-                for i in 0 to scopes->Js_array2.length-1 {
+                for i in 0 to scopes->Array.length-1 {
                     let scope = scopes->Array.getUnsafe(i)
                     let basePct = weights->Js_array2.reducei((a,w,idx) => if idx < i {a +. w} else {a}, 0.)
                     let weight = weights->Array.getUnsafe(i)
@@ -162,7 +162,7 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
             (
                 stopBeforeOrig,
                 stopAfterOrig,
-                allLabels->Js_array2.length,
+                allLabels->Array.length,
                 true
             )
         }
@@ -178,7 +178,7 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
         resetNestingLevel,
     }
     res->Array.push(mmScope)
-    allLabels->Js_array2.length != expectedNumOfAssertions
+    allLabels->Array.length != expectedNumOfAssertions
 }
 
 let createMmScopesForFrame = ( ~srcs:array<mmCtxSrcDto>, ~label:string, ):array<mmScope> => {

@@ -171,10 +171,10 @@ let make = (
     }
 
     let rndPagination = (editorState:editorState) => {
-        let paginationIsRequired = editorState.stmts->Js.Array2.length > stepsPerPage
+        let paginationIsRequired = editorState.stmts->Array.length > stepsPerPage
         if (paginationIsRequired) {
             let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, 1000))
-            let numOfPages = (editorState.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+            let numOfPages = (editorState.stmts->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                                 ->Js_math.ceil_float->Belt.Float.toInt
             let minPageIdx = 0
             let maxPageIdx = numOfPages - 1
@@ -196,7 +196,7 @@ let make = (
     }
 
     let rndStmts = (editorState:editorState) => {
-        let numOfPages = (editorState.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+        let numOfPages = (editorState.stmts->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
                             ->Js_math.ceil_float->Belt.Float.toInt
         let minPageIdx = 0
         let maxPageIdx = numOfPages - 1

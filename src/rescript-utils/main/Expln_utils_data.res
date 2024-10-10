@@ -42,7 +42,7 @@ let traverseTree = (
                                             msg:"this case is not possible, because each node has itself in its nodesToPostProcess (1)"
                                         }))
                                     | Some(nodes) => {
-                                        let i = ref(nodes->Js_array2.length - 1)
+                                        let i = ref(nodes->Array.length - 1)
                                         while (i.contents >= 0 && res.contents->Belt_Option.isNone) {
                                             //TODO check how this gets converted to js
                                             res.contents = postProcess->Belt_Option.flatMap(f => f(context, nodes->Array.getUnsafe(i.contents)))
@@ -53,7 +53,7 @@ let traverseTree = (
                             }
                         }
                         | Some(children) => {
-                            let maxChildIdx = children->Js_array2.length - 1
+                            let maxChildIdx = children->Array.length - 1
                             for i in maxChildIdx downto 0 {
                                 nodesToProcess->Belt_MutableStack.push({
                                     node:children->Array.getUnsafe(i),

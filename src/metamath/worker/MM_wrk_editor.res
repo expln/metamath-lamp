@@ -391,8 +391,8 @@ let deleteStmts = (st:editorState, stmtIds:array<stmtId>):editorState => {
 }
 
 let canMoveCheckedStmts = (st:editorState, up):bool => {
-    let len = st.stmts->Js_array2.length
-    len != 0 && st.checkedStmtIds->Js_array2.length != 0 && (
+    let len = st.stmts->Array.length
+    len != 0 && st.checkedStmtIds->Array.length != 0 && (
         (up && !isStmtChecked(st,(st.stmts->Array.getUnsafe(0)).id)) || (!up && !isStmtChecked(st,(st.stmts->Array.getUnsafe(len-1)).id))
     )
 }
@@ -401,7 +401,7 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
     if (!canMoveCheckedStmts(st,up)) {
         st
     } else {
-        let len = st.stmts->Js_array2.length
+        let len = st.stmts->Array.length
         let res = st.stmts->Array.copy
         if up {
             let maxI = len-2
@@ -452,7 +452,7 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
         st.stmts
     } else {
         let lowestCheckedStmtIdx = ref(None)
-        let i = ref(st.stmts->Js.Array2.length-1)
+        let i = ref(st.stmts->Array.length-1)
         while (i.contents >= 0 && lowestCheckedStmtIdx.contents->Belt_Option.isNone) {
             let stmt = st.stmts->Array.getUnsafe(i.contents)
             if (checkedStmtIds->Belt_HashSetString.has(stmt.id)) {
@@ -507,7 +507,7 @@ let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=fal
 }
 
 let getTopmostCheckedStmt = (st):option<userStmt> => {
-    if (st.checkedStmtIds->Js.Array2.length == 0) {
+    if (st.checkedStmtIds->Array.length == 0) {
         None
     } else {
         st.stmts->Array.find(stmt => isStmtChecked(st,stmt.id))
@@ -515,7 +515,7 @@ let getTopmostCheckedStmt = (st):option<userStmt> => {
 }
 
 let getLowestCheckedStmt = (st):option<userStmt> => {
-    if (st.checkedStmtIds->Js.Array2.length == 0) {
+    if (st.checkedStmtIds->Array.length == 0) {
         None
     } else {
         st.stmts->Array.copy->Js.Array2.reverseInPlace->Array.find(stmt => isStmtChecked(st,stmt.id))
@@ -579,7 +579,7 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):
 let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorState,stmtId) => {
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
-    let st = if (0 <= idx && idx < st.stmts->Js_array2.length) {
+    let st = if (0 <= idx && idx < st.stmts->Array.length) {
         st->toggleStmtChecked((st.stmts->Array.getUnsafe(idx)).id)
     } else {
         st
@@ -589,7 +589,7 @@ let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorS
     (st,stmtId)
 }
 
-let isSingleStmtChecked = st => st.checkedStmtIds->Js_array2.length == 1
+let isSingleStmtChecked = st => st.checkedStmtIds->Array.length == 1
 
 let duplicateCheckedStmt = (st:editorState, top:bool) => {
     if (!isSingleStmtChecked(st)) {
@@ -836,7 +836,7 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
         ~parens=settings.parens, ~removeAsrtDescr=true, ~removeProofs=true, ()
     )
     let parenInts = prepareParenInts(preCtx, settings.parens)
-    let numOfParens = parenInts->Js_array2.length / 2
+    let numOfParens = parenInts->Array.length / 2
     let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
     for i in 0 to numOfParens-1 {
         parensMap->Belt_HashMapString.set(
@@ -894,7 +894,7 @@ let completeVarsEditMode = (st, newVarsText) => {
 }
 
 let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {
-    let stmtsLen = st.stmts->Js.Array2.length
+    let stmtsLen = st.stmts->Array.length
     if (stmtsLen < 2) {
         st
     } else {
@@ -1029,7 +1029,7 @@ let parseJstf = (jstfText:string):result<option<jstf>,string> => {
         Ok(None)
     } else {
         let argsAndAsrt = jstfText->Js_string2.split(":")
-        if (argsAndAsrt->Js_array2.length != 2) {
+        if (argsAndAsrt->Array.length != 2) {
             Error(`Cannot parse justification: '${jstfText}'. A justification must contain exactly one colon symbol.`)
         } else if (argsAndAsrt->Array.getUnsafe(1)->Js_string2.trim == "") {
             Error(`Cannot parse justification: '${jstfText}'. Reference must not be empty.`)
@@ -1096,7 +1096,7 @@ let validateStmtJstf = (
                                 | None => raise(MmException({msg:`Could not get frame by label '${label}'`}))
                                 | Some(frm) => {
                                     let expectedNumberOfArgs = frm.numOfHypsE
-                                    let providedNumberOfArgs = args->Js_array2.length
+                                    let providedNumberOfArgs = args->Array.length
                                     if (providedNumberOfArgs != expectedNumberOfArgs) {
                                         let eHypsText = if (expectedNumberOfArgs == 1) {
                                             "essential hypothesis"
@@ -1193,7 +1193,7 @@ let validateStmtExpr = (
                                                             ++ ` one - '${prevStmtLabel}'`})}
                             }
                             | None => {
-                                if (!stmt.contEditMode && (expr->Js_array2.length == 0 || expr->Array.getUnsafe(0) >= 0)) {
+                                if (!stmt.contEditMode && (expr->Array.length == 0 || expr->Array.getUnsafe(0) >= 0)) {
                                     {...stmt, stmtErr:Some({code:someStmtErrCode, 
                                         msg:`Any statement must begin with a constant.`})}
                                 } else {
@@ -1234,7 +1234,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot prepareUserStmtsForUnification without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let stmtsLen = st.stmts->Js_array2.length
+            let stmtsLen = st.stmts->Array.length
             let definedUserLabels = Belt_HashSetString.make(~hintSize=stmtsLen)
             let definedUserExprs = Belt_HashMap.make(~hintSize=stmtsLen, ~id=module(ExprHash))
             let goalLabel = ref(None)
@@ -1300,7 +1300,7 @@ let prepareEditorForUnification = st => {
 }
 
 let getTheOnlyCheckedStmt = (st):option<userStmt> => {
-    if (st.checkedStmtIds->Js.Array2.length != 1) {
+    if (st.checkedStmtIds->Array.length != 1) {
         None
     } else {
         getTopmostCheckedStmt(st)
@@ -1317,15 +1317,15 @@ let createNewVars = (
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
         | Some(wrkCtx) => {
-            let numOfVars = varTypes->Js_array2.length
+            let numOfVars = varTypes->Array.length
             if (numOfVars == 0) {
                 (st,[])
             } else {
                 let newVarNames =
                     switch varNames {
                         | Some(varNames) => {
-                            if (varTypes->Js_array2.length != varNames->Js_array2.length) {
-                                raise(MmException({msg:`varTypes->Js_array2.length != varNames->Js_array2.length`}))
+                            if (varTypes->Array.length != varNames->Array.length) {
+                                raise(MmException({msg:`varTypes->Array.length != varNames->Array.length`}))
                             }
                             varNames
                         }
@@ -1379,7 +1379,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
                 wrkCtx->applySingleStmt(Disj({vars:varsStr}), ())
                 newDisjTextLines->Array.push(varsStr->Array.joinUnsafe(" "))
             })
-            if (newDisjTextLines->Js.Array2.length == 0) {
+            if (newDisjTextLines->Array.length == 0) {
                 st
             } else {
                 let newDisjText = newDisjTextLines->Array.joinUnsafe("\n")
@@ -1423,10 +1423,10 @@ let insertStmt = (
                 | Some(hyp) => (st,hyp.label)
                 | None => {
                     let maxIdx = switch before {
-                        | None => st.stmts->Js_array2.length
+                        | None => st.stmts->Array.length
                         | Some(stmtId) => {
                             switch st.stmts->Array.findIndex(stmt => stmt.id == stmtId) {
-                                | -1 => st.stmts->Js_array2.length
+                                | -1 => st.stmts->Array.length
                                 | idx => idx
                             }
                         }
@@ -1610,7 +1610,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 }
             })
             let unusedVars = wrkCtx->getLocalVars->Array.filter(var => !(usedSymbols->Belt_HashSetString.has(var)))
-            let st = if (unusedVars->Js_array2.length == 0) {
+            let st = if (unusedVars->Array.length == 0) {
                 st
             } else {
                 let unusedVarInts = wrkCtx->ctxSymsToIntsExn(unusedVars)->Belt_HashSetInt.fromArray
@@ -1748,7 +1748,7 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                             }
                         }
                     })->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
-                    let unifErr = if (partialAsrtLabels->Js.Array2.length > 0) {
+                    let unifErr = if (partialAsrtLabels->Array.length > 0) {
                         Some(unifErrToStr(
                             TooManyCombinations({frmLabels:Some(partialAsrtLabels)}),
                             ~exprToStr = ctxIntsToStrExn(wrkCtx, _),
@@ -1773,7 +1773,7 @@ let userStmtSetProofStatus = (stmt, wrkCtx, proofTree:proofTreeDto, proofNode:pr
                                     | AssertionWithErr({label, err}) => Some((label,err))
                                 }
                             })->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
-                            let unifErr = if (errors->Js.Array2.length > 0) {
+                            let unifErr = if (errors->Array.length > 0) {
                                 Some(
                                     errors->Array.map(((asrtLabel,err)) => {
                                         unifErrToStr(
@@ -1841,7 +1841,7 @@ let checkParensMatch = (expr,parenCnt):bool => {
     let parenState = ref(Balanced)
     parenCnt->parenCntReset
     let i = ref(0)
-    while (i.contents < expr->Js_array2.length && parenState.contents != Failed) {
+    while (i.contents < expr->Array.length && parenState.contents != Failed) {
         parenState := parenCnt->parenCntPut(expr->Array.getUnsafe(i.contents))
         i := i.contents + 1
     }
@@ -1988,14 +1988,14 @@ let proofToText = (
             let blk = splitIntoChunks(compressedProofBlock, 50)->Array.joinUnsafe(" ")
             let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Array.joinUnsafe(" ")} ) ${blk} $.`
             let descrIsEmpty = descr->Js_string2.trim->Js_string2.length == 0
-            let blockIsRequired = newHyps->Js.Array2.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
+            let blockIsRequired = newHyps->Array.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
             if (blockIsRequired) {
                 result->Array.push("${")
             }
             let varsArrStr = newHyps->Array.filter(hyp => hyp.typ == F)
                 ->Array.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
-            if (varsArrStr->Js.Array2.length > 0) {
+            if (varsArrStr->Array.length > 0) {
                 result->Array.push("$v " ++ varsArrStr->Array.joinUnsafe(" ") ++ " $.")
             }
             newHyps->Array.forEach(hyp => {
@@ -2061,7 +2061,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
 
                                     let mandHyps = proofCtx->getMandHyps(expr, ())
                                     let proof = MM_proof_table.createProof(
-                                        mandHyps, proofTableWithTypes, proofTableWithTypes->Js_array2.length-1
+                                        mandHyps, proofTableWithTypes, proofTableWithTypes->Array.length-1
                                     )
 
                                     let newHyps = []
@@ -2416,7 +2416,7 @@ let addSteps = (
     ~dontAddVariablesToContext:bool,
     ()
 ):result<(editorState,array<stmtId>),string> => {
-    if (vars->Js_array2.length == 0) {
+    if (vars->Array.length == 0) {
         st->addStepsWithoutVars( ~atIdx?, ~steps, () )
     } else {
         switch st.wrkCtx {
@@ -2528,7 +2528,7 @@ let updateSteps = (
 }
 
 let findStmtsToMerge = (st:editorState):result<(userStmt,userStmt),string> => {
-    let stmt1 = if (st.checkedStmtIds->Js.Array2.length == 0) {
+    let stmt1 = if (st.checkedStmtIds->Array.length == 0) {
         st.stmts->Array.find(stmt => {
             stmt.stmtErr->Belt_Option.map(err => err.code == duplicatedStmtErrCode)->Belt.Option.getWithDefault(false)
         })
@@ -2888,7 +2888,7 @@ let textToSyntaxProofTable = (
     ~lastSyntaxType:option<string>,
     ~onLastSyntaxTypeChange:string => unit,
 ):result<array<result<MM_proof_table.proofTable,string>>,string> => {
-    if (syntaxTypes->Js_array2.length == 0) {
+    if (syntaxTypes->Array.length == 0) {
         Error(`Could not determine syntax types.`)
     } else {
         let findUndefinedSym = (syms:array<string>):option<string> => 
@@ -2982,7 +2982,7 @@ let textToSyntaxTree = (
                 proofTables->Array.map(proofTable => {
                     switch proofTable {
                         | Error(msg) => Error(msg)
-                        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Js_array2.length-1)
+                        | Ok(proofTable) => buildSyntaxTree(wrkCtx, proofTable, proofTable->Array.length-1)
                     }
                 })
             )
@@ -3026,7 +3026,7 @@ let deleteUnrelatedSteps = (
                 unprocessedIds->Belt_MutableQueue.add(stmt.id)
             }
         })
-        let idsToKeep = Belt_HashSetString.make(~hintSize = stepIdsToKeep->Js_array2.length*5)
+        let idsToKeep = Belt_HashSetString.make(~hintSize = stepIdsToKeep->Array.length*5)
         while (!(unprocessedIds->Belt_MutableQueue.isEmpty)) {
             let idToKeep = unprocessedIds->Belt.MutableQueue.pop->Belt.Option.getExn
             if (!(idsToKeep->Belt_HashSetString.has(idToKeep))) {

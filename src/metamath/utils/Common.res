@@ -129,7 +129,7 @@ let arrayQueueMake = (initSize:int):arrayQueue<'a> => {
     {
         begin:0,
         end:-1,
-        maxEnd: data->Js.Array2.length-1,
+        maxEnd: data->Array.length-1,
         data,
     }
 }
@@ -137,8 +137,8 @@ let arrayQueueMake = (initSize:int):arrayQueue<'a> => {
 let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
     if (q.end == q.maxEnd) {
         Js.Console.log(`q.end == q.maxEnd`)
-        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Js_array2.length))
-        q.maxEnd = q.data->Js.Array2.length-1
+        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Array.length))
+        q.maxEnd = q.data->Array.length-1
     }
     q.end = q.end + 1
     q.data[q.end] = elem

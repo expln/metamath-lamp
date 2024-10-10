@@ -6,7 +6,7 @@ let arrFlatMap = (arr,func) => arr -> Belt.Array.map(func)->Belt.Array.concatMan
 let arrStrDistinct = arr => arr->Belt_Set.String.fromArray->Belt_Set.String.toArray
 let arrIntDistinct = arr => arr->Belt_Set.Int.fromArray->Belt_Set.Int.toArray
 let arrForEach = (arr: array<'a>, consumer: 'a => option<'b>):option<'b> => {
-    let len = arr->Js_array2.length
+    let len = arr->Array.length
     let i = ref(0)
     let res = ref(None)
     while (i.contents < len && res.contents->Belt_Option.isNone) {
@@ -16,7 +16,7 @@ let arrForEach = (arr: array<'a>, consumer: 'a => option<'b>):option<'b> => {
     res.contents
 }
 let arrJoin = (arr:array<'a>, sep:'a):array<'a> => {
-    let arrLen = arr->Js_array2.length
+    let arrLen = arr->Array.length
     if (arrLen < 2) {
         arr
     } else {
@@ -35,8 +35,8 @@ let arrJoin = (arr:array<'a>, sep:'a):array<'a> => {
 let copySubArray = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx:int, ~len:int): unit => {
     let s = ref(srcFromIdx)
     let d = ref(dstFromIdx)
-    let srcLen = src->Js_array2.length
-    let dstLen = dst->Js_array2.length
+    let srcLen = src->Array.length
+    let dstLen = dst->Array.length
     let sMax = Js_math.min_int(srcLen - 1, srcFromIdx + len - 1)
     while (s.contents <= sMax && d.contents < dstLen) {
         dst[d.contents] = src->Array.getUnsafe(s.contents)

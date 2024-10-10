@@ -125,7 +125,7 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
             }
         }
     })
-    essIdxs->Belt_HashSetInt.add(proofTable->Js.Array2.length-1)
+    essIdxs->Belt_HashSetInt.add(proofTable->Array.length-1)
     proofTable->Array.forEachWithIndex((_,i) => {
         if (essIdxs->Belt_HashSetInt.has(i)) {
             stepRenum->Belt_HashMapInt.set(i,stepRenum->Belt_HashMapInt.size)
@@ -390,7 +390,7 @@ let convertMmScopesToMmCtxSrcDtos = (
     ~origMmCtxSrcDtos:array<mmCtxSrcDto>,
     ~mmScopes:array<mmScope>,
 ):option<array<mmCtxSrcDto>> => {
-    let canConvert = mmScopes->Js_array2.length <= origMmCtxSrcDtos->Js_array2.length 
+    let canConvert = mmScopes->Array.length <= origMmCtxSrcDtos->Array.length 
                         && mmScopes->Array.everyWithIndex((mmScope,i) => {
                             (origMmCtxSrcDtos->Array.getUnsafe(i)).ast
                                 ->Belt_Option.map(origAst => origAst == mmScope.ast)
@@ -556,7 +556,7 @@ let frameProofDataToEditorStateLocStor = (
     switch frameProofData.proofTable {
         | None => ()
         | Some(proofTable) => {
-            let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Js_array2.length)
+            let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Array.length)
             proofTable
                 ->Array.mapWithIndex((pRec,idx) => (pRec,idx))
                 ->Array.filter(((_,idx)) => frameProofData.essIdxs->Belt_HashSetInt.has(idx))
@@ -564,10 +564,10 @@ let frameProofDataToEditorStateLocStor = (
                     switch pRec.proof {
                         | Hypothesis({label}) => idxToLabel->Belt_HashMapInt.set(idx,label)
                         | Assertion({args,label}) => {
-                            let isGoal = idx == proofTable->Js_array2.length - 1
+                            let isGoal = idx == proofTable->Array.length - 1
                             if (loadSteps || isGoal) {
                                 let jstfArgs = []
-                                for i in 0 to args->Js.Array2.length-1 {
+                                for i in 0 to args->Array.length-1 {
                                     let argIdx = args->Array.getUnsafe(i)
                                     if (frameProofData.essIdxs->Belt_HashSetInt.has(argIdx)) {
                                         let label = switch idxToLabel->Belt_HashMapInt.get(argIdx) {
@@ -678,7 +678,7 @@ let frameProofDataToStmtsDto = (
     // let res = locSt.varsText->MM_wrk_ctx_data.textToVarDefs->Belt_Result.map(parsedVars => {
     //     let numOfExistingVars = wrkCtx->getNumOfVars
     //     {
-    //         newVars: Belt_Array.range(numOfExistingVars, numOfExistingVars + parsedVars->Js_array2.length - 1),
+    //         newVars: Belt_Array.range(numOfExistingVars, numOfExistingVars + parsedVars->Array.length - 1),
     //         newVarTypes: parsedVars->Array.map(@warning("-8")([_, typ, _]) => wrkCtx->ctxSymToIntExn(typ)),
     //         newDisj: disjMake(),
     //         newDisjStr: [],
@@ -856,7 +856,7 @@ let make = React.memoCustomCompareProps(({
                     | None => 0
                     | Some(proofTable) => {
                         if (state.showTypes) {
-                            proofTable->Js_array2.length
+                            proofTable->Array.length
                         } else {
                             proofTable->Js_array2.reducei(
                                 (cnt,_,idx) => {
@@ -1067,11 +1067,11 @@ let make = React.memoCustomCompareProps(({
             | Hypothesis(_) => React.null
             | Assertion({args}) => {
                 let elems = []
-                for i in 0 to args->Js.Array2.length-1 {
+                for i in 0 to args->Array.length-1 {
                     let argIdx = args->Array.getUnsafe(i)
                     if (state.showTypes || state.essIdxs->Belt_HashSetInt.has(argIdx)) {
                         let iStr = i->Belt_Int.toString
-                        if (elems->Js.Array2.length > 0) {
+                        if (elems->Array.length > 0) {
                             elems->Array.push(
                                 <span key={"delim-" ++ iStr}>
                                     {React.string(", ")}

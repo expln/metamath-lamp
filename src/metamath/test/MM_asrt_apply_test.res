@@ -188,7 +188,7 @@ let testApplyAssertions = (
 ) => {
     let printApplyAssertionResult = (workCtx, statements:array<labeledExpr>, res:applyAssertionResult):string => {
         workCtx->openChildContext
-        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length, ())
+        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Array.length, ())
         let workVarTypes = res.newVarTypes->Array.map(ctxIntToSymExn(workCtx, _))
         let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
 
@@ -235,14 +235,14 @@ let testApplyAssertions = (
         )
         workCtx->resetToParentContext
 
-        let workVarsStr = if (workVarHypLabels->Js_array2.length == 0) {
+        let workVarsStr = if (workVarHypLabels->Array.length == 0) {
             ""
         } else {
             "    " ++ workVarHypLabels->Array.mapWithIndex((label,i) => {
                 `${label} ${workVarTypes->Array.getUnsafe(i)} ${workVarNames->Array.getUnsafe(i)}`
             })->Array.joinUnsafe("\n    ")
         }
-        let argsStr = if (args->Js.Array2.length > 0) {
+        let argsStr = if (args->Array.length > 0) {
             "    " ++ args->Array.joinUnsafe("\n    ")
         } else {
             ""

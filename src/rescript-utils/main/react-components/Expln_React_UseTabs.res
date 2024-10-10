@@ -48,12 +48,12 @@ let getTabs = (st:state<'a>) => st.tabs
 let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false, ()) => {
     let (st, newId) = st->getNextId
     let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, data}])
-    let newActiveTabId = if (newTabs->Js_array2.length == 1) {
+    let newActiveTabId = if (newTabs->Array.length == 1) {
         newId
     } else {
         if (doOpen) {newId} else {st.activeTabId}
     }
-    let newTabHistory = if (newTabs->Js_array2.length == 1) {
+    let newTabHistory = if (newTabs->Array.length == 1) {
         [newId]
     } else {
         if (doOpen) {st.tabHistory->Array.concat([newId])} else {st.tabHistory}
@@ -76,7 +76,7 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
             activeTabId:tabId, 
             tabHistory:
                 if (
-                    st.tabHistory->Belt_Array.get(st.tabHistory->Js_array2.length-1)
+                    st.tabHistory->Belt_Array.get(st.tabHistory->Array.length-1)
                         ->Belt.Option.mapWithDefault(false, lastId => lastId == tabId)
                 ) {
                     st.tabHistory
@@ -96,10 +96,10 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
         ...st, 
         tabs: newTabs,
         activeTabId:
-            if (newTabs->Js_array2.length == 0) {
+            if (newTabs->Array.length == 0) {
                 ""
             } else if (st.activeTabId == tabId) {
-                newTabHistory->Belt_Array.get(newTabHistory->Js_array2.length-1)
+                newTabHistory->Belt_Array.get(newTabHistory->Array.length-1)
                     ->Belt.Option.getWithDefault((newTabs->Array.getUnsafe(0)).id)
             } else {
                 st.activeTabId
@@ -129,7 +129,7 @@ let useTabs = ():tabMethods<'a> => {
 
     let renderTabs = () => {
         let {tabs, activeTabId} = state
-        if (tabs->Js_array2.length == 0) {
+        if (tabs->Array.length == 0) {
             React.null
         } else {
             <Tabs

@@ -314,7 +314,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
         defaultColls,
     ])
     {
-        nextId:ls.collsOfMacros->Js_array2.length,
+        nextId:ls.collsOfMacros->Array.length,
         activeCollOfMacrosId:
             switch collsOfMacros->Belt_Array.get(ls.activeCollOfMacrosIdx) {
                 | None => 0

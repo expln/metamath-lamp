@@ -32,8 +32,8 @@ let stGetExpr = (stack:proofStack, i:int):expr => stack.nodes->Array.getUnsafe(i
 let compareSubArrays = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx:int, ~len:int): bool => {
     let s = ref(srcFromIdx)
     let d = ref(dstFromIdx)
-    let srcLen = src->Js_array2.length
-    let dstLen = dst->Js_array2.length
+    let srcLen = src->Array.length
+    let dstLen = dst->Array.length
     if (srcLen < srcFromIdx+len || dstLen < dstFromIdx+len) {
         false
     } else {
@@ -50,8 +50,8 @@ let compareExprAfterSubstitution = (expr:expr, subs, eqTo:expr): bool => {
     let e = ref(0)
     let t = ref(0)
     let eq = ref(true)
-    let eLen = expr->Js_array2.length
-    let tLen = eqTo->Js_array2.length
+    let eLen = expr->Array.length
+    let tLen = eqTo->Array.length
     while (eq.contents && e.contents < eLen && t.contents < tLen) {
         let s = expr->Array.getUnsafe(e.contents)
         if (s < 0) {
@@ -59,7 +59,7 @@ let compareExprAfterSubstitution = (expr:expr, subs, eqTo:expr): bool => {
             t.contents = t.contents + 1
         } else {
             let subExpr = subs->Array.getUnsafe(s)
-            let len = subExpr->Js_array2.length-1
+            let len = subExpr->Array.length-1
             eq.contents = compareSubArrays(~src=subExpr, ~srcFromIdx=1, ~dst=eqTo, ~dstFromIdx=t.contents, ~len)
             t.contents = t.contents + len
         }
@@ -74,7 +74,7 @@ let applySubs = (expr, subs): expr => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
         } else {
-            resultSize.contents = resultSize.contents + (subs->Array.getUnsafe(s)->Js_array2.length) - 1
+            resultSize.contents = resultSize.contents + (subs->Array.getUnsafe(s)->Array.length) - 1
         }
     })
     let res = Expln_utils_common.createArray(resultSize.contents)
@@ -87,7 +87,7 @@ let applySubs = (expr, subs): expr => {
             r.contents = r.contents + 1
         } else {
             let subExpr = subs->Array.getUnsafe(s)
-            let len = subExpr->Js_array2.length-1
+            let len = subExpr->Array.length-1
             Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=1, ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
         }
@@ -99,7 +99,7 @@ let applySubs = (expr, subs): expr => {
 let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
     let subs = Expln_utils_common.createArray(frame.numOfVars)
     let subsLock = Belt_Array.make(frame.numOfVars, false)
-    let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
+    let baseIdx = stack.nodes->Array.length - frame.numOfArgs
     frame.hyps->Array.forEachWithIndex((hyp,i) => {
         if (hyp.typ == F) {
             let t = hyp.expr->Array.getUnsafe(0)
@@ -108,8 +108,8 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
                 raise(MmException({msg:`subsLock[v]`}))
             } else {
                 let subsExpr = stack->stGetExpr(baseIdx+i)
-                if (subsExpr->Js_array2.length < 2) {
-                    raise(MmException({msg:`subsExpr->Js_array2.length < 2`}))
+                if (subsExpr->Array.length < 2) {
+                    raise(MmException({msg:`subsExpr->Array.length < 2`}))
                 } else if (subsExpr->Array.getUnsafe(0) != t) {
                     raise(MmException({msg:`subsExpr[0] != t`}))
                 } else {
@@ -127,7 +127,7 @@ let stExtractSubstitution = (stack:proofStack, frame):array<expr> => {
 }
 
 let validateTopOfStackMatchesFrame = (stack:proofStack, frame, subs:array<expr>):unit => {
-    let baseIdx = stack.nodes->Js_array2.length - frame.numOfArgs
+    let baseIdx = stack.nodes->Array.length - frame.numOfArgs
     frame.hyps->Array.forEachWithIndex((hyp,i) => {
         if (hyp.typ == E && !compareExprAfterSubstitution(hyp.expr, subs, stack->stGetExpr(baseIdx+i))) {
             raise(MmException({msg:`!compareExprAfterSubstitution(ess, subs, stack->stGetExpr(baseIdx+i))`}))
@@ -206,10 +206,10 @@ let verifyDisjoints = (
                 if (res.contents->Belt.Option.isNone) {
                     let nExpr = subs->Array.getUnsafe(n)
                     let nExprBegin = 1
-                    let nExprEnd = nExpr->Js_array2.length-1
+                    let nExprEnd = nExpr->Array.length-1
                     let mExpr = subs->Array.getUnsafe(m)
                     let mExprBegin = 1
-                    let mExprEnd = mExpr->Js_array2.length-1
+                    let mExprEnd = mExpr->Array.length-1
                     for nExprI in nExprBegin to nExprEnd {
                         if (res.contents->Belt.Option.isNone) {
                             let nExprSym = nExpr->Array.getUnsafe(nExprI)
@@ -255,7 +255,7 @@ let applyAsrt = (
     ~ctx:mmContext,
     ~isDisjInCtx: (int,int) => bool,
 ):unit => {
-    let stackLength = stack.nodes->Js_array2.length
+    let stackLength = stack.nodes->Array.length
     if (stackLength < frame.numOfArgs) {
         raise(MmException({msg:`stackLength < numOfArgs`}))
     } else {
@@ -350,12 +350,12 @@ let applyCompressedProof = (
 
     let steps = compressedProofBlockToArray(compressedProofBlock)
     let hyps = getMandHyps(ctx, expr, ())
-    let hypLen = hyps->Js_array2.length
-    let hypLenPlusLabelsLen = hypLen + labels->Js_array2.length
+    let hypLen = hyps->Array.length
+    let hypLenPlusLabelsLen = hypLen + labels->Array.length
     let savedNodes = []
     steps->Belt_Array.forEach(step => {
         if (step == "Z") {
-            let stackLen = stack.nodes->Js_array2.length
+            let stackLen = stack.nodes->Array.length
             if (stackLen == 0) {
                 raise(MmException({msg:`Cannot execute 'Z' command because the stack is empty.`}))
             } else {
@@ -403,8 +403,8 @@ let verifyProof = (
             applyCompressedProof(~ctx, ~expr, ~stack, ~labels, ~compressedProofBlock, ~isDisjInCtx)
         | Uncompressed({labels}) => applyUncompressedProof(~ctx, ~stack, ~proofLabels=labels, ~isDisjInCtx)
     }
-    if (stack.nodes->Js_array2.length != 1) {
-        raise(MmException({msg:`stack->Js_array2.length is ${stack.nodes->Js_array2.length->Belt_Int.toString} but must be 1.`}))
+    if (stack.nodes->Array.length != 1) {
+        raise(MmException({msg:`stack->Array.length is ${stack.nodes->Array.length->Belt_Int.toString} but must be 1.`}))
     } else if (!(stack->stGetExpr(0)->exprEq(expr))) {
         raise(MmException({msg:
             `stack[0] != expr` 

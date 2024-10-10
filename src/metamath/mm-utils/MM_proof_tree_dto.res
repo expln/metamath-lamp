@@ -159,7 +159,7 @@ let createProofTable = (
     }
 
     let filterArgs = (args:array<int>, label:string):array<int> => {
-        if (essentialsOnly && args->Js_array2.length > 0) {
+        if (essentialsOnly && args->Array.length > 0) {
             let essentialArgs = []
             (ctx->Belt_Option.getExn->getFrameExn(label)).hyps->Array.forEachWithIndex((hyp,i) => {
                 if (hyp.typ == E) {

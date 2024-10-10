@@ -41,7 +41,7 @@ let symEq = (a,b) => {
 }
 
 let arrSymEq = (a:array<sym>,b:array<sym>):bool => {
-    a->Js_array2.length == b->Js_array2.length
+    a->Array.length == b->Array.length
     && a->Array.everyWithIndex((sa,i) => sa->symEq(b->Array.getUnsafe(i)))
 }
 
@@ -63,7 +63,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
         | None => Error("Cannot build a syntax tree from a node without proof.")
         | Some(AssertionWithErr(_)) => Error("Cannot build a syntax tree from a node with an AssertionWithErr proof.")
         | Some(VarType) | Some(Hypothesis(_)) => {
-            let maxI = expr->Js_array2.length - 1
+            let maxI = expr->Array.length - 1
             let children = Expln_utils_common.createArray(maxI)
             for i in 1 to maxI {
                 children[i-1] = Symbol(expr->Array.getUnsafe(i)->ctxIntToAsrtInt)
@@ -71,7 +71,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
             Ok({typ:expr->Array.getUnsafe(0), children})
         }
         | Some(Assertion({args, frame})) => {
-            let children = Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1)
+            let children = Expln_utils_common.createArray(frame.asrt->Array.length - 1)
             let err = ref(None)
             frame.asrt->Array.forEachWithIndex((s,i) => {
                 if (i > 0 && err.contents->Belt_Option.isNone) {
@@ -95,7 +95,7 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
 
 let isVar = (expr:asrtSyntaxTreeNode):option<int> => {
     @warning("-8")
-    switch expr.children->Js.Array2.length {
+    switch expr.children->Array.length {
         | 1 => {
             switch expr.children->Array.getUnsafe(0) {
                 | Subtree(_) => None
@@ -108,10 +108,10 @@ let isVar = (expr:asrtSyntaxTreeNode):option<int> => {
 
 let substituteInPlace = (expr:array<sym>, e:sym, subExpr:array<sym>):unit => {
     let i = ref(0)
-    while (i.contents < expr->Js_array2.length) {
+    while (i.contents < expr->Array.length) {
         if (expr->Array.getUnsafe(i.contents)->symEq(e)) {
             expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
-            i := i.contents + subExpr->Js_array2.length
+            i := i.contents + subExpr->Array.length
         } else {
             i := i.contents + 1
         }
@@ -176,10 +176,10 @@ let rec unify = (
                         continue := assignSubs(foundSubs, CtxVar(ctxVar), asrtExpr->getAllSymbols)
                     }
                     | None => {
-                        if (asrtExpr.children->Js.Array2.length != ctxExpr.children->Js.Array2.length) {
+                        if (asrtExpr.children->Array.length != ctxExpr.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = asrtExpr.children->Js.Array2.length-1
+                            let maxI = asrtExpr.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
                                 switch asrtExpr.children->Array.getUnsafe(i.contents) {
@@ -225,7 +225,7 @@ let unifyMayBePossible = (
             | None => {
                 switch ctxExpr->MM_syntax_tree.isVar(isMetavar) {
                     | Some(_) => true
-                    | None => asrtExpr.children->Js.Array2.length == ctxExpr.children->Js.Array2.length
+                    | None => asrtExpr.children->Array.length == ctxExpr.children->Array.length
                 }
             }
         }

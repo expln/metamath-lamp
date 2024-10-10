@@ -54,13 +54,13 @@ let setResults = (
     ~results: array<stmtsDto>,
     ~getFrmLabelBkgColor: string=>option<string>,
 ):state => {
-    let maxPage = Js.Math.ceil_int(results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
+    let maxPage = Js.Math.ceil_int(results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
         ...st,
         results:Some(results),
         resultsForRender:Some(
             results->Array.map(result => {
-                let numOfStmt = result.stmts->Js.Array2.length
+                let numOfStmt = result.stmts->Array.length
                 let lastStmtIdx = numOfStmt - 1
                 <Paper style=ReactDOM.Style.make(~padding="3px", ())>
                     <Col>
@@ -347,7 +347,7 @@ let make = (
 
     let rndResultButtons = () => {
         <Row>
-            <Button onClick={_=>actChooseSelected()} variant=#contained disabled={state.checkedResultsIdx->Js.Array2.length == 0}>
+            <Button onClick={_=>actChooseSelected()} variant=#contained disabled={state.checkedResultsIdx->Array.length == 0}>
                 {React.string("Choose selected")}
             </Button>
             <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
@@ -360,12 +360,12 @@ let make = (
             | Some(resultsForRender) => {
                 let items = []
                 let minI = (state.resultsPage - 1) * state.resultsPerPage
-                let maxI = Js.Math.min_int(minI + state.resultsPerPage - 1, resultsForRender->Js_array2.length-1)
+                let maxI = Js.Math.min_int(minI + state.resultsPerPage - 1, resultsForRender->Array.length-1)
                 for i in minI to maxI {
                     let resultForRender = resultsForRender->Array.getUnsafe(i)
                     items->Array.push(resultForRender)
                 }
-                let totalNumOfResults = resultsForRender->Js.Array2.length
+                let totalNumOfResults = resultsForRender->Array.length
                 <Col>
                     {rndResultButtons()}
                     {rndPagination(totalNumOfResults)}

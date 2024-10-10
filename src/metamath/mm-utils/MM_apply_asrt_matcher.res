@@ -20,7 +20,7 @@ let getArgToMatchPriv = (
     let res = ref(None)
     let i = ref(0)
     let eHypI = ref(0)
-    let maxI = frame.hyps->Js_array2.length - 1
+    let maxI = frame.hyps->Array.length - 1
     while (i.contents <= maxI && res.contents->Belt_Option.isNone) {
         let hyp = frame.hyps->Array.getUnsafe(i.contents)
         if (hyp.typ == E) {

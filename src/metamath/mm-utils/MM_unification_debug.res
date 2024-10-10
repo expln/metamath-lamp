@@ -12,7 +12,7 @@ type unifErr =
 
 let argsToString = (args:array<expr>, exprToStr:expr=>string):string => {
     args->Array.mapWithIndex((arg,i) => {
-        `${(i+1)->Belt.Int.toString}: ${if (arg->Js_array2.length == 0) { "?" } else { exprToStr(arg) } }`
+        `${(i+1)->Belt.Int.toString}: ${if (arg->Array.length == 0) { "?" } else { exprToStr(arg) } }`
     })->Array.joinUnsafe("\n")
 }
 
@@ -52,17 +52,17 @@ let unifErrToStr = (
                 ++ `${frmExprToStr(asrtExpr)}\n${arrow}\n${exprToStr(expr)}`
         }
         | NoUnifForArg({args,errArgIdx}) => {
-            let colon = if (args->Js.Array2.length == 0) {""} else {":"}
+            let colon = if (args->Array.length == 0) {""} else {":"}
             `Could not match essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}${colon}\n`
                 ++ argsToString(args, exprToStr)
         }
         | NewVarsAreDisabled({args,errArgIdx}) => {
-            let what = if (args->Js.Array2.length == errArgIdx) {
+            let what = if (args->Array.length == errArgIdx) {
                 "assertion"
             } else {
                 `essential hypothesis #${(errArgIdx+1)->Belt.Int.toString}`
             }
-            let colon = if (args->Js.Array2.length == 0) {""} else {":"}
+            let colon = if (args->Array.length == 0) {""} else {":"}
             `New variables are not allowed, but one had to be created`
                 ++ ` when unifying ${what}${colon}\n`
                 ++ argsToString(args, exprToStr)

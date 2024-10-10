@@ -714,7 +714,7 @@ describe("findPossibleSubs", _ => {
         )->Belt.Result.getExn
 
         //then
-        assertEq(possibleSubs->Js.Array2.length, 1)
+        assertEq(possibleSubs->Array.length, 1)
         let expectedDisj = disjMake()
         expectedDisj->disjAddPair(x,z)
         assertEq(
@@ -755,7 +755,7 @@ describe("findPossibleSubs", _ => {
             true,
         )->Belt.Result.getExn
 
-        assertEq(possibleSubs->Js.Array2.length, 1)
+        assertEq(possibleSubs->Array.length, 1)
         assertEqMsg(
             ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
@@ -788,7 +788,7 @@ describe("findPossibleSubs", _ => {
         )->Belt.Result.getExn
 
         //then
-        assertEq(possibleSubs->Js.Array2.length, 1)
+        assertEq(possibleSubs->Array.length, 1)
         assertEqMsg(
             ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
@@ -830,7 +830,7 @@ describe("findPossibleSubs", _ => {
         )->Belt.Result.getExn
 
         //then
-        assertEq(possibleSubs->Js.Array2.length, 2)
+        assertEq(possibleSubs->Array.length, 2)
         assertEq(
             ctx->wrkSubsToStr(possibleSubs->Array.getUnsafe(0)),
             ctx->wrkSubsToStr(
@@ -886,7 +886,7 @@ describe("findPossibleSubs", _ => {
         )->Belt.Result.getExn
 
         //then
-        assertEq( possibleSubs->Js_array2.length, 1 )
+        assertEq( possibleSubs->Array.length, 1 )
     })
 })
 

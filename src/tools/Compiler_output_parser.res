@@ -112,7 +112,7 @@ let parseCompilerOutput = (~compilerOutputFilePath:string):unit => {
                 ->Array.filter(Belt_Option.isSome(_))
                 ->Array.map(Belt_Option.getExn(_))
                 ->Array.mapWithIndex((match,i) => parseMatch(~match, ~ord=i))
-            let groups = Belt_HashMapInt.make(~hintSize=matches->Js_array2.length)
+            let groups = Belt_HashMapInt.make(~hintSize=matches->Array.length)
             matches->Array.forEach(warning => addToGroup(~groups, ~warning))
             groups->printToStr->writeStringToFile(compilerOutputFilePath ++ ".parsed")
         }

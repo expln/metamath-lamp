@@ -238,7 +238,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist16")
 
-        let st = st->toggleStmtChecked((st.stmts->Array.getUnsafe(st.stmts->Js.Array2.length-1)).id)
+        let st = st->toggleStmtChecked((st.stmts->Array.getUnsafe(st.stmts->Array.length-1)).id)
         let (st,s2) = st->addNewStmt(())
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)

@@ -22,7 +22,7 @@ let terminateWorker = () => {
         | Some(webworker) => {
             webworker["terminate"](.)
             webworkerRef.contents = None
-            clients->Js.Array2.spliceInPlace(~pos=0, ~remove=clients->Js_array2.length, ~add=[])->ignore
+            clients->Js.Array2.spliceInPlace(~pos=0, ~remove=clients->Array.length, ~add=[])->ignore
         }
     }
 }
@@ -42,7 +42,7 @@ let regClient = (~callback:clientCallback, ~enableTrace:bool) => {
 
 let unregClient = id => {
     let i = ref(0)
-    while (i.contents < clients->Js_array2.length) {
+    while (i.contents < clients->Array.length) {
         if ((clients->Array.getUnsafe(i.contents)).id == id) {
             clients->Js_array2.removeCountInPlace(~pos=i.contents, ~count=1)->ignore
         } else {

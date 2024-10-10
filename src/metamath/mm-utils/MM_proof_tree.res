@@ -73,7 +73,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
             switch b {
                 | Assertion({ args:bArgs, frame:bFrame, }) => {
                     aFrame.label == bFrame.label
-                    && aArgs->Js.Array2.length == bArgs->Js.Array2.length
+                    && aArgs->Array.length == bArgs->Array.length
                     && aArgs->Array.everyWithIndex((aArg,idx) => aArg.id == (bArgs->Array.getUnsafe(idx)).id)
                 }
                 | _ => false
@@ -314,8 +314,8 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
             if (jstfLabel != frame.label) {
                 false
             } else {
-                let jLen = jstfArgs->Js.Array2.length
-                let hLen = frame.hyps->Js.Array2.length
+                let jLen = jstfArgs->Array.length
+                let hLen = frame.hyps->Array.length
                 if (jLen > hLen) {
                     false
                 } else {
@@ -348,12 +348,12 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
 
 let ptPrintStats = ( tree:proofTree ):string => {
     let nodes = tree.nodes->Belt_HashMap.toArray->Array.map(((_,node)) => node)
-    let nodeCnt = nodes->Js.Array2.length
+    let nodeCnt = nodes->Array.length
     let nodeCntFl = nodeCnt->Belt.Int.toFloat
     Js.Console.log2(`nodeCnt`, nodeCnt)
-    let provedNodeCnt = nodes->Array.filter(node => node.proof->Belt_Option.isSome)->Js.Array2.length
+    let provedNodeCnt = nodes->Array.filter(node => node.proof->Belt_Option.isSome)->Array.length
     Js.Console.log3(`provedNodeCnt`, provedNodeCnt, Common.floatToPctStr(provedNodeCnt->Belt_Int.toFloat /. nodeCntFl))
-    let invalidFloatingCnt = nodes->Array.filter(node => node.isInvalidFloating)->Js.Array2.length
+    let invalidFloatingCnt = nodes->Array.filter(node => node.isInvalidFloating)->Array.length
     Js.Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
     switch tree.ptDbg {
         | None => "Debug is off"
@@ -361,10 +361,10 @@ let ptPrintStats = ( tree:proofTree ):string => {
             let unprovedNodes = nodes
                 ->Array.filter(node => 
                     node.proof->Belt_Option.isNone && !node.isInvalidFloating
-                    // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
+                    // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Array.length) > 0
                 )
             unprovedNodes->Expln_utils_common.sortInPlaceWith((a,b) =>
-                Belt_Float.fromInt(a.expr->Js_array2.length - b.expr->Js_array2.length)
+                Belt_Float.fromInt(a.expr->Array.length - b.expr->Array.length)
             )->ignore
             let unprovedExprs = unprovedNodes->Array.map(node => node.expr)
             unprovedExprs->Array.map(dbg.exprToStr)->Array.joinUnsafe("\n")

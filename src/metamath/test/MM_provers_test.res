@@ -30,7 +30,7 @@ let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     let proofTreeDto = proofTreeToDto(proofTree, [expr])
     let node = proofTreeDto.nodes->Array.find(node => node.expr->exprEq(expr))->Belt.Option.getExn
     let proofTable = createProofTable(~tree=proofTreeDto, ~root=node, ())
-    let actualProof = createProof(ctx->getMandHyps(node.expr, ()), proofTable, proofTable->Js_array2.length-1)
+    let actualProof = createProof(ctx->getMandHyps(node.expr, ()), proofTable, proofTable->Array.length-1)
 
     //then
     try {

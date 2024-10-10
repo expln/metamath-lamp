@@ -78,7 +78,7 @@ module rec ProofNodeDtoCmp: {
         let node = tree.nodes->Array.getUnsafe(nodeIdx)
 
         let getParents = () => {
-            if (node.parents->Js.Array2.length == 0) {
+            if (node.parents->Array.length == 0) {
                 switch node.proof {
                     | None => []
                     | Some(src) => [src]
@@ -111,7 +111,7 @@ module rec ProofNodeDtoCmp: {
             <span 
                 style=ReactDOM.Style.make(
                     ~fontSize="13px", 
-                    ~opacity={if (parents->Js.Array2.length == 0) {"0.0"} else {"1.0"}}, 
+                    ~opacity={if (parents->Array.length == 0) {"0.0"} else {"1.0"}}, 
                     ()
                 )>
                 {React.string(char)}
@@ -147,11 +147,11 @@ module rec ProofNodeDtoCmp: {
         let isAsrtWithoutHyps = (src) => {
             switch src {
                 | VarType | Hypothesis(_) => false
-                | Assertion({args}) => args->Js_array2.length == 0
+                | Assertion({args}) => args->Array.length == 0
                 | AssertionWithErr({args, err}) => {
                     switch err {
                         | UnifErr | DisjCommonVar(_) | Disj(_) | UnprovedFloating(_) => {
-                            args->Js_array2.length == 0
+                            args->Array.length == 0
                         }
                         | NoUnifForAsrt(_) | NoUnifForArg(_) | NewVarsAreDisabled(_) | TooManyCombinations(_) => false
                     }
@@ -293,7 +293,7 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndSrcs = () => {
-            if (parents->Js.Array2.length == 0) {
+            if (parents->Array.length == 0) {
                 React.string("Sources are not set.")
             } else {
                 <table>

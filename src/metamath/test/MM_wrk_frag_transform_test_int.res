@@ -91,7 +91,7 @@ let testTransform = (
     let param = {"step":stepJson}
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
     let filteredTransforms = allTransforms->Array.filter(tr => tr.displayName(param) == transformName)
-    assertEqMsg(filteredTransforms->Js.Array2.length, 1, "filteredTransforms->Js.Array2.length")
+    assertEqMsg(filteredTransforms->Array.length, 1, "filteredTransforms->Array.length")
     let transform = filteredTransforms->Array.getUnsafe(0)
     assertEqMsg(transform.canApply(param), true, "transform.canApply(param)")
 

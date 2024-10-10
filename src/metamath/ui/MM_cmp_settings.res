@@ -197,7 +197,7 @@ let addWebSrcSetting = st => {
 
 let validateAndCorrectParens = (st:settingsState):settingsState => {
     let newParens = st.parens->Js_string2.trim
-    let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Js.Array2.length, 2) == 0) {
+    let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Array.length, 2) == 0) {
         None
     } else {
         Some("Number of parentheses must be even.")
@@ -312,7 +312,7 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
     let distinctTypeIds = Belt_SetInt.fromArray(
         validatedTypeSettings->Array.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getExn)
     )
-    let validatedTypeSettings = if (distinctTypeIds->Belt_SetInt.size == validatedTypeSettings->Js_array2.length) {
+    let validatedTypeSettings = if (distinctTypeIds->Belt_SetInt.size == validatedTypeSettings->Array.length) {
         validatedTypeSettings
     } else {
         let maxId = distinctTypeIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
@@ -409,7 +409,7 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
     let distinctIds = Belt_SetInt.fromArray(
         validatedWebSrcSettings->Array.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
     )
-    let validatedWebSrcSettings = if (distinctIds->Belt_SetInt.size == validatedWebSrcSettings->Js_array2.length) {
+    let validatedWebSrcSettings = if (distinctIds->Belt_SetInt.size == validatedWebSrcSettings->Array.length) {
         validatedWebSrcSettings
     } else {
         let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
@@ -791,9 +791,9 @@ let eqState = (st1, st2) => {
         && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.autoMergeStmts == st2.autoMergeStmts
         && st1.autoUnifyAll == st2.autoUnifyAll
-        && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
+        && st1.typeSettings->Array.length == st2.typeSettings->Array.length
         && st1.typeSettings->Array.everyWithIndex((ts1,i) => eqTypeSetting(ts1, st2.typeSettings->Array.getUnsafe(i)))
-        && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
+        && st1.webSrcSettings->Array.length == st2.webSrcSettings->Array.length
         && st1.webSrcSettings->Array.everyWithIndex((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings->Array.getUnsafe(i)))
         && st1.longClickEnabled == st2.longClickEnabled
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr

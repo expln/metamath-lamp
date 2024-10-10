@@ -60,10 +60,10 @@ describe("proveSyntaxTypes", _ => {
                     switch typToNextLocVarIdx->Belt_HashMapInt.get(typ) {
                         | None => Js.Exn.raiseError("None == typToNextLocVarIdx->Belt_HashMapInt.get(typ)")
                         | Some(idx) => {
-                            if (locVars->Js_array2.length <= idx) {
+                            if (locVars->Array.length <= idx) {
                                 let newVar = createNewVar(typ)
                                 locVars->Array.push(newVar)
-                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Js_array2.length)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Array.length)
                                 newVar
                             } else {
                                 let existingVar = locVars->Array.getUnsafe(idx)
@@ -122,7 +122,7 @@ describe("proveSyntaxTypes", _ => {
         // let asrtExprStr = asrtExprs->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
         // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
 
-        let numOfExpr = asrtExprsToProve->Js.Array2.length
+        let numOfExpr = asrtExprsToProve->Array.length
         let from = 0
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprsToProve->Js.Array2.slice(~start=from,~end_=to_)
@@ -132,7 +132,7 @@ describe("proveSyntaxTypes", _ => {
 
         let totalSize =exprsToSyntaxProve->Js_array2.reduce(
             (size,expr) => {
-                size + expr->Js_array2.length
+                size + expr->Array.length
             },
             0
         )
@@ -173,7 +173,7 @@ describe("proveSyntaxTypes", _ => {
             ->Array.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
         // let unprovedAsrtExprStr = unprovedAsrtExprs->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
-        assertEqMsg(unprovedAsrtExprs->Js.Array2.length, 0, "unprovedAsrtExprs->Js.Array2.length = 0")
+        assertEqMsg(unprovedAsrtExprs->Array.length, 0, "unprovedAsrtExprs->Array.length = 0")
 
         let ctxIntToAsrtInt = label => {
             let ctxVarToAsrtVar = (asrtExprs->Belt_HashMapString.get(label)->Belt.Option.getExn)["ctxVarToAsrtVar"]

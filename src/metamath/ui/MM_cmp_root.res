@@ -208,7 +208,7 @@ let make = () => {
 
     React.useEffect0(()=>{
         updateTabs(st => {
-            if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
+            if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings, ())
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, 

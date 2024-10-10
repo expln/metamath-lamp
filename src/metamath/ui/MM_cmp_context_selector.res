@@ -88,7 +88,7 @@ let deleteSingleScope = (st,id,~defaultSrcType:mmFileSourceType) => {
         ...st, 
         singleScopes:st.singleScopes->Belt.Array.keep(ss => ss.id != id)
     }
-    if (st.singleScopes->Js_array2.length == 0) {
+    if (st.singleScopes->Array.length == 0) {
         addSingleScope(st, ~defaultSrcType)
     } else {
         st
@@ -112,7 +112,7 @@ let getNameFromFileSrc = (src:option<mmFileSource>):option<string> => {
 }
 
 let getSummary = st => {
-    if (st.singleScopes->Js.Array2.length == 1 && (st.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isNone) {
+    if (st.singleScopes->Array.length == 1 && (st.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isNone) {
         "No Metamath database is loaded; please select a database to load."
     } else {
         let filesInfo = st.singleScopes->Array.map(ss => {
@@ -181,12 +181,12 @@ let isSingleScopeSame = (ss:mmSingleScope,srcDto:mmCtxSrcDto):bool => {
 }
 
 let isScopeSame = (singleScopes: array<mmSingleScope>, srcs: array<mmCtxSrcDto>):bool => {
-    singleScopes->Js.Array2.length == srcs->Js_array2.length
+    singleScopes->Array.length == srcs->Array.length
         && singleScopes->Array.everyWithIndex((ss,i) => isSingleScopeSame(ss, srcs->Array.getUnsafe(i)))
 }
 
 let canLoadContext = (srcs: array<mmCtxSrcDto>):bool => {
-    srcs->Js_array2.length > 0 && srcs->Array.every(src => {
+    srcs->Array.length > 0 && srcs->Array.every(src => {
         src.ast->Belt.Option.isSome || src.typ == webTypStr
     })
 }
@@ -252,7 +252,7 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
 }
 
 let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ssIdx:int):promise<result<mmScope,string>> => {
-    if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
+    if (ssIdx == mmScope.singleScopes->Array.length) {
         promise(rslv => rslv(Ok(mmScope)))
     } else {
         let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
@@ -272,7 +272,7 @@ let rec parseMmFileForSingleScopeRec = (mmScope:mmScope, ~modalRef:modalRef, ~ss
 }
 
 let scopeIsEmpty = (singleScopes: array<mmSingleScope>):bool => 
-    singleScopes->Js.Array2.length == 1 && (singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isNone
+    singleScopes->Array.length == 1 && (singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isNone
 
 let loadMmContext = (
     ~singleScopes: array<mmSingleScope>, 
@@ -294,7 +294,7 @@ let loadMmContext = (
                         let stopAfter = if (ss.readInstr == StopAfter) {ss.label} else {None}
                         let label = stopBefore->Belt_Option.getWithDefault(
                             stopAfter->Belt_Option.getWithDefault(
-                                ss.allLabels->Belt_Array.get(ss.allLabels->Js_array2.length-1)->Belt_Option.getWithDefault("")
+                                ss.allLabels->Belt_Array.get(ss.allLabels->Array.length-1)->Belt_Option.getWithDefault("")
                             )
                         )
                         {
@@ -383,7 +383,7 @@ let rec loadMmFileTextForSingleScope = (
     ~loadedTexts:Belt_HashMapString.t<string>,
     ~ssIdx:int,
 ):promise<result<mmScope,string>> => {
-    if (ssIdx == mmScope.singleScopes->Js.Array2.length) {
+    if (ssIdx == mmScope.singleScopes->Array.length) {
         promise(rslv => rslv(Ok(mmScope)))
     } else {
         let ss = mmScope.singleScopes->Array.getUnsafe(ssIdx)
@@ -457,7 +457,7 @@ let makeMmScopeFromSrcDtos = (
     let mmScope = srcs->Js_array2.reduce(
         (mmScope, src) => {
             let mmScope = mmScope->addSingleScope(~defaultSrcType=src.typ->mmFileSourceTypeFromStr)
-            let ssId = (mmScope.singleScopes->Array.getUnsafe(mmScope.singleScopes->Js_array2.length-1)).id
+            let ssId = (mmScope.singleScopes->Array.getUnsafe(mmScope.singleScopes->Array.length-1)).id
             let mmScope = mmScope->updateSingleScope( ssId,setFileSrc(_,Some(srcDtoToFileSrc(~src, ~webSrcSettings))) )
             let mmScope = mmScope->updateSingleScope( ssId,setAst(_,src.ast->Belt_Option.map(ast => Ok(ast))))
             let mmScope = mmScope->updateSingleScope( ssId,setAllLabels(_,src.allLabels))
@@ -546,7 +546,7 @@ let make = (
     }, [state.expanded])
 
     let rndSingleScopeSelectors = () => {
-        let renderDeleteButton = state.singleScopes->Js.Array2.length > 1 || (state.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isSome
+        let renderDeleteButton = state.singleScopes->Array.length > 1 || (state.singleScopes->Array.getUnsafe(0)).fileSrc->Belt_Option.isSome
         state.singleScopes->Array.map(singleScope => {
             <MM_cmp_context_selector_single 
                 key=singleScope.id
@@ -565,7 +565,7 @@ let make = (
                 onUrlBecomesTrusted
                 srcType=singleScope.srcType
                 onSrcTypeChange={srcType => {
-                    if (state.singleScopes->Js.Array2.length == 1) {
+                    if (state.singleScopes->Array.length == 1) {
                         setDefaultSrcTypeStr(_ => srcType->mmFileSourceTypeToStr)
                     }
                     setState(updateSingleScope(_,singleScope.id,setSrcType(_,srcType)))

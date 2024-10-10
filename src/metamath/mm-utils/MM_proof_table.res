@@ -54,7 +54,7 @@ let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
     let srcsLabels = tbl->Array.map(r => r.proof->exprSourceToLabelStr)
     let exprs = tbl->Array.map(r => ctx->ctxIntsToStrExn(r.expr))
 
-    let maxNumOfDigits = tbl->Js_array2.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
+    let maxNumOfDigits = tbl->Array.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
     let numColWidth = maxNumOfDigits + 1
     let argsColWidth = maxLength(srcsArgs) + 1
     let labelColWidth = maxLength(srcsLabels) + 1
@@ -122,11 +122,11 @@ let collectReusedIdxs = (tbl,rootIdx):Belt_HashSetInt.t => {
 }
 
 let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proof => {
-    let tblLen = tbl->Js_array2.length
+    let tblLen = tbl->Array.length
     if (tblLen <= rootIdx) {
         raise(MmException({msg:`tblLen <= rootIdx`}))
     }
-    let mandHypLen = mandHyps->Js.Array2.length
+    let mandHypLen = mandHyps->Array.length
     let mandHypLabelToInt = Belt_HashMapString.fromArray(
         mandHyps->Array.mapWithIndex(({label}, i) => (label, i+1))
     )
@@ -140,7 +140,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
                     | Some(i) => i
                     | None => {
                         labels->Array.push(label)
-                        let res = mandHypLen + labels->Js.Array2.length
+                        let res = mandHypLen + labels->Array.length
                         labelToIntMap->Belt_HashMapString.set(label, res)
                         res
                     }
@@ -166,7 +166,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
             proofSteps->Array.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))
         }
     )
-    let labelsLastIdx = mandHypLen + labels->Js.Array2.length
+    let labelsLastIdx = mandHypLen + labels->Array.length
     Compressed({
         labels,
         compressedProofBlock: proofSteps->Array.map(i => {

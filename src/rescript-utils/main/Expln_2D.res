@@ -149,14 +149,14 @@ module Std2D: Utils2D = {
     let bndWidth = (b:boundaries):float => b.maxX -. b.minX
     let bndHeight = (b:boundaries):float => b.maxY -. b.minY
     let bndFromPoints = (ps:array<point>):boundaries => {
-        if (ps->Js.Array2.length == 0) {
+        if (ps->Array.length == 0) {
             exn("Cannot create boundaries from an empty array of points.")
         }
         let minX = ref((ps->Array.getUnsafe(0)).x)
         let minY = ref((ps->Array.getUnsafe(0)).y)
         let maxX = ref(minX.contents)
         let maxY = ref(minY.contents)
-        for i in 1 to ps->Js.Array2.length - 1 {
+        for i in 1 to ps->Array.length - 1 {
             let p = ps->Array.getUnsafe(i)
             minX := Js.Math.min_float(minX.contents, p.x)
             minY := Js.Math.min_float(minY.contents, p.y)
@@ -166,7 +166,7 @@ module Std2D: Utils2D = {
         {minX:minX.contents, minY:minY.contents, maxX:maxX.contents, maxY:maxY.contents}
     }
     let bndFromVectors = (vs:array<vector>): boundaries => {
-        if (vs->Js.Array2.length == 0) {
+        if (vs->Array.length == 0) {
             exn("Cannot create boundaries from an empty array of vectors.")
         }
         let p1 = vs->Array.getUnsafe(0)->vecBegin
@@ -175,7 +175,7 @@ module Std2D: Utils2D = {
         let minY = ref(Js.Math.min_float(p1.y, p2.y))
         let maxX = ref(Js.Math.max_float(p1.x, p2.x))
         let maxY = ref(Js.Math.max_float(p1.y, p2.y))
-        for i in 1 to vs->Js.Array2.length - 1 {
+        for i in 1 to vs->Array.length - 1 {
             let p1 = vs->Array.getUnsafe(i)->vecBegin
             let p2 = vs->Array.getUnsafe(i)->vecEnd
             minX := Js.Math.min_float(minX.contents, Js.Math.min_float(p1.x, p2.x))
@@ -198,7 +198,7 @@ module Std2D: Utils2D = {
         maxY:Js.Math.max_float(b1.maxY,b2.maxY),
     }
     let bndAddPoints = (b:boundaries, ps:array<point>):boundaries => {
-        if (ps->Js.Array2.length == 0) {
+        if (ps->Array.length == 0) {
             b
         } else {
             b->bndMerge(bndFromPoints(ps))
@@ -267,11 +267,11 @@ module Std2D: Utils2D = {
         }
     }
     let bndMergeAll = (bs:array<boundaries>):boundaries => {
-        if (bs->Js.Array2.length == 0) {
+        if (bs->Array.length == 0) {
             exn("Cannot merge empty array of boundaries.")
         } else {
             let b = ref(bs->Array.getUnsafe(0))
-            for i in 1 to bs->Js.Array2.length - 1 {
+            for i in 1 to bs->Array.length - 1 {
                 b := b.contents->bndMerge(bs->Array.getUnsafe(i))
             }
             b.contents

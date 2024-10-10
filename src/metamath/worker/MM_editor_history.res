@@ -248,8 +248,8 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     })
 
     let aMod = ref(a->applyDiff(diffs))
-    let aModLen = aMod.contents.stmts->Js_array2.length
-    let bLen = b.stmts->Js_array2.length
+    let aModLen = aMod.contents.stmts->Array.length
+    let bLen = b.stmts->Array.length
     if (aModLen != bLen) {
         raise(MmException({msg:`aModLen != bLen`}))
     }
@@ -298,7 +298,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
         diffs->Array.push(Disj(b.disjText))
     }
 
-    if (diffs->Js.Array2.length > 1 && diffs->allStatusUnset) {
+    if (diffs->Array.length > 1 && diffs->allStatusUnset) {
         [StmtStatusUnset({ stmtIds:diffs->getStmtIdsFromStatusUnset})]
     } else {
         diffs
@@ -315,11 +315,11 @@ let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
 }
 
 let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDiff>>, maxLength:int) => {
-    if (diff->Js_array2.length == 0) {
-        raise(MmException({msg:`diff->Js_array2.length == 0`}))
+    if (diff->Array.length == 0) {
+        raise(MmException({msg:`diff->Array.length == 0`}))
     }
-    if (prev->Js_array2.length == 0) {
-        raise(MmException({msg:`prev->Js_array2.length == 0`}))
+    if (prev->Array.length == 0) {
+        raise(MmException({msg:`prev->Array.length == 0`}))
     }
     [ diff->Array.concat(prev->Array.getUnsafe(0)) ]->Array.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
 }
@@ -336,10 +336,10 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
             }
         } else {
             let diff = newHead->findDiff(ht.head)
-            if (diff->Js.Array2.length == 0 || diff->allStatusSet) {
+            if (diff->Array.length == 0 || diff->allStatusSet) {
                 ht
             } else if (diff->allStatusUnset) {
-                if (ht.prev->Js_array2.length == 0) {
+                if (ht.prev->Array.length == 0) {
                     {
                         ...ht,
                         head: newHead,
@@ -351,7 +351,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
                         prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
                     }
                 }
-            } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev->Array.getUnsafe(0)->allMoveAndStatusSet) {
+            } else if (diff->allMoveAndStatusSet && ht.prev->Array.length > 0 && ht.prev->Array.getUnsafe(0)->allMoveAndStatusSet) {
                 {
                     ...ht,
                     head: newHead,
@@ -381,11 +381,11 @@ let editorHistSetMaxLength = (ht:editorHistory, maxLength:int):editorHistory => 
 }
 
 let editorHistIsEmpty = (ht:editorHistory):bool => {
-    ht.prev->Js_array2.length == 0
+    ht.prev->Array.length == 0
 }
 
 let editorHistLength = (ht:editorHistory):int => {
-    ht.prev->Js_array2.length
+    ht.prev->Array.length
 }
 
 let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): result<editorState,string> => {
@@ -773,7 +773,7 @@ let testApplyDiff = (
 ):unit => {
     //given
     let diff = initState->findDiff(initState->changes)
-    assertEq(diff->Js.Array2.length > 0, true)
+    assertEq(diff->Array.length > 0, true)
 
     //when
     let actualEndState = initState->applyDiff(diff)
