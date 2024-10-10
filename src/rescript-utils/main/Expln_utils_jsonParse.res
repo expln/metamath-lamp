@@ -8,7 +8,7 @@ type jsonAny =
     | JsonNum(float, path)
     | JsonStr(string, path)
     | JsonArr(array<JSON.t>, path)
-    | JsonObj(Js_dict.t<JSON.t>, path)
+    | JsonObj(Dict.t<JSON.t>, path)
 
 let rootPath = list{}
 
@@ -103,7 +103,7 @@ let anyToJson = (jsonAny):result<option<JSON.t>,string> => {
 let getByPath = (obj:jsonAny, attrName: string):result<option<jsonAny>,string> => {
     switch obj {
         | JsonObj(dict,path) => {
-            switch dict->Js_dict.get(attrName) {
+            switch dict->Dict.get(attrName) {
                 | Some(json) => Ok(Some(jsonToAny(json,list{attrName, ...path})))
                 | None => Ok(None)
             }

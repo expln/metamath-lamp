@@ -40,7 +40,7 @@ let rec syntaxTreeToJson = (node:syntaxTreeNode):JSON.t => {
                 }
             })->JSON.Encode.array
         )
-    ]->Js.Dict.fromArray->JSON.Encode.object
+    ]->Dict.fromArray->JSON.Encode.object
 }
 
 let buildSyntaxTreeForTest = (

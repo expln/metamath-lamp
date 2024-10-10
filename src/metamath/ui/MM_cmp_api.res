@@ -33,7 +33,7 @@ let errResp = (msg:string):apiResp => {
 }
 
 let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
-    Js_dict.fromArray([
+    Dict.fromArray([
         ("id", node.id->Belt.Int.toFloat->JSON.Encode.float),
         ("nodeType", "expr"->Js_json.string),
         ("exprType", ctxConstIntToSymExn(node.typ)->Js_json.string),
@@ -44,7 +44,7 @@ let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>st
     switch node {
         | Subtree(subtree) => syntaxTreeNodeToJson(subtree, ctxConstIntToSymExn)
         | Symbol({id, sym, isVar}) => {
-            Js_dict.fromArray([
+            Dict.fromArray([
                 ("id", id->Belt.Int.toFloat->JSON.Encode.float),
                 ("nodeType", "sym"->Js_json.string),
                 ("sym", sym->Js_json.string),
@@ -58,7 +58,7 @@ let syntaxTreeToJson = (stmt:userStmt, ctxConstIntToSymExn:int=>string):JSON.t =
     switch stmt.cont {
         | Text(_) => JSON.Encode.null
         | Tree({exprTyp, root}) => {
-            Js_dict.fromArray([
+            Dict.fromArray([
                 ("exprType", exprTyp->Js_json.string),
                 ("root", syntaxTreeNodeToJson(root, ctxConstIntToSymExn)),
             ])->JSON.Encode.object
@@ -83,7 +83,7 @@ let getSelectedFragmentId = (stmt:userStmt):JSON.t => {
 }
 
 let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t => {
-    Js_dict.fromArray([
+    Dict.fromArray([
         ("id", stmt.id->Js_json.string),
         ("status", 
             switch stmt.proofStatus {
@@ -111,7 +111,7 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t
                     switch jstf {
                         | None => JSON.Encode.null
                         | Some(jstf) => {
-                            Js_dict.fromArray([
+                            Dict.fromArray([
                                 ("args", jstf.args->Array.map(JSON.Encode.string(_))->JSON.Encode.array),
                                 ("asrt", jstf.label->Js_json.string),
                             ])->JSON.Encode.object
@@ -132,7 +132,7 @@ let stmtToJson = (stmt:userStmt, ctxConstIntToSymExn:option<int=>string>):JSON.t
             switch stmt.stmtErr {
                 | None => JSON.Encode.null
                 | Some({ code, msg }) => {
-                    Js_dict.fromArray([
+                    Dict.fromArray([
                         ("code", code->Belt.Int.toFloat->JSON.Encode.float),
                         ("msg", msg->Js_json.string),
                     ])->JSON.Encode.object
@@ -162,7 +162,7 @@ let getEditorState = (~state:editorState):promise<result<JSON.t,string>> => {
         let stmtIdToLabel = Belt_HashMapString.fromArray(
             state.stmts->Array.map(stmt => (stmt.id, stmt.label))
         )
-        let stateJson = Js_dict.fromArray([
+        let stateJson = Dict.fromArray([
             ("descr", state.descr->Js_json.string),
             ("varsText", state.varsText->Js_json.string),
             ("varsErr", state.varsErr->Belt.Option.map(Js_json.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
@@ -906,13 +906,13 @@ let editorBuildSyntaxTrees = (
                                     syntaxTrees->Array.map(syntaxTree => {
                                         switch syntaxTree {
                                             | Error(msg) => {
-                                                Js_dict.fromArray([
+                                                Dict.fromArray([
                                                     ("err", msg->Js_json.string),
                                                     ("tree", JSON.Encode.null),
                                                 ])->JSON.Encode.object 
                                             }
                                             | Ok(syntaxTree) => {
-                                                Js_dict.fromArray([
+                                                Dict.fromArray([
                                                     ("err", JSON.Encode.null),
                                                     ("tree", syntaxTreeNodeToJson(syntaxTree, ctxIntToSymExn(wrkCtx, _))),
                                                 ])->JSON.Encode.object 
