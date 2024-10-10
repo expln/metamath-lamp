@@ -467,11 +467,11 @@ let frameIsAllowed = (frame:frame, frameRestrict:frameRestrict):bool => {
 }
 
 let getLocalVars: mmContext => array<string> = ctx => {
-    ctx.contents.vars->Js_array2.copy
+    ctx.contents.vars->Array.copy
 }
 
 let getLocalHyps: mmContext => array<hypothesis> = ctx => {
-    ctx.contents.hyps->Js_array2.copy
+    ctx.contents.hyps->Array.copy
 }
 
 let getNumOfVars = ctx => {
@@ -1386,13 +1386,13 @@ let renumberConstsInExpr = (constRenum:Belt_HashMapInt.t<int>, expr:expr):unit =
 
 let moveConstsToBegin = (ctx:mmContext, firstConsts:array<int>):unit => {
     let rootCtx = ctx.contents.root->Belt_Option.getExn
-    let newConstOrder:array<int> = firstConsts->Js_array2.copy
+    let newConstOrder:array<int> = firstConsts->Array.copy
     for i in -1 downto -(rootCtx.consts->Js_array2.length-1) {
         if (!(newConstOrder->Js_array2.includes(i))) {
             newConstOrder->Array.push(i)
         }
     }
-    let oldConstOrder:array<string> = rootCtx.consts->Js.Array2.copy
+    let oldConstOrder:array<string> = rootCtx.consts->Array.copy
     let constRenum = Belt_HashMapInt.make(~hintSize=rootCtx.consts->Js.Array2.length)
     newConstOrder->Js_array2.forEachi((symOldInt,i) => {
         let sym = oldConstOrder->Array.getUnsafe(-symOldInt)

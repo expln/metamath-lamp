@@ -191,7 +191,7 @@ let iterateSubstitutionsWithWorkVars = (
     ~continue: () => contunieInstruction
 ):contunieInstruction => {
     let initialNumOfWorkVars = workVars.newVars->Js_array2.length
-    let predefinedSubs = frm.subs.isDefined->Js_array2.copy
+    let predefinedSubs = frm.subs.isDefined->Array.copy
 
     let nextVar = ref(workVars.maxVar + 1 + workVars.newVars->Js_array2.length)
     let frmVars = []
@@ -599,8 +599,8 @@ let applyAssertions = (
                                         ) {
                                             | None => {
                                                 let res = {
-                                                    newVars: workVars.newVars->Js.Array2.copy,
-                                                    newVarTypes: workVars.newVarTypes->Js.Array2.copy,
+                                                    newVars: workVars.newVars->Array.copy,
+                                                    newVarTypes: workVars.newVarTypes->Array.copy,
                                                     frame: frm.frame,
                                                     subs: subsClone(frm.subs),
                                                     err:None
@@ -617,8 +617,8 @@ let applyAssertions = (
                                                     Continue
                                                 } else {
                                                     let res = {
-                                                        newVars: workVars.newVars->Js.Array2.copy,
-                                                        newVarTypes: workVars.newVarTypes->Js.Array2.copy,
+                                                        newVars: workVars.newVars->Array.copy,
+                                                        newVarTypes: workVars.newVarTypes->Array.copy,
                                                         frame: frm.frame,
                                                         subs: subsClone(frm.subs),
                                                         err:Some(err)

@@ -402,7 +402,7 @@ let moveCheckedStmts = (st:editorState,up):editorState => {
         st
     } else {
         let len = st.stmts->Js_array2.length
-        let res = st.stmts->Js.Array2.copy
+        let res = st.stmts->Array.copy
         if up {
             let maxI = len-2
             for i in 0 to maxI {
@@ -518,7 +518,7 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
     if (st.checkedStmtIds->Js.Array2.length == 0) {
         None
     } else {
-        st.stmts->Js_array2.copy->Js.Array2.reverseInPlace->Js_array2.find(stmt => isStmtChecked(st,stmt.id))
+        st.stmts->Array.copy->Js.Array2.reverseInPlace->Js_array2.find(stmt => isStmtChecked(st,stmt.id))
     }
 }
 
@@ -898,7 +898,7 @@ let stableSortStmts = (st, comp: (userStmt,userStmt)=>int) => {
     if (stmtsLen < 2) {
         st
     } else {
-        let newStmts = st.stmts->Js.Array2.copy
+        let newStmts = st.stmts->Array.copy
         let changed = ref(true)
         let e = ref(stmtsLen - 2)
         while (e.contents >= 0 && changed.contents) {
@@ -2897,7 +2897,7 @@ let textToSyntaxProofTable = (
             | Some(unrecognizedSymbol) => Error(`Unrecognized symbol: '${unrecognizedSymbol}'`)
             | None => {
                 let lastSyntaxTypeInt = lastSyntaxType->Belt.Option.flatMap(ctxSymToInt(wrkCtx, _))->Belt.Option.getWithDefault(0)
-                let syntaxTypes = syntaxTypes->Js.Array2.copy->Expln_utils_common.sortInPlaceWith((a,b) => {
+                let syntaxTypes = syntaxTypes->Array.copy->Expln_utils_common.sortInPlaceWith((a,b) => {
                     if (a == lastSyntaxTypeInt) {
                         -1.0
                     } else if (b == lastSyntaxTypeInt) {

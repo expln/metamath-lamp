@@ -187,7 +187,7 @@ let useTabs = ():tabMethods<'a> => {
         addTab,
         openTab,
         removeTab,
-        tabs: state.tabs->Js.Array2.copy,
+        tabs: state.tabs->Array.copy,
         activeTabId: state.activeTabId,
         renderTabs,
 

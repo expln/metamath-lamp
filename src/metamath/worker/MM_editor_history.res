@@ -161,7 +161,7 @@ let updateStmt = (sn:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSna
 }
 
 let addStmt = (sn:editorSnapshot, idx:int, stmt:stmtSnapshot):editorSnapshot => {
-    let newStmts = sn.stmts->Js_array2.copy
+    let newStmts = sn.stmts->Array.copy
     newStmts->Js.Array2.spliceInPlace(~pos=idx, ~remove=0, ~add=[stmt])->ignore
     {
         ...sn,
@@ -752,7 +752,7 @@ let a:editorSnapshot = {
 }
 
 let moveStmtTest = (a:editorSnapshot, stmtId:stmtId, dIdx:int):editorSnapshot => {
-    let newStmts = a.stmts->Js_array2.copy
+    let newStmts = a.stmts->Array.copy
     let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
     let tmp = newStmts->Array.getUnsafe(idx)
     newStmts[idx] = newStmts->Array.getUnsafe(idx+dIdx)

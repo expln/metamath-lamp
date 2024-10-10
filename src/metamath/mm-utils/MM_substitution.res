@@ -54,10 +54,10 @@ type frms = {
 let subsClone = subs => {
     {
         size: subs.size,
-        begins: subs.begins->Js.Array2.copy,
-        ends: subs.ends->Js.Array2.copy,
-        exprs: subs.exprs->Js.Array2.copy,
-        isDefined: subs.isDefined->Js.Array2.copy,
+        begins: subs.begins->Array.copy,
+        ends: subs.ends->Array.copy,
+        exprs: subs.exprs->Array.copy,
+        isDefined: subs.isDefined->Array.copy,
     }
 }
 
@@ -714,7 +714,7 @@ let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):ar
     switch typ {
         | None => {
             switch label {
-                | None => frms.all->Js.Array2.copy
+                | None => frms.all->Array.copy
                 | Some(label) => {
                     switch frms.byLabel ->Belt_HashMapString.get(label) {
                         | None => []
@@ -728,7 +728,7 @@ let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):ar
                 | None => {
                     switch frms.byType->Belt_HashMapInt.get(typ) {
                         | None => []
-                        | Some(arr) => arr->Js_array2.copy
+                        | Some(arr) => arr->Array.copy
                     }
                 }
                 | Some(label) => {
