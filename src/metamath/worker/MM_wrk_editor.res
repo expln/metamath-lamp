@@ -35,7 +35,7 @@ type stmtContTreeData = {
     text:string, 
     exprTyp:string, 
     root:syntaxTreeNode, 
-    clickedNodeId:option<(int,Js_date.t)>, 
+    clickedNodeId:option<(int,Date.t)>,
     expLvl:int
 }
 
@@ -248,7 +248,7 @@ type editorState = {
 
     nextStmtId: int,
     stmts: array<userStmt>,
-    checkedStmtIds: array<(stmtId,Js_date.t)>,
+    checkedStmtIds: array<(stmtId,Date.t)>,
 
     nextAction:option<editorStateAction>,
 }

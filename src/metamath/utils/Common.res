@@ -2,7 +2,7 @@ let nbsp = String.fromCharCode(160)
 let circleChar = String.fromCharCode(9679)
 
 let currTimeStr = () => Date.now()->Date.fromTime->Date.toISOString
-let compareDates = (a:Js_date.t, b:Js_date.t):float => {
+let compareDates = (a:Date.t, b:Date.t):float => {
     let t1 = a->Date.getTime
     let t2 = b->Date.getTime
     if (t1 < t2) {

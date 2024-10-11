@@ -658,7 +658,7 @@ let make = (
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialParams: option<bottomUpProverParams>=?,
     ~initialDebugLevel: option<int>=?,
-    ~apiCallStartTime:option<Js_date.t>,
+    ~apiCallStartTime:option<Date.t>,
     ~delayBeforeStartMs:int,
     ~selectFirstFoundProof:bool,
     ~onResultSelected:option<stmtsDto>=>unit,

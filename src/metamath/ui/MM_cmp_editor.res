@@ -859,7 +859,7 @@ let make = (
         }
     }
 
-    let getSelectionText = (stmt:userStmt):option<(string,Js_date.t)> => {
+    let getSelectionText = (stmt:userStmt):option<(string,Date.t)> => {
         switch stmt.cont {
             | Text(_) => None
             | Tree({clickedNodeId}) => {
@@ -871,12 +871,12 @@ let make = (
         }
     }
 
-    let getStmtTextIfChecked = (st:editorState,stmt:userStmt):option<(string,Js_date.t)> => {
+    let getStmtTextIfChecked = (st:editorState,stmt:userStmt):option<(string,Date.t)> => {
         st.checkedStmtIds->Array.find(((id,_)) => id == stmt.id)
             ->Belt_Option.map(((_,time)) => (stmt.cont->contToStr, time))
     }
 
-    let getSelectedExpr = (st:editorState,stmt:userStmt):option<(string,Js_date.t)> => {
+    let getSelectedExpr = (st:editorState,stmt:userStmt):option<(string,Date.t)> => {
         switch getSelectionText(stmt) {
             | Some(res) => Some(res)
             | None => getStmtTextIfChecked(st,stmt)
