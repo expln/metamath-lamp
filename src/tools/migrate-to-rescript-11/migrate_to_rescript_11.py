@@ -188,6 +188,7 @@ def make_simple_replacements() -> None:
         '_PI': 'Constants.pi',
         'abs_int': 'Int.abs',
         'ceil_float': 'ceil',
+        'ceil_int': 'Int.ceil',
         'cos': 'cos',
         'floor_int': 'Int.floor',
         'max_int': 'Int.max',
@@ -220,6 +221,25 @@ def make_simple_replacements() -> None:
         'toUpperCase': 'toUpperCase',
         'trim': 'trim',
     }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Json', 'Js_json'], new_module='JSON', functions={
+        'array': 'Encode.array',
+        'boolean': 'Encode.bool',
+        'classify': 'Classify.classify',
+        'decodeBoolean': 'Decode.bool',
+        'decodeString': 'Decode.string',
+        'null': 'Encode.null',
+        'number': 'Encode.float',
+        'object_': 'Encode.object',
+        'parseExn': 'parseExn',
+        'string': 'Encode.string',
+        'stringifyAny': 'stringifyAny',
+        't': 't',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Dict', 'Js_dict'], new_module='Dict', functions={
+        'fromArray': 'fromArray',
+        'get': 'get',
+        't': 't',
+    }))
     for path in get_all_rescript_files():
         print(f'processing: {path.absolute()}')
         replace_in_file(path, replacements)
@@ -247,8 +267,8 @@ def main() -> None:
     #     print(f'processing: {path.absolute()}')
     #     rewrite_file(path)
 
-    find_function_names()
-    # make_simple_replacements()
+    # find_function_names()
+    make_simple_replacements()
 
 
 if __name__ == '__main__':
