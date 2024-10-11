@@ -462,7 +462,7 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
         }
         switch lowestCheckedStmtIdx.contents {
             | None => st.stmts
-            | Some(idx) => st.stmts->Js.Array2.slice(~start=0, ~end_=idx+1)
+            | Some(idx) => st.stmts->Array.slice(~start=0, ~end=idx+1)
         }
     }
 }

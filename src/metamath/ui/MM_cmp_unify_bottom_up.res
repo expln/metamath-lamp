@@ -1353,7 +1353,7 @@ let make = (
                     </Col>
                 } else {
                     let start = (state.resultsPage - 1) * state.resultsPerPage
-                    let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
+                    let items = resultsSorted->Array.slice( ~start, ~end = start + state.resultsPerPage )
                     <Col>
                         <Divider/>
                         <Row alignItems=#center>

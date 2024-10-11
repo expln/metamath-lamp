@@ -136,13 +136,13 @@ let getAllLabelsAfterReading = (src:mmCtxSrcDto):(option<string>, option<string>
         | StopBefore => {
             switch src.allLabels->Array.findIndex(label => label == src.label) {
                 | -1 => (None, None, src.allLabels)
-                | idx => (Some(src.label), None, src.allLabels->Js_array2.slice(~start=0, ~end_=idx))
+                | idx => (Some(src.label), None, src.allLabels->Array.slice(~start=0, ~end=idx))
             }
         }
         | StopAfter => {
             switch src.allLabels->Array.findIndex(label => label == src.label) {
                 | -1 => (None, None, src.allLabels)
-                | idx => (None, Some(src.label), src.allLabels->Js_array2.slice(~start=0, ~end_=idx+1))
+                | idx => (None, Some(src.label), src.allLabels->Array.slice(~start=0, ~end=idx+1))
             }
         }
     }

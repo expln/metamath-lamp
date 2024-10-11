@@ -133,7 +133,7 @@ let make = React.memoCustomCompareProps(({
             <Col spacing=2.>
                 {rndPagination()}
                 {
-                    labels->Js_array2.slice(~start=beginIdx, ~end_=endIdx+1)
+                    labels->Array.slice(~start=beginIdx, ~end=endIdx+1)
                         ->Array.map(((order,label)) => rndFrameSummary(order,label))
                         ->React.array
                 }

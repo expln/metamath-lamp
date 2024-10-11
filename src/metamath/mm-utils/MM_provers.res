@@ -1010,7 +1010,7 @@ let unifyAll = (
 }
 
 let getOrderedSubarray = (arr:array<string>, start:int, end:int):array<string> => {
-    arr->Js.Array2.slice(~start, ~end_=end)->Js.Array2.sortInPlace
+    arr->Array.slice(~start, ~end=end)->Js.Array2.sortInPlace
 }
 
 let compareUnorderedSubArrays = (arr1:array<string>, arr2:array<string>, start:int, end:int):bool => {
@@ -1034,25 +1034,25 @@ let makeParenCnt = (
         raise(MmException({msg:`allConsts.length != allConstsActual.length`}))
     }
     if (parenMin < 0) {
-        // let allConstsStr = allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin)->Array.joinUnsafe(" ")
+        // let allConstsStr = allConsts->Array.slice(~start=0, ~end=-parenMin)->Array.joinUnsafe(" ")
         // Console.log2(`allConsts:`, allConstsStr)
         if (
-            allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin) 
+            allConsts->Array.slice(~start=0, ~end=-parenMin)
             != 
-            allConstsActual->Js.Array2.slice(~start=0, ~end_=-parenMin)
+            allConstsActual->Array.slice(~start=0, ~end=-parenMin)
         ) {
             raise(MmException({msg:`allConsts.parens != allConstsActual.parens`}))
         }
     }
     if (canBeFirstMin <= canBeFirstMax) {
-        // let canBeFirstStr = allConsts->Js.Array2.slice(~start=(-canBeFirstMax-1), ~end_=-canBeFirstMin)->Array.joinUnsafe(" ")
+        // let canBeFirstStr = allConsts->Array.slice(~start=(-canBeFirstMax-1), ~end=-canBeFirstMin)->Array.joinUnsafe(" ")
         // Console.log2(`canBeFirst:`, canBeFirstStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeFirstMax-1), -canBeFirstMin)) {
             raise(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
         }
     }
     if (canBeLastMin <= canBeLastMax) {
-        // let canBeLastStr = allConsts->Js.Array2.slice(~start=(-canBeLastMax-1), ~end_=-canBeLastMin)->Array.joinUnsafe(" ")
+        // let canBeLastStr = allConsts->Array.slice(~start=(-canBeLastMax-1), ~end=-canBeLastMin)->Array.joinUnsafe(" ")
         // Console.log2(`canBeLast:`, canBeLastStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeLastMax-1), -canBeLastMin)) {
             raise(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))

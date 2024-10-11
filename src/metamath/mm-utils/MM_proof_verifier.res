@@ -222,18 +222,18 @@ let verifyDisjoints = (
                                             if (nExprSym == mExprSym) {
                                                 res.contents = Some(DisjCommonVar({
                                                     frmVar1:n, 
-                                                    expr1:nExpr->Js_array2.slice(~start=nExprBegin, ~end_=nExprEnd+1),
+                                                    expr1:nExpr->Array.slice(~start=nExprBegin, ~end=nExprEnd+1),
                                                     frmVar2:m, 
-                                                    expr2:mExpr->Js_array2.slice(~start=mExprBegin, ~end_=mExprEnd+1),
+                                                    expr2:mExpr->Array.slice(~start=mExprBegin, ~end=mExprEnd+1),
                                                     commonVar:nExprSym,
                                                 }))
                                             } else if (!isDisjInCtx(nExprSym, mExprSym)) {
                                                 res.contents = Some(Disj({
                                                     frmVar1:n, 
-                                                    expr1:nExpr->Js_array2.slice(~start=nExprBegin, ~end_=nExprEnd+1),
+                                                    expr1:nExpr->Array.slice(~start=nExprBegin, ~end=nExprEnd+1),
                                                     var1:nExprSym,
                                                     frmVar2:m, 
-                                                    expr2:mExpr->Js_array2.slice(~start=mExprBegin, ~end_=mExprEnd+1),
+                                                    expr2:mExpr->Array.slice(~start=mExprBegin, ~end=mExprEnd+1),
                                                     var2:mExprSym,
                                                 }))
                                             }

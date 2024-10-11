@@ -125,7 +125,7 @@ describe("proveSyntaxTypes", _ => {
         let numOfExpr = asrtExprsToProve->Array.length
         let from = 0
         let to_ = from + numOfExpr
-        let exprsToSyntaxProve = asrtExprsToProve->Js.Array2.slice(~start=from,~end_=to_)
+        let exprsToSyntaxProve = asrtExprsToProve->Array.slice(~start=from,~end=to_)
             ->Array.map(expr => expr->Js_array2.sliceFrom(1))
         let frms = prepareFrmSubsData(~ctx, ())
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)

@@ -949,7 +949,7 @@ let make = (
                     } else {
                         Some((
                             prepareArgs0(
-                                checkedStmts->Js_array2.slice(~start=0,~end_=checkedStmts->Array.length - 1)
+                                checkedStmts->Array.slice(~start=0,~end=checkedStmts->Array.length - 1)
                                     ->Array.map(stmt => stmt.label), 
                                 rootStmts
                             ), 
