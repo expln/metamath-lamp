@@ -22,7 +22,7 @@ let terminateWorker = () => {
         | Some(webworker) => {
             webworker["terminate"](.)
             webworkerRef.contents = None
-            clients->Js.Array2.spliceInPlace(~pos=0, ~remove=clients->Array.length, ~add=[])->ignore
+            clients->Array.splice(~start=0, ~remove=clients->Array.length, ~insert=[])
         }
     }
 }

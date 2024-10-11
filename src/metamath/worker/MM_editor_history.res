@@ -162,7 +162,7 @@ let updateStmt = (sn:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSna
 
 let addStmt = (sn:editorSnapshot, idx:int, stmt:stmtSnapshot):editorSnapshot => {
     let newStmts = sn.stmts->Array.copy
-    newStmts->Js.Array2.spliceInPlace(~pos=idx, ~remove=0, ~add=[stmt])->ignore
+    newStmts->Array.splice(~start=idx, ~remove=0, ~insert=[stmt])
     {
         ...sn,
         stmts:newStmts

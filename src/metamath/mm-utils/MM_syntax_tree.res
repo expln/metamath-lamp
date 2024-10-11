@@ -230,7 +230,7 @@ let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):un
     let i = ref(0)
     while (i.contents < expr->Array.length) {
         if (expr->Array.getUnsafe(i.contents) == e) {
-            expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
+            expr->Array.splice(~start=i.contents, ~remove=1, ~insert=subExpr)
             i := i.contents + subExpr->Array.length
         } else {
             i := i.contents + 1
