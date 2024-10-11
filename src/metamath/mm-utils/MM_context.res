@@ -1023,15 +1023,15 @@ let renumberVarsInDisj = (ctxToFrameRenum: Belt_HashMapInt.t<int>, disj:disjMuta
         ->Belt_MapInt.fromArray
 }
 
-let matchesOptRegex = (str:string, regex:option<Js_re.t>):bool => {
-    regex->Belt_Option.map(regex => regex->Js_re.test_(str))->Belt.Option.getWithDefault(false)
+let matchesOptRegex = (str:string, regex:option<RegExp.t>):bool => {
+    regex->Belt_Option.map(regex => regex->RegExp.test(str))->Belt.Option.getWithDefault(false)
 }
 
 let isMatch = (
     ~descr:option<string>,
     ~label:string,
-    ~descrRegexToMatch:option<Js_re.t>,
-    ~labelRegexToMatch:option<Js_re.t>,
+    ~descrRegexToMatch:option<RegExp.t>,
+    ~labelRegexToMatch:option<RegExp.t>,
 ):bool => {
     descr->Belt.Option.map(matchesOptRegex(_,descrRegexToMatch))->Belt_Option.getWithDefault(false) 
         || label->matchesOptRegex(labelRegexToMatch)
@@ -1094,10 +1094,10 @@ let createFrame = (
     ~skipFirstSymCheck:bool=false, 
     ~skipDisj:bool=false, 
     ~overrideHyps:option<array<expr>>=?,
-    ~descrRegexToDisc:option<Js_re.t>=?,
-    ~labelRegexToDisc:option<Js_re.t>=?,
-    ~descrRegexToDepr:option<Js_re.t>=?,
-    ~labelRegexToDepr:option<Js_re.t>=?,
+    ~descrRegexToDisc:option<RegExp.t>=?,
+    ~labelRegexToDisc:option<RegExp.t>=?,
+    ~descrRegexToDepr:option<RegExp.t>=?,
+    ~labelRegexToDepr:option<RegExp.t>=?,
     ()
 ):frame => {
     assertNameIsUnique(ctx,label,tokenType)
@@ -1168,10 +1168,10 @@ let addAssertion = (
     ~label:string, 
     ~exprStr:array<string>, 
     ~proof:option<proof>,
-    ~descrRegexToDisc:option<Js_re.t>=?,
-    ~labelRegexToDisc:option<Js_re.t>=?,
-    ~descrRegexToDepr:option<Js_re.t>=?,
-    ~labelRegexToDepr:option<Js_re.t>=?,
+    ~descrRegexToDisc:option<RegExp.t>=?,
+    ~labelRegexToDisc:option<RegExp.t>=?,
+    ~descrRegexToDepr:option<RegExp.t>=?,
+    ~labelRegexToDepr:option<RegExp.t>=?,
     ()
 ):unit => {
     let currCtx = ctx.contents
@@ -1196,10 +1196,10 @@ let addAssertion = (
 let applySingleStmt = (
     ctx:mmContext, 
     stmt:stmt,
-    ~descrRegexToDisc:option<Js_re.t>=?,
-    ~labelRegexToDisc:option<Js_re.t>=?,
-    ~descrRegexToDepr:option<Js_re.t>=?,
-    ~labelRegexToDepr:option<Js_re.t>=?,
+    ~descrRegexToDisc:option<RegExp.t>=?,
+    ~labelRegexToDisc:option<RegExp.t>=?,
+    ~descrRegexToDepr:option<RegExp.t>=?,
+    ~labelRegexToDepr:option<RegExp.t>=?,
     ()
 ):unit => {
     switch stmt {
@@ -1232,10 +1232,10 @@ let loadContext = (
     ~stopAfter="",
     ~onPreProcess: option<(mmContext,MM_parser.stmt)=>unit>=?,
     ~expectedNumOfAssertions=-1, 
-    ~descrRegexToDisc:option<Js_re.t>=?,
-    ~labelRegexToDisc:option<Js_re.t>=?,
-    ~descrRegexToDepr:option<Js_re.t>=?,
-    ~labelRegexToDepr:option<Js_re.t>=?,
+    ~descrRegexToDisc:option<RegExp.t>=?,
+    ~labelRegexToDisc:option<RegExp.t>=?,
+    ~descrRegexToDepr:option<RegExp.t>=?,
+    ~labelRegexToDepr:option<RegExp.t>=?,
     ~onProgress= _=>(), 
     ~debug:bool=false, 
     ()

@@ -56,10 +56,10 @@ let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
 let applySingleStmt: (
     mmContext, 
     stmt,
-    ~descrRegexToDisc:Js_re.t=?,
-    ~labelRegexToDisc:Js_re.t=?,
-    ~descrRegexToDepr:Js_re.t=?,
-    ~labelRegexToDepr:Js_re.t=?,
+    ~descrRegexToDisc:RegExp.t=?,
+    ~labelRegexToDisc:RegExp.t=?,
+    ~descrRegexToDepr:RegExp.t=?,
+    ~labelRegexToDepr:RegExp.t=?,
     ()
 ) => unit
 let openChildContext: mmContext => unit
@@ -72,10 +72,10 @@ let loadContext: (
     ~stopAfter:string=?, 
     ~onPreProcess: (mmContext,MM_parser.stmt)=>unit =?,
     ~expectedNumOfAssertions:int=?, 
-    ~descrRegexToDisc:Js_re.t=?,
-    ~labelRegexToDisc:Js_re.t=?,
-    ~descrRegexToDepr:Js_re.t=?,
-    ~labelRegexToDepr:Js_re.t=?,
+    ~descrRegexToDisc:RegExp.t=?,
+    ~labelRegexToDisc:RegExp.t=?,
+    ~descrRegexToDepr:RegExp.t=?,
+    ~labelRegexToDepr:RegExp.t=?,
     ~onProgress:float=>unit=?, 
     ~debug:bool=?, 
     ()
@@ -144,10 +144,10 @@ let createFrame: (
     ~skipFirstSymCheck:bool=?, 
     ~skipDisj:bool=?, 
     ~overrideHyps:array<expr>=?,
-    ~descrRegexToDisc:Js_re.t=?,
-    ~labelRegexToDisc:Js_re.t=?,
-    ~descrRegexToDepr:Js_re.t=?,
-    ~labelRegexToDepr:Js_re.t=?,
+    ~descrRegexToDisc:RegExp.t=?,
+    ~labelRegexToDisc:RegExp.t=?,
+    ~descrRegexToDepr:RegExp.t=?,
+    ~labelRegexToDepr:RegExp.t=?,
     ()
 ) => frame
 

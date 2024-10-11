@@ -52,9 +52,9 @@ let cacheGet = (cache, depVer, dep) => {
     }
 }
 
-let strToRegex = (str:string):result<Js_re.t,string> => {
+let strToRegex = (str:string):result<RegExp.t,string> => {
     try {
-        Ok(Js_re.fromString(str))
+        Ok(RegExp.fromString(str))
     } catch {
         | exn => {
             Error(

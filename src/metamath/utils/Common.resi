@@ -18,7 +18,7 @@ let base64ToStr: string => string
 let strToSafeBase64: string => string
 let safeBase64ToStr: string => string
 
-let strToRegex: string => result<Js_re.t,string>
+let strToRegex: string => result<RegExp.t,string>
 
 type version<'a> = {
     ver:int,

@@ -33,7 +33,7 @@ let make = (
     let actTestRegex = () => {
         switch regex->strToRegex {
             | Error(msg) => setResult(_ => Some(Error(msg)))
-            | Ok(re) => setResult(_ => Some(Ok(re->Js_re.test_(text))))
+            | Ok(re) => setResult(_ => Some(Ok(re->RegExp.test(text))))
         }
     }
 
