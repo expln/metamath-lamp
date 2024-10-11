@@ -737,9 +737,9 @@ let make = (
 
     let actAsrtSearchResultsSelected = selectedResults => {
         setState(st => {
-            selectedResults->Js_array2.reduce( 
-                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly, ()), 
-                st 
+            selectedResults->Array.reduce(
+                st,
+                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly, ())
             )
         })
     }

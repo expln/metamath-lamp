@@ -654,7 +654,7 @@ let frameProofDataToStmtsDto = (
     let locSt = frameProofDataToEditorStateLocStor(
         ~preCtxData, ~frameProofData, ~adjustContext=false, ~loadSteps=true
     )
-    let stmts = locSt.stmts->Js_array2.reduce((res,stmt) => {
+    let stmts = locSt.stmts->Array.reduce(Ok([]), (res,stmt) => {
         switch res {
             | Error(_) => res
             | Ok(stmts) => {
@@ -674,7 +674,7 @@ let frameProofDataToStmtsDto = (
                 res
             }
         }
-    }, Ok([]))
+    })
     // let res = locSt.varsText->MM_wrk_ctx_data.textToVarDefs->Belt_Result.map(parsedVars => {
     //     let numOfExistingVars = wrkCtx->getNumOfVars
     //     {

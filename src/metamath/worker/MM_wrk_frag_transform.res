@@ -40,7 +40,8 @@ let stringToFragTransforms = (str:string):result<array<fragmentTransform>,string
 }
 
 let arrStrToFragTransforms = (texts:array<string>):result<array<fragmentTransform>,string> => {
-    texts->Js_array2.reduce(
+    texts->Array.reduce(
+        Ok([]),
         (res,text) => {
             switch res {
                 | Error(_) => res
@@ -51,7 +52,6 @@ let arrStrToFragTransforms = (texts:array<string>):result<array<fragmentTransfor
                     }
                 }
             }
-        },
-        Ok([])
+        }
     )
 }

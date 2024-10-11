@@ -233,7 +233,8 @@ let getTokenType = (
 }
 
 let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_context.expr>,string> => {
-    labels->Js_array2.reduce(
+    labels->Array.reduce(
+        Ok([]),
         (res,label) => {
             switch res {
                 | Error(_) => res
@@ -252,8 +253,7 @@ let labelsToExprs = (st:editorState, labels:array<string>):result<array<MM_conte
                     }
                 }
             }
-        },
-        Ok([])
+        }
     )
 }
 
@@ -275,7 +275,7 @@ let apiMatcherToMatcher = (
     if (matcher.res->Belt.Option.isNone && matcher.hyps->Array.length == 0) {
         Error("'res' and 'hyps' must not be empty at the same time.")
     } else {
-        let hypMatchers = matcher.hyps->Js_array2.reduce((res,hypMatcher) => {
+        let hypMatchers = matcher.hyps->Array.reduce(Ok([]), (res,hypMatcher) => {
                 switch res {
                     | Error(_) => res
                     | Ok(hypMatchers) => {
@@ -310,7 +310,7 @@ let apiMatcherToMatcher = (
                         }
                     }
                 }
-            }, Ok([])
+            }
         )
         switch hypMatchers {
             | Error(msg) => Error(msg)
@@ -355,7 +355,8 @@ let optArrayToMatchers = (
             switch state.wrkCtx {
                 | None => Error("Error: cannot parse patters to match")
                 | Some(wrkCtx) => {
-                    matches->Js_array2.reduce(
+                    matches->Array.reduce(
+                        Ok([]),
                         (res,matcher) => {
                             switch res {
                                 | Error(_) => res
@@ -369,8 +370,7 @@ let optArrayToMatchers = (
                                     }
                                 }
                             }
-                        },
-                        Ok([])
+                        }
                     )->Belt_Result.map(arr => Some(arr))
                 }
             }
@@ -483,7 +483,8 @@ let proveBottomUp = (
                 switch state.stmts->Array.find(stmt => stmt.label == apiParams.stepToProve) {
                     | None => promiseResolved(Error(`Cannot find a step with the label '${apiParams.stepToProve}'`))
                     | Some(stmtToProve) => {
-                        let args = apiParams.frameParams->Js_array2.reduce(
+                        let args = apiParams.frameParams->Array.reduce(
+                            Ok([]),
                             (res,frameParams) => {
                                 switch res {
                                     | Error(msg) => Error(msg)
@@ -497,13 +498,13 @@ let proveBottomUp = (
                                         }
                                     }
                                 }
-                            },
-                            Ok([])
+                            }
                         )
                         switch args {
                             | Error(msg) => promiseResolved(Error(msg))
                             | Ok(args) => {
-                                let matches = apiParams.frameParams->Js_array2.reduce(
+                                let matches = apiParams.frameParams->Array.reduce(
+                                    Ok([]),
                                     (res,frameParams) => {
                                         switch res {
                                             | Error(msg) => Error(msg)
@@ -520,8 +521,7 @@ let proveBottomUp = (
                                                 }
                                             }
                                         }
-                                    },
-                                    Ok([])
+                                    }
                                 )
                                 switch matches {
                                     | Error(msg) => promiseResolved(Error(msg))

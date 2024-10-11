@@ -87,7 +87,7 @@ let strToRegexOpt = (str:string):option<RegExp.t> => {
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | LoadMmContext({scopes, descrRegexToDisc, labelRegexToDisc, descrRegexToDepr, labelRegexToDepr}) => {
-            let totalNumOfAssertions = scopes->Js_array2.reduce((a,e) => a+e.expectedNumOfAssertions, 0)->Belt_Int.toFloat
+            let totalNumOfAssertions = scopes->Array.reduce(0, (a,e) => a+e.expectedNumOfAssertions)->Belt_Int.toFloat
             let weights = scopes->Array.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
                 let ctx = createContext(())
@@ -183,15 +183,15 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
 
 let createMmScopesForFrame = ( ~srcs:array<mmCtxSrcDto>, ~label:string, ):array<mmScope> => {
     let res = []
-    srcs->Js_array2.reduce(
+    srcs->Array.reduce(
+        false,
         (found,src) => {
             if (found) {
                 found
             } else {
                 convertSrcDtoAndAddToRes(~src, ~label, ~res)
             }
-        },
-        false
+        }
     )->ignore
     res
 }

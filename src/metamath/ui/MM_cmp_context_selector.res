@@ -454,7 +454,13 @@ let makeMmScopeFromSrcDtos = (
     ~onUrlBecomesTrusted:string=>unit,
     ~loadedTexts:Belt_HashMapString.t<string>,
 ):promise<result<mmScope,string>> => {
-    let mmScope = srcs->Js_array2.reduce(
+    let mmScope = srcs->Array.reduce(
+        {
+            nextId: 0,
+            singleScopes: [],
+            expanded: false,
+            loadedContextSummary: "",
+        },
         (mmScope, src) => {
             let mmScope = mmScope->addSingleScope(~defaultSrcType=src.typ->mmFileSourceTypeFromStr)
             let ssId = (mmScope.singleScopes->Array.getUnsafe(mmScope.singleScopes->Array.length-1)).id
@@ -465,12 +471,6 @@ let makeMmScopeFromSrcDtos = (
             let mmScope = mmScope->updateSingleScope( ssId,setLabel(_,Some(src.label)))
             let mmScope = mmScope->updateSingleScope( ssId,setResetNestingLevel(_,src.resetNestingLevel))
             mmScope
-        },
-        {
-            nextId: 0,
-            singleScopes: [],
-            expanded: false,
-            loadedContextSummary: "",
         }
     )
     loadMmFileTextForSingleScope(

@@ -318,12 +318,12 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
         let maxId = distinctTypeIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
         validatedTypeSettings->Array.mapWithIndex((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
     }
-    let maxTypSettId = validatedTypeSettings->Js_array2.reduce(
+    let maxTypSettId = validatedTypeSettings->Array.reduce(
+        0,
         (maxId,ts) => {
             let id = ts.id->Belt_Int.fromString->Belt.Option.getExn
             if (id <= maxId) { maxId } else { id }
-        },
-        0
+        }
     )
     let newNextId = if (maxTypSettId < st.typeNextId) {st.typeNextId} else {maxTypSettId + 1}
 
@@ -379,9 +379,9 @@ let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string)
 
 let restoreDefaultWebSrcSettings = (state: settingsState):settingsState => {
     let defaultSettings = createDefaultSettings()
-    defaultSettings.webSrcSettings->Js.Array2.reduce(
-        (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url),
-        state
+    defaultSettings.webSrcSettings->Array.reduce(
+        state,
+        (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url)
     )
 }
 
@@ -415,12 +415,12 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
         let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
         validatedWebSrcSettings->Array.mapWithIndex((src,i) => {...src, id:(maxId+i+1)->Belt_Int.toString})
     }
-    let maxId = validatedWebSrcSettings->Js_array2.reduce(
+    let maxId = validatedWebSrcSettings->Array.reduce(
+        0,
         (maxId,src) => {
             let id = src.id->Belt_Int.fromString->Belt.Option.getExn
             if (id <= maxId) { maxId } else { id }
-        },
-        0
+        }
     )
     let newNextId = if (maxId < st.webSrcNextId) {st.webSrcNextId} else {maxId + 1}
 
@@ -1171,9 +1171,9 @@ let make = (
     let actRestoreDefaultTypeSettings = () => {
         setState(state => {
             let defaultSettings = createDefaultSettings()
-            defaultSettings.typeSettings->Js.Array2.reduce(
-                (state, default) => restoreDefaultsForType(state, default.typ, default.color, default.prefix),
-                state
+            defaultSettings.typeSettings->Array.reduce(
+                state,
+                (state, default) => restoreDefaultsForType(state, default.typ, default.color, default.prefix)
             )
         })
     }

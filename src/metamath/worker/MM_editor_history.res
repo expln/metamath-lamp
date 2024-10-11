@@ -228,7 +228,7 @@ let getStmtIdsFromStatusUnset = (diffs:array<editorDiff>):array<stmtId> => {
 If findDiff(a,b)==diff then applyDiff(a,diff)==b
 */
 let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
-    diff->Js_array2.reduce( applyDiffSingle, sn )
+    diff->Array.reduce( sn, applyDiffSingle )
 }
 
 let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {

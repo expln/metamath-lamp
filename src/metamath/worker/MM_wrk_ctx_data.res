@@ -50,7 +50,8 @@ let textToVarDefs = (text:string):result<array<array<string>>,string> => {
     if (varLines->Array.length == 0) {
         Ok([])
     } else {
-        varLines->Js_array2.reduce(
+        varLines->Array.reduce(
+            Ok([]),
             (res,line) => {
                 switch res {
                     | Error(_) => res
@@ -64,8 +65,7 @@ let textToVarDefs = (text:string):result<array<array<string>>,string> => {
                         }
                     }
                 }
-            },
-            Ok([])
+            }
         )
     }
 }
@@ -114,14 +114,14 @@ let createWrkCtx = (
     let err:option<wrkCtxErr> = [
         () => parseVariables(wrkCtx, varsText),
         () => parseDisjoints(wrkCtx, disjText),
-    ]->Js.Array2.reduce(
+    ]->Array.reduce(
+        None,
         (err,nextStep) => {
             switch err {
                 | Some(_) => err
                 | None => nextStep()
             }
-        },
-        None
+        }
     )
     switch err {
         | Some(err) => Error(err)

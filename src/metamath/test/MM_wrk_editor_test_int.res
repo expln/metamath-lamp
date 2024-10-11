@@ -286,15 +286,15 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let notProvedStmtId = st->getStmtId(~label="1", ())
 
-        let st = st.stmts->Js_array2.reduce(
+        let st = st.stmts->Array.reduce(
+            st,
             (st,stmt) => {
                 if (trgtStmtId == stmt.id || notProvedStmtId == stmt.id) {
                     st
                 } else {
                     st->updateStmt(stmt.id, ~typ=E, ~label = oldLabel => "hyp-" ++ oldLabel, ())
                 }
-            },
-            st
+            }
         )
         let st = st->unifyAll
         assertEditorState(st, "step2")

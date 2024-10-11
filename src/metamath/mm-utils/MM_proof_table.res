@@ -46,7 +46,7 @@ let exprSourceToLabelStr = src => {
 }
 
 let maxLength = (arr:array<string>):int => {
-    arr->Array.map(String.length(_))->Js.Array2.reduce(Math.Int.max, 0)
+    arr->Array.map(String.length(_))->Array.reduce(0, Math.Int.max)
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {

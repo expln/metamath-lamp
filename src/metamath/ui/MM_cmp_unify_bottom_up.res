@@ -451,9 +451,9 @@ let stmtsDtoToResultRendered = (
         elem,
         asrtLabel: lastStmt.jstf->Belt_Option.map(jstf => jstf.label)->Belt_Option.getWithDefault(""),
         numOfNewVars: stmtsDto.newVars->Array.length,
-        numOfUnprovedStmts: stmtsDto.stmts->Js.Array2.reduce(
-            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
-            0
+        numOfUnprovedStmts: stmtsDto.stmts->Array.reduce(
+            0,
+            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1}
         ),
         isProved: lastStmt.isProved,
         numOfStmts: stmtsToShow->Array.length,
@@ -1456,7 +1456,7 @@ let make = (
             } else if (noneSelected) {
                 "None"
             } else {
-                let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
+                let numSelected = flags->Array.reduce(0, (cnt,b) => if (b) {cnt+1} else {cnt})
                 let numAll = flags->Array.length
                 numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
             }

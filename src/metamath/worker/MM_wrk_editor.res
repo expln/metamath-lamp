@@ -524,9 +524,9 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
 
 let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
-    let pCnt = st.stmts->Js.Array2.reduce(
-        (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt},
-        0
+    let pCnt = st.stmts->Array.reduce(
+        0,
+        (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt}
     )
     let defaultStmtLabel = st.settings.defaultStmtLabel->String.trim
     let newLabel = 
@@ -1246,20 +1246,21 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                 validateStmtJstf(_, wrkCtx, definedUserLabels, st.frms),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
             ]
-            st.stmts->Js_array2.reduce(
+            st.stmts->Array.reduce(
+                st,
                 (st,stmt) => {
                     if (editorStateHasCriticalErrors(st)) {
                         st
                     } else {
-                        let stmt = actions->Js_array2.reduce(
+                        let stmt = actions->Array.reduce(
+                            stmt,
                             (stmt,action) => {
                                 if (userStmtHasCriticalErrors(stmt)) {
                                     stmt
                                 } else {
                                     action(stmt)
                                 }
-                            },
-                            stmt
+                            }
                         )
 
                         definedUserLabels->Belt_HashSetString.add(stmt.label)
@@ -1274,8 +1275,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                         }
                         st->updateStmt(stmt.id, _ => stmt)
                     }
-                },
-                st
+                }
             )
         }
     }
@@ -1287,15 +1287,15 @@ let prepareEditorForUnification = st => {
         sortStmtsByType,
         refreshWrkCtx,
         prepareUserStmtsForUnification,
-    ]->Js.Array2.reduce(
+    ]->Array.reduce(
+        st,
         (st,act) => {
             if (editorStateHasCriticalErrors(st)) {
                 st
             } else {
                 act(st)
             }
-        },
-        st
+        }
     )
 }
 
@@ -1921,7 +1921,8 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                 })
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let syntaxNodes = proofTreeDto.syntaxProofs->Belt_HashMap.fromArray(~id=module(ExprHash))
-            st.stmts->Js_array2.reduce(
+            st.stmts->Array.reduce(
+                st,
                 (st,stmt) => {
                     let stmt = {...stmt, proof:None, proofStatus: None}
                     st->updateStmt(stmt.id, stmt => {
@@ -1952,8 +1953,7 @@ let applyUnifyAllResults = (st,proofTreeDto) => {
                             }
                         }
                     })
-                },
-                st
+                }
             )
         }
     }
@@ -2125,7 +2125,8 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
 }
 
 let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
-    st.stmts->Js_array2.reduce(
+    st.stmts->Array.reduce(
+        Ok(st),
         (res,stmt) => {
             switch res {
                 | Error(_) => res
@@ -2160,8 +2161,7 @@ let replaceRef = (st,~replaceWhat,~replaceWith):result<editorState,string> => {
                     }
                 }
             }
-        },
-        Ok(st)
+        }
     )
 }
 
@@ -2284,15 +2284,15 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
         let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
         let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->String.trim}
 
-        let pCnt = st.stmts->Js.Array2.reduce(
+        let pCnt = st.stmts->Array.reduce(
+            0,
             (cnt,stmt) => {
                 if (stmt.id != stmtId && stmt.typ == P) {
                     cnt + 1
                 } else {
                     cnt
                 }
-            },
-            0
+            }
         )
         
         let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal || st.settings.initStmtIsGoal && pCnt == 0 }
@@ -2391,7 +2391,7 @@ let addStepsWithoutVars = (
                         | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ), ())
                     }
                     stmtIds->Array.push(stmtId)
-                    updates->Js.Array2.reduce((res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)), Ok(st))
+                    updates->Array.reduce(Ok(st), (res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)))
                 }
             }
         },
@@ -2495,7 +2495,8 @@ let updateSteps = (
     let stmtIdToStepDto = steps->Array.filter(step => step.id->Belt_Option.isSome)
         ->Array.map(step => (step.id->Belt_Option.getExn,step))
         ->Belt_HashMapString.fromArray
-    let newStmtsRes = st.stmts->Js_array2.reduce(
+    let newStmtsRes = st.stmts->Array.reduce(
+        Ok([]),
         (res, stmt) => {
             switch res {
                 | Error(_) => res
@@ -2503,9 +2504,9 @@ let updateSteps = (
                     let newStmtRes = switch stmtIdToStepDto->Belt_HashMapString.get(stmt.id) {
                         | None => Ok(stmt)
                         | Some(step) => {
-                            updates->Js.Array2.reduce(
-                                (res,update) => res->Belt_Result.flatMap(update(_,step)), 
-                                Ok(stmt)
+                            updates->Array.reduce(
+                                Ok(stmt),
+                                (res,update) => res->Belt_Result.flatMap(update(_,step))
                             )
                         }
                     }
@@ -2518,8 +2519,7 @@ let updateSteps = (
                     }
                 }
             }
-        },
-        Ok([])
+        }
     )
     switch newStmtsRes {
         | Error(msg) => Error(msg)
@@ -2821,7 +2821,8 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
         let idsToRenumberSet = idsToRenumberArr->Belt_HashSetString.fromArray
 
         //step 1: assign temporary labels to all the renumberable statements in order to make all numeric labels not used
-        let res = state.stmts->Js.Array2.reduce(
+        let res = state.stmts->Array.reduce(
+            Ok(state),
             (res,stmt) => {
                 switch res {
                     | Ok(st) => {
@@ -2833,19 +2834,18 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
                     }
                     | err => err
                 }
-            },
-            Ok(state)
+            }
         )
 
         //step 2: assign final labels to each renumberable statement
-        let res = idsToRenumberArr->Js.Array2.reduce(
+        let res = idsToRenumberArr->Array.reduce(
+            res,
             (res,stmtId) => {
                 switch res {
                     | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix, ~forHyp, ()))
                     | err => err
                 }
-            },
-            res
+            }
         )
 
         switch res {

@@ -16,14 +16,14 @@ let rec extractResult = (reactElemDto:{..}):option<string> => {
                     children
                         ->Array.filter(child => child->Nullable.toOption->Belt_Option.isSome)
                         ->Array.map(child => child->Nullable.toOption->Belt_Option.getExn)
-                        ->Js_array2.reduce(
+                        ->Array.reduce(
+                            None,
                             (res,child) => {
                                 switch res {
                                     | Some(_) => res
                                     | None => extractResult(child)
                                 }
-                            },
-                            None
+                            }
                         )
                 }
                 | None => None

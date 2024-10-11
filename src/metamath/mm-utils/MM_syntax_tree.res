@@ -52,9 +52,9 @@ let getHeight = (ch:childNode):int => {
 }
 
 let getMaxHeight = (children:array<childNode>):int => {
-    children->Js_array2.reduce(
-        (max,ch) => Math.Int.max(max,ch->getHeight),
-        0
+    children->Array.reduce(
+        0,
+        (max,ch) => Math.Int.max(max,ch->getHeight)
     )
 }
 

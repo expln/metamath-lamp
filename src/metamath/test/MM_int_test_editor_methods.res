@@ -304,9 +304,9 @@ let getStmtId = (
 
 let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
     let st = st->uncheckAllStmts
-    let st = ids->Js_array2.reduce(
-        (st, id) => st->toggleStmtChecked(id),
-        st
+    let st = ids->Array.reduce(
+        st,
+        (st, id) => st->toggleStmtChecked(id)
     )
     let st = st->deleteCheckedStmts
     st->verifyEditorState

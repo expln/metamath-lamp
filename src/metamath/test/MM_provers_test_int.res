@@ -130,11 +130,11 @@ describe("proveSyntaxTypes", _ => {
         let frms = prepareFrmSubsData(~ctx, ())
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
 
-        let totalSize =exprsToSyntaxProve->Js_array2.reduce(
+        let totalSize =exprsToSyntaxProve->Array.reduce(
+            0,
             (size,expr) => {
                 size + expr->Array.length
-            },
-            0
+            }
         )
         Console.log2(`totalSize`, totalSize)
 
