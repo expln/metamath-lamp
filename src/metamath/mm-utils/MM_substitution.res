@@ -484,12 +484,12 @@ let iterateSubstitutions = (
         if (exprLen < frmExprLen || exprLen == 0 || frmExprLen == 0) {
             Continue
         } else {
-            let frmExprEnd = frmExpr->Js_array2.unsafe_get(frmExprLen-1)
-            if (frmExprEnd < 0 && frmExprEnd != expr->Js_array2.unsafe_get(exprLen-1)) {
+            let frmExprEnd = frmExpr->Array.getUnsafe(frmExprLen-1)
+            if (frmExprEnd < 0 && frmExprEnd != expr->Array.getUnsafe(exprLen-1)) {
                 Continue
             } else {
-                let frmExprBegin = frmExpr->Js_array2.unsafe_get(0)
-                if (frmExprBegin < 0 && frmExprBegin != expr->Js_array2.unsafe_get(0)) {
+                let frmExprBegin = frmExpr->Array.getUnsafe(0)
+                if (frmExprBegin < 0 && frmExprBegin != expr->Array.getUnsafe(0)) {
                     Continue
                 } else {
                     iterateConstParts(
