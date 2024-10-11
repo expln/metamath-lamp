@@ -288,7 +288,7 @@ let applyAsrt = (
         })
         stack.nextId = stack.nextId + 1
         for _ in 1 to frame.numOfArgs {
-            stack.nodes->Js_array2.pop->ignore
+            stack.nodes->Array.pop->ignore
         }
         stack.nodes->Array.push(newNode)
     }

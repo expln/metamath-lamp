@@ -60,7 +60,7 @@ let parenCntPut: (parenCnt,int) => state = (cnt,i) => {
                 if (paren.isOpen) {
                     cnt.parentStack->Array.push(paren)
                 } else {
-                    switch cnt.parentStack->Js_array2.pop {
+                    switch cnt.parentStack->Array.pop {
                         | None => cnt.failed = true
                         | Some(lastParen) => {
                             if (lastParen.opposite != paren.code) {
