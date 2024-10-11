@@ -277,7 +277,7 @@ let applyAsrt = (
         let newNode = Calculated({
             id: stack.nextId,
             asrtLabel: frame.label,
-            args: stack.nodes->Js_array2.sliceFrom(stackLength - frame.numOfArgs),
+            args: stack.nodes->Array.sliceToEnd(~start=stackLength - frame.numOfArgs),
             expr,
             dbg:
                 if (ctx->isDebug) {

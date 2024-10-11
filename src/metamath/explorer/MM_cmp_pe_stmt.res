@@ -146,7 +146,7 @@ let make = React.memoCustomCompareProps( ({
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
-                    ~wrkCtx=ctx, ~syms=[syms->Array.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                    ~wrkCtx=ctx, ~syms=[syms->Array.map(s => s.sym)->Array.sliceToEnd(_, ~start=1)],
                     ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt,
                     ~lastSyntaxType=getLastSyntaxType(),
                     ~onLastSyntaxTypeChange=setLastSyntaxType,

@@ -126,7 +126,7 @@ describe("proveSyntaxTypes", _ => {
         let from = 0
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprsToProve->Array.slice(~start=from,~end=to_)
-            ->Array.map(expr => expr->Js_array2.sliceFrom(1))
+            ->Array.map(expr => expr->Array.sliceToEnd(~start=1))
         let frms = prepareFrmSubsData(~ctx, ())
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
 
@@ -170,7 +170,7 @@ describe("proveSyntaxTypes", _ => {
         // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
         let unprovedAsrtExprs = asrtExprsToProve
-            ->Array.filter(expr => proofTree->ptGetSyntaxProof(expr->Js_array2.sliceFrom(1))->Belt_Option.isNone)
+            ->Array.filter(expr => proofTree->ptGetSyntaxProof(expr->Array.sliceToEnd(~start=1))->Belt_Option.isNone)
         // let unprovedAsrtExprStr = unprovedAsrtExprs->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
         assertEqMsg(unprovedAsrtExprs->Array.length, 0, "unprovedAsrtExprs->Array.length = 0")
@@ -189,7 +189,7 @@ describe("proveSyntaxTypes", _ => {
         let syntaxTrees:Belt_HashMapString.t<asrtSyntaxTreeNode> = 
             Belt_HashMapString.make(~hintSize=asrtExprs->Belt_HashMapString.size)
         asrtExprs->Belt_HashMapString.forEach((label,obj) => {
-            switch buildAsrtSyntaxTree(proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Js_array2.sliceFrom(1))->Belt_Option.getExn, ctxIntToAsrtInt(label)) {
+            switch buildAsrtSyntaxTree(proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Array.sliceToEnd(~start=1))->Belt_Option.getExn, ctxIntToAsrtInt(label)) {
                 | Error(msg) => Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
                 | Ok(syntaxTree) => {
                     syntaxTrees->Belt_HashMapString.set(label, syntaxTree)

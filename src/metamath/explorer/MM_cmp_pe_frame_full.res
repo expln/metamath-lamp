@@ -79,7 +79,7 @@ let createVDataRec = (
                 if (hyp.typ == F) {
                     subs->Belt_HashMapString.set(
                         frame.frameVarToSymb->Array.getUnsafe(hyp.expr->Array.getUnsafe(1)),
-                        exprsStr->Array.getUnsafe(args->Array.getUnsafe(i))->Js_array2.sliceFrom(1)
+                        exprsStr->Array.getUnsafe(args->Array.getUnsafe(i))->Array.sliceToEnd(~start=1)
                     )
                 }
             })
@@ -641,7 +641,7 @@ let frameProofDataToStmtsDto = (
                 Some(
                     (
                         wrkCtx->frmIntToSymExn(frameProofData.frame, (frameProofData.frame.hyps->Array.getUnsafe(i)).expr->Array.getUnsafe(1)),
-                        wrkCtx->ctxIntsToStrExn((proofTreeDto.nodes->Array.getUnsafe(arg)).expr->Js_array2.sliceFrom(1)),
+                        wrkCtx->ctxIntsToStrExn((proofTreeDto.nodes->Array.getUnsafe(arg)).expr->Array.sliceToEnd(~start=1)),
                     )
                 )
             } else {
@@ -774,7 +774,7 @@ let make = React.memoCustomCompareProps(({
             let ctx = st.frmCtx
             switch textToSyntaxProofTable( 
                 ~wrkCtx=ctx, 
-                ~syms = [ctx->ctxIntsToSymsExn(st.asrt->Js_array2.sliceFrom(_, 1))],
+                ~syms = [ctx->ctxIntsToSymsExn(st.asrt->Array.sliceToEnd(_, ~start=1))],
                 ~syntaxTypes = st.syntaxTypes, 
                 ~frms = st.frms,
                 ~frameRestrict=preCtxData.settingsV.val.allowedFrms.inSyntax, 

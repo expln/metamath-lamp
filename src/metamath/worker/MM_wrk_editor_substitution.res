@@ -275,7 +275,7 @@ let buildSyntaxTreesOfSameType = (
 
 let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
     if (expr->Array.length > 0 && allTypes->Array.includes(expr->Array.getUnsafe(0))) {
-        expr->Js_array2.sliceFrom(1)
+        expr->Array.sliceToEnd(~start=1)
     } else {
         expr
     }

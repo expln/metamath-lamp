@@ -17,7 +17,7 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateConstParts.")
     }
-    let frmExpr = frm.asrt->Js_array2.sliceFrom(1)
+    let frmExpr = frm.asrt->Array.sliceToEnd(~start=1)
     let expr = ctx->ctxSymsToIntsExn(exprStr->String.split(" "))
 
     //when
@@ -41,7 +41,7 @@ let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSu
         | Some(frm) => frm
         | None => failMsg("Cannot find 'test' frame in testIterateSubstitutions.")
     }
-    let frmExpr = frm.asrt->Js_array2.sliceFrom(1)
+    let frmExpr = frm.asrt->Array.sliceToEnd(~start=1)
     let expr = ctx->ctxStrToIntsExn(exprStr)
 
     //when

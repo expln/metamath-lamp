@@ -1859,7 +1859,7 @@ let stmtSetSyntaxTree = (
     switch stmt.cont {
         | Tree(_) => stmt
         | Text({text, syms}) => {
-            let syntaxTree = switch syntaxNodes->Belt_HashMap.get(expr->Js_array2.sliceFrom(1)) {
+            let syntaxTree = switch syntaxNodes->Belt_HashMap.get(expr->Array.sliceToEnd(~start=1)) {
                 | None => None
                 | Some(nodeDto) => Some(buildSyntaxTreeFromProofTreeDto(~ctx=wrkCtx, ~proofTreeDto, ~typeStmt=nodeDto.expr))
             }
@@ -2755,7 +2755,7 @@ let getAllExprsToSyntaxCheck = (st:editorState, rootStmts:array<rootStmt>):array
     st.stmts->Array.forEachWithIndex((stmt,i) => {
         switch stmt.cont {
             | Tree(_) => ()
-            | Text(_) => res->Array.push((rootStmts->Array.getUnsafe(i)).expr->Js_array2.sliceFrom(1))
+            | Text(_) => res->Array.push((rootStmts->Array.getUnsafe(i)).expr->Array.sliceToEnd(~start=1))
         }
     })
     res

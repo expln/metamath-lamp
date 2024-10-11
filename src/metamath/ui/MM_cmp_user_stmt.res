@@ -494,7 +494,7 @@ module VisualizedJstf = {
                                         subs->Belt_HashMapString.set(
                                             frmSym,
                                             wrkCtx->ctxIntsToSymsExn( 
-                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Js_array2.sliceFrom(1)
+                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Array.sliceToEnd(~start=1)
                                             )
                                         )
                                         let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0))
@@ -755,7 +755,7 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms=[syms->Array.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                            ~wrkCtx, ~syms=[syms->Array.map(s => s.sym)->Array.sliceToEnd(_, ~start=1)],
                             ~syntaxTypes, ~frms, 
                             ~frameRestrict=settings.allowedFrms.inSyntax,
                             ~parenCnt,

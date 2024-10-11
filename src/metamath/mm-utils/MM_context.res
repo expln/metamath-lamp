@@ -647,7 +647,7 @@ let extractMandatoryHypotheses = (
 }
 
 let getAllConsts = (ctx:mmContext):array<string> => {
-    Belt_Option.getExn(ctx.contents.root).consts->Js_array2.sliceFrom(1)
+    Belt_Option.getExn(ctx.contents.root).consts->Array.sliceToEnd(~start=1)
 }
 
 let getMandHyps = (
