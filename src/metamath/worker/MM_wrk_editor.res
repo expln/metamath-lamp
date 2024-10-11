@@ -1435,7 +1435,8 @@ let insertStmt = (
                         | None => 0
                         | Some({args}) => {
                             let remainingLabels = Belt_HashSetString.fromArray(args)
-                            let minIdx = st.stmts->Js_array2.reducei(
+                            let minIdx = st.stmts->Array.reduceWithIndex(
+                                0,
                                 (minIdx,stmt,idx) => {
                                     if (remainingLabels->Belt_HashSetString.isEmpty) {
                                         minIdx
@@ -1443,8 +1444,7 @@ let insertStmt = (
                                         remainingLabels->Belt_HashSetString.remove(stmt.label)
                                         idx + 1
                                     }
-                                },
-                                0
+                                }
                             )
                             if (maxIdx < minIdx) { maxIdx } else { minIdx }
                         }
@@ -2381,7 +2381,8 @@ let addStepsWithoutVars = (
         },
     ]
     let stmtIds = []
-    let res = steps->Js_array2.reducei(
+    let res = steps->Array.reduceWithIndex(
+        Ok(st),
         (res, step, i) => {
             switch res {
                 | Error(_) => res
@@ -2394,8 +2395,7 @@ let addStepsWithoutVars = (
                     updates->Array.reduce(Ok(st), (res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)))
                 }
             }
-        },
-        Ok(st)
+        }
     )
     switch res {
         | Error(msg) => Error(msg)

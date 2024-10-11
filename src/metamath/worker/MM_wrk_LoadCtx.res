@@ -93,7 +93,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 let ctx = createContext(())
                 for i in 0 to scopes->Array.length-1 {
                     let scope = scopes->Array.getUnsafe(i)
-                    let basePct = weights->Js_array2.reducei((a,w,idx) => if idx < i {a +. w} else {a}, 0.)
+                    let basePct = weights->Array.reduceWithIndex(0., (a,w,idx) => if idx < i {a +. w} else {a})
                     let weight = weights->Array.getUnsafe(i)
                     loadContext(
                         (scopes->Array.getUnsafe(i)).ast,

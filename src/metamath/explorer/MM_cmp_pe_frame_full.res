@@ -858,11 +858,11 @@ let make = React.memoCustomCompareProps(({
                         if (state.showTypes) {
                             proofTable->Array.length
                         } else {
-                            proofTable->Js_array2.reducei(
+                            proofTable->Array.reduceWithIndex(
+                                0,
                                 (cnt,_,idx) => {
                                     cnt + if (state.essIdxs->Belt_HashSetInt.has(idx)) {1} else {0}
-                                },
-                                0
+                                }
                             )
                         }
                     }
