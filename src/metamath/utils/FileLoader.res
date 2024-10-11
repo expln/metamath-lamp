@@ -10,8 +10,7 @@ let loadFile = (
     ~url:string,
     ~onProgress:option<(int,int)=>unit>=?,
     ~onReady:string=>unit,
-    ~onError:option<option<string>=>unit>=?,
-    ()
+    ~onError:option<option<string>=>unit>=?
 ) => {
     loadFilePriv(
         url,
@@ -30,8 +29,7 @@ let loadFileWithProgress = (
     ~onReady:string=>unit,
     ~onError:option<option<string>=>unit>=?,
     ~transformErrorMsg:option<option<string>=>string>=?,
-    ~onTerminated:option<unit=>unit>=?,
-    ()
+    ~onTerminated:option<unit=>unit>=?
 ):unit => {
 
     let isTerminated = ref(false)
@@ -48,10 +46,10 @@ let loadFileWithProgress = (
     }
 
     let actDownloadFile = () => {
-        openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+        openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
             updateModal( 
                 modalRef, modalId, 
-                () => rndProgress( ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId), () )
+                () => rndProgress( ~text=progressText, ~pct=0., ~onTerminate=makeActTerminate(modalId) )
             )
             loadFile(
                 ~url,
@@ -59,7 +57,7 @@ let loadFileWithProgress = (
                     let pct = loaded->Belt_Int.toFloat /. total->Belt_Int.toFloat
                     updateModal( 
                         modalRef, modalId,
-                        () => rndProgress( ~text=progressText, ~pct, ~onTerminate=makeActTerminate(modalId), () )
+                        () => rndProgress( ~text=progressText, ~pct, ~onTerminate=makeActTerminate(modalId) )
                     )
                 },
                 ~onError = msg => {
@@ -91,8 +89,7 @@ let loadFileWithProgress = (
                         closeModal(modalRef, modalId)
                         onReady(text)
                     }
-                },
-                ()
+                }
             )
         })->ignore
     }

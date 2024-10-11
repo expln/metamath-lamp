@@ -169,8 +169,8 @@ let createInitialState = (
     ~frmCtx:mmContext, 
     ~frame:frame
 ):state => {
-    let frmCtx = frmCtx->ctxOptimizeForProver(~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
-    let frms = prepareFrmSubsData( ~ctx=frmCtx, () )
+    let frmCtx = frmCtx->ctxOptimizeForProver(~parens=settings.parens, ~removeAsrtDescr=false, ~removeProofs=false)
+    let frms = prepareFrmSubsData( ~ctx=frmCtx )
     let parenCnt = MM_provers.makeParenCnt(~ctx=frmCtx, ~parens=settings.parens)
     let (_, syntaxTypes) = findTypes(frmCtx)
 
@@ -273,7 +273,7 @@ let createInitialState = (
                             true
                         },
                     )
-                    st->setProofTable(~proofTable=createProofTableFromProof(~proofNode=proofRoot, ()), ~dummyVarDisj)
+                    st->setProofTable(~proofTable=createProofTableFromProof(~proofNode=proofRoot), ~dummyVarDisj)
                 }
             }
         }
@@ -364,8 +364,7 @@ let rndIconButton = (
     ~notifyEditInTempMode:option<(unit=>'a)=>'a>=?,
     ~ref:option<ReactDOM.domRef>=?,
     ~title:option<string>=?, 
-    ~smallBtns:bool=false,
-    ()
+    ~smallBtns:bool=false
 ) => {
     <span ?ref ?title>
         <IconButton 
@@ -935,7 +934,7 @@ let make = React.memoCustomCompareProps(({
             { 
                 rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active=true, 
                     ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
-                    ~title="Additional actions", () )
+                    ~title="Additional actions" )
             }
         </Row>
     }
@@ -1107,7 +1106,7 @@ let make = React.memoCustomCompareProps(({
                             ReactDOM.Style.make(~backgroundColor=?getFrmLabelBkgColor(label), ~borderRadius="3px", ())
                         )
                     }
-                    onClick={clickHnd(~act=()=>openFrameExplorer(label),())}
+                    onClick={clickHnd(~act=()=>openFrameExplorer(label))}
                 >
                     {label->React.string}
                 </span>

@@ -8,8 +8,8 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
     it("creates correct symRename when an frm var does not exist in ctx", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/var_override1._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
         let frame = ctx->getFrameExn("ax1")
         let typeColors = Belt_HashMapString.fromArray([("term", "t-color"),("wff", "w-color")])
 
@@ -39,8 +39,8 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
     it("creates correct symRename when an frm var has different type in ctx", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/var_override2._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
         let frame = ctx->getFrameExn("ax1")
         let typeColors = Belt_HashMapString.fromArray([("term", "t-color"),("wff", "w-color")])
 
@@ -70,8 +70,8 @@ describe("MM_cmp_pe_frame_summary_state.makeInitialState", _ => {
     it("does not create symRename when an frm var exists in ctx and has same type", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/var_override3._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
         let frame = ctx->getFrameExn("ax1")
         let typeColors = Belt_HashMapString.fromArray([("term", "t-color"),("wff", "w-color")])
 

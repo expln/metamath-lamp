@@ -124,9 +124,8 @@ let make = (
             {
                 rndHiddenTextField(
                     ~onKeyDown=kbrdHnds([
-                        kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
-                    ]),
-                    ()
+                        kbrdClbkMake(~key=keyEsc, ~act=onCancel),
+                    ])
                 )
             }
         </Row>

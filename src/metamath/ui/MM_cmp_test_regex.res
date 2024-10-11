@@ -47,7 +47,7 @@ let make = (
             maxRows=10
             value=text
             onChange=evt2str(actTextUpdated)
-            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel, ())
+            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel)
         />
     }
 
@@ -60,8 +60,8 @@ let make = (
                 value=regex
                 onChange=evt2str(actRegexUpdated)
                 onKeyDown=kbrdHnd2(
-                    kbrdClbkMake(~key=keyEnter, ~act=actTestRegex, ()),
-                    kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                    kbrdClbkMake(~key=keyEnter, ~act=actTestRegex),
+                    kbrdClbkMake(~key=keyEsc, ~act=onCancel),
                 )
             />
             <Button 

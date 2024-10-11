@@ -24,8 +24,7 @@ let createEditorState = (
     ~stopBefore:option<string>=?, 
     ~stopAfter:option<string>=?, 
     ~editorState:option<string>=?,
-    ~debug:option<bool>=?, 
-    ()
+    ~debug:option<bool>=?
 ) => {
     let parens = "( ) { } [ ]"
     let settings = {
@@ -74,7 +73,7 @@ let createEditorState = (
     }
 
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true)
     let ctx = loadContext(
         ast, 
         ~stopBefore?, 
@@ -83,15 +82,14 @@ let createEditorState = (
         ~labelRegexToDisc=settings.labelRegexToDisc->strToRegex->Belt_Result.getExn,
         ~descrRegexToDepr=settings.descrRegexToDepr->strToRegex->Belt_Result.getExn,
         ~labelRegexToDepr=settings.labelRegexToDepr->strToRegex->Belt_Result.getExn,
-        ~debug?, 
-        ()
+        ~debug?
     )
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext
     }
     
     let st = createInitialEditorState(
-        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx), ()),
+        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx)),
         ~stateLocStor=
             switch editorState {
                 | None => None
@@ -114,8 +112,7 @@ let addStmt = (
     ~isGoal:bool=false,
     ~label:option<string>=?, 
     ~jstf:option<string>=?, 
-    ~stmt:string, 
-    ()
+    ~stmt:string
 ):(editorState,stmtId) => {
     let st = switch before {
         | None => st
@@ -124,7 +121,7 @@ let addStmt = (
             st->toggleStmtChecked(beforeStmtId)
         }
     }
-    let (st,stmtId) = st->addNewStmt(())
+    let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
     let st = switch label {
         | Some(label) => st->completeLabelEditMode(stmtId, label)
@@ -163,8 +160,7 @@ let updateStmt = (
     ~content:option<string>=?,
     ~jstf:option<string>=?,
     ~contReplaceWhat:option<string>=?,
-    ~contReplaceWith:option<string>=?,
-    ()
+    ~contReplaceWith:option<string>=?
 ):editorState => {
     let st = switch label {
         | None => st
@@ -195,7 +191,7 @@ let updateStmt = (
                             cont: stmt.cont
                                     ->contToStr
                                     ->String.replace(contReplaceWhat, contReplaceWith)
-                                    ->strToCont(_, ())
+                                    ->strToCont(_)
                         }
                     }
                     | _ => stmt
@@ -217,8 +213,7 @@ let addStmtsBySearch = (
     ~filterLabel:option<string>=?, 
     ~filterTyp:option<string>=?, 
     ~filterPattern:option<string>=?, 
-    ~chooseLabel:string,
-    ()
+    ~chooseLabel:string
 ):editorState => {
     let st = switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot addStmtsBySearch when wrkCtx is None.`}))
@@ -233,8 +228,7 @@ let addStmtsBySearch = (
                 ~frms=st.frms,
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
                 ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
-                ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
-                ()
+                ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault(""))
             )
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
@@ -242,7 +236,7 @@ let addStmtsBySearch = (
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
                             ++ `Available: ${searchResults->Array.map(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label)->Array.joinUnsafe(", ")} `
                     }))
-                | Some(searchResult) => st->addNewStatements(searchResult, ())
+                | Some(searchResult) => st->addNewStatements(searchResult)
             }
             st->uncheckAllStmts
         }
@@ -250,7 +244,7 @@ let addStmtsBySearch = (
     st->verifyEditorState
 }
 
-let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, ()):editorState => {
+let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?):editorState => {
     assertNoErrors(st)
     let st = switch before {
         | None => st
@@ -259,7 +253,7 @@ let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, 
             st->toggleStmtChecked(beforeStmtId)
         }
     }
-    let st = st->addNewStatements(newStmts, ())
+    let st = st->addNewStatements(newStmts)
     let st = st->uncheckAllStmts
     st->verifyEditorState
 }
@@ -268,8 +262,7 @@ let getStmt = (
     st:editorState, 
     ~predicate:option<userStmt=>bool>=?,
     ~contains:option<string>=?, 
-    ~label:option<string>=?, 
-    ()
+    ~label:option<string>=?
 ) => {
     let predicate = switch predicate {
         | None => _ => true
@@ -296,10 +289,9 @@ let getStmtId = (
     st:editorState, 
     ~predicate:option<userStmt=>bool>=?,
     ~contains:option<string>=?, 
-    ~label:option<string>=?, 
-    ()
+    ~label:option<string>=?
 ) => {
-    getStmt( st, ~predicate?, ~contains?, ~label?, () ).id
+    getStmt( st, ~predicate?, ~contains?, ~label? ).id
 }
 
 let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
@@ -347,8 +339,7 @@ let unifyAll = (st):editorState => {
                 ~wrkCtx,
                 ~rootStmts,
                 ~syntaxTypes=st.syntaxTypes,
-                ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts),
-                ()
+                ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts)
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)
@@ -382,8 +373,7 @@ let unifyBottomUp = (
     ~useTranDepr: option<bool>=?,
     ~combCntMax:int=10000,
     ~chooseLabel:option<string>=?,
-    ~chooseResult:option<stmtsDto => bool>=?,
-    ()
+    ~chooseResult:option<stmtsDto => bool>=?
 ):(editorState, array<stmtsDto>) => {
     assertNoErrors(st)
     switch st.wrkCtx {
@@ -410,8 +400,7 @@ let unifyBottomUp = (
                                 ~allowNewStmts,
                                 ~allowNewVars,
                                 ~args0 = filterRootStmts(rootUserStmts, args0),
-                                ~args1 = filterRootStmts(rootUserStmts, args1),
-                                ()
+                                ~args1 = filterRootStmts(rootUserStmts, args1)
                             )
                         }
                     },
@@ -424,8 +413,7 @@ let unifyBottomUp = (
                     }
                 },
                 ~combCntMax,
-                //~onProgress = msg => Console.log(msg),
-                ()
+                //~onProgress = msg => Console.log(msg)
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
             let rootExprToLabel = st.stmts->Array.map(userStmtToRootStmt)

@@ -97,8 +97,7 @@ let unify = (
                     }
                 }
             },
-            ~enableTrace=false,
-            ()
+            ~enableTrace=false
         )
     })
 }
@@ -117,8 +116,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~syntaxTypes?, 
                 ~exprsToSyntaxCheck?,
                 ~debugLevel,
-                ~onProgress = msg => sendToClient(OnProgress(msg)),
-                ()
+                ~onProgress = msg => sendToClient(OnProgress(msg))
             )
             sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))))
         }
@@ -172,7 +170,7 @@ let srcToNewStmts = (
                             | None => {
                                 if (createIfAbsent) {
                                     let newLabel = generateNewLabels(
-                                        ~ctx, ~prefix, ~amount=1, ~reservedLabels, ~checkHypsOnly=true, ()
+                                        ~ctx, ~prefix, ~amount=1, ~reservedLabels, ~checkHypsOnly=true
                                     )->Array.getUnsafe(0)
                                     exprToLabel->Belt_HashMap.set(expr, newLabel)
                                     reservedLabels->Belt_HashSetString.add(newLabel)
@@ -195,7 +193,7 @@ let srcToNewStmts = (
                 res.newVars->Array.push(newVarInt)
                 res.newVarTypes->Array.push(newVarType)
                 let newVarName = generateNewVarNames( ~ctx, ~types = [newVarType],
-                    ~typeToPrefix, ~reservedNames=reservedVarNames, ()
+                    ~typeToPrefix, ~reservedNames=reservedVarNames
                 )->Array.getUnsafe(0)
                 newVarNames->Belt_HashMapInt.set(newVarInt, newVarName)
                 reservedVarNames->Belt_HashSetString.add(newVarName)
@@ -349,8 +347,7 @@ let srcToNewStmts = (
                         } else {
                             None
                         }
-                    },
-                    ()
+                    }
                 )->ignore
             })
             if (hasError()) {

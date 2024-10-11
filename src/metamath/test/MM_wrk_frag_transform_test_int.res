@@ -112,7 +112,7 @@ external fromState: fragmentTransformState => {..} = "%identity"
 describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
     it("Insert: X ⇒ ( X + A )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Insert: X ⇒ ( X + A )"
         let prepareState = params => {
             st => state({
@@ -237,7 +237,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Elide: ( X + A ) ⇒ X", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Elide: ( X + A ) ⇒ X"
         let prepareState = params => {
             st => state({
@@ -385,7 +385,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Swap: X = Y ⇒ Y = X", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Swap: X = Y ⇒ Y = X"
 
         testTransform( ~editorState, ~transformName,
@@ -415,7 +415,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Associate: ( A + B ) + C ⇒ A + ( B + C )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Associate: ( A + B ) + C ⇒ A + ( B + C )"
         let prepareState = params => {
             st => state({
@@ -477,7 +477,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Replace", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Replace"
         let prepareState = params => {
             st => state({
@@ -496,7 +496,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Extract: X ⇒ ( ph -> X )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Extract: X ⇒ ( ph -> X )"
 
         testTransform( ~editorState, ~transformName,

@@ -251,8 +251,7 @@ let disjToArr = (
     ~sortByTypeAndName:bool=false,
     ~varIntToVarName:option<int=>option<string>>=?,
     ~varIntToVarType:option<int=>option<int>>=?,
-    ~typeOrder:option<Belt_HashMapInt.t<int>>=?,
-    ()
+    ~typeOrder:option<Belt_HashMapInt.t<int>>=?
 ):array<array<int>> => {
     let res = []
     disj->disjForEach((n,m) => res->Array.push([n,m]))
@@ -365,8 +364,7 @@ let disjForEachArr = (
         ~sortByTypeAndName,
         ~varIntToVarName?,
         ~varIntToVarType?,
-        ~typeOrder?,
-        ()
+        ~typeOrder?
     )->Array.forEach(consumer)
 }
 
@@ -572,8 +570,7 @@ let extractMandatoryVariables = (
     ctx:mmContext, 
     asrt:expr, 
     ~skipEssentials:bool=false, 
-    ~overrideHyps:option<array<expr>>=?,
-    ()
+    ~overrideHyps:option<array<expr>>=?
 ):Belt_HashSetInt.t => {
     let res = Belt_HashSetInt.make(~hintSize=16)
     if (!skipEssentials) {
@@ -618,8 +615,7 @@ let extractMandatoryHypotheses = (
     ctx:mmContext, 
     mandatoryVars:Belt_HashSetInt.t, 
     ~skipEssentials:bool=false, 
-    ~overrideHyps:option<array<expr>>=?,
-    ()
+    ~overrideHyps:option<array<expr>>=?
 ):array<hypothesis> => {
     let res = []
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
@@ -654,11 +650,10 @@ let getMandHyps = (
     ctx:mmContext, 
     expr:expr,
     ~skipEssentials:bool=false, 
-    ~overrideHyps:option<array<expr>>=?,
-    ()
+    ~overrideHyps:option<array<expr>>=?
 ):array<hypothesis> => {
-    let mandatoryVars = extractMandatoryVariables( ctx, expr, ~skipEssentials, ~overrideHyps?, () )
-    extractMandatoryHypotheses(ctx, mandatoryVars, ~skipEssentials, ~overrideHyps?, ())
+    let mandatoryVars = extractMandatoryVariables( ctx, expr, ~skipEssentials, ~overrideHyps? )
+    extractMandatoryHypotheses(ctx, mandatoryVars, ~skipEssentials, ~overrideHyps?)
 }
 
 let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
@@ -709,7 +704,7 @@ let rec getNestingLevelPriv = (ctx:mmContextContents):int => {
 
 let getNestingLevel = (ctx:mmContext):int => getNestingLevelPriv(ctx.contents)
 
-let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):array<int> => {
+let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?):array<int> => {
 
     let getAllExprs = ctx => {
         let allExpr = []
@@ -730,7 +725,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
         let res = ref(true)
         let openUsed = ref(false)
         let closeUsed = ref(false)
-        let parenCnt = parenCntMake([openSym, closeSym], ~checkParensOptimized=false, ())
+        let parenCnt = parenCntMake([openSym, closeSym], ~checkParensOptimized=false)
         let parenState = ref(Balanced)
         let allExprsLen = allExprs->Array.length
         let e = ref(0)
@@ -770,7 +765,7 @@ let findParentheses = (ctx:mmContext, ~onProgress:option<float=>unit>=?, ()):arr
 
     let maxC = allConsts->Array.length - 2
     let maxCF = maxC->Belt_Int.toFloat
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let foundParens = []
     for c in 0 to maxC {
         let openParen = allConsts->Array.getUnsafe(c)
@@ -816,7 +811,7 @@ let getLocalDisj = (ctx:mmContext):disjMutable => {
     disj
 }
 
-let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmContext => {
+let createContext = (~parent:option<mmContext>=?, ~debug:bool=false):mmContext => {
     let pCtxContentsOpt = switch parent {
         | Some(pCtx) => Some(pCtx.contents)
         | None => None
@@ -858,7 +853,7 @@ let createContext = (~parent:option<mmContext>=?, ~debug:bool=false, ()):mmConte
 }
 
 let openChildContext = (ctx:mmContext):unit => {
-    ctx.contents = createContext(~parent=ctx, ()).contents
+    ctx.contents = createContext(~parent=ctx).contents
 }
 
 let closeChildContext = (ctx:mmContext):unit => {
@@ -1097,8 +1092,7 @@ let createFrame = (
     ~descrRegexToDisc:option<RegExp.t>=?,
     ~labelRegexToDisc:option<RegExp.t>=?,
     ~descrRegexToDepr:option<RegExp.t>=?,
-    ~labelRegexToDepr:option<RegExp.t>=?,
-    ()
+    ~labelRegexToDepr:option<RegExp.t>=?
 ):frame => {
     assertNameIsUnique(ctx,label,tokenType)
     if (exprStr->Array.length < 1) {
@@ -1110,13 +1104,13 @@ let createFrame = (
             | Some(sym) => raise(MmException({msg:`The symbol '${sym}' must be either a constant or a variable.`}))
             | None => {
                 let asrt = exprStr->Array.map(ctxSymToIntExn(ctx, _))
-                let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ~overrideHyps?, ())
+                let mandatoryVarsSet = extractMandatoryVariables(ctx, asrt, ~skipEssentials, ~overrideHyps?)
                 let mandatoryVarsArr = mandatoryVarsSet->Belt_HashSetInt.toArray
                 let mandatoryDisj = if (skipDisj) {disjMake()} else {
                     extractMandatoryDisj(ctx, mandatoryVarsSet)
                 }
                 let mandatoryHypotheses = extractMandatoryHypotheses(
-                    ctx, mandatoryVarsSet, ~skipEssentials, ~overrideHyps?, ()
+                    ctx, mandatoryVarsSet, ~skipEssentials, ~overrideHyps?
                 )
                 let ctxToFrameRenum = mandatoryVarsArr
                                         ->Array.mapWithIndex((cv,fv) => (cv,fv))
@@ -1148,7 +1142,7 @@ let createFrame = (
                     dbg:
                         if (ctx.contents.debug) {
                             Some({
-                                disj: mandatoryDisj->disjToArr(())->Array.map(ctxIntsToStrExn(ctx, _)),
+                                disj: mandatoryDisj->disjToArr->Array.map(ctxIntsToStrExn(ctx, _)),
                                 hyps: mandatoryHypotheses->Array.map(hyp => ctx->ctxIntsToStrExn(hyp.expr)),
                                 asrt: ctx->ctxIntsToStrExn(asrt),
                             })
@@ -1171,8 +1165,7 @@ let addAssertion = (
     ~descrRegexToDisc:option<RegExp.t>=?,
     ~labelRegexToDisc:option<RegExp.t>=?,
     ~descrRegexToDepr:option<RegExp.t>=?,
-    ~labelRegexToDepr:option<RegExp.t>=?,
-    ()
+    ~labelRegexToDepr:option<RegExp.t>=?
 ):unit => {
     let currCtx = ctx.contents
     let frame = createFrame(
@@ -1183,8 +1176,7 @@ let addAssertion = (
         ~descrRegexToDisc?,
         ~labelRegexToDisc?,
         ~descrRegexToDepr?,
-        ~labelRegexToDepr?,
-        ()
+        ~labelRegexToDepr?
     )
     currCtx.frames->Belt_HashMapString.set( label, frame )
     currCtx.totalNumOfFrames = currCtx.totalNumOfFrames + 1
@@ -1199,8 +1191,7 @@ let applySingleStmt = (
     ~descrRegexToDisc:option<RegExp.t>=?,
     ~labelRegexToDisc:option<RegExp.t>=?,
     ~descrRegexToDepr:option<RegExp.t>=?,
-    ~labelRegexToDepr:option<RegExp.t>=?,
-    ()
+    ~labelRegexToDepr:option<RegExp.t>=?
 ):unit => {
     switch stmt {
         | Comment({text}) => addComment(ctx, text)
@@ -1213,13 +1204,13 @@ let applySingleStmt = (
         | Axiom({label, expr}) => {
             addAssertion(
                 ctx, ~isAxiom=true, ~label, ~exprStr=expr, ~proof=None, 
-                ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?, ()
+                ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?
             )
         }
         | Provable({label, expr, proof}) => {
             addAssertion(
                 ctx, ~isAxiom=false, ~label, ~exprStr=expr, ~proof, 
-                ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?, ()
+                ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?
             )
         }
     }
@@ -1237,12 +1228,11 @@ let loadContext = (
     ~descrRegexToDepr:option<RegExp.t>=?,
     ~labelRegexToDepr:option<RegExp.t>=?,
     ~onProgress= _=>(), 
-    ~debug:bool=false, 
-    ()
+    ~debug:bool=false
 ) => {
     let expectedNumOfAssertionsF = expectedNumOfAssertions->Belt_Int.toFloat
     let assertionsProcessed = ref(0.)
-    let progressTracker = progressTrackerMake(~step=0.1, ~onProgress, ())
+    let progressTracker = progressTrackerMake(~step=0.1, ~onProgress)
 
     let onAsrtProcess = () => {
         if (expectedNumOfAssertions > 0) {
@@ -1254,7 +1244,7 @@ let loadContext = (
     let (ctx, _) = traverseAst(
         switch initialContext {
             | Some(ctx) => ctx
-            | None => createContext(~debug, ())
+            | None => createContext(~debug)
         },
         ast,
         ~preProcess = (ctx,node) => {
@@ -1286,7 +1276,7 @@ let loadContext = (
                 | {stmt:Block(_)} => ()
                 | {stmt} => {
                     applySingleStmt(
-                        ctx, stmt, ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?, ()
+                        ctx, stmt, ~descrRegexToDisc?, ~labelRegexToDisc?, ~descrRegexToDepr?, ~labelRegexToDepr?
                     )
                 }
             }
@@ -1303,8 +1293,7 @@ let loadContext = (
                 | {stmt:Axiom({label}) | Provable({label})} if stopAfter == label => Some(())
                 | _ => None
             }
-        },
-        ()
+        }
     )
     ctx
 }
@@ -1313,8 +1302,7 @@ let generateNewVarNames = (
     ~ctx:mmContext, 
     ~types:array<int>, 
     ~typeToPrefix:Belt_MapString.t<string>=Belt_MapString.empty,
-    ~reservedNames:option<Belt_HashSetString.t>=?,
-    ()
+    ~reservedNames:option<Belt_HashSetString.t>=?
 ): array<string> => {
     let prefixToCnt = Belt_HashMapString.make(~hintSize=typeToPrefix->Belt_MapString.size)
 
@@ -1346,8 +1334,7 @@ let generateNewLabels = (
     ~prefix:string, 
     ~amount:int,
     ~reservedLabels:option<Belt_HashSetString.t>=?,
-    ~checkHypsOnly:bool=false,
-    ()
+    ~checkHypsOnly:bool=false
 ): array<string> => {
     let labelIsReserved = label => {
         reservedLabels->Belt.Option.map(Belt_HashSetString.has(_,label))->Belt_Option.getWithDefault(false)
@@ -1557,8 +1544,7 @@ let ctxOptimizeForProver = (
     ctx:mmContext,
     ~parens:string,
     ~removeAsrtDescr:bool=true,
-    ~removeProofs:bool=true,
-    ()
+    ~removeProofs:bool=true
 ):mmContext => {
     let (_,ctx) = ctx.contents->ctxRemoveRedundantText( ~removeAsrtDescr, ~removeProofs, )
     let resCtx = ref(ctx)

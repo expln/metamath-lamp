@@ -150,8 +150,7 @@ let searchAssertions = (
                     }
                 }
             },
-            ~enableTrace=false,
-            ()
+            ~enableTrace=false
         )
     })
 }
@@ -163,10 +162,9 @@ let doSearchAssertions = (
     ~label:string, 
     ~typ:int, 
     ~pattern:array<int>, 
-    ~onProgress:option<float=>unit>=?,
-    ()
+    ~onProgress:option<float=>unit>=?
 ):array<stmtsDto> => {
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = frms->frmsSize->Belt_Int.toFloat
     let varPat = pattern
@@ -185,7 +183,7 @@ let doSearchAssertions = (
     )
 
     let results = []
-    let framesInDeclarationOrder = frms->frmsSelect(())
+    let framesInDeclarationOrder = frms->frmsSelect
         ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
     framesInDeclarationOrder->Array.forEach(frm => {
         let frame = frm.frame
@@ -256,8 +254,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~label, 
                 ~typ, 
                 ~pattern, 
-                ~onProgress = pct => sendToClient(OnProgress(pct)), 
-                ()
+                ~onProgress = pct => sendToClient(OnProgress(pct))
             )
             sendToClient(SearchResult({found:results}))
         }

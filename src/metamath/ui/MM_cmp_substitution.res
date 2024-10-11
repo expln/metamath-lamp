@@ -119,7 +119,7 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
-let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
+let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?) => {
     <span ?title>
         <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
     </span>
@@ -292,8 +292,8 @@ let make = (
             onChange=evt2str(onChange)
             inputProps={"tabIndex":tabIndex}
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~key=keyEnter, ~act=onEnter, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=onEnter),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled),
             )
         />
     }
@@ -326,11 +326,11 @@ let make = (
                             {rndIconButton(
                                 ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
                                 ~onClick={_=>actCopyExpr1ToExpr2()}, ~active=true, 
-                                ~title=`Copy this statement to the below text field`, ())}
+                                ~title=`Copy this statement to the below text field`)}
                         </td>
                         <td>
                             {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
-                                ~title=`Swap "${expr1Label}" and "${expr2Label}"`, ())}
+                                ~title=`Swap "${expr1Label}" and "${expr2Label}"`)}
                         </td>
                     </tr>
                 </tbody>
@@ -348,7 +348,7 @@ let make = (
                             {rndIconButton(
                                 ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
                                 ~onClick={_=>actCopyExpr2ToExpr1()}, ~active=true, 
-                                ~title=`Copy this statement to the above text field`, ())}
+                                ~title=`Copy this statement to the above text field`)}
                         </td>
                     </tr>
                 </tbody>

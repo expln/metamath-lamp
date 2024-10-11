@@ -7,7 +7,7 @@ describe("parseMmFile", _ => {
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
 
         //when
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
 
         //then
         let actual = stmtToStrRec(ast)->Array.filter(s => !(s->String.trim->String.startsWith("$(")))

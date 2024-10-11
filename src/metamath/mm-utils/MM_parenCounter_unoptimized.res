@@ -15,7 +15,7 @@ type parenCnt = {
     mutable failed: bool
 }
 
-let parenCntMake = (parentheses, ~checkParensOptimized:bool=true, ()) => {
+let parenCntMake = (parentheses, ~checkParensOptimized:bool=true) => {
     let parenLen = parentheses->Array.length
     if (mod(parenLen, 2)  != 0) {
         raise(MmException({msg:`mod(parenLen, 2)  != 0 in parenCntMake`}))

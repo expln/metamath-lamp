@@ -64,8 +64,7 @@ let contToStr = cont => {
 let strToCont = (
     str:string,
     ~preCtxColors: option<Belt_HashMapString.t<string>>=?,
-    ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?,
-    ()
+    ~wrkCtxColors: option<Belt_HashMapString.t<string>>=?
 ):stmtCont => {
     let symsArr = getSpaceSeparatedValuesAsArray(str)
     Text({
@@ -467,7 +466,7 @@ let getRootStmtsForUnification = (st):array<userStmt> => {
     }
 }
 
-let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false, ()):string => {
+let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=false):string => {
     let reservedLabels = Belt_HashSetString.fromArray(st.stmts->Array.map(stmt=>stmt.label))
     switch textToVarDefs(st.varsText) {
         | Error(_) => ()
@@ -522,7 +521,7 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
     }
 }
 
-let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):(editorState,stmtId) => {
+let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?):(editorState,stmtId) => {
     let newId = st.nextStmtId->Belt_Int.toString
     let pCnt = st.stmts->Array.reduce(
         0,
@@ -532,12 +531,12 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):
     let newLabel = 
         if (pCnt == 0 && defaultStmtLabel->String.length > 0) {
             if (st.stmts->Array.some(stmt => stmt.label == defaultStmtLabel)) {
-                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp, ())
+                createNewLabel(st, ~prefix=defaultStmtLabel, ~forHyp=isHyp)
             } else {
                 defaultStmtLabel
             }
         } else {
-            createNewLabel(st, ~prefix="", ~forHyp=isHyp, ())
+            createNewLabel(st, ~prefix="", ~forHyp=isHyp)
         }
     let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
@@ -576,7 +575,7 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?, ()):
     )
 }
 
-let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorState,stmtId) => {
+let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false):(editorState,stmtId) => {
     let savedCheckedStmtIds = st.checkedStmtIds
     let st = st->uncheckAllStmts
     let st = if (0 <= idx && idx < st.stmts->Array.length) {
@@ -584,7 +583,7 @@ let addNewStmtAtIdx = (st:editorState, ~idx:int, ~isHyp:bool=false, ()):(editorS
     } else {
         st
     }
-    let (st,stmtId) = st->addNewStmt(~isHyp, ())
+    let (st,stmtId) = st->addNewStmt(~isHyp)
     let st = {...st, checkedStmtIds:savedCheckedStmtIds}
     (st,stmtId)
 }
@@ -608,7 +607,7 @@ let duplicateCheckedStmt = (st:editorState, top:bool) => {
                             {
                                 ...stmt, 
                                 id:newId, 
-                                label:createNewLabel(st, ~forHyp = stmt.typ == E, ()),
+                                label:createNewLabel(st, ~forHyp = stmt.typ == E),
                                 isGoal:false, 
                                 jstfText:"",
                                 isDuplicated:true,
@@ -714,7 +713,7 @@ let completeContEditMode = (st, stmtId, newContText):editorState => {
         } else {
             {
                 ...stmt,
-                cont:strToCont(newContText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
+                cont:strToCont(newContText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors),
                 contEditMode: false,
                 isDuplicated: false,
             }
@@ -825,7 +824,7 @@ let updateColorsInAllStmts = st => {
         ...st,
         stmts: st.stmts->Array.map(stmt => {
             ...stmt,
-            cont: stmt.cont->contToStr->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ())
+            cont: stmt.cont->contToStr->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors)
         })
     }
 }
@@ -833,7 +832,7 @@ let updateColorsInAllStmts = st => {
 let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver(
-        ~parens=settings.parens, ~removeAsrtDescr=true, ~removeProofs=true, ()
+        ~parens=settings.parens, ~removeAsrtDescr=true, ~removeProofs=true
     )
     let parenInts = prepareParenInts(preCtx, settings.parens)
     let numOfParens = parenInts->Array.length / 2
@@ -1311,8 +1310,7 @@ let createNewVars = (
     st:editorState, 
     ~varTypes:array<int>,
     ~varNames:option<array<string>>=?,
-    ~dontAddVariablesToContext:bool=false,
-    ()
+    ~dontAddVariablesToContext:bool=false
 ):(editorState,array<int>) => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot create new variables without wrkCtx.`}))
@@ -1336,22 +1334,20 @@ let createNewVars = (
                             generateNewVarNames(
                                 ~ctx=wrkCtx,
                                 ~types=varTypes, 
-                                ~typeToPrefix,
-                                ()
+                                ~typeToPrefix
                             )
                         }
                     }
                 let newHypLabels = generateNewLabels(
                     ~ctx=wrkCtx,
                     ~prefix="var", 
-                    ~amount=numOfVars,
-                    ()
+                    ~amount=numOfVars
                 )
                 let varTypeNames = wrkCtx->ctxIntsToSymsExn(varTypes)
                 if (!dontAddVariablesToContext) {
-                    wrkCtx->applySingleStmt(Var({symbols:newVarNames}), ())
+                    wrkCtx->applySingleStmt(Var({symbols:newVarNames}))
                     newHypLabels->Array.forEachWithIndex((label,i) => {
-                        wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames->Array.getUnsafe(i), newVarNames->Array.getUnsafe(i)]}), ())
+                        wrkCtx->applySingleStmt(Floating({label, expr:[varTypeNames->Array.getUnsafe(i), newVarNames->Array.getUnsafe(i)]}))
                     })
                 }
                 let newVarInts = wrkCtx->ctxSymsToIntsExn(newVarNames)
@@ -1376,7 +1372,7 @@ let createNewDisj = (st:editorState, newDisj:disjMutable):editorState => {
             let newDisjTextLines = []
             newDisj->disjForEachArr(varInts => {
                 let varsStr = wrkCtx->ctxIntsToSymsExn(varInts)
-                wrkCtx->applySingleStmt(Disj({vars:varsStr}), ())
+                wrkCtx->applySingleStmt(Disj({vars:varsStr}))
                 newDisjTextLines->Array.push(varsStr->Array.joinUnsafe(" "))
             })
             if (newDisjTextLines->Array.length == 0) {
@@ -1468,14 +1464,14 @@ let insertStmt = (
                                 if (minIdx <= newIdx && newIdx <= maxIdx) { newIdx } else { minIdx }
                             }
                         }
-                        let (st,newStmtId) = st->addNewStmtAtIdx(~idx=newIdx, ())
+                        let (st,newStmtId) = st->addNewStmtAtIdx(~idx=newIdx)
                         let st = st->updateStmt(newStmtId, stmt => {
                             {
                                 ...stmt,
                                 typ: P,
                                 cont: strToCont( 
                                     wrkCtx->ctxIntsToStrExn(expr), 
-                                    ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()
+                                    ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors
                                 ),
                                 contEditMode: false,
                                 isBkm,
@@ -1533,8 +1529,8 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
     }
 }
 
-let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false, ()):editorState => {
-    let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes,())
+let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):editorState => {
+    let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes)
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Array.forEachWithIndex((newStmtsVarInt,i) => {
         newStmtsVarToCtxVar->Belt_MutableMapInt.set(newStmtsVarInt, newCtxVarInts->Array.getUnsafe(i))
@@ -1633,8 +1629,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ~sortByTypeAndName=true,
                 ~varIntToVarName=ctxIntToSym(wrkCtx, _),
                 ~varIntToVarType=getTypeOfVar(wrkCtx, _),
-                ~typeOrder=st.typeOrderInDisj,
-                ()
+                ~typeOrder=st.typeOrderInDisj
             )
                 ->Array.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Array.joinUnsafe(" "))
                 ->Array.joinUnsafe("\n")
@@ -1819,15 +1814,14 @@ let getColorForSymbol = (
 let rec addColorsToSyntaxTree = (
     ~tree:syntaxTreeNode,
     ~preCtxColors:option<Belt_HashMapString.t<string>>=?,
-    ~wrkCtxColors:option<Belt_HashMapString.t<string>>=?,
-    ()
+    ~wrkCtxColors:option<Belt_HashMapString.t<string>>=?
 ):syntaxTreeNode => {
     {
         ...tree,
         children: tree.children->Array.map(child => {
             switch child {
                 | Subtree(syntaxTreeNode) => {
-                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors?, ~wrkCtxColors?, ()))
+                    Subtree(addColorsToSyntaxTree(~tree=syntaxTreeNode, ~preCtxColors?, ~wrkCtxColors?))
                 }
                 | Symbol(symData) => {
                     Symbol({ ...symData, color:getColorForSymbol(~sym=symData.sym, ~preCtxColors, ~wrkCtxColors)})
@@ -1889,8 +1883,7 @@ let stmtSetSyntaxTree = (
                             root: addColorsToSyntaxTree( 
                                 ~tree=syntaxTree, 
                                 ~preCtxColors=st.preCtxColors, 
-                                ~wrkCtxColors=st.wrkCtxColors, 
-                                ()
+                                ~wrkCtxColors=st.wrkCtxColors
                             ), 
                             clickedNodeId: None,
                             expLvl:0,
@@ -2045,9 +2038,9 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                 | Some(proofNode) => {
                                     let preCtx = st.preCtx
                                     let expr = userStmtToRootStmt(stmt).expr
-                                    let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode, ())
+                                    let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode)
                                     let proofTableWithoutTypes = createProofTable(
-                                        ~tree=proofTreeDto, ~root=proofNode, ~essentialsOnly=true, ~ctx=wrkCtx, ()
+                                        ~tree=proofTreeDto, ~root=proofNode, ~essentialsOnly=true, ~ctx=wrkCtx
                                     )
                                     let exprsUsedInProof = proofTableWithTypes->Array.map(r => r.expr)
                                         ->Belt_HashSet.fromArray(~id=module(ExprHash))
@@ -2059,7 +2052,7 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                         })
                                     )
 
-                                    let mandHyps = proofCtx->getMandHyps(expr, ())
+                                    let mandHyps = proofCtx->getMandHyps(expr)
                                     let proof = MM_proof_table.createProof(
                                         mandHyps, proofTableWithTypes, proofTableWithTypes->Array.length-1
                                     )
@@ -2240,7 +2233,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
                 st.stmts->Array.find(stmt => stmt.isGoal)->Belt.Option.isSome
                 || st.preCtx->getTokenType(newStmt.label)->Belt.Option.isSome
             ) {
-                createNewLabel(st, ~forHyp=true, ())
+                createNewLabel(st, ~forHyp=true)
             } else {
                 newStmt.label
             }
@@ -2330,8 +2323,7 @@ let isHyp = (stmtTyp:option<userStmtTypeExtended>):bool => {
 let addStepsWithoutVars = (
     st:editorState,
     ~atIdx:option<int>=?,
-    ~steps:array<userStmtDtoOpt>,
-    ()
+    ~steps:array<userStmtDtoOpt>
 ):result<(editorState,array<stmtId>),string> => {
     let updates:array<(editorState,stmtId,userStmtDtoOpt)=>result<editorState,string>> = [
         (st,stmtId,step) => {
@@ -2388,8 +2380,8 @@ let addStepsWithoutVars = (
                 | Error(_) => res
                 | Ok(st) => {
                     let (st,stmtId) = switch atIdx {
-                        | None => st->addNewStmt(~isHyp=isHyp(step.typ), ())
-                        | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ), ())
+                        | None => st->addNewStmt(~isHyp=isHyp(step.typ))
+                        | Some(atIdx) => st->addNewStmtAtIdx(~idx=atIdx+i, ~isHyp=isHyp(step.typ))
                     }
                     stmtIds->Array.push(stmtId)
                     updates->Array.reduce(Ok(st), (res,update) => res->Belt.Result.flatMap(update(_,stmtId,step)))
@@ -2413,11 +2405,10 @@ let addSteps = (
     ~atIdx:option<int>=?,
     ~steps:array<userStmtDtoOpt>,
     ~vars:array<(string,option<string>)>=[],
-    ~dontAddVariablesToContext:bool,
-    ()
+    ~dontAddVariablesToContext:bool
 ):result<(editorState,array<stmtId>),string> => {
     if (vars->Array.length == 0) {
-        st->addStepsWithoutVars( ~atIdx?, ~steps, () )
+        st->addStepsWithoutVars( ~atIdx?, ~steps )
     } else {
         switch st.wrkCtx {
             | None => Error("Cannot add new variables because of errors in the editor.")
@@ -2433,14 +2424,14 @@ let addSteps = (
                         Error("All variable names must be either defined or undefined.")
                     } else {
                         let st = if (vars->Array.some(((_,varName)) => varName->Belt_Option.isNone)) {
-                            let (st, _) = createNewVars(st, ~varTypes, ~dontAddVariablesToContext, ())
+                            let (st, _) = createNewVars(st, ~varTypes, ~dontAddVariablesToContext)
                             st
                         } else {
                             let varNames = vars->Array.map(((_,varName)) => varName->Belt_Option.getExn)
-                            let (st, _) = createNewVars(st, ~varTypes, ~varNames, ~dontAddVariablesToContext, ())
+                            let (st, _) = createNewVars(st, ~varTypes, ~varNames, ~dontAddVariablesToContext)
                             st
                         }
-                        st->addStepsWithoutVars( ~atIdx?, ~steps, () )
+                        st->addStepsWithoutVars( ~atIdx?, ~steps )
                     }
                 }
             }
@@ -2462,7 +2453,7 @@ let updateSteps = (
                     } else {
                         Ok({
                             ...stmt,
-                            cont:strToCont(cont, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ()),
+                            cont:strToCont(cont, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors),
                             contEditMode: false,
                             isDuplicated: false,
                         })
@@ -2842,7 +2833,7 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
             res,
             (res,stmtId) => {
                 switch res {
-                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix, ~forHyp, ()))
+                    | Ok(st) => st->renameStmt(stmtId, st->createNewLabel(~prefix, ~forHyp))
                     | err => err
                 }
             }
@@ -2908,7 +2899,7 @@ let textToSyntaxProofTable = (
                 })
                 let exprs = syms->Array.map(ctxSymsToIntsExn(wrkCtx, _))
                 let proofTree = MM_provers.proveSyntaxTypes(
-                    ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ~frameRestrict, ()
+                    ~wrkCtx=wrkCtx, ~frms, ~parenCnt, ~exprs, ~syntaxTypes, ~frameRestrict
                 )
                 let typeStmts = exprs->Array.map(expr => {
                     switch proofTree->ptGetSyntaxProof(expr) {

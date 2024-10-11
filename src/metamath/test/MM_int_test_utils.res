@@ -190,11 +190,10 @@ let generateReducedMmFile = (
     ~pathToFullMmFile:string,
     ~pathToSaveTo:string,
     ~skipComments:bool=false,
-    ~skipProofs:bool=false,
-    ()
+    ~skipProofs:bool=false
 ) => {
     let fullMmFileText = Expln_utils_files.readStringFromFile(pathToFullMmFile)
-    let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs, ())
+    let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs)
     let reducedContent = astToStr(ast)
     Expln_utils_files.writeStringToFile( reducedContent, pathToSaveTo )
 }
@@ -202,8 +201,7 @@ let generateReducedMmFile = (
 let countFrames = (
     ast, 
     ~stopBefore="",
-    ~stopAfter="",
-    ()
+    ~stopAfter=""
 ) => {
 
     let (cnt, _) = traverseAst(
@@ -225,8 +223,7 @@ let countFrames = (
                 }
                 | _ => None
             }
-        },
-        ()
+        }
     )
     cnt.contents
 }
@@ -240,8 +237,7 @@ let testProgressTrackerMake = (
         ~maxCnt,
         ~onProgress = pct => {
             Console.log2(Date.make()->Date.toISOString, pct->floatToPctStr)
-        }, 
-        ()
+        }
     )
 }
 

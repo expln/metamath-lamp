@@ -22,16 +22,15 @@ describe("proveSyntaxTypes", _ => {
     it("finds syntax proofs for each assertion in set.mm", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
 
         let ctx = ast->loadContext(
             ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
             // ~stopBefore="mathbox",
-            // ~debug=true,
-            ()
+            // ~debug=true
         )
         let parens = "( ) [ ] { } [. ]. [_ ]_ <. >. <\" \"> << >> [s ]s (. ). (( ))"
-        let ctx = ctx->ctxOptimizeForProver(~parens, ())
+        let ctx = ctx->ctxOptimizeForProver(~parens)
         ctx->openChildContext
         let (_,syntaxTypes) = MM_wrk_pre_ctx_data.findTypes(ctx)
 
@@ -40,11 +39,11 @@ describe("proveSyntaxTypes", _ => {
 
         let createNewVar = (typ:int):int => {
             @warning("-8")
-            let [label] = generateNewLabels( ~ctx=ctx, ~prefix="locVar", ~amount=1, (), )
+            let [label] = generateNewLabels( ~ctx=ctx, ~prefix="locVar", ~amount=1 )
             @warning("-8")
-            let [varName] = generateNewVarNames( ~ctx=ctx, ~types=[typ], () )
-            ctx->applySingleStmt( Var({symbols:[varName]}), () )
-            ctx->applySingleStmt( Floating({label, expr:[ctx->ctxIntToSymExn(typ), varName]}), () )
+            let [varName] = generateNewVarNames( ~ctx=ctx, ~types=[typ] )
+            ctx->applySingleStmt( Var({symbols:[varName]}) )
+            ctx->applySingleStmt( Floating({label, expr:[ctx->ctxIntToSymExn(typ), varName]}) )
             ctx->ctxSymToIntExn(varName)
         }
 
@@ -127,7 +126,7 @@ describe("proveSyntaxTypes", _ => {
         let to_ = from + numOfExpr
         let exprsToSyntaxProve = asrtExprsToProve->Array.slice(~start=from,~end=to_)
             ->Array.map(expr => expr->Array.sliceToEnd(~start=1))
-        let frms = prepareFrmSubsData(~ctx, ())
+        let frms = prepareFrmSubsData(~ctx)
         let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
 
         let totalSize =exprsToSyntaxProve->Array.reduce(
@@ -159,8 +158,7 @@ describe("proveSyntaxTypes", _ => {
                 let currMs = getCurrMillis()
                 log(`proving syntax: ${pct->floatToPctStr} - ${durationToSecondsStr(lastPct.contents, currMs)} sec`)
                 lastPct := currMs
-            },
-            ()
+            }
         )
 
         //then

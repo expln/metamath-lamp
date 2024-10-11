@@ -326,8 +326,7 @@ let apiMatcherToMatcher = (
                         ~exprStr = switch matcher.res {
                             | Some(res) => res
                             | None => (matcher.hyps->Array.getUnsafe(0)).pat
-                        }->getSpaceSeparatedValuesAsArray,
-                        ()
+                        }->getSpaceSeparatedValuesAsArray
                     )
                     Ok(
                         {
@@ -438,45 +437,45 @@ let proveBottomUp = (
         open Expln_utils_jsonParse
         let parseResult:result<proveBottomUpApiParams,string> = fromJson(paramsJson, asObj(_, d=>{
             {
-                delayBeforeStartMs: d->intOpt("delayBeforeStartMs", ()),
-                stepToProve: d->str("stepToProve", ()),
-                debugLevel: d->intOpt("debugLevel", ()),
-                maxSearchDepth: d->int("maxSearchDepth", ()),
-                selectFirstFoundProof: d->boolOpt("selectFirstFoundProof", ()),
+                delayBeforeStartMs: d->intOpt("delayBeforeStartMs"),
+                stepToProve: d->str("stepToProve"),
+                debugLevel: d->intOpt("debugLevel"),
+                maxSearchDepth: d->int("maxSearchDepth"),
+                selectFirstFoundProof: d->boolOpt("selectFirstFoundProof"),
                 frameParams: d->arr("frameParameters", asObj(_, d=>{
                     {
-                        minDist: d->intOpt("minDist", ()),
-                        maxDist: d->intOpt("maxDist", ()),
+                        minDist: d->intOpt("minDist"),
+                        maxDist: d->intOpt("maxDist"),
                         matches: d->arrOpt("matches", asObj(_, d=>{
                             {
-                                res: d->strOpt("res", ()),
+                                res: d->strOpt("res"),
                                 hyps: d->arr("hyps", asObj(_, d=>{
                                     {
-                                        label: d->strOpt("label", ()),
-                                        idx: d->intOpt("idx", ()),
-                                        pat: d->str("pat", ()),
+                                        label: d->strOpt("label"),
+                                        idx: d->intOpt("idx"),
+                                        pat: d->str("pat"),
                                         
                                     }
-                                }, ()), ~default = () => [], ()),
+                                }), ~default = () => []),
                             }
-                        }, ()), ()),
-                        framesToUse: d->arrOpt("frames", asStr(_, ()), ()),
-                        stepsToUse: d->arr("stepsToDeriveFrom", asStr(_, ()), ()),
-                        allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables", ()),
-                        allowNewSteps: d->bool("allowNewSteps", ()),
-                        allowNewVariables: d->bool("allowNewVariables", ()),
+                        })),
+                        framesToUse: d->arrOpt("frames", asStr(_)),
+                        stepsToUse: d->arr("stepsToDeriveFrom", asStr(_)),
+                        allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables"),
+                        allowNewSteps: d->bool("allowNewSteps"),
+                        allowNewVariables: d->bool("allowNewVariables"),
                         statementLengthRestriction: d->str("statementLengthRestriction", ~validator = str => {
                             switch MM_provers.lengthRestrictFromStr(str) {
                                 | Some(_) => Ok(str)
                                 | None => Error(`statementLengthRestriction must be one of: No, LessEq, Less.`)
                             }
-                        }, ()),
-                        maxNumberOfBranches: d->intOpt("maxNumberOfBranches", ()),
+                        }),
+                        maxNumberOfBranches: d->intOpt("maxNumberOfBranches"),
                         
                     }
-                }, ()), ()),
+                })),
             }
-        }, ()), ())
+        }))
         switch parseResult {
             | Error(msg) => promiseResolved(Error(msg))
             | Ok(apiParams) => {
@@ -693,16 +692,16 @@ let addSteps = (
     open Expln_utils_jsonParse
     let parseResult:result<addStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
         {
-            atIdx: d->intOpt("atIdx", ()),
+            atIdx: d->intOpt("atIdx"),
             steps: d->arr("steps", asObj(_, d=>{
                 {
-                    label: d->strOpt("label", ()),
-                    typ: d->strOpt("type", ~validator=validateStepType, ()),
-                    stmt: d->strOpt("stmt", ()),
-                    jstf: d->strOpt("jstf", ()),
-                    isBkm: d->bool("isBkm", ~default=()=>false, ()),
+                    label: d->strOpt("label"),
+                    typ: d->strOpt("type", ~validator=validateStepType),
+                    stmt: d->strOpt("stmt"),
+                    jstf: d->strOpt("jstf"),
+                    isBkm: d->bool("isBkm", ~default=()=>false),
                 }
-            }, ()), ()),
+            })),
             vars: d->arrOpt("vars", asArr(_, asStr(_, ~validator=str=>{
                 let trimed = str->String.trim
                 if (trimed == "") {
@@ -710,9 +709,9 @@ let addSteps = (
                 } else {
                     Ok(trimed)
                 }
-            }, ()), ()), ()),
+            }))),
         }
-    }, ()), ())
+    }))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
@@ -760,7 +759,7 @@ let addSteps = (
                                             | Ok(_) => false
                                         }
                                     switch st->addSteps(
-                                        ~atIdx=?parseResult.atIdx, ~steps, ~vars?, ~dontAddVariablesToContext, ()
+                                        ~atIdx=?parseResult.atIdx, ~steps, ~vars?, ~dontAddVariablesToContext
                                     ) {
                                         | Error(msg) => Error(msg)
                                         | Ok((st,stmtIds)) => {
@@ -797,10 +796,10 @@ let substitute = (
     open Expln_utils_jsonParse
     let parseResult:result<substituteInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
         {
-            what: d->str("what", ()),
-            with_: d->str("with_", ()),
+            what: d->str("what"),
+            with_: d->str("with_"),
         }
-    }, ()), ())
+    }))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
@@ -826,13 +825,13 @@ let updateSteps = (
     open Expln_utils_jsonParse
     let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson, asArr(_, asObj(_, d=>{
         {
-            label: d->str("label", ()),
-            typ: d->strOpt("type", ~validator=validateStepType, ()),
-            stmt: d->strOpt("stmt", ()),
-            jstf: d->strOpt("jstf", ()),
-            isBkm: d->boolOpt("isBkm", ()),
+            label: d->str("label"),
+            typ: d->strOpt("type", ~validator=validateStepType),
+            stmt: d->strOpt("stmt"),
+            jstf: d->strOpt("jstf"),
+            isBkm: d->boolOpt("isBkm"),
         }
-    }, ()), ()), ())
+    })))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(inputSteps) => {
@@ -869,7 +868,7 @@ let deleteSteps = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_, ()), ()), ())
+    let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_)))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(stepLabelsToDelete) => {
@@ -894,7 +893,7 @@ let editorBuildSyntaxTrees = (
         | None => promiseResolved(Error( "Cannot build syntax trees because there are errors in the editor." ))
         | Some(wrkCtx) => {
             open Expln_utils_jsonParse
-            let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_, ()), ()), ())
+            let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_)))
             switch parseResult {
                 | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(exprs) => {

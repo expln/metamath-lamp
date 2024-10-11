@@ -18,7 +18,6 @@ let beginWorkerInteractionUsingCtx: (
     ~initialRequest: 'req,
     ~onResponse: ( ~resp: 'resp, ~sendToWorker: 'req => unit, ~endWorkerInteraction: unit => unit, ) => unit,
     ~enableTrace: bool=?,
-    unit,
 ) => unit
 
 let getWrkCtxExn: () => mmContext

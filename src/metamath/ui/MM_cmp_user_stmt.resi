@@ -17,8 +17,7 @@ let rndProofStatus: (
     ~onReadyIconAltClicked:unit=>unit=?,
     ~onWaitingIconClicked:unit=>unit=?,
     ~onErrorIconClicked:unit=>unit =?,
-    ~onNoJstfIconClicked:unit=>unit =?,
-    ()
+    ~onNoJstfIconClicked:unit=>unit =?
 ) => React.element
 
 type viewOptions = {
@@ -95,8 +94,7 @@ let rndContText: (
     ~longClickDelayMs:int=?,
     ~cursor:string=?,
     ~renderSelection:bool=?,
-    ~title:string=?,
-    ()
+    ~title:string=?
 ) => React.element
 
 let getLastSyntaxType: unit => option<string>

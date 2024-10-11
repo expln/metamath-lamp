@@ -77,7 +77,7 @@ let make = React.memoCustomCompareProps( ({
             | None => ()
             | Some(msg) => {
                 setSyntaxTreeError(_ => None)
-                openInfoDialog( ~modalRef, ~text=msg, () )
+                openInfoDialog( ~modalRef, ~text=msg )
             }
         }
         None
@@ -159,7 +159,7 @@ let make = React.memoCustomCompareProps( ({
                                 let stmtContTreeData = {
                                     text,
                                     exprTyp:(syms->Array.getUnsafe(0)).sym,
-                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
+                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
                                                         ->Belt.Option.map(id => (id,Date.make())),
                                     expLvl:0,
@@ -215,11 +215,10 @@ let make = React.memoCustomCompareProps( ({
                 rndHiddenTextField(
                     ~key=clickedTimeStr,
                     ~onKeyDown=kbrdHnd3(
-                        kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
-                        kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
-                    ),
-                    ()
+                        kbrdClbkMake(~key="w", ~act=actExpandSelection),
+                        kbrdClbkMake(~key="s", ~act=actShrinkSelection),
+                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect),
+                    )
                 )
             }
         </Row>
@@ -247,8 +246,7 @@ let make = React.memoCustomCompareProps( ({
                         ~onTreeAltLeftClick=actTreeNodeClicked,
                         ~cursor="pointer",
                         ~renderSelection=true,
-                        ~symRename?,
-                        ()
+                        ~symRename?
                     )
                 }
             </span>

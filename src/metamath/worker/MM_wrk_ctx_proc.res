@@ -83,7 +83,7 @@ let preCtxCache = cacheMake(
 
 let frmsCache = cacheMake(
     ~recalc = ((_,ctx)) => {
-        prepareFrmSubsData(~ctx, ())
+        prepareFrmSubsData(~ctx)
     },
     ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
 )
@@ -152,8 +152,7 @@ let beginWorkerInteractionUsingCtx = (
     ~procName:string,
     ~initialRequest:'req, 
     ~onResponse:(~resp:'resp, ~sendToWorker:'req=>unit, ~endWorkerInteraction:unit=>unit)=>unit,
-    ~enableTrace: bool=false,
-    ()
+    ~enableTrace: bool=false
 ) => {
     let prepareWrkPrecalcDataReq = PrepareWrkPrecalcData({ settingsVer, preCtxVer, varsText, disjText, })
     beginWorkerInteraction(
@@ -175,11 +174,10 @@ let beginWorkerInteractionUsingCtx = (
                 }
                 | Ok => {
                     endWorkerInteraction()
-                    beginWorkerInteraction(~procName, ~initialRequest, ~onResponse, ~enableTrace, ())
+                    beginWorkerInteraction(~procName, ~initialRequest, ~onResponse, ~enableTrace)
                 }
             }
         },
-        ~enableTrace,
-        ()
+        ~enableTrace
     )
 }

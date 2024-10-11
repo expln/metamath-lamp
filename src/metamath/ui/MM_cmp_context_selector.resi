@@ -8,8 +8,7 @@ type reloadCtxFunc = (
     ~srcs:array<mmCtxSrcDto>, 
     ~settings:settings, 
     ~force:bool=?, 
-    ~showError:bool=?, 
-    ()
+    ~showError:bool=?
 ) => promise<result<unit,string>>
 
 @react.component

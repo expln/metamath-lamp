@@ -67,8 +67,7 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
 let preCtxDataUpdate = (
     preCtxData:preCtxData,
     ~settings:option<settings>=?,
-    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?,
-    ()
+    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?
 ): preCtxData => {
     let settingsV = settings->Belt_Option.mapWithDefault(
         preCtxData.settingsV, 
@@ -80,10 +79,10 @@ let preCtxDataUpdate = (
     )
 
     let ctxV = ctxV->versionSet(
-        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
+        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false)
     )
     let frms = prepareFrmSubsData(
-        ~ctx=ctxV.val, ()
+        ~ctx=ctxV.val
     )
     let parenCnt = MM_provers.makeParenCnt(~ctx=ctxV.val, ~parens=settingsV.val.parens)
     let (allTypes, syntaxTypes) = findTypes(ctxV.val)

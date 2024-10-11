@@ -183,8 +183,7 @@ let getNodeById = (
                     }
                 }
             }
-        },
-        ()
+        }
     )
     found
 }
@@ -196,7 +195,7 @@ let buildSyntaxProofTableFromProofTreeDto = (
 ):result<proofTable,string> => {
     switch proofTreeDto.nodes->Array.find(node => node.expr->exprEq(typeStmt)) {
         | None => Error(`buildSyntaxProofTableFromProofTreeDto: could not find a proof for: ${ctx->ctxIntsToStrExn(typeStmt)}`)
-        | Some(proofNode) => Ok(MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode, ()))
+        | Some(proofNode) => Ok(MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode))
     }
 }
 
@@ -346,8 +345,7 @@ let syntaxTreeForEachNode = ( tree:childNode, consumer:childNode=>option<'r>):op
                 | Symbol(_) => None
             }
         },
-        ~process = (_, node) => consumer(node),
-        ()
+        ~process = (_, node) => consumer(node)
     )
     res
 }

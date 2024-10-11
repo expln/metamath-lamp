@@ -187,8 +187,7 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
                     }
                 }
             }
-        },
-        ()
+        }
     )
 
     switch resOpt {

@@ -37,8 +37,7 @@ type reloadCtxFunc = (
     ~srcs:array<mmCtxSrcDto>, 
     ~settings:settings, 
     ~force:bool=?, 
-    ~showError:bool=?, 
-    ()
+    ~showError:bool=?
 ) => promise<result<unit,string>>
 
 let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
@@ -212,16 +211,16 @@ let parseMmFileForSingleScope = (st:mmScope, ~singleScopeId:string, ~modalRef:mo
                             let name = getNameFromFileSrc(Some(src))->Belt_Option.getExn
                             let progressText = `Parsing ${name}`
                             promise(rsv => {
-                                openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+                                openModal(modalRef, _ => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
                                     let onTerminate = makeActTerminate(modalRef, modalId)
                                     updateModal( 
-                                        modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) 
+                                        modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) 
                                     )
                                     MM_wrk_ParseMmFile.beginParsingMmFile(
                                         ~mmFileText = text,
                                         ~onProgress = pct => updateModal( 
                                             modalRef, modalId, 
-                                            () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())
+                                            () => rndProgress(~text=progressText, ~pct, ~onTerminate)
                                         ),
                                         ~onDone = parseResult => {
                                             let st = switch parseResult {
@@ -285,9 +284,9 @@ let loadMmContext = (
             rsv(Ok(createContext(())))
         } else {
             let progressText = `Loading MM context`
-            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0., ()))->promiseMap(modalId => {
+            openModal(modalRef, () => rndProgress(~text=progressText, ~pct=0.))->promiseMap(modalId => {
                 let onTerminate = makeActTerminate(modalRef, modalId)
-                updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate, ()) )
+                updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct=0., ~onTerminate) )
                 MM_wrk_LoadCtx.beginLoadingMmContext(
                     ~scopes = singleScopes->Array.map(ss => {
                         let stopBefore = if (ss.readInstr == StopBefore) {ss.label} else {None}
@@ -313,7 +312,7 @@ let loadMmContext = (
                     ~descrRegexToDepr=settings.descrRegexToDepr,
                     ~labelRegexToDepr=settings.labelRegexToDepr,
                     ~onProgress = pct => 
-                        updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate, ())),
+                        updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate)),
                     ~onDone = ctx => {
                         switch ctx {
                             | Error(msg) => {
@@ -369,8 +368,7 @@ let loadMmFileText = (
                     `An error occurred while downloading from "${alias}": ${msg->Belt.Option.getWithDefault("")}.`
                 ))
             },
-            ~onTerminated = () => rslv(Error(`Downloading from "${alias}" was terminated.`)),
-            ()
+            ~onTerminated = () => rslv(Error(`Downloading from "${alias}" was terminated.`))
         )
     })
 }
@@ -669,7 +667,7 @@ let make = (
     }
 
     reloadCtx.current = Nullable.make(
-        (~srcs:array<mmCtxSrcDto>, ~settings:settings, ~force:bool=false, ~showError:bool=false, ()):promise<result<unit,string>> => {
+        (~srcs:array<mmCtxSrcDto>, ~settings:settings, ~force:bool=false, ~showError:bool=false):promise<result<unit,string>> => {
             if (!shouldReloadContext(prevState.singleScopes, srcs, force)) {
                 promise(rslv => rslv(Ok(())))
             } else {

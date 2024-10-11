@@ -45,15 +45,14 @@ let parseMmFile = (
     ~mmFileContent as text:string, 
     ~skipComments:bool=false,
     ~skipProofs:bool=false,
-    ~onProgress: float=>unit = _ => (), 
-    ()
+    ~onProgress: float=>unit = _ => ()
 ): (mmAstNode,array<string>) => {
     let textLength = text->String.length
     let textLengthFlt = textLength->Belt_Int.toFloat
     let idx = ref(0) // index of the next char to read.
     let endOfFile = ref(false) // if idx is outside of text then endOfFile is true.
     let ch = ref("") // the char idx is pointing to. If endOfFile then ch == "".
-    let progressTracker = progressTrackerMake(~step=0.1, ~dontDecrease=true, ~onProgress, ())
+    let progressTracker = progressTrackerMake(~step=0.1, ~dontDecrease=true, ~onProgress)
     let allLabels = []
 
     let setIdx = i => {
@@ -115,7 +114,7 @@ let parseMmFile = (
         }
     }
 
-    let rec readNextToken = (~skipComments=true, ()):string => {
+    let rec readNextToken = (~skipComments=true):string => {
         if (!skipComments) {
             skipWhitespaces()
             let beginIdx = idx.contents
@@ -124,10 +123,10 @@ let parseMmFile = (
             }
             text->String.substring(~start=beginIdx, ~end=idx.contents)
         } else {
-            let nextToken = ref(readNextToken(~skipComments=false, ()))
+            let nextToken = ref(readNextToken(~skipComments=false))
             while (nextToken.contents == "$(") {
                 parseComment(~beginIdx=idx.contents)->ignore
-                nextToken.contents = readNextToken(~skipComments=false, ())
+                nextToken.contents = readNextToken(~skipComments=false)
             }
             nextToken.contents
         }
@@ -264,7 +263,7 @@ let parseMmFile = (
         }
 
         while (result.contents->Belt_Option.isNone) {
-            let token = readNextToken(~skipComments=false, ())
+            let token = readNextToken(~skipComments=false)
             let tokenIdx = idx.contents - token->String.length
             if (token == "") {
                 if (level == 0) {
@@ -325,10 +324,9 @@ let traverseAst: (
     mmAstNode,
     ~preProcess:('c, mmAstNode)=>option<'res>=?,
     ~process:('c, mmAstNode)=>option<'res>=?,
-    ~postProcess:('c, mmAstNode)=>option<'res>=?,
-    ()
+    ~postProcess:('c, mmAstNode)=>option<'res>=?
 ) => ('c, option<'res>) =
-    (context, root, ~preProcess=?, ~process=?, ~postProcess=?, ()) => Expln_utils_data.traverseTree(
+    (context, root, ~preProcess=?, ~process=?, ~postProcess=?) => Expln_utils_data.traverseTree(
         context, 
         root, 
         (_, node) => {
@@ -339,8 +337,7 @@ let traverseAst: (
         },
         ~preProcess=?preProcess,
         ~process=?process,
-        ~postProcess=?postProcess,
-        ()
+        ~postProcess=?postProcess
     )
 
 let proofToStr = proof => {
@@ -405,8 +402,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
                 | _ => ()
             }
             None
-        },
-        ()
+        }
     )
     result
 }
@@ -446,8 +442,7 @@ let astToStr = ( ast:mmAstNode ):string => {
                 | _ => ()
             }
             None
-        },
-        ()
+        }
     )->ignore
     res->Array.joinUnsafe("\n")
 }

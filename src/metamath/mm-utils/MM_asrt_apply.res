@@ -492,8 +492,7 @@ let applyAssertions = (
     ~combCntMax:int=10000,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=0,
-    ~onProgress:option<float=>unit>=?,
-    ()
+    ~onProgress:option<float=>unit>=?
 ):unit => {
     let sendNoUnifForAsrt = (frm:frmSubsData):contunieInstruction => {
         switch result {
@@ -514,7 +513,7 @@ let applyAssertions = (
 
     let numOfStmts = statements->Array.length
     let numOfFrames = countFrames(~frms, ~frmsToUse, ~result)->Belt_Int.toFloat
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))

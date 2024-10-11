@@ -569,8 +569,7 @@ let prepareFrmSubsDataForFrame = (frame:frame):frmSubsData => {
 }
 
 let prepareFrmSubsData = (
-    ~ctx:mmContext,
-    ()
+    ~ctx:mmContext
 ):frms => {
     let frmCmp = comparatorBy(frm => frm.hypsE->Array.length)
         ->comparatorAndThen(comparatorBy(frm => frm.frame.ord))
@@ -710,7 +709,7 @@ let frmsForEach = (frms:frms, ~typ:option<int>=?, consumer:frmSubsData=>unit):un
         | Some(typ) => frms.byType->Belt_HashMapInt.get(typ)->Belt.Option.forEach(Array.forEach(_, consumer))
     }
 }
-let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?, ()):array<frmSubsData> => {
+let frmsSelect = (frms:frms, ~typ:option<int>=?, ~label:option<string>=?):array<frmSubsData> => {
     switch typ {
         | None => {
             switch label {

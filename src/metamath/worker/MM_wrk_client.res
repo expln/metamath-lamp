@@ -79,8 +79,7 @@ let beginWorkerInteraction = (
     ~onResponse:(~resp:'resp, ~sendToWorker:'req=>unit, ~endWorkerInteraction:unit=>unit)=>unit,
     ~enableTrace: bool=false,
     ~reqToStr:option<'req=>string>=?,
-    ~respToStr:option<'resp=>string>=?,
-    ()
+    ~respToStr:option<'resp=>string>=?
 ) => {
     let id = ref(-1)
     let localSendToWorker = ref(_=>())

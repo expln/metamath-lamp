@@ -103,11 +103,11 @@ describe("createProof", _ => {
     it("conversion compressedProof->tableProof->compressedProof creates equivalent compressedProof", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
 
         let progressTracker = testProgressTrackerMake(
             ~step=0.05, 
-            ~maxCnt = countFrames(ast, ()),
+            ~maxCnt = countFrames(ast),
         )
 
         loadContext(ast, ~onPreProcess = (ctx,node) => {
@@ -118,15 +118,15 @@ describe("createProof", _ => {
 
                     let proofNode = verifyProof(~ctx, ~expr, ~proof=expectedProof, ~isDisjInCtx=isDisj(ctx, ...))
 
-                    let proofTableOptimized = createProofTableFromProof(~proofNode, ~mergeSameRows=true, ())
+                    let proofTableOptimized = createProofTableFromProof(~proofNode, ~mergeSameRows=true)
                     let actualProofOptimized = createProof(
-                        ctx->getMandHyps(expr, ()), proofTableOptimized, proofTableOptimized->Array.length-1
+                        ctx->getMandHyps(expr), proofTableOptimized, proofTableOptimized->Array.length-1
                     )
                     verifyProof(~ctx, ~expr, ~proof=actualProofOptimized, ~isDisjInCtx=isDisj(ctx, ...))->ignore
 
-                    let proofTable = createProofTableFromProof(~proofNode, ~mergeSameRows=false, ())
+                    let proofTable = createProofTableFromProof(~proofNode, ~mergeSameRows=false)
                     let actualProof = createProof(
-                        ctx->getMandHyps(expr, ()), proofTable, proofTable->Array.length-1
+                        ctx->getMandHyps(expr), proofTable, proofTable->Array.length-1
                     )
                     verifyProof(~ctx, ~expr, ~proof=actualProof, ~isDisjInCtx=isDisj(ctx, ...))->ignore
 
@@ -135,7 +135,7 @@ describe("createProof", _ => {
                         !proofEq(
                             ~expectedProof, 
                             ~actualProof, 
-                            ~getMandHypsNum = () => getMandHyps(ctx, expr, ())->Array.length
+                            ~getMandHypsNum = () => getMandHyps(ctx, expr)->Array.length
                         )
                     ) {
                         Console.log2("expected", expectedProof)
@@ -147,6 +147,6 @@ describe("createProof", _ => {
                 }
                 | _ => ()
             }
-        }, ())->ignore
+        })->ignore
     })
 })

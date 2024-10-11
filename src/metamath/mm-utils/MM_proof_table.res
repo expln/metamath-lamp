@@ -107,8 +107,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
                 }
             }
             None
-        },
-        ()
+        }
     )->ignore
 }
 
@@ -181,7 +180,7 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     })
 }
 
-let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true, ()):proofTable => {
+let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true):proofTable => {
     let nodeIdToIdx = Belt_HashMapInt.make(~hintSize=proofNode->proofNodeGetId)
     let tbl = []
 
@@ -244,8 +243,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
                 }
             }
             None
-        },
-        ()
+        }
     )->ignore
     tbl
 }

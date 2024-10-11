@@ -36,8 +36,7 @@ let make = (
                                                     ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
                     ~url=webSrc.url,
                     ~onUrlBecomesTrusted,
-                    ~onReady = text => onFileChange(Web(webSrc), text),
-                    ()
+                    ~onReady = text => onFileChange(Web(webSrc), text)
                 )
             }
         }

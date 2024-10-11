@@ -183,18 +183,17 @@ let testApplyAssertions = (
     ~allowEmptyArgs:bool=true,
     ~allowNewDisjForExistingVars:bool=false,
     ~result:option<string>=?,
-    ~fileWithExpectedResult:string,
-    ()
+    ~fileWithExpectedResult:string
 ) => {
     let printApplyAssertionResult = (workCtx, statements:array<labeledExpr>, res:applyAssertionResult):string => {
         workCtx->openChildContext
-        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Array.length, ())
+        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Array.length)
         let workVarTypes = res.newVarTypes->Array.map(ctxIntToSymExn(workCtx, _))
-        let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
+        let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty)
 
-        workCtx->applySingleStmt(Var({symbols:workVarNames}), ())
+        workCtx->applySingleStmt(Var({symbols:workVarNames}))
         workVarHypLabels->Array.forEachWithIndex((label,i) => {
-            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes->Array.getUnsafe(i), workVarNames->Array.getUnsafe(i)]}), ())
+            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes->Array.getUnsafe(i), workVarNames->Array.getUnsafe(i)]}))
         })
         let args = []
         let argLabels = []
@@ -212,14 +211,14 @@ let testApplyAssertions = (
                         argLabels->Array.push(label)
                     }
                     | None => {
-                        let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
+                        let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1)
                         let label = newStmtLabel->Array.getUnsafe(0)
                         let exprArrStr = argExpr->Array.map(ctxIntToSymExn(workCtx, _))
                         workCtx->applySingleStmt(Provable({
                             label, 
                             expr:exprArrStr,
                             proof:Some(Uncompressed({labels:[]}))
-                        }), ())
+                        }))
                         args->Array.push(`${label}: ${exprArrStr->Array.joinUnsafe(" ")}`)
                         argLabels->Array.push(label)
                     }
@@ -255,13 +254,13 @@ let testApplyAssertions = (
 
     //given
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-    let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
-    additionalStatements->Array.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+    let preCtx = loadContext(ast, ~stopBefore, ~stopAfter)
+    additionalStatements->Array.forEach(stmt => preCtx->applySingleStmt(stmt))
     let parens = "( ) { } [ ]"
-    let workCtx = createContext(~parent=preCtx, ())
-    let workCtx = workCtx->ctxOptimizeForProver(~parens, ())
-    let frms = prepareFrmSubsData(~ctx=workCtx, ())
+    let workCtx = createContext(~parent=preCtx)
+    let workCtx = workCtx->ctxOptimizeForProver(~parens)
+    let frms = prepareFrmSubsData(~ctx=workCtx)
     let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
@@ -296,8 +295,7 @@ let testApplyAssertions = (
             // Console.log("onMatchFound ------------------------------------------------------------------")
             // Console.log(printApplyAssertionResult(res))
             Continue
-        },
-        ()
+        }
     )
 
     //then
@@ -328,8 +326,7 @@ describe("applyAssertions", _ => {
             ~stopAfter = "th1",
             ~additionalStatements = [],
             ~statements = [],
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-no-statements.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-no-statements.txt"
         )
     })
     it("applies assertions when there is one statement, for modus ponens", _ => {
@@ -341,8 +338,7 @@ describe("applyAssertions", _ => {
                 ("p1","|- ( t + 0 ) = t")
             ],
             ~isFrameAllowed=frame=>frame.label=="mp",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-mp.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-mp.txt"
         )
     })
     it("applies assertions when there is one statement, for all assertions from demo0", _ => {
@@ -353,8 +349,7 @@ describe("applyAssertions", _ => {
             ~statements = [
                 ("p1","|- ( t + 0 ) = t")
             ],
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement.txt"
         )
     })
     it("applies assertions when there is one statement and a result, for mp assertion from demo0", _ => {
@@ -367,8 +362,7 @@ describe("applyAssertions", _ => {
             ],
             ~isFrameAllowed = frame => frame.label == "mp",
             ~result="|- P",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-with-result.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-with-result.txt"
         )
     })
     it("doesn't fail when there are no variables in the frame's assertion", _ => {
@@ -379,8 +373,7 @@ describe("applyAssertions", _ => {
             ~statements = [ ],
             ~isFrameAllowed = frame => frame.label == "asrt-without-vars",
             ~result="|- T.",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt"
         )
     })
     it("matches all non-blank hyps before blank ones to maximize number of bound variables", _ => {
@@ -391,8 +384,7 @@ describe("applyAssertions", _ => {
                 ("4", "|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )"),
             ],
             ~result="|- ( 2 + 2 ) = 4",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt"
         )
     })
     it("does not introduce broken disjoints", _ => {
@@ -405,8 +397,7 @@ describe("applyAssertions", _ => {
             ~result="|- ( E. x E. y x = y -> x = y )",
             ~allowEmptyArgs=false,
             ~allowNewDisjForExistingVars=true,
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/no-broken-disjoints.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/no-broken-disjoints.txt"
         )
     })
 })

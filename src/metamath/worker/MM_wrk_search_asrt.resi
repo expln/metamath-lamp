@@ -15,7 +15,6 @@ let doSearchAssertions: (
     ~typ: int,
     ~pattern: array<int>,
     ~onProgress: float => unit=?,
-    unit,
 ) => array<stmtsDto>
 
 let searchAssertions: (

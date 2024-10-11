@@ -59,8 +59,7 @@ let rndIconButton = (
     ~notifyEditInTempMode:option<(unit=>'a)=>'a>=?,
     ~ref:option<ReactDOM.domRef>=?,
     ~title:option<string>=?, 
-    ~smallBtns:bool=false,
-    ()
+    ~smallBtns:bool=false
 ) => {
     <span ?ref ?title>
         <IconButton 
@@ -281,17 +280,16 @@ let make = (
         })
     }
 
-    let showInfoMsg = (~title:option<string>=?, ~text:string, ()) => {
-        openInfoDialog( ~modalRef, ~title?, ~text, () )
+    let showInfoMsg = (~title:option<string>=?, ~text:string) => {
+        openInfoDialog( ~modalRef, ~title?, ~text )
     }
     
-    let showErrMsg = (~title:option<string>=?, ~text:string, ()) => {
+    let showErrMsg = (~title:option<string>=?, ~text:string) => {
         openInfoDialog( ~modalRef, ~title?, ~text,
             ~icon=
                 <span style=ReactDOM.Style.make(~color="red", () ) >
                     <MM_Icons.PriorityHigh/>
-                </span>,
-            ()
+                </span>
         )
     }
 
@@ -304,8 +302,7 @@ let make = (
                 ~onOk = () => {
                     setWarnedAboutTempMode(_ => true)
                     continue()
-                },
-                ()
+                }
             )
         } else {
             continue()
@@ -369,7 +366,7 @@ let make = (
 
     let actAddNewStmt = () => {
         setState(st => {
-            let (st, _) = addNewStmt(st, ~isBkm=showBkmOnly, ())
+            let (st, _) = addNewStmt(st, ~isBkm=showBkmOnly)
             st
         })
     }
@@ -443,8 +440,8 @@ let make = (
     let addStmtAbove = (st:editorState, ~id:stmtId, ~text:string, ~isBkm:bool):editorState => {
         let st = uncheckAllStmts(st)
         let st = toggleStmtChecked(st,id)
-        let (st, newId) = addNewStmt(st, ~isBkm, ())
-        let st = setStmtCont(st, newId, text->strToCont(()))
+        let (st, newId) = addNewStmt(st, ~isBkm)
+        let st = setStmtCont(st, newId, text->strToCont)
         st
     }
     let actAddStmtAbove = (~id:stmtId, ~text:string, ~isBkm:bool):unit => {
@@ -471,8 +468,7 @@ let make = (
                 openInfoDialog(
                     ~modalRef, 
                     ~title=previousEditingIsNotCompletedTitle,
-                    ~text=previousEditingIsNotCompletedText,
-                    ()
+                    ~text=previousEditingIsNotCompletedText
                 )
             }
         })
@@ -485,8 +481,7 @@ let make = (
                 openInfoDialog(
                     ~modalRef, 
                     ~title=previousEditingIsNotCompletedTitle,
-                    ~text=previousEditingIsNotCompletedText,
-                    ()
+                    ~text=previousEditingIsNotCompletedText
                 )
             }
         })
@@ -514,7 +509,7 @@ let make = (
     let actCompleteEditLabel = (stmtId, newLabel):unit => {
         let newLabel = newLabel->String.trim
         switch state->renameStmt(stmtId, newLabel) {
-            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this step: ${msg}`, () )
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=`Cannot rename this step: ${msg}` )
             | Ok(st) => setState(_ => completeLabelEditMode(st,stmtId,newLabel))
         }
     }
@@ -557,7 +552,7 @@ let make = (
             | None => ()
             | Some(stmt) => {
                 let contOld = stmt.cont
-                let contNew = newContText->strToCont(())
+                let contNew = newContText->strToCont
                 let textOld = contOld->contToStr
                 let textNew = contNew->contToStr
                 if (textOld == textNew || (textOld == "" && textNew == state.settings.defaultStmtType->String.trim)) {
@@ -574,8 +569,8 @@ let make = (
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_save_or_discard
                                     removeStmt={textOld == ""}
-                                    contOld={MM_cmp_user_stmt.rndContText(~stmtCont=contOld, ())}
-                                    contNew={MM_cmp_user_stmt.rndContText(~stmtCont=contNew, ())}
+                                    contOld={MM_cmp_user_stmt.rndContText(~stmtCont=contOld)}
+                                    contNew={MM_cmp_user_stmt.rndContText(~stmtCont=contNew)}
                                     onDiscard={() => {
                                         closeModal(modalRef, modalId)
                                         if (textOld == "") {
@@ -739,7 +734,7 @@ let make = (
         setState(st => {
             selectedResults->Array.reduce(
                 st,
-                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly, ())
+                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly)
             )
         })
     }
@@ -765,7 +760,7 @@ let make = (
                     }
                 }
                 | Error(msg) => {
-                    openInfoDialog(~modalRef, ~text=msg, ())
+                    openInfoDialog(~modalRef, ~text=msg)
                     st
                 }
             }
@@ -775,7 +770,7 @@ let make = (
     let actRestorePrevState = (histIdx:int):unit => {
         notifyEditInTempMode(() => {
             switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
-                | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg, () )
+                | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg )
                 | Ok(editorState) => setState(_ => editorState->recalcWrkColors)
             }
         })
@@ -808,7 +803,7 @@ let make = (
 
     let actMergeStmts = () => {
         switch state->findStmtsToMerge {
-            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
             | Ok((stmt1,stmt2)) => {
                 openModal(modalRef, _ => React.null)->promiseMap(modalId => {
                     updateModal(modalRef, modalId, () => {
@@ -969,8 +964,7 @@ let make = (
         ~delayBeforeStartMs:int=0,
         ~selectFirstFoundProof:bool=false,
         ~bottomUpProofResultConsumer:option<stmtsDto>=>unit = _ => (),
-        ~nextAction: unit=>unit = ()=>(),
-        ()
+        ~nextAction: unit=>unit = ()=>()
     ) => {
         if (thereAreCriticalErrorsInEditor) {
             ()
@@ -1005,8 +999,7 @@ let make = (
                                             bottomUpProverParamsMakeDefault(
                                                 ~asrtLabel?, 
                                                 ~args0, 
-                                                ~allowNewVars=false,
-                                                ()
+                                                ~allowNewVars=false
                                             )
                                         )
                                     }
@@ -1048,11 +1041,11 @@ let make = (
                             })
                         })->ignore
                     } else {
-                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0., ()))
+                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0.))
                             ->promiseMap(modalId => {
                                 updateModal( 
                                     modalRef, modalId, () => rndProgress(
-                                        ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                                        ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId)
                                     )
                                 )
                                 let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
@@ -1076,7 +1069,7 @@ let make = (
                                     ~debugLevel=0,
                                     ~onProgress = msg => updateModal(
                                         modalRef, modalId, () => rndProgress(
-                                            ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
+                                            ~text=msg, ~onTerminate=makeActTerminate(modalId)
                                         )
                                     )
                                 )->promiseMap(proofTreeDto => {
@@ -1097,7 +1090,7 @@ let make = (
             | None => bottomUpProofResultConsumer(None)
             | Some(selectedResult) => {
                 setState(st => {
-                    let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly, ())
+                    let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
                     let st = st->uncheckAllStmts
                     let st = st->setNextAction(Some(
                         UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(selectedResult))})
@@ -1114,7 +1107,7 @@ let make = (
             | Some(action) => {
                 setStatePriv(setNextAction(_,None))
                 switch action {
-                    | UnifyAll({nextAction}) => actUnify(~nextAction, ())
+                    | UnifyAll({nextAction}) => actUnify(~nextAction)
                     | MergeNextDuplicate => {
                         if (state->editorStateHasDuplicatedStmts) {
                             actMergeStmts()
@@ -1223,7 +1216,7 @@ let make = (
                 ->setNextAction(Some(Action(()=>())))
         })
         reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
-            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
+            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings)->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
                     | Error(msg) => {
@@ -1308,10 +1301,10 @@ let make = (
                 switch stmt.proofStatus {
                     | Some(Ready) => actExportProof(stmt.id)
                     | Some(Waiting) | Some(NoJstf) | Some(JstfIsIncorrect) | None => 
-                        showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof, ())
+                        showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof)
                 }
             }
-            | _ => showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof, ())
+            | _ => showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof)
         }
     }
 
@@ -1321,30 +1314,29 @@ let make = (
                 if (stmt.typ != P) {
                     showInfoMsg(
                         ~title=`Cannot inline proof`, 
-                        ~text=`Proof inlining is applicable to provable steps only.`,
-                        ()
+                        ~text=`Proof inlining is applicable to provable steps only.`
                     )
                 } else {
                     switch stmt.src {
-                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof, ())
+                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
                         | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => {
-                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof, ())
+                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
                         }
                         | Some(Assertion({args, label})) => {
                             switch stmt.proofTreeDto {
-                                | None => showErrMsg(~title="Internal error", ~text="proofTree is not set.", ())
+                                | None => showErrMsg(~title="Internal error", ~text="proofTree is not set.")
                                 | Some(proofTreeDto) => {
                                     switch state.wrkCtx {
-                                        | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.", ())
+                                        | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.")
                                         | Some(wrkCtx) => {
                                             let progressText = "Inlining proof"
                                             openModal(
-                                                modalRef, () => rndProgress(~text=progressText, ~pct=0., ())
+                                                modalRef, () => rndProgress(~text=progressText, ~pct=0.)
                                             )->promiseMap(modalId => {
                                                 updateModal( 
                                                     modalRef, modalId, () => rndProgress(
                                                         ~text=progressText, ~pct=0., 
-                                                        ~onTerminate=makeActTerminate(modalId), ()
+                                                        ~onTerminate=makeActTerminate(modalId)
                                                     )
                                                 )
                                                 MM_cmp_pe_frame_full.makeFrameProofData(
@@ -1353,14 +1345,14 @@ let make = (
                                                     ~onProgress = pct => updateModal(
                                                         modalRef, modalId, () => rndProgress(
                                                             ~text=progressText, ~pct, 
-                                                            ~onTerminate=makeActTerminate(modalId), ()
+                                                            ~onTerminate=makeActTerminate(modalId)
                                                         )
                                                     )
                                                 )->promiseMap(frameProofData => {
                                                     switch frameProofData {
                                                         | Error(msg) => {
                                                             closeModal(modalRef, modalId)
-                                                            showErrMsg(~title="Error", ~text=msg, ())
+                                                            showErrMsg(~title="Error", ~text=msg)
                                                         }
                                                         | Ok(frameProofData) => {
                                                             closeModal(modalRef, modalId)
@@ -1369,10 +1361,10 @@ let make = (
                                                                 ~proofTreeDto, ~args, ~frameProofData
                                                             ) {
                                                                 | Error(msg) => {
-                                                                    showErrMsg(~title="Error", ~text=msg, ())
+                                                                    showErrMsg(~title="Error", ~text=msg)
                                                                 }
                                                                 | Ok(stmtsDto) => {
-                                                                    setState(addNewStatements(_, stmtsDto, ()))
+                                                                    setState(addNewStatements(_, stmtsDto))
                                                                 }
                                                             }
                                                         }
@@ -1390,8 +1382,7 @@ let make = (
             | None => {
                 showInfoMsg(
                         ~title=`Cannot inline proof`, 
-                        ~text=`Please select a step you want to inline the proof for.`,
-                        ()
+                        ~text=`Please select a step you want to inline the proof for.`
                     )
             }
         }
@@ -1404,7 +1395,7 @@ let make = (
                 ~deleteHyps
             ) {
                 | Ok(state) => setState(_ => state)
-                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
             }
         })
     }
@@ -1413,7 +1404,7 @@ let make = (
         notifyEditInTempMode(() => {
             switch state->renumberProvableSteps {
                 | Ok(state) => setState(_ => state)
-                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
             }
         })
     }
@@ -1425,14 +1416,13 @@ let make = (
                     openInfoDialog( 
                         ~modalRef, 
                         ~title="Cannot rename hypotheses",
-                        ~text=`The goal step is not set. Please mark one of the steps as the goal step.`, 
-                        () 
+                        ~text=`The goal step is not set. Please mark one of the steps as the goal step.` 
                     )
                 }
                 | Some(goalStmt) => {
                     switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
                         | Ok(state) => setState(_ => state)
-                        | Error(msg) => openInfoDialog( ~modalRef, ~text=msg, () )
+                        | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
                     }
                 }
             }
@@ -1477,9 +1467,8 @@ let make = (
                             {
                                 rndHiddenTextField(
                                     ~onKeyDown=kbrdHnds([
-                                        kbrdClbkMake(~key=keyEsc, ~act=()=>closeModal(modalRef, modalId), ()),
-                                    ]),
-                                    ()
+                                        kbrdClbkMake(~key=keyEsc, ~act=()=>closeModal(modalRef, modalId)),
+                                    ])
                                 )
                             }
                         </Row>
@@ -1514,8 +1503,7 @@ let make = (
                                 ~allowNewDisjForExistingVars=false,
                                 ~allowNewStmts=false,
                                 ~allowNewVars=false,
-                                ~maxNumberOfBranches=?None,
-                                ()
+                                ~maxNumberOfBranches=?None
                             ),
                             2
                         )
@@ -1531,8 +1519,7 @@ let make = (
                                 ~allowNewDisjForExistingVars=false,
                                 ~allowNewStmts=false,
                                 ~allowNewVars=false,
-                                ~maxNumberOfBranches=?None,
-                                ()
+                                ~maxNumberOfBranches=?None
                             ),
                             1
                         )
@@ -1541,8 +1528,7 @@ let make = (
                 actUnify(
                     ~stmtId, 
                     ~params, 
-                    ~initialDebugLevel = debugLevel, 
-                    ()
+                    ~initialDebugLevel = debugLevel
                 )
             }
         }
@@ -1746,50 +1732,50 @@ let make = (
                 />
                 {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreBookmarked,
-                    ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=actUnbookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreUnbookmarked,
-                    ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(
                     ~icon=if (showBkmOnly){<MM_Icons.Bookmark/>}else{<MM_Icons.BookmarkBorder/>}, 
                     ~onClick=actToggleShowBkmOnly, ~active=true,
-                    ~title="Show bookmarked steps only / show all steps", ~smallBtns, ())}
+                    ~title="Show bookmarked steps only / show all steps", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
                 ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
                 ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
-                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns, ()
+                    ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns
                 )}
                 {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
                     ~onClick=()=>actDuplicateStmt(true), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step up", 
-                    ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(+90deg)", ()) />, 
                     ~onClick=()=>actDuplicateStmt(false), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step down", 
-                    ~smallBtns, ~notifyEditInTempMode, ())}
+                    ~smallBtns, ~notifyEditInTempMode)}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
                     ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
-                    ~title="Restore previous state", ~smallBtns, ())}
+                    ~title="Restore previous state", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
                     ~onClick=actMergeStmts, ~notifyEditInTempMode,
                     ~active= numOfCheckedStmts==1 || thereIsDuplicatedStmt, 
-                    ~title="Merge two similar steps", ~smallBtns, ())}
+                    ~title="Merge two similar steps", ~smallBtns)}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
                         ~active=generalModificationActionIsEnabled && state.frms->MM_substitution.frmsSize > 0,
                         ~title="Add new steps from existing assertions (and place before selected steps if any)", 
-                        ~smallBtns, ()
+                        ~smallBtns
                     ) 
                 }
                 { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~notifyEditInTempMode,
                     ~active=generalModificationActionIsEnabled,
-                    ~title="Apply a substitution to all steps", ~smallBtns,() ) }
+                    ~title="Apply a substitution to all steps", ~smallBtns ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
@@ -1797,18 +1783,18 @@ let make = (
                         ~notifyEditInTempMode=?{
                             if (singleProvableChecked->Belt.Option.isSome) {Some(notifyEditInTempMode)} else {None}
                         },
-                        ~title="Unify all steps or unify selected provable bottom-up", ~smallBtns, () )
+                        ~title="Unify all steps or unify selected provable bottom-up", ~smallBtns )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.PlayArrow/>, ~onClick=actOpenMacros,
                         ~active=!editIsActive, 
                         ~notifyEditInTempMode,
-                        ~title="Run a macro", ~smallBtns, () )
+                        ~title="Run a macro", ~smallBtns )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.Menu/>, ~onClick=actOpenMainMenu, ~active={!editIsActive}, 
                         ~ref=ReactDOM.Ref.domRef(mainMenuButtonRef),
-                        ~title="Additional actions", ~smallBtns, () )
+                        ~title="Additional actions", ~smallBtns )
                 }
             </Row>
         </Paper>
@@ -2048,13 +2034,13 @@ let make = (
                 {
                     rndSmallTextBtn( 
                         ~text="< Go to previos page with errors", ~color="red", 
-                        ~onClick=actGoToPrevPageWithErrors, () 
+                        ~onClick=actGoToPrevPageWithErrors 
                     )
                 }
                 {
                     rndSmallTextBtn( 
                         ~text="Go to next page with errors >", ~color="red", 
-                        ~onClick=actGoToNextPageWithErrors, () 
+                        ~onClick=actGoToNextPageWithErrors 
                     )
                 }
             </Row>
@@ -2135,7 +2121,7 @@ let make = (
     }
 
     let showInfoMsgForApi = (msg:string) => {
-        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, () )
+        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre> )
     }
 
     let showErrMsgForApi = (msg:string) => {
@@ -2143,8 +2129,7 @@ let make = (
             ~icon=
                 <span style=ReactDOM.Style.make(~color="red", () ) >
                     <MM_Icons.PriorityHigh/>
-                </span>,
-            ()
+                </span>
         )
     }
 
@@ -2180,8 +2165,7 @@ let make = (
                                 }
                             }
                         }
-                    },
-                    ()
+                    }
                 )
                 if (!params.selectFirstFoundProof) {
                     resolve(None)

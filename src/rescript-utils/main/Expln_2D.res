@@ -56,8 +56,7 @@ module type Utils2D = {
         ~left:float=?,
         ~right:float=?,
         ~top:float=?,
-        ~bottom:float=?,
-        ()
+        ~bottom:float=?
     ) => boundaries
     let bndAddMarginPct: (
         boundaries, 
@@ -65,8 +64,7 @@ module type Utils2D = {
         ~left:float=?,
         ~right:float=?,
         ~top:float=?,
-        ~bottom:float=?,
-        ()
+        ~bottom:float=?
     ) => boundaries
     let bndMerge: (boundaries,boundaries) => boundaries
     let bndMergeAll: array<boundaries> => boundaries
@@ -222,8 +220,7 @@ module Std2D: Utils2D = {
         ~left:option<float>=?,
         ~right:option<float>=?,
         ~top:option<float>=?,
-        ~bottom:option<float>=?,
-        ()
+        ~bottom:option<float>=?
     ):boundaries => {
         switch all {
             | Some(margin) => {
@@ -245,8 +242,7 @@ module Std2D: Utils2D = {
         ~left:option<float>=?,
         ~right:option<float>=?,
         ~top:option<float>=?,
-        ~bottom:option<float>=?,
-        ()
+        ~bottom:option<float>=?
     ):boundaries => {
         switch all {
             | Some(allPct) => {
@@ -343,18 +339,16 @@ module Svg2D: Utils2D = {
         ~left:option<float>=?,
         ~right:option<float>=?,
         ~top:option<float>=?,
-        ~bottom:option<float>=?,
-        ()
-    ):boundaries => Std2D.bndAddMargin( b, ~all=?all, ~left=?left, ~right=?right, ~top=?bottom, ~bottom=?top, () )
+        ~bottom:option<float>=?
+    ):boundaries => Std2D.bndAddMargin( b, ~all=?all, ~left=?left, ~right=?right, ~top=?bottom, ~bottom=?top )
     let bndAddMarginPct = (
         b:boundaries, 
         ~all:option<float>=?,
         ~left:option<float>=?,
         ~right:option<float>=?,
         ~top:option<float>=?,
-        ~bottom:option<float>=?,
-        ()
-    ):boundaries => Std2D.bndAddMarginPct( b, ~all=?all, ~left=?left, ~right=?right, ~top=?bottom, ~bottom=?top, () )
+        ~bottom:option<float>=?
+    ):boundaries => Std2D.bndAddMarginPct( b, ~all=?all, ~left=?left, ~right=?right, ~top=?bottom, ~bottom=?top )
     let bndMergeAll = Std2D.bndMergeAll
 }
 

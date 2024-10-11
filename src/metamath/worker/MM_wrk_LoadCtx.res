@@ -67,8 +67,7 @@ let beginLoadingMmContext = (
                     onDone(ctx)
                 }
             }
-        },
-        ()
+        }
     )
 }
 
@@ -107,8 +106,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         ~labelRegexToDepr=?strToRegexOpt(labelRegexToDepr),
                         ~onProgress = pct => {
                             sendToClient(MmContextLoadProgress({pct: basePct +. pct *. weight}))
-                        },
-                        ()
+                        }
                     )->ignore
                     if (scope.resetNestingLevel) {
                         while (ctx->getNestingLevel != 0) {

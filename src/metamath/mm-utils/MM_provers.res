@@ -40,8 +40,7 @@ let bottomUpProverParamsMakeDefault = (
     ~allowNewVars: bool=false,
     ~args0: array<expr>=[],
     ~args1: array<expr>=[],
-    ~maxNumberOfBranches: option<int>=?,
-    ()
+    ~maxNumberOfBranches: option<int>=?
 ):bottomUpProverParams => {
     {
         maxSearchDepth,
@@ -273,8 +272,7 @@ let findAsrtParentsWithNewVars = (
     ~combCntMax:int,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
-    ~onProgress:option<int=>unit>=?,
-    ()
+    ~onProgress:option<int=>unit>=?
 ):array<exprSrc> => {
     let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
     let applResults = []
@@ -315,8 +313,7 @@ let findAsrtParentsWithNewVars = (
             } else {
                 Continue
             }
-        },
-        ()
+        }
     )
     let foundParents = []
     applResults->Array.forEach(applResult => {
@@ -414,8 +411,7 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allow
             ~allowNewVars=false,
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
-            ~combCntMax,
-            () 
+            ~combCntMax 
         )
         parents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent, true, false)
@@ -470,8 +466,7 @@ let proveWithJustification = (
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
             ~combCntMax,
-            ~debugLevel,
-            ()
+            ~debugLevel
         )
     }
 
@@ -519,7 +514,7 @@ let proveBottomUp = (
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
-    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
+    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => () ))
 
     tree->ptClearDists
     let rootNode = tree->ptGetNode(expr)
@@ -549,8 +544,7 @@ let proveBottomUp = (
                             ~onProgress= pct => {
                                 let pctStr = (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString
                                 onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
-                            }, 
-                            ()
+                            }
                         )
                         maxCnt.contents = nodesToCreateParentsFor->Belt_MutableQueue.size + 1
                         cnt.contents = 0
@@ -685,8 +679,7 @@ let proveStmtBottomUp = (
                     ~combCntMax,
                     ~debugLevel,
                     ~maxNumberOfResults=?paramsI.maxNumberOfBranches,
-                    ~onProgress?,
-                    ()
+                    ~onProgress?
                 )
                 let parents = switch paramsI.lengthRestrict {
                     | No => parents
@@ -851,8 +844,7 @@ let proveSyntaxTypes = (
     ~parenCnt: option<parenCnt>=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
-    ~onProgress:option<float=>unit>=?,
-    ()
+    ~onProgress:option<float=>unit>=?
 ):proofTree => {
     if (
         proofTree->Belt_Option.isNone
@@ -861,7 +853,7 @@ let proveSyntaxTypes = (
         raise(MmException({msg:`Either proofTree or (wrkCtx and frms and parenCnt) should be passed.`}))
     }
 
-    let progressState = progressTrackerMake( ~step=0.01, ~onProgress?, () )
+    let progressState = progressTrackerMake( ~step=0.01, ~onProgress? )
 
     let tree = switch proofTree {
         | Some(tree) => tree
@@ -918,10 +910,10 @@ let proveSyntaxTypes = (
 }
 
 let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => {
-    let proofCtx = createContext(~parent=wrkCtx, ())
+    let proofCtx = createContext(~parent=wrkCtx)
     rootStmts->Array.forEach(stmt => {
         if (stmt.isHyp) {
-            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}), ())
+            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}))
         }
     })
     proofCtx
@@ -938,15 +930,13 @@ let unifyAll = (
     ~syntaxTypes:option<array<int>>=?,
     ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
-    ~onProgress:option<string=>unit>=?,
-    ()
+    ~onProgress:option<string=>unit>=?
 ):proofTree => {
     let progressState = progressTrackerMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
             pct => onProgress(`Unifying all: ${pct->floatToPctStr}`)
-        }), 
-        ()
+        })
     )
 
     let proofCtx = createProofCtx(wrkCtx, rootStmts)
@@ -971,8 +961,7 @@ let unifyAll = (
                             ~frameRestrict = allowedFrms.inSyntax,
                             ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
                                 pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
-                            }),
-                            ()
+                            })
                         )->ignore
                     }
                 }

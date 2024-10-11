@@ -123,8 +123,7 @@ let make = (
                                         rndProofStatus(
                                             ~proofStatus=getProofStatus(stmt), 
                                             ~longClickEnabled=false,
-                                            ~longClickDelayMs=0,
-                                            ()
+                                            ~longClickDelayMs=0
                                         )
                                     } else {
                                         React.null

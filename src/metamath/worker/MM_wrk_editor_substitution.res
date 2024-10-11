@@ -110,7 +110,7 @@ let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wr
     let newExpr = applyWrkSubs(expr, wrkSubs)
     {
         ...stmt,
-        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ())
+        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors)
     }
 }
 
@@ -167,10 +167,10 @@ let findPossibleSubsByMatch = (
     ~expr:expr
 ):result<array<wrkSubs>,string> => {
     try {
-        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())->Array.getUnsafe(0)
+        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1)->Array.getUnsafe(0)
         let tmpFrame = createFrame(
             ~ctx=wrkCtx, ~ord=0, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
-            ~skipEssentials=true, ~skipFirstSymCheck=true, ()
+            ~skipEssentials=true, ~skipFirstSymCheck=true
         )
         let frm = prepareFrmSubsDataForFrame(tmpFrame)
         let foundSubs = []

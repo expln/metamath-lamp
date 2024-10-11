@@ -112,8 +112,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
                 isBkm: stmt.isBkm,
                 cont: stmt.cont->strToCont(
                     ~preCtxColors=st.preCtxColors,
-                    ~wrkCtxColors=st.wrkCtxColors,
-                    ()
+                    ~wrkCtxColors=st.wrkCtxColors
                 ),
                 contEditMode: false,
                 isDuplicated: false,
@@ -603,14 +602,14 @@ let editorHistToString = (ht:editorHistory):string => {
 let parseStmtSnapshotLocStor = (d:Expln_utils_jsonParse.jsonAny):stmtSnapshotLocStor => {
     open Expln_utils_jsonParse
     {
-        d: d->str("d", ()),
-        l: d->str("l", ()),
-        t: d->str("t", ()),
-        g: d->bool("g", ()),
-        b: d->bool("b", ()),
-        j: d->str("j", ()),
-        c: d->str("c", ()),
-        p: d->strOpt("p", ()),
+        d: d->str("d"),
+        l: d->str("l"),
+        t: d->str("t"),
+        g: d->bool("g"),
+        b: d->bool("b"),
+        j: d->str("j"),
+        c: d->str("c"),
+        p: d->strOpt("p"),
     }
 }
 
@@ -620,28 +619,28 @@ let editorHistFromString = (jsonStr:string):result<editorHistory,string> => {
         {
             head: d->obj("head", d=>{
                 {
-                    d: d->str("d", ()),
-                    v: d->str("v", ()),
-                    j: d->str("j", ()),
-                    s: d->arr("s", parseStmtSnapshotLocStor, ())
+                    d: d->str("d"),
+                    v: d->str("v"),
+                    j: d->str("j"),
+                    s: d->arr("s", parseStmtSnapshotLocStor)
                 }
-            }, ()),
+            }),
             prev: d->arr("prev", d=>{
                 d->asArr(d=>{
                     {
-                        t: d->str("t", ()),
-                        d: ?d->strOpt("d", ()),
-                        b: ?d->boolOpt("b", ()),
-                        i: ?d->intOpt("i", ()),
-                        s: ?d->strOpt("s", ()),
-                        m: ?d->objOpt("m", parseStmtSnapshotLocStor, ()),
-                        a: ?d->arrOpt("a", asStr(_, ()), ()),
+                        t: d->str("t"),
+                        d: ?d->strOpt("d"),
+                        b: ?d->boolOpt("b"),
+                        i: ?d->intOpt("i"),
+                        s: ?d->strOpt("s"),
+                        m: ?d->objOpt("m", parseStmtSnapshotLocStor),
+                        a: ?d->arrOpt("a", asStr(_)),
                     }
-                }, ())
-            }, ()),
-            maxLength: d->int("maxLength", ())
+                })
+            }),
+            maxLength: d->int("maxLength")
         }
-    }, ()), ())->Belt.Result.map(editorHistoryFromLocStor)
+    }))->Belt.Result.map(editorHistoryFromLocStor)
 }
 
 let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {

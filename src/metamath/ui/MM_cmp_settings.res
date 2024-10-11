@@ -642,101 +642,93 @@ let readStateFromLocStor = ():settingsState => {
             open Expln_utils_jsonParse
             let parseResult:result<settingsState,string> = parseJson(settingsLocStorStr, asObj(_, d=>{
                 {
-                    parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
+                    parens: d->str("parens", ~default=()=>defaultSettings.parens),
                     parensErr: None,
-                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>defaultSettings.asrtsToSkip, ()),
-                    descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc, ()),
+                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_), ~default=()=>defaultSettings.asrtsToSkip),
+                    descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc),
                     descrRegexToDiscErr: None,
-                    labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
+                    labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc),
                     labelRegexToDiscErr: None,
-                    descrRegexToDepr: d->str("descrRegexToDepr", ~default=()=>defaultSettings.descrRegexToDepr, ()),
+                    descrRegexToDepr: d->str("descrRegexToDepr", ~default=()=>defaultSettings.descrRegexToDepr),
                     descrRegexToDeprErr: None,
-                    labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr, ()),
+                    labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr),
                     labelRegexToDeprErr: None,
-                    discColor: d->str("discColor", ~default=()=>defaultDiscColor, ()),
-                    deprColor: d->str("deprColor", ~default=()=>defaultDeprColor, ()),
-                    tranDeprColor: d->str("tranDeprColor", ~default=()=>defaultTranDeprColor, ()),
+                    discColor: d->str("discColor", ~default=()=>defaultDiscColor),
+                    deprColor: d->str("deprColor", ~default=()=>defaultDeprColor),
+                    tranDeprColor: d->str("tranDeprColor", ~default=()=>defaultTranDeprColor),
                     allowedFrms: d->obj("allowedFrms", d=>{
                         {
                             inSyntax: d->obj("inSyntax", d=>{
-                                useDisc: d->bool( "useDisc", () ),
-                                useDepr: d->bool( "useDepr", () ),
-                                useTranDepr: d->bool( "useTranDepr", () ),
-                            }, ()),
+                                useDisc: d->bool( "useDisc" ),
+                                useDepr: d->bool( "useDepr" ),
+                                useTranDepr: d->bool( "useTranDepr" ),
+                            }),
                             inEssen: d->obj("inEssen", d=>{
-                                useDisc: d->bool( "useDisc", () ),
-                                useDepr: d->bool( "useDepr", () ),
-                                useTranDepr: d->bool( "useTranDepr", () ),
-                            }, ())
+                                useDisc: d->bool( "useDisc" ),
+                                useDepr: d->bool( "useDepr" ),
+                                useTranDepr: d->bool( "useTranDepr" ),
+                            })
                         }
-                    }, ~default=()=>defaultSettings.allowedFrms, ()),
+                    }, ~default=()=>defaultSettings.allowedFrms),
                     editStmtsByLeftClick: d->bool(
-                        "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
+                        "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick
                     ),
-                    initStmtIsGoal: d->bool( "initStmtIsGoal", ~default=()=>defaultSettings.initStmtIsGoal, () ),
+                    initStmtIsGoal: d->bool( "initStmtIsGoal", ~default=()=>defaultSettings.initStmtIsGoal ),
                     defaultStmtLabel: d->str("defaultStmtLabel", 
                         ~default=()=>defaultSettings.defaultStmtLabel, 
-                        ~validator = str => Ok(validateDefaultStmtLabel(str)),
-                        ()
+                        ~validator = str => Ok(validateDefaultStmtLabel(str))
                     ),
-                    defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
-                    unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix, ()),
-                    sortDisjByType: d->str("sortDisjByType", ~default=()=>defaultSettings.sortDisjByType, ()),
-                    checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
-                    stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
-                    autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts,()),
-                    autoUnifyAll: d->bool( "autoUnifyAll", ~default=()=>defaultSettings.autoUnifyAll,()),
+                    defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType),
+                    unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix),
+                    sortDisjByType: d->str("sortDisjByType", ~default=()=>defaultSettings.sortDisjByType),
+                    checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax ),
+                    stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom),
+                    autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts),
+                    autoUnifyAll: d->bool( "autoUnifyAll", ~default=()=>defaultSettings.autoUnifyAll),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
-                        typ: d->str("typ", ()),
-                        color: d->str("color", ()),
-                        prefix: d->str("prefix", ()),
+                        typ: d->str("typ"),
+                        color: d->str("color"),
+                        prefix: d->str("prefix"),
                         err: None,
-                    }, ()), ~default=()=>defaultSettings.typeSettings, ()),
+                    }), ~default=()=>defaultSettings.typeSettings),
                     webSrcNextId: 0,
                     webSrcSettings: d->arr("webSrcSettings", asObj(_, d=>{
                         id: "0",
-                        alias: d->str("alias", ()),
-                        url: d->str("url", ()),
-                        trusted: d->bool("trusted", ()),
+                        alias: d->str("alias"),
+                        url: d->str("url"),
+                        trusted: d->bool("trusted"),
                         err: None,
-                    }, ()), ~default=()=>defaultSettings.webSrcSettings, ()),
-                    longClickEnabled: d->bool( "longClickEnabled", ~default=()=>defaultSettings.longClickEnabled, () ),
+                    }), ~default=()=>defaultSettings.webSrcSettings),
+                    longClickEnabled: d->bool( "longClickEnabled", ~default=()=>defaultSettings.longClickEnabled ),
                     longClickDelayMsStr: d->int( "longClickDelayMs", 
                         ~default = () => longClickDelayMsDefault,
-                        ~validator = validateLongClickDelayMs,
-                        () 
+                        ~validator = validateLongClickDelayMs 
                     )->Belt_Int.toString,
                     hideContextSelector: d->bool( "hideContextSelector", 
-                        ~default=()=>defaultSettings.hideContextSelector, 
-                        () 
+                        ~default=()=>defaultSettings.hideContextSelector 
                     ),
                     showVisByDefault: d->bool( "showVisByDefault", 
-                        ~default=()=>defaultSettings.showVisByDefault, 
-                        () 
+                        ~default=()=>defaultSettings.showVisByDefault 
                     ),
                     editorHistMaxLengthStr: d->int( "editorHistMaxLength", 
                         ~default = () => editorHistMaxLengthDefault,
-                        ~validator = validateEditorHistoryMaxLength,
-                        () 
+                        ~validator = validateEditorHistoryMaxLength 
                     )->Belt_Int.toString,
                     useDefaultTransforms: d->bool( "useDefaultTransforms", 
-                        ~default=()=>defaultSettings.useDefaultTransforms, 
-                        () 
+                        ~default=()=>defaultSettings.useDefaultTransforms 
                     ),
                     useCustomTransforms: d->bool( "useCustomTransforms", 
-                        ~default=()=>defaultSettings.useCustomTransforms, 
-                        () 
+                        ~default=()=>defaultSettings.useCustomTransforms 
                     ),
-                    customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms, ()),
+                    customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms),
                     combCntMaxStr: d->int( "combCntMax", 
                         ~default = () => combCntMaxDefault,
-                        ~validator = validateCombCntMax,
-                        () 
+                        ~validator = validateCombCntMax 
                     )->Belt_Int.toString,
                 }
-            }, ()), ~default=()=>defaultSettings, ())
+            }), ~default=()=>defaultSettings)
             switch parseResult {
                 | Error(msg) => raise(MmException({msg:`Cannot read settings from the local storage: ${msg}`}))
                 | Ok(state) => {
@@ -1206,7 +1198,7 @@ let make = (
     }
 
     let rndFindParensProgress = (pct, modalIdOpt) => {
-        rndProgress(~text=`Searching parentheses`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
+        rndProgress(~text=`Searching parentheses`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt))
     }
 
     let syncParens = () => {
@@ -1367,15 +1359,13 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.descrRegexToDisc, ~onSave=actDescrRegexToDiscUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
                 {
                     rndSmallTextBtn(
                         ~text="Restore default regex",
-                        ~onClick=actRestoreDefaultDescrRegexToDisc,
-                        ()
+                        ~onClick=actRestoreDefaultDescrRegexToDisc
                     )
                 }
             </Row>
@@ -1395,8 +1385,7 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.labelRegexToDisc, ~onSave=actLabelRegexToDiscUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
             </Row>
@@ -1416,8 +1405,7 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.descrRegexToDepr, ~onSave=actDescrRegexToDeprUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
             </Row>
@@ -1437,8 +1425,7 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.labelRegexToDepr, ~onSave=actLabelRegexToDeprUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
             </Row>
@@ -1506,8 +1493,7 @@ let make = (
                                     rndColorSelect( 
                                         ~availableColors=allColors, 
                                         ~selectedColor=state.discColor, 
-                                        ~onNewColorSelected = actDiscColorUpdated,
-                                        ()
+                                        ~onNewColorSelected = actDiscColorUpdated
                                     )
                                 }
                             </td>->addAlignAttr("center")
@@ -1531,8 +1517,7 @@ let make = (
                                     rndColorSelect( 
                                         ~availableColors=allColors, 
                                         ~selectedColor=state.deprColor, 
-                                        ~onNewColorSelected = actDeprColorUpdated,
-                                        ()
+                                        ~onNewColorSelected = actDeprColorUpdated
                                     )
                                 }
                             </td>->addAlignAttr("center")
@@ -1556,8 +1541,7 @@ let make = (
                                     rndColorSelect( 
                                         ~availableColors=allColors, 
                                         ~selectedColor=state.tranDeprColor, 
-                                        ~onNewColorSelected = actTranDeprColorUpdated,
-                                        ()
+                                        ~onNewColorSelected = actTranDeprColorUpdated
                                     )
                                 }
                             </td>->addAlignAttr("center")
@@ -1568,8 +1552,7 @@ let make = (
             {
                 rndSmallTextBtn(
                     ~text="Restore default assertion usage settings",
-                    ~onClick=actRestoreDefaultDiscUsageSettings,
-                    ()
+                    ~onClick=actRestoreDefaultDiscUsageSettings
                 )
             }
         </Col>
@@ -1711,7 +1694,7 @@ let make = (
                 }
                 label="Use default transforms"
             />
-            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor, () ) }
+            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor ) }
         </Row>
         <Row alignItems=#center spacing=0. >
             <FormControlLabel
@@ -1723,7 +1706,7 @@ let make = (
                 }
                 label="Use custom transforms"
             />
-            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor, () ) }
+            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor ) }
         </Row>
         <TextField 
             size=#small

@@ -151,8 +151,7 @@ let createProofTable = (
     ~tree:proofTreeDto, 
     ~root:proofNodeDto, 
     ~essentialsOnly:bool=false,
-    ~ctx:option<mmContext>=?,
-    ()
+    ~ctx:option<mmContext>=?
 ):proofTable => {
     if (essentialsOnly && ctx->Belt_Option.isNone) {
         raise(MmException({msg:"Error in createProofTable: ctx must be set when essentialsOnly == true."}))
@@ -233,8 +232,7 @@ let createProofTable = (
                 }
             }
             None
-        },
-        ()
+        }
     )->ignore
     tbl
 }

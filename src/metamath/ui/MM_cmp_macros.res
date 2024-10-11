@@ -333,15 +333,15 @@ let readStateLocStorFromJsonStr = (jsonStr:string):result<stateLocStor,string> =
     open Expln_utils_jsonParse
     parseJson(jsonStr, asObj(_, d=>{
         {
-            activeCollOfMacrosIdx: d->int("activeCollOfMacrosIdx", ()),
+            activeCollOfMacrosIdx: d->int("activeCollOfMacrosIdx"),
             collsOfMacros: d->arr("collsOfMacros", asObj(_, d=>{
                 {
-                    displayName: d->str("displayName", ()),
-                    scriptText: d->str("scriptText", ()),
+                    displayName: d->str("displayName"),
+                    scriptText: d->str("scriptText"),
                 }
-            }, ()), ())
+            }))
         }
-    }, ()), ())
+    }))
 }
 
 let readStateFromLocStor = ():state => {
@@ -570,9 +570,8 @@ let make = (
                 } else {
                     rndHiddenTextField(
                         ~onKeyDown=kbrdHnds([
-                            kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
-                        ]),
-                        ()
+                            kbrdClbkMake(~key=keyEsc, ~act=onClose),
+                        ])
                     )
                 }
             }
@@ -591,8 +590,8 @@ let make = (
             value=collOfMacros.scriptTextEdit
             onChange=evt2str(actSetScriptTextEdit)
             onKeyDown=kbrdHnds([
-                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits),
+                kbrdClbkMake(~key=keyEsc, ~act=onClose),
             ])
             disabled=activeCollOfMacrosIsReadOnly
         />
@@ -613,8 +612,8 @@ let make = (
                             value=collOfMacros.displayNameEdit
                             onChange=evt2str(actSetDisplayNameEdit)
                             onKeyDown=kbrdHnds([
-                                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits, ()),
-                                kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits),
+                                kbrdClbkMake(~key=keyEsc, ~act=onClose),
                             ])
                             disabled={collOfMacros.id < 0}
                         />

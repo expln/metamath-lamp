@@ -48,8 +48,7 @@ describe("traverseTree", _ => {
             ~postProcess=(arr,node)=>{
                 arr->Array.push("postProcess: " ++ node.name)
                 None
-            },
-            ()
+            }
         )
 
         //then
@@ -119,8 +118,7 @@ describe("traverseTree", _ => {
             ~postProcess=(arr,node)=>{
                 arr->Array.push("postProcess: " ++ node.name)
                 None
-            },
-            ()
+            }
         )
 
         //then
@@ -179,8 +177,7 @@ describe("traverseTree", _ => {
             ~postProcess=(arr,node)=>{
                 arr->Array.push("postProcess: " ++ node.name)
                 None
-            },
-            ()
+            }
         )
 
         //then
@@ -240,8 +237,7 @@ describe("traverseTree", _ => {
                 } else {
                     None
                 }
-            },
-            ()
+            }
         )
 
         //then
@@ -293,8 +289,7 @@ describe("traverseTree", _ => {
             ~process=(arr,node)=>{
                 arr->Array.push("process: " ++ node.name)
                 None
-            },
-            ()
+            }
         )
 
         //then

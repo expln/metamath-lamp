@@ -66,7 +66,7 @@ let make = (
                     onChange=evt2str(newItemsPerPage => {
                         setItemsPerPageText(_ => Some(newItemsPerPage->String.replaceRegExp(nonDigitPattern, "")))
                     })
-                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actChangeItemsPerPage, ())
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actChangeItemsPerPage)
                 />
             } else {
                 React.null
@@ -80,7 +80,7 @@ let make = (
                     label="Go to page" 
                     value=goToPageText 
                     onChange=evt2str(newPage => setGoToPageText(_ => newPage->String.replaceRegExp(nonDigitPattern, "")))
-                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage, ())
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage)
                 />
             } else {
                 React.null

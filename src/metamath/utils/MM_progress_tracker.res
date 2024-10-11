@@ -28,8 +28,7 @@ let progressTrackerMake = (
     ~step:float, 
     ~pct=0., 
     ~onProgress: option<float=>unit>=?, 
-    ~dontDecrease:bool=false, 
-    ()
+    ~dontDecrease:bool=false
 ):progressState => {
     let step = (step *. scaleFactorF)->Belt_Float.toInt
     let numOfSteps = pctToNumOfSteps(~pct, ~step)
@@ -60,16 +59,14 @@ let progressTrackerIntMake = (
     ~cnt=0, 
     ~maxCnt:int,
     ~onProgress: option<float=>unit>=?, 
-    ~dontDecrease:bool=false, 
-    ()
+    ~dontDecrease:bool=false
 ):progressStateInt => {
     {
         progressState: progressTrackerMake(
             ~step, 
             ~pct = cnt->Belt_Int.toFloat /. maxCnt->Belt_Int.toFloat, 
             ~onProgress?, 
-            ~dontDecrease, 
-            ()
+            ~dontDecrease
         ),
         cnt: cnt,
         maxCnt: maxCnt->Belt_Int.toFloat,

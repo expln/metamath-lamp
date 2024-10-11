@@ -13,8 +13,7 @@ let traverseTree = (
     getChildren: ('c,'n)=>option<array<'n>>,
     ~preProcess:option<('c,'n)=>option<'r>>=?,
     ~process:option<('c,'n)=>option<'r>>=?,
-    ~postProcess:option<('c,'n)=>option<'r>>=?,
-    ()
+    ~postProcess:option<('c,'n)=>option<'r>>=?
 ): ('c, option<'r>) => {
     let hasPreProcess = preProcess->Belt_Option.isSome
     let hasProcess = process->Belt_Option.isSome

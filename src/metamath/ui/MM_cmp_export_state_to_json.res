@@ -86,8 +86,8 @@ let make = (
                 onChange=evt2str(actNotesChanged)
                 title="Press Enter to copy to the clipboard and close this dialog window."
                 onKeyDown=kbrdHnd2(
-                    kbrdClbkMake(~key=keyEnter, ~act=actCopyAndClose, ()),
-                    kbrdClbkMake(~key=keyEsc, ~act=onClose, ())
+                    kbrdClbkMake(~key=keyEnter, ~act=actCopyAndClose),
+                    kbrdClbkMake(~key=keyEsc, ~act=onClose)
                 )
                 autoFocus=true
             />

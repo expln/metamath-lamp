@@ -23,8 +23,7 @@ let rndIconButton = (
     ~onClick:unit=>unit, 
     ~active:bool=true, 
     ~title:option<string>=?, 
-    ~color:option<string>=Some("primary"),
-    ()
+    ~color:option<string>=Some("primary")
 ) => {
     <span ?title>
         <IconButton disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
@@ -63,14 +62,14 @@ let make = (
             if (editByClick) {
                 if (editByAltClick) {
                     clickHnd2(
-                        clickClbkMake(~act=onEditRequested, ()),
-                        clickClbkMake(~alt=true, ~act=onEditRequested, ()),
+                        clickClbkMake(~act=onEditRequested),
+                        clickClbkMake(~alt=true, ~act=onEditRequested),
                     )
                 } else {
-                    clickHnd(~act=onEditRequested, ())
+                    clickHnd(~act=onEditRequested)
                 }
             } else if (editByAltClick) {
-                clickHnd(~alt=true, ~act=onEditRequested, ())
+                clickHnd(~alt=true, ~act=onEditRequested)
             } else {
                 _ => ()
             }
@@ -144,14 +143,14 @@ let make = (
 
     let rndButtons = () => {
         let saveBtn = rndIconButton(
-            ~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter", ())
+            ~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter")
         let cancelBtn = rndIconButton(
-            ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None, ())
+            ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None)
         let helpBtn = switch onHelp {
             | None => React.null
             | Some(onHelp) => {
                 rndIconButton(
-                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None, ()
+                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None
                 )
             }
         }
@@ -159,13 +158,13 @@ let make = (
             | None => React.null
             | Some(onDelete) => {
                 rndIconButton(
-                    ~icon=<MM_Icons.DeleteForever/>, ~onClick=onDelete, ~title="Clear", ~color=None, ()
+                    ~icon=<MM_Icons.DeleteForever/>, ~onClick=onDelete, ~title="Clear", ~color=None
                 )
             }
         }
         let newLineBtn = rndIconButton(
             ~icon=<MM_Icons.KeyboardReturn/>, ~active=true,  ~onClick=actStartNewLine, 
-            ~title="Start new line, Shift+Enter", ~color=None, ())
+            ~title="Start new line, Shift+Enter", ~color=None)
         <Row spacing=1.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
     }
 
@@ -187,8 +186,8 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~key=keyEnter, ~act=actEditDone, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actEditDone),
+                        kbrdClbkMake(~key=keyEsc, ~act=actEditCancel),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />

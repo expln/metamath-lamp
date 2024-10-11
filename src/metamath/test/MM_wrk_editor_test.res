@@ -11,12 +11,11 @@ open MM_wrk_pre_ctx_data
 let createEditorState = (
     mmFile:string, 
     ~initStmtIsGoal:bool=false, 
-    ~defaultStmtLabel:string="", 
-    ()
+    ~defaultStmtLabel:string=""
 ) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
-    let ctx = loadContext(ast, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true)
+    let ctx = loadContext(ast)
     let parens = "( ) { } [ ]"
     let settingsV = 1
     let settings = {
@@ -73,7 +72,7 @@ let createEditorState = (
         srcs: [],
         preCtxV,
         preCtx,
-        frms: prepareFrmSubsData(~ctx, ()),
+        frms: prepareFrmSubsData(~ctx),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         preCtxColors: Belt_HashMapString.make(~hintSize=0),
         allTypes: [],
@@ -104,8 +103,7 @@ let createEditorState = (
     let st = st->setPreCtxData(
         preCtxDataMake(~settings)->preCtxDataUpdate(
             ~settings,
-            ~ctx=([], preCtx),
-            ()
+            ~ctx=([], preCtx)
         )
     )
     st
@@ -166,7 +164,7 @@ let findPossibleSubsTypeCase = "./src/metamath/test/resources/findPossibleSubs-t
 describe("prepareEditorForUnification", _ => {
     it("detects an error in variable declaration", _ => {
         //given
-        let st = createEditorState(demo0, ())
+        let st = createEditorState(demo0)
         let st = completeVarsEditMode(st, "hyp_v1 term v1 \n hyp_v2 term- v2")
 
         //when
@@ -179,7 +177,7 @@ describe("prepareEditorForUnification", _ => {
     
     it("creates wrkCtx when only additional variables are defined and there are no errors", _ => {
         //given
-        let st = createEditorState(demo0, ())
+        let st = createEditorState(demo0)
         let st = completeVarsEditMode(st, ".hyp_v1 term v1 \n .hyp_v2 wff v2")
 
         //when
@@ -199,7 +197,7 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error in disjoints declaration", _ => {
         //given
-        let st = createEditorState(demo0, ())
+        let st = createEditorState(demo0)
         let st = completeDisjEditMode(st, "t r \n r s-")
 
         //when
@@ -213,9 +211,9 @@ describe("prepareEditorForUnification", _ => {
     
     it("creates wrkCtx when only additional disjoints are defined and there are no errors", _ => {
         //given
-        let st = createEditorState(demo0, ())
+        let st = createEditorState(demo0)
         let st = completeDisjEditMode(st, "t r \n r s")
-        let (st,s1) = st->addNewStmt(())
+        let (st,s1) = st->addNewStmt
         let st = st->completeContEditMode(s1, "t r s")
 
         //when
@@ -240,13 +238,13 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error in a hypothesis", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let prId = (st.stmts->Array.getUnsafe(0)).id
         let hypId = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- 0 + 0.", ())})
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- 0 + 0.")})
 
         //when
         let st = verifyEditorState(st)
@@ -266,13 +264,13 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error when a hypothesis is empty", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let prId = (st.stmts->Array.getUnsafe(0)).id
         let hypId = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("", ()),contEditMode:false})
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont(""),contEditMode:false})
 
         //when
         let st = verifyEditorState(st)
@@ -292,13 +290,13 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error when a hypothesis begins with a variable", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let prId = (st.stmts->Array.getUnsafe(0)).id
         let hypId = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("t = t", ()),
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("t = t"),
             contEditMode:false
         })
 
@@ -321,19 +319,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects an error in a provable expression", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 +- 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ())})
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 +- 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term")})
 
         //when
         let st = verifyEditorState(st)
@@ -350,15 +348,15 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error when a provable expression is empty", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let prId = (st.stmts->Array.getUnsafe(0)).id
         let hypId = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("", ()),
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont(""),
             contEditMode:false
         })
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t")})
 
         //when
         let st = verifyEditorState(st)
@@ -378,15 +376,15 @@ describe("prepareEditorForUnification", _ => {
     
     it("detects an error when a provable expression begins with a variable", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let prId = (st.stmts->Array.getUnsafe(0)).id
         let hypId = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t", ()),
+        let st = updateStmt(st, prId, stmt => {...stmt, typ:P, label:"pr", cont:strToCont("t = t"),
             contEditMode:false
         })
-        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t", ())})
+        let st = updateStmt(st, hypId, stmt => {...stmt, typ:E, label:"hyp", cont:strToCont("|- t + t")})
 
         //when
         let st = verifyEditorState(st)
@@ -406,19 +404,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a syntax error in a provable's justification", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1"
         })
 
@@ -437,19 +435,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a ref error in a provable's justification when asrt label refers to a hypothesis", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1 : hyp1"
         })
 
@@ -468,19 +466,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a ref error in a provable's justification when asrt label refers to another provable", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1 : pr1"
         })
 
@@ -499,19 +497,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a ref error in a provable's justification when argument label is undefined", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp-- : ax"
         })
 
@@ -530,19 +528,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a label duplication when a provable uses label of a predefined hypothesis", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"tt", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"tt", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1 : mp"
         })
 
@@ -561,19 +559,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a label duplication when a provable uses label of a previously defined hypothesis", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"hyp2", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"hyp2", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1 : mp"
         })
 
@@ -592,19 +590,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("detects a label duplication when a provable uses label of a previously defined another provable", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1 : mp"
         })
 
@@ -623,19 +621,19 @@ describe("prepareEditorForUnification", _ => {
 
     it("sets expr and jstf for each provable when there are no errors", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
         let hyp1Id = (st.stmts->Array.getUnsafe(2)).id
         let hyp2Id = (st.stmts->Array.getUnsafe(3)).id
-        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t", ())})
-        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0", ())})
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term", ()),
+        let st = updateStmt(st, hyp1Id, stmt => {...stmt, typ:E, label:"hyp1", cont:strToCont("|- t + t")})
+        let st = updateStmt(st, hyp2Id, stmt => {...stmt, typ:E, label:"hyp2", cont:strToCont("|- 0 + 0")})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, label:"pr1", cont:strToCont("|- 0 + 0 + 0")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, label:"pr2", cont:strToCont("|- t term"),
             jstfText: "pr1 hyp1 : mp"
         })
 
@@ -658,7 +656,7 @@ describe("prepareEditorForUnification", _ => {
 describe("findPossibleSubs", _ => {
     it("finds all possible substitutions", _ => {
         //given
-        let st = createEditorState(findPossibleSubsSimpleCase, ())->verifyEditorState
+        let st = createEditorState(findPossibleSubsSimpleCase)->verifyEditorState
         let ctx = st.wrkCtx->Belt_Option.getExn
 
         let t = ctx->ctxSymToIntExn("t")
@@ -693,8 +691,8 @@ describe("findPossibleSubs", _ => {
 
     it("returns new disjoints if any", _ => {
         //given
-        let st = createEditorState(findPossibleSubsDisjointsCase, ())
-        let (st,s1) = st->addNewStmt(())
+        let st = createEditorState(findPossibleSubsDisjointsCase)
+        let (st,s1) = st->addNewStmt
         let st = st->completeContEditMode(s1, "x y")
         let st = completeDisjEditMode(st, "x y")
         let st = verifyEditorState(st)
@@ -736,7 +734,7 @@ describe("findPossibleSubs", _ => {
 
     it("doesn't return substitutions which don't satisfy disjoints", _ => {
         //given
-        let st = createEditorState(findPossibleSubsDisjointsCase, ())
+        let st = createEditorState(findPossibleSubsDisjointsCase)
         let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -773,7 +771,7 @@ describe("findPossibleSubs", _ => {
             "assert-1"
         )
 
-        let (st,s1) = st->addNewStmt(())
+        let (st,s1) = st->addNewStmt
         let st = st->completeContEditMode(s1, "x y")
         let st = completeDisjEditMode(st, "x y")
         let st = verifyEditorState(st)
@@ -809,7 +807,7 @@ describe("findPossibleSubs", _ => {
 
     it("doesn't return substitutions which don't satisfy types", _ => {
         //given
-        let st = createEditorState(findPossibleSubsTypeCase, ())
+        let st = createEditorState(findPossibleSubsTypeCase)
         let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -873,7 +871,7 @@ describe("findPossibleSubs", _ => {
 
     it("returns substitutions which satisfy disjoints", _ => {
         //given
-        let st = createEditorState(findPossibleSubsDisjointsCase, ())
+        let st = createEditorState(findPossibleSubsDisjointsCase)
         let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
 
@@ -893,13 +891,13 @@ describe("findPossibleSubs", _ => {
 describe("applySubstitutionForEditor", _ => {
     it("applies substitutions correctly", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + s", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + s")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = 0")})
         let st = verifyEditorState(st)
         let ctx = st.wrkCtx->Belt_Option.getExn
         let wrkSubs = (findPossibleSubs(
@@ -927,15 +925,15 @@ describe("applySubstitutionForEditor", _ => {
 describe("removeUnusedVars", _ => {
     it("removes unused variables", _ => {
         //given
-        let st = createEditorState(demo0, ())
+        let st = createEditorState(demo0)
         let st = completeVarsEditMode(st,"v1 term a \n v2 term b \n v3 term c \n v4 term d")
         let st = completeDisjEditMode(st,"a b c \n d c")
-        let (st, _) = addNewStmt(st, ())
-        let (st, _) = addNewStmt(st, ())
+        let (st, _) = addNewStmt(st)
+        let (st, _) = addNewStmt(st)
         let pr1Id = (st.stmts->Array.getUnsafe(0)).id
         let pr2Id = (st.stmts->Array.getUnsafe(1)).id
-        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a", ())})
-        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = c", ())})
+        let st = updateStmt(st, pr1Id, stmt => {...stmt, cont:strToCont("|- t + a")})
+        let st = updateStmt(st, pr2Id, stmt => {...stmt, cont:strToCont("|- r = c")})
         let st = verifyEditorState(st)
 
         //when
@@ -953,10 +951,10 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1 -> s1.typ=P, s1.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "typ")
@@ -965,8 +963,8 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hYp -> s1.typ=E, s1.isGoal=F", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
 
         //when
         let st = st->completeJstfEditMode(s1, "hYp")
@@ -979,12 +977,12 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2 -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hYp")
 
         //when
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
@@ -996,14 +994,14 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3 -> s1.typ=E, s1.isGoal=F, s2.typ=E, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hyp")
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "HYP")
 
         //when
-        let (st, s3) = addNewStmt(st, ())
+        let (st, s3) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, E , "typ")
@@ -1018,12 +1016,12 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hyp")
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "hyp")
-        let (st, s3) = addNewStmt(st, ())
+        let (st, s3) = addNewStmt(st)
 
         //when
         let st = st->completeJstfEditMode(s2, "")
@@ -1040,12 +1038,12 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2{typ=P,jstf=hhyp}, s2.isGoal=F, s3.typ=P, s3.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hyp")
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "hyp")
-        let (st, s3) = addNewStmt(st, ())
+        let (st, s3) = addNewStmt(st)
 
         //when
         let st = st->completeJstfEditMode(s2, "hhyp")
@@ -1065,12 +1063,12 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, +s3, s2.jstf=_, s2.jstf=hhyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F, s2.jstf=hhyp, s3.typ=P, s3.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hyp")
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "hyp")
-        let (st, s3) = addNewStmt(st, ())
+        let (st, s3) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "")
 
         //when
@@ -1091,10 +1089,10 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_ -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hyp")
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "hyp")
 
         //when
@@ -1111,10 +1109,10 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=hyp, +s2, s2.jstf=hyp, s2.jstf=_, s1.jstf=_ -> s1.typ=P, s1.isGoal=F, s2.typ=P, s2.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
         let st = st->completeJstfEditMode(s1, "hyp")
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
         let st = st->completeJstfEditMode(s2, "hyp")
         let st = st->completeJstfEditMode(s2, "")
 
@@ -1131,8 +1129,8 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, s1.jstf=abc, s1.jstf=_ -> s1.typ=P, s1.isGoal=T", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
 
         //when
         let st = st->completeJstfEditMode(s1, "")
@@ -1144,11 +1142,11 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, +s2 -> s1.typ=P, s1.isGoal=T, s2.typ=P, s2.isGoal=F", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
 
         //when
-        let (st, s2) = addNewStmt(st, ())
+        let (st, s2) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1160,9 +1158,9 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, +s2, s1.jstf=hyp -> s1.typ=E, s1.isGoal=F, s2.typ=P, s2.isGoal=F", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
-        let (st, s2) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
+        let (st, s2) = addNewStmt(st)
 
         //when
         let st = st->completeJstfEditMode(s1, "hyp")
@@ -1178,9 +1176,9 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
     
     it("+s1, +s2, s1.jstf=':ax-mp' -> s1.typ=P, s1.isGoal=T, s2.typ=P, s2.isGoal=F", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, s1) = addNewStmt(st, ())
-        let (st, s2) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, s1) = addNewStmt(st)
+        let (st, s2) = addNewStmt(st)
 
         //when
         let st = st->completeJstfEditMode(s1, ":ax-mp")
@@ -1198,10 +1196,10 @@ describe("automatic convertion E<->P depending on jstfText", _ => {
 describe("defaults for G steps", _ => {
     it("the very first step is not marked G when the setting is false", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=false, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=false)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1210,10 +1208,10 @@ describe("defaults for G steps", _ => {
 
     it("the very first step is marked G when the setting is true", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1222,10 +1220,10 @@ describe("defaults for G steps", _ => {
 
     it("the very first step is not labeled qed when the setting is empty", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="", ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="")
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1234,10 +1232,10 @@ describe("defaults for G steps", _ => {
 
     it("the very first step is labeled qed when the setting is _qed_", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel=" qed ", ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel=" qed ")
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1246,12 +1244,12 @@ describe("defaults for G steps", _ => {
     
     it("if there is a hyp step then the newly added step is not marked G when the setting is false", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=false, ())
-        let (st, h1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=false)
+        let (st, h1) = addNewStmt(st)
         let st = st->completeTypEditMode(h1,E,false)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1260,12 +1258,12 @@ describe("defaults for G steps", _ => {
 
     it("if there is a hyp step then the newly added step is marked G when the setting is true", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, h1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, h1) = addNewStmt(st)
         let st = st->completeTypEditMode(h1,E,false)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1274,12 +1272,12 @@ describe("defaults for G steps", _ => {
 
     it("if there is a hyp step then the newly added step is not labeled qed when the setting is empty", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="  ", ())
-        let (st, h1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="  ")
+        let (st, h1) = addNewStmt(st)
         let st = st->completeTypEditMode(h1,E,false)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1288,13 +1286,13 @@ describe("defaults for G steps", _ => {
 
     it("if there is a hyp step then the newly added step is labeled qed when the setting is qed", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="qed", ())
-        let (st, h1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=false, ~defaultStmtLabel="qed")
+        let (st, h1) = addNewStmt(st)
         let st = st->completeTypEditMode(h1,E,false)
         let st = st->completeLabelEditMode(h1,"hyp.1")
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1303,14 +1301,14 @@ describe("defaults for G steps", _ => {
 
     it("if there is a hyp step labeled qed then the newly added step is labeled qed1 when the setting is qed", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
-        let (st, h1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed")
+        let (st, h1) = addNewStmt(st)
         let st = st->completeTypEditMode(h1,E,false)
         assertEqMsg( editorGetStmtByIdExn(st,h1).typ, E, "h1.typ")
         assertEqMsg( editorGetStmtByIdExn(st,h1).isGoal, false, "h1.isGoal")
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1320,14 +1318,14 @@ describe("defaults for G steps", _ => {
 
     it("if there is another P step then the newly added step is not marked G when the setting is true", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ())
-        let (st, p1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true)
+        let (st, p1) = addNewStmt(st)
         let st = st->completeLabelEditMode(p1,"p1")
         assertEq( editorGetStmtByIdExn(st,p1).typ, P)
         assertEq( editorGetStmtByIdExn(st,p1).isGoal, true)
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1336,15 +1334,15 @@ describe("defaults for G steps", _ => {
 
     it("if there is another P step then the newly added step is not labeled qed when the setting is qed", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
-        let (st, p1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed")
+        let (st, p1) = addNewStmt(st)
         assertEq( editorGetStmtByIdExn(st,p1).typ, P)
         assertEq( editorGetStmtByIdExn(st,p1).label, "qed")
         let st = st->completeLabelEditMode(p1,"p1")
         assertEq( editorGetStmtByIdExn(st,p1).label, "p1")
 
         //when
-        let (st, s1) = addNewStmt(st, ())
+        let (st, s1) = addNewStmt(st)
 
         //then
         assertEqMsg( editorGetStmtByIdExn(st,s1).typ, P , "s1.typ")
@@ -1353,8 +1351,8 @@ describe("defaults for G steps", _ => {
 
     it("duplication of G step produces P step", _ => {
         //given
-        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed", ())
-        let (st, s1) = addNewStmt(st, ())
+        let st = createEditorState(demo0, ~initStmtIsGoal=true, ~defaultStmtLabel="qed")
+        let (st, s1) = addNewStmt(st)
         assertEq( (st.stmts->Array.getUnsafe(0)).typ, P)
         assertEq( (st.stmts->Array.getUnsafe(0)).isGoal, true)
         assertEq( (st.stmts->Array.getUnsafe(0)).label, "qed")
@@ -1377,48 +1375,48 @@ describe("defaults for G steps", _ => {
 describe("deleteUnrelatedSteps", _ => {
     it("deletes all unrelated steps except the goal step and hypotheses", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, idQed1) = addNewStmt(st, ())
-        let (st, id1) = addNewStmt(st, ())
-        let (st, id2) = addNewStmt(st, ())
-        let (st, id3) = addNewStmt(st, ())
-        let (st, id4) = addNewStmt(st, ())
-        let (st, id5) = addNewStmt(st, ())
-        let (st, id6) = addNewStmt(st, ())
-        let (st, id7) = addNewStmt(st, ())
-        let (st, idQed) = addNewStmt(st, ())
-        let (st, id8) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, idQed1) = addNewStmt(st)
+        let (st, id1) = addNewStmt(st)
+        let (st, id2) = addNewStmt(st)
+        let (st, id3) = addNewStmt(st)
+        let (st, id4) = addNewStmt(st)
+        let (st, id5) = addNewStmt(st)
+        let (st, id6) = addNewStmt(st)
+        let (st, id7) = addNewStmt(st)
+        let (st, idQed) = addNewStmt(st)
+        let (st, id8) = addNewStmt(st)
         let st = updateStmt(st, idQed1, stmt => { ...stmt, 
-            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )", ())
+            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )")
         })
         let st = updateStmt(st, id1, stmt => { ...stmt, 
-            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2", ())
+            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2")
         })
         let st = updateStmt(st, id2, stmt => { ...stmt, 
-            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
+            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t")
         })
         let st = updateStmt(st, id3, stmt => { ...stmt, 
-            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
+            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1")
         })
         let st = updateStmt(st, id4, stmt => { ...stmt, 
             label:"4", typ:P, isGoal:false, jstfText: ": a1", 
-            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
+            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )")
         })
         let st = updateStmt(st, id5, stmt => { ...stmt, 
-            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
+            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4")
         })
         let st = updateStmt(st, id6, stmt => { ...stmt, 
-            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
+            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )")
         })
         let st = updateStmt(st, id7, stmt => { ...stmt, 
             label:"7", typ:P, isGoal:false, jstfText: ": a1", 
-            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
+            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )")
         })
         let st = updateStmt(st, idQed, stmt => { ...stmt, 
-            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
+            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t")
         })
         let st = updateStmt(st, id8, stmt => { ...stmt, 
-            label:"8", typ:P, isGoal:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
+            label:"8", typ:P, isGoal:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6")
         })
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")
@@ -1444,48 +1442,48 @@ describe("deleteUnrelatedSteps", _ => {
 
     it("deletes unrelated hypotheses", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, idQed1) = addNewStmt(st, ())
-        let (st, id1) = addNewStmt(st, ())
-        let (st, id2) = addNewStmt(st, ())
-        let (st, id3) = addNewStmt(st, ())
-        let (st, id4) = addNewStmt(st, ())
-        let (st, id5) = addNewStmt(st, ())
-        let (st, id6) = addNewStmt(st, ())
-        let (st, id7) = addNewStmt(st, ())
-        let (st, idQed) = addNewStmt(st, ())
-        let (st, id8) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, idQed1) = addNewStmt(st)
+        let (st, id1) = addNewStmt(st)
+        let (st, id2) = addNewStmt(st)
+        let (st, id3) = addNewStmt(st)
+        let (st, id4) = addNewStmt(st)
+        let (st, id5) = addNewStmt(st)
+        let (st, id6) = addNewStmt(st)
+        let (st, id7) = addNewStmt(st)
+        let (st, idQed) = addNewStmt(st)
+        let (st, id8) = addNewStmt(st)
         let st = updateStmt(st, idQed1, stmt => { ...stmt, 
-            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )", ())
+            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )")
         })
         let st = updateStmt(st, id1, stmt => { ...stmt, 
-            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2", ())
+            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2")
         })
         let st = updateStmt(st, id2, stmt => { ...stmt, 
-            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
+            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t")
         })
         let st = updateStmt(st, id3, stmt => { ...stmt, 
-            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
+            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1")
         })
         let st = updateStmt(st, id4, stmt => { ...stmt, 
             label:"4", typ:P, isGoal:false, jstfText: ": a1", 
-            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
+            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )")
         })
         let st = updateStmt(st, id5, stmt => { ...stmt, 
-            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
+            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4")
         })
         let st = updateStmt(st, id6, stmt => { ...stmt, 
-            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
+            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )")
         })
         let st = updateStmt(st, id7, stmt => { ...stmt, 
             label:"7", typ:P, isGoal:false, jstfText: ": a1", 
-            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
+            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )")
         })
         let st = updateStmt(st, idQed, stmt => { ...stmt, 
-            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
+            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t")
         })
         let st = updateStmt(st, id8, stmt => { ...stmt, 
-            label:"8", typ:P, isGoal:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
+            label:"8", typ:P, isGoal:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6")
         })
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")
@@ -1511,48 +1509,48 @@ describe("deleteUnrelatedSteps", _ => {
 
     it("doesn't delete bookmarked steps", _ => {
         //given
-        let st = createEditorState(demo0, ())
-        let (st, idQed1) = addNewStmt(st, ())
-        let (st, id1) = addNewStmt(st, ())
-        let (st, id2) = addNewStmt(st, ())
-        let (st, id3) = addNewStmt(st, ())
-        let (st, id4) = addNewStmt(st, ())
-        let (st, id5) = addNewStmt(st, ())
-        let (st, id6) = addNewStmt(st, ())
-        let (st, id7) = addNewStmt(st, ())
-        let (st, idQed) = addNewStmt(st, ())
-        let (st, id8) = addNewStmt(st, ())
+        let st = createEditorState(demo0)
+        let (st, idQed1) = addNewStmt(st)
+        let (st, id1) = addNewStmt(st)
+        let (st, id2) = addNewStmt(st)
+        let (st, id3) = addNewStmt(st)
+        let (st, id4) = addNewStmt(st)
+        let (st, id5) = addNewStmt(st)
+        let (st, id6) = addNewStmt(st)
+        let (st, id7) = addNewStmt(st)
+        let (st, idQed) = addNewStmt(st)
+        let (st, id8) = addNewStmt(st)
         let st = updateStmt(st, idQed1, stmt => { ...stmt, 
-            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )", ())
+            label:"qed.1", typ:E, isGoal:false, cont:strToCont("|- ( &W2 -> &W1 )")
         })
         let st = updateStmt(st, id1, stmt => { ...stmt, 
-            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2", ())
+            label:"1", typ:P, isGoal:false, jstfText: "", cont:strToCont("|- &W2")
         })
         let st = updateStmt(st, id2, stmt => { ...stmt, 
-            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t", ())
+            label:"2", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( t + 0 ) = t")
         })
         let st = updateStmt(st, id3, stmt => { ...stmt, 
-            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1", ())
+            label:"3", typ:P, isGoal:false, jstfText: "1 qed.1 : mp", cont:strToCont("|- &W1")
         })
         let st = updateStmt(st, id4, stmt => { ...stmt, 
             label:"4", typ:P, isGoal:false, jstfText: ": a1", 
-            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )", ())
+            cont:strToCont("|- ( ( t + 0 ) = t -> ( ( t + 0 ) = t -> t = t ) )")
         })
         let st = updateStmt(st, id5, stmt => { ...stmt, 
-            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4", ())
+            label:"5", typ:P, isGoal:false, jstfText: ": a2", cont:strToCont("|- ( &T4 + 0 ) = &T4")
         })
         let st = updateStmt(st, id6, stmt => { ...stmt, 
-            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )", ())
+            label:"6", typ:P, isGoal:false, jstfText: "2 4 : mp", cont:strToCont("|- ( ( t + 0 ) = t -> t = t )")
         })
         let st = updateStmt(st, id7, stmt => { ...stmt, 
             label:"7", typ:P, isGoal:false, jstfText: ": a1", 
-            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )", ())
+            cont:strToCont("|- ( &T2 = &T3 -> ( &T2 = &T1 -> &T3 = &T1 ) )")
         })
         let st = updateStmt(st, idQed, stmt => { ...stmt, 
-            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t", ())
+            label:"qed", typ:P, isGoal:false, jstfText: "2 6 : mp", cont:strToCont("|- t = t")
         })
         let st = updateStmt(st, id8, stmt => { ...stmt, 
-            label:"8", typ:P, isGoal:false, isBkm:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6", ())
+            label:"8", typ:P, isGoal:false, isBkm:true, jstfText: ": a2", cont:strToCont("|- ( &T6 + 0 ) = &T6")
         })
         let st = completeVarsEditMode(st, "var1 term &T1\n var2 term &T2\n var3 term &T3\n var4 term &T4\n" 
                 ++ " var5 wff &W1\n var6 wff &W2\n var8 term &T6\n")

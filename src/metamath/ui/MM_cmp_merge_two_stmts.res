@@ -21,7 +21,7 @@ let make = (
                     {React.string("Merging ")}
                 </span>
                 <span>
-                    {MM_cmp_user_stmt.rndContText(~stmtCont=stmt1.cont, ())}
+                    {MM_cmp_user_stmt.rndContText(~stmtCont=stmt1.cont)}
                 </span>
             </Row>
             <table>

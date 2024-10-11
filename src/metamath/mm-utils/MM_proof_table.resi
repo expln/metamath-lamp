@@ -14,7 +14,7 @@ type proofRecord = {
 type proofTable = array<proofRecord>
 
 let createProof: (array<hypothesis>, proofTable, int) => proof
-let createProofTableFromProof: (~proofNode:proofNode, ~mergeSameRows:bool=?, ()) => proofTable
+let createProofTableFromProof: (~proofNode:proofNode, ~mergeSameRows:bool=?) => proofTable
 
 let proofTableToArrStr: (mmContext, proofTable) => array<string>
 let proofTableToStr: (mmContext, proofTable, string) => string

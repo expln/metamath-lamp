@@ -51,8 +51,7 @@ let clickClbkMake = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => {
     { btn, alt, shift, ctrl, act, }
 }
@@ -62,8 +61,7 @@ let clickHnd = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ):(ReactEvent.Mouse.t => unit) => {
     evt => {
         if (
@@ -111,8 +109,7 @@ let kbrdClbkMake = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => {
     { key:key->String.toLowerCase, alt, shift, ctrl, act, }
 }
@@ -122,8 +119,7 @@ let kbrdHnd = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ):(ReactEvent.Keyboard.t => unit) => {
     let key = key->String.toLowerCase
     evt => {
@@ -172,7 +168,7 @@ let kbrdHnds = ( clbks:array<kbrdCallback>):(ReactEvent.Keyboard.t => unit) => {
     evt => clbks->Array.forEach(runKbrdCallback(evt,_))
 }
 
-let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
+let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?) => {
     <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
         <Row alignItems=#center spacing=1.>
             <span style=ReactDOM.Style.make(~paddingLeft="10px", ())>
@@ -197,7 +193,7 @@ let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=
     </Paper>
 }
 
-let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd, ()):reElem => {
+let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd):reElem => {
     <TextField 
         key=?key
         size=#small
@@ -223,8 +219,7 @@ let rndInfoDialog = (
     ~content:option<React.element>=?, 
     ~icon:option<React.element>=?,
     ~onOk:unit=>unit, 
-    ~title:option<string>=?, 
-    ()
+    ~title:option<string>=?
 ) => {
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
@@ -267,10 +262,9 @@ let rndInfoDialog = (
                 {
                     rndHiddenTextField(
                         ~onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=onOk, ()),
-                            kbrdClbkMake(~key=keyEsc, ~act=onOk, ()),
-                        ),
-                        ()
+                            kbrdClbkMake(~key=keyEnter, ~act=onOk),
+                            kbrdClbkMake(~key=keyEsc, ~act=onOk),
+                        )
                     )
                 }
             </Row>
@@ -284,8 +278,7 @@ let openInfoDialog = (
     ~content:option<React.element>=?, 
     ~icon:option<React.element>=?,
     ~onOk:option<unit=>unit>=?, 
-    ~title:option<string>=?, 
-    ()
+    ~title:option<string>=?
 ) => {
     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
         updateModal(modalRef, modalId, () => {
@@ -297,14 +290,13 @@ let openInfoDialog = (
                     closeModal(modalRef, modalId)
                     onOk->Belt_Option.forEach(clbk => clbk())
                 },
-                ~title?,
-                ()
+                ~title?
             )
         })
     })->ignore
 }
 
-let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey", () ):React.element => {
+let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey" ):React.element => {
     <span
         onClick={_=> onClick() }
         style=ReactDOM.Style.make( 
@@ -325,8 +317,7 @@ let rndColorSelect = (
     ~availableColors:array<string>, 
     ~selectedColor:string, 
     ~onNewColorSelected:string=>unit,
-    ~label:option<string>=?,
-    ()
+    ~label:option<string>=?
 ):React.element => {
     <FormControl size=#small >
         {

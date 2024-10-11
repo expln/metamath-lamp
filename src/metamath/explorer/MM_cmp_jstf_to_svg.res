@@ -15,7 +15,7 @@ let viewBox = (b:boundaries):string => {
         ++ ` ${b->bndHeight->Belt.Float.toString}`
 }
 
-let rndSvg = (~boundaries:boundaries, ~content:reElem, ()):reElem => {
+let rndSvg = (~boundaries:boundaries, ~content:reElem):reElem => {
     let bndWidth = boundaries->bndWidth
     let bndHeight = boundaries->bndHeight
     <svg
@@ -27,7 +27,7 @@ let rndSvg = (~boundaries:boundaries, ~content:reElem, ()):reElem => {
     </svg>
 }
 
-let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWidth:float, ()):(reElem,boundaries) => {
+let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWidth:float):(reElem,boundaries) => {
     let b = v->vecBegin
     let e = v->vecEnd
     (
@@ -44,7 +44,7 @@ let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWi
     )
 }
 
-let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<string>=?, ()):(reElem,boundaries) => {
+let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<string>=?):(reElem,boundaries) => {
     (
         <polyline 
             ?key
@@ -58,12 +58,12 @@ let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<s
     )
 }
 
-let rect = (~bnd:boundaries, ~color:string, ~lineWidth:float, ~key:option<string>=?, ()):(reElem,boundaries) => {
+let rect = (~bnd:boundaries, ~color:string, ~lineWidth:float, ~key:option<string>=?):(reElem,boundaries) => {
     let p1 = bnd->bndLeftBottom
     let p2 = bnd->bndLeftTop
     let p3 = bnd->bndRightTop
     let p4 = bnd->bndRightBottom
-    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~lineWidth, ~key=?key, ())
+    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~lineWidth, ~key=?key)
 }
 
 let text = (
@@ -72,8 +72,7 @@ let text = (
     ~key:option<string>=?,
     ~color:string="black",
     ~bold:bool=false,
-    ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
-    ()
+    ~onClick:option<ReactEvent.Mouse.t=>unit>=?
 ):(reElem,boundaries) => {
     let ey = ex->vecRot(90.->deg)
 
@@ -125,8 +124,7 @@ let rndStmt = (
             ~text=sym, 
             ~bold=color->Belt_Option.isSome, 
             ~color=color->Belt_Option.getWithDefault("black"),
-            ~key, 
-            ()
+            ~key
         )
         elems->Array.push(elem)
         bnds->Array.push(bnd)
@@ -147,25 +145,25 @@ let rndStmt = (
 
 let testTextRendering = ():reElem => {
     let testText = "|Test gy ..WW.."
-    let (textElem1, textBnd1) = text(~ex=ex, ~text=testText, ~bold=true, ())
+    let (textElem1, textBnd1) = text(~ex=ex, ~text=testText, ~bold=true)
     let textHeight = textBnd1->bndHeight
     let lineWidth = textHeight *. 0.01
-    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~lineWidth, ())
-    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~lineWidth=lineWidth *. 10., ())
+    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~lineWidth)
+    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~lineWidth=lineWidth *. 10.)
 
-    let (textElem2, textBnd2) = text(~ex=ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)), ~text=testText, ~bold=false, ())
-    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~lineWidth, ())
-    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~lineWidth=lineWidth *. 10., ())
+    let (textElem2, textBnd2) = text(~ex=ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)), ~text=testText, ~bold=false)
+    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~lineWidth)
+    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~lineWidth=lineWidth *. 10.)
 
     let testText2 = "|- AbCdEf       WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... |||"
-    let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false, ())
+    let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false)
     let charWidth = textBnd3->bndWidth /. (testText2->String.length->Belt.Int.toFloat)
     let textBnd4Arr = []
     let textElem4Arr = []
     let ex4 = ref(ex->vecTr(ey->vecRev->vecMul(3. *. textHeight *. 1.1)))
     let dx = ex->vecMul(charWidth)
     for i in 0 to testText2->String.length-1 {
-        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->String.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
+        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->String.charAt(i), ~bold=false, ~key=i->Belt_Int.toString)
         textElem4Arr->Array.push(textElem4)
         textBnd4Arr->Array.push(textBnd4)
         ex4 := ex4.contents->vecTr(dx)
@@ -174,9 +172,8 @@ let testTextRendering = ():reElem => {
     rndSvg(
         ~boundaries=
             bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Array.concat(textBnd4Arr))
-            ->bndAddMarginPct(~all=0.01, ()), 
-        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>, 
-        ()
+            ->bndAddMarginPct(~all=0.01), 
+        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>
     )
 
 }
@@ -192,15 +189,15 @@ let rndConnection = (
         (bnd2, bnd1)
     }
     let margin = bndHeight *. 0.4
-    let topBnd = if (noFrameForBottomBnd) {topBnd->bndAddMargin(~top=margin, ~bottom=margin, ())} else {topBnd}
-    let bottomBnd = if (noFrameForBottomBnd) {bottomBnd} else {bottomBnd->bndAddMargin(~top=margin, ~bottom=margin, ())}
-    let (rElemTop,rBndTop) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
-    let (rElemBottom,rBndBottom) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`, ())
+    let topBnd = if (noFrameForBottomBnd) {topBnd->bndAddMargin(~top=margin, ~bottom=margin)} else {topBnd}
+    let bottomBnd = if (noFrameForBottomBnd) {bottomBnd} else {bottomBnd->bndAddMargin(~top=margin, ~bottom=margin)}
+    let (rElemTop,rBndTop) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`)
+    let (rElemBottom,rBndBottom) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`)
     let lineVec = pntVec(
         pntVec(topBnd->bndLeftBottom, topBnd->bndRightBottom)->vecMul(0.5)->vecEnd,
         pntVec(bottomBnd->bndLeftTop, bottomBnd->bndRightTop)->vecMul(0.5)->vecEnd,
     )
-    let (lElem,lBnd) = lineVec->vecToLine(~color, ~key=`line-${key}`, ~lineWidth, ())
+    let (lElem,lBnd) = lineVec->vecToLine(~color, ~key=`line-${key}`, ~lineWidth)
     if (noFrameForBottomBnd) {
         ( [ rElemTop, lElem ]->React.array, bndMergeAll([rBndTop,lBnd]) )
     } else {
@@ -236,7 +233,7 @@ let rndStmtAndHyp = (
         }
 
         let rndCtxStmt = ctxFirst || frmStmt->Array.some(Belt_HashMapString.has(subs, _))
-        let (_, bndSample) = text(~ex, ~text=".", ())
+        let (_, bndSample) = text(~ex, ~text=".")
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
         let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Array.joinUnsafe(" ")
@@ -309,8 +306,7 @@ let rndStmtAndHyp = (
                     ~bold=false,
                     ~key="label",
                     ~text=hypLabel,
-                    ~onClick=?onLabelClick,
-                    ()
+                    ~onClick=?onLabelClick
                 )
                 bnds->Array.push(labelBnd)
                 ctxElems->Array.push(labelElem)
@@ -331,7 +327,7 @@ let make = (
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
     ~onLabelClick:option<(int,string)=>unit>=?,
 ) => {
-    let (_, bndSample) = text(~ex, ~text=".", ())
+    let (_, bndSample) = text(~ex, ~text=".")
     let charHeight = bndSample->bndHeight
     let hypMargin = charHeight *. 3.
     let delimLineWidth = charHeight *. 0.05
@@ -350,7 +346,7 @@ let make = (
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
                 ~hypLabel=Some(hypLabels->Array.getUnsafe(i)), ~noFrameForBottomBnd=true,
-                ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels->Array.getUnsafe(i)), ()) ),
+                ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels->Array.getUnsafe(i))) ),
             )(curEx.contents)
             hypElems->Array.push(elem)
             hypBnds->Array.push(bnd)
@@ -363,7 +359,7 @@ let make = (
         let (_, asrtSampleBnd) = asrtComp(ex)
         let (hypsElem, hypsBnd) = if (hyps->Array.length == 0) {
             let (sepElem, sepBnd) = pntVec(asrtSampleBnd->bndLeftTop, asrtSampleBnd->bndRightTop)->vecToLine(
-                ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
+                ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line"
             )
             (sepElem, sepBnd)
         } else {
@@ -372,7 +368,7 @@ let make = (
                 ->vecNorm
                 ->vecMul(Math.max(hypsBnd->bndWidth, asrtSampleBnd->bndWidth))
                 ->vecTr(ey->vecMul(-. delimLineMargin))->vecToLine(
-                    ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
+                    ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line"
                 )
             (
                 hypElems->Array.concat([sepElem])->React.array,
@@ -386,9 +382,8 @@ let make = (
         )
 
         rndSvg(
-            ~boundaries=bndMergeAll([hypsBnd, asrtBnd])->bndAddMargin(~all=charHeight *. 0.3, ()), 
-            ~content = <> hypsElem asrtElem </>, 
-            ()
+            ~boundaries=bndMergeAll([hypsBnd, asrtBnd])->bndAddMargin(~all=charHeight *. 0.3), 
+            ~content = <> hypsElem asrtElem </>
         )
     }
 

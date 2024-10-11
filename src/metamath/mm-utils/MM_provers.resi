@@ -34,8 +34,7 @@ let bottomUpProverParamsMakeDefault:(
     ~allowNewVars: bool=?,
     ~args0: array<expr>=?,
     ~args1: array<expr>=?,
-    ~maxNumberOfBranches: int=?,
-    ()
+    ~maxNumberOfBranches: int=?
 ) => bottomUpProverParams
 
 let lengthRestrictToStr: lengthRestrict => string
@@ -60,8 +59,7 @@ let proveSyntaxTypes: (
     ~parenCnt:parenCnt=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
-    ~onProgress:float=>unit=?,
-    ()
+    ~onProgress:float=>unit=?
 ) => proofTree
 
 
@@ -77,7 +75,6 @@ let unifyAll: (
     ~exprsToSyntaxCheck:array<expr>=?,
     ~debugLevel:int=?,
     ~onProgress: string=>unit=?,
-    (),
 ) => proofTree
 
 let makeParenCnt: ( ~ctx:mmContext, ~parens:string, ) => parenCnt

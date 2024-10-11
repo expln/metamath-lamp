@@ -208,10 +208,10 @@ let make = (
             }
             | None => {
                 setState(setPatternErr(_, None))
-                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. , ()))->promiseMap(modalId => {
+                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
                     updateModal(
                         modalRef, modalId, () => rndProgress(
-                            ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                            ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
                         )
                     )
                     searchAssertions(
@@ -226,7 +226,7 @@ let make = (
                         ~pattern=wrkCtx->ctxStrToIntsExn(state.patternStr),
                         ~onProgress = pct => updateModal(
                             modalRef, modalId, () => rndProgress(
-                                ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                             )
                         )
                     )->promiseMap(found => {
@@ -283,8 +283,8 @@ let make = (
             value=state.patternStr
             onChange=evt2str(actPatternChange)
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~key=keyEnter, ~act=actSearch, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSearch),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled),
             )
         />
     }
@@ -297,8 +297,8 @@ let make = (
             value=state.label
             onChange=evt2str(actLabelChange)
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~key=keyEnter, ~act=actSearch, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSearch),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled),
             )
         />
     }

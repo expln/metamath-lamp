@@ -45,7 +45,7 @@ let makeInitialState = (
     ~typeColors:Belt_HashMapString.t<string>,
     ~typeOrderInDisj:Belt_HashMapInt.t<int>,
 ):state => {
-    let frmCtx = createContext(~parent=preCtx, ())
+    let frmCtx = createContext(~parent=preCtx)
     let symRename = ref(None)
     let frmVarIntToCtxInt = []
     let symColors = Belt_HashMapString.make(~hintSize=frame.numOfVars)
@@ -55,18 +55,16 @@ let makeInitialState = (
         let [ctxVarName] = generateNewVarNames( 
             ~ctx=frmCtx, 
             ~types=[typInt], 
-            ~typeToPrefix=Belt_MapString.empty, 
-            ()
+            ~typeToPrefix=Belt_MapString.empty
         )
         @warning("-8")
         let [ctxVarLabel] = generateNewLabels(
             ~ctx=frmCtx, 
             ~prefix="loc-var-", 
-            ~amount=1,
-            ()
+            ~amount=1
         )
-        frmCtx->applySingleStmt(Var({symbols:[ctxVarName]}), ())
-        frmCtx->applySingleStmt(Floating({label:ctxVarLabel, expr:[frmCtx->ctxIntToSymExn(typInt), ctxVarName]}), ())
+        frmCtx->applySingleStmt(Var({symbols:[ctxVarName]}))
+        frmCtx->applySingleStmt(Floating({label:ctxVarLabel, expr:[frmCtx->ctxIntToSymExn(typInt), ctxVarName]}))
         switch symRename.contents {
             | None => {
                 let map = Belt_HashMapString.make(~hintSize=frame.numOfVars)

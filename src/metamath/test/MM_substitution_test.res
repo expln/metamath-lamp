@@ -7,11 +7,11 @@ open Common
 let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConstParts:array<(int,int)>, ~expectedMatchingConstParts:array<array<(int,int)>>) => {
     //given
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-    let ctx = loadContext(ast, ())
-    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->String.split(" ")}), ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+    let ctx = loadContext(ast)
+    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->String.split(" ")}))
     let parens = "( ) { } [ ]"
-    let ctx = ctx->ctxOptimizeForProver(~parens, ())
+    let ctx = ctx->ctxOptimizeForProver(~parens)
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm
@@ -31,11 +31,11 @@ let testIterateConstParts = (~frmExprStr:string, ~exprStr:string, ~expectedConst
 let testIterateSubstitutions = (~frmExprStr:string, ~exprStr:string, ~expectedSubstitutions:array<array<string>>) => {
     //given
     let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/substitutions-test._mm")
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-    let ctx = loadContext(ast, ())
-    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}), ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+    let ctx = loadContext(ast)
+    ctx->applySingleStmt(Axiom({label:"test", expr: ("|- " ++ frmExprStr)->getSpaceSeparatedValuesAsArray}))
     let parens = "( ) { } [ ]"
-    let ctx = ctx->ctxOptimizeForProver(~parens, ())
+    let ctx = ctx->ctxOptimizeForProver(~parens)
     let parenCnt = MM_provers.makeParenCnt(~ctx, ~parens)
     let frm = switch ctx->getFrame("test") {
         | Some(frm) => frm

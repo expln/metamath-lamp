@@ -33,7 +33,7 @@ let createEditorState = ():editorState => {
         combCntMax:10000,
     }
     createInitialEditorState(
-        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(())), ()),
+        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(()))),
         ~stateLocStor=None
     )
 }

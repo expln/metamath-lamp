@@ -26,12 +26,11 @@ let createInitialState = (~settings) => {
 let updatePreCtxData = (
     st:state,
     ~settings:option<settings>=?,
-    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?,
-    ()
+    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?
 ): state => {
     {
         ...st,
-        preCtxData: st.preCtxData->preCtxDataUpdate( ~settings?, ~ctx?, () )
+        preCtxData: st.preCtxData->preCtxDataUpdate( ~settings?, ~ctx? )
     }
 }
 
@@ -105,7 +104,7 @@ let make = () => {
     let toggleCtxSelector = React.useRef(Nullable.null)
     let loadEditorState = React.useRef(Nullable.null)
 
-    let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
+    let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?):bool => {
         switch tabData {
             | ExplorerFrame({label:lbl}) => label->Belt_Option.mapWithDefault(true, label => lbl == label)
             | _ => false
@@ -121,7 +120,7 @@ let make = () => {
 
     let actCloseFrmTabs = () => {
         tabs->Array.forEach(tab => {
-            if (isFrameExplorerTab(tab.data, ())) {
+            if (isFrameExplorerTab(tab.data)) {
                 removeTab(tab.id)
             }
         })
@@ -129,13 +128,13 @@ let make = () => {
 
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
         actCloseFrmTabs()
-        setState(updatePreCtxData(_,~ctx=(srcs,newCtx), ()))
+        setState(updatePreCtxData(_,~ctx=(srcs,newCtx)))
     }
 
     let actSettingsUpdated = (newSettings:settings) => {
         actCloseFrmTabs()
         settingsSaveToLocStor(newSettings)
-        setState(updatePreCtxData(_,~settings=newSettings, ()))
+        setState(updatePreCtxData(_,~settings=newSettings))
         if (
             state.preCtxData.settingsV.val.descrRegexToDisc != newSettings.descrRegexToDisc
             || state.preCtxData.settingsV.val.labelRegexToDisc != newSettings.labelRegexToDisc
@@ -147,8 +146,7 @@ let make = () => {
                     ~srcs=state.preCtxData.srcs, 
                     ~settings=newSettings, 
                     ~force=true, 
-                    ~showError=true, 
-                    ()
+                    ~showError=true
                 )->ignore
             })
         }
@@ -162,16 +160,16 @@ let make = () => {
         setState(st => {
             switch st.preCtxData.ctxV.val->getFrame(label) {
                 | None => {
-                    openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'`, () )
+                    openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'` )
                 }
                 | Some(_) => {
                     updateTabs(tabsSt => {
                         let tabsSt = switch tabsSt->Expln_React_UseTabs.getTabs
-                                                ->Array.find(tab => isFrameExplorerTab(tab.data, ~label, ())) {
+                                                ->Array.find(tab => isFrameExplorerTab(tab.data, ~label)) {
                             | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                             | None => {
                                 let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                                    ~label, ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true, ()
+                                    ~label, ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true
                                 )
                                 tabsSt
                             }
@@ -190,8 +188,7 @@ let make = () => {
                 ~label=`EXPLORER ${initPatternFilterStr->String.substring(~start=0, ~end=40)}`,
                 ~closable=true, 
                 ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
-                ~doOpen=true, 
-                ()
+                ~doOpen=true
             )
             tabsSt
         })
@@ -209,14 +206,13 @@ let make = () => {
     React.useEffect0(()=>{
         updateTabs(st => {
             if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
-                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings, ())
+                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, 
-                    ~color=?(if (tempMode.contents) {Some("orange")} else {None}), 
-                    ()
+                    ~color=?(if (tempMode.contents) {Some("orange")} else {None})
                 )
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="Explorer", ~closable=false, ~data=ExplorerIndex({initPatternFilterStr:""}), ()
+                    ~label="Explorer", ~closable=false, ~data=ExplorerIndex({initPatternFilterStr:""})
                 )
                 st
             } else {

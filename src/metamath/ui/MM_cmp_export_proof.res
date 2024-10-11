@@ -96,7 +96,7 @@ let make = (
                 </Button>
                 <Button onClick={_=>onClose()} > {React.string("Close")} </Button>
             </Row>
-            { rndHiddenTextField( ~onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose, ()), () ) }
+            { rndHiddenTextField( ~onKeyDown=kbrdHnd(~key=keyEsc, ~act=onClose) ) }
             <pre style=ReactDOM.Style.make(~overflowWrap="break-word", ~whiteSpace="pre-wrap", ())>
                 {React.string(proofText)}
             </pre>

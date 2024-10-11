@@ -184,7 +184,7 @@ let makeInitialState = (
                 isHyp:stmt.typ == E,
                 label:stmt.label,
                 proofStatus:stmt.proofStatus,
-                exprReElem: <span> {MM_cmp_user_stmt.rndContText(~stmtCont=stmt.cont, ())} </span>
+                exprReElem: <span> {MM_cmp_user_stmt.rndContText(~stmtCont=stmt.cont)} </span>
             }
         }),
         exprToProve,
@@ -193,7 +193,7 @@ let makeInitialState = (
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up "->React.string}
                 </span>
-                { MM_cmp_user_stmt.rndContText(~stmtCont=(rootUserStmts->Array.getUnsafe(maxRootStmtIdx)).cont, ()) }
+                { MM_cmp_user_stmt.rndContText(~stmtCont=(rootUserStmts->Array.getUnsafe(maxRootStmtIdx)).cont) }
             </span>,
 
         initialParams:params,
@@ -770,8 +770,7 @@ let make = (
                         None
                     } else {
                         state.maxNumberOfBranchesStr->Belt_Int.fromString
-                    },
-                ()
+                    }
             )
         }
     }
@@ -851,10 +850,10 @@ let make = (
                 proverParamsToShow: Some(paramsToShow),
             }
 
-            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0., ()))->promiseMap(modalId => {
+            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0.))->promiseMap(modalId => {
                 updateModal( 
                     modalRef, modalId, () => rndProgress(
-                        ~text="Proving bottom-up", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                        ~text="Proving bottom-up", ~pct=0., ~onTerminate=makeActTerminate(modalId)
                     )
                 )
                 unify(
@@ -873,7 +872,7 @@ let make = (
                     ~debugLevel,
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
-                            ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
+                            ~text=msg, ~onTerminate=makeActTerminate(modalId)
                         )
                     )
                 )->promiseMap(proofTreeDto => {
@@ -1078,8 +1077,8 @@ let make = (
                         value=state.depthStr
                         onChange=evt2str(actDepthUpdated)
                         onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=actProve, ()),
-                            kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                            kbrdClbkMake(~key=keyEnter, ~act=actProve),
+                            kbrdClbkMake(~key=keyEsc, ~act=onCancel),
                         )
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
@@ -1183,8 +1182,8 @@ let make = (
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
                         onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=actProve, ()),
-                            kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                            kbrdClbkMake(~key=keyEnter, ~act=actProve),
+                            kbrdClbkMake(~key=keyEsc, ~act=onCancel),
                         )
                     />
                 </Row>

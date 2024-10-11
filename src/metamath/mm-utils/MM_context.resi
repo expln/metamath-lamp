@@ -52,15 +52,14 @@ type optimizedConstsOrder = {
     canBeLastMax:int,
 }
 
-let createContext: (~parent:mmContext=?, ~debug:bool=?, ()) => mmContext
+let createContext: (~parent:mmContext=?, ~debug:bool=?) => mmContext
 let applySingleStmt: (
     mmContext, 
     stmt,
     ~descrRegexToDisc:RegExp.t=?,
     ~labelRegexToDisc:RegExp.t=?,
     ~descrRegexToDepr:RegExp.t=?,
-    ~labelRegexToDepr:RegExp.t=?,
-    ()
+    ~labelRegexToDepr:RegExp.t=?
 ) => unit
 let openChildContext: mmContext => unit
 let closeChildContext: mmContext => unit
@@ -77,16 +76,14 @@ let loadContext: (
     ~descrRegexToDepr:RegExp.t=?,
     ~labelRegexToDepr:RegExp.t=?,
     ~onProgress:float=>unit=?, 
-    ~debug:bool=?, 
-    ()
+    ~debug:bool=?
 ) => mmContext
 
 let ctxOptimizeForProver: ( 
     mmContext,
     ~parens:string,
     ~removeAsrtDescr:bool=?,
-    ~removeProofs:bool=?,
-    ()
+    ~removeProofs:bool=?
 ) => mmContext
 
 let ctxGetOptimizedConstsOrder: (mmContext, ~parens:string) => optimizedConstsOrder
@@ -100,7 +97,7 @@ let isDisj: (mmContext,int,int) => bool
 let getAllConsts: mmContext => array<string>
 let getHypothesis: (mmContext,string) => option<hypothesis>
 let getHypByExpr: (mmContext, expr) => option<hypothesis>
-let getMandHyps: (mmContext, expr, ~skipEssentials:bool=?, ~overrideHyps:array<expr>=?, ()) => array<hypothesis>
+let getMandHyps: (mmContext, expr, ~skipEssentials:bool=?, ~overrideHyps:array<expr>=?) => array<hypothesis>
 let getAllHyps: mmContext => Belt_MapString.t<hypothesis>
 let getAllFrames: mmContext => Belt_MapString.t<frame>
 let getAllFramesArr: mmContext => array<frame>
@@ -115,7 +112,7 @@ let getNumOfVars: mmContext => int
 let forEachFrame: (mmContext, frame => option<'a>) => option<'a>
 let forEachHypothesisInDeclarationOrder: (mmContext, hypothesis => option<'a>) => option<'a>
 let getNestingLevel: mmContext => int
-let findParentheses: (mmContext, ~onProgress:float=>unit=?, unit) => array<int>
+let findParentheses: (mmContext, ~onProgress:float=>unit=?) => array<int>
 let getTypeOfVar: (mmContext, int) => option<int>
 let getTypeOfVarExn: (mmContext, int) => int
 let getTokenType: (mmContext, string) => option<tokenType>
@@ -147,8 +144,7 @@ let createFrame: (
     ~descrRegexToDisc:RegExp.t=?,
     ~labelRegexToDisc:RegExp.t=?,
     ~descrRegexToDepr:RegExp.t=?,
-    ~labelRegexToDepr:RegExp.t=?,
-    ()
+    ~labelRegexToDepr:RegExp.t=?
 ) => frame
 
 let generateNewVarNames: ( 
@@ -156,7 +152,6 @@ let generateNewVarNames: (
     ~types: array<int>, 
     ~typeToPrefix: Belt_MapString.t<string>=?, 
     ~reservedNames: Belt_HashSetString.t=?, 
-    unit
 ) => array<string>
 
 let generateNewLabels: (
@@ -165,7 +160,6 @@ let generateNewLabels: (
     ~amount: int,
     ~reservedLabels: Belt_HashSetString.t=?,
     ~checkHypsOnly:bool=?,
-    unit,
 ) => array<string>
 
 let disjMake: unit => disjMutable
@@ -177,8 +171,7 @@ let disjToArr: (
     ~sortByTypeAndName:bool=?,
     ~varIntToVarName:int=>option<string>=?,
     ~varIntToVarType:int=>option<int>=?,
-    ~typeOrder:Belt_HashMapInt.t<int>=?,
-    ()
+    ~typeOrder:Belt_HashMapInt.t<int>=?
 ) => array<array<int>>
 let disjForEachArr: (
     disjMutable, 

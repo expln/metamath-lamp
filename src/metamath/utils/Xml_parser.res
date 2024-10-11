@@ -108,8 +108,7 @@ let parseStrExn = (str:string):xmlNode => {
                 (parents->Belt_MutableStack.pop)->ignore
                 None
             }
-        },
-        ()
+        }
     )
 
     switch rootXmlNodeOpt {

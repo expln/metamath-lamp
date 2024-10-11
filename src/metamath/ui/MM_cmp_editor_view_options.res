@@ -138,8 +138,8 @@ let make = (
                         setStepsPerPageText(_ => Some(newStepsPerPage->String.replaceRegExp(nonDigitPattern, "")))
                     })
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~key=keyEnter, ~act=actChangeStepsPerPage, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actChangeStepsPerPage),
+                        kbrdClbkMake(~key=keyEsc, ~act=onClose),
                     )
                 />
                 <IconButton

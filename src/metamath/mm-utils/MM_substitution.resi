@@ -54,8 +54,7 @@ let createMatchingConstParts: constParts => constParts
 let createSubs: (~numOfVars:int) => subs
 let prepareFrmSubsDataForFrame: frame => frmSubsData
 let prepareFrmSubsData: (
-    ~ctx:mmContext,
-    ()
+    ~ctx:mmContext
 ) => frms
 let sortFrames: (frms, array<string>) => array<string>
 let iterateSubstitutions: (
@@ -82,7 +81,7 @@ let frmsForEach: (frms, ~typ:int=?, frmSubsData=>unit) => unit
 let frmsGetAll: frms => array<frmSubsData>
 let frmsGetByLabel: (frms, string) => option<frmSubsData>
 let frmsGetByType: (frms, int) => option<array<frmSubsData>>
-let frmsSelect: (frms, ~typ:int=?, ~label:string=?, ()) => array<frmSubsData>
+let frmsSelect: (frms, ~typ:int=?, ~label:string=?) => array<frmSubsData>
 let frmsGetAllTypes: frms => array<int>
 let frmsGetAllGroupedByLabel: frms => Belt_HashMapString.t<frmSubsData>
 

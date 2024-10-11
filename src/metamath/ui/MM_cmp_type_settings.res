@@ -29,7 +29,7 @@ let make = (
                 {
                     rndColorSelect(
                         ~availableColors, ~selectedColor=ts.color, ~onNewColorSelected = onColorChange(ts.id, _),
-                        ~label="Color", ()
+                        ~label="Color"
                     )
                 }
                 <TextField label="Prefix" size=#small style=ReactDOM.Style.make(~width="100px", ()) 
@@ -56,8 +56,7 @@ let make = (
             {
                 rndSmallTextBtn(
                     ~text="Restore default type settings",
-                    ~onClick=onRestoreDefaults,
-                    ()
+                    ~onClick=onRestoreDefaults
                 )
             }
         </Row>

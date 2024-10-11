@@ -76,8 +76,8 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
         | Ok(varDefs) => {
             try {
                 varDefs->Array.forEach(varDef => {
-                    wrkCtx->applySingleStmt(Var({symbols:[varDef->Array.getUnsafe(2)]}), ())
-                    wrkCtx->applySingleStmt(Floating({label:varDef->Array.getUnsafe(0), expr:[varDef->Array.getUnsafe(1), varDef->Array.getUnsafe(2)]}), ())
+                    wrkCtx->applySingleStmt(Var({symbols:[varDef->Array.getUnsafe(2)]}))
+                    wrkCtx->applySingleStmt(Floating({label:varDef->Array.getUnsafe(0), expr:[varDef->Array.getUnsafe(1), varDef->Array.getUnsafe(2)]}))
                 })
                 None
             } catch {
@@ -93,7 +93,7 @@ let addDisjFromString = (wrkCtx, disjStr) => {
             ->String.split(" ")
             ->Array.map(String.trim(_))
             ->Array.filter(str => str != "")
-    }), ())
+    }))
 }
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {
@@ -110,7 +110,7 @@ let createWrkCtx = (
     ~varsText: string,
     ~disjText: string,
 ): result<mmContext,wrkCtxErr> => {
-    let wrkCtx = createContext(~parent=preCtx, ())
+    let wrkCtx = createContext(~parent=preCtx)
     let err:option<wrkCtxErr> = [
         () => parseVariables(wrkCtx, varsText),
         () => parseDisjoints(wrkCtx, disjText),

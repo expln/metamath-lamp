@@ -29,7 +29,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         typEditMode: false,
         isGoal: userStmtLocStor.isGoal,
         isBkm: userStmtLocStor.isBkm,
-        cont: strToCont(userStmtLocStor.cont, ()),
+        cont: strToCont(userStmtLocStor.cont),
         contEditMode: false,
         isDuplicated: false,
 
@@ -128,29 +128,29 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
         {
             srcs: d->arr("srcs", asObj(_, d=>{
                 {
-                    typ: d->str("typ", ()),
-                    fileName: d->str("fileName", ()),
-                    url: d->str("url", ()),
-                    readInstr: d->str("readInstr", ()),
-                    label: d->str("label", ()),
-                    resetNestingLevel: d->bool("resetNestingLevel", ~default=()=>true, ()),
+                    typ: d->str("typ"),
+                    fileName: d->str("fileName"),
+                    url: d->str("url"),
+                    readInstr: d->str("readInstr"),
+                    label: d->str("label"),
+                    resetNestingLevel: d->bool("resetNestingLevel", ~default=()=>true),
                     ast: None,
                     allLabels: [],
                 }
-            }, ()), ~default=()=>[], ()),
-            descr: d->str("descr", ~default=()=>"", ()),
-            varsText: d->str("varsText", ~default=()=>"", ()),
-            disjText: d->str("disjText", ~default=()=>"", ()),
+            }), ~default=()=>[]),
+            descr: d->str("descr", ~default=()=>""),
+            varsText: d->str("varsText", ~default=()=>""),
+            disjText: d->str("disjText", ~default=()=>""),
             stmts: d->arr("stmts", asObj(_, d=>{
                 {
-                    label: d->str("label", ()),
-                    typ: d->str("typ", ()),
-                    isGoal: d->bool("isGoal", ~default=()=>false, ()),
-                    isBkm: d->bool("isBkm", ~default=()=>false, ()),
-                    cont: d->str("cont", ()),
-                    jstfText: d->str("jstfText", ()),
+                    label: d->str("label"),
+                    typ: d->str("typ"),
+                    isGoal: d->bool("isGoal", ~default=()=>false),
+                    isBkm: d->bool("isBkm", ~default=()=>false),
+                    cont: d->str("cont"),
+                    jstfText: d->str("jstfText"),
                 }
-            }, ()), ())
+            }))
         }
-    }, ()), ())
+    }))
 }
