@@ -1030,9 +1030,9 @@ let make = React.memoCustomCompareProps( ({
             | Some((low, high)) =>
                 let currentText = stmt.cont->contToStr
                 Some(
-                    currentText->Js.String2.slice(~from=0, ~to_=low)
+                    currentText->String.slice(~start=0, ~end=low)
                         ++ newText
-                        ++ currentText->Js.String2.sliceToEnd(~from=high)
+                        ++ currentText->String.sliceToEnd(~start=high)
                 )
         }
     }
