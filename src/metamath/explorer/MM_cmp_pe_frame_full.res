@@ -346,9 +346,9 @@ type props = {
     label:string,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string)=>unit,
-    loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
+    loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
     focusEditorTab: unit=>unit,
-    toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
 }
 
@@ -716,7 +716,7 @@ let make = React.memoCustomCompareProps(({
     let (refWidth, setRefWidth) = React.useState(() => "100px")
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
-    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+    let mainMenuButtonRef = React.useRef(Nullable.null)
 
     React.useEffect0(() => {
         setTimeout(
@@ -821,7 +821,7 @@ let make = React.memoCustomCompareProps(({
     let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
 
     let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
-        loadEditorState.current->Js.Nullable.toOption->Belt.Option.forEach(loadEditorState => {
+        loadEditorState.current->Nullable.toOption->Belt.Option.forEach(loadEditorState => {
             loadEditorState(
                 frameProofDataToEditorStateLocStor(
                     ~preCtxData,
@@ -942,7 +942,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndMainMenu = state => {
         if (mainMenuIsOpened) {
-            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+            switch mainMenuButtonRef.current->Nullable.toOption {
                 | None => React.null
                 | Some(mainMenuButtonRef) => {
                     <Menu
@@ -953,7 +953,7 @@ let make = React.memoCustomCompareProps(({
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                toggleCtxSelector.current->Js.Nullable.toOption
+                                toggleCtxSelector.current->Nullable.toOption
                                     ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
                             }}
                         >

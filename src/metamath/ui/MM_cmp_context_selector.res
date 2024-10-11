@@ -496,10 +496,10 @@ let make = (
     ~settings:settings,
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
-    ~reloadCtx: React.ref<Js.Nullable.t<reloadCtxFunc>>,
+    ~reloadCtx: React.ref<Nullable.t<reloadCtxFunc>>,
     ~style as _ :option<reStyle>=?,
     ~onExpandedChange:bool=>unit,
-    ~doToggle: React.ref<Js.Nullable.t<unit=>unit>>,
+    ~doToggle: React.ref<Nullable.t<unit=>unit>>,
 ) => {
     let (defaultSrcTypeStr, setDefaultSrcTypeStr) = useStateFromLocalStorageStr(
         ~key="ctx-selector-default-src-type", ~default=defaultValueOfDefaultSrcTypeStr
@@ -668,7 +668,7 @@ let make = (
         }
     }
 
-    reloadCtx.current = Js.Nullable.return(
+    reloadCtx.current = Nullable.make(
         (~srcs:array<mmCtxSrcDto>, ~settings:settings, ~force:bool=false, ~showError:bool=false, ()):promise<result<unit,string>> => {
             if (!shouldReloadContext(prevState.singleScopes, srcs, force)) {
                 promise(rslv => rslv(Ok(())))
@@ -704,7 +704,7 @@ let make = (
         }
     )
 
-    doToggle.current = Js.Nullable.return(actToggleAccordion)
+    doToggle.current = Nullable.make(actToggleAccordion)
 
     let rndSaveButtons = () => {
         let thereAreNoChanges = (scopeIsEmpty(state.singleScopes) && scopeIsEmpty(prevState.singleScopes)) 

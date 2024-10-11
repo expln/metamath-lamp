@@ -142,8 +142,8 @@ let make = (
     let (findSubsBy, setFindSubsBy) = Local_storage_utils.useStateFromLocalStorageStr(
         ~key="find-substitution-by", ~default=findSubsByMatch
     )
-    let expr1TextFieldRef = React.useRef(Js.Nullable.null)
-    let expr2TextFieldRef = React.useRef(Js.Nullable.null)
+    let expr1TextFieldRef = React.useRef(Nullable.null)
+    let expr2TextFieldRef = React.useRef(Nullable.null)
 
     let methodName = if (findSubsBy == findSubsByMatch) {"Match"} else {"Unify"}
 
@@ -214,8 +214,8 @@ let make = (
         }
     }
 
-    let actFocus = (ref:React.ref<Js.Nullable.t<Dom.element>>) => {
-        switch ref.current->Js.Nullable.toOption {
+    let actFocus = (ref:React.ref<Nullable.t<Dom.element>>) => {
+        switch ref.current->Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 let input = ReactDOM.domElementToObj(domElem)
@@ -281,7 +281,7 @@ let make = (
     }
     
     let rndExpr = (~label, ~value, ~autoFocus, ~onChange, ~tabIndex:int, 
-        ~onEnter:unit=>unit, ~ref:React.ref<Js.Nullable.t<Dom.element>>) => {
+        ~onEnter:unit=>unit, ~ref:React.ref<Nullable.t<Dom.element>>) => {
         <TextField 
             inputRef=ReactDOM.Ref.domRef(ref)
             label

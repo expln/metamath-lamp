@@ -1,8 +1,8 @@
 @new external makeResizeObserver: (array<{..}> => unit) => {..} = "ResizeObserver"
 
-let useClientSizeObserver = (ref:React.ref<Js.Nullable.t<Dom.element>>, onClientSizeChange:(int,int)=>unit) => {
+let useClientSizeObserver = (ref:React.ref<Nullable.t<Dom.element>>, onClientSizeChange:(int,int)=>unit) => {
     React.useEffect1(() => {
-        switch ref.current->Js.Nullable.toOption {
+        switch ref.current->Nullable.toOption {
             | Some(domElem) => {
                 // Console.log2("domElem", domElem)
                 let observer = makeResizeObserver(mutations => {

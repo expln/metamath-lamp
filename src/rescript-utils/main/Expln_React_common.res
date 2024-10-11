@@ -40,4 +40,4 @@ let evt2click = (clickConsumer:reClickEvt=>unit):reMouseHnd => evt => {
     })
 }
 
-external reElem2Obj: reElem => Js.Nullable.t<{..}> = "%identity"
+external reElem2Obj: reElem => Nullable.t<{..}> = "%identity"

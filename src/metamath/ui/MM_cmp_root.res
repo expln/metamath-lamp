@@ -76,7 +76,7 @@ let mainTheme = ThemeProvider.createTheme(
 
 let location = window["location"]
 let tempMode = ref(false)
-let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Js.Nullable.toOption {
+let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Nullable.toOption {
     | Some(initialStateSafeBase64) => {
         window["history"]["replaceState"](. 
             "removing editorState from the URL", 
@@ -101,9 +101,9 @@ let make = () => {
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
 
-    let reloadCtx: React.ref<Js.Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Js.Nullable.null)
-    let toggleCtxSelector = React.useRef(Js.Nullable.null)
-    let loadEditorState = React.useRef(Js.Nullable.null)
+    let reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Nullable.null)
+    let toggleCtxSelector = React.useRef(Nullable.null)
+    let loadEditorState = React.useRef(Nullable.null)
 
     let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
         switch tabData {
@@ -142,7 +142,7 @@ let make = () => {
             || state.preCtxData.settingsV.val.descrRegexToDepr != newSettings.descrRegexToDepr
             || state.preCtxData.settingsV.val.labelRegexToDepr != newSettings.labelRegexToDepr
         ) {
-            reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
+            reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
                 reloadCtx(
                     ~srcs=state.preCtxData.srcs, 
                     ~settings=newSettings, 

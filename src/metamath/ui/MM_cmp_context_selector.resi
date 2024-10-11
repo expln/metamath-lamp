@@ -18,8 +18,8 @@ let make: (
     ~settings:settings,
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange: (array<mmCtxSrcDto>, mmContext) => unit,
-    ~reloadCtx: React.ref<Js.Nullable.t<reloadCtxFunc>>,
+    ~reloadCtx: React.ref<Nullable.t<reloadCtxFunc>>,
     ~style:reStyle=?,
     ~onExpandedChange:bool=>unit,
-    ~doToggle: React.ref<Js.Nullable.t<unit=>unit>>,
+    ~doToggle: React.ref<Nullable.t<unit=>unit>>,
 ) => React.element

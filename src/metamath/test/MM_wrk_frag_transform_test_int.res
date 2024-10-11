@@ -8,14 +8,14 @@ open MM_wrk_editor
 open MM_syntax_tree
 
 let rec extractResult = (reactElemDto:{..}):option<string> => {
-    switch reactElemDto["cmp"]->Js.Nullable.toOption {
-        | Some("ApplyButtons") => reactElemDto["result"]->Js.Nullable.toOption
+    switch reactElemDto["cmp"]->Nullable.toOption {
+        | Some("ApplyButtons") => reactElemDto["result"]->Nullable.toOption
         | _ => {
-            switch reactElemDto["children"]->Js.Nullable.toOption {
+            switch reactElemDto["children"]->Nullable.toOption {
                 | Some(children) => {
                     children
-                        ->Array.filter(child => child->Js.Nullable.toOption->Belt_Option.isSome)
-                        ->Array.map(child => child->Js.Nullable.toOption->Belt_Option.getExn)
+                        ->Array.filter(child => child->Nullable.toOption->Belt_Option.isSome)
+                        ->Array.map(child => child->Nullable.toOption->Belt_Option.getExn)
                         ->Js_array2.reduce(
                             (res,child) => {
                                 switch res {

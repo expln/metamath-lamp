@@ -14,7 +14,7 @@ type props = {
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string)=>unit,
-    toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
 }
@@ -55,7 +55,7 @@ let make = React.memoCustomCompareProps(({
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
-    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+    let mainMenuButtonRef = React.useRef(Nullable.null)
 
     let (asrtsPerPage, setAsrtsPerPage) = useStateFromLocalStorageInt(
         ~key="pe-index-asrts-per-page", ~default=10
@@ -453,7 +453,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndMainMenu = () => {
         if (mainMenuIsOpened) {
-            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+            switch mainMenuButtonRef.current->Nullable.toOption {
                 | None => <></>
                 | Some(mainMenuButtonRef) => {
                     <Menu
@@ -464,7 +464,7 @@ let make = React.memoCustomCompareProps(({
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                toggleCtxSelector.current->Js.Nullable.toOption
+                                toggleCtxSelector.current->Nullable.toOption
                                     ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
                             }}
                         >

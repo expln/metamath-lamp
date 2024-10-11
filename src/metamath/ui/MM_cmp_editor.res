@@ -137,18 +137,18 @@ let make = (
     ~modalRef:modalRef, 
     ~preCtxData:preCtxData,
     ~top:int,
-    ~reloadCtx: React.ref<Js.Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
-    ~loadEditorState: React.ref<Js.Nullable.t<editorStateLocStor => unit>>,
+    ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
+    ~loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
-    ~toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ~ctxSelectorIsExpanded:bool,
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
     ~openFrameExplorer:string=>unit,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
-    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+    let mainMenuButtonRef = React.useRef(Nullable.null)
     let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
     let (contIsHidden, setContIsHidden) = React.useState(_ => false)
     let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
@@ -1222,7 +1222,7 @@ let make = (
             createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
                 ->setNextAction(Some(Action(()=>())))
         })
-        reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
+        reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings, ())->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
@@ -1253,7 +1253,7 @@ let make = (
             })->ignore
         })
     }
-    loadEditorState.current = Js.Nullable.return(loadEditorStatePriv)
+    loadEditorState.current = Nullable.make(loadEditorStatePriv)
 
     let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
@@ -1578,7 +1578,7 @@ let make = (
 
     let rndMainMenu = () => {
         if (mainMenuIsOpened) {
-            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+            switch mainMenuButtonRef.current->Nullable.toOption {
                 | None => React.null
                 | Some(mainMenuButtonRef) => {
                     <Menu
@@ -1597,7 +1597,7 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                toggleCtxSelector.current->Js.Nullable.toOption
+                                toggleCtxSelector.current->Nullable.toOption
                                     ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
                             }}
                         >

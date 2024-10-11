@@ -65,9 +65,9 @@ let make = (
             | _ => Exn.raiseError(`Unrecognized component '${componentName}'`)
         }
     }
-    and childrenToArray = (children:array<Js.Nullable.t<{..}>>, msg:string):reElem => {
+    and childrenToArray = (children:array<Nullable.t<{..}>>, msg:string):reElem => {
         children
-            ->Array.filter(child => child->Js.Nullable.toOption->Belt.Option.isSome)
+            ->Array.filter(child => child->Nullable.toOption->Belt.Option.isSome)
             ->Array.mapWithIndex((child,i) => {
                 let child = reqObjExn(child, `A child element is not a component object: ${msg}`)
                 rndCustomElem(child)->React.cloneElement({

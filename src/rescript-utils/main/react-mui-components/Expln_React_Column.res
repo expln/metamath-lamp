@@ -14,16 +14,16 @@ let make = (
         {switch children {
             | Some(children) => 
                 children->React.Children.mapWithIndex((child,i) => {
-                    let style = switch reElem2Obj(child)->Js.Nullable.toOption {
+                    let style = switch reElem2Obj(child)->Nullable.toOption {
                         | None => None
                         | Some(childObj) => {
-                            switch childObj["props"]->Js.Nullable.toOption {
+                            switch childObj["props"]->Nullable.toOption {
                                 | None => None
                                 | Some(childProps) => {
-                                    switch childProps["style"]->Js.Nullable.toOption {
+                                    switch childProps["style"]->Nullable.toOption {
                                         | None => None
                                         | Some(childStyle) => {
-                                            switch childStyle["display"]->Js.Nullable.toOption {
+                                            switch childStyle["display"]->Nullable.toOption {
                                                 | None => None
                                                 | Some(childDisplay) => {
                                                     if (childDisplay === "none") {

@@ -11,13 +11,13 @@ type modalMethods = {
     closeModal: modalId => unit,
 }
 
-type modalRef = React.ref<Js.Nullable.t<modalMethods>>
+type modalRef = React.ref<Nullable.t<modalMethods>>
 let useModalRef = () => {
-    React.useRef(Js.Nullable.null)
+    React.useRef(Nullable.null)
 }
 
 let modalRefToModalMethods: modalRef => modalMethods = modalRef => {
-    switch modalRef.current->Js.Nullable.toOption {
+    switch modalRef.current->Nullable.toOption {
         | None => Exn.raiseError(`modalRef.current is null`)
         | Some(modalMethods) => modalMethods
     }
@@ -80,7 +80,7 @@ let make = (~modalRef:modalRef) => {
     let (state, setState) = React.useState(createInitialState)
 
     modalRef.current = React.useMemo0(() => {
-        Js.Nullable.return(
+        Nullable.make(
             {
                 openModal: render => promise(rlv => {
                     setState(prev => {

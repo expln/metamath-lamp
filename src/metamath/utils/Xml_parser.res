@@ -9,7 +9,7 @@ type attr = {
 
 type namedNodeMap = {
     length: int,
-    item: (. int) => Js.Nullable.t<attr>
+    item: (. int) => Nullable.t<attr>
 }
 
 type rec element = {
@@ -20,7 +20,7 @@ type rec element = {
     nodeValue: string,
 } and nodeList = {
     length: int,
-    item: (. int) => Js.Nullable.t<element>
+    item: (. int) => Nullable.t<element>
 }
 
 type xmlDocument = { 
@@ -39,7 +39,7 @@ let elementGetAttrs = (element:element):Belt_MapString.t<string> => {
         | None => ()
         | Some(attrs) => {
             for i in 0 to attrs.length-1 {
-                switch attrs.item(. i)->Js.Nullable.toOption {
+                switch attrs.item(. i)->Nullable.toOption {
                     | None => ()
                     | Some(attr) => {
                         res->Array.push((attr.name,attr.value))
@@ -66,7 +66,7 @@ let parseStrExn = (str:string):xmlNode => {
                 let children = []
                 let cNodes = node.childNodes
                 for i in 0 to cNodes.length-1 {
-                    switch cNodes.item(. i)->Js.Nullable.toOption {
+                    switch cNodes.item(. i)->Nullable.toOption {
                         | None => ()
                         | Some(cNode) => {
                             if (cNode.nodeType == nodeTypeElement || cNode.nodeType == nodeTypeText) {

@@ -665,9 +665,9 @@ let make = React.memoCustomCompareProps( ({
     openFrameExplorer,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState())
-    let labelRef = React.useRef(Js.Nullable.null)
-    let jstfRef = React.useRef(Js.Nullable.null)
-    let stmtTextFieldRef = React.useRef(Js.Nullable.null)
+    let labelRef = React.useRef(Nullable.null)
+    let jstfRef = React.useRef(Nullable.null)
+    let stmtTextFieldRef = React.useRef(Nullable.null)
 
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
     let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
@@ -714,7 +714,7 @@ let make = React.memoCustomCompareProps( ({
     }, [syntaxTreeError])
 
     React.useEffect1(() => {
-        switch stmtTextFieldRef.current->Js.Nullable.toOption {
+        switch stmtTextFieldRef.current->Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 switch selectionRange {
@@ -734,7 +734,7 @@ let make = React.memoCustomCompareProps( ({
             | None => ()
             | Some(newTextCursorPosition) => {
                 setNewTextCursorPosition(_ => None)
-                switch stmtTextFieldRef.current->Js.Nullable.toOption {
+                switch stmtTextFieldRef.current->Nullable.toOption {
                     | None => ()
                     | Some(domElem) => {
                         let input = ReactDOM.domElementToObj(domElem)
@@ -1261,12 +1261,12 @@ let make = React.memoCustomCompareProps( ({
                 windowWidth - 40
             } else {
                 let checkBoxWidth = if (!viewOptions.showCheckbox) {0} else { 48 } 
-                let labelWidth = if (!viewOptions.showLabel) {0} else { switch labelRef.current->Js.Nullable.toOption {
+                let labelWidth = if (!viewOptions.showLabel) {0} else { switch labelRef.current->Nullable.toOption {
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
                 } } 
                 let typWidth = if (!viewOptions.showType) {0} else { 28 } 
-                let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Js.Nullable.toOption {
+                let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Nullable.toOption {
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
                 } }

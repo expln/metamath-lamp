@@ -52,7 +52,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let (newTextCursorPosition, setNewTextCursorPosition) = React.useState(() => None)
-    let textFieldRef = React.useRef(Js.Nullable.null)
+    let textFieldRef = React.useRef(Nullable.null)
 
     let {
         onClick, 
@@ -102,7 +102,7 @@ let make = (
             | None => ()
             | Some(newTextCursorPosition) => {
                 setNewTextCursorPosition(_ => None)
-                switch textFieldRef.current->Js.Nullable.toOption {
+                switch textFieldRef.current->Nullable.toOption {
                     | None => ()
                     | Some(domElem) => {
                         let input = ReactDOM.domElementToObj(domElem)
@@ -128,7 +128,7 @@ let make = (
     }
     
     let actStartNewLine = () => {
-        switch textFieldRef.current->Js.Nullable.toOption {
+        switch textFieldRef.current->Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 let input = ReactDOM.domElementToObj(domElem)
