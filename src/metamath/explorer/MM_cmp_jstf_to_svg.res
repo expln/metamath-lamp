@@ -267,7 +267,7 @@ let rndStmtAndHyp = (
                 ~symToColor=frmSymToColor,
                 ~key="frm-" ++ i->Belt_Int.toString,
             )
-            frmElems->Js_array2.pushMany(fElems)->ignore
+            frmElems->Array.pushMany(fElems)
             bnds->Array.push(frmBnd)
             frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
@@ -278,7 +278,7 @@ let rndStmtAndHyp = (
                     ~symToColor=ctxSymToColor,
                     ~key="ctx-" ++ i->Belt_Int.toString,
                 )
-                ctxElems->Js_array2.pushMany(cElems)->ignore
+                ctxElems->Array.pushMany(cElems)
                 bnds->Array.push(ctxBnd)
                 ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
 

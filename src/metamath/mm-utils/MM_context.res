@@ -673,7 +673,7 @@ let getAllHyps = (ctx:mmContext):Belt_MapString.t<hypothesis> => {
 let getAllFramesArr = (ctx:mmContext):array<frame> => {
     let frames = []
     ctx.contents->forEachCtxInReverseOrder(ctx => {
-        frames->Js.Array2.pushMany(ctx.frames->Belt_HashMapString.valuesToArray)->ignore
+        frames->Array.pushMany(ctx.frames->Belt_HashMapString.valuesToArray)
         None
     })->ignore
     frames
