@@ -141,6 +141,18 @@ def replace_in_file(path: Path, replacements: dict[str, str]) -> None:
     write_text_to_path(path, text)
 
 
+def replace_units_in_file(path: Path) -> None:
+    text = read_text_from_path(path)
+    text = re.sub(r',\s*\(\s*\)(\s*\))', r'\1', text)
+    write_text_to_path(path, text)
+
+
+def replace_units_in_all_files() -> None:
+    for path in get_all_rescript_files():
+        print(f'processing: {path.absolute()}')
+        replace_units_in_file(path)
+
+
 def make_replacement_dict(old_modules: list[str], new_module: str, functions: dict[str, str]) -> dict[str, str]:
     res = {}
     for old_module in old_modules:
@@ -289,8 +301,11 @@ def main() -> None:
     #     print(f'processing: {path.absolute()}')
     #     rewrite_file(path)
 
-    find_function_names()
+    # find_function_names()
     # make_simple_replacements()
+
+    # replace_units_in_file(Path('../../metamath/ui/MM_cmp_api.res'))
+    replace_units_in_all_files()
 
 
 if __name__ == '__main__':
