@@ -518,7 +518,7 @@ let getLowestCheckedStmt = (st):option<userStmt> => {
     if (st.checkedStmtIds->Array.length == 0) {
         None
     } else {
-        st.stmts->Array.copy->Js.Array2.reverseInPlace->Array.find(stmt => isStmtChecked(st,stmt.id))
+        st.stmts->Array.toReversed->Array.find(stmt => isStmtChecked(st,stmt.id))
     }
 }
 

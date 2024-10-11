@@ -190,7 +190,8 @@ let intToCompressedProofStr: int => string = i => {
             res->Array.push(String.fromCharCode(uCode + mod(i.contents-1, 5)))
             i.contents = (i.contents-1) / 5
         }
-        res->Js_array2.reverseInPlace->Array.joinUnsafe("")
+        res->Array.reverse
+        res->Array.joinUnsafe("")
     }
 }
 
