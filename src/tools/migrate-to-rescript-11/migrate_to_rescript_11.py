@@ -267,8 +267,8 @@ def main() -> None:
     #     print(f'processing: {path.absolute()}')
     #     rewrite_file(path)
 
-    # find_function_names()
-    make_simple_replacements()
+    find_function_names()
+    # make_simple_replacements()
 
 
 if __name__ == '__main__':

@@ -52,13 +52,13 @@ let assertEqMsg = (actual:'a, expected:'a, msg:string) => {
 
 let assertEqNum = (actual: float, expected: float, precision: float) => {
     if (actual <= expected -. precision || actual >= expected +. precision) {
-        exn(`\n  actual: ${Js.String.make(actual)}\nexpected: ${Js.String.make(expected)}`)
+        exn(`\n  actual: ${String.make(actual)}\nexpected: ${String.make(expected)}`)
     }
 }
 
 let assertEqNumMsg = (actual: float, expected: float, precision: float, msg:string) => {
     if (actual <= expected -. precision || actual >= expected +. precision) {
-        exn(`\nAssertion failed for '${msg}'\n  actual: ${Js.String.make(actual)}\nexpected: ${Js.String.make(expected)}`)
+        exn(`\nAssertion failed for '${msg}'\n  actual: ${String.make(actual)}\nexpected: ${String.make(expected)}`)
     }
 }
 
