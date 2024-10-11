@@ -156,7 +156,7 @@ let compressedProofBlockToArray = (str:string):array<string> => {
             e.contents=e.contents+1
             b.contents=e.contents
         } else if (aCode <= c && c <= tCode) {
-            res->Array.push(str->Js_string2.substring(~from=b.contents, ~to_=e.contents+1))
+            res->Array.push(str->String.substring(~start=b.contents, ~end=e.contents+1))
             e.contents=e.contents+1
             b.contents=e.contents
         } else {

@@ -97,7 +97,7 @@ let parseMmFile = (
                 let nextIdx = foundIdx + tillToken->String.length
                 setIdx(nextIdx)
                 if (endOfFile.contents || ch.contents->isWhitespace) {
-                    result.contents = Some(Some(text->Js_string2.substring(~from=beginIdx, ~to_=foundIdx)))
+                    result.contents = Some(Some(text->String.substring(~start=beginIdx, ~end=foundIdx)))
                 } else {
                     setIdx(foundIdx+1)
                 }
@@ -122,7 +122,7 @@ let parseMmFile = (
             while (!endOfFile.contents && !(ch.contents->isWhitespace)) {
                 readNextChar()
             }
-            text->Js_string2.substring(~from=beginIdx, ~to_=idx.contents)
+            text->String.substring(~start=beginIdx, ~end=idx.contents)
         } else {
             let nextToken = ref(readNextToken(~skipComments=false, ()))
             while (nextToken.contents == "$(") {

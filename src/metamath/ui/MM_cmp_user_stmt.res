@@ -829,13 +829,13 @@ let make = React.memoCustomCompareProps( ({
         onJstfEditRequested()
     }
 
-    let before = (str:string, pos:int):string => str->Js.String2.substring(~from=0,~to_=pos)
-    let after = (str:string, pos:int):string => str->Js.String2.substringToEnd(~from=pos+1)
+    let before = (str:string, pos:int):string => str->String.substring(~start=0,~end=pos)
+    let after = (str:string, pos:int):string => str->String.substringToEnd(~start=pos+1)
 
     let getLastSymbol = (str:string):string => {
         switch str->String.lastIndexOf(" ") {
             | -1 => str
-            | idx => str->Js_string2.substringToEnd(~from=idx+1)
+            | idx => str->String.substringToEnd(~start=idx+1)
         }
     }
 

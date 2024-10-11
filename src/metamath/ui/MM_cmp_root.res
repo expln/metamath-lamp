@@ -187,7 +187,7 @@ let make = () => {
     let openExplorer = (~initPatternFilterStr:string):unit => {
         updateTabs(tabsSt => {
             let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                ~label=`EXPLORER ${initPatternFilterStr->Js_string2.substring(~from=0, ~to_=40)}`, 
+                ~label=`EXPLORER ${initPatternFilterStr->String.substring(~start=0, ~end=40)}`,
                 ~closable=true, 
                 ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
                 ~doOpen=true, 

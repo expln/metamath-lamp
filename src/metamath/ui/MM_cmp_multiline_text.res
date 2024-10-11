@@ -133,8 +133,8 @@ let make = (
             | Some(domElem) => {
                 let input = ReactDOM.domElementToObj(domElem)
                 let selectionStart = input["selectionStart"]
-                let before = state.newText->Js.String2.substring(~from=0,~to_=selectionStart)
-                let after = state.newText->Js.String2.substringToEnd(~from=selectionStart)
+                let before = state.newText->String.substring(~start=0,~end=selectionStart)
+                let after = state.newText->String.substringToEnd(~start=selectionStart)
                 actNewTextUpdated(before ++ "\n" ++ after)
                 input["focus"](.)->ignore
                 setNewTextCursorPosition(_ => Some(selectionStart+1))
