@@ -170,6 +170,11 @@ def make_simple_replacements() -> None:
         'mapi(': 'mapWithIndex(',
         'some(': 'some(',
         'length': 'length',
+        'reduce(': 'reduce-(',
+        'reducei': 'reduceWithIndex-',
+        'slice(': 'slice(',
+        'spliceInPlace(': 'splice(',
+        'sliceFrom': 'sliceToEnd',
     }))
     replacements.update(make_replacement_dict(old_modules=['Js.Console'], new_module='Console', functions={
         '': '',
@@ -220,6 +225,11 @@ def make_simple_replacements() -> None:
         'toLowerCase': 'toLowerCase',
         'toUpperCase': 'toUpperCase',
         'trim': 'trim',
+        'make': 'make',
+        'slice(': 'slice(',
+        'sliceToEnd': 'sliceToEnd',
+        'substring(': 'substring(',
+        'substringToEnd': 'substringToEnd',
     }))
     replacements.update(make_replacement_dict(old_modules=['Js.Json', 'Js_json'], new_module='JSON', functions={
         'array': 'Encode.array',
@@ -239,6 +249,18 @@ def make_simple_replacements() -> None:
         'fromArray': 'fromArray',
         'get': 'get',
         't': 't',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Nullable'], new_module='Nullable', functions={
+        'null': 'null',
+        'return': 'make',
+        't': 't',
+        'toOption': 'toOption',
+    }))
+    replacements.update(make_replacement_dict(old_modules=['Js.Nullable'], new_module='Nullable', functions={
+        'null': 'null',
+        'return': 'make',
+        't': 't',
+        'toOption': 'toOption',
     }))
     for path in get_all_rescript_files():
         print(f'processing: {path.absolute()}')
