@@ -59,6 +59,7 @@ let make = React.memoCustomCompareProps( ({
     addAsrtByLabel,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
+    let (asrtWasAddedToEditor, setAsrtWasAddedToEditor) = React.useState(() => None)
 
     React.useEffect6(() => {
         setState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
@@ -67,6 +68,24 @@ let make = React.memoCustomCompareProps( ({
 
     let actToggleDescrIsExpanded = () => {
         setState(toggleDescrIsExpanded)
+    }
+
+    let actAddAsrtToEditor = (label:string) => {
+        addAsrtByLabel(label)->promiseMap(res => {
+            setAsrtWasAddedToEditor(msgAndTimerId => {
+                switch msgAndTimerId {
+                    | None => ()
+                    | Some((timerId, _)) => clearTimeout(timerId)
+                }
+                Some((
+                    setTimeout(
+                        () => setAsrtWasAddedToEditor(_ => None),
+                        5000
+                    ),
+                    res
+                ))
+            })
+        })->ignore
     }
 
     let rndExpBtn = () => {
@@ -109,9 +128,7 @@ let make = React.memoCustomCompareProps( ({
         <span>
             {React.string(nbsp ++ nbsp)}
             <span 
-                onClick=clickHnd(~act=() => {
-                    addAsrtByLabel(frame.label)->promiseMap(bool => Console.log2("Added to the editor: ", bool))->ignore
-                })
+                onClick=clickHnd(~act=() => actAddAsrtToEditor(frame.label))
                 style=ReactDOM.Style.make(
                     ~fontFamily="monospace",
                     ~color="grey",
@@ -121,6 +138,21 @@ let make = React.memoCustomCompareProps( ({
             >
                 { React.string( "use+" ) }
             </span>
+            {
+                switch asrtWasAddedToEditor {
+                    | None => React.null
+                    | Some((_, Ok(_))) => {
+                        <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="black", () ) >
+                            { React.string( nbsp ++ "Added to the editor" ) }
+                        </span>
+                    }
+                    | Some((_, Error(msg))) => {
+                        <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="red", () ) >
+                            { React.string( nbsp ++ "Error: " ++ msg ) }
+                        </span>
+                    }
+                }
+            }
         </span>
     }
 
