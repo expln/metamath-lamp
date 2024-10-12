@@ -30,6 +30,11 @@ let searchAssertions: (
     ~onProgress:float=>unit,
 ) => promise<array<stmtsDto>>
 
+let frameToStmtsDto: (
+    ~wrkCtx:mmContext,
+    ~frame:frame,
+) => stmtsDto
+
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 
 let frameMatchesVarPattern: (

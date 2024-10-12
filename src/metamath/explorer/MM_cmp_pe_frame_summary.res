@@ -67,18 +67,29 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndExpBtn = () => {
-        if (frame.descr->Belt.Option.isSome) {
+        if (frame.descr->Option.isSome) {
             <span>
                 {React.string(nbsp ++ nbsp)}
                 <span 
                     onClick=clickHnd(~act=actToggleDescrIsExpanded)
                     style=ReactDOM.Style.make(
-                        ~display="inline-block", 
-                        ~transform=if(state.descrIsExpanded) {"rotate(90deg)"} else {"none"},
                         ~fontFamily="monospace",
-                        ~fontSize="1.5em",
                         ~color="grey",
-                        ~fontWeight="bold",
+                        ~cursor="pointer",
+                        ()
+                    )
+                >
+                    { React.string( "descr" ) }
+                </span>
+                <span 
+                    onClick=clickHnd(~act=actToggleDescrIsExpanded)
+                    style=ReactDOM.Style.make(
+                        ~display="inline-block", 
+                        ~transform=state.descrIsExpanded 
+                            ? {"rotate(90deg) translate(1px, -2px)"} 
+                            : {"none"},
+                        ~fontFamily="monospace",
+                        ~color="grey",
                         ~cursor="pointer",
                         ()
                     )
@@ -89,6 +100,23 @@ let make = React.memoCustomCompareProps( ({
         } else {
             <></>
         }
+    }
+
+    let rndUseBtn = () => {
+        <span>
+            {React.string(nbsp ++ nbsp)}
+            <span 
+                onClick=clickHnd(~act=actToggleDescrIsExpanded)
+                style=ReactDOM.Style.make(
+                    ~fontFamily="monospace",
+                    ~color="grey",
+                    ~cursor="pointer",
+                    ()
+                )
+            >
+                { React.string( "use+" ) }
+            </span>
+        </span>
     }
 
     let rndLabel = ():reElem => {
@@ -121,6 +149,7 @@ let make = React.memoCustomCompareProps( ({
                 </span>
             </span>
             {rndExpBtn()}
+            {rndUseBtn()}
         </span>
     }
 
