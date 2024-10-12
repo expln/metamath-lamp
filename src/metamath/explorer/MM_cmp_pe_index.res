@@ -17,6 +17,7 @@ type props = {
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
+    addAsrtByLabel:React.ref<Nullable.t<string=>promise<result<unit,string>>>>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -31,6 +32,7 @@ let make = React.memoCustomCompareProps(({
     toggleCtxSelector,
     ctxSelectorIsExpanded,
     initPatternFilterStr,
+    addAsrtByLabel,
 }:props) => {
     let settings = preCtxData.settingsV.val
     let preCtx = preCtxData.ctxV.val
@@ -505,6 +507,12 @@ let make = React.memoCustomCompareProps(({
             openExplorer
             asrtsPerPage
             typeOrderInDisj
+            addAsrtByLabel={label=>{
+                switch addAsrtByLabel.current->Nullable.toOption {
+                    | Some(addAsrtByLabel) => addAsrtByLabel(label)
+                    | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+                }
+            }}
         />
     </Col>
 

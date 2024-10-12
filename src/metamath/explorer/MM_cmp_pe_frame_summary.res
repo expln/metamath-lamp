@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open Expln_utils_promise
 open MM_react_common
 open MM_context
 open MM_substitution
@@ -28,6 +29,7 @@ type props = {
     order:int,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string)=>unit,
+    addAsrtByLabel:string=>promise<result<unit,string>>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -54,8 +56,10 @@ let make = React.memoCustomCompareProps( ({
     order,
     openFrameExplorer,
     openExplorer,
+    addAsrtByLabel,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
+    let (asrtWasAddedToEditor, setAsrtWasAddedToEditor) = React.useState(() => None)
 
     React.useEffect6(() => {
         setState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
@@ -66,19 +70,48 @@ let make = React.memoCustomCompareProps( ({
         setState(toggleDescrIsExpanded)
     }
 
+    let actAddAsrtToEditor = (label:string) => {
+        addAsrtByLabel(label)->promiseMap(res => {
+            setAsrtWasAddedToEditor(msgAndTimerId => {
+                switch msgAndTimerId {
+                    | None => ()
+                    | Some((_, timerId)) => clearTimeout(timerId)
+                }
+                Some((
+                    res,
+                    setTimeout(
+                        () => setAsrtWasAddedToEditor(_ => None),
+                        5000
+                    )
+                ))
+            })
+        })->ignore
+    }
+
     let rndExpBtn = () => {
-        if (frame.descr->Belt.Option.isSome) {
+        if (frame.descr->Option.isSome) {
             <span>
                 {React.string(nbsp ++ nbsp)}
                 <span 
                     onClick=clickHnd(~act=actToggleDescrIsExpanded)
                     style=ReactDOM.Style.make(
-                        ~display="inline-block", 
-                        ~transform=if(state.descrIsExpanded) {"rotate(90deg)"} else {"none"},
                         ~fontFamily="monospace",
-                        ~fontSize="1.5em",
                         ~color="grey",
-                        ~fontWeight="bold",
+                        ~cursor="pointer",
+                        ()
+                    )
+                >
+                    { React.string( "descr" ) }
+                </span>
+                <span 
+                    onClick=clickHnd(~act=actToggleDescrIsExpanded)
+                    style=ReactDOM.Style.make(
+                        ~display="inline-block", 
+                        ~transform=state.descrIsExpanded 
+                            ? {"rotate(90deg) translate(1px, -2px)"} 
+                            : {"none"},
+                        ~fontFamily="monospace",
+                        ~color="grey",
                         ~cursor="pointer",
                         ()
                     )
@@ -89,6 +122,38 @@ let make = React.memoCustomCompareProps( ({
         } else {
             <></>
         }
+    }
+
+    let rndUseBtn = () => {
+        <span>
+            {React.string(nbsp ++ nbsp)}
+            <span 
+                onClick=clickHnd(~act=() => actAddAsrtToEditor(frame.label))
+                style=ReactDOM.Style.make(
+                    ~fontFamily="monospace",
+                    ~color="grey",
+                    ~cursor="pointer",
+                    ()
+                )
+            >
+                { React.string( "use" ) }
+            </span>
+            {
+                switch asrtWasAddedToEditor {
+                    | None => React.null
+                    | Some((Ok(_), _)) => {
+                        <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="black", () ) >
+                            { React.string( nbsp ++ "Added to the editor" ) }
+                        </span>
+                    }
+                    | Some((Error(msg), _)) => {
+                        <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="red", () ) >
+                            { React.string( nbsp ++ "Error: " ++ msg ) }
+                        </span>
+                    }
+                }
+            }
+        </span>
     }
 
     let rndLabel = ():reElem => {
@@ -121,6 +186,7 @@ let make = React.memoCustomCompareProps( ({
                 </span>
             </span>
             {rndExpBtn()}
+            {rndUseBtn()}
         </span>
     }
 

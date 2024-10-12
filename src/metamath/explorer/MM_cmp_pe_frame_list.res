@@ -25,6 +25,7 @@ type props = {
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string)=>unit,
     asrtsPerPage:int,
+    addAsrtByLabel:string=>promise<result<unit,string>>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -50,6 +51,7 @@ let make = React.memoCustomCompareProps(({
     openFrameExplorer,
     openExplorer,
     asrtsPerPage,
+    addAsrtByLabel,
 }) => {
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
@@ -121,6 +123,7 @@ let make = React.memoCustomCompareProps(({
                     editStmtsByLeftClick
                     openFrameExplorer
                     openExplorer
+                    addAsrtByLabel
                 />
             }
         }

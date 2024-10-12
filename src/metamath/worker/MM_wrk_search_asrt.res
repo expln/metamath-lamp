@@ -155,6 +155,55 @@ let searchAssertions = (
     })
 }
 
+let frameToStmtsDto = (
+    ~wrkCtx:mmContext,
+    ~frame:frame,
+):stmtsDto => {
+    let newDisj = disjMake()
+    frame.disj->Belt_MapInt.forEach((n,ms) => {
+        ms->Belt_SetInt.forEach(m => {
+            newDisj->disjAddPair(n,m)
+        })
+    })
+    let newDisjStr = []
+    newDisj->disjForEachArr(disjArr => {
+        newDisjStr->Array.push(frmIntsToStrExn(wrkCtx, frame, disjArr))
+    })
+    let stmts = []
+    let argLabels = []
+    frame.hyps->Array.forEach(hyp => {
+        if (hyp.typ == E) {
+            let argLabel = hyp.label
+            argLabels->Array.push(argLabel)
+            stmts->Array.push(
+                {
+                    label: argLabel,
+                    expr:hyp.expr,
+                    exprStr:frmIntsToStrExn(wrkCtx, frame, hyp.expr),
+                    jstf:None,
+                    isProved: false,
+                }
+            )
+        }
+    })
+    stmts->Array.push(
+        {
+            label: frame.label,
+            expr:frame.asrt,
+            exprStr:frmIntsToStrExn(wrkCtx, frame, frame.asrt),
+            jstf:Some({args:argLabels,label:frame.label}),
+            isProved: false,
+        }
+    )
+    {
+        newVars: Belt_Array.range(0, frame.numOfVars-1),
+        newVarTypes: frame.varTypes,
+        newDisj,
+        newDisjStr,
+        stmts,
+    }
+}
+
 //todo: review this function
 let doSearchAssertions = (
     ~wrkCtx:mmContext,
@@ -192,49 +241,7 @@ let doSearchAssertions = (
             && frame.asrt->Array.getUnsafe(0) == typ 
             && frameMatchesPattern(frame)
         ) {
-            let newDisj = disjMake()
-            frame.disj->Belt_MapInt.forEach((n,ms) => {
-                ms->Belt_SetInt.forEach(m => {
-                    newDisj->disjAddPair(n,m)
-                })
-            })
-            let newDisjStr = []
-            newDisj->disjForEachArr(disjArr => {
-                newDisjStr->Array.push(frmIntsToStrExn(wrkCtx, frame, disjArr))
-            })
-            let stmts = []
-            let argLabels = []
-            frame.hyps->Array.forEach(hyp => {
-                if (hyp.typ == E) {
-                    let argLabel = hyp.label
-                    argLabels->Array.push(argLabel)
-                    stmts->Array.push(
-                        {
-                            label: argLabel,
-                            expr:hyp.expr,
-                            exprStr:frmIntsToStrExn(wrkCtx, frame, hyp.expr),
-                            jstf:None,
-                            isProved: false,
-                        }
-                    )
-                }
-            })
-            stmts->Array.push(
-                {
-                    label: frame.label,
-                    expr:frame.asrt,
-                    exprStr:frmIntsToStrExn(wrkCtx, frame, frame.asrt),
-                    jstf:Some({args:argLabels,label:frame.label}),
-                    isProved: false,
-                }
-            )
-            results->Array.push({
-                newVars: Belt_Array.range(0, frame.numOfVars-1),
-                newVarTypes: frame.varTypes,
-                newDisj,
-                newDisjStr,
-                stmts,
-            })
+            results->Array.push(frameToStmtsDto( ~wrkCtx, ~frame, ))
         }
 
         framesProcessed.contents = framesProcessed.contents +. 1.
