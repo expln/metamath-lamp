@@ -75,14 +75,14 @@ let make = React.memoCustomCompareProps( ({
             setAsrtWasAddedToEditor(msgAndTimerId => {
                 switch msgAndTimerId {
                     | None => ()
-                    | Some((timerId, _)) => clearTimeout(timerId)
+                    | Some((_, timerId)) => clearTimeout(timerId)
                 }
                 Some((
+                    res,
                     setTimeout(
                         () => setAsrtWasAddedToEditor(_ => None),
                         5000
-                    ),
-                    res
+                    )
                 ))
             })
         })->ignore
@@ -141,12 +141,12 @@ let make = React.memoCustomCompareProps( ({
             {
                 switch asrtWasAddedToEditor {
                     | None => React.null
-                    | Some((_, Ok(_))) => {
+                    | Some((Ok(_), _)) => {
                         <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="black", () ) >
                             { React.string( nbsp ++ "Added to the editor" ) }
                         </span>
                     }
-                    | Some((_, Error(msg))) => {
+                    | Some((Error(msg), _)) => {
                         <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="red", () ) >
                             { React.string( nbsp ++ "Error: " ++ msg ) }
                         </span>
