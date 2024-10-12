@@ -136,7 +136,7 @@ let make = React.memoCustomCompareProps( ({
                     ()
                 )
             >
-                { React.string( "use+" ) }
+                { React.string( "use" ) }
             </span>
             {
                 switch asrtWasAddedToEditor {
