@@ -101,6 +101,7 @@ let make = () => {
     let (showTabs, setShowTabs) = React.useState(() => true)
 
     let reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Nullable.null)
+    let addAsrtByLabel: React.ref<Nullable.t<string=>promise<result<unit,string>>>> = React.useRef(Nullable.null)
     let toggleCtxSelector = React.useRef(Nullable.null)
     let loadEditorState = React.useRef(Nullable.null)
 
@@ -238,6 +239,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             reloadCtx
+                            addAsrtByLabel
                             loadEditorState
                             initialStateJsonStr=editorInitialStateJsonStr
                             tempMode=tempMode.contents
@@ -256,6 +258,7 @@ let make = () => {
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             initPatternFilterStr
+                            addAsrtByLabel
                         />
                     | ExplorerFrame({label}) => 
                         <MM_cmp_pe_frame_full

@@ -1,5 +1,6 @@
 open Expln_React_common
 open Expln_React_Mui
+open Expln_utils_promise
 open MM_react_common
 open MM_context
 open MM_substitution
@@ -28,6 +29,7 @@ type props = {
     order:int,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string)=>unit,
+    addAsrtByLabel:string=>promise<result<unit,string>>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -54,6 +56,7 @@ let make = React.memoCustomCompareProps( ({
     order,
     openFrameExplorer,
     openExplorer,
+    addAsrtByLabel,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState(~preCtx, ~frame, ~typeColors, ~typeOrderInDisj))
 
@@ -106,7 +109,9 @@ let make = React.memoCustomCompareProps( ({
         <span>
             {React.string(nbsp ++ nbsp)}
             <span 
-                onClick=clickHnd(~act=actToggleDescrIsExpanded)
+                onClick=clickHnd(~act=() => {
+                    addAsrtByLabel(frame.label)->promiseMap(bool => Console.log2("Added to the editor: ", bool))->ignore
+                })
                 style=ReactDOM.Style.make(
                     ~fontFamily="monospace",
                     ~color="grey",

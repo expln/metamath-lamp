@@ -137,6 +137,7 @@ let make = (
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
+    ~addAsrtByLabel: React.ref<Nullable.t<string=>promise<result<unit,string>>>>,
     ~loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
@@ -730,14 +731,45 @@ let make = (
         setParenAc(prev => !prev)
     }
 
-    let actAsrtSearchResultsSelected = selectedResults => {
+    let addNewStatementsPriv = (st:editorState, stmtsDto:stmtsDto):editorState => {
+        st->addNewStatements(stmtsDto, ~isBkm=showBkmOnly)
+    }
+
+    let actAsrtSearchResultsSelected = (selectedResults:array<stmtsDto>) => {
         setState(st => {
             selectedResults->Array.reduce(
                 st,
-                (st,stmtsDto) => addNewStatements(st,stmtsDto, ~isBkm=showBkmOnly)
+                (st,stmtsDto) => addNewStatementsPriv(st,stmtsDto)
             )
         })
     }
+
+    React.useEffect0(() => {
+        addAsrtByLabel.current = Nullable.make(label => Promise.make((resolve, _) => {
+            setState(st => {
+                switch st.wrkCtx {
+                    | None => {
+                        resolve(Error("MM context is not loaded."))
+                        st
+                    }
+                    | Some(wrkCtx) => {
+                        switch wrkCtx->getFrame(label) {
+                            | None => {
+                                resolve(Error(`Cannot find a frame by name '${label}'`))
+                                st
+                            }
+                            | Some(frame) => {
+                                let st = addNewStatementsPriv(st,MM_wrk_search_asrt.frameToStmtsDto(~wrkCtx,~frame))
+                                resolve(Ok(()))
+                                st
+                            }
+                        }
+                    }
+                }
+            })
+        }))
+        None
+    })
 
     let actWrkSubsSelected = wrkSubs => {
         setState(st => st->applySubstitutionForEditor(wrkSubs))
