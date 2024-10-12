@@ -28,8 +28,8 @@ let make = (
                 value=asrtsPerPage
                 onChange=evt2str(str => setAsrtsPerPage(_ => str))
                 onKeyDown=kbrdHnd2(
-                    kbrdClbkMake(~key=keyEnter, ~act=actOk, ()),
-                    kbrdClbkMake(~key=keyEsc, ~act=actCancel, ()),
+                    kbrdClbkMake(~key=keyEnter, ~act=actOk),
+                    kbrdClbkMake(~key=keyEsc, ~act=actCancel),
                 )
             />
             <Row alignItems=#center>

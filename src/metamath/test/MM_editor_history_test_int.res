@@ -38,7 +38,7 @@ let createEmptyEditorState = ():editorState => {
         combCntMax:10000,
     }
     createInitialEditorState(
-        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(())), ()),
+        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(()))),
         ~stateLocStor=None
     )
 }
@@ -79,14 +79,14 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
 
         let st = createEditorState(
             ~mmFilePath="./src/metamath/test/resources/demo0._mm", ~stopBefore="th1", ~debug, 
-            ~editorState="editor-initial-state", ()
+            ~editorState="editor-initial-state"
         )->verifyEditorState
         let ht = editorHistMake(~initState=st, ~maxLength=200)
         let st0 = st
         assertEditorState(st0, "st0")
 
         @warning("-8")
-        let Ok(st) = st->renameStmt(getStmtId(st, ~label="2", ()), "20")
+        let Ok(st) = st->renameStmt(getStmtId(st, ~label="2"), "20")
             ->Belt.Result.map(verifyEditorState)
         let ht = ht->editorHistAddSnapshot(st)
         let st1 = st
@@ -104,25 +104,25 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let st3 = st
         assertEditorState(st3, "st3")
 
-        let st = st->completeTypEditMode(getStmtId(st, ~label="20", ()), E, false)
+        let st = st->completeTypEditMode(getStmtId(st, ~label="20"), E, false)
             ->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st4 = st
         assertEditorState(st4, "st4")
 
-        let st = st->completeJstfEditMode(getStmtId(st, ~label="1", ()), ": a2")
+        let st = st->completeJstfEditMode(getStmtId(st, ~label="1"), ": a2")
             ->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st5 = st
         assertEditorState(st5, "st5")
 
-        let st = st->completeContEditMode(getStmtId(st, ~label="3", ()), "|- ( ( r + 0 ) = r -> r = r )")
+        let st = st->completeContEditMode(getStmtId(st, ~label="3"), "|- ( ( r + 0 ) = r -> r = r )")
             ->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st6 = st
         assertEditorState(st6, "st6")
 
-        let (st,s1) = st->addNewStmt(())
+        let (st,s1) = st->addNewStmt
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st = st->completeContEditMode(s1, "|- r = r")
@@ -131,17 +131,17 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let st7 = st
         assertEditorState(st7, "st7")
 
-        let st = st->toggleStmtChecked(getStmtId(st, ~label="2", ()))
+        let st = st->toggleStmtChecked(getStmtId(st, ~label="2"))
         let st = st->moveCheckedStmts(true)->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st8 = st
         assertEditorState(st8, "st8")
 
         let st = st->uncheckAllStmts
-        let st = st->toggleStmtChecked(getStmtId(st, ~label="3", ()))
+        let st = st->toggleStmtChecked(getStmtId(st, ~label="3"))
         let st = st->deleteCheckedStmts->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
-        let st = st->completeJstfEditMode(getStmtId(st, ~label="qed", ()), "")
+        let st = st->completeJstfEditMode(getStmtId(st, ~label="qed"), "")
             ->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st9 = st
@@ -168,12 +168,12 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         setTestDataDir("editor-history-merge-status")
 
         let st = createEditorState(
-            ~mmFilePath="./src/metamath/test/resources/demo0._mm", ~stopBefore="th1", ~debug, ()
+            ~mmFilePath="./src/metamath/test/resources/demo0._mm", ~stopBefore="th1", ~debug
         )
         let ht = editorHistMake(~initState=st, ~maxLength=200)
         assertEditorHistory(ht, "hist1")
 
-        let (st,goalStmtId) = st->addNewStmt(())
+        let (st,goalStmtId) = st->addNewStmt
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st = st->completeContEditMode(goalStmtId, "|- t = t")->verifyEditorState
@@ -184,7 +184,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist3")
 
-        let st = st->addStmtsBySearch( ~filterLabel="a1", ~chooseLabel="a1", () )
+        let st = st->addStmtsBySearch( ~filterLabel="a1", ~chooseLabel="a1" )
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist4")
 
@@ -196,7 +196,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist6")
 
-        let st = st->addStmtsBySearch( ~filterLabel="a2", ~chooseLabel="a2", () )
+        let st = st->addStmtsBySearch( ~filterLabel="a2", ~chooseLabel="a2" )
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist7")
 
@@ -204,7 +204,7 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist8")
 
-        let st = st->toggleStmtChecked(st.stmts[0].id)
+        let st = st->toggleStmtChecked((st.stmts->Array.getUnsafe(0)).id)
         let st = st->moveCheckedStmts(false)->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist9")
@@ -238,8 +238,8 @@ describe("MM_wrk_editor integration tests: editorHistory", _ => {
         let ht = ht->editorHistAddSnapshot(st)
         assertEditorHistory(ht, "hist16")
 
-        let st = st->toggleStmtChecked(st.stmts[st.stmts->Js.Array2.length-1].id)
-        let (st,s2) = st->addNewStmt(())
+        let st = st->toggleStmtChecked((st.stmts->Array.getUnsafe(st.stmts->Array.length-1)).id)
+        let (st,s2) = st->addNewStmt
         let st = st->verifyEditorState
         let ht = ht->editorHistAddSnapshot(st)
         let st = st->completeContEditMode(s2, "|- ( ( t + 0 ) = t -> t = t )")->verifyEditorState

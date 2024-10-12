@@ -25,13 +25,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 3 )
-        assertEq( mmScopes[0].stopBefore, Some("D") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
 
     it("1 src, stop after, case 1", _ => {
@@ -54,13 +54,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 3 )
-        assertEq( mmScopes[0].stopBefore, Some("D") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
 
     it("1 src, stop after, case 2", _ => {
@@ -83,13 +83,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 3 )
-        assertEq( mmScopes[0].stopBefore, Some("D") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
 
     it("1 src, stop before, case 1", _ => {
@@ -112,13 +112,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 3 )
-        assertEq( mmScopes[0].stopBefore, Some("D") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
 
     it("1 src, stop before, case 2", _ => {
@@ -141,13 +141,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 3 )
-        assertEq( mmScopes[0].stopBefore, Some("D") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
     
     it("2 srcs, frm is in src1, ReadAll", _ => {
@@ -181,13 +181,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="C")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 2 )
-        assertEq( mmScopes[0].stopBefore, Some("C") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 2 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("C") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
     
     it("2 srcs, frm is in src1, StopBefore", _ => {
@@ -221,13 +221,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="C")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 2 )
-        assertEq( mmScopes[0].stopBefore, Some("C") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 2 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("C") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
     
     it("2 srcs, frm is in src1, StopAfter, the last requested", _ => {
@@ -261,13 +261,13 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="D")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 1 )
+        assertEq( mmScopes->Array.length, 1 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 3 )
-        assertEq( mmScopes[0].stopBefore, Some("D") )
-        assertEq( mmScopes[0].stopAfter, None )
-        assertEq( mmScopes[0].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 3 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, false )
     })
     
     it("2 srcs, frm is in src2, no intersection", _ => {
@@ -301,19 +301,19 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="Y")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 2 )
+        assertEq( mmScopes->Array.length, 2 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 4 )
-        assertEq( mmScopes[0].stopBefore, None )
-        assertEq( mmScopes[0].stopAfter, Some("D") )
-        assertEq( mmScopes[0].resetNestingLevel, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 4 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, true )
 
-        assertEq( mmScopes[1].ast === ast2, true )
-        assertEq( mmScopes[1].expectedNumOfAssertions, 1 )
-        assertEq( mmScopes[1].stopBefore, Some("Y") )
-        assertEq( mmScopes[1].stopAfter, None )
-        assertEq( mmScopes[1].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(1)).ast === ast2, true )
+        assertEq( (mmScopes->Array.getUnsafe(1)).expectedNumOfAssertions, 1 )
+        assertEq( (mmScopes->Array.getUnsafe(1)).stopBefore, Some("Y") )
+        assertEq( (mmScopes->Array.getUnsafe(1)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(1)).resetNestingLevel, false )
     })
     
     it("2 srcs, frm is in src2, intersection", _ => {
@@ -347,18 +347,18 @@ describe("createMmScopesForFrame", _ => {
         let mmScopes = createMmScopesForFrame(~srcs, ~label="E")
 
         //then
-        assertEq( mmScopes->Js_array2.length, 2 )
+        assertEq( mmScopes->Array.length, 2 )
 
-        assertEq( mmScopes[0].ast === ast1, true )
-        assertEq( mmScopes[0].expectedNumOfAssertions, 4 )
-        assertEq( mmScopes[0].stopBefore, None )
-        assertEq( mmScopes[0].stopAfter, Some("D") )
-        assertEq( mmScopes[0].resetNestingLevel, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).ast === ast1, true )
+        assertEq( (mmScopes->Array.getUnsafe(0)).expectedNumOfAssertions, 4 )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopBefore, None )
+        assertEq( (mmScopes->Array.getUnsafe(0)).stopAfter, Some("D") )
+        assertEq( (mmScopes->Array.getUnsafe(0)).resetNestingLevel, true )
 
-        assertEq( mmScopes[1].ast === ast2, true )
-        assertEq( mmScopes[1].expectedNumOfAssertions, 0 )
-        assertEq( mmScopes[1].stopBefore, Some("E") )
-        assertEq( mmScopes[1].stopAfter, None )
-        assertEq( mmScopes[1].resetNestingLevel, false )
+        assertEq( (mmScopes->Array.getUnsafe(1)).ast === ast2, true )
+        assertEq( (mmScopes->Array.getUnsafe(1)).expectedNumOfAssertions, 0 )
+        assertEq( (mmScopes->Array.getUnsafe(1)).stopBefore, Some("E") )
+        assertEq( (mmScopes->Array.getUnsafe(1)).stopAfter, None )
+        assertEq( (mmScopes->Array.getUnsafe(1)).resetNestingLevel, false )
     })
 })

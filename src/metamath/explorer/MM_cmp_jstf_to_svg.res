@@ -15,7 +15,7 @@ let viewBox = (b:boundaries):string => {
         ++ ` ${b->bndHeight->Belt.Float.toString}`
 }
 
-let rndSvg = (~boundaries:boundaries, ~content:reElem, ()):reElem => {
+let rndSvg = (~boundaries:boundaries, ~content:reElem):reElem => {
     let bndWidth = boundaries->bndWidth
     let bndHeight = boundaries->bndHeight
     <svg
@@ -27,7 +27,7 @@ let rndSvg = (~boundaries:boundaries, ~content:reElem, ()):reElem => {
     </svg>
 }
 
-let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWidth:float, ()):(reElem,boundaries) => {
+let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWidth:float):(reElem,boundaries) => {
     let b = v->vecBegin
     let e = v->vecEnd
     (
@@ -44,13 +44,13 @@ let vecToLine = (v:vector, ~color:string="black", ~key:option<string>=?, ~lineWi
     )
 }
 
-let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<string>=?, ()):(reElem,boundaries) => {
+let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<string>=?):(reElem,boundaries) => {
     (
         <polyline 
             ?key
             points={
-                ps->Js_array2.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
-                    ->Js.Array2.joinWith(" ")
+                ps->Array.map(p => `${p->pntX->Belt.Float.toString},${p->pntY->Belt.Float.toString}`)
+                    ->Array.joinUnsafe(" ")
             } 
             style=ReactDOM.Style.make(~fill="none", ~stroke=color, ~strokeWidth={lineWidth->Belt_Float.toString}, ())
         />,
@@ -58,12 +58,12 @@ let polyline = (~ps:array<point>, ~color:string, ~lineWidth:float, ~key:option<s
     )
 }
 
-let rect = (~bnd:boundaries, ~color:string, ~lineWidth:float, ~key:option<string>=?, ()):(reElem,boundaries) => {
+let rect = (~bnd:boundaries, ~color:string, ~lineWidth:float, ~key:option<string>=?):(reElem,boundaries) => {
     let p1 = bnd->bndLeftBottom
     let p2 = bnd->bndLeftTop
     let p3 = bnd->bndRightTop
     let p4 = bnd->bndRightBottom
-    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~lineWidth, ~key=?key, ())
+    polyline( ~ps=[ p1,p2,p3,p4,p1 ], ~color, ~lineWidth, ~key=?key)
 }
 
 let text = (
@@ -72,8 +72,7 @@ let text = (
     ~key:option<string>=?,
     ~color:string="black",
     ~bold:bool=false,
-    ~onClick:option<ReactEvent.Mouse.t=>unit>=?,
-    ()
+    ~onClick:option<ReactEvent.Mouse.t=>unit>=?
 ):(reElem,boundaries) => {
     let ey = ex->vecRot(90.->deg)
 
@@ -102,7 +101,7 @@ let text = (
             {text->React.string}
         </text>,
         bndFromVectors([
-            ex->vecMul(charWidth *. text->Js_string2.length->Belt_Int.toFloat),
+            ex->vecMul(charWidth *. text->String.length->Belt_Int.toFloat),
             ey->vecMul(charHeight),
         ])
     )
@@ -125,58 +124,56 @@ let rndStmt = (
             ~text=sym, 
             ~bold=color->Belt_Option.isSome, 
             ~color=color->Belt_Option.getWithDefault("black"),
-            ~key, 
-            ()
+            ~key
         )
-        elems->Js.Array2.push(elem)->ignore
-        bnds->Js.Array2.push(bnd)->ignore
+        elems->Array.push(elem)
+        bnds->Array.push(bnd)
         curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth))
     }
 
     let contentOnlyBnd = []
-    for i in 0 to stmt->Js_array2.length-1 {
+    for i in 0 to stmt->Array.length-1 {
         let subKey = `${key}-${i->Belt_Int.toString}`
-        printSymbol(~sym=stmt[i], ~key=`${subKey}-S`)
-        if (i == stmt->Js_array2.length-1) {
-            contentOnlyBnd->Js.Array2.push(bndMergeAll(bnds))->ignore
+        printSymbol(~sym=stmt->Array.getUnsafe(i), ~key=`${subKey}-S`)
+        if (i == stmt->Array.length-1) {
+            contentOnlyBnd->Array.push(bndMergeAll(bnds))
         }
         printSymbol(~sym=" ", ~key=`${subKey}-s`)
     }
-    (elems, bndMergeAll(bnds), contentOnlyBnd[0])
+    (elems, bndMergeAll(bnds), contentOnlyBnd->Array.getUnsafe(0))
 }
 
 let testTextRendering = ():reElem => {
     let testText = "|Test gy ..WW.."
-    let (textElem1, textBnd1) = text(~ex=ex, ~text=testText, ~bold=true, ())
+    let (textElem1, textBnd1) = text(~ex=ex, ~text=testText, ~bold=true)
     let textHeight = textBnd1->bndHeight
     let lineWidth = textHeight *. 0.01
-    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~lineWidth, ())
-    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~lineWidth=lineWidth *. 10., ())
+    let (rectElem11, rectBnd11) = rect(~bnd=textBnd1, ~color="yellow", ~lineWidth)
+    let (rectElem12, rectBnd12) = rect(~bnd=textBnd1, ~color="green", ~lineWidth=lineWidth *. 10.)
 
-    let (textElem2, textBnd2) = text(~ex=ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)), ~text=testText, ~bold=false, ())
-    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~lineWidth, ())
-    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~lineWidth=lineWidth *. 10., ())
+    let (textElem2, textBnd2) = text(~ex=ex->vecTr(ey->vecRev->vecMul(textHeight *. 1.1)), ~text=testText, ~bold=false)
+    let (rectElem21, rectBnd21) = rect(~bnd=textBnd2, ~color="yellow", ~lineWidth)
+    let (rectElem22, rectBnd22) = rect(~bnd=textBnd2, ~color="blue", ~lineWidth=lineWidth *. 10.)
 
     let testText2 = "|- AbCdEf       WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... AbCdEf  WWW eee ... |||"
-    let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false, ())
-    let charWidth = textBnd3->bndWidth /. (testText2->Js.String2.length->Belt.Int.toFloat)
+    let (textElem3, textBnd3) = text(~ex=ex->vecTr(ey->vecRev->vecMul(2. *. textHeight *. 1.1)), ~text=testText2, ~bold=false)
+    let charWidth = textBnd3->bndWidth /. (testText2->String.length->Belt.Int.toFloat)
     let textBnd4Arr = []
     let textElem4Arr = []
     let ex4 = ref(ex->vecTr(ey->vecRev->vecMul(3. *. textHeight *. 1.1)))
     let dx = ex->vecMul(charWidth)
-    for i in 0 to testText2->Js.String2.length-1 {
-        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->Js_string2.charAt(i), ~bold=false, ~key=i->Belt_Int.toString, ())
-        textElem4Arr->Js.Array2.push(textElem4)->ignore
-        textBnd4Arr->Js.Array2.push(textBnd4)->ignore
+    for i in 0 to testText2->String.length-1 {
+        let (textElem4, textBnd4) = text(~ex=ex4.contents, ~text=testText2->String.charAt(i), ~bold=false, ~key=i->Belt_Int.toString)
+        textElem4Arr->Array.push(textElem4)
+        textBnd4Arr->Array.push(textBnd4)
         ex4 := ex4.contents->vecTr(dx)
     }
 
     rndSvg(
         ~boundaries=
-            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Js_array2.concat(textBnd4Arr))
-            ->bndAddMarginPct(~all=0.01, ()), 
-        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>, 
-        ()
+            bndMergeAll([textBnd1, rectBnd11, rectBnd12, textBnd2, rectBnd21, rectBnd22, textBnd3]->Array.concat(textBnd4Arr))
+            ->bndAddMarginPct(~all=0.01), 
+        ~content = <> rectElem12 rectElem11 textElem1 rectElem22 rectElem21 textElem2 textElem3 {textElem4Arr->React.array}</>
     )
 
 }
@@ -192,15 +189,15 @@ let rndConnection = (
         (bnd2, bnd1)
     }
     let margin = bndHeight *. 0.4
-    let topBnd = if (noFrameForBottomBnd) {topBnd->bndAddMargin(~top=margin, ~bottom=margin, ())} else {topBnd}
-    let bottomBnd = if (noFrameForBottomBnd) {bottomBnd} else {bottomBnd->bndAddMargin(~top=margin, ~bottom=margin, ())}
-    let (rElemTop,rBndTop) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`, ())
-    let (rElemBottom,rBndBottom) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`, ())
+    let topBnd = if (noFrameForBottomBnd) {topBnd->bndAddMargin(~top=margin, ~bottom=margin)} else {topBnd}
+    let bottomBnd = if (noFrameForBottomBnd) {bottomBnd} else {bottomBnd->bndAddMargin(~top=margin, ~bottom=margin)}
+    let (rElemTop,rBndTop) = rect(~bnd=topBnd, ~color, ~lineWidth, ~key=`bnd-top-${key}`)
+    let (rElemBottom,rBndBottom) = rect(~bnd=bottomBnd, ~color, ~lineWidth, ~key=`bnd-bottom-${key}`)
     let lineVec = pntVec(
         pntVec(topBnd->bndLeftBottom, topBnd->bndRightBottom)->vecMul(0.5)->vecEnd,
         pntVec(bottomBnd->bndLeftTop, bottomBnd->bndRightTop)->vecMul(0.5)->vecEnd,
     )
-    let (lElem,lBnd) = lineVec->vecToLine(~color, ~key=`line-${key}`, ~lineWidth, ())
+    let (lElem,lBnd) = lineVec->vecToLine(~color, ~key=`line-${key}`, ~lineWidth)
     if (noFrameForBottomBnd) {
         ( [ rElemTop, lElem ]->React.array, bndMergeAll([rBndTop,lBnd]) )
     } else {
@@ -235,13 +232,13 @@ let rndStmtAndHyp = (
             }
         }
 
-        let rndCtxStmt = ctxFirst || frmStmt->Js.Array2.some(subs->Belt_HashMapString.has)
-        let (_, bndSample) = text(~ex, ~text=".", ())
+        let rndCtxStmt = ctxFirst || frmStmt->Array.some(Belt_HashMapString.has(subs, _))
+        let (_, bndSample) = text(~ex, ~text=".")
         let charHeight = bndSample->bndHeight
         let charWidth = bndSample->bndWidth
-        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Js.Array2.joinWith(" ")
-        let ctxStmtLen = ctxStmtStr->Js.String2.length->Belt_Int.toFloat *. charWidth
-        let frmStmtLen = frmStmt->Js.Array2.joinWith(" ")->Js.String2.length->Belt_Int.toFloat *. charWidth
+        let ctxStmtStr = frmStmt->Expln_utils_common.arrFlatMap(getCtxSubStmt)->Array.joinUnsafe(" ")
+        let ctxStmtLen = ctxStmtStr->String.length->Belt_Int.toFloat *. charWidth
+        let frmStmtLen = frmStmt->Array.joinUnsafe(" ")->String.length->Belt_Int.toFloat *. charWidth
         let dx = (ctxStmtLen -. frmStmtLen) /. 2.
         let exL = ex
         let exS = ex->vecTr(ex->vecMul(dx))
@@ -260,15 +257,15 @@ let rndStmtAndHyp = (
         let ctxElems = []
         let conElems = []
         let bnds = []
-        frmStmt->Js_array2.forEachi((frmSym,i) => {
+        frmStmt->Array.forEachWithIndex((frmSym,i) => {
             let (fElems,frmBnd,frmContentOnlyBnd) = rndStmt(
                 ~ex=frmEx.contents,
                 ~stmt=[frmSym],
                 ~symToColor=frmSymToColor,
                 ~key="frm-" ++ i->Belt_Int.toString,
             )
-            frmElems->Js_array2.pushMany(fElems)->ignore
-            bnds->Js_array2.push(frmBnd)->ignore
+            frmElems->Array.pushMany(fElems)
+            bnds->Array.push(frmBnd)
             frmEx := frmEx.contents->vecTr(ex->vecMul(frmBnd->bndWidth))
 
             if (rndCtxStmt) {
@@ -278,8 +275,8 @@ let rndStmtAndHyp = (
                     ~symToColor=ctxSymToColor,
                     ~key="ctx-" ++ i->Belt_Int.toString,
                 )
-                ctxElems->Js_array2.pushMany(cElems)->ignore
-                bnds->Js_array2.push(ctxBnd)->ignore
+                ctxElems->Array.pushMany(cElems)
+                bnds->Array.push(ctxBnd)
                 ctxEx := ctxEx.contents->vecTr(ex->vecMul(ctxBnd->bndWidth))
 
                 switch subsColors->Belt_HashMapString.get(frmSym) {
@@ -292,8 +289,8 @@ let rndStmtAndHyp = (
                             ~key=i->Belt_Int.toString,
                             ~noFrameForBottomBnd,
                         )
-                        conElems->Js_array2.push(conElem)->ignore
-                        bnds->Js_array2.push(conBnd)->ignore
+                        conElems->Array.push(conElem)
+                        bnds->Array.push(conBnd)
                     }
                 }
             }
@@ -309,14 +306,13 @@ let rndStmtAndHyp = (
                     ~bold=false,
                     ~key="label",
                     ~text=hypLabel,
-                    ~onClick=?onLabelClick,
-                    ()
+                    ~onClick=?onLabelClick
                 )
-                bnds->Js_array2.push(labelBnd)->ignore
-                ctxElems->Js_array2.push(labelElem)->ignore
+                bnds->Array.push(labelBnd)
+                ctxElems->Array.push(labelElem)
             }
         }
-        (conElems->Js.Array2.concat(frmElems)->Js.Array2.concat(ctxElems)->React.array, bndMergeAll(bnds))
+        (conElems->Array.concat(frmElems)->Array.concat(ctxElems)->React.array, bndMergeAll(bnds))
     }
 }
 
@@ -331,29 +327,29 @@ let make = (
     ~ctxColors2:option<Belt_HashMapString.t<string>>,
     ~onLabelClick:option<(int,string)=>unit>=?,
 ) => {
-    let (_, bndSample) = text(~ex, ~text=".", ())
+    let (_, bndSample) = text(~ex, ~text=".")
     let charHeight = bndSample->bndHeight
     let hypMargin = charHeight *. 3.
     let delimLineWidth = charHeight *. 0.05
     let delimLineMargin = charHeight *. 0.5
 
-    let numOfColors = subsAvailableColors->Js.Array2.length
-    let subsColors = subs->Belt_HashMapString.toArray->Js.Array2.mapi(((frmSym,_),i) => {
-        (frmSym, subsAvailableColors[mod(i, numOfColors)])
+    let numOfColors = subsAvailableColors->Array.length
+    let subsColors = subs->Belt_HashMapString.toArray->Array.mapWithIndex(((frmSym,_),i) => {
+        (frmSym, subsAvailableColors->Array.getUnsafe(mod(i, numOfColors)))
     })->Belt_HashMapString.fromArray
 
     let rndContent = () => {
         let curEx = ref(ex)
         let hypElems = []
         let hypBnds = []
-        hyps->Js.Array2.forEachi((hyp,i) => {
+        hyps->Array.forEachWithIndex((hyp,i) => {
             let (elem, bnd) = rndStmtAndHyp( 
                 ~ctxFirst=true, ~frmStmt=hyp, ~subs, ~subsColors, ~frmColors, ~ctxColors1, ~ctxColors2, 
-                ~hypLabel=Some(hypLabels[i]), ~noFrameForBottomBnd=true,
-                ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels[i]), ()) ),
+                ~hypLabel=Some(hypLabels->Array.getUnsafe(i)), ~noFrameForBottomBnd=true,
+                ~onLabelClick=onLabelClick->Belt_Option.map(onLabelClick => clickHnd(~act=()=>onLabelClick(i,hypLabels->Array.getUnsafe(i))) ),
             )(curEx.contents)
-            hypElems->Js.Array2.push(elem)->ignore
-            hypBnds->Js.Array2.push(bnd)->ignore
+            hypElems->Array.push(elem)
+            hypBnds->Array.push(bnd)
             curEx := curEx.contents->vecTr(ex->vecMul(bnd->bndWidth +. hypMargin))
         })
         let asrtComp = rndStmtAndHyp( 
@@ -361,21 +357,21 @@ let make = (
             ~hypLabel=None, ~noFrameForBottomBnd=false, ~onLabelClick=None,
         )
         let (_, asrtSampleBnd) = asrtComp(ex)
-        let (hypsElem, hypsBnd) = if (hyps->Js.Array2.length == 0) {
+        let (hypsElem, hypsBnd) = if (hyps->Array.length == 0) {
             let (sepElem, sepBnd) = pntVec(asrtSampleBnd->bndLeftTop, asrtSampleBnd->bndRightTop)->vecToLine(
-                ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
+                ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line"
             )
             (sepElem, sepBnd)
         } else {
             let hypsBnd = bndMergeAll(hypBnds)
             let (sepElem, sepBnd) = pntVec(hypsBnd->bndLeftBottom, hypsBnd->bndRightBottom)
                 ->vecNorm
-                ->vecMul(Js_math.max_float(hypsBnd->bndWidth, asrtSampleBnd->bndWidth))
+                ->vecMul(Math.max(hypsBnd->bndWidth, asrtSampleBnd->bndWidth))
                 ->vecTr(ey->vecMul(-. delimLineMargin))->vecToLine(
-                    ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line", ()
+                    ~color="black", ~lineWidth=delimLineWidth, ~key="delim-line"
                 )
             (
-                hypElems->Js.Array2.concat([sepElem])->React.array,
+                hypElems->Array.concat([sepElem])->React.array,
                 bndMergeAll([hypsBnd, sepBnd])
             )
         }
@@ -386,9 +382,8 @@ let make = (
         )
 
         rndSvg(
-            ~boundaries=bndMergeAll([hypsBnd, asrtBnd])->bndAddMargin(~all=charHeight *. 0.3, ()), 
-            ~content = <> hypsElem asrtElem </>, 
-            ()
+            ~boundaries=bndMergeAll([hypsBnd, asrtBnd])->bndAddMargin(~all=charHeight *. 0.3), 
+            ~content = <> hypsElem asrtElem </>
         )
     }
 

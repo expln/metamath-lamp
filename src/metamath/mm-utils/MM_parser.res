@@ -35,7 +35,7 @@ exception MmException(mmException)
 let isWhitespace = str => str == " " || str == "\t" || str == "\n" || str == "\r"
 
 let textAt = (text,i) => {
-    let textLength = text->Js_string2.length
+    let textLength = text->String.length
     let lengthToShow = 20
     let ellipsis = if (i+lengthToShow < textLength) {"..."} else {""}
     "'" ++ text->Js.String2.substrAtMost(~from=i, ~length=lengthToShow) ++ ellipsis ++ "'"
@@ -45,15 +45,14 @@ let parseMmFile = (
     ~mmFileContent as text:string, 
     ~skipComments:bool=false,
     ~skipProofs:bool=false,
-    ~onProgress: float=>unit = _ => (), 
-    ()
+    ~onProgress: float=>unit = _ => ()
 ): (mmAstNode,array<string>) => {
-    let textLength = text->Js_string2.length
+    let textLength = text->String.length
     let textLengthFlt = textLength->Belt_Int.toFloat
     let idx = ref(0) // index of the next char to read.
     let endOfFile = ref(false) // if idx is outside of text then endOfFile is true.
     let ch = ref("") // the char idx is pointing to. If endOfFile then ch == "".
-    let progressTracker = progressTrackerMake(~step=0.1, ~dontDecrease=true, ~onProgress, ())
+    let progressTracker = progressTrackerMake(~step=0.1, ~dontDecrease=true, ~onProgress)
     let allLabels = []
 
     let setIdx = i => {
@@ -63,7 +62,7 @@ let parseMmFile = (
             ch.contents = ""
         } else {
             endOfFile.contents = false
-            ch.contents = text->Js_string2.charAt(idx.contents)
+            ch.contents = text->String.charAt(idx.contents)
         }
     }
     setIdx(0)
@@ -75,7 +74,7 @@ let parseMmFile = (
                 endOfFile.contents = true
                 ch.contents = ""
             } else {
-                ch.contents = text->Js_string2.charAt(idx.contents)
+                ch.contents = text->String.charAt(idx.contents)
             }
         }
     }
@@ -90,14 +89,14 @@ let parseMmFile = (
         let result = ref(None)
         let beginIdx = idx.contents
         while (result.contents->Belt_Option.isNone) {
-            let foundIdx = text->Js_string2.indexOfFrom(tillToken, idx.contents)
+            let foundIdx = text->String.indexOfFrom(tillToken, idx.contents)
             if (foundIdx < 0) {
                 result.contents = Some(None)
             } else {
-                let nextIdx = foundIdx + tillToken->Js_string2.length
+                let nextIdx = foundIdx + tillToken->String.length
                 setIdx(nextIdx)
                 if (endOfFile.contents || ch.contents->isWhitespace) {
-                    result.contents = Some(Some(text->Js_string2.substring(~from=beginIdx, ~to_=foundIdx)))
+                    result.contents = Some(Some(text->String.substring(~start=beginIdx, ~end=foundIdx)))
                 } else {
                     setIdx(foundIdx+1)
                 }
@@ -115,19 +114,19 @@ let parseMmFile = (
         }
     }
 
-    let rec readNextToken = (~skipComments=true, ()):string => {
+    let rec readNextToken = (~skipComments=true):string => {
         if (!skipComments) {
             skipWhitespaces()
             let beginIdx = idx.contents
             while (!endOfFile.contents && !(ch.contents->isWhitespace)) {
                 readNextChar()
             }
-            text->Js_string2.substring(~from=beginIdx, ~to_=idx.contents)
+            text->String.substring(~start=beginIdx, ~end=idx.contents)
         } else {
-            let nextToken = ref(readNextToken(~skipComments=false, ()))
+            let nextToken = ref(readNextToken(~skipComments=false))
             while (nextToken.contents == "$(") {
                 parseComment(~beginIdx=idx.contents)->ignore
-                nextToken.contents = readNextToken(~skipComments=false, ())
+                nextToken.contents = readNextToken(~skipComments=false)
             }
             nextToken.contents
         }
@@ -146,7 +145,7 @@ let parseMmFile = (
             } else if (token == tillToken) {
                 result.contents = Some(Some(tokens))
             } else {
-                tokens->Js_array2.push(token)->ignore
+                tokens->Array.push(token)
             }
         }
         result.contents->Belt_Option.getExn
@@ -219,7 +218,7 @@ let parseMmFile = (
                                                     Some(Compressed({
                                                         labels:proofLabels, 
                                                         compressedProofBlock:
-                                                            ""->Js_string2.concatMany(compressedProofBlocks)
+                                                            ""->String.concatMany(compressedProofBlocks)
                                                     }))
                                                 }
                                         })
@@ -243,7 +242,7 @@ let parseMmFile = (
                                             None
                                         } else {
                                             Some(Uncompressed({
-                                                labels:[firstProofToken]->Js.Array2.concat(proofLabels)
+                                                labels:[firstProofToken]->Array.concat(proofLabels)
                                             }))
                                         },
                                 })
@@ -260,12 +259,12 @@ let parseMmFile = (
         let statements = []
 
         let pushStmt = stmt => {
-            statements->Js_array2.push(stmt)->ignore
+            statements->Array.push(stmt)
         }
 
         while (result.contents->Belt_Option.isNone) {
-            let token = readNextToken(~skipComments=false, ())
-            let tokenIdx = idx.contents - token->Js_string2.length
+            let token = readNextToken(~skipComments=false)
+            let tokenIdx = idx.contents - token->String.length
             if (token == "") {
                 if (level == 0) {
                     result.contents = Some({begin:beginIdx, end:idx.contents-1, stmt:Block({level, statements:statements})})
@@ -293,7 +292,7 @@ let parseMmFile = (
             } else {
                 let label = token
                 let token2 = readNextToken(())
-                let token2Idx = idx.contents - token2->Js_string2.length
+                let token2Idx = idx.contents - token2->String.length
                 if (token2 == "") {
                     raise(MmException({msg:`Unexpected end of file at ${textAt(tokenIdx)}`}))
                 } else if (token2 == "$f") {
@@ -301,10 +300,10 @@ let parseMmFile = (
                 } else if (token2 == "$e") {
                     pushStmt(parseEssential(~beginIdx=tokenIdx, ~label))
                 } else if (token2 == "$a") {
-                    allLabels->Js_array2.push(label)->ignore
+                    allLabels->Array.push(label)
                     pushStmt(parseAxiom(~beginIdx=tokenIdx, ~label))
                 } else if (token2 == "$p") {
-                    allLabels->Js_array2.push(label)->ignore
+                    allLabels->Array.push(label)
                     pushStmt(parseProvable(~beginIdx=tokenIdx, ~label))
                 } else {
                     raise(MmException({msg:`Unexpected token '${token2}' at ${textAt(token2Idx)}`}))
@@ -325,10 +324,9 @@ let traverseAst: (
     mmAstNode,
     ~preProcess:('c, mmAstNode)=>option<'res>=?,
     ~process:('c, mmAstNode)=>option<'res>=?,
-    ~postProcess:('c, mmAstNode)=>option<'res>=?,
-    ()
+    ~postProcess:('c, mmAstNode)=>option<'res>=?
 ) => ('c, option<'res>) =
-    (context, root, ~preProcess=?, ~process=?, ~postProcess=?, ()) => Expln_utils_data.traverseTree(
+    (context, root, ~preProcess=?, ~process=?, ~postProcess=?) => Expln_utils_data.traverseTree(
         context, 
         root, 
         (_, node) => {
@@ -339,15 +337,14 @@ let traverseAst: (
         },
         ~preProcess=?preProcess,
         ~process=?process,
-        ~postProcess=?postProcess,
-        ()
+        ~postProcess=?postProcess
     )
 
 let proofToStr = proof => {
     switch proof {
-        | Some(Uncompressed({labels})) => labels->Js_array2.joinWith(" ")
+        | Some(Uncompressed({labels})) => labels->Array.joinUnsafe(" ")
         | Some(Compressed({labels, compressedProofBlock})) =>
-            "( " ++ labels->Js_array2.joinWith(" ") ++ " ) " ++ compressedProofBlock
+            "( " ++ labels->Array.joinUnsafe(" ") ++ " ) " ++ compressedProofBlock
         | None => "?"
     }
 }
@@ -356,19 +353,19 @@ let stmtToStr: mmAstNode => string = node => {
     switch node {
         | {stmt:Block({level})} => `block(level=${level->Belt_Int.toString})`
         | {stmt:Comment({text})} => "$( " ++ text ++ " $)"
-        | {stmt:Const({symbols})} =>  "$c " ++ symbols->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Var({symbols})} =>  "$v " ++ symbols->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Disj({vars})} =>  "$d " ++ vars->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Floating({label, expr})} =>  label ++ " $f " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Essential({label, expr})} =>  label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Axiom({label, expr})} =>  label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $."
-        | {stmt:Provable({label, expr, proof})} =>  label ++ " $p " ++ expr->Js_array2.joinWith(" ")
+        | {stmt:Const({symbols})} =>  "$c " ++ symbols->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Var({symbols})} =>  "$v " ++ symbols->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Disj({vars})} =>  "$d " ++ vars->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Floating({label, expr})} =>  label ++ " $f " ++ expr->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Essential({label, expr})} =>  label ++ " $e " ++ expr->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Axiom({label, expr})} =>  label ++ " $a " ++ expr->Array.joinUnsafe(" ") ++ " $."
+        | {stmt:Provable({label, expr, proof})} =>  label ++ " $p " ++ expr->Array.joinUnsafe(" ")
             ++ " $= " ++ proofToStr(proof) ++ " $."
     }
 }
 
 let stmtToStrRec: mmAstNode => array<string> = stmt => {
-    let makePrefix = level => "    "->Js.String2.repeat(level)
+    let makePrefix = level => "    "->String.repeat(level)
     let ((_,result),_) = traverseAst(
         (ref(0),[]),
         stmt,
@@ -376,7 +373,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
             switch node {
                 | {stmt:Block({level: newLevel})} => {
                     if (newLevel != 0) {
-                        arr->Js_array2.push(makePrefix(level.contents) ++ "${")->ignore
+                        arr->Array.push(makePrefix(level.contents) ++ "${")
                     }
                     level.contents = newLevel
                 }
@@ -390,7 +387,7 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
                 | _ =>  stmtToStr(node)
             }
             if (str != "") {
-                arr->Js_array2.push(makePrefix(level.contents) ++ str)->ignore
+                arr->Array.push(makePrefix(level.contents) ++ str)
             }
             None
         },
@@ -399,21 +396,20 @@ let stmtToStrRec: mmAstNode => array<string> = stmt => {
                 | {stmt:Block({level: newLevel})} => {
                     level.contents = newLevel-1
                     if (newLevel != 0) {
-                        arr->Js_array2.push(makePrefix(level.contents) ++ "$}")->ignore
+                        arr->Array.push(makePrefix(level.contents) ++ "$}")
                     }
                 }
                 | _ => ()
             }
             None
-        },
-        ()
+        }
     )
     result
 }
 
 let astToStr = ( ast:mmAstNode ):string => {
     let res = []
-    let save = str => res->Js_array2.push(str)->ignore
+    let save = str => res->Array.push(str)
     traverseAst(
         (),
         ast,
@@ -427,14 +423,14 @@ let astToStr = ( ast:mmAstNode ):string => {
         ~process = (_,node) => {
             switch node {
                 | {stmt:Comment({text})} => save("$( " ++ text ++ " $)")
-                | {stmt:Const({symbols})} =>  save( "$c " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Var({symbols})} =>  save( "$v " ++ symbols->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Disj({vars})} =>  save( "$d " ++ vars->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Floating({label, expr})} =>  save( label ++ " $f " ++ expr->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Essential({label, expr})} =>  save( label ++ " $e " ++ expr->Js_array2.joinWith(" ") ++ " $." )
-                | {stmt:Axiom({label, expr})} =>  save( label ++ " $a " ++ expr->Js_array2.joinWith(" ") ++ " $." )
+                | {stmt:Const({symbols})} =>  save( "$c " ++ symbols->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Var({symbols})} =>  save( "$v " ++ symbols->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Disj({vars})} =>  save( "$d " ++ vars->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Floating({label, expr})} =>  save( label ++ " $f " ++ expr->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Essential({label, expr})} =>  save( label ++ " $e " ++ expr->Array.joinUnsafe(" ") ++ " $." )
+                | {stmt:Axiom({label, expr})} =>  save( label ++ " $a " ++ expr->Array.joinUnsafe(" ") ++ " $." )
                 | {stmt:Provable({label, expr, proof})} => save(
-                    label ++ " $p " ++ expr->Js_array2.joinWith(" ") ++ " $= " ++ proofToStr(proof) ++ " $."
+                    label ++ " $p " ++ expr->Array.joinUnsafe(" ") ++ " $= " ++ proofToStr(proof) ++ " $."
                 )
                 | _ => ()
             }
@@ -446,8 +442,7 @@ let astToStr = ( ast:mmAstNode ):string => {
                 | _ => ()
             }
             None
-        },
-        ()
+        }
     )->ignore
-    res->Js_array2.joinWith("\n")
+    res->Array.joinUnsafe("\n")
 }

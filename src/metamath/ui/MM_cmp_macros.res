@@ -81,18 +81,18 @@ let getMacrosFromCache = (~displayName:string, ~script:string):result<array<macr
 
 let removeStaleMacrosFromCache = (st:state):unit => {
     let validKeys = st.collsOfMacros
-        ->Js.Array2.map(coll => getMacrosCacheKey(~displayName=coll.displayName, ~script=coll.scriptText))
+        ->Array.map(coll => getMacrosCacheKey(~displayName=coll.displayName, ~script=coll.scriptText))
     let allKeys = macrosCache->Belt_HashMapString.keysToArray
-    allKeys->Js.Array2.forEach(key => {
-        if (!(validKeys->Js_array2.includes(key))) {
+    allKeys->Array.forEach(key => {
+        if (!(validKeys->Array.includes(key))) {
             macrosCache->Belt_HashMapString.remove(key)
         }
     })
 }
 
 let setMmExampleScript = MM_macros_set_mm_example.setMmExampleMacros
-    ->Js.String2.replaceByRe(%re("/\[!@#\]/g"), "`")
-    ->Js.String2.replaceByRe(%re("/\{!@#\}/g"), "$")
+    ->String.replaceRegExp(%re("/\[!@#\]/g"), "`")
+    ->String.replaceRegExp(%re("/\{!@#\}/g"), "$")
 let setMmExampleDisplayName = "set.mm example macros"
 
 let makeEmptyState = () => {
@@ -144,7 +144,7 @@ let deleteMacros = (st:state, ~id:int):result<state,string> => {
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.filter(macros => macros.id != id)
+                collsOfMacros:st.collsOfMacros->Array.filter(macros => macros.id != id)
             }
         )
     }
@@ -156,7 +156,7 @@ let saveEdits = (st:state, ~id:int):result<state,string> => {
     } else {
         let st = {
             ...st,
-            collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+            collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                 if (collOfMacros.id != id) {
                     collOfMacros
                 } else {
@@ -185,7 +185,7 @@ let setDisplayNameEdit = (st:state, ~collOfMacrosId:int, ~displayNameEdit:string
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                     if (collOfMacros.id != collOfMacrosId) {
                         collOfMacros
                     } else {
@@ -204,7 +204,7 @@ let setScriptTextEdit = (st:state, ~collOfMacrosId:int, ~scriptTextEdit:string):
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                     if (collOfMacros.id != collOfMacrosId) {
                         collOfMacros
                     } else {
@@ -223,7 +223,7 @@ let resetEditsForCollOfMacros = (st:state, id:int):result<state,string> => {
         Ok(
             {
                 ...st,
-                collsOfMacros:st.collsOfMacros->Js_array2.map(collOfMacros => {
+                collsOfMacros:st.collsOfMacros->Array.map(collOfMacros => {
                     if (collOfMacros.id != id) {
                         collOfMacros
                     } else {
@@ -240,7 +240,7 @@ let resetEditsForCollOfMacros = (st:state, id:int):result<state,string> => {
 }
 
 let setActiveCollOfMacrosId = (st:state, newActiveCollOfMacrosId:int):result<state,string> => {
-    switch st.collsOfMacros->Js_array2.find(coll => coll.id == newActiveCollOfMacrosId) {
+    switch st.collsOfMacros->Array.find(coll => coll.id == newActiveCollOfMacrosId) {
         | None => Ok(st)
         | Some(_) => {
             let st = {
@@ -271,8 +271,8 @@ let expBtnBaseStyle = ReactDOM.Style.make(
 
 let stateToStateLocStor = (st:state):stateLocStor => {
     {
-        activeCollOfMacrosIdx: st.collsOfMacros->Js.Array2.findIndex(coll => coll.id == st.activeCollOfMacrosId),
-        collsOfMacros: st.collsOfMacros->Js_array2.filter(coll => coll.id >= 0)->Js_array2.map(coll => {
+        activeCollOfMacrosIdx: st.collsOfMacros->Array.findIndex(coll => coll.id == st.activeCollOfMacrosId),
+        collsOfMacros: st.collsOfMacros->Array.filter(coll => coll.id >= 0)->Array.map(coll => {
             {
                 displayName: coll.displayName,
                 scriptText: coll.scriptText,
@@ -297,7 +297,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
         }
     ]
     let collsOfMacros = Belt_Array.concatMany([
-        ls.collsOfMacros->Js_array2.mapi((coll,i) => {
+        ls.collsOfMacros->Array.mapWithIndex((coll,i) => {
             {
                 id:i,
                 version:1,
@@ -314,7 +314,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
         defaultColls,
     ])
     {
-        nextId:ls.collsOfMacros->Js_array2.length,
+        nextId:ls.collsOfMacros->Array.length,
         activeCollOfMacrosId:
             switch collsOfMacros->Belt_Array.get(ls.activeCollOfMacrosIdx) {
                 | None => 0
@@ -333,15 +333,15 @@ let readStateLocStorFromJsonStr = (jsonStr:string):result<stateLocStor,string> =
     open Expln_utils_jsonParse
     parseJson(jsonStr, asObj(_, d=>{
         {
-            activeCollOfMacrosIdx: d->int("activeCollOfMacrosIdx", ()),
+            activeCollOfMacrosIdx: d->int("activeCollOfMacrosIdx"),
             collsOfMacros: d->arr("collsOfMacros", asObj(_, d=>{
                 {
-                    displayName: d->str("displayName", ()),
-                    scriptText: d->str("scriptText", ()),
+                    displayName: d->str("displayName"),
+                    scriptText: d->str("scriptText"),
                 }
-            }, ()), ())
+            }))
         }
-    }, ()), ())
+    }))
 }
 
 let readStateFromLocStor = ():state => {
@@ -376,7 +376,7 @@ let make = (
     )
 
     let activeCollOfMacros = state.collsOfMacros
-        ->Js_array2.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
+        ->Array.find(collOfMacros => collOfMacros.id == state.activeCollOfMacrosId)
 
     let thereAreChangesInActiveCollOfMacros = activeCollOfMacros->Belt.Option.map(coll => {
         coll.displayName != coll.displayNameEdit || coll.scriptText != coll.scriptTextEdit
@@ -474,7 +474,7 @@ let make = (
             switch prevSt->deleteMacros(~id=collId) {
                 | Error(_) => prevSt
                 | Ok(st) => {
-                    switch st->setActiveCollOfMacrosId(st.collsOfMacros[0].id) {
+                    switch st->setActiveCollOfMacrosId((st.collsOfMacros->Array.getUnsafe(0)).id) {
                         | Error(_) => prevSt
                         | Ok(st) => {
                             saveStateToLocStor(st)
@@ -548,7 +548,7 @@ let make = (
                     sx={"width": 330}
                 >
                     {
-                        state.collsOfMacros->Js_array2.map(macros => {
+                        state.collsOfMacros->Array.map(macros => {
                             let value = macros.id->Belt_Int.toString
                             <MenuItem key=value value>{React.string(macros.displayName)}</MenuItem>
                         })->React.array
@@ -570,9 +570,8 @@ let make = (
                 } else {
                     rndHiddenTextField(
                         ~onKeyDown=kbrdHnds([
-                            kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
-                        ]),
-                        ()
+                            kbrdClbkMake(~key=keyEsc, ~act=onClose),
+                        ])
                     )
                 }
             }
@@ -591,8 +590,8 @@ let make = (
             value=collOfMacros.scriptTextEdit
             onChange=evt2str(actSetScriptTextEdit)
             onKeyDown=kbrdHnds([
-                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits),
+                kbrdClbkMake(~key=keyEsc, ~act=onClose),
             ])
             disabled=activeCollOfMacrosIsReadOnly
         />
@@ -613,8 +612,8 @@ let make = (
                             value=collOfMacros.displayNameEdit
                             onChange=evt2str(actSetDisplayNameEdit)
                             onKeyDown=kbrdHnds([
-                                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits, ()),
-                                kbrdClbkMake(~key=keyEsc, ~act=onClose, ()),
+                                kbrdClbkMake(~key=keyEnter, ~act=actSaveEdits),
+                                kbrdClbkMake(~key=keyEsc, ~act=onClose),
                             ])
                             disabled={collOfMacros.id < 0}
                         />
@@ -679,9 +678,9 @@ let make = (
                         rndError(`There was an error during initialization of this collection of macros:\n${msg}`)
                     }
                     | Ok(macros) => {
-                        <List disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
+                        <ListCmp disablePadding=true key={collOfMacros.id->Belt_Int.toString}>
                             {
-                                macros->Js_array2.mapi((macro,i) => {
+                                macros->Array.mapWithIndex((macro,i) => {
                                     <ListItem 
                                         key={
                                             collOfMacros.version->Belt_Int.toString 
@@ -702,7 +701,7 @@ let make = (
                                     </ListItem>
                                 })->React.array
                             }
-                        </List>
+                        </ListCmp>
                     }
                 }
             }

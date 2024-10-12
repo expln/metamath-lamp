@@ -19,7 +19,7 @@ let reqToStr = req => {
     switch req {
         | FindAssertions({label, typ, pattern}) => 
             `FindAssertions(label="${label}", typ=${typ->Belt_Int.toString}, `
-                ++ `pattern=[${pattern->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(", ")}])`
+                ++ `pattern=[${pattern->Array.map(Belt_Int.toString(_))->Array.joinUnsafe(", ")}])`
     }
 }
 
@@ -31,15 +31,15 @@ let respToStr = resp => {
 }
 
 let frameMatchesConstPattern = (frm:frame, pat:array<int>):bool => {
-    let patLen = pat->Js.Array2.length
-    let asrtLen = frm.asrt->Js.Array2.length
+    let patLen = pat->Array.length
+    let asrtLen = frm.asrt->Array.length
     let pIdx = ref(0)
     let aIdx = ref(0)
     while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
-        let asrtSym = frm.asrt[aIdx.contents]
+        let asrtSym = frm.asrt->Array.getUnsafe(aIdx.contents)
         if (
-            asrtSym < 0 && asrtSym == pat[pIdx.contents]
-            || asrtSym >= 0 && frm.varTypes[asrtSym] == pat[pIdx.contents]
+            asrtSym < 0 && asrtSym == pat->Array.getUnsafe(pIdx.contents)
+            || asrtSym >= 0 && frm.varTypes->Array.getUnsafe(asrtSym) == pat->Array.getUnsafe(pIdx.contents)
         ) {
             pIdx.contents = pIdx.contents + 1
         }
@@ -56,7 +56,7 @@ let rec frameMatchesVarPatternRec = (
     ~pIdx:int,
     ~minAIdx:int,
 ):bool => {
-    if (pIdx == varPat->Js_array2.length) {
+    if (pIdx == varPat->Array.length) {
         true
     } else {
         let aIdx = ref(minAIdx)
@@ -72,13 +72,13 @@ let rec frameMatchesVarPatternRec = (
         }
 
         let found = ref(false)
-        let maxAIdx = frm.asrt->Js_array2.length - (varPat->Js_array2.length - pIdx)
+        let maxAIdx = frm.asrt->Array.length - (varPat->Array.length - pIdx)
         while (!found.contents && aIdx.contents <= maxAIdx) {
-            let asrtSym = frm.asrt[aIdx.contents]
-            let varPatSym = varPat[pIdx]
+            let asrtSym = frm.asrt->Array.getUnsafe(aIdx.contents)
+            let varPatSym = varPat->Array.getUnsafe(pIdx)
             if ( asrtSym < 0 && asrtSym == varPatSym ) {
                 found := remainingMatches()
-            } else if ( asrtSym >= 0 && frm.varTypes[asrtSym] == constPat[pIdx] ) {
+            } else if ( asrtSym >= 0 && frm.varTypes->Array.getUnsafe(asrtSym) == constPat->Array.getUnsafe(pIdx) ) {
                 if ( varPatSym < 0 ) {
                     found := remainingMatches()
                 } else {
@@ -140,7 +140,7 @@ let searchAssertions = (
             ~varsText,
             ~disjText,
             ~procName,
-            ~initialRequest = FindAssertions({label:label->Js.String2.toLowerCase, typ, pattern}),
+            ~initialRequest = FindAssertions({label:label->String.toLowerCase, typ, pattern}),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -150,8 +150,7 @@ let searchAssertions = (
                     }
                 }
             },
-            ~enableTrace=false,
-            ()
+            ~enableTrace=false
         )
     })
 }
@@ -163,14 +162,13 @@ let doSearchAssertions = (
     ~label:string, 
     ~typ:int, 
     ~pattern:array<int>, 
-    ~onProgress:option<float=>unit>=?,
-    ()
+    ~onProgress:option<float=>unit>=?
 ):array<stmtsDto> => {
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = frms->frmsSize->Belt_Int.toFloat
     let varPat = pattern
-    let constPat = varPat->Js.Array2.map(sym => {
+    let constPat = varPat->Array.map(sym => {
         if (sym < 0) {
             sym
         } else {
@@ -181,17 +179,17 @@ let doSearchAssertions = (
         _, 
         ~varPat,
         ~constPat,
-        ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
+        ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Array.length)
     )
 
     let results = []
-    let framesInDeclarationOrder = frms->frmsSelect(())
-        ->Js.Array2.sortInPlaceWith((a,b) => a.frame.ord - b.frame.ord)
-    framesInDeclarationOrder->Js.Array2.forEach(frm => {
+    let framesInDeclarationOrder = frms->frmsSelect
+        ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
+    framesInDeclarationOrder->Array.forEach(frm => {
         let frame = frm.frame
         if (
-            frame.label->Js.String2.toLowerCase->Js_string2.includes(label)
-            && frame.asrt[0] == typ 
+            frame.label->String.toLowerCase->String.includes(label)
+            && frame.asrt->Array.getUnsafe(0) == typ 
             && frameMatchesPattern(frame)
         ) {
             let newDisj = disjMake()
@@ -202,15 +200,15 @@ let doSearchAssertions = (
             })
             let newDisjStr = []
             newDisj->disjForEachArr(disjArr => {
-                newDisjStr->Js.Array2.push(frmIntsToStrExn(wrkCtx, frame, disjArr))->ignore
+                newDisjStr->Array.push(frmIntsToStrExn(wrkCtx, frame, disjArr))
             })
             let stmts = []
             let argLabels = []
-            frame.hyps->Js_array2.forEach(hyp => {
+            frame.hyps->Array.forEach(hyp => {
                 if (hyp.typ == E) {
                     let argLabel = hyp.label
-                    argLabels->Js_array2.push(argLabel)->ignore
-                    stmts->Js_array2.push(
+                    argLabels->Array.push(argLabel)
+                    stmts->Array.push(
                         {
                             label: argLabel,
                             expr:hyp.expr,
@@ -218,10 +216,10 @@ let doSearchAssertions = (
                             jstf:None,
                             isProved: false,
                         }
-                    )->ignore
+                    )
                 }
             })
-            stmts->Js_array2.push(
+            stmts->Array.push(
                 {
                     label: frame.label,
                     expr:frame.asrt,
@@ -229,14 +227,14 @@ let doSearchAssertions = (
                     jstf:Some({args:argLabels,label:frame.label}),
                     isProved: false,
                 }
-            )->ignore
-            results->Js.Array2.push({
+            )
+            results->Array.push({
                 newVars: Belt_Array.range(0, frame.numOfVars-1),
                 newVarTypes: frame.varTypes,
                 newDisj,
                 newDisjStr,
                 stmts,
-            })->ignore
+            })
         }
 
         framesProcessed.contents = framesProcessed.contents +. 1.
@@ -256,8 +254,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~label, 
                 ~typ, 
                 ~pattern, 
-                ~onProgress = pct => sendToClient(OnProgress(pct)), 
-                ()
+                ~onProgress = pct => sendToClient(OnProgress(pct))
             )
             sendToClient(SearchResult({found:results}))
         }

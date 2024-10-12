@@ -1,5 +1,3 @@
-open Common
-
 type useLongClick = {
     onClick:ReactEvent.Mouse.t=>unit,
 
@@ -24,11 +22,11 @@ type clickAttrs = {
 type state = {
     lastClickBeginTime: float,
     lastClickEndTime: float,
-    timerId:option<timeoutID>,
+    timerId:option<timeoutId>,
     clickBeginScreenX:int,
     clickBeginScreenY:int,
     doShortClick: option<option<clickAttrs>>,
-    doLongClick: option<timeoutID>,
+    doLongClick: option<timeoutId>,
 }
 
 let makeInitialState = () => {
@@ -58,7 +56,7 @@ let resetState = (st:state):state => {
     }
 }
 
-let markLongClickIsRequested = (st:state, timerId:timeoutID):state => {
+let markLongClickIsRequested = (st:state, timerId:timeoutId):state => {
     {
         ...st,
         doShortClick: None,
@@ -75,19 +73,24 @@ let updateStateOnClickBegin = (
     longClickDelayMs:int,
     updateState: (state=>state)=>unit
 ):state => {
-    if (Js.Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
+    if (Date.now() -. st.lastClickBeginTime > repeatDelayMs) {
         {
             ...resetState(st),
-            lastClickBeginTime: Js.Date.now(),
+            lastClickBeginTime: Date.now(),
             clickBeginScreenX:screenX,
             clickBeginScreenY:screenY,
             timerId: {
-                let timerIdLocal = ref(stubTimeoutId)
-                timerIdLocal := setTimeout( 
-                    () => updateState(markLongClickIsRequested(_, timerIdLocal.contents)), 
+                let timerIdLocal = ref(None)
+                timerIdLocal := Some(setTimeout( 
+                    () => {
+                        switch timerIdLocal.contents {
+                            | None => ()
+                            | Some(timerId) => updateState(markLongClickIsRequested(_, timerId))
+                        }
+                    }, 
                     longClickDelayMs 
-                )
-                Some(timerIdLocal.contents)
+                ))
+                timerIdLocal.contents
             }
         }
     } else {
@@ -96,10 +99,10 @@ let updateStateOnClickBegin = (
 }
 
 let updateStateOnClickEnd = (st:state, evt:option<ReactEvent.Mouse.t>):state => {
-    if (Js.Date.now() -. st.lastClickEndTime > repeatDelayMs) {
+    if (Date.now() -. st.lastClickEndTime > repeatDelayMs) {
         {
             ...st,
-            lastClickEndTime: Js.Date.now(),
+            lastClickEndTime: Date.now(),
             timerId: {
                 switch st.timerId {
                     | None => ()
@@ -173,8 +176,8 @@ let useLongClick = (
         if (
             state.timerId->Belt_Option.isSome
             && (
-                (state.clickBeginScreenX - screenX)->Js_math.abs_int > 3
-                || (state.clickBeginScreenY - screenY)->Js_math.abs_int > 3
+                (state.clickBeginScreenX - screenX)->Math.Int.abs > 3
+                || (state.clickBeginScreenY - screenY)->Math.Int.abs > 3
             )
         ) {
             setState(resetState)

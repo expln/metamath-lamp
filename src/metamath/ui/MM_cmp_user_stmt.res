@@ -22,8 +22,7 @@ let rndIconButton = (
     ~active:bool=true, 
     ~title:option<string>=?, 
     ~color:option<string>=Some("primary"),
-    ~key:option<string>=?,
-    ()
+    ~key:option<string>=?
 ) => {
     <span ?title>
         <IconButton ?key disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
@@ -101,8 +100,7 @@ let rndSymbol = (
     ~spaceBackgroundColor:option<string>=?,
     ~symbolBackgroundColor:option<string>=?,
     ~cursor:string="auto",
-    ~title:option<string>=?,
-    ()
+    ~title:option<string>=?
 ):reElem => {
     <React.Fragment key>
         {
@@ -138,8 +136,8 @@ let rndSymbol = (
                     <span
                         onClick={
                             clickHnd2(
-                                clickClbkMake(~act = callbackOpt(onLeftClick), ()),
-                                clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
+                                clickClbkMake(~act = callbackOpt(onLeftClick)),
+                                clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick)),
                             )
                         }
                         style
@@ -189,8 +187,8 @@ let rndSymbol = (
                 <span 
                     onClick={
                         clickHnd2(
-                            clickClbkMake(~act = callbackOpt(onLeftClick), ()),
-                            clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick), ()),
+                            clickClbkMake(~act = callbackOpt(onLeftClick)),
+                            clickClbkMake(~alt=true, ~act=callbackOpt(onAltLeftClick)),
                         )
                     }
                     style
@@ -219,18 +217,17 @@ let rndContText = (
     ~longClickDelayMs:int=0,
     ~cursor:string="auto",
     ~renderSelection:bool=false,
-    ~title:option<string>=?,
-    ()
+    ~title:option<string>=?
 ) => {
     switch stmtCont {
         | Text({syms}) => {
             let syms = 
-                if (syms->Js.Array2.length == 0) {
+                if (syms->Array.length == 0) {
                     [{sym:nbsp,color:None},{sym:nbsp,color:None},{sym:nbsp,color:None}]
                 } else {
                     syms
                 }
-            syms->Js.Array2.mapi((stmtSym,i) => {
+            syms->Array.mapWithIndex((stmtSym,i) => {
                 rndSymbol(
                     ~isFirst = i==0,
                     ~key=i->Belt.Int.toString,
@@ -244,15 +241,14 @@ let rndContText = (
                     ~longClickDelayMs,
                     ~cursor,
                     ~symRename?,
-                    ~title?,
-                    ()
+                    ~title?
                 )
             })->React.array
         }
         | Tree({exprTyp, root}) => {
             let (clickedId,selectedIds) = getIdsOfSelectedNodes(stmtCont)
             let elems = []
-            elems->Js.Array2.push(
+            elems->Array.push(
                 rndSymbol(
                     ~isFirst=true,
                     ~key="expr-type",
@@ -262,10 +258,9 @@ let rndContText = (
                     ~symRename?,
                     ~longClickEnabled=false,
                     ~longClickDelayMs=0,
-                    ~title?,
-                    ()
+                    ~title?
                 )
-            )->ignore
+            )
             Expln_utils_data.traverseTree(
                 ref(false),
                 Subtree(root),
@@ -280,7 +275,7 @@ let rndContText = (
                         | Subtree(_) => ()
                         | Symbol({id, sym, color}) => {
                             let symbolIsHighlighted = selectedIds->Belt_SetInt.has(id)
-                            elems->Js.Array2.push(
+                            elems->Array.push(
                                 rndSymbol(
                                     ~isFirst=false,
                                     ~key=id->Belt.Int.toString,
@@ -314,16 +309,14 @@ let rndContText = (
                                     },
                                     ~cursor,
                                     ~symRename?,
-                                    ~title?,
-                                    ()
+                                    ~title?
                                 )
-                            )->ignore
+                            )
                             selectionIsOn := symbolIsHighlighted
                         }
                     }
                     None
-                },
-                ()
+                }
             )->ignore
             elems->React.array
         }
@@ -331,7 +324,7 @@ let rndContText = (
 }
 
 let symbolsNotAllowedInLabelRegex = %re("/[\s:]+/g")
-let removeSymbolsNotAllowedInLabel = str => str->Js_string2.replaceByRe(symbolsNotAllowedInLabelRegex, "")
+let removeSymbolsNotAllowedInLabel = str => str->String.replaceRegExp(symbolsNotAllowedInLabelRegex, "")
 
 let stmtPartMarginLeft = "10px"
 let stmtPartMarginTopInt = 5
@@ -351,8 +344,7 @@ let rndProofStatus = (
     ~onReadyIconAltClicked:option<unit=>unit>=?,
     ~onWaitingIconClicked:option<unit=>unit>=?,
     ~onErrorIconClicked:option<unit=>unit>=?,
-    ~onNoJstfIconClicked:option<unit=>unit>=?,
-    ()
+    ~onNoJstfIconClicked:option<unit=>unit>=?
 ):React.element => {
     let commonStyle = ReactDOM.Style.make(
         ~fontWeight="bold", 
@@ -392,8 +384,8 @@ let rndProofStatus = (
                             <LongClickSpan
                                 onClick={
                                     clickHnd2(
-                                        clickClbkMake(~act = callbackOpt(onReadyIconClicked), ()),
-                                        clickClbkMake(~alt=true, ~act=onReadyIconAltClicked, ()),
+                                        clickClbkMake(~act = callbackOpt(onReadyIconClicked)),
+                                        clickClbkMake(~alt=true, ~act=onReadyIconAltClicked),
                                     )
                                 }
                                 longClickEnabled
@@ -484,20 +476,20 @@ module VisualizedJstf = {
                             | Some(frame) => {
                                 let asrt = wrkCtx->frmIntsToSymsExn(frame, frame.asrt)
                                 let hyps = []
-                                let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
-                                let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Js.Array2.length)
-                                frame.hyps->Js.Array2.forEachi((hyp,i) => {
+                                let subs = Belt_HashMapString.make(~hintSize = frame.hyps->Array.length)
+                                let frmColors = Belt_HashMapString.make(~hintSize = frame.hyps->Array.length)
+                                frame.hyps->Array.forEachWithIndex((hyp,i) => {
                                     if (hyp.typ == E) {
-                                        hyps->Js.Array2.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))->ignore
+                                        hyps->Array.push(wrkCtx->frmIntsToSymsExn(frame, hyp.expr))
                                     } else {
-                                        let frmSym = wrkCtx->frmIntToSymExn(frame, hyp.expr[1])
+                                        let frmSym = wrkCtx->frmIntToSymExn(frame, hyp.expr->Array.getUnsafe(1))
                                         subs->Belt_HashMapString.set(
                                             frmSym,
                                             wrkCtx->ctxIntsToSymsExn( 
-                                                proofTreeDto.nodes[args[i]].expr->Js_array2.sliceFrom(1) 
+                                                (proofTreeDto.nodes->Array.getUnsafe(args->Array.getUnsafe(i))).expr->Array.sliceToEnd(~start=1)
                                             )
                                         )
-                                        let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr[0])
+                                        let typeSym = wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(0))
                                         switch typeColors->Belt_HashMapString.get(typeSym) {
                                             | None => ()
                                             | Some(color) => frmColors->Belt_HashMapString.set( frmSym, color )
@@ -665,9 +657,9 @@ let make = React.memoCustomCompareProps( ({
     openFrameExplorer,
 }:props) =>  {
     let (state, setState) = React.useState(_ => makeInitialState())
-    let labelRef = React.useRef(Js.Nullable.null)
-    let jstfRef = React.useRef(Js.Nullable.null)
-    let stmtTextFieldRef = React.useRef(Js.Nullable.null)
+    let labelRef = React.useRef(Nullable.null)
+    let jstfRef = React.useRef(Nullable.null)
+    let stmtTextFieldRef = React.useRef(Nullable.null)
 
     let (syntaxTreeWasRequested, setSyntaxTreeWasRequested) = React.useState(() => None)
     let (syntaxTreeError, setSyntaxTreeError) = React.useState(() => None)
@@ -707,14 +699,14 @@ let make = React.memoCustomCompareProps( ({
             | None => ()
             | Some(msg) => {
                 setSyntaxTreeError(_ => None)
-                openInfoDialog( ~modalRef, ~text=msg, () )
+                openInfoDialog( ~modalRef, ~text=msg )
             }
         }
         None
     }, [syntaxTreeError])
 
     React.useEffect1(() => {
-        switch stmtTextFieldRef.current->Js.Nullable.toOption {
+        switch stmtTextFieldRef.current->Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 switch selectionRange {
@@ -734,7 +726,7 @@ let make = React.memoCustomCompareProps( ({
             | None => ()
             | Some(newTextCursorPosition) => {
                 setNewTextCursorPosition(_ => None)
-                switch stmtTextFieldRef.current->Js.Nullable.toOption {
+                switch stmtTextFieldRef.current->Nullable.toOption {
                     | None => ()
                     | Some(domElem) => {
                         let input = ReactDOM.domElementToObj(domElem)
@@ -755,7 +747,7 @@ let make = React.memoCustomCompareProps( ({
                     | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
                     | Text({text, syms}) => {
                         switch textToSyntaxTree( 
-                            ~wrkCtx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                            ~wrkCtx, ~syms=[syms->Array.map(s => s.sym)->Array.sliceToEnd(_, ~start=1)],
                             ~syntaxTypes, ~frms, 
                             ~frameRestrict=settings.allowedFrms.inSyntax,
                             ~parenCnt,
@@ -764,15 +756,15 @@ let make = React.memoCustomCompareProps( ({
                         ) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTrees) => {
-                                switch (syntaxTrees[0]) {
+                                switch (syntaxTrees->Array.getUnsafe(0)) {
                                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                                     | Ok(syntaxTree) => {
                                         let stmtContTreeData = {
                                             text,
-                                            exprTyp:syms[0].sym, 
-                                            root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors, () ), 
+                                            exprTyp:(syms->Array.getUnsafe(0)).sym,
+                                            root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors, ~wrkCtxColors ), 
                                             clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
-                                                                ->Belt.Option.map(id => (id,Js_date.make())),
+                                                                ->Belt.Option.map(id => (id,Date.make())),
                                             expLvl:0,
                                         }
                                         onSyntaxTreeUpdatedWithoutContentChange(Tree(stmtContTreeData->incExpLvlIfConstClicked))
@@ -829,22 +821,22 @@ let make = React.memoCustomCompareProps( ({
         onJstfEditRequested()
     }
 
-    let before = (str:string, pos:int):string => str->Js.String2.substring(~from=0,~to_=pos)
-    let after = (str:string, pos:int):string => str->Js.String2.substringToEnd(~from=pos+1)
+    let before = (str:string, pos:int):string => str->String.substring(~start=0,~end=pos)
+    let after = (str:string, pos:int):string => str->String.substringToEnd(~start=pos+1)
 
     let getLastSymbol = (str:string):string => {
-        switch str->Js_string2.lastIndexOf(" ") {
+        switch str->String.lastIndexOf(" ") {
             | -1 => str
-            | idx => str->Js_string2.substringToEnd(~from=idx+1)
+            | idx => str->String.substringToEnd(~start=idx+1)
         }
     }
 
     let actStmtContentUpdated = (newText:string,selectionStart:int):unit => {
-        let prevLen = state.newText->Js.String2.length
-        let newLen = newText->Js.String2.length
+        let prevLen = state.newText->String.length
+        let newLen = newText->String.length
         let newText = 
             if (parenAc) {
-                if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->Js.String2.charAt(selectionStart - 1)) {
+                if (prevLen + 1 == newLen && selectionStart > 1 && " " == newText->String.charAt(selectionStart - 1)) {
                     let pos = selectionStart-1
                     let prevBefore = state.newText->before(pos)
                     let newBefore = newText->before(pos)
@@ -890,20 +882,20 @@ let make = React.memoCustomCompareProps( ({
     }
     
     let actContEditDone = () => {
-        onContEditDone(state.newText->Js_string2.trim)
+        onContEditDone(state.newText->String.trim)
     }
     
     let actContEditCancel = () => {
-        onContEditCancel(state.newText->Js_string2.trim)
+        onContEditCancel(state.newText->String.trim)
     }
     
     let actJstfEditDone = () => {
         actExpandProof(true)
-        onJstfEditDone(state.newText->Js_string2.trim)
+        onJstfEditDone(state.newText->String.trim)
     }
     
     let actJstfEditCancel = () => {
-        onJstfEditCancel(state.newText->Js_string2.trim)
+        onJstfEditCancel(state.newText->String.trim)
     }
     
     let actJstfDeleted = () => {
@@ -921,7 +913,7 @@ let make = React.memoCustomCompareProps( ({
 
     let actTreeNodeClicked = (nodeId) => {
         actUpdateSyntaxTreeWithoutContentChange(treeData => {
-            {...treeData, clickedNodeId:Some((nodeId,Js_date.make())), expLvl:0}->incExpLvlIfConstClicked
+            {...treeData, clickedNodeId:Some((nodeId,Date.make())), expLvl:0}->incExpLvlIfConstClicked
         })
     }
 
@@ -988,7 +980,7 @@ let make = React.memoCustomCompareProps( ({
                 let idxFrom = ref(None)
                 let idxTo = ref(None)
                 Expln_utils_data.traverseTree(
-                    (ref(false),ref(exprTyp->Js_string2.length)),
+                    (ref(false),ref(exprTyp->String.length)),
                     Subtree(root),
                     (_, node) => {
                         switch node {
@@ -1007,16 +999,15 @@ let make = React.memoCustomCompareProps( ({
                                 if (!(selectionIsOn.contents) && symbolIsHighlighted) {
                                     idxFrom := Some(charsPassed.contents + 1)
                                 }
-                                charsPassed := charsPassed.contents + 1 + sym->Js_string2.length
+                                charsPassed := charsPassed.contents + 1 + sym->String.length
                                 selectionIsOn := symbolIsHighlighted
                             }
                         }
                         idxTo.contents
-                    },
-                    ()
+                    }
                 )->ignore
                 switch (idxFrom.contents, idxTo.contents) {
-                    | (Some(idxFrom), None) => Some((idxFrom, stmt.cont->contToStr->Js.String2.length))
+                    | (Some(idxFrom), None) => Some((idxFrom, stmt.cont->contToStr->String.length))
                     | (Some(idxFrom), Some(idxTo)) => Some((idxFrom, idxTo))
                     | _ => None
                 }
@@ -1030,9 +1021,9 @@ let make = React.memoCustomCompareProps( ({
             | Some((low, high)) =>
                 let currentText = stmt.cont->contToStr
                 Some(
-                    currentText->Js.String2.slice(~from=0, ~to_=low)
+                    currentText->String.slice(~start=0, ~end=low)
                         ++ newText
-                        ++ currentText->Js.String2.sliceToEnd(~from=high)
+                        ++ currentText->String.sliceToEnd(~start=high)
                 )
         }
     }
@@ -1084,7 +1075,7 @@ let make = React.memoCustomCompareProps( ({
                     let closeDialog = ()=>closeModal(modalRef, modalId)
                     <MM_cmp_frag_transform
                         step=stmt
-                        ctxConstIntToSymExn={wrkCtx->ctxIntToSymExn}
+                        ctxConstIntToSymExn={ctxIntToSymExn(wrkCtx, _)}
                         transformsText
                         onCancel=closeDialog
                         onInsertAbove={(replaceSelection, transformedSelectionText) => {
@@ -1122,16 +1113,16 @@ let make = React.memoCustomCompareProps( ({
                     value=state.newText
                     onChange=evt2str(str => actNewTextUpdated(str->removeSymbolsNotAllowedInLabel))
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~key=keyEnter, ~act=actLabelEditDone, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actLabelEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actLabelEditDone),
+                        kbrdClbkMake(~key=keyEsc, ~act=actLabelEditCancel),
                     )
                     title="Enter to save, Esc to cancel"
                 />
                 <Row>
-                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                        ~onClick=actLabelEditDone, ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->String.trim != "",  
+                        ~onClick=actLabelEditDone, ~title="Save, Enter")}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
-                        ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                        ~onClick=actLabelEditCancel, ~title="Cancel, Esc", ~color=None)}
                 </Row>
             </Col>
         } else {
@@ -1139,8 +1130,8 @@ let make = React.memoCustomCompareProps( ({
             let showJstfShortcutName = if (longClickEnabled) {"Short click (Left-click)"} else {"Left-click"}
             <LongClickSpan
                 onClick=clickHnd2(
-                    clickClbkMake(~alt=true, ~act=onLabelEditRequested, ()),
-                    clickClbkMake(~act=actToggleInfoExpanded, ()),
+                    clickClbkMake(~alt=true, ~act=onLabelEditRequested),
+                    clickClbkMake(~act=actToggleInfoExpanded),
                 )
                 longClickEnabled
                 longClickDelayMs
@@ -1184,7 +1175,7 @@ let make = React.memoCustomCompareProps( ({
             None
         }
         let clickedTimeStr = switch stmt.cont {
-            | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
+            | Tree({clickedNodeId:Some(_,time)}) => time->Date.toISOString
             | _ => "1"
         }
         <Row alignItems=#center style=ReactDOM.Style.make(~marginTop="3px", ())>
@@ -1240,15 +1231,14 @@ let make = React.memoCustomCompareProps( ({
                 rndHiddenTextField(
                     ~key=clickedTimeStr,
                     ~onKeyDown=kbrdHnds([
-                        kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
-                        kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
-                        kbrdClbkMake(~key="q", ~act=actOpenFragmentTransform, ()),
-                        kbrdClbkMake(~key="e", ~act=actEditSelection, ()),
-                        kbrdClbkMake(~key="a", ~act=actCopyToClipboard, ()),
-                        kbrdClbkMake(~key="d", ~act=actPasteFromClipboard, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
-                    ]),
-                    ()
+                        kbrdClbkMake(~key="w", ~act=actExpandSelection),
+                        kbrdClbkMake(~key="s", ~act=actShrinkSelection),
+                        kbrdClbkMake(~key="q", ~act=actOpenFragmentTransform),
+                        kbrdClbkMake(~key="e", ~act=actEditSelection),
+                        kbrdClbkMake(~key="a", ~act=actCopyToClipboard),
+                        kbrdClbkMake(~key="d", ~act=actPasteFromClipboard),
+                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect),
+                    ])
                 )
             }
         </Row>
@@ -1261,16 +1251,16 @@ let make = React.memoCustomCompareProps( ({
                 windowWidth - 40
             } else {
                 let checkBoxWidth = if (!viewOptions.showCheckbox) {0} else { 48 } 
-                let labelWidth = if (!viewOptions.showLabel) {0} else { switch labelRef.current->Js.Nullable.toOption {
+                let labelWidth = if (!viewOptions.showLabel) {0} else { switch labelRef.current->Nullable.toOption {
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
                 } } 
                 let typWidth = if (!viewOptions.showType) {0} else { 28 } 
-                let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Js.Nullable.toOption {
+                let jstfWidth = if (!viewOptions.showJstf) {0} else { switch jstfRef.current->Nullable.toOption {
                     | None => 0
                     | Some(domElem) => ReactDOM.domElementToObj(domElem)["offsetWidth"] + 10
                 } }
-                Js.Math.max_int(
+                Math.Int.max(
                     200,
                     windowWidth - checkBoxWidth - labelWidth - typWidth - jstfWidth - 40
                 )
@@ -1302,9 +1292,9 @@ let make = React.memoCustomCompareProps( ({
                         actStmtContentUpdated(value, selectionStart)
                     }}
                     onKeyDown=kbrdHnd3(
-                        kbrdClbkMake(~key=keyEnter, ~act=actContEditDone, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actContEditCancel, ()),
-                        kbrdClbkMake(~alt=true, ~key="p", ~act=toggleParenAc, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actContEditDone),
+                        kbrdClbkMake(~key=keyEsc, ~act=actContEditCancel),
+                        kbrdClbkMake(~alt=true, ~key="p", ~act=toggleParenAc),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
@@ -1313,22 +1303,20 @@ let make = React.memoCustomCompareProps( ({
                         if (parenAc) {
                             rndIconButton(~icon=<MM_Icons.Code/>, 
                                 ~onClick=toggleParenAc, 
-                                ~title="Parentheses autocomplete is On; press Alt+P to turn it Off", 
-                                ()
+                                ~title="Parentheses autocomplete is On; press Alt+P to turn it Off"
                             )
                         } else {
                             rndIconButton(~icon=<MM_Icons.CodeOff/>, 
                                 ~onClick=toggleParenAc, 
                                 ~title="Parentheses autocomplete is Off; press Alt+P to turn it On", 
-                                ~color=None,
-                                ()
+                                ~color=None
                             )
                         }
                     }
-                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->Js.String2.trim != "",  
-                        ~onClick=actContEditDone, ~title="Save, Enter", ())}
+                    {rndIconButton(~icon=<MM_Icons.Save/>, ~active= state.newText->String.trim != "",  
+                        ~onClick=actContEditDone, ~title="Save, Enter")}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,  
-                        ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                        ~onClick=actContEditCancel, ~title="Cancel, Esc", ~color=None)}
                 </Row>
             </Col>
         } else {
@@ -1408,21 +1396,20 @@ let make = React.memoCustomCompareProps( ({
                             ~longClickDelayMs,
                             ~renderSelection=true,
                             ~cursor = if (editStmtsByLeftClick) {"auto"} else {"pointer"},
-                            ~title={if (readOnly) {howToSelect} else {title}},
-                            ()
+                            ~title={if (readOnly) {howToSelect} else {title}}
                         )
                     }
                 </Paper>
             ]
             if (syntaxTreeWasRequested->Belt.Option.isSome) {
-                elems->Js_array2.push(
+                elems->Array.push(
                     <span> {"Building a syntax tree..."->React.string} </span>
-                )->ignore
+                )
             }
             if (textIsSelected) {
-                elems->Js_array2.push(
+                elems->Array.push(
                     rndSelectionButtons()
-                )->ignore
+                )
             }
 
             <Col 
@@ -1464,7 +1451,7 @@ let make = React.memoCustomCompareProps( ({
                 </FormControl>
                 {
                     rndIconButton(
-                        ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actTypEditCancel, ~title="Cancel", ~color=None, ()
+                        ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actTypEditCancel, ~title="Cancel", ~color=None
                     )
                 }
             </Col>
@@ -1477,8 +1464,8 @@ let make = React.memoCustomCompareProps( ({
             let showJstfShortcutName = if (longClickEnabled) {"Short click (Left-click)"} else {"Left-click"}
             <LongClickSpan
                 onClick=clickHnd2(
-                    clickClbkMake(~alt=true, ~act=onTypEditRequested, ()),
-                    clickClbkMake(~act=actToggleInfoExpanded, ()),
+                    clickClbkMake(~alt=true, ~act=onTypEditRequested),
+                    clickClbkMake(~act=actToggleInfoExpanded),
                 )
                 longClickEnabled
                 longClickDelayMs
@@ -1550,18 +1537,18 @@ let make = React.memoCustomCompareProps( ({
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~key=keyEnter, ~act=actJstfEditDone, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actJstfEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actJstfEditDone),
+                        kbrdClbkMake(~key=keyEsc, ~act=actJstfEditCancel),
                     )
                     title="Enter to save, Esc to cancel"
                 />
                 <Row>
                     {rndIconButton(~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actJstfEditDone,
-                        ~title="Save, Enter", ())}
+                        ~title="Save, Enter")}
                     {rndIconButton(~icon=<MM_Icons.CancelOutlined/>,
-                        ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None, ())}
+                        ~onClick=actJstfEditCancel, ~title="Cancel, Esc", ~color=None)}
                     {rndIconButton(~icon=<MM_Icons.DeleteForever/>,
-                                ~onClick=actJstfDeleted, ~title="Clear", ~color=Some("red"), ())}
+                                ~onClick=actJstfDeleted, ~title="Clear", ~color=Some("red"))}
                 </Row>
             </Col>
         } else {
@@ -1571,7 +1558,7 @@ let make = React.memoCustomCompareProps( ({
                     | Error(_) | Ok(None) => jstfTextStr->React.string
                     | Ok(Some({args, label})) => {
                         <span>
-                            {React.string(args->Js_array2.joinWith(" ") ++ " : ")}
+                            {React.string(args->Array.joinUnsafe(" ") ++ " : ")}
                             <span 
                                 className="underline-on-hover"
                                 style=ReactDOM.Style.make(
@@ -1581,8 +1568,8 @@ let make = React.memoCustomCompareProps( ({
                                     ()
                                 )
                                 onClick=clickHnd2(
-                                    clickClbkMake(~alt=true, ~act=actJstfEditRequested, ()),
-                                    clickClbkMake(~act=()=>actOpenFrameExplorer(label), ()),
+                                    clickClbkMake(~alt=true, ~act=actJstfEditRequested),
+                                    clickClbkMake(~act=()=>actOpenFrameExplorer(label)),
                                 )
                             >
                                 {label->React.string}
@@ -1591,7 +1578,7 @@ let make = React.memoCustomCompareProps( ({
                     }
                 }
             }
-            let padding = if (jstfTextStr->Js_string2.trim == "") { "11px 16px" } else { "1px" }
+            let padding = if (jstfTextStr->String.trim == "") { "11px 16px" } else { "1px" }
             let title =
                 if (longClickEnabled) {
                     "<long-click> (Alt+<left-click>) to change; click on the label to open a proof explorer tab"
@@ -1620,7 +1607,7 @@ let make = React.memoCustomCompareProps( ({
                     }
                     onLongClick=actJstfEditRequested
                     ref_=ReactDOM.Ref.domRef(jstfRef) 
-                    onClick=clickHnd(~alt=true, ~act=actJstfEditRequested, ())
+                    onClick=clickHnd(~alt=true, ~act=actJstfEditRequested)
                     style=ReactDOM.Style.make( 
                         ~padding, 
                         ~overflowWrap="normal", 
@@ -1636,26 +1623,26 @@ let make = React.memoCustomCompareProps( ({
                         <span style=ReactDOM.Style.make(~display="none", ())/>
                     } else {
                         let btns = []
-                        if (jstfTextStr->Js_string2.trim != "") {
-                            btns->Js.Array2.push(
+                        if (jstfTextStr->String.trim != "") {
+                            btns->Array.push(
                                 rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~key="d",
-                                    ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None, ()
+                                    ~onClick=actJstfDeleted, ~title="Delete justification", ~color=None
                                 )
-                            )->ignore
-                        }
-                        btns->Js.Array2.push(
-                            rndIconButton(~icon=<MM_Icons.VisibilityOff/>, ~key="h",
-                                ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None, ()
                             )
-                        )->ignore
+                        }
+                        btns->Array.push(
+                            rndIconButton(~icon=<MM_Icons.VisibilityOff/>, ~key="h",
+                                ~onClick=actToggleInfoExpanded, ~title="Hide justification", ~color=None
+                            )
+                        )
                         if (visualizationIsAvailable) {
-                            btns->Js.Array2.push(
+                            btns->Array.push(
                                 rndIconButton(
                                     ~icon=<MM_Icons.AccountTree style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
                                     ~key="v",
-                                    ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None, ()
+                                    ~onClick=actToggleVisExpanded, ~title="Show/Hide visualization", ~color=None
                                 )
-                            )->ignore
+                            )
                         }
                         <Row style=ReactDOM.Style.make(~marginLeft="10px", ())>
                             { btns->React.array }
@@ -1743,8 +1730,7 @@ let make = React.memoCustomCompareProps( ({
             ~onReadyIconAltClicked=onGenerateProof,
             ~onWaitingIconClicked=actToggleInfoExpanded,
             ~onErrorIconClicked=onDebug,
-            ~onNoJstfIconClicked=onDebug,
-            ()
+            ~onNoJstfIconClicked=onDebug
         )
     }
 

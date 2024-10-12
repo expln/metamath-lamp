@@ -48,13 +48,13 @@ let exprSrcToDto = (
         | Hypothesis({label}) => Hypothesis({label:label})
         | Assertion({args, frame}) => {
             Assertion({
-                args: args->Js_array2.map(nodeToIdx), 
+                args: args->Array.map(nodeToIdx), 
                 label: frame.label,
             })
         }
         | AssertionWithErr({args, frame, err}) => {
             AssertionWithErr({
-                args: args->Js_array2.map(nodeToIdx), 
+                args: args->Array.map(nodeToIdx), 
                 label: frame.label,
                 err
             })
@@ -73,7 +73,7 @@ let proofNodeToDto = (
                 exprStr: dbg.exprStr,
             }
         }),
-        parents: node->pnGetEParents->Js_array2.map(exprSrcToDto(_,exprToIdx)),
+        parents: node->pnGetEParents->Array.map(exprSrcToDto(_,exprToIdx)),
         proof: node->pnGetProof->Belt.Option.map(exprSrcToDto(_,exprToIdx)),
     }
 }
@@ -83,15 +83,15 @@ let collectAllExprs = (
     roots:array<expr>,
 ):Belt_HashMap.t<expr,int,ExprHash.identity> => {
     let nodesToProcess = Belt_MutableStack.make()
-    tree->ptGetAllSyntaxProofs->Js_array2.forEach(((_,node)) => nodesToProcess->Belt_MutableStack.push(node))
-    roots->Js_array2.forEach(expr => nodesToProcess->Belt_MutableStack.push(tree->ptGetNode(expr)))
+    tree->ptGetAllSyntaxProofs->Array.forEach(((_,node)) => nodesToProcess->Belt_MutableStack.push(node))
+    roots->Array.forEach(expr => nodesToProcess->Belt_MutableStack.push(tree->ptGetNode(expr)))
     let processedNodes = Belt_HashSet.make(~id=module(ExprHash), ~hintSize=100)
     let res = Belt_HashMap.make(~id=module(ExprHash), ~hintSize=100)
 
     let saveNodesFromSrc = (src:exprSrc) => {
         switch src {
             | Assertion({args}) | AssertionWithErr({args}) =>
-                args->Js_array2.forEach(arg => nodesToProcess->Belt_MutableStack.push(arg))
+                args->Array.forEach(arg => nodesToProcess->Belt_MutableStack.push(arg))
             | VarType | Hypothesis(_) => ()
         }
     }
@@ -102,7 +102,7 @@ let collectAllExprs = (
         if (!(processedNodes->Belt_HashSet.has(curExpr))) {
             processedNodes->Belt_HashSet.add(curExpr)
             res->Belt_HashMap.set(curExpr, res->Belt_HashMap.size)
-            curNode->pnGetEParents->Js_array2.forEach(saveNodesFromSrc)
+            curNode->pnGetEParents->Array.forEach(saveNodesFromSrc)
             curNode->pnGetProof->Belt_Option.forEach(saveNodesFromSrc)
         }
     }
@@ -114,12 +114,12 @@ let createSyntaxProofsDto = (
     ~exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
     ~nodes:array<proofNodeDto>,
 ): array<(expr,proofNodeDto)> => {
-    tree->ptGetAllSyntaxProofs->Js_array2.map(((expr,proofNode)) => {
+    tree->ptGetAllSyntaxProofs->Array.map(((expr,proofNode)) => {
         (
             expr,
             switch exprToIdx->Belt_HashMap.get(proofNode->pnGetExpr) {
                 | None => raise(MmException({msg:`Could not convert proofNode to proofNodeDto for a syntax proof.`}))
-                | Some(idx) => nodes[idx]
+                | Some(idx) => nodes->Array.getUnsafe(idx)
             }
         )
     })
@@ -151,19 +151,18 @@ let createProofTable = (
     ~tree:proofTreeDto, 
     ~root:proofNodeDto, 
     ~essentialsOnly:bool=false,
-    ~ctx:option<mmContext>=?,
-    ()
+    ~ctx:option<mmContext>=?
 ):proofTable => {
     if (essentialsOnly && ctx->Belt_Option.isNone) {
         raise(MmException({msg:"Error in createProofTable: ctx must be set when essentialsOnly == true."}))
     }
 
     let filterArgs = (args:array<int>, label:string):array<int> => {
-        if (essentialsOnly && args->Js_array2.length > 0) {
+        if (essentialsOnly && args->Array.length > 0) {
             let essentialArgs = []
-            (ctx->Belt_Option.getExn->getFrameExn(label)).hyps->Js_array2.forEachi((hyp,i) => {
+            (ctx->Belt_Option.getExn->getFrameExn(label)).hyps->Array.forEachWithIndex((hyp,i) => {
                 if (hyp.typ == E) {
-                    essentialArgs->Js.Array2.push(args[i])->ignore
+                    essentialArgs->Array.push(args->Array.getUnsafe(i))
                 }
             })
             essentialArgs
@@ -188,7 +187,8 @@ let createProofTable = (
         if (getIdxByExpr(expr)->Belt_Option.isSome) {
             raise(MmException({ msg:`getIdxByExpr(expr)->Belt_Option.isSome in createProofTable().` }))
         }
-        let idx = tbl->Js_array2.push({expr, proof})-1
+        tbl->Array.push({expr, proof})
+        let idx = tbl->Array.length-1
         exprToIdx->Belt_HashMap.set(expr,idx)
     }
 
@@ -203,7 +203,7 @@ let createProofTable = (
                     raise(MmException({msg:`AssertionWithErr is not supported in createProofTable [1].`}))
                 | Some(Hypothesis(_)) => None
                 | Some(Assertion({args,label})) => {
-                    Some(filterArgs(args,label)->Js.Array2.map(idx => tree.nodes[idx]))
+                    Some(filterArgs(args,label)->Array.map(idx => tree.nodes->Array.getUnsafe(idx)))
                 }
             }
         },
@@ -225,15 +225,14 @@ let createProofTable = (
                             Assertion({
                                 label,
                                 args: filterArgs(args,label)
-                                        ->Js_array2.map(nodeIdx => getIdxByExprExn(tree.nodes[nodeIdx].expr))
+                                        ->Array.map(nodeIdx => getIdxByExprExn((tree.nodes->Array.getUnsafe(nodeIdx)).expr))
                             })
                         )
                     }
                 }
             }
             None
-        },
-        ()
+        }
     )->ignore
     tbl
 }

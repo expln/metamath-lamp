@@ -2,7 +2,7 @@ let nbsp:string
 let circleChar:string
 
 let currTimeStr: unit => string
-let compareDates: (Js_date.t, Js_date.t) => int
+let compareDates: (Date.t, Date.t) => float
 let floatToPctStr: float => string
 
 type cache<'depVer,'dep,'data>
@@ -18,12 +18,7 @@ let base64ToStr: string => string
 let strToSafeBase64: string => string
 let safeBase64ToStr: string => string
 
-let strToRegex: string => result<Js_re.t,string>
-
-type timeoutID
-let setTimeout: (unit => unit, int) => timeoutID
-let clearTimeout: (timeoutID) => unit
-let stubTimeoutId: timeoutID
+let strToRegex: string => result<RegExp.t,string>
 
 type version<'a> = {
     ver:int,

@@ -22,7 +22,7 @@ let terminateWorker = () => {
         | Some(webworker) => {
             webworker["terminate"](.)
             webworkerRef.contents = None
-            clients->Js.Array2.spliceInPlace(~pos=0, ~remove=clients->Js_array2.length, ~add=[])->ignore
+            clients->Array.splice(~start=0, ~remove=clients->Array.length, ~insert=[])
         }
     }
 }
@@ -36,14 +36,14 @@ let getNextClientId = () => {
 
 let regClient = (~callback:clientCallback, ~enableTrace:bool) => {
     let id = getNextClientId()
-    clients->Js_array2.push({ id, callback, traceEnabled:enableTrace })->ignore
+    clients->Array.push({ id, callback, traceEnabled:enableTrace })
     id
 }
 
 let unregClient = id => {
     let i = ref(0)
-    while (i.contents < clients->Js_array2.length) {
-        if (clients[i.contents].id == id) {
+    while (i.contents < clients->Array.length) {
+        if ((clients->Array.getUnsafe(i.contents)).id == id) {
             clients->Js_array2.removeCountInPlace(~pos=i.contents, ~count=1)->ignore
         } else {
             i.contents = i.contents + 1
@@ -79,8 +79,7 @@ let beginWorkerInteraction = (
     ~onResponse:(~resp:'resp, ~sendToWorker:'req=>unit, ~endWorkerInteraction:unit=>unit)=>unit,
     ~enableTrace: bool=false,
     ~reqToStr:option<'req=>string>=?,
-    ~respToStr:option<'resp=>string>=?,
-    ()
+    ~respToStr:option<'resp=>string>=?
 ) => {
     let id = ref(-1)
     let localSendToWorker = ref(_=>())

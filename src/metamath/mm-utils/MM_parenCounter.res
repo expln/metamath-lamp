@@ -14,9 +14,9 @@ type parenCnt = {
 }
 
 let parenCntStackPush = (cnt:parenCnt, i:int):unit => {
-    if (cnt.stack->Js_array2.length == cnt.len) {
+    if (cnt.stack->Array.length == cnt.len) {
         for _ in 1 to 1000 {
-            cnt.stack->Js_array2.push(0)->ignore
+            cnt.stack->Array.push(0)
         }
     }
     cnt.stack[cnt.len] = i
@@ -59,7 +59,7 @@ let parenCntPut = (cnt:parenCnt, i:int):state => {
         if (isOpen) {
             cnt->parenCntStackPush(i)
             Opened
-        } else if (cnt.len == 0 || cnt.stack[cnt.len-1] != i+1) {
+        } else if (cnt.len == 0 || cnt.stack->Array.getUnsafe(cnt.len-1) != i+1) {
             cnt.failed = true
             Failed
         } else {

@@ -43,7 +43,7 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
     let syntaxTypes = Belt_HashSetInt.make(~hintSize=16)
     let allTypes = Belt_HashSetInt.make(~hintSize=16)
     ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        let typ = hyp.expr[0]
+        let typ = hyp.expr->Array.getUnsafe(0)
         allTypes->Belt_HashSetInt.add(typ)
         if (hyp.typ == F) {
             syntaxTypes->Belt_HashSetInt.add(typ)
@@ -51,9 +51,9 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
         None
     })->ignore
     ctx->forEachFrame(frame => {
-        allTypes->Belt_HashSetInt.add(frame.asrt[0])
-        frame.hyps->Js_array2.forEach(hyp => {
-            let typ = hyp.expr[0]
+        allTypes->Belt_HashSetInt.add(frame.asrt->Array.getUnsafe(0))
+        frame.hyps->Array.forEach(hyp => {
+            let typ = hyp.expr->Array.getUnsafe(0)
             allTypes->Belt_HashSetInt.add(typ)
             if (hyp.typ == F) {
                 syntaxTypes->Belt_HashSetInt.add(typ)
@@ -67,8 +67,7 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
 let preCtxDataUpdate = (
     preCtxData:preCtxData,
     ~settings:option<settings>=?,
-    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?,
-    ()
+    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?
 ): preCtxData => {
     let settingsV = settings->Belt_Option.mapWithDefault(
         preCtxData.settingsV, 
@@ -80,10 +79,10 @@ let preCtxDataUpdate = (
     )
 
     let ctxV = ctxV->versionSet(
-        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false, ())
+        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false)
     )
     let frms = prepareFrmSubsData(
-        ~ctx=ctxV.val, ()
+        ~ctx=ctxV.val
     )
     let parenCnt = MM_provers.makeParenCnt(~ctx=ctxV.val, ~parens=settingsV.val.parens)
     let (allTypes, syntaxTypes) = findTypes(ctxV.val)

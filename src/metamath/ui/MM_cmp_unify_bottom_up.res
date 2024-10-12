@@ -114,16 +114,16 @@ let exprMayMatchAsrt = (
     ~frm:frmSubsData,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (expr[0] != frm.frame.asrt[0]) {
+    if (expr->Array.getUnsafe(0) != frm.frame.asrt->Array.getUnsafe(0)) {
         false
     } else {
         let res = ref(false)
         iterateSubstitutions(
             ~frmExpr = frm.frame.asrt,
             ~expr,
-            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-            ~constParts = frm.constParts[frm.numOfHypsE], 
-            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = _ => {
@@ -143,7 +143,7 @@ let getAvailableAsrtLabels = (
     let availableAsrtLabels = []
     frms->frmsForEach(frm => {
         if ( exprMayMatchAsrt(~expr=exprToProve, ~frm, ~parenCnt) ) {
-            availableAsrtLabels->Js_array2.push(frm.frame.label)->ignore
+            availableAsrtLabels->Array.push(frm.frame.label)
         }
     })
     availableAsrtLabels
@@ -157,11 +157,11 @@ let makeInitialState = (
     ~initialDebugLevel: option<int>,
     ~allowedFrms:allowedFrms,
 ) => {
-    let rootStmts = rootUserStmts->Js.Array2.map(userStmtToRootStmt)
-    let rootStmtsLen = rootStmts->Js_array2.length
+    let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
+    let rootStmtsLen = rootStmts->Array.length
     let maxRootStmtIdx = rootStmtsLen-1
-    let exprToProve = rootStmts[maxRootStmtIdx].expr
-    let possibleArgs = rootStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js_array2.map(stmt => stmt.expr)
+    let exprToProve = (rootStmts->Array.getUnsafe(maxRootStmtIdx)).expr
+    let possibleArgs = rootStmts->Array.filterWithIndex((_,i) => i < maxRootStmtIdx)->Array.map(stmt => stmt.expr)
 
     let params = switch initialParams {
         | Some(params) => params
@@ -169,12 +169,12 @@ let makeInitialState = (
     }
 
     let frameParams = params.frameParams
-    let frameParamsLen = frameParams->Js_array2.length
+    let frameParamsLen = frameParams->Array.length
 
     {
         rootUserStmts,
         rootStmts,
-        rootStmtsRendered: rootUserStmts->Js_array2.filteri((_,i) => i < maxRootStmtIdx)->Js.Array2.map(stmt => {
+        rootStmtsRendered: rootUserStmts->Array.filterWithIndex((_,i) => i < maxRootStmtIdx)->Array.map(stmt => {
             {
                 id: stmt.id,
                 expr: switch stmt.expr {
@@ -184,7 +184,7 @@ let makeInitialState = (
                 isHyp:stmt.typ == E,
                 label:stmt.label,
                 proofStatus:stmt.proofStatus,
-                exprReElem: <span> {MM_cmp_user_stmt.rndContText(~stmtCont=stmt.cont, ())} </span>
+                exprReElem: <span> {MM_cmp_user_stmt.rndContText(~stmtCont=stmt.cont)} </span>
             }
         }),
         exprToProve,
@@ -193,24 +193,24 @@ let makeInitialState = (
                 <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
                     {"Proving bottom-up "->React.string}
                 </span>
-                { MM_cmp_user_stmt.rndContText(~stmtCont=rootUserStmts[maxRootStmtIdx].cont, ()) }
+                { MM_cmp_user_stmt.rndContText(~stmtCont=(rootUserStmts->Array.getUnsafe(maxRootStmtIdx)).cont) }
             </span>,
 
         initialParams:params,
-        args0: possibleArgs->Js_array2.map(possibleArg => {
-            frameParamsLen > 0 && frameParams[0].args->Js_array2.some(arg => arg->exprEq(possibleArg))
+        args0: possibleArgs->Array.map(possibleArg => {
+            frameParamsLen > 0 && (frameParams->Array.getUnsafe(0)).args->Array.some(arg => arg->exprEq(possibleArg))
         }),
-        args1: possibleArgs->Js_array2.map(possibleArg => {
-            frameParamsLen > 1 && frameParams[1].args->Js_array2.some(arg => arg->exprEq(possibleArg))
+        args1: possibleArgs->Array.map(possibleArg => {
+            frameParamsLen > 1 && (frameParams->Array.getUnsafe(1)).args->Array.some(arg => arg->exprEq(possibleArg))
         }),
         args1EqArgs0:false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
         label:
             if (frameParamsLen > 0) {
-                frameParams[0].frmsToUse
+                (frameParams->Array.getUnsafe(0)).frmsToUse
                     ->Belt_Option.flatMap(arr => {
-                        if (arr->Js_array2.length > 0) {
-                            Some(arr[0])
+                        if (arr->Array.length > 0) {
+                            Some(arr->Array.getUnsafe(0))
                         } else {
                             None
                         }
@@ -222,25 +222,25 @@ let makeInitialState = (
         depth: params.maxSearchDepth,
         lengthRestrict:
             if (frameParamsLen > 1) {
-                frameParams[1].lengthRestrict
+                (frameParams->Array.getUnsafe(1)).lengthRestrict
             } else {
                 Less
             },
         allowNewDisjForExistingVars:
             if (frameParamsLen > 0) {
-                frameParams[0].allowNewDisjForExistingVars
+                (frameParams->Array.getUnsafe(0)).allowNewDisjForExistingVars
             } else {
                 true
             },
         allowNewStmts:
             if (frameParamsLen > 0) {
-                frameParams[0].allowNewStmts
+                (frameParams->Array.getUnsafe(0)).allowNewStmts
             } else {
                 true
             },
         allowNewVars:
             if (frameParamsLen > 0) {
-                frameParams[0].allowNewVars
+                (frameParams->Array.getUnsafe(0)).allowNewVars
             } else {
                 false
             },
@@ -251,7 +251,7 @@ let makeInitialState = (
             ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
         maxNumberOfBranchesStr: 
             if (frameParamsLen > 0) {
-                frameParams[0].maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
+                (frameParams->Array.getUnsafe(0)).maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
             } else {
                 ""
             },
@@ -352,12 +352,12 @@ let nonDigitPattern = %re("/\D/g")
 let setMaxNumberOfBranchesStr = (st, maxNumberOfBranchesStr) => {
     {
         ...st,
-        maxNumberOfBranchesStr: maxNumberOfBranchesStr->Js.String2.replaceByRe(nonDigitPattern, "")
+        maxNumberOfBranchesStr: maxNumberOfBranchesStr->String.replaceRegExp(nonDigitPattern, "")
     }
 }
 
-let selectAllArgs = args => args->Js_array2.map(_ => true)
-let unselectAllArgs = args => args->Js_array2.map(_ => false)
+let selectAllArgs = args => args->Array.map(_ => true)
+let unselectAllArgs = args => args->Array.map(_ => false)
 
 let updateArgs0 = (st, args0) => { ...st, args0 }
 let updateArgs1 = (st, args1) => { ...st, args1 }
@@ -384,12 +384,12 @@ let stmtsDtoToResultRendered = (
     ~isStmtToShow:stmtDto=>bool,
     ~getFrmLabelBkgColor: string=>option<string>,
 ):resultRendered => {
-    let maxI = stmtsDto.stmts->Js.Array2.length - 1
-    let stmtsToShow = stmtsDto.stmts->Js.Array2.filteri((stmt,i) => i == maxI || isStmtToShow(stmt))
+    let maxI = stmtsDto.stmts->Array.length - 1
+    let stmtsToShow = stmtsDto.stmts->Array.filterWithIndex((stmt,i) => i == maxI || isStmtToShow(stmt))
     let elem = 
         <Col>
             {
-                stmtsDto.newDisjStr->Js.Array2.map(disjStr => {
+                stmtsDto.newDisjStr->Array.map(disjStr => {
                     <span key=disjStr>
                         {disjStr->React.string}
                     </span>
@@ -398,7 +398,7 @@ let stmtsDtoToResultRendered = (
             <table>
                 <tbody>
                     {
-                        stmtsToShow->Js.Array2.map(stmt => {
+                        stmtsToShow->Array.map(stmt => {
                             <tr key=stmt.exprStr>
                                 <td>
                                     { React.string(stmt.label) }
@@ -411,7 +411,7 @@ let stmtsDtoToResultRendered = (
                                             | Some({args, label}) => {
                                                 <>
                                                     <span>
-                                                        {React.string("[" ++ args->Js_array2.joinWith(" ") ++ " : ")}
+                                                        {React.string("[" ++ args->Array.joinUnsafe(" ") ++ " : ")}
                                                     </span>
                                                     <span
                                                         style=ReactDOM.Style.make(
@@ -445,18 +445,18 @@ let stmtsDtoToResultRendered = (
                 </tbody>
             </table>
         </Col>
-    let lastStmt = stmtsDto.stmts[stmtsDto.stmts->Js.Array2.length-1]
+    let lastStmt = stmtsDto.stmts->Array.getUnsafe(stmtsDto.stmts->Array.length-1)
     {
         idx,
         elem,
         asrtLabel: lastStmt.jstf->Belt_Option.map(jstf => jstf.label)->Belt_Option.getWithDefault(""),
-        numOfNewVars: stmtsDto.newVars->Js.Array2.length,
-        numOfUnprovedStmts: stmtsDto.stmts->Js.Array2.reduce(
-            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1},
-            0
+        numOfNewVars: stmtsDto.newVars->Array.length,
+        numOfUnprovedStmts: stmtsDto.stmts->Array.reduce(
+            0,
+            (cnt,stmt) => cnt + if (stmt.isProved) {0} else {1}
         ),
         isProved: lastStmt.isProved,
-        numOfStmts: stmtsToShow->Js.Array2.length,
+        numOfStmts: stmtsToShow->Array.length,
     }
 }
 
@@ -467,7 +467,7 @@ let compareByNumOfUnprovedStmts = Expln_utils_common.comparatorBy(res => res.num
 let compareByNumOfNewStmts = Expln_utils_common.comparatorBy(res => res.numOfStmts)
 let compareByNumOfNewVars = Expln_utils_common.comparatorBy(res => res.numOfNewVars)
 let compareByAsrtLabel = (a:resultRendered,b:resultRendered) => {
-    a.asrtLabel->Js.String2.localeCompare(b.asrtLabel)->Belt.Float.toInt
+    a.asrtLabel->String.localeCompare(b.asrtLabel)
 }
 
 let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> => {
@@ -486,7 +486,7 @@ let createComparator = (sortBy):Expln_utils_common.comparator<resultRendered> =>
 
 let sortResultsRendered = (resultsRendered, sortBy) => {
     resultsRendered->Belt_Option.map(resultsRendered =>
-        resultsRendered->Js_array2.copy->Js_array2.sortInPlaceWith(createComparator(sortBy))
+        resultsRendered->Array.copy->Expln_utils_common.sortInPlaceWith(createComparator(sortBy))
     )
 }
 
@@ -498,7 +498,7 @@ let isTruncatedSearchErr = (src:exprSrcDto):bool => {
 }
 
 let findWarnings = (tree:proofTreeDto):array<string> => {
-    if (tree.nodes->Js.Array2.some(n => n.parents->Js_array2.some(isTruncatedSearchErr))) {
+    if (tree.nodes->Array.some(n => n.parents->Array.some(isTruncatedSearchErr))) {
         [
             "The search space was truncated due to some assertions produce too big search space. " ++ 
                 "Use Logging level = 1 and then click 'Show Proof Tree' button to find those assertions."
@@ -531,11 +531,11 @@ let setResults = (
         }
         | Some(results) => {
             let rootJstfs = st.rootStmts
-                ->Js_array2.map(stmt => (stmt.expr, stmt.jstf))
+                ->Array.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let isStmtToShow = stmt => isStmtToShow(~stmt, ~rootJstfs)
             let resultsRendered = Some(
-                results->Js_array2.mapi((dto,i) => {
+                results->Array.mapWithIndex((dto,i) => {
                     stmtsDtoToResultRendered(~stmtsDto=dto, ~idx=i, ~isStmtToShow, ~getFrmLabelBkgColor)
                 })
             )
@@ -546,8 +546,8 @@ let setResults = (
                 results:Some(results),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
-                resultsMaxPage: Js.Math.ceil_int(
-                    results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat
+                resultsMaxPage: Math.Int.ceil(
+                    results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat
                 ),
                 resultsPage: 1,
                 checkedResultIdx: None,
@@ -658,7 +658,7 @@ let make = (
     ~typeToPrefix: Belt_MapString.t<string>,
     ~initialParams: option<bottomUpProverParams>=?,
     ~initialDebugLevel: option<int>=?,
-    ~apiCallStartTime:option<Js_date.t>,
+    ~apiCallStartTime:option<Date.t>,
     ~delayBeforeStartMs:int,
     ~selectFirstFoundProof:bool,
     ~onResultSelected:option<stmtsDto>=>unit,
@@ -673,7 +673,7 @@ let make = (
 
     let onlyOneResultIsAvailable = switch state.results {
         | None => false
-        | Some(results) => results->Js_array2.length == 1
+        | Some(results) => results->Array.length == 1
     }
 
     let actLabelUpdated = label => {
@@ -681,7 +681,7 @@ let make = (
     }
 
     let actDepthUpdated = depthStr => {
-        setState(setDepthStr(_,depthStr->Js.String2.replaceByRe(nonDigitPattern, "")))
+        setState(setDepthStr(_,depthStr->String.replaceRegExp(nonDigitPattern, "")))
     }
 
     let actLengthRestrictUpdated = lengthRestrict => {
@@ -722,7 +722,7 @@ let make = (
 
     let actOnResultsReady = (treeDto:proofTreeDto) => {
         let rootExprToLabel = state.rootStmts
-            ->Js_array2.map(stmt => (stmt.expr,stmt.label))
+            ->Array.map(stmt => (stmt.expr,stmt.label))
             ->Belt_HashMap.fromArray(~id=module(ExprHash))
         let results = proofTreeDtoToNewStmtsDto(
             ~treeDto, 
@@ -747,8 +747,8 @@ let make = (
             state.initialParams
         } else {
             let args0=state.rootStmtsRendered
-                    ->Js_array2.filteri((_,i) => state.args0[i])
-                    ->Js_array2.map(stmt => stmt.expr)
+                    ->Array.filterWithIndex((_,i) => state.args0->Array.getUnsafe(i))
+                    ->Array.map(stmt => stmt.expr)
             bottomUpProverParamsMakeDefault(
                 ~asrtLabel=?state.label,
                 ~maxSearchDepth=state.depth,
@@ -762,22 +762,21 @@ let make = (
                         args0
                     } else {
                         state.rootStmtsRendered
-                            ->Js_array2.filteri((_,i) => state.args1[i])
-                            ->Js_array2.map(stmt => stmt.expr)
+                            ->Array.filterWithIndex((_,i) => state.args1->Array.getUnsafe(i))
+                            ->Array.map(stmt => stmt.expr)
                     },
                 ~maxNumberOfBranches=
                     ?if (state.debugLevel == 0 || state.maxNumberOfBranchesStr == "") {
                         None
                     } else {
                         state.maxNumberOfBranchesStr->Belt_Int.fromString
-                    },
-                ()
+                    }
             )
         }
     }
 
     let exprToLabel = (state:state, expr:expr):string => {
-        switch state.rootStmtsRendered->Js_array2.find(stmt => exprEq(expr, stmt.expr)) {
+        switch state.rootStmtsRendered->Array.find(stmt => exprEq(expr, stmt.expr)) {
             | None => {
                 raise(MmException({
                     msg: "Could not find a label for an expression in MM_cmp_unify_bottom_up.exprToLabel()"
@@ -788,7 +787,7 @@ let make = (
     }
 
     let makeMatchesToShow = (wrkCtx:mmContext, matches:array<applyAsrtResultMatcher>):array<applyAsrtResultMatcherToShow> => {
-        matches->Js_array2.map(matcher => {
+        matches->Array.map(matcher => {
             {
                 res: 
                     if (matcher.matchAsrt) {
@@ -796,7 +795,7 @@ let make = (
                     } else {
                         None
                     },
-                hyps: matcher.hypMatchers->Js_array2.mapi((hypMatcher,i) => {
+                hyps: matcher.hypMatchers->Array.mapWithIndex((hypMatcher,i) => {
                     let (label,idx) = switch hypMatcher {
                         | Label(label) => (Some(label), None)
                         | Idx(idx) => (None, Some(idx))
@@ -804,7 +803,7 @@ let make = (
                     {
                         label,
                         idx,
-                        pat: wrkCtx->frmIntsToStrExn(matcher.frm.frame, matcher.frm.hypsE[i].expr),
+                        pat: wrkCtx->frmIntsToStrExn(matcher.frm.frame, (matcher.frm.hypsE->Array.getUnsafe(i)).expr),
                     }
                 }),
             }
@@ -813,15 +812,15 @@ let make = (
 
     let getEffectiveProverParamsToShow = (state:state, params:bottomUpProverParams):proverParamsToShow => {
         {
-            stepToProve: state.rootStmts[state.rootStmts->Js_array2.length-1].label,
+            stepToProve: (state.rootStmts->Array.getUnsafe(state.rootStmts->Array.length-1)).label,
             debugLevel: state.debugLevel,
             maxSearchDepth: params.maxSearchDepth,
-            frameParams: params.frameParams->Js_array2.map(p => {
+            frameParams: params.frameParams->Array.map(p => {
                 minDist: p.minDist,
                 maxDist: p.maxDist,
                 matches: p.matches->Belt.Option.map(makeMatchesToShow(wrkCtx, _)),
                 frmsToUse: p.frmsToUse,
-                args: p.args->Js_array2.map(exprToLabel(state, _)),
+                args: p.args->Array.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
                 allowNewStmts: p.allowNewStmts,
                 allowNewVars: p.allowNewVars,
@@ -833,11 +832,11 @@ let make = (
 
     let actProve = () => {
         setState(st => {
-            let depthStr = st.depthStr->Js_string2.trim
-            let st = if (depthStr->Js_string2.length == 0) {
+            let depthStr = st.depthStr->String.trim
+            let st = if (depthStr->String.length == 0) {
                 {...st, depth:1, depthStr:"1"}
             } else {
-                let depth = Js.Math.max_int(depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(1), 1)
+                let depth = Math.Int.max(depthStr->Belt_Int.fromString->Belt_Option.getWithDefault(1), 1)
                 let depthStr = depth->Belt_Int.toString
                 {...st, depth, depthStr}
             }
@@ -851,10 +850,10 @@ let make = (
                 proverParamsToShow: Some(paramsToShow),
             }
 
-            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0., ()))->promiseMap(modalId => {
+            openModal(modalRef, () => rndProgress(~text="Proving bottom-up", ~pct=0.))->promiseMap(modalId => {
                 updateModal( 
                     modalRef, modalId, () => rndProgress(
-                        ~text="Proving bottom-up", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                        ~text="Proving bottom-up", ~pct=0., ~onTerminate=makeActTerminate(modalId)
                     )
                 )
                 unify(
@@ -873,7 +872,7 @@ let make = (
                     ~debugLevel,
                     ~onProgress = msg => updateModal( 
                         modalRef, modalId, () => rndProgress(
-                            ~text=msg, ~onTerminate=makeActTerminate(modalId), ()
+                            ~text=msg, ~onTerminate=makeActTerminate(modalId)
                         )
                     )
                 )->promiseMap(proofTreeDto => {
@@ -890,14 +889,14 @@ let make = (
         switch apiCallStartTime {
             | None => ()
             | Some(apiCallStartTime) => {
-                let apiCallStartTimeStr = apiCallStartTime->Js_date.toISOString
-                if (!(startedForApiCalls->Js_array2.includes(apiCallStartTimeStr))) {
-                    startedForApiCalls->Js_array2.push(apiCallStartTimeStr)->ignore
+                let apiCallStartTimeStr = apiCallStartTime->Date.toISOString
+                if (!(startedForApiCalls->Array.includes(apiCallStartTimeStr))) {
+                    startedForApiCalls->Array.push(apiCallStartTimeStr)
                     startedForApiCalls->Js_array2.removeCountInPlace(
                         ~pos=0, 
-                        ~count=startedForApiCalls->Js_array2.length - 5
+                        ~count=startedForApiCalls->Array.length - 5
                     )->ignore
-                    Common.setTimeout(() => actProve(), delayBeforeStartMs)->ignore
+                    setTimeout(() => actProve(), delayBeforeStartMs)->ignore
                 }
             }
         }
@@ -922,19 +921,19 @@ let make = (
             | Some(results) => {
                 if (onlyOneResultIsAvailable) {
                     setState(setResultHasBeenSelected)
-                    onResultSelected(Some(results[0]))
+                    onResultSelected(Some(results->Array.getUnsafe(0)))
                 } else {
                     switch idxToSelect {
                         | Some(checkedResultIdx) => {
                             setState(setResultHasBeenSelected)
-                            onResultSelected(Some(results[checkedResultIdx]))
+                            onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
                         }
                         | None => {
                             switch state.checkedResultIdx {
                                 | None => ()
                                 | Some(checkedResultIdx) => {
                                     setState(setResultHasBeenSelected)
-                                    onResultSelected(Some(results[checkedResultIdx]))
+                                    onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
                                 }
                             }
                         }
@@ -950,8 +949,8 @@ let make = (
                 | None => ()
                 | Some(resultsSorted) => {
                     setState(setResultHasBeenSelected)
-                    if (resultsSorted->Js_array2.length > 0 && resultsSorted[0].isProved) {
-                        actChooseSelected(Some(resultsSorted[0].idx))
+                    if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
+                        actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
                     } else {
                         onResultSelected(None)
                     }
@@ -1017,7 +1016,7 @@ let make = (
         switch state.results {
             | None => React.null
             | Some(results) => {
-                if (results->Js_array2.length < 2) {
+                if (results->Array.length < 2) {
                     React.null
                 } else {
                     <FormControl size=#small>
@@ -1055,7 +1054,7 @@ let make = (
     }
 
     let rndParamsForUsualCall = () => {
-        if (state.availableLabels->Js.Array2.length == 0) {
+        if (state.availableLabels->Array.length == 0) {
             <Col>
                 {
                     React.string("The statement to prove doesn't match any existing assertion. " 
@@ -1078,8 +1077,8 @@ let make = (
                         value=state.depthStr
                         onChange=evt2str(actDepthUpdated)
                         onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=actProve, ()),
-                            kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                            kbrdClbkMake(~key=keyEnter, ~act=actProve),
+                            kbrdClbkMake(~key=keyEsc, ~act=onCancel),
                         )
                     />
                     {rndLengthRestrictSelector(state.lengthRestrict)}
@@ -1183,8 +1182,8 @@ let make = (
                         value=state.maxNumberOfBranchesStr
                         onChange=evt2str(actMaxNumberOfBranchesStrUpdated)
                         onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=actProve, ()),
-                            kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                            kbrdClbkMake(~key=keyEnter, ~act=actProve),
+                            kbrdClbkMake(~key=keyEsc, ~act=onCancel),
                         )
                     />
                 </Row>
@@ -1284,7 +1283,7 @@ let make = (
                     <Col>
                         <ol>
                             {
-                                warnings->Js_array2.mapi((msg,i) => {
+                                warnings->Array.mapWithIndex((msg,i) => {
                                     <li key={i->Belt_Int.toString}>{React.string(msg)}</li>
                                 })->React.array
                             }
@@ -1299,7 +1298,7 @@ let make = (
     }
 
     let rndWarningsBtn = (warnings:array<string>) => {
-        if (warnings->Js_array2.length == 0) {
+        if (warnings->Array.length == 0) {
             React.null
         } else {
             <IconButton 
@@ -1340,7 +1339,7 @@ let make = (
         switch state.resultsSorted {
             | None => React.null
             | Some(resultsSorted) => {
-                let totalNumOfResults = resultsSorted->Js.Array2.length
+                let totalNumOfResults = resultsSorted->Array.length
                 if (totalNumOfResults == 0) {
                     <Col>
                         <Divider/>
@@ -1353,7 +1352,7 @@ let make = (
                     </Col>
                 } else {
                     let start = (state.resultsPage - 1) * state.resultsPerPage
-                    let items = resultsSorted->Js_array2.slice( ~start, ~end_ = start + state.resultsPerPage )
+                    let items = resultsSorted->Array.slice( ~start, ~end = start + state.resultsPerPage )
                     <Col>
                         <Divider/>
                         <Row alignItems=#center>
@@ -1365,7 +1364,7 @@ let make = (
                             {rndShowActualParamsBtn()}
                         </Row>
                         {
-                            items->Js_array2.map(item => {
+                            items->Array.map(item => {
                                 <table key={item.idx->Belt_Int.toString}>
                                     <tbody>
                                         <tr>
@@ -1414,7 +1413,7 @@ let make = (
         ~setFlags: array<bool> => unit,
     ) => {
 
-        let proofStatusesAreAvailable = state.rootStmtsRendered->Js.Array2.every(stmt => 
+        let proofStatusesAreAvailable = state.rootStmtsRendered->Array.every(stmt => 
             getProofStatus(stmt)->Belt_Option.isSome
         )
 
@@ -1449,15 +1448,15 @@ let make = (
             </Row>
         } else {
             let flags = state->getFlags
-            let allSelected = flags->Js_array2.every(b => b)
-            let noneSelected = flags->Js_array2.every(b => !b)
+            let allSelected = flags->Array.every(b => b)
+            let noneSelected = flags->Array.every(b => !b)
             let numberOfSelected = if (allSelected) {
                 "All"
             } else if (noneSelected) {
                 "None"
             } else {
-                let numSelected = flags->Js_array2.reduce((cnt,b) => if (b) {cnt+1} else {cnt}, 0)
-                let numAll = flags->Js_array2.length
+                let numSelected = flags->Array.reduce(0, (cnt,b) => if (b) {cnt+1} else {cnt})
+                let numAll = flags->Array.length
                 numSelected->Belt_Int.toString ++ "/" ++ numAll->Belt_Int.toString
             }
             let (selectUnselectText, selectUnselectAct) = if (noneSelected) {
@@ -1496,7 +1495,7 @@ let make = (
     }
 
     let rndRootStmts = () => {
-        if (state.rootStmtsRendered->Js_array2.length == 0) {
+        if (state.rootStmtsRendered->Array.length == 0) {
             React.null
         } else {
             <Row alignItems=#center spacing=0.2>

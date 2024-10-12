@@ -15,16 +15,16 @@ let makeEmptyWrkCtxErr = () => {
 let prepareParenInts = (wrkCtx, parenStr) => {
     let parenSyms = parenStr->getSpaceSeparatedValuesAsArray
     let parenInts = []
-    let maxI = parenSyms->Js_array2.length / 2 - 1
+    let maxI = parenSyms->Array.length / 2 - 1
     for i in 0 to maxI {
-        let leftParen = parenSyms[i*2]
-        let rightParen = parenSyms[i*2+1]
+        let leftParen = parenSyms->Array.getUnsafe(i*2)
+        let rightParen = parenSyms->Array.getUnsafe(i*2+1)
         switch wrkCtx->ctxSymToInt(leftParen) {
             | Some(leftParenInt) if wrkCtx->isConst(leftParen) => {
                 switch wrkCtx->ctxSymToInt(rightParen) {
                     | Some(rightParenInt) if wrkCtx->isConst(rightParen) => {
-                        parenInts->Js.Array2.push(leftParenInt)->ignore
-                        parenInts->Js.Array2.push(rightParenInt)->ignore
+                        parenInts->Array.push(leftParenInt)
+                        parenInts->Array.push(rightParenInt)
                     }
                     | _ => ()
                 }
@@ -37,7 +37,7 @@ let prepareParenInts = (wrkCtx, parenStr) => {
 
 let lineToVarDef = (line:string):result<array<string>,string> => {
     let arr = getSpaceSeparatedValuesAsArray(line)
-    if (arr->Js_array2.length != 3) {
+    if (arr->Array.length != 3) {
         Error(`A line representing a variable definition should consist of exactly three parts` 
                         ++ ` separated with a whitespace.`)
     } else {
@@ -47,10 +47,11 @@ let lineToVarDef = (line:string):result<array<string>,string> => {
 
 let textToVarDefs = (text:string):result<array<array<string>>,string> => {
     let varLines = text->multilineTextToNonEmptyLines
-    if (varLines->Js.Array2.length == 0) {
+    if (varLines->Array.length == 0) {
         Ok([])
     } else {
-        varLines->Js_array2.reduce(
+        varLines->Array.reduce(
+            Ok([]),
             (res,line) => {
                 switch res {
                     | Error(_) => res
@@ -58,14 +59,13 @@ let textToVarDefs = (text:string):result<array<array<string>>,string> => {
                         switch lineToVarDef(line) {
                             | Error(msg) => Error(msg)
                             | Ok(varDef) => {
-                                varDefs->Js_array2.push(varDef)->ignore
+                                varDefs->Array.push(varDef)
                                 Ok(varDefs)
                             }
                         }
                     }
                 }
-            },
-            Ok([])
+            }
         )
     }
 }
@@ -75,9 +75,9 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
         | Error(msg) => Some({...makeEmptyWrkCtxErr(), varsErr:Some(msg)})
         | Ok(varDefs) => {
             try {
-                varDefs->Js_array2.forEach(varDef => {
-                    wrkCtx->applySingleStmt(Var({symbols:[varDef[2]]}), ())
-                    wrkCtx->applySingleStmt(Floating({label:varDef[0], expr:[varDef[1], varDef[2]]}), ())
+                varDefs->Array.forEach(varDef => {
+                    wrkCtx->applySingleStmt(Var({symbols:[varDef->Array.getUnsafe(2)]}))
+                    wrkCtx->applySingleStmt(Floating({label:varDef->Array.getUnsafe(0), expr:[varDef->Array.getUnsafe(1), varDef->Array.getUnsafe(2)]}))
                 })
                 None
             } catch {
@@ -90,15 +90,15 @@ let parseVariables = (wrkCtx, varsText):option<wrkCtxErr> => {
 let addDisjFromString = (wrkCtx, disjStr) => {
     wrkCtx->applySingleStmt(Disj({
         vars:disjStr
-            ->Js.String2.split(" ")
-            ->Js_array2.map(Js_string2.trim)
-            ->Js.Array2.filter(str => str != "")
-    }), ())
+            ->String.split(" ")
+            ->Array.map(String.trim(_))
+            ->Array.filter(str => str != "")
+    }))
 }
 
 let parseDisjoints = (wrkCtx, disjText):option<wrkCtxErr> => {
     try {
-        disjText->multilineTextToNonEmptyLines->Js_array2.forEach(addDisjFromString(wrkCtx))
+        disjText->multilineTextToNonEmptyLines->Array.forEach(addDisjFromString(wrkCtx, _))
         None
     } catch {
         | MmException({msg}) => Some({...makeEmptyWrkCtxErr(), disjErr:Some(msg)})
@@ -110,18 +110,18 @@ let createWrkCtx = (
     ~varsText: string,
     ~disjText: string,
 ): result<mmContext,wrkCtxErr> => {
-    let wrkCtx = createContext(~parent=preCtx, ())
+    let wrkCtx = createContext(~parent=preCtx)
     let err:option<wrkCtxErr> = [
         () => parseVariables(wrkCtx, varsText),
         () => parseDisjoints(wrkCtx, disjText),
-    ]->Js.Array2.reduce(
+    ]->Array.reduce(
+        None,
         (err,nextStep) => {
             switch err {
                 | Some(_) => err
                 | None => nextStep()
             }
-        },
-        None
+        }
     )
     switch err {
         | Some(err) => Error(err)

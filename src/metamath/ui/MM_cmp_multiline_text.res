@@ -23,8 +23,7 @@ let rndIconButton = (
     ~onClick:unit=>unit, 
     ~active:bool=true, 
     ~title:option<string>=?, 
-    ~color:option<string>=Some("primary"),
-    ()
+    ~color:option<string>=Some("primary")
 ) => {
     <span ?title>
         <IconButton disabled={!active} onClick={_ => onClick()} ?color> icon </IconButton>
@@ -52,7 +51,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(_ => makeInitialState())
     let (newTextCursorPosition, setNewTextCursorPosition) = React.useState(() => None)
-    let textFieldRef = React.useRef(Js.Nullable.null)
+    let textFieldRef = React.useRef(Nullable.null)
 
     let {
         onClick, 
@@ -63,14 +62,14 @@ let make = (
             if (editByClick) {
                 if (editByAltClick) {
                     clickHnd2(
-                        clickClbkMake(~act=onEditRequested, ()),
-                        clickClbkMake(~alt=true, ~act=onEditRequested, ()),
+                        clickClbkMake(~act=onEditRequested),
+                        clickClbkMake(~alt=true, ~act=onEditRequested),
                     )
                 } else {
-                    clickHnd(~act=onEditRequested, ())
+                    clickHnd(~act=onEditRequested)
                 }
             } else if (editByAltClick) {
-                clickHnd(~alt=true, ~act=onEditRequested, ())
+                clickHnd(~alt=true, ~act=onEditRequested)
             } else {
                 _ => ()
             }
@@ -102,7 +101,7 @@ let make = (
             | None => ()
             | Some(newTextCursorPosition) => {
                 setNewTextCursorPosition(_ => None)
-                switch textFieldRef.current->Js.Nullable.toOption {
+                switch textFieldRef.current->Nullable.toOption {
                     | None => ()
                     | Some(domElem) => {
                         let input = ReactDOM.domElementToObj(domElem)
@@ -120,21 +119,21 @@ let make = (
     }
     
     let actEditDone = () => {
-        onEditDone(state.newText->Js_string2.trim)
+        onEditDone(state.newText->String.trim)
     }
     
     let actEditCancel = () => {
-        onEditCancel(state.newText->Js_string2.trim)
+        onEditCancel(state.newText->String.trim)
     }
     
     let actStartNewLine = () => {
-        switch textFieldRef.current->Js.Nullable.toOption {
+        switch textFieldRef.current->Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 let input = ReactDOM.domElementToObj(domElem)
                 let selectionStart = input["selectionStart"]
-                let before = state.newText->Js.String2.substring(~from=0,~to_=selectionStart)
-                let after = state.newText->Js.String2.substringToEnd(~from=selectionStart)
+                let before = state.newText->String.substring(~start=0,~end=selectionStart)
+                let after = state.newText->String.substringToEnd(~start=selectionStart)
                 actNewTextUpdated(before ++ "\n" ++ after)
                 input["focus"](.)->ignore
                 setNewTextCursorPosition(_ => Some(selectionStart+1))
@@ -144,14 +143,14 @@ let make = (
 
     let rndButtons = () => {
         let saveBtn = rndIconButton(
-            ~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter", ())
+            ~icon=<MM_Icons.Save/>, ~active=true,  ~onClick=actEditDone, ~title="Save, Enter")
         let cancelBtn = rndIconButton(
-            ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None, ())
+            ~icon=<MM_Icons.CancelOutlined/>, ~onClick=actEditCancel, ~title="Cancel, Esc", ~color=None)
         let helpBtn = switch onHelp {
             | None => React.null
             | Some(onHelp) => {
                 rndIconButton(
-                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None, ()
+                    ~icon=<MM_Icons.HelpOutline/>, ~onClick=onHelp, ~title="Help", ~color=None
                 )
             }
         }
@@ -159,13 +158,13 @@ let make = (
             | None => React.null
             | Some(onDelete) => {
                 rndIconButton(
-                    ~icon=<MM_Icons.DeleteForever/>, ~onClick=onDelete, ~title="Clear", ~color=None, ()
+                    ~icon=<MM_Icons.DeleteForever/>, ~onClick=onDelete, ~title="Clear", ~color=None
                 )
             }
         }
         let newLineBtn = rndIconButton(
             ~icon=<MM_Icons.KeyboardReturn/>, ~active=true,  ~onClick=actStartNewLine, 
-            ~title="Start new line, Shift+Enter", ~color=None, ())
+            ~title="Start new line, Shift+Enter", ~color=None)
         <Row spacing=1.> saveBtn newLineBtn cancelBtn helpBtn deleteBtn </Row>
     }
 
@@ -187,15 +186,15 @@ let make = (
                     value=state.newText
                     onChange=evt2str(actNewTextUpdated)
                     onKeyDown=kbrdHnd2(
-                        kbrdClbkMake(~key=keyEnter, ~act=actEditDone, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actEditCancel, ()),
+                        kbrdClbkMake(~key=keyEnter, ~act=actEditDone),
+                        kbrdClbkMake(~key=keyEsc, ~act=actEditCancel),
                     )
                     title="Enter to save, Shift+Enter to start a new line, Esc to cancel"
                 />
                 {rndButtons()}
             </Col>
         } else {
-            let style = if (text->Js.String2.trim == "") {
+            let style = if (text->String.trim == "") {
                 ReactDOM.Style.make(~padding="4px", ())
             } else {
                 ReactDOM.Style.make(~padding="0px 4px", ())
@@ -218,7 +217,7 @@ let make = (
                 title
             >
                 {
-                    if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {
+                    if (text->String.trim == "" || renderer->Belt.Option.isNone) {
                         <pre>
                             {React.string(text)}
                         </pre>

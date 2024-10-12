@@ -3,7 +3,6 @@ open Expln_React_Mui
 open Expln_utils_promise
 open MM_react_common
 open Local_storage_utils
-open Common
 
 @react.component
 let make = (
@@ -26,15 +25,15 @@ let make = (
         ""
     }
 
-    let notesStr = if (notes->Js.String2.length > 0) {
+    let notesStr = if (notes->String.length > 0) {
         notes ++ " "
     } else {
         ""
     }
 
     let textToShow = [timestampStr, notesStr, jsonStr]
-        ->Js.Array2.filter(str => str->Js_string2.trim != "")
-        ->Js.Array2.joinWith("\n")
+        ->Array.filter(str => str->String.trim != "")
+        ->Array.joinUnsafe("\n")
 
     let actCopyToClipboard = () => {
         copyToClipboard(textToShow)->promiseMap(_ => {
@@ -87,8 +86,8 @@ let make = (
                 onChange=evt2str(actNotesChanged)
                 title="Press Enter to copy to the clipboard and close this dialog window."
                 onKeyDown=kbrdHnd2(
-                    kbrdClbkMake(~key=keyEnter, ~act=actCopyAndClose, ()),
-                    kbrdClbkMake(~key=keyEsc, ~act=onClose, ())
+                    kbrdClbkMake(~key=keyEnter, ~act=actCopyAndClose),
+                    kbrdClbkMake(~key=keyEsc, ~act=onClose)
                 )
                 autoFocus=true
             />

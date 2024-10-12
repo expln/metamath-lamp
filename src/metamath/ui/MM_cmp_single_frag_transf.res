@@ -8,7 +8,7 @@ open Raw_js_utils
 
 @react.component
 let make = (
-    ~step:Js_json.t,
+    ~step:JSON.t,
     ~transform:fragmentTransform,
     ~onBack:unit=>unit,
     ~onInsertAbove:(bool,string)=>unit,
@@ -47,7 +47,7 @@ let make = (
 
     let rec rndCustomElem = (elem:{..}):reElem => {
         if (!isObject(elem)) {
-            Js.Exn.raiseError("Each component must be an object")
+            Exn.raiseError("Each component must be an object")
         }
         let componentName = reqStrExn(elem["cmp"], 
             "Each component must have a string attribute 'cmp' which specifies component name"
@@ -62,13 +62,13 @@ let make = (
             | "span" => rndSpan(objToObj(elem))
             | "ApplyButtons" => rndApplyButtons(objToObj(elem))
             | "Divider" => rndDivider()
-            | _ => Js_exn.raiseError(`Unrecognized component '${componentName}'`)
+            | _ => Exn.raiseError(`Unrecognized component '${componentName}'`)
         }
     }
-    and childrenToArray = (children:array<Js.Nullable.t<{..}>>, msg:string):reElem => {
+    and childrenToArray = (children:array<Nullable.t<{..}>>, msg:string):reElem => {
         children
-            ->Js.Array2.filter(child => child->Js.Nullable.toOption->Belt.Option.isSome)
-            ->Js_array2.mapi((child,i) => {
+            ->Array.filter(child => child->Nullable.toOption->Belt.Option.isSome)
+            ->Array.mapWithIndex((child,i) => {
                 let child = reqObjExn(child, `A child element is not a component object: ${msg}`)
                 rndCustomElem(child)->React.cloneElement({
                     "key":optStrExn(child["key"], "optional 'key' attribute of any component must be a string")
@@ -118,9 +118,9 @@ let make = (
         <RadioGroup row value onChange=evt2str(str => onChange(. str)) >
             {
                 options
-                    ->Js_array2.map(option => {
-                        let value = option[0]
-                        let label = option[1]
+                    ->Array.map(option => {
+                        let value = option->Array.getUnsafe(0)
+                        let label = option->Array.getUnsafe(1)
                         <FormControlLabel 
                             key=value value label control={ <Radio/> } 
                             style=ReactDOM.Style.make(~marginRight="30px", ())
@@ -168,7 +168,7 @@ let make = (
     }
     and rndApplyButtons = (elem:{..}):reElem => {
         let result = reqStrExn(elem["result"], "Each ApplyButtons component must have a string attribute 'result'")
-            ->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
+            ->getSpaceSeparatedValuesAsArray->Array.joinUnsafe(" ")
         let replaceSelection = optBoolExn(
             elem["replaceSelection"], 
             "the 'replaceSelection' attribute of ApplyButtons component must be a boolean"
@@ -208,7 +208,7 @@ let make = (
     let rndCustomContent = (state:fragmentTransformState) => {
         let params = {
             "state":state, 
-            "setState": mapper => setState(Belt_Option.map(_, mapper))
+            "setState": mapper => setState(Belt_Option.map(_, mapper(_)))
         }
         let reElemDto = invokeExnFunc("Rendering dialog (getting a DTO)", 
             () => transform.renderDialog(params)

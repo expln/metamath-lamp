@@ -29,7 +29,7 @@ let make = (
                 {
                     rndColorSelect(
                         ~availableColors, ~selectedColor=ts.color, ~onNewColorSelected = onColorChange(ts.id, _),
-                        ~label="Color", ()
+                        ~label="Color"
                     )
                 }
                 <TextField label="Prefix" size=#small style=ReactDOM.Style.make(~width="100px", ()) 
@@ -48,7 +48,7 @@ let make = (
     }
 
     <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
-        { typeSettings->Js_array2.map(rndTypeSetting)->React.array }
+        { typeSettings->Array.map(rndTypeSetting)->React.array }
         <Row alignItems={#baseline} >
             <IconButton key="add-button" onClick={_ => onAdd()}>
                 <MM_Icons.Add/>
@@ -56,8 +56,7 @@ let make = (
             {
                 rndSmallTextBtn(
                     ~text="Restore default type settings",
-                    ~onClick=onRestoreDefaults,
-                    ()
+                    ~onClick=onRestoreDefaults
                 )
             }
         </Row>

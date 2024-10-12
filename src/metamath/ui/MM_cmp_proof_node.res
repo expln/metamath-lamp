@@ -22,18 +22,18 @@ let toggleExpanded = st => {
     }
 }
 
-let isExpandedSrc = (st,srcIdx) => st.expandedSrcs->Js_array2.includes(srcIdx)
+let isExpandedSrc = (st,srcIdx) => st.expandedSrcs->Array.includes(srcIdx)
 
 let expandCollapseSrc = (st,srcIdx) => {
-    if (st.expandedSrcs->Js_array2.includes(srcIdx)) {
+    if (st.expandedSrcs->Array.includes(srcIdx)) {
         {
             ...st,
-            expandedSrcs: st.expandedSrcs->Js.Array2.filter(i => i != srcIdx)
+            expandedSrcs: st.expandedSrcs->Array.filter(i => i != srcIdx)
         }
     } else {
         {
             ...st,
-            expandedSrcs: st.expandedSrcs->Js.Array2.concat([srcIdx])
+            expandedSrcs: st.expandedSrcs->Array.concat([srcIdx])
         }
     }
 }
@@ -75,10 +75,10 @@ module rec ProofNodeDtoCmp: {
     }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
-        let node = tree.nodes[nodeIdx]
+        let node = tree.nodes->Array.getUnsafe(nodeIdx)
 
         let getParents = () => {
-            if (node.parents->Js.Array2.length == 0) {
+            if (node.parents->Array.length == 0) {
                 switch node.proof {
                     | None => []
                     | Some(src) => [src]
@@ -111,7 +111,7 @@ module rec ProofNodeDtoCmp: {
             <span 
                 style=ReactDOM.Style.make(
                     ~fontSize="13px", 
-                    ~opacity={if (parents->Js.Array2.length == 0) {"0.0"} else {"1.0"}}, 
+                    ~opacity={if (parents->Array.length == 0) {"0.0"} else {"1.0"}}, 
                     ()
                 )>
                 {React.string(char)}
@@ -125,7 +125,7 @@ module rec ProofNodeDtoCmp: {
             >
                 {React.string("( ")}
                 {
-                    args->Js_array2.mapi((arg,i) => {
+                    args->Array.mapWithIndex((arg,i) => {
                         <span
                             key={i->Belt_Int.toString} 
                             style=ReactDOM.Style.make(~color=getColorForLabel(arg), ())
@@ -147,11 +147,11 @@ module rec ProofNodeDtoCmp: {
         let isAsrtWithoutHyps = (src) => {
             switch src {
                 | VarType | Hypothesis(_) => false
-                | Assertion({args}) => args->Js_array2.length == 0
+                | Assertion({args}) => args->Array.length == 0
                 | AssertionWithErr({args, err}) => {
                     switch err {
                         | UnifErr | DisjCommonVar(_) | Disj(_) | UnprovedFloating(_) => {
-                            args->Js_array2.length == 0
+                            args->Array.length == 0
                         }
                         | NoUnifForAsrt(_) | NoUnifForArg(_) | NewVarsAreDisabled(_) | TooManyCombinations(_) => false
                     }
@@ -160,7 +160,7 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndExpandedArgs = (args, srcIdx) => {
-            let src = parents[srcIdx]
+            let src = parents->Array.getUnsafe(srcIdx)
             <table>
                 <tbody>
                     <tr key="c-args">
@@ -186,7 +186,7 @@ module rec ProofNodeDtoCmp: {
                                 </td>
                             </tr>
                         } else {
-                            args->Js_array2.mapi((arg,argIdx) => {
+                            args->Array.mapWithIndex((arg,argIdx) => {
                                 <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
                                     <td>
                                         <ProofNodeDtoCmp
@@ -226,7 +226,7 @@ module rec ProofNodeDtoCmp: {
             switch src {
                 | VarType | Hypothesis(_) => validProofIcon
                 | Assertion({args}) => {
-                    let allArgsAreProved = args->Js_array2.every(arg => tree.nodes[arg].proof->Belt_Option.isSome)
+                    let allArgsAreProved = args->Array.every(arg => (tree.nodes->Array.getUnsafe(arg)).proof->Belt_Option.isSome)
                     if (allArgsAreProved) {
                         validProofIcon
                     } else {
@@ -293,13 +293,13 @@ module rec ProofNodeDtoCmp: {
         }
 
         let rndSrcs = () => {
-            if (parents->Js.Array2.length == 0) {
+            if (parents->Array.length == 0) {
                 React.string("Sources are not set.")
             } else {
                 <table>
                     <tbody>
                         {
-                            parents->Js_array2.mapi((src,srcIdx) => rndSrc(src,srcIdx))->React.array
+                            parents->Array.mapWithIndex((src,srcIdx) => rndSrc(src,srcIdx))->React.array
                         }
                     </tbody>
                 </table>
@@ -325,7 +325,7 @@ module rec ProofNodeDtoCmp: {
                             style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ())
                             onClick={_=>actToggleExpanded()}
                         > 
-                            {exprToReElem(tree.nodes[nodeIdx].expr)} 
+                            {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
                         </td>
                     </tr>
                     {

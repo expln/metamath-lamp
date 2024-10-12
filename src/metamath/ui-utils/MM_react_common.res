@@ -22,7 +22,7 @@ let copyToClipboard = (text:string):promise<unit> => {
 let readFromClipboard = ():promise<string> => {
     // Firefox doesn't support readText. Implement a workaround so we
     // can readFromClipboard (paste) from within this application.
-    switch navigator["clipboard"]["readText"]->Js.Nullable.toOption {
+    switch navigator["clipboard"]["readText"]->Nullable.toOption {
         | None => promise(resolve => resolve(backupClipboard.contents))
         | Some(_) => navigator["clipboard"]["readText"](.)
     }
@@ -51,8 +51,7 @@ let clickClbkMake = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => {
     { btn, alt, shift, ctrl, act, }
 }
@@ -62,8 +61,7 @@ let clickHnd = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ):(ReactEvent.Mouse.t => unit) => {
     evt => {
         if (
@@ -111,10 +109,9 @@ let kbrdClbkMake = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => {
-    { key:key->Js_string2.toLowerCase, alt, shift, ctrl, act, }
+    { key:key->String.toLowerCase, alt, shift, ctrl, act, }
 }
 
 let kbrdHnd = (
@@ -122,13 +119,12 @@ let kbrdHnd = (
     ~alt:bool=false,
     ~shift:bool=false,
     ~ctrl:bool=false,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ):(ReactEvent.Keyboard.t => unit) => {
-    let key = key->Js_string2.toLowerCase
+    let key = key->String.toLowerCase
     evt => {
         if (
-            evt->ReactEvent.Keyboard.key->Js_string2.toLowerCase === key
+            evt->ReactEvent.Keyboard.key->String.toLowerCase === key
             && evt->ReactEvent.Keyboard.altKey === alt
             && evt->ReactEvent.Keyboard.ctrlKey === ctrl
             && evt->ReactEvent.Keyboard.shiftKey === shift
@@ -142,7 +138,7 @@ let kbrdHnd = (
 
 let runKbrdCallback = (evt:ReactEvent.Keyboard.t, clbk:kbrdCallback):unit => {
     if (
-        evt->ReactEvent.Keyboard.key->Js_string2.toLowerCase === clbk.key
+        evt->ReactEvent.Keyboard.key->String.toLowerCase === clbk.key
         && evt->ReactEvent.Keyboard.altKey === clbk.alt
         && evt->ReactEvent.Keyboard.ctrlKey === clbk.ctrl
         && evt->ReactEvent.Keyboard.shiftKey === clbk.shift
@@ -169,16 +165,16 @@ let kbrdHnd3 = ( clbk1:kbrdCallback, clbk2:kbrdCallback, clbk3:kbrdCallback, ):(
 }
 
 let kbrdHnds = ( clbks:array<kbrdCallback>):(ReactEvent.Keyboard.t => unit) => {
-    evt => clbks->Js_array2.forEach(runKbrdCallback(evt,_))
+    evt => clbks->Array.forEach(runKbrdCallback(evt,_))
 }
 
-let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?, ()) => {
+let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=>unit>=?) => {
     <Paper style=ReactDOM.Style.make(~padding=onTerminate->Belt.Option.map(_=>"5px")->Belt.Option.getWithDefault("10px"), ())>
         <Row alignItems=#center spacing=1.>
             <span style=ReactDOM.Style.make(~paddingLeft="10px", ())>
                 {
                     switch pct {
-                        | Some(pct) => `${text}: ${(pct *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString}%`
+                        | Some(pct) => `${text}: ${(pct *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString}%`
                         | None => text
                     }->React.string
                 }
@@ -197,7 +193,7 @@ let rndProgress = (~text:string, ~pct:option<float>=?, ~onTerminate:option<unit=
     </Paper>
 }
 
-let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd, ()):reElem => {
+let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd):reElem => {
     <TextField 
         key=?key
         size=#small
@@ -223,8 +219,7 @@ let rndInfoDialog = (
     ~content:option<React.element>=?, 
     ~icon:option<React.element>=?,
     ~onOk:unit=>unit, 
-    ~title:option<string>=?, 
-    ()
+    ~title:option<string>=?
 ) => {
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
@@ -267,10 +262,9 @@ let rndInfoDialog = (
                 {
                     rndHiddenTextField(
                         ~onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=onOk, ()),
-                            kbrdClbkMake(~key=keyEsc, ~act=onOk, ()),
-                        ),
-                        ()
+                            kbrdClbkMake(~key=keyEnter, ~act=onOk),
+                            kbrdClbkMake(~key=keyEsc, ~act=onOk),
+                        )
                     )
                 }
             </Row>
@@ -284,8 +278,7 @@ let openInfoDialog = (
     ~content:option<React.element>=?, 
     ~icon:option<React.element>=?,
     ~onOk:option<unit=>unit>=?, 
-    ~title:option<string>=?, 
-    ()
+    ~title:option<string>=?
 ) => {
     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
         updateModal(modalRef, modalId, () => {
@@ -297,14 +290,13 @@ let openInfoDialog = (
                     closeModal(modalRef, modalId)
                     onOk->Belt_Option.forEach(clbk => clbk())
                 },
-                ~title?,
-                ()
+                ~title?
             )
         })
     })->ignore
 }
 
-let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey", () ):React.element => {
+let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey" ):React.element => {
     <span
         onClick={_=> onClick() }
         style=ReactDOM.Style.make( 
@@ -325,8 +317,7 @@ let rndColorSelect = (
     ~availableColors:array<string>, 
     ~selectedColor:string, 
     ~onNewColorSelected:string=>unit,
-    ~label:option<string>=?,
-    ()
+    ~label:option<string>=?
 ):React.element => {
     <FormControl size=#small >
         {
@@ -342,7 +333,7 @@ let rndColorSelect = (
             onChange=evt2str(onNewColorSelected)
         >
             {
-                React.array(availableColors->Js_array2.map(color => {
+                React.array(availableColors->Array.map(color => {
                     <MenuItem key=color value=color>
                         <div style=ReactDOM.Style.make(~width="50px", ~height="20px", ~backgroundColor=color, ()) />
                     </MenuItem>

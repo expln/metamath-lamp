@@ -24,8 +24,7 @@ let createEditorState = (
     ~stopBefore:option<string>=?, 
     ~stopAfter:option<string>=?, 
     ~editorState:option<string>=?,
-    ~debug:option<bool>=?, 
-    ()
+    ~debug:option<bool>=?
 ) => {
     let parens = "( ) { } [ ]"
     let settings = {
@@ -74,7 +73,7 @@ let createEditorState = (
     }
 
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true)
     let ctx = loadContext(
         ast, 
         ~stopBefore?, 
@@ -83,15 +82,14 @@ let createEditorState = (
         ~labelRegexToDisc=settings.labelRegexToDisc->strToRegex->Belt_Result.getExn,
         ~descrRegexToDepr=settings.descrRegexToDepr->strToRegex->Belt_Result.getExn,
         ~labelRegexToDepr=settings.labelRegexToDepr->strToRegex->Belt_Result.getExn,
-        ~debug?, 
-        ()
+        ~debug?
     )
     while (ctx->getNestingLevel != 0) {
         ctx->closeChildContext
     }
     
     let st = createInitialEditorState(
-        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx), ()),
+        ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],ctx)),
         ~stateLocStor=
             switch editorState {
                 | None => None
@@ -114,8 +112,7 @@ let addStmt = (
     ~isGoal:bool=false,
     ~label:option<string>=?, 
     ~jstf:option<string>=?, 
-    ~stmt:string, 
-    ()
+    ~stmt:string
 ):(editorState,stmtId) => {
     let st = switch before {
         | None => st
@@ -124,7 +121,7 @@ let addStmt = (
             st->toggleStmtChecked(beforeStmtId)
         }
     }
-    let (st,stmtId) = st->addNewStmt(())
+    let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
     let st = switch label {
         | Some(label) => st->completeLabelEditMode(stmtId, label)
@@ -146,10 +143,10 @@ let duplicateStmt = (st, stmtId):(editorState,stmtId) => {
     let st = st->uncheckAllStmts
     let st = st->toggleStmtChecked(stmtId)
     let st = st->duplicateCheckedStmt(false)
-    if (st.checkedStmtIds->Js.Array2.length != 1) {
-        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Js.Array2.length != 1`}))
+    if (st.checkedStmtIds->Array.length != 1) {
+        raise(MmException({msg:`duplicateStmt: st.checkedStmtIds->Array.length != 1`}))
     } else {
-        let (newStmtId,_) = st.checkedStmtIds[0]
+        let (newStmtId,_) = st.checkedStmtIds->Array.getUnsafe(0)
         let st = st->uncheckAllStmts
         (st->verifyEditorState, newStmtId)
     }
@@ -163,8 +160,7 @@ let updateStmt = (
     ~content:option<string>=?,
     ~jstf:option<string>=?,
     ~contReplaceWhat:option<string>=?,
-    ~contReplaceWith:option<string>=?,
-    ()
+    ~contReplaceWith:option<string>=?
 ):editorState => {
     let st = switch label {
         | None => st
@@ -194,8 +190,8 @@ let updateStmt = (
                             ...stmt, 
                             cont: stmt.cont
                                     ->contToStr
-                                    ->Js.String2.replace(contReplaceWhat, contReplaceWith)
-                                    ->strToCont(_, ())
+                                    ->String.replace(contReplaceWhat, contReplaceWith)
+                                    ->strToCont(_)
                         }
                     }
                     | _ => stmt
@@ -217,8 +213,7 @@ let addStmtsBySearch = (
     ~filterLabel:option<string>=?, 
     ~filterTyp:option<string>=?, 
     ~filterPattern:option<string>=?, 
-    ~chooseLabel:string,
-    ()
+    ~chooseLabel:string
 ):editorState => {
     let st = switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot addStmtsBySearch when wrkCtx is None.`}))
@@ -233,16 +228,15 @@ let addStmtsBySearch = (
                 ~frms=st.frms,
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
                 ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
-                ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault("")),
-                ()
+                ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault(""))
             )
-            let st = switch searchResults->Js_array2.find(res => res.stmts[res.stmts->Js_array2.length-1].label == chooseLabel) {
+            let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
                     raise(MmException({
                         msg:`addStmtsBySearch: could not find ${chooseLabel}. ` 
-                            ++ `Available: ${searchResults->Js_array2.map(res => res.stmts[res.stmts->Js_array2.length-1].label)->Js_array2.joinWith(", ")} `
+                            ++ `Available: ${searchResults->Array.map(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label)->Array.joinUnsafe(", ")} `
                     }))
-                | Some(searchResult) => st->addNewStatements(searchResult, ())
+                | Some(searchResult) => st->addNewStatements(searchResult)
             }
             st->uncheckAllStmts
         }
@@ -250,7 +244,7 @@ let addStmtsBySearch = (
     st->verifyEditorState
 }
 
-let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, ()):editorState => {
+let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?):editorState => {
     assertNoErrors(st)
     let st = switch before {
         | None => st
@@ -259,7 +253,7 @@ let addNewStmts = (st:editorState, newStmts:stmtsDto, ~before:option<stmtId>=?, 
             st->toggleStmtChecked(beforeStmtId)
         }
     }
-    let st = st->addNewStatements(newStmts, ())
+    let st = st->addNewStatements(newStmts)
     let st = st->uncheckAllStmts
     st->verifyEditorState
 }
@@ -268,8 +262,7 @@ let getStmt = (
     st:editorState, 
     ~predicate:option<userStmt=>bool>=?,
     ~contains:option<string>=?, 
-    ~label:option<string>=?, 
-    ()
+    ~label:option<string>=?
 ) => {
     let predicate = switch predicate {
         | None => _ => true
@@ -277,18 +270,18 @@ let getStmt = (
     }
     let predicate = switch contains {
         | None => predicate
-        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->Js.String2.includes(contains)
+        | Some(contains) => stmt => predicate(stmt) && stmt.cont->contToStr->String.includes(contains)
     }
     let predicate = switch label {
         | None => predicate
         | Some(label) => stmt => predicate(stmt) && stmt.label == label
     }
 
-    let found = st.stmts->Js_array2.filter(predicate)
-    if (found->Js_array2.length != 1) {
-        raise(MmException({msg:`getStmt:  found.length = ${found->Js_array2.length->Belt_Int.toString}`}))
+    let found = st.stmts->Array.filter(predicate)
+    if (found->Array.length != 1) {
+        raise(MmException({msg:`getStmt:  found.length = ${found->Array.length->Belt_Int.toString}`}))
     } else {
-        found[0]
+        found->Array.getUnsafe(0)
     }
 }
 
@@ -296,17 +289,16 @@ let getStmtId = (
     st:editorState, 
     ~predicate:option<userStmt=>bool>=?,
     ~contains:option<string>=?, 
-    ~label:option<string>=?, 
-    ()
+    ~label:option<string>=?
 ) => {
-    getStmt( st, ~predicate?, ~contains?, ~label?, () ).id
+    getStmt( st, ~predicate?, ~contains?, ~label? ).id
 }
 
 let deleteStmts = (st:editorState, ids:array<stmtId> ) => {
     let st = st->uncheckAllStmts
-    let st = ids->Js_array2.reduce(
-        (st, id) => st->toggleStmtChecked(id),
-        st
+    let st = ids->Array.reduce(
+        st,
+        (st, id) => st->toggleStmtChecked(id)
     )
     let st = st->deleteCheckedStmts
     st->verifyEditorState
@@ -322,11 +314,11 @@ let applySubstitution = (st, ~replaceWhat:string, ~replaceWith:string, ~useMatch
                 wrkCtx->ctxStrToIntsExn(replaceWhat),
                 wrkCtx->ctxStrToIntsExn(replaceWith),
                 useMatching
-            )->Belt.Result.getExn->Js.Array2.filter(subs => subs.err->Belt_Option.isNone)
-            if (wrkSubs->Js.Array2.length != 1) {
+            )->Belt.Result.getExn->Array.filter(subs => subs.err->Belt_Option.isNone)
+            if (wrkSubs->Array.length != 1) {
                 raise(MmException({msg:`Unique substitution was expected in applySubstitution.`}))
             } else {
-                st->applySubstitutionForEditor(wrkSubs[0])
+                st->applySubstitutionForEditor(wrkSubs->Array.getUnsafe(0))
             }
         }
     }
@@ -338,7 +330,7 @@ let unifyAll = (st):editorState => {
     switch st.wrkCtx {
         | None => raise(MmException({msg:`Cannot unifyAll when wrkCtx is None.`}))
         | Some(wrkCtx) => {
-            let rootStmts = st->getRootStmtsForUnification->Js.Array2.map(userStmtToRootStmt)
+            let rootStmts = st->getRootStmtsForUnification->Array.map(userStmtToRootStmt)
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
@@ -347,10 +339,9 @@ let unifyAll = (st):editorState => {
                 ~wrkCtx,
                 ~rootStmts,
                 ~syntaxTypes=st.syntaxTypes,
-                ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts),
-                ()
+                ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts)
             )
-            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
+            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
             applyUnifyAllResults(st, proofTreeDto)
         }
     }
@@ -360,9 +351,9 @@ let filterRootStmts = (stmts:array<userStmt>, rootStmtsToUse:rootStmtsToUse):arr
     let stmtsFiltered = switch rootStmtsToUse {
         | AllStmts => stmts
         | NoneStmts => []
-        | SomeStmts(ids) => stmts->Js_array2.filter(stmt => ids->Js_array2.includes(stmt.id))
+        | SomeStmts(ids) => stmts->Array.filter(stmt => ids->Array.includes(stmt.id))
     }
-    stmtsFiltered->Js_array2.map(stmt => userStmtToRootStmt(stmt).expr)
+    stmtsFiltered->Array.map(stmt => userStmtToRootStmt(stmt).expr)
 }
 
 let unifyBottomUp = (
@@ -382,8 +373,7 @@ let unifyBottomUp = (
     ~useTranDepr: option<bool>=?,
     ~combCntMax:int=10000,
     ~chooseLabel:option<string>=?,
-    ~chooseResult:option<stmtsDto => bool>=?,
-    ()
+    ~chooseResult:option<stmtsDto => bool>=?
 ):(editorState, array<stmtsDto>) => {
     assertNoErrors(st)
     switch st.wrkCtx {
@@ -392,7 +382,7 @@ let unifyBottomUp = (
             let st = st->uncheckAllStmts
             let st = st->toggleStmtChecked(stmtId)
             let rootUserStmts = st->getRootStmtsForUnification
-            let rootStmts = rootUserStmts->Js_array2.map(userStmtToRootStmt)
+            let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
@@ -410,8 +400,7 @@ let unifyBottomUp = (
                                 ~allowNewStmts,
                                 ~allowNewVars,
                                 ~args0 = filterRootStmts(rootUserStmts, args0),
-                                ~args1 = filterRootStmts(rootUserStmts, args1),
-                                ()
+                                ~args1 = filterRootStmts(rootUserStmts, args1)
                             )
                         }
                     },
@@ -424,29 +413,28 @@ let unifyBottomUp = (
                     }
                 },
                 ~combCntMax,
-                //~onProgress = msg => Js.Console.log(msg),
-                ()
+                //~onProgress = msg => Console.log(msg)
             )
-            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Js_array2.map(stmt=>stmt.expr))
-            let rootExprToLabel = st.stmts->Js.Array2.map(userStmtToRootStmt)
-                ->Js_array2.map(stmt => (stmt.expr,stmt.label))
+            let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
+            let rootExprToLabel = st.stmts->Array.map(userStmtToRootStmt)
+                ->Array.map(stmt => (stmt.expr,stmt.label))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
             let result = proofTreeDtoToNewStmtsDto(
                 ~treeDto = proofTreeDto, 
-                ~exprToProve=rootStmts[rootStmts->Js_array2.length-1].expr,
+                ~exprToProve=(rootStmts->Array.getUnsafe(rootStmts->Array.length-1)).expr,
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
-                        st.settings.typeSettings->Js_array2.map(ts => (ts.typ, ts.prefix))
+                        st.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                     ),
                 ~rootExprToLabel,
-                ~reservedLabels=st.stmts->Js_array2.map(stmt => stmt.label)
+                ~reservedLabels=st.stmts->Array.map(stmt => stmt.label)
             )
             let result = switch chooseLabel {
                 | None => result
                 | Some(chooseLabel) => {
-                    result->Js_array2.filter(newStmtsDto => {
-                        let lastStmt = newStmtsDto.stmts[newStmtsDto.stmts->Js_array2.length - 1]
+                    result->Array.filter(newStmtsDto => {
+                        let lastStmt = newStmtsDto.stmts->Array.getUnsafe(newStmtsDto.stmts->Array.length - 1)
                         switch lastStmt.jstf {
                             | Some({label}) => label == chooseLabel
                             | _ => raise(MmException({msg:`Cannot get asrt label from newStmtsDto.`}))
@@ -456,7 +444,7 @@ let unifyBottomUp = (
             }
             let result = switch chooseResult {
                 | None => result
-                | Some(chooseResult) => result->Js_array2.filter(chooseResult)
+                | Some(chooseResult) => result->Array.filter(chooseResult)
             }
             (st, result)
         }
@@ -464,31 +452,31 @@ let unifyBottomUp = (
 }
 
 let getSingleStmtsDto = (stmtsDtoArr:array<stmtsDto>):stmtsDto => {
-    if (stmtsDtoArr->Js_array2.length > 1) {
+    if (stmtsDtoArr->Array.length > 1) {
         raise(MmException({msg:`There are more than 1 element in stmtsDtoArr.`}))
-    } else if (stmtsDtoArr->Js_array2.length == 0) {
+    } else if (stmtsDtoArr->Array.length == 0) {
         raise(MmException({msg:`stmtsDtoArr is empty.`}))
     } else {
-        stmtsDtoArr[0]
+        stmtsDtoArr->Array.getUnsafe(0)
     }
 }
 
 let removeAllJstf = (st:editorState):editorState => {
-    let st = {...st, stmts: st.stmts->Js.Array2.map(stmt => {...stmt, jstfText:""})}
+    let st = {...st, stmts: st.stmts->Array.map(stmt => {...stmt, jstfText:""})}
     st->verifyEditorState
 }
 
 let addDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
-    disjLines->Js_array2.push(disj)->ignore
-    let st = st->completeDisjEditMode( disjLines->Js.Array2.joinWith("\n") )
+    disjLines->Array.push(disj)
+    let st = st->completeDisjEditMode( disjLines->Array.joinUnsafe("\n") )
     st->verifyEditorState
 }
 
 let removeDisj = (st:editorState, disj:string):editorState => {
     let disjLines = st.disjText->multilineTextToNonEmptyLines
     let st = st->completeDisjEditMode(
-        disjLines->Js_array2.filter(line => line != disj)->Js.Array2.joinWith("\n")
+        disjLines->Array.filter(line => line != disj)->Array.joinUnsafe("\n")
     )
     st->verifyEditorState
 }

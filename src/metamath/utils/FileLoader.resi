@@ -5,7 +5,6 @@ let loadFile: (
     ~onProgress: (int, int) => unit=?,
     ~onReady: string => unit,
     ~onError: option<string> => unit=?,
-    unit,
 ) => unit
 
 let loadFileWithProgress: (
@@ -17,6 +16,5 @@ let loadFileWithProgress: (
     ~onReady:string=>unit,
     ~onError:option<string>=>unit =?,
     ~transformErrorMsg:option<string>=>string =?,
-    ~onTerminated:unit=>unit=?,
-    ()
+    ~onTerminated:unit=>unit=?
 ) => unit

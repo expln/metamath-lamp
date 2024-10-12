@@ -33,7 +33,7 @@ let make = (
     let actTestRegex = () => {
         switch regex->strToRegex {
             | Error(msg) => setResult(_ => Some(Error(msg)))
-            | Ok(re) => setResult(_ => Some(Ok(re->Js_re.test_(text))))
+            | Ok(re) => setResult(_ => Some(Ok(re->RegExp.test(text))))
         }
     }
 
@@ -47,7 +47,7 @@ let make = (
             maxRows=10
             value=text
             onChange=evt2str(actTextUpdated)
-            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel, ())
+            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel)
         />
     }
 
@@ -60,15 +60,15 @@ let make = (
                 value=regex
                 onChange=evt2str(actRegexUpdated)
                 onKeyDown=kbrdHnd2(
-                    kbrdClbkMake(~key=keyEnter, ~act=actTestRegex, ()),
-                    kbrdClbkMake(~key=keyEsc, ~act=onCancel, ()),
+                    kbrdClbkMake(~key=keyEnter, ~act=actTestRegex),
+                    kbrdClbkMake(~key=keyEsc, ~act=onCancel),
                 )
             />
             <Button 
                 onClick=(_=>actTestRegex()) 
                 variant=#contained 
                 color="grey" 
-                disabled={regex->Js.String2.trim->Js.String2.length == 0}
+                disabled={regex->String.trim->String.length == 0}
             > 
                 { React.string("Test") }
             </Button>

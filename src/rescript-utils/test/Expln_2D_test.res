@@ -35,7 +35,7 @@ describe("utility test functions", _ => {
 
 describe("Expln_2d", _ => {
     it("test all", _ => {
-        assertEqVec(ex->vecRot((Js.Math._PI /. 2.)->rad), ey, "vecRot")
+        assertEqVec(ex->vecRot((Math.Constants.pi /. 2.)->rad), ey, "vecRot")
 
         assertEqNum(deg(45.) -> toRad, 0.785398, "toRad")
         assertEqNum(rad(2.14675) -> toDeg, 122.9997147, "toDeg")
@@ -78,8 +78,8 @@ describe("Expln_2d", _ => {
 
         //let pntRot: (point, angle) => point
         assertEqPnt(
-            {x:Js.Math.sqrt(3.) /. 2., y: 0.5}->mkp -> pntRot(deg(-150.)),
-            {x:-0.5, y:-.Js.Math.sqrt(3.) /. 2.}->mkp,
+            {x:Math.sqrt(3.) /. 2., y: 0.5}->mkp -> pntRot(deg(-150.)),
+            {x:-0.5, y:-.Math.sqrt(3.) /. 2.}->mkp,
             "pntRot"
         )
         
@@ -182,26 +182,26 @@ describe("boundaries", _ => {
         assertEqPnt(b->bndRightTop, mkp({x:100., y:80.}), "bndRightTop")
 
         //bndAddMarginPct
-        let b = bndFromPoints([mkp({x:0., y:0.}), mkp({x:100., y:80.})])->bndAddMarginPct(~all=0.1, ())
+        let b = bndFromPoints([mkp({x:0., y:0.}), mkp({x:100., y:80.})])->bndAddMarginPct(~all=0.1)
         assertEqNum(b->bndMinX, -10., "bndAddMarginPct.all.MinX")
         assertEqNum(b->bndMaxX, 110., "bndAddMarginPct.all.MaxX")
         assertEqNum(b->bndMinY, -10., "bndAddMarginPct.all.MinY")
         assertEqNum(b->bndMaxY, 90., "bndAddMarginPct.all.MaxY")
         let b = bndFromPoints([mkp({x:0., y:0.}), mkp({x:100., y:200.})])
-            ->bndAddMarginPct(~left=0.1, ~right=0.2, ~top=0.3, ~bottom=0.4, ())
+            ->bndAddMarginPct(~left=0.1, ~right=0.2, ~top=0.3, ~bottom=0.4)
         assertEqNum(b->bndMinX, -10., "bndAddMarginPct.notAll.MinX")
         assertEqNum(b->bndMaxX, 120., "bndAddMarginPct.notAll.MaxX")
         assertEqNum(b->bndMinY, -80., "bndAddMarginPct.notAll.MinY")
         assertEqNum(b->bndMaxY, 260., "bndAddMarginPct.notAll.MaxY")
 
         //bndAddMargin
-        let b = bndFromPoints([mkp({x:0., y:0.}), mkp({x:100., y:80.})])->bndAddMargin(~all=5., ())
+        let b = bndFromPoints([mkp({x:0., y:0.}), mkp({x:100., y:80.})])->bndAddMargin(~all=5.)
         assertEqNum(b->bndMinX, -5., "bndAddMargin.all.MinX")
         assertEqNum(b->bndMaxX, 105., "bndAddMargin.all.MaxX")
         assertEqNum(b->bndMinY, -5., "bndAddMargin.all.MinY")
         assertEqNum(b->bndMaxY, 85., "bndAddMargin.all.MaxY")
         let b = bndFromPoints([mkp({x:0., y:0.}), mkp({x:100., y:200.})])
-            ->bndAddMargin(~left=1., ~right=2., ~top=3., ~bottom=4., ())
+            ->bndAddMargin(~left=1., ~right=2., ~top=3., ~bottom=4.)
         assertEqNum(b->bndMinX, -1., "bndAddMargin.notAll.MinX")
         assertEqNum(b->bndMaxX, 102., "bndAddMargin.notAll.MaxX")
         assertEqNum(b->bndMinY, -4., "bndAddMargin.notAll.MinY")

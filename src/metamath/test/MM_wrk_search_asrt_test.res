@@ -13,7 +13,7 @@ let createFrame = (asrt:expr, varTypes:array<int>):frame => {
         frameVarToSymb: [],
         varTypes,
         varHyps: [],
-        numOfVars: varTypes->Js.Array2.length,
+        numOfVars: varTypes->Array.length,
         numOfArgs: 0,
         descr: None,
         proof: None,

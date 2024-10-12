@@ -66,14 +66,14 @@ let make = (
     }
 
     let rndMultilineText = (text:string, renderer:option<string=>reElem>) => {
-        let style = if (text->Js.String2.trim == "") {
+        let style = if (text->String.trim == "") {
             ReactDOM.Style.make(~padding="4px", ())
         } else {
             ReactDOM.Style.make(~padding="0px", ())
         }
         <Paper variant=#outlined style >
             {
-                if (text->Js.String2.trim == "" || renderer->Belt.Option.isNone) {
+                if (text->String.trim == "" || renderer->Belt.Option.isNone) {
                     <pre>
                         {React.string(text)}
                     </pre>
@@ -171,14 +171,14 @@ let make = (
     }
 
     let rndPagination = (editorState:editorState) => {
-        let paginationIsRequired = editorState.stmts->Js.Array2.length > stepsPerPage
+        let paginationIsRequired = editorState.stmts->Array.length > stepsPerPage
         if (paginationIsRequired) {
-            let stepsPerPage = Js.Math.max_int(1, Js.Math.min_int(stepsPerPage, 1000))
-            let numOfPages = (editorState.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
-                                ->Js_math.ceil_float->Belt.Float.toInt
+            let stepsPerPage = Math.Int.max(1, Math.Int.min(stepsPerPage, 1000))
+            let numOfPages = (editorState.stmts->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+                                ->Math.ceil->Belt.Float.toInt
             let minPageIdx = 0
             let maxPageIdx = numOfPages - 1
-            let pageIdx = Js.Math.max_int(minPageIdx, Js.Math.min_int(pageIdx, maxPageIdx))
+            let pageIdx = Math.Int.max(minPageIdx, Math.Int.min(pageIdx, maxPageIdx))
             <div style=ReactDOM.Style.make(~padding="5px", ())>
                 <PaginationCmp
                     numOfPages
@@ -196,18 +196,18 @@ let make = (
     }
 
     let rndStmts = (editorState:editorState) => {
-        let numOfPages = (editorState.stmts->Js.Array2.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
-                            ->Js_math.ceil_float->Belt.Float.toInt
+        let numOfPages = (editorState.stmts->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
+                            ->Math.ceil->Belt.Float.toInt
         let minPageIdx = 0
         let maxPageIdx = numOfPages - 1
-        let pageIdx = Js.Math.max_int(minPageIdx, Js.Math.min_int(pageIdx, maxPageIdx))
+        let pageIdx = Math.Int.max(minPageIdx, Math.Int.min(pageIdx, maxPageIdx))
         let stmtBeginIdx = pageIdx * stepsPerPage
         let stmtEndIdx = stmtBeginIdx + stepsPerPage - 1
         <Col spacing=0.>
             { 
                 editorState.stmts
-                    ->Js.Array2.filteri((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
-                    ->Js_array2.map(rndStmt(editorState, _))->React.array 
+                    ->Array.filterWithIndex((_,i) => stmtBeginIdx <= i && i <= stmtEndIdx)
+                    ->Array.map(rndStmt(editorState, _))->React.array 
             }
         </Col>
     }

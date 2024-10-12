@@ -13,8 +13,7 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         //loading context from "simple_case._mm" and creating initial state from "simple_case_init_state.json"
         let st = createEditorState( 
             ~mmFilePath="./src/metamath/test/resources/int-test-data/renumbering/simple_case._mm", 
-            ~editorState="simple_case_init_state",
-            ()
+            ~editorState="simple_case_init_state"
         )
 
         //comparing actual initial state with expected one to make sure the test preconditions are valid
@@ -37,8 +36,7 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         setTestDataDir("renumbering")
         let st = createEditorState( 
             ~mmFilePath="./src/metamath/test/resources/int-test-data/renumbering/hyps_no_renum._mm", 
-            ~editorState="hyps_no_renum_init_state",
-            ()
+            ~editorState="hyps_no_renum_init_state"
         )
         assertEditorState(st, "hyps_no_renum_given")
 
@@ -54,8 +52,7 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         setTestDataDir("renumbering")
         let st = createEditorState( 
             ~mmFilePath="./src/metamath/test/resources/int-test-data/renumbering/bad_prefix_case._mm", 
-            ~editorState="bad_prefix_init_state",
-            ()
+            ~editorState="bad_prefix_init_state"
         )
         assertEditorState(st, "bad_prefix_given")
 

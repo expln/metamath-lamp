@@ -10,10 +10,10 @@ describe("verifyProof", _ => {
     it("verifies all proofs in set.mm", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
         let progressTracker = testProgressTrackerMake(
             ~step=0.05, 
-            ~maxCnt = countFrames(ast, ()),
+            ~maxCnt = countFrames(ast),
         )
 
         loadContext(ast, ~onPreProcess = (ctx,node) => {
@@ -23,12 +23,12 @@ describe("verifyProof", _ => {
                     let expr = ctx->ctxSymsToIntsExn(exprStr)
 
                     //then
-                    verifyProof(~ctx, ~expr, ~proof, ~isDisjInCtx=ctx->isDisj)->ignore
+                    verifyProof(~ctx, ~expr, ~proof, ~isDisjInCtx=isDisj(ctx, ...))->ignore
 
                     progressTracker->testProgressTrackerIncCnt
                 }
                 | _ => ()
             }
-        }, ())->ignore
+        })->ignore
     })
 })

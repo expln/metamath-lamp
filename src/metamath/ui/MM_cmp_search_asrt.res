@@ -36,8 +36,8 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
         label: "",
         allTypes,
         typ: initialTyp
-                ->Belt_Option.map(iniTyp => if (allTypes->Js.Array2.includes(iniTyp)) {iniTyp} else {allTypes[0]})
-                ->Belt_Option.getWithDefault(allTypes[0]),
+                ->Belt_Option.map(iniTyp => if (allTypes->Array.includes(iniTyp)) {iniTyp} else {allTypes->Array.getUnsafe(0)})
+                ->Belt_Option.getWithDefault(allTypes->Array.getUnsafe(0)),
         patternStr: "",
         patternErr: None,
         results: None,
@@ -54,18 +54,18 @@ let setResults = (
     ~results: array<stmtsDto>,
     ~getFrmLabelBkgColor: string=>option<string>,
 ):state => {
-    let maxPage = Js.Math.ceil_int(results->Js_array2.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
+    let maxPage = Math.Int.ceil(results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
         ...st,
         results:Some(results),
         resultsForRender:Some(
-            results->Js.Array2.map(result => {
-                let numOfStmt = result.stmts->Js.Array2.length
+            results->Array.map(result => {
+                let numOfStmt = result.stmts->Array.length
                 let lastStmtIdx = numOfStmt - 1
                 <Paper style=ReactDOM.Style.make(~padding="3px", ())>
                     <Col>
                         {React.array(
-                            result.newDisjStr->Js_array2.mapi((disjStr,i) => {
+                            result.newDisjStr->Array.mapWithIndex((disjStr,i) => {
                                 <React.Fragment key={"disj-" ++ i->Belt_Int.toString} >
                                     {React.string("$d " ++ disjStr ++ " $.")}
                                     <Divider/>
@@ -73,7 +73,7 @@ let setResults = (
                             })
                         )}
                         {React.array(
-                            result.stmts->Js_array2.mapi((stmt,i) => {
+                            result.stmts->Array.mapWithIndex((stmt,i) => {
                                 <React.Fragment key={"stmt-" ++ i->Belt_Int.toString} >
                                     <span 
                                         style=ReactDOM.Style.make(
@@ -112,7 +112,7 @@ let setResults = (
 let setPage = (st,page):state => {
     {
         ...st,
-        resultsPage: Js.Math.max_int(0, Js.Math.min_int(st.resultsMaxPage, page)),
+        resultsPage: Math.Int.max(0, Math.Int.min(st.resultsMaxPage, page)),
     }
 }
 
@@ -145,15 +145,15 @@ let setPatternErr = (st,patternErr):state => {
 }
 
 let toggleResultChecked = (st,idx) => {
-    if (st.checkedResultsIdx->Js_array2.includes(idx)) {
+    if (st.checkedResultsIdx->Array.includes(idx)) {
         {
             ...st,
-            checkedResultsIdx: st.checkedResultsIdx->Js.Array2.filter(i => i != idx)
+            checkedResultsIdx: st.checkedResultsIdx->Array.filter(i => i != idx)
         }
     } else {
         {
             ...st,
-            checkedResultsIdx: st.checkedResultsIdx->Js.Array2.concat([idx])
+            checkedResultsIdx: st.checkedResultsIdx->Array.concat([idx])
         }
     }
 }
@@ -198,7 +198,7 @@ let make = (
 
     let actSearch = () => {
         onTypChange(state.typ)
-        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Js_array2.find(sym => {
+        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Array.find(sym => {
             wrkCtx->ctxSymToInt(sym)->Belt.Option.isNone
         })
         switch incorrectSymbol {
@@ -208,10 +208,10 @@ let make = (
             }
             | None => {
                 setState(setPatternErr(_, None))
-                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. , ()))->promiseMap(modalId => {
+                openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
                     updateModal(
                         modalRef, modalId, () => rndProgress(
-                            ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId), ()
+                            ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
                         )
                     )
                     searchAssertions(
@@ -221,12 +221,12 @@ let make = (
                         ~preCtx,
                         ~varsText,
                         ~disjText,
-                        ~label=state.label->Js_string2.trim,
+                        ~label=state.label->String.trim,
                         ~typ=state.typ,
                         ~pattern=wrkCtx->ctxStrToIntsExn(state.patternStr),
                         ~onProgress = pct => updateModal(
                             modalRef, modalId, () => rndProgress(
-                                ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId), ()
+                                ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                             )
                         )
                     )->promiseMap(found => {
@@ -250,7 +250,7 @@ let make = (
         switch state.results {
             | None => ()
             | Some(results) => {
-                onResultsSelected(results->Js_array2.filteri((_,i) => state.checkedResultsIdx->Js.Array2.includes(i)))
+                onResultsSelected(results->Array.filterWithIndex((_,i) => state.checkedResultsIdx->Array.includes(i)))
             }
         }
     }
@@ -283,8 +283,8 @@ let make = (
             value=state.patternStr
             onChange=evt2str(actPatternChange)
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~key=keyEnter, ~act=actSearch, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSearch),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled),
             )
         />
     }
@@ -297,8 +297,8 @@ let make = (
             value=state.label
             onChange=evt2str(actLabelChange)
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~key=keyEnter, ~act=actSearch, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=actSearch),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled),
             )
         />
     }
@@ -313,7 +313,7 @@ let make = (
                 onChange=evt2str(actTypeChange)
             >
                 {React.array(
-                    state.allTypes->Js_array2.map(typI => {
+                    state.allTypes->Array.map(typI => {
                         let typStr = wrkCtx->ctxIntToSymExn(typI)
                         <MenuItem key=typStr value=typStr>{React.string(typStr)}</MenuItem>
                     })
@@ -347,7 +347,7 @@ let make = (
 
     let rndResultButtons = () => {
         <Row>
-            <Button onClick={_=>actChooseSelected()} variant=#contained disabled={state.checkedResultsIdx->Js.Array2.length == 0}>
+            <Button onClick={_=>actChooseSelected()} variant=#contained disabled={state.checkedResultsIdx->Array.length == 0}>
                 {React.string("Choose selected")}
             </Button>
             <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
@@ -360,24 +360,24 @@ let make = (
             | Some(resultsForRender) => {
                 let items = []
                 let minI = (state.resultsPage - 1) * state.resultsPerPage
-                let maxI = Js.Math.min_int(minI + state.resultsPerPage - 1, resultsForRender->Js_array2.length-1)
+                let maxI = Math.Int.min(minI + state.resultsPerPage - 1, resultsForRender->Array.length-1)
                 for i in minI to maxI {
-                    let resultForRender = resultsForRender[i]
-                    items->Js.Array2.push(resultForRender)->ignore
+                    let resultForRender = resultsForRender->Array.getUnsafe(i)
+                    items->Array.push(resultForRender)
                 }
-                let totalNumOfResults = resultsForRender->Js.Array2.length
+                let totalNumOfResults = resultsForRender->Array.length
                 <Col>
                     {rndResultButtons()}
                     {rndPagination(totalNumOfResults)}
                     {
-                        items->Js_array2.mapi((item,i) => {
+                        items->Array.mapWithIndex((item,i) => {
                             let resIdx = minI + i
                             <table key={resIdx->Belt_Int.toString}>
                                 <tbody>
                                     <tr>
                                         <td>
                                             <Checkbox
-                                                checked={state.checkedResultsIdx->Js.Array2.includes(resIdx)}
+                                                checked={state.checkedResultsIdx->Array.includes(resIdx)}
                                                 onChange={_ => actToggleResultChecked(resIdx)}
                                             />
                                         </td>

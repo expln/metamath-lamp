@@ -55,32 +55,32 @@ describe("hashArrIntFromTo", _ => {
 describe("comparatorBy", _ => {
     it("produces correct comparators", _ => {
         //given
-        let cmp1 = comparatorBy(a => a[1])
+        let cmp1 = comparatorBy(a => a->Array.getUnsafe(1))
 
         //when/then
-        assertEq(-1, cmp1([1,30], [2,40]))
-        assertEq(0, cmp1([1,40], [2,40]))
-        assertEq(1, cmp1([1,50], [2,40]))
+        assertEq(-1.0, cmp1([1,30], [2,40]))
+        assertEq(0.0, cmp1([1,40], [2,40]))
+        assertEq(1.0, cmp1([1,50], [2,40]))
     })
 })
 
 describe("comparatorInverse", _ => {
     it("creates inverted comparator", _ => {
         //given
-        let cmp1 = comparatorBy(a => a[1])->comparatorInverse
+        let cmp1 = comparatorBy(a => a->Array.getUnsafe(1))->comparatorInverse
 
         //when/then
-        assertEq(1, cmp1([1,30], [2,40]))
-        assertEq(0, cmp1([1,40], [2,40]))
-        assertEq(-1, cmp1([1,50], [2,40]))
+        assertEq(1.0, cmp1([1,30], [2,40]))
+        assertEq(0.0, cmp1([1,40], [2,40]))
+        assertEq(-1.0, cmp1([1,50], [2,40]))
     })
 })
 
 describe("comparatorAndThen", _ => {
     it("produces correct results when two comparators are combined", _ => {
         //given
-        let cmp1 = (a,b) => a[0] - b[0]
-        let cmp2 = (a,b) => a[1] - b[1]
+        let cmp1 = (a,b) => (a->Array.getUnsafe(0) - b->Array.getUnsafe(0))->Belt_Float.fromInt
+        let cmp2 = (a,b) => (a->Array.getUnsafe(1) - b->Array.getUnsafe(1))->Belt_Float.fromInt
         let cmp12 = cmp1->comparatorAndThen(cmp2)
         let cmp21 = cmp2->comparatorAndThen(cmp1)
         let arr = [
@@ -93,7 +93,7 @@ describe("comparatorAndThen", _ => {
         ]
 
         //when
-        let res12 = arr->Js.Array2.copy->Js.Array2.sortInPlaceWith(cmp12)
+        let res12 = arr->Array.toSorted(cmp12)
 
         //then
         assertEq(
@@ -109,7 +109,7 @@ describe("comparatorAndThen", _ => {
         )
 
         //when
-        let res21 = arr->Js.Array2.copy->Js.Array2.sortInPlaceWith(cmp21)
+        let res21 = arr->Array.toSorted(cmp21)
 
         //then
         assertEq(
@@ -127,9 +127,9 @@ describe("comparatorAndThen", _ => {
 
     it("produces correct results when three comparators are combined", _ => {
         //given
-        let cmp1 = (a,b) => a[0] - b[0]
-        let cmp2 = (a,b) => a[1] - b[1]
-        let cmp3 = (a,b) => a[2] - b[2]
+        let cmp1 = (a,b) => (a->Array.getUnsafe(0) - b->Array.getUnsafe(0))->Belt_Float.fromInt
+        let cmp2 = (a,b) => (a->Array.getUnsafe(1) - b->Array.getUnsafe(1))->Belt_Float.fromInt
+        let cmp3 = (a,b) => (a->Array.getUnsafe(2) - b->Array.getUnsafe(2))->Belt_Float.fromInt
         let cmp123 = cmp1->comparatorAndThen(cmp2)->comparatorAndThen(cmp3)
         let cmp321 = cmp3->comparatorAndThen(cmp2)->comparatorAndThen(cmp1)
         let arr = [
@@ -148,7 +148,7 @@ describe("comparatorAndThen", _ => {
         ]
 
         //when
-        let res123 = arr->Js.Array2.copy->Js.Array2.sortInPlaceWith(cmp123)
+        let res123 = arr->Array.toSorted(cmp123)
 
         //then
         assertEq(
@@ -170,7 +170,7 @@ describe("comparatorAndThen", _ => {
         )
 
         //when
-        let res321 = arr->Js.Array2.copy->Js.Array2.sortInPlaceWith(cmp321)
+        let res321 = arr->Array.toSorted(cmp321)
 
         //then
         assertEq(

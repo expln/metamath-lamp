@@ -38,8 +38,7 @@ let applyAssertions: (
     ~combCntMax:int=?,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=?,
-    ~onProgress:float=>unit=?,
-    ()
+    ~onProgress:float=>unit=?
 ) => unit
 
 

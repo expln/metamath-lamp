@@ -13,7 +13,6 @@ let createEditorState: (
     ~stopAfter: string=?,
     ~editorState:string=?,
     ~debug: bool=?,
-    unit,
 ) => editorState
 
 let addStmt: (
@@ -24,7 +23,6 @@ let addStmt: (
     ~label: string=?,
     ~jstf:string=?, 
     ~stmt: string,
-    unit,
 ) => (editorState, stmtId)
 
 let duplicateStmt: (editorState, stmtId) => (editorState, stmtId)
@@ -38,7 +36,6 @@ let updateStmt: (
     ~jstf:string=?,
     ~contReplaceWhat: string=?,
     ~contReplaceWith: string=?,
-    unit,
 ) => editorState
 
 let addStmtsBySearch: (
@@ -48,25 +45,22 @@ let addStmtsBySearch: (
     ~filterTyp: string=?,
     ~filterPattern: string=?,
     ~chooseLabel: string,
-    unit,
 ) => editorState
 
-let addNewStmts: ( editorState, stmtsDto, ~before: stmtId=?, unit, ) => editorState
+let addNewStmts: ( editorState, stmtsDto, ~before: stmtId=?) => editorState
 
 let getStmt: (
     editorState, 
     ~predicate:userStmt=>bool=?,
     ~contains:string=?, 
-    ~label:string=?,
-    ()
+    ~label:string=?
 ) => userStmt
 
 let getStmtId: (
     editorState, 
     ~predicate:userStmt=>bool=?,
     ~contains:string=?, 
-    ~label:string=?,
-    ()
+    ~label:string=?
 ) => stmtId
 
 let applySubstitution: (
@@ -96,7 +90,6 @@ let unifyBottomUp: (
     ~combCntMax:int=?,
     ~chooseLabel: string=?,
     ~chooseResult: stmtsDto=>bool =?,
-    (),
 ) => (editorState, array<stmtsDto>)
 
 let getSingleStmtsDto: array<stmtsDto> => stmtsDto

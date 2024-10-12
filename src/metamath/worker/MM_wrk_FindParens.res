@@ -35,8 +35,7 @@ let beginFindParens = (~ctx, ~onProgress:float=>unit, ~onDone:string=>unit) => {
                     onDone(parens)
                 }
             }
-        },
-        ()
+        }
     )
 }
 
@@ -44,7 +43,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
     switch req {
         | FindParens({ctx}) => {
             sendToClient(FindParensDone({
-                parens: findParentheses(ctx, ~onProgress = pct => sendToClient(FindParensProgress({pct:pct})), ())->ctxIntsToStrExn(ctx, _)
+                parens: findParentheses(ctx, ~onProgress = pct => sendToClient(FindParensProgress({pct:pct})))->ctxIntsToStrExn(ctx, _)
             }))
         }
     }

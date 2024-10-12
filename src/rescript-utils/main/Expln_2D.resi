@@ -54,8 +54,7 @@ module type Utils2D = {
         ~left:float=?,
         ~right:float=?,
         ~top:float=?,
-        ~bottom:float=?,
-        ()
+        ~bottom:float=?
     ) => boundaries
     let bndAddMarginPct: (
         boundaries, 
@@ -63,8 +62,7 @@ module type Utils2D = {
         ~left:float=?,
         ~right:float=?,
         ~top:float=?,
-        ~bottom:float=?,
-        ()
+        ~bottom:float=?
     ) => boundaries
     let bndMerge: (boundaries,boundaries) => boundaries
     let bndMergeAll: array<boundaries> => boundaries

@@ -2,9 +2,9 @@ open Expln_React_common
 open MM_context
 open MM_wrk_settings
 
-let rndProgress: (~text:string, ~pct:float=?, ~onTerminate:unit=>unit=?, ()) => reElem
+let rndProgress: (~text:string, ~pct:float=?, ~onTerminate:unit=>unit=?) => reElem
 
-let rndHiddenTextField: (~key:string=?, ~onKeyDown:reKeyboardHnd, ()) => reElem
+let rndHiddenTextField: (~key:string=?, ~onKeyDown:reKeyboardHnd) => reElem
 
 let openInfoDialog: (
     ~modalRef: Expln_React_Modal.modalRef,
@@ -13,17 +13,15 @@ let openInfoDialog: (
     ~icon:React.element=?,
     ~onOk: unit => unit =?,
     ~title:string=?,
-    unit,
 ) => unit
 
-let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ~color:string=?, ()) => React.element
+let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ~color:string=?) => React.element
 
 let rndColorSelect: (
     ~availableColors:array<string>, 
     ~selectedColor:string, 
     ~onNewColorSelected:string=>unit,
     ~label:string=?,
-    unit
 ) => React.element
 
 let getFrmLabelBkgColor: (frame, settings) => option<string>
@@ -40,8 +38,7 @@ let clickClbkMake: (
     ~alt:bool=?,
     ~shift:bool=?,
     ~ctrl:bool=?,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => clickCallback
 
 let clickHnd: (
@@ -49,8 +46,7 @@ let clickHnd: (
     ~alt:bool=?,
     ~shift:bool=?,
     ~ctrl:bool=?,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => (ReactEvent.Mouse.t => unit)
 
 let clickHnd2: ( clickCallback, clickCallback, ) => (ReactEvent.Mouse.t => unit)
@@ -65,8 +61,7 @@ let kbrdClbkMake: (
     ~alt:bool=?,
     ~shift:bool=?,
     ~ctrl:bool=?,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => kbrdCallback
 
 let kbrdHnd: (
@@ -74,8 +69,7 @@ let kbrdHnd: (
     ~alt:bool=?,
     ~shift:bool=?,
     ~ctrl:bool=?,
-    ~act:unit=>unit,
-    ()
+    ~act:unit=>unit
 ) => (ReactEvent.Keyboard.t => unit)
 
 let kbrdHnd2: ( kbrdCallback, kbrdCallback ) => (ReactEvent.Keyboard.t => unit)

@@ -29,7 +29,7 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
         typEditMode: false,
         isGoal: userStmtLocStor.isGoal,
         isBkm: userStmtLocStor.isBkm,
-        cont: strToCont(userStmtLocStor.cont, ()),
+        cont: strToCont(userStmtLocStor.cont),
         contEditMode: false,
         isDuplicated: false,
 
@@ -84,11 +84,11 @@ let createInitialEditorState = (
         wrkCtx: None,
 
         nextStmtId: stateLocStor
-            ->Belt.Option.map(stateLocStor => stateLocStor.stmts->Js_array2.length)
+            ->Belt.Option.map(stateLocStor => stateLocStor.stmts->Array.length)
             ->Belt.Option.getWithDefault(0),
         stmts: 
             stateLocStor
-                ->Belt.Option.map(obj => obj.stmts->Js_array2.mapi((stmtLocStor,i) => {
+                ->Belt.Option.map(obj => obj.stmts->Array.mapWithIndex((stmtLocStor,i) => {
                     {
                         ...userStmtLocStorToUserStmt(stmtLocStor),
                         id: i->Belt_Int.toString
@@ -105,11 +105,11 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.srcs->Js.Array2.map(src => {...src, ast:None, allLabels:[]}),
+        srcs: state.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
-        stmts: state.stmts->Js_array2.map(stmt => {
+        stmts: state.stmts->Array.map(stmt => {
             {
                 label: stmt.label,
                 typ: (stmt.typ->userStmtTypeToStr),
@@ -128,29 +128,29 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
         {
             srcs: d->arr("srcs", asObj(_, d=>{
                 {
-                    typ: d->str("typ", ()),
-                    fileName: d->str("fileName", ()),
-                    url: d->str("url", ()),
-                    readInstr: d->str("readInstr", ()),
-                    label: d->str("label", ()),
-                    resetNestingLevel: d->bool("resetNestingLevel", ~default=()=>true, ()),
+                    typ: d->str("typ"),
+                    fileName: d->str("fileName"),
+                    url: d->str("url"),
+                    readInstr: d->str("readInstr"),
+                    label: d->str("label"),
+                    resetNestingLevel: d->bool("resetNestingLevel", ~default=()=>true),
                     ast: None,
                     allLabels: [],
                 }
-            }, ()), ~default=()=>[], ()),
-            descr: d->str("descr", ~default=()=>"", ()),
-            varsText: d->str("varsText", ~default=()=>"", ()),
-            disjText: d->str("disjText", ~default=()=>"", ()),
+            }), ~default=()=>[]),
+            descr: d->str("descr", ~default=()=>""),
+            varsText: d->str("varsText", ~default=()=>""),
+            disjText: d->str("disjText", ~default=()=>""),
             stmts: d->arr("stmts", asObj(_, d=>{
                 {
-                    label: d->str("label", ()),
-                    typ: d->str("typ", ()),
-                    isGoal: d->bool("isGoal", ~default=()=>false, ()),
-                    isBkm: d->bool("isBkm", ~default=()=>false, ()),
-                    cont: d->str("cont", ()),
-                    jstfText: d->str("jstfText", ()),
+                    label: d->str("label"),
+                    typ: d->str("typ"),
+                    isGoal: d->bool("isGoal", ~default=()=>false),
+                    isBkm: d->bool("isBkm", ~default=()=>false),
+                    cont: d->str("cont"),
+                    jstfText: d->str("jstfText"),
                 }
-            }, ()), ())
+            }))
         }
-    }, ()), ())
+    }))
 }

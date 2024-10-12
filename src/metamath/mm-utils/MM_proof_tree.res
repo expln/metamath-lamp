@@ -73,8 +73,8 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
             switch b {
                 | Assertion({ args:bArgs, frame:bFrame, }) => {
                     aFrame.label == bFrame.label
-                    && aArgs->Js.Array2.length == bArgs->Js.Array2.length
-                    && aArgs->Js.Array2.everyi((aArg,idx) => aArg.id == bArgs[idx].id)
+                    && aArgs->Array.length == bArgs->Array.length
+                    && aArgs->Array.everyWithIndex((aArg,idx) => aArg.id == (bArgs->Array.getUnsafe(idx)).id)
                 }
                 | _ => false
             }
@@ -86,7 +86,7 @@ let exprSrcEq = (a:exprSrc,b:exprSrc):bool => {
 let exprSrcIsProved = (exprSrc:exprSrc): bool => {
     switch exprSrc {
         | VarType | Hypothesis(_) => true
-        | Assertion({args}) => args->Js_array2.every(arg => arg.proof->Belt_Option.isSome)
+        | Assertion({args}) => args->Array.every(arg => arg.proof->Belt_Option.isSome)
         | AssertionWithErr(_) => false
     }
 }
@@ -129,7 +129,7 @@ let ptMake = (
         frms: frms,
         hypsByLabel: hypsArr->Belt_HashMapString.fromArray,
         hypsByExpr: hypsArr
-                    ->Js_array2.map(((_,hyp)) => (hyp.expr, hyp))
+                    ->Array.map(((_,hyp)) => (hyp.expr, hyp))
                     ->Belt_HashMap.fromArray(~id=module(ExprHash)),
         ctxMaxVar,
         maxVar:ctxMaxVar,
@@ -152,7 +152,7 @@ let ptMake = (
 let pnGetExprStr = (node:proofNode):string => {
     switch node.pnDbg {
         | Some({exprStr}) => exprStr
-        | None => node.expr->Js_array2.map(Belt_Int.toString)->Js.Array2.joinWith(" ")
+        | None => node.expr->Array.map(Belt_Int.toString(_))->Array.joinUnsafe(" ")
     }
 }
 
@@ -183,9 +183,9 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
 }
 
 let ptAddRootStmt = (tree, stmt:rootStmt) => {
-    switch tree.rootStmts->Js_array2.find(existingStmt => existingStmt.expr->exprEq(stmt.expr)) {
+    switch tree.rootStmts->Array.find(existingStmt => existingStmt.expr->exprEq(stmt.expr)) {
         | Some(_) => ()
-        | None => tree.rootStmts->Js_array2.push(stmt)->ignore
+        | None => tree.rootStmts->Array.push(stmt)
     }
 }
 
@@ -208,12 +208,12 @@ let ptClearDists = tree => {
 let pnGetProofFromParents = (node):option<exprSrc> => {
     let fProof = switch node.fParents {
         | None => None
-        | Some(fParents) => fParents->Js_array2.find(exprSrcIsProved)
+        | Some(fParents) => fParents->Array.find(exprSrcIsProved)
     }
     if (fProof->Belt_Option.isSome) {
         fProof
     } else {
-        node.eParents->Js_array2.find(exprSrcIsProved)
+        node.eParents->Array.find(exprSrcIsProved)
     }
 }
 
@@ -231,7 +231,7 @@ let pnMarkProved = ( node:proofNode ):unit => {
                             | None => ()
                             | Some(curNodeProof) => {
                                 curNode.proof = Some(curNodeProof)
-                                curNode.children->Js_array2.forEach( nodesToMarkProved->Belt_MutableQueue.add )
+                                curNode.children->Array.forEach( Belt_MutableQueue.add(nodesToMarkProved, _) )
                             }
                         }
                     }
@@ -243,8 +243,8 @@ let pnMarkProved = ( node:proofNode ):unit => {
 
 let pnAddChild = (node, child): unit => {
     if (node.id != child.id) {
-        switch node.children->Js.Array2.find(existingChild => existingChild.id  == child.id) {
-            | None => node.children->Js_array2.push(child)->ignore
+        switch node.children->Array.find(existingChild => existingChild.id  == child.id) {
+            | None => node.children->Array.push(child)
             | Some(_) => ()
         }
     }
@@ -267,7 +267,7 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bo
             }
         }
         if (!newParentWasAdded.contents) {
-            switch parents->Js_array2.find(par => exprSrcEq(par, parent)) {
+            switch parents->Array.find(par => exprSrcEq(par, parent)) {
                 | Some(existingParent) => {
                     if (exprSrcIsProved(existingParent)) {
                         raise(MmException({
@@ -276,14 +276,14 @@ let pnAddParent = (node:proofNode, parent:exprSrc, isEssential:bool, forceAdd:bo
                     }
                 }
                 | None => {
-                    parents->Js_array2.push(parent)->ignore
+                    parents->Array.push(parent)
                     newParentWasAdded.contents = true
                 }
             }
         }
         if (newParentWasAdded.contents) {
             switch parent {
-                | Assertion({args}) => args->Js_array2.forEach(pnAddChild(_, node))
+                | Assertion({args}) => args->Array.forEach(pnAddChild(_, node))
                 | VarType | Hypothesis(_) | AssertionWithErr(_) => ()
             }
             if (exprSrcIsProved(parent)) {
@@ -302,7 +302,7 @@ let ptAddNewVar = (tree, typ):int => {
     tree.newVars->Belt_HashSet.add([typ, newVar])
     switch tree.ptDbg {
         | None => ()
-        | Some({exprToStr, newVars}) => newVars->Js.Array2.push(exprToStr([typ, newVar]))->ignore
+        | Some({exprToStr, newVars}) => newVars->Array.push(exprToStr([typ, newVar]))
     }
     newVar
 }
@@ -314,8 +314,8 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
             if (jstfLabel != frame.label) {
                 false
             } else {
-                let jLen = jstfArgs->Js.Array2.length
-                let hLen = frame.hyps->Js.Array2.length
+                let jLen = jstfArgs->Array.length
+                let hLen = frame.hyps->Array.length
                 if (jLen > hLen) {
                     false
                 } else {
@@ -323,17 +323,17 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
                     let hi = ref(0)
                     let eq = ref(true)
                     while (eq.contents && ji.contents < jLen && hi.contents < hLen) {
-                        let hyp = frame.hyps[hi.contents]
+                        let hyp = frame.hyps->Array.getUnsafe(hi.contents)
                         if (hyp.typ == F) {
                             hi := hi.contents + 1
                         } else {
-                            eq := jstfArgs[ji.contents]->exprEq(srcArgs[hi.contents]->pnGetExpr)
+                            eq := jstfArgs->Array.getUnsafe(ji.contents)->exprEq(srcArgs->Array.getUnsafe(hi.contents)->pnGetExpr)
                             ji := ji.contents + 1
                             hi := hi.contents + 1
                         }
                     }
                     while (eq.contents && hi.contents < hLen) {
-                        if (frame.hyps[hi.contents].typ == F) {
+                        if ((frame.hyps->Array.getUnsafe(hi.contents)).typ == F) {
                             hi := hi.contents + 1
                         } else {
                             eq := false
@@ -347,27 +347,27 @@ let jstfEqSrc = (jstfArgs:array<expr>, jstfLabel:string, src:exprSrc):bool => {
 }
 
 let ptPrintStats = ( tree:proofTree ):string => {
-    let nodes = tree.nodes->Belt_HashMap.toArray->Js.Array2.map(((_,node)) => node)
-    let nodeCnt = nodes->Js.Array2.length
+    let nodes = tree.nodes->Belt_HashMap.toArray->Array.map(((_,node)) => node)
+    let nodeCnt = nodes->Array.length
     let nodeCntFl = nodeCnt->Belt.Int.toFloat
-    Js.Console.log2(`nodeCnt`, nodeCnt)
-    let provedNodeCnt = nodes->Js.Array2.filter(node => node.proof->Belt_Option.isSome)->Js.Array2.length
-    Js.Console.log3(`provedNodeCnt`, provedNodeCnt, Common.floatToPctStr(provedNodeCnt->Belt_Int.toFloat /. nodeCntFl))
-    let invalidFloatingCnt = nodes->Js.Array2.filter(node => node.isInvalidFloating)->Js.Array2.length
-    Js.Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
+    Console.log2(`nodeCnt`, nodeCnt)
+    let provedNodeCnt = nodes->Array.filter(node => node.proof->Belt_Option.isSome)->Array.length
+    Console.log3(`provedNodeCnt`, provedNodeCnt, Common.floatToPctStr(provedNodeCnt->Belt_Int.toFloat /. nodeCntFl))
+    let invalidFloatingCnt = nodes->Array.filter(node => node.isInvalidFloating)->Array.length
+    Console.log3(`invalidFloatingCnt`, invalidFloatingCnt, Common.floatToPctStr(invalidFloatingCnt->Belt_Int.toFloat /. nodeCntFl))
     switch tree.ptDbg {
         | None => "Debug is off"
         | Some(dbg) => {
             let unprovedNodes = nodes
-                ->Js.Array2.filter(node => 
+                ->Array.filter(node => 
                     node.proof->Belt_Option.isNone && !node.isInvalidFloating
-                    // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Js_array2.length) > 0
+                    // && node.fParents->Belt_Option.mapWithDefault(0, fParents => fParents->Array.length) > 0
                 )
-            unprovedNodes->Js.Array2.sortInPlaceWith((a,b) => 
-                a.expr->Js_array2.length - b.expr->Js_array2.length
+            unprovedNodes->Expln_utils_common.sortInPlaceWith((a,b) =>
+                Belt_Float.fromInt(a.expr->Array.length - b.expr->Array.length)
             )->ignore
-            let unprovedExprs = unprovedNodes->Js.Array2.map(node => node.expr)
-            unprovedExprs->Js.Array2.map(dbg.exprToStr)->Js.Array2.joinWith("\n")
+            let unprovedExprs = unprovedNodes->Array.map(node => node.expr)
+            unprovedExprs->Array.map(dbg.exprToStr)->Array.joinUnsafe("\n")
         }
     }
 }

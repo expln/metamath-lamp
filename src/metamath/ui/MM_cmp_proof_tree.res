@@ -13,7 +13,7 @@ let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>,) => {
     {
         ctxMaxVar: wrkCtx->getNumOfVars - 1,
         exprToLabel: Belt_HashMap.fromArray(
-            rootStmts->Js_array2.map(stmt => (stmt.expr, stmt.label)), 
+            rootStmts->Array.map(stmt => (stmt.expr, stmt.label)), 
             ~id=module(ExprHash)
         ),
     }
@@ -30,7 +30,7 @@ let make = (
     let (state, _) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
 
     let nodeIdxToLabel = idx => {
-        switch state.exprToLabel->Belt_HashMap.get(tree.nodes[idx].expr) {
+        switch state.exprToLabel->Belt_HashMap.get((tree.nodes->Array.getUnsafe(idx)).expr) {
             | Some(label) => label
             | None => idx->Belt_Int.toString
         }
@@ -45,7 +45,7 @@ let make = (
     }
 
     let exprToStr = expr => {
-        expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" ")
+        expr->Array.map(intToSym)->Array.joinUnsafe(" ")
     }
 
     let exprToReElem = expr => {
@@ -59,7 +59,7 @@ let make = (
         }
     }
 
-    let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has(tree.nodes[idx].expr)
+    let isRootStmt = idx => state.exprToLabel->Belt_HashMap.has((tree.nodes->Array.getUnsafe(idx)).expr)
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
         switch wrkCtx->getFrame(label) {
@@ -68,7 +68,7 @@ let make = (
         }
     }
 
-    switch tree.nodes->Js.Array2.findIndex(node => node.expr->exprEq(rootExpr)) {
+    switch tree.nodes->Array.findIndex(node => node.expr->exprEq(rootExpr)) {
         | -1 => React.string(`The proof tree doesn't contain expression [${exprToStr(rootExpr)}]`)
         | nodeIdx => {
             <MM_cmp_proof_node 

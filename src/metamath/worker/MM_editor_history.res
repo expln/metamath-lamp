@@ -62,15 +62,15 @@ let isStmtMove = (diff:editorDiff):bool => {
 }
 
 let allStatusUnset = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtStatusRemove)
+    diff->Array.every(isStmtStatusRemove)
 }
 
 let allStatusSet = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(isStmtStatusSet)
+    diff->Array.every(isStmtStatusSet)
 }
 
 let allMoveAndStatusSet = (diff:array<editorDiff>):bool => {
-    diff->Js_array2.every(d => isStmtMove(d) || isStmtStatusSet(d))
+    diff->Array.every(d => isStmtMove(d) || isStmtStatusSet(d))
 }
 
 let editorSnapshotMake = (st:editorState):editorSnapshot => {
@@ -78,7 +78,7 @@ let editorSnapshotMake = (st:editorState):editorSnapshot => {
         descr: st.descr,
         varsText: st.varsText,
         disjText: st.disjText,
-        stmts: st.stmts->Js.Array2.map(stmt => {
+        stmts: st.stmts->Array.map(stmt => {
             let res:stmtSnapshot = {
                 id: stmt.id,
                 label: stmt.label,
@@ -100,7 +100,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
         descr: sn.descr,
         varsText: sn.varsText,
         disjText: sn.disjText,
-        stmts: sn.stmts->Js.Array2.map(stmt => {
+        stmts: sn.stmts->Array.map(stmt => {
             {
                 id: stmt.id,
 
@@ -112,8 +112,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
                 isBkm: stmt.isBkm,
                 cont: stmt.cont->strToCont(
                     ~preCtxColors=st.preCtxColors,
-                    ~wrkCtxColors=st.wrkCtxColors,
-                    ()
+                    ~wrkCtxColors=st.wrkCtxColors
                 ),
                 contEditMode: false,
                 isDuplicated: false,
@@ -156,13 +155,13 @@ let proofStatusEq = (a:option<proofStatus>, b:option<proofStatus>):bool => {
 let updateStmt = (sn:editorSnapshot, stmtId:stmtId, update:stmtSnapshot=>stmtSnapshot):editorSnapshot => {
     {
         ...sn,
-        stmts:sn.stmts->Js_array2.map(stmt => if (stmt.id == stmtId) {stmt->update} else {stmt})
+        stmts:sn.stmts->Array.map(stmt => if (stmt.id == stmtId) {stmt->update} else {stmt})
     }
 }
 
 let addStmt = (sn:editorSnapshot, idx:int, stmt:stmtSnapshot):editorSnapshot => {
-    let newStmts = sn.stmts->Js_array2.copy
-    newStmts->Js.Array2.spliceInPlace(~pos=idx, ~remove=0, ~add=[stmt])->ignore
+    let newStmts = sn.stmts->Array.copy
+    newStmts->Array.splice(~start=idx, ~remove=0, ~insert=[stmt])
     {
         ...sn,
         stmts:newStmts
@@ -172,12 +171,12 @@ let addStmt = (sn:editorSnapshot, idx:int, stmt:stmtSnapshot):editorSnapshot => 
 let removeStmt = (sn:editorSnapshot, stmtId:stmtId):editorSnapshot => {
     {
         ...sn,
-        stmts:sn.stmts->Js.Array2.filter(stmt => stmt.id != stmtId)
+        stmts:sn.stmts->Array.filter(stmt => stmt.id != stmtId)
     }
 }
 
 let moveStmt = (sn:editorSnapshot, stmtId:stmtId, idx:int):editorSnapshot => {
-    switch sn.stmts->Js.Array2.find(stmt => stmt.id == stmtId) {
+    switch sn.stmts->Array.find(stmt => stmt.id == stmtId) {
         | None => sn
         | Some(stmt) => {
             let sn = sn->removeStmt(stmtId)
@@ -200,8 +199,8 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
         | StmtStatusUnset({stmtIds}) => {
             {
                 ...sn,
-                stmts: sn.stmts->Js.Array2.map(stmt => {
-                    if (stmtIds->Js.Array2.includes(stmt.id)) {
+                stmts: sn.stmts->Array.map(stmt => {
+                    if (stmtIds->Array.includes(stmt.id)) {
                         {...stmt, proofStatus:None}
                     } else {
                         stmt
@@ -216,7 +215,7 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
 }
 
 let getStmtIdsFromStatusUnset = (diffs:array<editorDiff>):array<stmtId> => {
-    diffs->Js_array2.map(diff => {
+    diffs->Array.map(diff => {
         switch diff {
             | StmtStatus({stmtId, proofStatus:None}) => stmtId
             | _ => raise(MmException({msg:`getStmtIdsFromStatusUnset: unexpected type of diff.`}))
@@ -228,77 +227,77 @@ let getStmtIdsFromStatusUnset = (diffs:array<editorDiff>):array<stmtId> => {
 If findDiff(a,b)==diff then applyDiff(a,diff)==b
 */
 let applyDiff = (sn:editorSnapshot, diff:array<editorDiff>):editorSnapshot => {
-    diff->Js_array2.reduce( applyDiffSingle, sn )
+    diff->Array.reduce( sn, applyDiffSingle )
 }
 
 let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     let diffs = []
 
-    let aIds = a.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
-    let bIds = b.stmts->Js_array2.map(stmt => stmt.id)->Belt_HashSetString.fromArray
-    a.stmts->Js_array2.forEach(stmtA => {
+    let aIds = a.stmts->Array.map(stmt => stmt.id)->Belt_HashSetString.fromArray
+    let bIds = b.stmts->Array.map(stmt => stmt.id)->Belt_HashSetString.fromArray
+    a.stmts->Array.forEach(stmtA => {
         if (!(bIds->Belt_HashSetString.has(stmtA.id))) {
-            diffs->Js_array2.push(StmtRemove({stmtId:stmtA.id}))->ignore
+            diffs->Array.push(StmtRemove({stmtId:stmtA.id}))
         }
     })
-    b.stmts->Js_array2.forEachi((stmtB,i) => {
+    b.stmts->Array.forEachWithIndex((stmtB,i) => {
         if (!(aIds->Belt_HashSetString.has(stmtB.id))) {
-            diffs->Js_array2.push(StmtAdd({idx:i, stmt:stmtB}))->ignore
+            diffs->Array.push(StmtAdd({idx:i, stmt:stmtB}))
         }
     })
 
     let aMod = ref(a->applyDiff(diffs))
-    let aModLen = aMod.contents.stmts->Js_array2.length
-    let bLen = b.stmts->Js_array2.length
+    let aModLen = aMod.contents.stmts->Array.length
+    let bLen = b.stmts->Array.length
     if (aModLen != bLen) {
         raise(MmException({msg:`aModLen != bLen`}))
     }
     for i in 0 to bLen-1 {
-        let stmtA = aMod.contents.stmts[i]
-        let stmtB = b.stmts[i]
+        let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
+        let stmtB = b.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
             let move = StmtMove({stmtId:stmtB.id, idx:i})
-            diffs->Js_array2.push(move)->ignore
+            diffs->Array.push(move)
             aMod := aMod.contents->applyDiffSingle(move)
         }
     }
 
-    b.stmts->Js_array2.forEachi((stmtB,i) => {
-        let stmtA = aMod.contents.stmts[i]
+    b.stmts->Array.forEachWithIndex((stmtB,i) => {
+        let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
         if (stmtA.id != stmtB.id) {
             raise(MmException({msg:`stmtA.id != stmtB.id`}))
         }
         if (stmtA.label != stmtB.label) {
-            diffs->Js.Array2.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))->ignore
+            diffs->Array.push(StmtLabel({stmtId:stmtA.id, label:stmtB.label}))
         }
         if (stmtA.typ != stmtB.typ || stmtA.isGoal != stmtB.isGoal) {
-            diffs->Js.Array2.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))->ignore
+            diffs->Array.push(StmtTyp({stmtId:stmtA.id, typ:stmtB.typ, isGoal:stmtB.isGoal}))
         }
         if (stmtA.isBkm != stmtB.isBkm) {
-            diffs->Js.Array2.push(StmtBkm({stmtId:stmtA.id, isBkm:stmtB.isBkm}))->ignore
+            diffs->Array.push(StmtBkm({stmtId:stmtA.id, isBkm:stmtB.isBkm}))
         }
         if (stmtA.jstfText != stmtB.jstfText) {
-            diffs->Js.Array2.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))->ignore
+            diffs->Array.push(StmtJstf({stmtId:stmtA.id, jstfText:stmtB.jstfText}))
         }
         if (stmtA.cont != stmtB.cont) {
-            diffs->Js.Array2.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))->ignore
+            diffs->Array.push(StmtCont({stmtId:stmtA.id, cont:stmtB.cont}))
         }
         if (!(stmtA.proofStatus->proofStatusEq(stmtB.proofStatus))) {
-            diffs->Js.Array2.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))->ignore
+            diffs->Array.push(StmtStatus({stmtId:stmtA.id, proofStatus:stmtB.proofStatus}))
         }
     })
 
     if (a.descr != b.descr) {
-        diffs->Js.Array2.push(Descr(b.descr))->ignore
+        diffs->Array.push(Descr(b.descr))
     }
     if (a.varsText != b.varsText) {
-        diffs->Js.Array2.push(Vars(b.varsText))->ignore
+        diffs->Array.push(Vars(b.varsText))
     }
     if (a.disjText != b.disjText) {
-        diffs->Js.Array2.push(Disj(b.disjText))->ignore
+        diffs->Array.push(Disj(b.disjText))
     }
 
-    if (diffs->Js.Array2.length > 1 && diffs->allStatusUnset) {
+    if (diffs->Array.length > 1 && diffs->allStatusUnset) {
         [StmtStatusUnset({ stmtIds:diffs->getStmtIdsFromStatusUnset})]
     } else {
         diffs
@@ -308,20 +307,20 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
 
 let editorHistMake = (~initState:editorState, ~maxLength:int):editorHistory => {
     {
-        maxLength: Js_math.max_int(0, Js_math.min_int(1000, maxLength)),
+        maxLength: Math.Int.max(0, Math.Int.min(1000, maxLength)),
         head: initState->editorSnapshotMake,
         prev: []
     }
 }
 
 let prependDiffToFirstElem = (diff:array<editorDiff>, prev:array<array<editorDiff>>, maxLength:int) => {
-    if (diff->Js_array2.length == 0) {
-        raise(MmException({msg:`diff->Js_array2.length == 0`}))
+    if (diff->Array.length == 0) {
+        raise(MmException({msg:`diff->Array.length == 0`}))
     }
-    if (prev->Js_array2.length == 0) {
-        raise(MmException({msg:`prev->Js_array2.length == 0`}))
+    if (prev->Array.length == 0) {
+        raise(MmException({msg:`prev->Array.length == 0`}))
     }
-    [ diff->Js.Array2.concat(prev[0]) ]->Js.Array2.concat(prev->Js_array2.slice(~start=1, ~end_=maxLength))
+    [ diff->Array.concat(prev->Array.getUnsafe(0)) ]->Array.concat(prev->Array.slice(~start=1, ~end=maxLength))
 }
 
 let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => {
@@ -336,10 +335,10 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
             }
         } else {
             let diff = newHead->findDiff(ht.head)
-            if (diff->Js.Array2.length == 0 || diff->allStatusSet) {
+            if (diff->Array.length == 0 || diff->allStatusSet) {
                 ht
             } else if (diff->allStatusUnset) {
-                if (ht.prev->Js_array2.length == 0) {
+                if (ht.prev->Array.length == 0) {
                     {
                         ...ht,
                         head: newHead,
@@ -351,7 +350,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
                         prev: prependDiffToFirstElem(diff, ht.prev, ht.maxLength),
                     }
                 }
-            } else if (diff->allMoveAndStatusSet && ht.prev->Js_array2.length > 0 && ht.prev[0]->allMoveAndStatusSet) {
+            } else if (diff->allMoveAndStatusSet && ht.prev->Array.length > 0 && ht.prev->Array.getUnsafe(0)->allMoveAndStatusSet) {
                 {
                     ...ht,
                     head: newHead,
@@ -361,7 +360,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
                 {
                     ...ht,
                     head: newHead,
-                    prev: [diff]->Js.Array2.concat(ht.prev->Js_array2.slice(~start=0, ~end_=ht.maxLength-1))
+                    prev: [diff]->Array.concat(ht.prev->Array.slice(~start=0, ~end=ht.maxLength-1))
                 }
             }
         }
@@ -375,17 +374,17 @@ let editorHistSetMaxLength = (ht:editorHistory, maxLength:int):editorHistory => 
         {
             ...ht,
             maxLength,
-            prev:ht.prev->Js_array2.slice(~start=0,~end_=maxLength)
+            prev:ht.prev->Array.slice(~start=0,~end=maxLength)
         }
     }
 }
 
 let editorHistIsEmpty = (ht:editorHistory):bool => {
-    ht.prev->Js_array2.length == 0
+    ht.prev->Array.length == 0
 }
 
 let editorHistLength = (ht:editorHistory):int => {
-    ht.prev->Js_array2.length
+    ht.prev->Array.length
 }
 
 let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): result<editorState,string> => {
@@ -398,7 +397,7 @@ let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): 
         } else {
             let curSn = ref(ht.head)
             for i in 0 to idx {
-                curSn := curSn.contents->applyDiff(ht.prev[i])
+                curSn := curSn.contents->applyDiff(ht.prev->Array.getUnsafe(i))
             }
             Ok(st->updateEditorStateFromSnapshot(curSn.contents)->recalcWrkColors)
         }
@@ -409,7 +408,7 @@ let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int)
     editorHistGetSnapshotPreview(ht, idx, st)->Belt_Result.map(st => {
         {
             ...st,
-            stmts: st.stmts->Js.Array2.map(stmt => {
+            stmts: st.stmts->Array.map(stmt => {
                 {
                     ...stmt,
                     proofStatus: None,
@@ -503,7 +502,7 @@ let editorSnapshotToLocStor = (sn:editorSnapshot):editorSnapshotLocStor => {
         d: sn.descr,
         v: sn.varsText,
         j: sn.disjText,
-        s: sn.stmts->Js.Array2.map(stmtSnapshotToLocStor)
+        s: sn.stmts->Array.map(stmtSnapshotToLocStor)
     }
 }
 
@@ -512,7 +511,7 @@ let editorSnapshotFromLocStor = (sn:editorSnapshotLocStor):editorSnapshot => {
         descr: sn.d,
         varsText: sn.v,
         disjText: sn.j,
-        stmts: sn.s->Js.Array2.map(stmtSnapshotFromLocStor)
+        stmts: sn.s->Array.map(stmtSnapshotFromLocStor)
     }
 }
 
@@ -583,7 +582,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
 let editorHistoryToLocStor = (ht:editorHistory):editorHistoryLocStor => {
     {
         head: ht.head->editorSnapshotToLocStor,
-        prev: ht.prev->Js_array2.map(diff => diff->Js_array2.map(editorDiffToLocStor)),
+        prev: ht.prev->Array.map(diff => diff->Array.map(editorDiffToLocStor)),
         maxLength: ht.maxLength,
     }
 }
@@ -591,7 +590,7 @@ let editorHistoryToLocStor = (ht:editorHistory):editorHistoryLocStor => {
 let editorHistoryFromLocStor = (ht:editorHistoryLocStor):editorHistory => {
     {
         head: ht.head->editorSnapshotFromLocStor,
-        prev: ht.prev->Js_array2.map(diff => diff->Js_array2.map(editorDiffFromLocStor)),
+        prev: ht.prev->Array.map(diff => diff->Array.map(editorDiffFromLocStor)),
         maxLength: ht.maxLength,
     }
 }
@@ -603,14 +602,14 @@ let editorHistToString = (ht:editorHistory):string => {
 let parseStmtSnapshotLocStor = (d:Expln_utils_jsonParse.jsonAny):stmtSnapshotLocStor => {
     open Expln_utils_jsonParse
     {
-        d: d->str("d", ()),
-        l: d->str("l", ()),
-        t: d->str("t", ()),
-        g: d->bool("g", ()),
-        b: d->bool("b", ()),
-        j: d->str("j", ()),
-        c: d->str("c", ()),
-        p: d->strOpt("p", ()),
+        d: d->str("d"),
+        l: d->str("l"),
+        t: d->str("t"),
+        g: d->bool("g"),
+        b: d->bool("b"),
+        j: d->str("j"),
+        c: d->str("c"),
+        p: d->strOpt("p"),
     }
 }
 
@@ -620,28 +619,28 @@ let editorHistFromString = (jsonStr:string):result<editorHistory,string> => {
         {
             head: d->obj("head", d=>{
                 {
-                    d: d->str("d", ()),
-                    v: d->str("v", ()),
-                    j: d->str("j", ()),
-                    s: d->arr("s", parseStmtSnapshotLocStor, ())
+                    d: d->str("d"),
+                    v: d->str("v"),
+                    j: d->str("j"),
+                    s: d->arr("s", parseStmtSnapshotLocStor)
                 }
-            }, ()),
+            }),
             prev: d->arr("prev", d=>{
                 d->asArr(d=>{
                     {
-                        t: d->str("t", ()),
-                        d: ?d->strOpt("d", ()),
-                        b: ?d->boolOpt("b", ()),
-                        i: ?d->intOpt("i", ()),
-                        s: ?d->strOpt("s", ()),
-                        m: ?d->objOpt("m", parseStmtSnapshotLocStor, ()),
-                        a: ?d->arrOpt("a", asStr(_, ()), ()),
+                        t: d->str("t"),
+                        d: ?d->strOpt("d"),
+                        b: ?d->boolOpt("b"),
+                        i: ?d->intOpt("i"),
+                        s: ?d->strOpt("s"),
+                        m: ?d->objOpt("m", parseStmtSnapshotLocStor),
+                        a: ?d->arrOpt("a", asStr(_)),
                     }
-                }, ())
-            }, ()),
-            maxLength: d->int("maxLength", ())
+                })
+            }),
+            maxLength: d->int("maxLength")
         }
-    }, ()), ())->Belt.Result.map(editorHistoryFromLocStor)
+    }))->Belt.Result.map(editorHistoryFromLocStor)
 }
 
 let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
@@ -667,35 +666,35 @@ let stmtSnapshotToStringExtended = (stmt:stmtSnapshot):string => {
 let editorSnapshotToStringExtended = (sn:editorSnapshot):string => {
     let res = []
 
-    res->Js.Array2.push("Description")->ignore
-    res->Js.Array2.push(sn.descr)->ignore
-    if (sn.descr->Js.String2.length > 0) {
-        res->Js.Array2.push("")->ignore
+    res->Array.push("Description")
+    res->Array.push(sn.descr)
+    if (sn.descr->String.length > 0) {
+        res->Array.push("")
     }
 
-    res->Js.Array2.push("Variables")->ignore
-    res->Js.Array2.push(sn.varsText)->ignore
-    if (sn.varsText->Js.String2.length > 0) {
-        res->Js.Array2.push("")->ignore
+    res->Array.push("Variables")
+    res->Array.push(sn.varsText)
+    if (sn.varsText->String.length > 0) {
+        res->Array.push("")
     }
 
-    res->Js.Array2.push("Disjoints")->ignore
-    res->Js.Array2.push(sn.disjText)->ignore
-    if (sn.disjText->Js.String2.length > 0) {
-        res->Js.Array2.push("")->ignore
+    res->Array.push("Disjoints")
+    res->Array.push(sn.disjText)
+    if (sn.disjText->String.length > 0) {
+        res->Array.push("")
     }
 
-    sn.stmts->Js.Array2.forEach(stmt => {
-        res->Js.Array2.push(stmt->stmtSnapshotToStringExtended)->ignore
+    sn.stmts->Array.forEach(stmt => {
+        res->Array.push(stmt->stmtSnapshotToStringExtended)
     })
-    res->Js.Array2.joinWith("\n")
+    res->Array.joinUnsafe("\n")
 }
 
 let diffToStringExtendedSingle = (diff:editorDiff):string => {
     switch diff {
         | Descr(descr) => `Descr(${descr})`
-        | Vars(varsText) => `Vars(${varsText->Js.String2.replaceByRe(%re("/[\n\r]+/g"), " ; ")})`
-        | Disj(disjText) => `Disj(${disjText->Js.String2.replaceByRe(%re("/[\n\r]+/g"), " ; ")})`
+        | Vars(varsText) => `Vars(${varsText->String.replaceRegExp(%re("/[\n\r]+/g"), " ; ")})`
+        | Disj(disjText) => `Disj(${disjText->String.replaceRegExp(%re("/[\n\r]+/g"), " ; ")})`
         | StmtLabel({stmtId, label}) => `StmtLabel({stmtId=${stmtId}, label=${label}})`
         | StmtTyp({stmtId, typ, isGoal}) => 
             `StmtTyp({stmtId=${stmtId}, typ=${typ->userStmtTypeToStr}, isGoal=${isGoal->Expln_utils_common.stringify}})`
@@ -706,7 +705,7 @@ let diffToStringExtendedSingle = (diff:editorDiff):string => {
         | StmtStatus({stmtId, proofStatus}) => 
             `StmtStatus({stmtId=${stmtId}, proofStatus=${proofStatus->Belt_Option.map(proofStatusToStr)->Belt_Option.getWithDefault("None")}})`
         | StmtStatusUnset({stmtIds}) => 
-            `StmtStatusUnset({stmtIds=[${stmtIds->Js.Array2.joinWith(", ")}]})`
+            `StmtStatusUnset({stmtIds=[${stmtIds->Array.joinUnsafe(", ")}]})`
         | StmtAdd({idx, stmt}) => `StmtAdd({idx=${idx->Belt.Int.toString}, stmtId=${stmt.id}})`
         | StmtRemove({stmtId}) => `StmtRemove({stmtId=${stmtId}})`
         | StmtMove({stmtId, idx}) => `StmtMove({stmtId=${stmtId}, idx=${idx->Belt.Int.toString}})`
@@ -714,7 +713,7 @@ let diffToStringExtendedSingle = (diff:editorDiff):string => {
 }
 
 let diffToStringExtended = (diff:array<editorDiff>):string => {
-    diff->Js_array2.map(diffToStringExtendedSingle)->Js.Array2.joinWith("\n")
+    diff->Array.map(diffToStringExtendedSingle)->Array.joinUnsafe("\n")
 }
 
 let editorHistToStringExtended = (ht:editorHistory):string => {
@@ -722,16 +721,16 @@ let editorHistToStringExtended = (ht:editorHistory):string => {
     let delim1 = "------------------------------------------------------------------------------------"
     let delim2 = "===================================================================================="
     let curSn = ref(ht.head)
-    res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
-    res->Js.Array2.push(delim2)->ignore
-    ht.prev->Js.Array2.forEach(diff => {
-        res->Js.Array2.push(diff->diffToStringExtended)->ignore
-        res->Js.Array2.push(delim1)->ignore
+    res->Array.push(curSn.contents->editorSnapshotToStringExtended)
+    res->Array.push(delim2)
+    ht.prev->Array.forEach(diff => {
+        res->Array.push(diff->diffToStringExtended)
+        res->Array.push(delim1)
         curSn := curSn.contents->applyDiff(diff)
-        res->Js.Array2.push(curSn.contents->editorSnapshotToStringExtended)->ignore
-        res->Js.Array2.push(delim2)->ignore
+        res->Array.push(curSn.contents->editorSnapshotToStringExtended)
+        res->Array.push(delim2)
     })
-    res->Js.Array2.joinWith("\n")
+    res->Array.joinUnsafe("\n")
 }
 
 // --------- Tests for private types and functions ---------------------------------------
@@ -752,10 +751,10 @@ let a:editorSnapshot = {
 }
 
 let moveStmtTest = (a:editorSnapshot, stmtId:stmtId, dIdx:int):editorSnapshot => {
-    let newStmts = a.stmts->Js_array2.copy
-    let idx = newStmts->Js.Array2.findIndex(stmt => stmt.id == stmtId)
-    let tmp = newStmts[idx]
-    newStmts[idx] = newStmts[idx+dIdx]
+    let newStmts = a.stmts->Array.copy
+    let idx = newStmts->Array.findIndex(stmt => stmt.id == stmtId)
+    let tmp = newStmts->Array.getUnsafe(idx)
+    newStmts[idx] = newStmts->Array.getUnsafe(idx+dIdx)
     newStmts[idx+dIdx] = tmp
     {
         ...a,
@@ -773,7 +772,7 @@ let testApplyDiff = (
 ):unit => {
     //given
     let diff = initState->findDiff(initState->changes)
-    assertEq(diff->Js.Array2.length > 0, true)
+    assertEq(diff->Array.length > 0, true)
 
     //when
     let actualEndState = initState->applyDiff(diff)

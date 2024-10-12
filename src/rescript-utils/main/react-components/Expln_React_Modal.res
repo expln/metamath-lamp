@@ -11,14 +11,14 @@ type modalMethods = {
     closeModal: modalId => unit,
 }
 
-type modalRef = React.ref<Js.Nullable.t<modalMethods>>
+type modalRef = React.ref<Nullable.t<modalMethods>>
 let useModalRef = () => {
-    React.useRef(Js.Nullable.null)
+    React.useRef(Nullable.null)
 }
 
 let modalRefToModalMethods: modalRef => modalMethods = modalRef => {
-    switch modalRef.current->Js.Nullable.toOption {
-        | None => Js.Exn.raiseError(`modalRef.current is null`)
+    switch modalRef.current->Nullable.toOption {
+        | None => Exn.raiseError(`modalRef.current is null`)
         | Some(modalMethods) => modalMethods
     }
 }
@@ -51,7 +51,7 @@ let openModalPriv = (st, fullScreen, render) => {
     (
         {
             nextId: st.nextId+1,
-            modals: st.modals->Js_array2.concat([{
+            modals: st.modals->Array.concat([{
                 id,
                 fullScreen,
                 render
@@ -64,14 +64,14 @@ let openModalPriv = (st, fullScreen, render) => {
 let updateModalPriv = (st,id,newRender) => {
     {
         ...st,
-        modals: st.modals->Js_array2.map(m => if m.id == id {{...m, render:newRender}} else {m})
+        modals: st.modals->Array.map(m => if m.id == id {{...m, render:newRender}} else {m})
     }
 }
 
 let closeModalPriv = (st,id) => {
     {
         ...st,
-        modals: st.modals->Js_array2.filter(m => m.id != id)
+        modals: st.modals->Array.filter(m => m.id != id)
     }
 }
 
@@ -80,7 +80,7 @@ let make = (~modalRef:modalRef) => {
     let (state, setState) = React.useState(createInitialState)
 
     modalRef.current = React.useMemo0(() => {
-        Js.Nullable.return(
+        Nullable.make(
             {
                 openModal: render => promise(rlv => {
                     setState(prev => {
@@ -109,7 +109,7 @@ let make = (~modalRef:modalRef) => {
     <>
     {
         state.modals
-            ->Js.Array2.map(modal=>{
+            ->Array.map(modal=>{
                 <Dialog 
                     key=modal.id 
                     opn=true 

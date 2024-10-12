@@ -31,14 +31,14 @@ let makeInitialState = ( ~flags: array<bool>, ):state => {
     }
 }
 
-let toggleFlag = (idx,flags) => flags->Js_array2.mapi((v,i) => if (i == idx) {!v} else {v})
-let selectAllFlag = flags => flags->Js_array2.map(_ => true)
-let unselectAllFlags = flags => flags->Js_array2.map(_ => false)
-let invertFlags = flags => flags->Js_array2.map(v => !v)
+let toggleFlag = (idx,flags) => flags->Array.mapWithIndex((v,i) => if (i == idx) {!v} else {v})
+let selectAllFlag = flags => flags->Array.map(_ => true)
+let unselectAllFlags = flags => flags->Array.map(_ => false)
+let invertFlags = flags => flags->Array.map(v => !v)
 
 let selectProvedStmts = (rootStmtsRendered,flags:array<bool>):array<bool> => {
-    flags->Js_array2.mapi((_,i) => {
-        getProofStatus(rootStmtsRendered[i])
+    flags->Array.mapWithIndex((_,i) => {
+        getProofStatus(rootStmtsRendered->Array.getUnsafe(i))
             ->Belt_Option.map(status => status == Ready)
             ->Belt.Option.getWithDefault(false)
     })
@@ -70,11 +70,11 @@ let make = (
     }
     
     let actToggleStmt = (idx) => {
-        setState(updateFlags(_, toggleFlag(idx)))
+        setState(updateFlags(_, toggleFlag(idx, _)))
     }
     
     let actSelectProvedStmts = () => {
-        setState(updateFlags(_, selectProvedStmts(rootStmtsRendered)))
+        setState(updateFlags(_, selectProvedStmts(rootStmtsRendered, _)))
     }
 
     let rndButtons = () => {
@@ -108,8 +108,8 @@ let make = (
         <table>
             <tbody>
                 {
-                    state.flags->Js_array2.mapi((flag,i) => {
-                        let stmt = rootStmtsRendered[i]
+                    state.flags->Array.mapWithIndex((flag,i) => {
+                        let stmt = rootStmtsRendered->Array.getUnsafe(i)
                         <tr key={i->Belt_Int.toString} style=ReactDOM.Style.make(~verticalAlign="top", ())>
                             <td>
                                 <Checkbox
@@ -123,8 +123,7 @@ let make = (
                                         rndProofStatus(
                                             ~proofStatus=getProofStatus(stmt), 
                                             ~longClickEnabled=false,
-                                            ~longClickDelayMs=0,
-                                            ()
+                                            ~longClickDelayMs=0
                                         )
                                     } else {
                                         React.null

@@ -17,7 +17,7 @@ let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
     let st = st->completeDisjEditMode("")
     let st = st->checkAllStmts
     let st = st->deleteCheckedStmts
-    let (st,stmtId) = st->addNewStmt(())
+    let (st,stmtId) = st->addNewStmt
     let st = st->completeContEditMode(stmtId, stmt)
     st->verifyEditorState
 }
@@ -128,7 +128,7 @@ let make = (
                             maxRows=10
                             value=transformsText
                             onChange=evt2str(actTransformsTextUpdated)
-                            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel, ())
+                            onKeyDown=kbrdHnd(~key=keyEsc, ~act=onCancel)
                             disabled=readOnly
                         />
                     </td>
@@ -269,7 +269,7 @@ let make = (
 
     let rndStmts = (editorState:editorState) => {
         <Col spacing=0.>
-            { editorState.stmts->Js_array2.map(rndStmtAndErrors)->React.array }
+            { editorState.stmts->Array.map(rndStmtAndErrors)->React.array }
         </Col>
     }
 

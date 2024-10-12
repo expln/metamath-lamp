@@ -37,6 +37,5 @@ let createProofTable: (
     ~tree:proofTreeDto, 
     ~root:proofNodeDto, 
     ~essentialsOnly:bool=?,
-    ~ctx:mmContext=?,
-    ()
+    ~ctx:mmContext=?
 ) => proofTable

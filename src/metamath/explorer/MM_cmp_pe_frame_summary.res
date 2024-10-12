@@ -71,7 +71,7 @@ let make = React.memoCustomCompareProps( ({
             <span>
                 {React.string(nbsp ++ nbsp)}
                 <span 
-                    onClick=clickHnd(~act=actToggleDescrIsExpanded,())
+                    onClick=clickHnd(~act=actToggleDescrIsExpanded)
                     style=ReactDOM.Style.make(
                         ~display="inline-block", 
                         ~transform=if(state.descrIsExpanded) {"rotate(90deg)"} else {"none"},
@@ -104,7 +104,7 @@ let make = React.memoCustomCompareProps( ({
         <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ()) >
             <span
                 style=ReactDOM.Style.make(~cursor="pointer", ())
-                onClick=clickHnd(~act=()=>openFrameExplorer(frame.label), ())
+                onClick=clickHnd(~act=()=>openFrameExplorer(frame.label))
             >
                 { React.string( order->Belt_Int.toString ++ " ") }
                 asrtType
@@ -155,10 +155,10 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndHyps = () => {
-        if (state.eHyps->Js.Array2.length == 0) {
+        if (state.eHyps->Array.length == 0) {
             <></>
         } else {
-            state.eHyps->Js.Array2.mapi((hyp,i) => {
+            state.eHyps->Array.mapWithIndex((hyp,i) => {
                 <React.Fragment key={i->Belt.Int.toString}>
                     <Divider/>
                     <table style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ())>

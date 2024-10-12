@@ -54,9 +54,9 @@ let make = React.memoCustomCompareProps(({
     let (pageIdx, setPageIdx) = React.useState(() => 0)
     let (goToPageText, setGoToPageText) = React.useState(() => "")
 
-    let pageSize = Js.Math.max_int(1, Js.Math.min_int(asrtsPerPage, 100))
-    let numOfPages = (labels->Js.Array2.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
-                        ->Js_math.ceil_float->Belt.Float.toInt
+    let pageSize = Math.Int.max(1, Math.Int.min(asrtsPerPage, 100))
+    let numOfPages = (labels->Array.length->Belt_Int.toFloat /. pageSize->Belt.Int.toFloat)
+                        ->Math.ceil->Belt.Float.toInt
     let beginIdx = pageIdx * pageSize
     let endIdx = beginIdx + pageSize - 1
 
@@ -96,8 +96,8 @@ let make = React.memoCustomCompareProps(({
                 style=ReactDOM.Style.make(~width="150px", ())
                 label="Go to page" 
                 value=goToPageText 
-                onChange=evt2str(newPage => setGoToPageText(_ => newPage->Js.String2.replaceByRe(nonDigitPattern, "")))
-                onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage, ())
+                onChange=evt2str(newPage => setGoToPageText(_ => newPage->String.replaceRegExp(nonDigitPattern, "")))
+                onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage)
             />
         </Row>
     }
@@ -127,14 +127,14 @@ let make = React.memoCustomCompareProps(({
     }
 
     let rndFrames = () => {
-        if (labels->Js.Array2.length == 0) {
+        if (labels->Array.length == 0) {
             "No assertions loaded."->React.string
         } else {
             <Col spacing=2.>
                 {rndPagination()}
                 {
-                    labels->Js_array2.slice(~start=beginIdx, ~end_=endIdx+1)
-                        ->Js_array2.map(((order,label)) => rndFrameSummary(order,label))
+                    labels->Array.slice(~start=beginIdx, ~end=endIdx+1)
+                        ->Array.map(((order,label)) => rndFrameSummary(order,label))
                         ->React.array
                 }
             </Col>

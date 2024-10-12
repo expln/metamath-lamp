@@ -14,7 +14,7 @@ type props = {
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string)=>unit,
-    toggleCtxSelector:React.ref<Js.Nullable.t<unit=>unit>>,
+    toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
 }
@@ -55,7 +55,7 @@ let make = React.memoCustomCompareProps(({
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
-    let mainMenuButtonRef = React.useRef(Js.Nullable.null)
+    let mainMenuButtonRef = React.useRef(Nullable.null)
 
     let (asrtsPerPage, setAsrtsPerPage) = useStateFromLocalStorageInt(
         ~key="pe-index-asrts-per-page", ~default=10
@@ -78,7 +78,7 @@ let make = React.memoCustomCompareProps(({
 
     let actApplyFilters = () => {
         let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
-        let incorrectSymbol = patternFilterSyms->Js_array2.find(sym => {
+        let incorrectSymbol = patternFilterSyms->Array.find(sym => {
             preCtxData.ctxV.val->ctxSymToInt(sym)->Belt.Option.isNone
         })
         switch incorrectSymbol {
@@ -86,7 +86,7 @@ let make = React.memoCustomCompareProps(({
             | None => {
                 setPatternFilterErr(_ => None)
                 let varPat = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
-                let constPat = varPat->Js.Array2.map(sym => {
+                let constPat = varPat->Array.map(sym => {
                     if (sym < 0) {
                         sym
                     } else {
@@ -97,13 +97,13 @@ let make = React.memoCustomCompareProps(({
                     _, 
                     ~varPat,
                     ~constPat,
-                    ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Js_array2.length)
+                    ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Array.length)
                 )
-                let labelFilterTrim = labelFilter->Js_string2.trim->Js_string2.toLowerCase
-                let descrFilterStrTrim = descrFilterStr->Js_string2.trim->Js_string2.toLowerCase
-                let filterByDescr = descrFilterStrTrim->Js.String2.length > 0
+                let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
+                let descrFilterStrTrim = descrFilterStr->String.trim->String.toLowerCase
+                let filterByDescr = descrFilterStrTrim->String.length > 0
                 setFilteredLabels(_ => {
-                    allLabels->Js.Array2.filter(((_,label)) => {
+                    allLabels->Array.filter(((_,label)) => {
                         let frame = preCtxData.ctxV.val->getFrameExn(label)
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
@@ -111,16 +111,16 @@ let make = React.memoCustomCompareProps(({
                         ) 
                         && stmtTypeFilter->Belt_Option.mapWithDefault(
                             true, 
-                            stmtType => stmtType === frame.asrt[0]
+                            stmtType => stmtType === frame.asrt->Array.getUnsafe(0)
                         ) 
                         && (!discFilter || frame.isDisc)
                         && (!deprFilter || frame.isDepr)
                         && (!tranDeprFilter || frame.isTranDepr)
-                        && label->Js_string2.toLowerCase->Js.String2.includes(labelFilterTrim)
+                        && label->String.toLowerCase->String.includes(labelFilterTrim)
                         && (
                             !filterByDescr
                             || frame.descr->Belt.Option.mapWithDefault(false, descr => {
-                                descr->Js_string2.toLowerCase->Js.String2.includes(descrFilterStrTrim)
+                                descr->String.toLowerCase->String.includes(descrFilterStrTrim)
                             })
                         )
                         && frameMatchesPattern(frame)
@@ -154,19 +154,19 @@ let make = React.memoCustomCompareProps(({
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
-            let stmtTyp = frame.asrt[0]
-            if (!(allStmtIntTypes->Js.Array2.includes(stmtTyp))) {
-                allStmtIntTypes->Js.Array2.push(stmtTyp)->ignore
+            let stmtTyp = frame.asrt->Array.getUnsafe(0)
+            if (!(allStmtIntTypes->Array.includes(stmtTyp))) {
+                allStmtIntTypes->Array.push(stmtTyp)
             }
             None
         })->ignore
         let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
         setAllStmtTypes(_ => allStmtTypes)
-        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Js.Array2.joinWith(""))
+        setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
 
         let typeOrderInDisj = createTypeOrderFromStr(
             ~sortDisjByType=settings.sortDisjByType, 
-            ~typeNameToInt=preCtx->ctxSymToInt
+            ~typeNameToInt=ctxSymToInt(preCtx, _)
         )
         setTypeOrderInDisj(_ => typeOrderInDisj)
 
@@ -267,7 +267,7 @@ let make = React.memoCustomCompareProps(({
     let actSetAsrtsPerPage = (strNum:string):unit => {
         switch strNum->Belt_Int.fromString {
             | None => ()
-            | Some(num) => setAsrtsPerPage(_ => Js.Math.max_int(1, Js.Math.min_int(num, 100)))
+            | Some(num) => setAsrtsPerPage(_ => Math.Int.max(1, Math.Int.min(num, 100)))
         }
     }
 
@@ -315,7 +315,7 @@ let make = React.memoCustomCompareProps(({
             >
                 <MenuItem value=allStmtTypesConcat>{React.string("All")}</MenuItem>
                 {
-                    allStmtTypes->Js_array2.map(stmtType => {
+                    allStmtTypes->Array.map(stmtType => {
                         <MenuItem key=stmtType value=stmtType>{React.string(stmtType)}</MenuItem>
                     })->React.array
                 }
@@ -331,7 +331,7 @@ let make = React.memoCustomCompareProps(({
             autoFocus=true
             value=labelFilter
             onChange=evt2str(actLabelFilterUpdated)
-            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters, ())
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
         />
     }
 
@@ -342,7 +342,7 @@ let make = React.memoCustomCompareProps(({
             style=ReactDOM.Style.make(~width="300px", ())
             value=patternFilterStr
             onChange=evt2str(actPatternFilterStrUpdated)
-            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters, ())
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
         />
     }
 
@@ -353,7 +353,7 @@ let make = React.memoCustomCompareProps(({
             style=ReactDOM.Style.make(~width="300px", ())
             value=descrFilterStr
             onChange=evt2str(actDescrFilterStrUpdated)
-            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters, ())
+            onKeyDown=kbrdHnd(~key=keyEnter, ~act=actApplyFilters)
         />
     }
 
@@ -453,7 +453,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndMainMenu = () => {
         if (mainMenuIsOpened) {
-            switch mainMenuButtonRef.current->Js.Nullable.toOption {
+            switch mainMenuButtonRef.current->Nullable.toOption {
                 | None => <></>
                 | Some(mainMenuButtonRef) => {
                     <Menu
@@ -464,7 +464,7 @@ let make = React.memoCustomCompareProps(({
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                toggleCtxSelector.current->Js.Nullable.toOption
+                                toggleCtxSelector.current->Nullable.toOption
                                     ->Belt.Option.forEach(toggleCtxSelector => toggleCtxSelector())
                             }}
                         >

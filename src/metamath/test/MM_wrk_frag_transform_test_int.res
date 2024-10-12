@@ -8,22 +8,22 @@ open MM_wrk_editor
 open MM_syntax_tree
 
 let rec extractResult = (reactElemDto:{..}):option<string> => {
-    switch reactElemDto["cmp"]->Js.Nullable.toOption {
-        | Some("ApplyButtons") => reactElemDto["result"]->Js.Nullable.toOption
+    switch reactElemDto["cmp"]->Nullable.toOption {
+        | Some("ApplyButtons") => reactElemDto["result"]->Nullable.toOption
         | _ => {
-            switch reactElemDto["children"]->Js.Nullable.toOption {
+            switch reactElemDto["children"]->Nullable.toOption {
                 | Some(children) => {
                     children
-                        ->Js_array2.filter(child => child->Js.Nullable.toOption->Belt_Option.isSome)
-                        ->Js_array2.map(child => child->Js.Nullable.toOption->Belt_Option.getExn)
-                        ->Js_array2.reduce(
+                        ->Array.filter(child => child->Nullable.toOption->Belt_Option.isSome)
+                        ->Array.map(child => child->Nullable.toOption->Belt_Option.getExn)
+                        ->Array.reduce(
+                            None,
                             (res,child) => {
                                 switch res {
                                     | Some(_) => res
                                     | None => extractResult(child)
                                 }
-                            },
-                            None
+                            }
                         )
                 }
                 | None => None
@@ -35,7 +35,7 @@ let rec extractResult = (reactElemDto:{..}):option<string> => {
 let rec getAnySymNodeId = (node:childNode):int => {
     switch node {
         | Symbol({id}) => id
-        | Subtree({children}) => getAnySymNodeId(children[0])
+        | Subtree({children}) => getAnySymNodeId(children->Array.getUnsafe(0))
     }
 }
 
@@ -50,7 +50,7 @@ let testTransform = (
     let syntaxTree = MM_wrk_editor.textToSyntaxTree(
         ~wrkCtx,
         ~syms=[selectedFragment->getSpaceSeparatedValuesAsArray],
-        ~syntaxTypes=["wff", "class", "setvar"]->Js.Array2.map(wrkCtx->ctxSymToIntExn),
+        ~syntaxTypes=["wff", "class", "setvar"]->Array.map(ctxSymToIntExn(wrkCtx, _)),
         ~frms=editorState.frms,
         ~frameRestrict=editorState.settings.allowedFrms.inSyntax,
         ~parenCnt=editorState.parenCnt,
@@ -59,9 +59,9 @@ let testTransform = (
     )
     let syntaxTreeNode = switch syntaxTree {
         | Ok([Ok(syntaxTreeNode)]) => syntaxTreeNode
-        | Error(msg) => Js.Exn.raiseError(`[error-1] ${msg}; when building a syntax tree for '${selectedFragment}'`)
-        | Ok([Error(msg)]) => Js.Exn.raiseError(`[error-2] ${msg}; when building a syntax tree for '${selectedFragment}'`)
-        | _ => Js.Exn.raiseError(`[error-3] when building a syntax tree for '${selectedFragment}'`)
+        | Error(msg) => Exn.raiseError(`[error-1] ${msg}; when building a syntax tree for '${selectedFragment}'`)
+        | Ok([Error(msg)]) => Exn.raiseError(`[error-2] ${msg}; when building a syntax tree for '${selectedFragment}'`)
+        | _ => Exn.raiseError(`[error-3] when building a syntax tree for '${selectedFragment}'`)
     }
 
     let step:userStmt = {
@@ -76,7 +76,7 @@ let testTransform = (
             text:"", 
             exprTyp:"|-", 
             root:syntaxTreeNode, 
-            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children[0]),Js_date.make())), 
+            clickedNodeId:Some((getAnySymNodeId(syntaxTreeNode.children->Array.getUnsafe(0)),Date.make())), 
             expLvl:100
         }),
         contEditMode: false,
@@ -87,12 +87,12 @@ let testTransform = (
         expr: None, jstf: None, proofTreeDto: None, src: None, proof: None, proofStatus: None, unifErr: None, 
         syntaxErr: None,
     }
-    let stepJson = MM_cmp_api.stmtToJson(step, Some(wrkCtx->ctxIntToSymExn))
+    let stepJson = MM_cmp_api.stmtToJson(step, Some(ctxIntToSymExn(wrkCtx, _)))
     let param = {"step":stepJson}
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
-    let filteredTransforms = allTransforms->Js.Array2.filter(tr => tr.displayName(param) == transformName)
-    assertEqMsg(filteredTransforms->Js.Array2.length, 1, "filteredTransforms->Js.Array2.length")
-    let transform = filteredTransforms[0]
+    let filteredTransforms = allTransforms->Array.filter(tr => tr.displayName(param) == transformName)
+    assertEqMsg(filteredTransforms->Array.length, 1, "filteredTransforms->Array.length")
+    let transform = filteredTransforms->Array.getUnsafe(0)
     assertEqMsg(transform.canApply(param), true, "transform.canApply(param)")
 
     let initState = transform.createInitialState(param)
@@ -100,7 +100,7 @@ let testTransform = (
     let elemDto = transform.renderDialog( { "state":prepareState(initState), "setState":_=>() } )
     assertEq(
         elemDto->reactElemDtoToObj->extractResult->Belt.Option.map(str => {
-            str->getSpaceSeparatedValuesAsArray->Js.Array2.joinWith(" ")
+            str->getSpaceSeparatedValuesAsArray->Array.joinUnsafe(" ")
         }), 
         Some(expectedResult)
     )
@@ -112,7 +112,7 @@ external fromState: fragmentTransformState => {..} = "%identity"
 describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
     it("Insert: X ⇒ ( X + A )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Insert: X ⇒ ( X + A )"
         let prepareState = params => {
             st => state({
@@ -237,7 +237,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Elide: ( X + A ) ⇒ X", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Elide: ( X + A ) ⇒ X"
         let prepareState = params => {
             st => state({
@@ -385,7 +385,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Swap: X = Y ⇒ Y = X", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Swap: X = Y ⇒ Y = X"
 
         testTransform( ~editorState, ~transformName,
@@ -415,7 +415,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Associate: ( A + B ) + C ⇒ A + ( B + C )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Associate: ( A + B ) + C ⇒ A + ( B + C )"
         let prepareState = params => {
             st => state({
@@ -477,7 +477,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Replace", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Replace"
         let prepareState = params => {
             st => state({
@@ -496,7 +496,7 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
 
     it("Extract: X ⇒ ( ph -> X )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
-        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug, () )
+        let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
         let transformName = "Extract: X ⇒ ( ph -> X )"
 
         testTransform( ~editorState, ~transformName,

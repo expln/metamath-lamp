@@ -37,8 +37,7 @@ let beginParsingMmFile = (~mmFileText, ~onProgress:float=>unit, ~onDone:parseRes
                     onDone(parseResult)
                 }
             }
-        },
-        ()
+        }
     )
 }
 
@@ -50,8 +49,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                     ~mmFileContent=mmFileText,
                     ~onProgress = pct => {
                         sendToClient(MmFileParseProgress({pct:pct}))
-                    },
-                    ()
+                    }
                 )
                 sendToClient(MmFileParseProgress({pct:1.}))
                 sendToClient(MmFileParsed({parseResult:Ok(parseResult)}))

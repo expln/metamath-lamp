@@ -36,15 +36,15 @@ let makeInitialState = (
 let setResults = (st:state,results:result<array<wrkSubs>,string>):state => {
     let validResults = switch results {
         | Error(msg) => Error(msg)
-        | Ok(results) => Ok(results->Js_array2.filter(res => res.err->Belt_Option.isNone))
+        | Ok(results) => Ok(results->Array.filter(res => res.err->Belt_Option.isNone))
     }
     let invalidResults = switch results {
         | Error(_) => []
-        | Ok(results) => results->Js_array2.filter(res => res.err->Belt_Option.isSome)
+        | Ok(results) => results->Array.filter(res => res.err->Belt_Option.isSome)
     }
     let checkedResultIdx = switch validResults {
         | Error(_) => None
-        | Ok(validResults) => if (validResults->Js_array2.length == 1) {Some(0)} else {None}
+        | Ok(validResults) => if (validResults->Array.length == 1) {Some(0)} else {None}
     }
     {
         ...st,
@@ -119,7 +119,7 @@ let toggleResultChecked = (st,idx) => {
     }
 }
 
-let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?, ()) => {
+let rndIconButton = (~icon:reElem, ~onClick:unit=>unit, ~active:bool, ~title:option<string>=?) => {
     <span ?title>
         <IconButton disabled={!active} onClick={_ => onClick()} color="primary"> icon </IconButton>
     </span>
@@ -142,8 +142,8 @@ let make = (
     let (findSubsBy, setFindSubsBy) = Local_storage_utils.useStateFromLocalStorageStr(
         ~key="find-substitution-by", ~default=findSubsByMatch
     )
-    let expr1TextFieldRef = React.useRef(Js.Nullable.null)
-    let expr2TextFieldRef = React.useRef(Js.Nullable.null)
+    let expr1TextFieldRef = React.useRef(Nullable.null)
+    let expr2TextFieldRef = React.useRef(Nullable.null)
 
     let methodName = if (findSubsBy == findSubsByMatch) {"Match"} else {"Unify"}
 
@@ -156,7 +156,7 @@ let make = (
     }
 
     let actDetermineSubs = () => {
-        let findIncorrectSymbol = syms => syms->Js_array2.find(sym => !(wrkCtx->isConst(sym) || wrkCtx->isVar(sym)))
+        let findIncorrectSymbol = syms => syms->Array.find(sym => !(wrkCtx->isConst(sym) || wrkCtx->isVar(sym)))
         let syms1 = state.expr1Str->getSpaceSeparatedValuesAsArray
         let incorrectSymbol1 = findIncorrectSymbol(syms1)
         let syms2 = state.expr2Str->getSpaceSeparatedValuesAsArray
@@ -174,7 +174,7 @@ let make = (
         })
         if (
             incorrectSymbol1->Belt.Option.isNone && incorrectSymbol2->Belt.Option.isNone
-            && syms1->Js.Array2.length > 0 && syms2->Js.Array2.length > 0
+            && syms1->Array.length > 0 && syms2->Array.length > 0
         ) {
             actSaveResults(
                 findPossibleSubs(
@@ -202,8 +202,8 @@ let make = (
                     | Ok(results) => {
                         switch state.checkedResultIdx {
                             | Some(idx) => {
-                                if (0 <= idx && idx < results->Js.Array2.length) {
-                                    onSubstitutionSelected(results[idx])
+                                if (0 <= idx && idx < results->Array.length) {
+                                    onSubstitutionSelected(results->Array.getUnsafe(idx))
                                 }
                             }
                             | None => ()
@@ -214,8 +214,8 @@ let make = (
         }
     }
 
-    let actFocus = (ref:React.ref<Js.Nullable.t<Dom.element>>) => {
-        switch ref.current->Js.Nullable.toOption {
+    let actFocus = (ref:React.ref<Nullable.t<Dom.element>>) => {
+        switch ref.current->Nullable.toOption {
             | None => ()
             | Some(domElem) => {
                 let input = ReactDOM.domElementToObj(domElem)
@@ -228,7 +228,7 @@ let make = (
     }
 
     let actExpr1OnEnter = () => {
-        if (state.expr2Str->Js_string2.trim == "") {
+        if (state.expr2Str->String.trim == "") {
             actFocus(expr2TextFieldRef)
         } else {
             actDetermineSubs()
@@ -236,7 +236,7 @@ let make = (
     }
 
     let actExpr2OnEnter = () => {
-        if (state.expr1Str->Js_string2.trim == "") {
+        if (state.expr1Str->String.trim == "") {
             actFocus(expr1TextFieldRef)
         } else {
             actDetermineSubs()
@@ -281,7 +281,7 @@ let make = (
     }
     
     let rndExpr = (~label, ~value, ~autoFocus, ~onChange, ~tabIndex:int, 
-        ~onEnter:unit=>unit, ~ref:React.ref<Js.Nullable.t<Dom.element>>) => {
+        ~onEnter:unit=>unit, ~ref:React.ref<Nullable.t<Dom.element>>) => {
         <TextField 
             inputRef=ReactDOM.Ref.domRef(ref)
             label
@@ -292,8 +292,8 @@ let make = (
             onChange=evt2str(onChange)
             inputProps={"tabIndex":tabIndex}
             onKeyDown=kbrdHnd2(
-                kbrdClbkMake(~key=keyEnter, ~act=onEnter, ()),
-                kbrdClbkMake(~key=keyEsc, ~act=onCanceled, ()),
+                kbrdClbkMake(~key=keyEnter, ~act=onEnter),
+                kbrdClbkMake(~key=keyEsc, ~act=onCanceled),
             )
         />
     }
@@ -326,11 +326,11 @@ let make = (
                             {rndIconButton(
                                 ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(90deg)", ()) />, 
                                 ~onClick={_=>actCopyExpr1ToExpr2()}, ~active=true, 
-                                ~title=`Copy this statement to the below text field`, ())}
+                                ~title=`Copy this statement to the below text field`)}
                         </td>
                         <td>
                             {rndIconButton(~icon=<MM_Icons.SwapVert />, ~onClick={_=>actSwapExprs()}, ~active=true, 
-                                ~title=`Swap "${expr1Label}" and "${expr2Label}"`, ())}
+                                ~title=`Swap "${expr1Label}" and "${expr2Label}"`)}
                         </td>
                     </tr>
                 </tbody>
@@ -348,7 +348,7 @@ let make = (
                             {rndIconButton(
                                 ~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
                                 ~onClick={_=>actCopyExpr2ToExpr1()}, ~active=true, 
-                                ~title=`Copy this statement to the above text field`, ())}
+                                ~title=`Copy this statement to the above text field`)}
                         </td>
                     </tr>
                 </tbody>
@@ -370,7 +370,7 @@ let make = (
                 switch results {
                     | Error(_) => React.null
                     | Ok(results) => {
-                        let numOfResults = results->Js_array2.length
+                        let numOfResults = results->Array.length
                         if (numOfResults > 0) {
                             <Row>
                                 <Button onClick={_=>actChooseSelected()} variant=#contained
@@ -395,13 +395,13 @@ let make = (
             let tableRows = []
             wrkSubs.newDisj->disjForEachArr(disjGrp => {
                 let disjGrpStr = "$d " ++ wrkCtx->ctxIntsToStrExn(disjGrp) ++ " $."
-                tableRows->Js.Array2.push(
+                tableRows->Array.push(
                     <tr key=disjGrpStr>
                         <td>
                             {React.string(disjGrpStr)}
                         </td>
                     </tr>
-                )->ignore
+                )
             })
             <table>
                 <tbody>
@@ -415,8 +415,8 @@ let make = (
         <table>
             <tbody>
             {React.array(
-                wrkSubs.subs->Belt_MapInt.toArray->Js_array2.map(((v,expr)) => {
-                    if (expr->Js_array2.length == 1 && v == expr[0]) {
+                wrkSubs.subs->Belt_MapInt.toArray->Array.map(((v,expr)) => {
+                    if (expr->Array.length == 1 && v == expr->Array.getUnsafe(0)) {
                         React.null
                     } else {
                         <tr key={v->Belt_Int.toString}>
@@ -448,7 +448,7 @@ let make = (
                     }
                     | TypeMismatch({var, subsExpr, typeExpr}) => {
                         `could not prove [${wrkCtx->ctxIntsToStrExn(typeExpr)}] for ${wrkCtx->ctxIntToSymExn(var)} `
-                            ++ Js_string2.fromCharCode(8594) ++ ` [${wrkCtx->ctxIntsToStrExn(subsExpr)}]`
+                            ++ String.fromCharCode(8594) ++ ` [${wrkCtx->ctxIntsToStrExn(subsExpr)}]`
                     }
                 }
                 <div>
@@ -481,7 +481,7 @@ let make = (
                                 {React.string("Invalid substitutions:")}
                             </span>
                             {
-                                invalidResults->Js_array2.mapi((res,i) => {
+                                invalidResults->Array.mapWithIndex((res,i) => {
                                     <Paper key={i->Belt_Int.toString}>
                                         <table>
                                             <tbody>
@@ -506,7 +506,7 @@ let make = (
     }
 
     let getNumberOfResults = (arrOpt:option<array<'a>>):int => {
-        arrOpt->Belt_Option.map(arr => arr->Js.Array2.length)->Belt.Option.getWithDefault(0)
+        arrOpt->Belt_Option.map(arr => arr->Array.length)->Belt.Option.getWithDefault(0)
     }
 
     let rndResults = () => {
@@ -522,7 +522,7 @@ let make = (
                                 {
                                     React.string(
                                         `Found substitutions: `
-                                            ++ `${results->Js.Array2.length->Belt_Int.toString} valid, `
+                                            ++ `${results->Array.length->Belt_Int.toString} valid, `
                                     )
                                 }
                                 {
@@ -538,11 +538,11 @@ let make = (
                                     }
                                 }
                             </>
-                        let numOfResults = results->Js.Array2.length
+                        let numOfResults = results->Array.length
                         <Col>
                             summary
                             {
-                                results->Js_array2.mapi((res,i) => {
+                                results->Array.mapWithIndex((res,i) => {
                                     <Paper key={i->Belt_Int.toString}>
                                         <table>
                                             <tbody>

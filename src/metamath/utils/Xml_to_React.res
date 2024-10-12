@@ -1,7 +1,7 @@
 open Expln_React_common
 
 let validateValue = ( ~value:string, ~allowedValues:array<string>, ~valueType:string, ): result<unit,string> => {
-    if (allowedValues->Js_array2.includes(value)) {
+    if (allowedValues->Array.includes(value)) {
         Ok(())
     } else {
         Error(`${valueType} "${value}" is not supported.`)
@@ -16,7 +16,7 @@ let allowedTags = [
 ]
 let styleAttrs = ["color", "font-weight", "font-family", "font-style", "font-size"]
 let otherAttrs = ["href"]
-let supportedAttrs = styleAttrs->Js_array2.concat(otherAttrs)
+let supportedAttrs = styleAttrs->Array.concat(otherAttrs)
 
 let validateTagName = tagName => validateValue(~value=tagName, ~allowedValues=allowedTags, ~valueType="Tag")
 let validateAttrName = attrName => validateValue(~value=attrName, ~allowedValues=supportedAttrs, ~valueType="Attribute")
@@ -26,12 +26,12 @@ let isIncludedIntoAllowedValues = (
     ~allowedValues:array<string>,
     ~attrName:string,
 ): result<unit,string> => {
-    if (allowedValues->Js_array2.includes(value)) {
+    if (allowedValues->Array.includes(value)) {
         Ok(())
     } else {
         Error(
             `Value of "${value}" is not supported by "${attrName}" attribute. All the supported values are: ` 
-            ++ allowedValues->Js.Array2.joinWith(", ") ++ " ."
+            ++ allowedValues->Array.joinUnsafe(", ") ++ " ."
         )
     }
 }
@@ -60,7 +60,7 @@ let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
                     ~allowedValues=["aqua", "black", "blue", "fuchsia", "gray", "green", "lime", "maroon", "navy", "olive", 
                                     "purple", "red", "silver", "teal", "white", "yellow"])
                 | "href" => {
-                    if (attrValue->Js_string2.startsWith("http://") || attrValue->Js_string2.startsWith("https://")) {
+                    if (attrValue->String.startsWith("http://") || attrValue->String.startsWith("https://")) {
                         Ok(())
                     } else {
                         Error(`A link url should start with http or https, but got: ${attrValue}`)
@@ -74,7 +74,7 @@ let validateAttr = (attrName:string, attrValue:string): result<unit,string> => {
 
 let createStyle = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<ReactDOM.style> => {
     if (
-        attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Js_array2.includes(attr))->Belt.Option.isSome
+        attrs->Belt_MapString.findFirstBy((attr,_) => styleAttrs->Array.includes(attr))->Belt.Option.isSome
         || addBorder
     ) {
         Some(ReactDOM.Style.make(
@@ -108,8 +108,8 @@ let createDomProps = (attrs:Belt_MapString.t<string>, ~addBorder:bool):option<Re
 let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
     let saveChild = (childrenStack:Belt_MutableStack.t<(string,array<reElem>)>, child:reElem):unit => {
         switch childrenStack->Belt_MutableStack.top {
-            | None => Js.Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
-            | Some((_,children)) => children->Js_array2.push(child)->ignore
+            | None => Exn.raiseError("childrenStack->Belt_MutableStack.top is None")
+            | Some((_,children)) => children->Array.push(child)
         }
     }
 
@@ -187,12 +187,11 @@ let xmlToReactElem = (xml:Xml_parser.xmlNode):result<reElem,string> => {
                     }
                 }
             }
-        },
-        ()
+        }
     )
 
     switch resOpt {
-        | None => Js.Exn.raiseError("Got None as a result of convertion from XML to React Elem.")
+        | None => Exn.raiseError("Got None as a result of convertion from XML to React Elem.")
         | Some(res) => res
     }
 }

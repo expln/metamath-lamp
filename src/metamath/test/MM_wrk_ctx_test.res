@@ -5,8 +5,8 @@ open MM_wrk_ctx_data
 
 let createMmCtx = (mmFile) => {
     let mmFileText = Expln_utils_files.readStringFromFile(mmFile)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-    loadContext(ast, ())
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+    loadContext(ast)
 }
 
 let demo0 = "./src/metamath/test/resources/demo0._mm"

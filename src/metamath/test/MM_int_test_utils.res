@@ -36,83 +36,83 @@ let editorStateToStr = st => {
     }
 
     let lines = []
-    lines->Js_array2.push("Variables:")->ignore
-    lines->Js_array2.push(st.varsText)->ignore
-    lines->Js_array2.push("")->ignore
-    lines->Js_array2.push("Disjoints:")->ignore
-    lines->Js_array2.push(st.disjText)->ignore
-    lines->Js_array2.push("")->ignore
-    st.stmts->Js.Array2.forEach(stmt => {
-        lines->Js_array2.push("")->ignore
-        lines->Js_array2.push(
+    lines->Array.push("Variables:")
+    lines->Array.push(st.varsText)
+    lines->Array.push("")
+    lines->Array.push("Disjoints:")
+    lines->Array.push(st.disjText)
+    lines->Array.push("")
+    st.stmts->Array.forEach(stmt => {
+        lines->Array.push("")
+        lines->Array.push(
             "--- "
             ++ (stmt->userStmtTypeToStr)
             ++ " -------------------------------------------------------------------------------"
-        )->ignore
-        lines->Js_array2.push(stmt.label)->ignore
-        lines->Js_array2.push(stmt.jstfText)->ignore
-        lines->Js_array2.push(contToStr(stmt.cont))->ignore
-        lines->Js_array2.push(
+        )
+        lines->Array.push(stmt.label)
+        lines->Array.push(stmt.jstfText)
+        lines->Array.push(contToStr(stmt.cont))
+        lines->Array.push(
             stmt.proofStatus
                 ->Belt_Option.map(status => (status->proofStatusToStr))
                 ->Belt_Option.getWithDefault("None")
-        )->ignore
+        )
         switch stmt.stmtErr {
             | None => ()
-            | Some({msg}) => lines->Js_array2.push("Stmt Error: " ++ msg)->ignore
+            | Some({msg}) => lines->Array.push("Stmt Error: " ++ msg)
         }
         switch stmt.syntaxErr {
             | None => ()
             | Some(msg) => {
-                lines->Js_array2.push(
+                lines->Array.push(
                     if (msg == "") {
                         "Syntax error."
                     } else {
                         `Syntax error - ${msg}.`
                     }
-                )->ignore
+                )
             }
         }
         switch stmt.unifErr {
             | None => ()
-            | Some(msg) => lines->Js_array2.push("Unif Error: " ++ msg)->ignore
+            | Some(msg) => lines->Array.push("Unif Error: " ++ msg)
         }
     })
-    lines->Js.Array2.joinWith("\n")
+    lines->Array.joinUnsafe("\n")
 }
 
 let newStmtsDtoToStr = (newStmtsDto:stmtsDto):string => {
-    let disjStr = newStmtsDto.newDisjStr->Js.Array2.joinWith("\n")
+    let disjStr = newStmtsDto.newDisjStr->Array.joinUnsafe("\n")
     let stmtsStr = newStmtsDto.stmts
-        ->Js.Array2.map(stmt => {
+        ->Array.map(stmt => {
             [
                 stmt.label,
                 switch stmt.jstf {
                     | None => ""
-                    | Some({args, label}) => "[" ++ args->Js_array2.joinWith(" ") ++ " : " ++ label ++ " ]"
+                    | Some({args, label}) => "[" ++ args->Array.joinUnsafe(" ") ++ " : " ++ label ++ " ]"
                 },
                 if (stmt.isProved) {"\u2713"} else {" "},
                 stmt.exprStr
-            ]->Js.Array2.joinWith(" ")
-        })->Js.Array2.joinWith("\n")
+            ]->Array.joinUnsafe(" ")
+        })->Array.joinUnsafe("\n")
     disjStr ++ "\n" ++ stmtsStr
 }
 
 let readTestFileToString = (fileName:string):string => {
     Expln_utils_files.readStringFromFile(curTestDataDir.contents ++ "/" ++ fileName ++ ".txt")
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+        ->String.replaceRegExp(%re("/\r/g"), "")
 }
 
 let assertStrEqFile = (actualStr:string, expectedStrFileName:string) => {
     let fileWithExpectedResult = curTestDataDir.contents ++ "/" ++ expectedStrFileName ++ ".txt"
     let expectedResultStr = try {
-        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->Js.String2.replaceByRe(%re("/\r/g"), "")
+        Expln_utils_files.readStringFromFile(fileWithExpectedResult)->String.replaceRegExp(%re("/\r/g"), "")
     } catch {
-        | Js.Exn.Error(exn) => {
+        | Exn.Error(exn) => {
             if (
-                exn->Js.Exn.message
+                exn->Exn.message
                     ->Belt_Option.getWithDefault("")
-                    ->Js_string2.includes("no such file or directory")
+                    ->String.includes("no such file or directory")
             ) {
                 ""
             } else {
@@ -155,7 +155,7 @@ let assertStmtsDto = (stmtsDto, expectedStrFileName:string) => {
 let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
     let actualStr = switch st->generateCompressedProof(stmtId) {
         | None => "no proof generated"
-        | Some((actualStr, _, _)) => actualStr->Js.String2.replaceByRe(%re("/\r/g"), "")
+        | Some((actualStr, _, _)) => actualStr->String.replaceRegExp(%re("/\r/g"), "")
     }
     assertStrEqFile(actualStr, expectedStrFileName)
 }
@@ -190,11 +190,10 @@ let generateReducedMmFile = (
     ~pathToFullMmFile:string,
     ~pathToSaveTo:string,
     ~skipComments:bool=false,
-    ~skipProofs:bool=false,
-    ()
+    ~skipProofs:bool=false
 ) => {
     let fullMmFileText = Expln_utils_files.readStringFromFile(pathToFullMmFile)
-    let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs, ())
+    let (ast, _) = parseMmFile(~mmFileContent=fullMmFileText, ~skipComments, ~skipProofs)
     let reducedContent = astToStr(ast)
     Expln_utils_files.writeStringToFile( reducedContent, pathToSaveTo )
 }
@@ -202,8 +201,7 @@ let generateReducedMmFile = (
 let countFrames = (
     ast, 
     ~stopBefore="",
-    ~stopAfter="",
-    ()
+    ~stopAfter=""
 ) => {
 
     let (cnt, _) = traverseAst(
@@ -225,8 +223,7 @@ let countFrames = (
                 }
                 | _ => None
             }
-        },
-        ()
+        }
     )
     cnt.contents
 }
@@ -239,9 +236,8 @@ let testProgressTrackerMake = (
         ~step, 
         ~maxCnt,
         ~onProgress = pct => {
-            Js.Console.log2(Js.Date.make()->Js.Date.toISOString, pct->floatToPctStr)
-        }, 
-        ()
+            Console.log2(Date.make()->Date.toISOString, pct->floatToPctStr)
+        }
     )
 }
 

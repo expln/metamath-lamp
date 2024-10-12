@@ -20,7 +20,7 @@ type state<'a> = {
 }
 
 type tabMethods<'a> = {
-    addTab: (~label:string, ~closable:bool, ~color:string=?, ~data:'a, ~doOpen:bool=?, ()) => promise<tabId>,
+    addTab: (~label:string, ~closable:bool, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
     openTab: tabId => unit,
     removeTab: tabId => unit,
     tabs: array<tab<'a>>,
@@ -45,18 +45,18 @@ let getNextId = st => {
 
 let getTabs = (st:state<'a>) => st.tabs
 
-let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false, ()) => {
+let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false) => {
     let (st, newId) = st->getNextId
-    let newTabs = st.tabs->Js_array2.concat([{id:newId, label, closable, color, data}])
-    let newActiveTabId = if (newTabs->Js_array2.length == 1) {
+    let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, data}])
+    let newActiveTabId = if (newTabs->Array.length == 1) {
         newId
     } else {
         if (doOpen) {newId} else {st.activeTabId}
     }
-    let newTabHistory = if (newTabs->Js_array2.length == 1) {
+    let newTabHistory = if (newTabs->Array.length == 1) {
         [newId]
     } else {
-        if (doOpen) {st.tabHistory->Js.Array2.concat([newId])} else {st.tabHistory}
+        if (doOpen) {st.tabHistory->Array.concat([newId])} else {st.tabHistory}
     }
     (
         {
@@ -70,18 +70,18 @@ let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:
 }
 
 let openTab = (st:state<'a>, tabId):state<'a> => {
-    if (st.tabs->Js_array2.some(t => t.id == tabId)) {
+    if (st.tabs->Array.some(t => t.id == tabId)) {
         {
             ...st, 
             activeTabId:tabId, 
             tabHistory:
                 if (
-                    st.tabHistory->Belt_Array.get(st.tabHistory->Js_array2.length-1)
+                    st.tabHistory->Belt_Array.get(st.tabHistory->Array.length-1)
                         ->Belt.Option.mapWithDefault(false, lastId => lastId == tabId)
                 ) {
                     st.tabHistory
                 } else {
-                    st.tabHistory->Js_array2.concat([tabId])
+                    st.tabHistory->Array.concat([tabId])
                 }
         }
     } else {
@@ -90,17 +90,17 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
 }
 
 let removeTab = (st:state<'a>, tabId):state<'a> => {
-    let newTabs = st.tabs->Js_array2.filter(t => t.id != tabId)
-    let newTabHistory = st.tabHistory->Js_array2.filter(id => id != tabId)
+    let newTabs = st.tabs->Array.filter(t => t.id != tabId)
+    let newTabHistory = st.tabHistory->Array.filter(id => id != tabId)
     {
         ...st, 
         tabs: newTabs,
         activeTabId:
-            if (newTabs->Js_array2.length == 0) {
+            if (newTabs->Array.length == 0) {
                 ""
             } else if (st.activeTabId == tabId) {
-                newTabHistory->Belt_Array.get(newTabHistory->Js_array2.length-1)
-                    ->Belt.Option.getWithDefault(newTabs[0].id)
+                newTabHistory->Belt_Array.get(newTabHistory->Array.length-1)
+                    ->Belt.Option.getWithDefault((newTabs->Array.getUnsafe(0)).id)
             } else {
                 st.activeTabId
             },
@@ -111,9 +111,9 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
 let useTabs = ():tabMethods<'a> => {
     let (state, setState) = React.useState(createEmptyState)
 
-    let addTab = (~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false, ()):promise<tabId> => promise(rlv => {
+    let addTab = (~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false):promise<tabId> => promise(rlv => {
         setState(prev => {
-            let (st, tabId) = prev->addTab(~label, ~closable, ~color?, ~data, ~doOpen, ())
+            let (st, tabId) = prev->addTab(~label, ~closable, ~color?, ~data, ~doOpen)
             rlv(tabId)
             st
         })
@@ -129,7 +129,7 @@ let useTabs = ():tabMethods<'a> => {
 
     let renderTabs = () => {
         let {tabs, activeTabId} = state
-        if (tabs->Js_array2.length == 0) {
+        if (tabs->Array.length == 0) {
             React.null
         } else {
             <Tabs
@@ -142,7 +142,7 @@ let useTabs = ():tabMethods<'a> => {
                 )
             >
                 {React.array(
-                    tabs->Js_array2.map(tab => {
+                    tabs->Array.map(tab => {
                         <Tab 
                             key=tab.id 
                             value=tab.id 
@@ -187,7 +187,7 @@ let useTabs = ():tabMethods<'a> => {
         addTab,
         openTab,
         removeTab,
-        tabs: state.tabs->Js.Array2.copy,
+        tabs: state.tabs->Array.copy,
         activeTabId: state.activeTabId,
         renderTabs,
 

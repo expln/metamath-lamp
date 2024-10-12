@@ -24,7 +24,7 @@ let applyAssertionResultHash = (a:applyAssertionResult):int => {
     )
 }
 
-module ApplyAssertionResultHash = Belt.Id.MakeHashable({
+module ApplyAssertionResultHash = Belt.Id.MakeHashableU({
     type t = applyAssertionResult
     let hash = applyAssertionResultHash
     let eq = applyAssertionResultEq
@@ -41,12 +41,12 @@ let rec iterateCombinationsRec = (
     ~onCombCntMaxReached:unit=>contunieInstruction,
     ~combinationConsumer:array<int>=>contunieInstruction,
 ):contunieInstruction => {
-    if (hypIdx == comb->Js.Array2.length) {
+    if (hypIdx == comb->Array.length) {
         combCnt := combCnt.contents + 1
         if (combCnt.contents > combCntMax) {
             onCombCntMaxReached()
         } else {
-            let thereIsEmptyArg = comb->Js.Array2.some(a => a == -1)
+            let thereIsEmptyArg = comb->Array.some(a => a == -1)
             if (thereIsEmptyArg) {
                 if (skipCombinationsWithEmptyArgs) {
                     Continue
@@ -64,10 +64,10 @@ let rec iterateCombinationsRec = (
     } else {
         let res = ref(Continue)
         let c = ref(0)
-        let maxC = candidatesPerHyp[hypIdx]->Js.Array2.length-1
+        let maxC = candidatesPerHyp->Array.getUnsafe(hypIdx)->Array.length-1
         while (res.contents == Continue && c.contents <= maxC && combCnt.contents <= combCntMax) {
-            comb[hypIdx] = candidatesPerHyp[hypIdx][c.contents]
-            if (!(comb[hypIdx] == -1 && skipCombinationsWithEmptyArgs)) {
+            comb[hypIdx] = candidatesPerHyp->Array.getUnsafe(hypIdx)->Array.getUnsafe(c.contents)
+            if (!(comb->Array.getUnsafe(hypIdx) == -1 && skipCombinationsWithEmptyArgs)) {
                 res.contents = iterateCombinationsRec(
                     ~candidatesPerHyp,
                     ~comb,
@@ -101,11 +101,11 @@ let iterateCombinations = (
     for h in 0 to maxH {
         for s in -1 to maxS {
             if (stmtCanMatchHyp(s,h)) {
-                candidatesPerHyp[h]->Js_array2.push(s)->ignore
+                candidatesPerHyp->Array.getUnsafe(h)->Array.push(s)
             }
         }
     }
-    switch candidatesPerHyp->Js_array2.findIndex(candidates => candidates->Js_array2.length == 0) {
+    switch candidatesPerHyp->Array.findIndex(candidates => candidates->Array.length == 0) {
         | -1 => {
             let comb = Belt_Array.make(numOfHyps, 0)
             let tooBigSearchSpaceDetected = ref(false)
@@ -162,16 +162,16 @@ let stmtCanMatchHyp = (
     ~hyp:expr,
     ~parenCnt:parenCnt,
 ):bool => {
-    if (hyp[0] != stmt[0]) {
+    if (hyp->Array.getUnsafe(0) != stmt->Array.getUnsafe(0)) {
         false
     } else {
         let res = ref(false)
         iterateSubstitutions(
             ~frmExpr = hyp,
             ~expr = stmt,
-            ~frmConstParts = frm.frmConstParts[hypIdx], 
-            ~constParts = frm.constParts[hypIdx], 
-            ~varGroups = frm.varGroups[hypIdx],
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(hypIdx), 
+            ~constParts = frm.constParts->Array.getUnsafe(hypIdx), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(hypIdx),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = _ => {
@@ -190,52 +190,52 @@ let iterateSubstitutionsWithWorkVars = (
     ~hypIdx: int,
     ~continue: () => contunieInstruction
 ):contunieInstruction => {
-    let initialNumOfWorkVars = workVars.newVars->Js_array2.length
-    let predefinedSubs = frm.subs.isDefined->Js_array2.copy
+    let initialNumOfWorkVars = workVars.newVars->Array.length
+    let predefinedSubs = frm.subs.isDefined->Array.copy
 
-    let nextVar = ref(workVars.maxVar + 1 + workVars.newVars->Js_array2.length)
+    let nextVar = ref(workVars.maxVar + 1 + workVars.newVars->Array.length)
     let frmVars = []
     let newVars = []
     let newVarTypes = []
     applySubs(
-        ~frmExpr = if (hypIdx < frm.hypsE->Js.Array2.length) {frm.hypsE[hypIdx].expr} else {frm.frame.asrt},
+        ~frmExpr = if (hypIdx < frm.hypsE->Array.length) {(frm.hypsE->Array.getUnsafe(hypIdx)).expr} else {frm.frame.asrt},
         ~subs=frm.subs,
         ~createWorkVar = frmVar => {
-            switch frmVars->Js_array2.indexOf(frmVar) {
+            switch frmVars->Array.indexOf(frmVar) {
                 | -1 => {
                     let newVar = nextVar.contents
                     nextVar.contents = nextVar.contents + 1
-                    frmVars->Js_array2.push(frmVar)->ignore
-                    newVars->Js_array2.push(newVar)->ignore
-                    newVarTypes->Js_array2.push(frm.frame.varTypes[frmVar])->ignore
+                    frmVars->Array.push(frmVar)
+                    newVars->Array.push(newVar)
+                    newVarTypes->Array.push(frm.frame.varTypes->Array.getUnsafe(frmVar))
                     newVar
                 }
-                | idx => newVars[idx]
+                | idx => newVars->Array.getUnsafe(idx)
             }
         }
     )->ignore
-    let maxI = frmVars->Js_array2.length - 1
+    let maxI = frmVars->Array.length - 1
     for i in 0 to maxI {
-        let frmVar = frmVars[i]
-        let newVar = newVars[i]
-        let newVarType = newVarTypes[i]
+        let frmVar = frmVars->Array.getUnsafe(i)
+        let newVar = newVars->Array.getUnsafe(i)
+        let newVarType = newVarTypes->Array.getUnsafe(i)
 
         frm.subs.exprs[frmVar] = [newVar]
         frm.subs.begins[frmVar] = 0
         frm.subs.ends[frmVar] = 0
         frm.subs.isDefined[frmVar] = true
 
-        workVars.newVars->Js_array2.push(newVar)->ignore
-        workVars.newVarTypes->Js_array2.push(newVarType)->ignore
+        workVars.newVars->Array.push(newVar)
+        workVars.newVarTypes->Array.push(newVarType)
     }
 
-    let res = if (allowNewVars || workVars.newVars->Js_array2.length == 0) {
+    let res = if (allowNewVars || workVars.newVars->Array.length == 0) {
         continue()
     } else {
         Continue
     }
 
-    predefinedSubs->Js_array2.forEachi((predefined,i) => frm.subs.isDefined[i]=predefined)
+    predefinedSubs->Array.forEachWithIndex((predefined,i) => frm.subs.isDefined[i]=predefined)
     workVars.newVars->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
     workVars.newVarTypes->Js_array2.removeFromInPlace(~pos=initialNumOfWorkVars)->ignore
 
@@ -244,10 +244,10 @@ let iterateSubstitutionsWithWorkVars = (
 
 let getNextNonBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
     let idx = ref(hypIdx+1)
-    while (idx.contents < comb->Js_array2.length && comb[idx.contents] < 0) {
+    while (idx.contents < comb->Array.length && comb->Array.getUnsafe(idx.contents) < 0) {
         idx := idx.contents + 1
     }
-    if (idx.contents < comb->Js_array2.length && comb[idx.contents] >= 0) {
+    if (idx.contents < comb->Array.length && comb->Array.getUnsafe(idx.contents) >= 0) {
         Some(idx.contents)
     } else {
         None
@@ -256,10 +256,10 @@ let getNextNonBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
 
 let getNextBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
     let idx = ref(hypIdx+1)
-    while (idx.contents < comb->Js_array2.length && comb[idx.contents] >= 0) {
+    while (idx.contents < comb->Array.length && comb->Array.getUnsafe(idx.contents) >= 0) {
         idx := idx.contents + 1
     }
-    if (idx.contents < comb->Js_array2.length && comb[idx.contents] < 0) {
+    if (idx.contents < comb->Array.length && comb->Array.getUnsafe(idx.contents) < 0) {
         Some(idx.contents)
     } else {
         None
@@ -267,22 +267,22 @@ let getNextBlankIdx = (hypIdx:int, comb:array<int>):option<int> => {
 }
 
 let getNextHypIdxToMatch = (hypIdx:int, comb:array<int>):int => {
-    if (hypIdx >= comb->Js_array2.length) {
-        raise(MmException({msg:`getNextHypIdxToMatch: hypIdx >= comb->Js_array2.length`}))
-    } else if (hypIdx < 0 || comb[hypIdx] >= 0) {
+    if (hypIdx >= comb->Array.length) {
+        raise(MmException({msg:`getNextHypIdxToMatch: hypIdx >= comb->Array.length`}))
+    } else if (hypIdx < 0 || comb->Array.getUnsafe(hypIdx) >= 0) {
         switch getNextNonBlankIdx(hypIdx, comb) {
             | Some(idx) => idx
             | None => {
                 switch getNextBlankIdx(-1, comb) {
                     | Some(idx) => idx
-                    | None => comb->Js_array2.length
+                    | None => comb->Array.length
                 }
             }
         }
     } else {
         switch getNextBlankIdx(hypIdx, comb) {
             | Some(idx) => idx
-            | None => comb->Js_array2.length
+            | None => comb->Array.length
         }
     }
 }
@@ -300,16 +300,16 @@ let rec iterateSubstitutionsForHyps = (
     ~onErrFound: unifErr => contunieInstruction
 ):contunieInstruction => {
     let combToArgs = () => {
-        comb->Js_array2.map(idx => {
+        comb->Array.map(idx => {
             if (idx >= 0) {
-                statements[idx]
+                statements->Array.getUnsafe(idx)
             } else {
                 []
             }
         })
     }
 
-    if (hypIdx == comb->Js.Array2.length) {
+    if (hypIdx == comb->Array.length) {
         let subsFound = ref(false)
         let contunieInstruction = iterateSubstitutionsWithWorkVars(
             ~workVars,
@@ -326,14 +326,14 @@ let rec iterateSubstitutionsForHyps = (
         } else {
             contunieInstruction
         }
-    } else if (comb[hypIdx] >= 0) {
+    } else if (comb->Array.getUnsafe(hypIdx) >= 0) {
         let subsFound = ref(false)
         let contunieInstruction = iterateSubstitutions(
-            ~frmExpr = frm.hypsE[hypIdx].expr,
-            ~expr = statements[comb[hypIdx]],
-            ~frmConstParts = frm.frmConstParts[hypIdx], 
-            ~constParts = frm.constParts[hypIdx], 
-            ~varGroups = frm.varGroups[hypIdx],
+            ~frmExpr = (frm.hypsE->Array.getUnsafe(hypIdx)).expr,
+            ~expr = statements->Array.getUnsafe(comb->Array.getUnsafe(hypIdx)),
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(hypIdx), 
+            ~constParts = frm.constParts->Array.getUnsafe(hypIdx), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(hypIdx),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = _ => {
@@ -417,9 +417,9 @@ let iterateSubstitutionsForResult = (
             iterateSubstitutions(
                 ~frmExpr = frm.frame.asrt,
                 ~expr,
-                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-                ~constParts = frm.constParts[frm.numOfHypsE], 
-                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+                ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+                ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
                 ~subs = frm.subs,
                 ~parenCnt,
                 ~consumer
@@ -437,7 +437,7 @@ let iterateFrms = (
 ):unit => {
     switch frmsToUse {
         | Some(frmsToUse) => {
-            frmsToUse->Js_array2.forEach(frmLabel => {
+            frmsToUse->Array.forEach(frmLabel => {
                 frms->frmsGetByLabel(frmLabel)->Belt_Option.forEach(frm => {
                     if (isFrameAllowed(frm.frame)) {
                         frmConsumer(frm)
@@ -446,7 +446,7 @@ let iterateFrms = (
             })
         }
         | None => {
-            frms->frmsForEach(~typ=?result->Belt_Option.map(expr => expr[0]), frm => {
+            frms->frmsForEach(~typ=?result->Belt_Option.map(expr => expr->Array.getUnsafe(0)), frm => {
                 if (isFrameAllowed(frm.frame)) {
                     frmConsumer(frm)
                 }
@@ -461,16 +461,16 @@ let countFrames = (
     ~result:option<expr>,
 ):int => {
     switch frmsToUse {
-        | Some(frmsToUse) => frmsToUse->Js_array2.length
+        | Some(frmsToUse) => frmsToUse->Array.length
         | None => {
             switch result {
                 | Some(result) => {
-                    switch frms->frmsGetByType(result[0]) {
+                    switch frms->frmsGetByType(result->Array.getUnsafe(0)) {
                         | None => 0
-                        | Some(frames) => frames->Js_array2.length
+                        | Some(frames) => frames->Array.length
                     }
                 }
-                | None => frms->frmsGetAll->Js_array2.length
+                | None => frms->frmsGetAll->Array.length
             }
         }
     }
@@ -492,8 +492,7 @@ let applyAssertions = (
     ~combCntMax:int=10000,
     ~onMatchFound:applyAssertionResult=>contunieInstruction,
     ~debugLevel:int=0,
-    ~onProgress:option<float=>unit>=?,
-    ()
+    ~onProgress:option<float=>unit>=?
 ):unit => {
     let sendNoUnifForAsrt = (frm:frmSubsData):contunieInstruction => {
         switch result {
@@ -512,15 +511,15 @@ let applyAssertions = (
         }
     }
 
-    let numOfStmts = statements->Js_array2.length
+    let numOfStmts = statements->Array.length
     let numOfFrames = countFrames(~frms, ~frmsToUse, ~result)->Belt_Int.toFloat
-    let progressState = progressTrackerMake(~step=0.01, ~onProgress?, ())
+    let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let continueInstr = ref(Continue)
     let sentValidResults = Belt_HashSet.make(~hintSize=16, ~id=module(ApplyAssertionResultHash))
     iterateFrms( ~frms, ~frmsToUse, ~isFrameAllowed, ~result, ~frmConsumer = frm => {
         if ( continueInstr.contents == Continue ) {
-            if (result->Belt.Option.map(result => result[0] != frm.frame.asrt[0])->Belt_Option.getWithDefault(false)) {
+            if (result->Belt.Option.map(result => result->Array.getUnsafe(0) != frm.frame.asrt->Array.getUnsafe(0))->Belt_Option.getWithDefault(false)) {
                 if (debugLevel >= 2) {
                     continueInstr.contents = sendNoUnifForAsrt(frm)
                 }
@@ -548,8 +547,8 @@ let applyAssertions = (
                                     (!exactOrderOfStmts || s == h) && stmtCanMatchHyp(
                                         ~frm,
                                         ~hypIdx=h,
-                                        ~stmt = statements[s],
-                                        ~hyp = frm.hypsE[h].expr,
+                                        ~stmt = statements->Array.getUnsafe(s),
+                                        ~hyp = (frm.hypsE->Array.getUnsafe(h)).expr,
                                         ~parenCnt,
                                     )
                                 }
@@ -599,8 +598,8 @@ let applyAssertions = (
                                         ) {
                                             | None => {
                                                 let res = {
-                                                    newVars: workVars.newVars->Js.Array2.copy,
-                                                    newVarTypes: workVars.newVarTypes->Js.Array2.copy,
+                                                    newVars: workVars.newVars->Array.copy,
+                                                    newVarTypes: workVars.newVarTypes->Array.copy,
                                                     frame: frm.frame,
                                                     subs: subsClone(frm.subs),
                                                     err:None
@@ -617,8 +616,8 @@ let applyAssertions = (
                                                     Continue
                                                 } else {
                                                     let res = {
-                                                        newVars: workVars.newVars->Js.Array2.copy,
-                                                        newVarTypes: workVars.newVarTypes->Js.Array2.copy,
+                                                        newVars: workVars.newVars->Array.copy,
+                                                        newVarTypes: workVars.newVarTypes->Array.copy,
                                                         frame: frm.frame,
                                                         subs: subsClone(frm.subs),
                                                         err:Some(err)

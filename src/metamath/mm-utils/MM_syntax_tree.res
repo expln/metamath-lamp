@@ -16,26 +16,26 @@ and childNode =
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
     let locks = Belt_Array.make(frame.numOfVars, false)
-    if (args->Js_array2.length != frame.numOfArgs) {
-        Error(`extractVarToRecIdxMapping: args.Js_array2.length != frame.numOfArgs`)
+    if (args->Array.length != frame.numOfArgs) {
+        Error(`extractVarToRecIdxMapping: args.Array.length != frame.numOfArgs`)
     } else {
         let err = ref(None)
-        frame.hyps->Js_array2.forEachi((hyp,i) => {
+        frame.hyps->Array.forEachWithIndex((hyp,i) => {
             if (err.contents->Belt_Option.isNone && hyp.typ == F) {
-                let v = hyp.expr[1]
-                if (locks[v]) {
+                let v = hyp.expr->Array.getUnsafe(1)
+                if (locks->Array.getUnsafe(v)) {
                     err := Some(Error(`extractVarToRecIdxMapping: locks[v]`))
                 } else {
                     locks[v] = true
-                    varToRecIdxMapping[v] = args[i]
+                    varToRecIdxMapping[v] = args->Array.getUnsafe(i)
                 }
             }
         })
         switch err.contents {
             | Some(err) => err
             | None => {
-                if (locks->Js_array2.some(lock => !lock)) {
-                    Error(`extractVarToRecIdxMapping: locks->Js_array2.some(lock => !lock)`)
+                if (locks->Array.some(lock => !lock)) {
+                    Error(`extractVarToRecIdxMapping: locks->Array.some(lock => !lock)`)
                 } else {
                     Ok(varToRecIdxMapping)
                 }
@@ -52,20 +52,20 @@ let getHeight = (ch:childNode):int => {
 }
 
 let getMaxHeight = (children:array<childNode>):int => {
-    children->Js_array2.reduce(
-        (max,ch) => Js_math.max_int(max,ch->getHeight),
-        0
+    children->Array.reduce(
+        0,
+        (max,ch) => Math.Int.max(max,ch->getHeight)
     )
 }
 
 let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
-            let maxI = r.expr->Js_array2.length - 1
+            let maxI = r.expr->Array.length - 1
             let this = {
                 id: idSeq(),
                 parent,
-                typ:r.expr[0],
+                typ:r.expr->Array.getUnsafe(0),
                 label,
                 children: Expln_utils_common.createArray(maxI),
                 height:0,
@@ -74,9 +74,9 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                 this.children[i-1] = Symbol({
                     id: idSeq(),
                     parent:this,
-                    symInt: r.expr[i],
-                    sym: ctx->ctxIntToSymExn(r.expr[i]),
-                    isVar: r.expr[i] >= 0,
+                    symInt: r.expr->Array.getUnsafe(i),
+                    sym: ctx->ctxIntToSymExn(r.expr->Array.getUnsafe(i)),
+                    isVar: r.expr->Array.getUnsafe(i) >= 0,
                     color: None,
                 })
             }
@@ -95,13 +95,13 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                             let this = {
                                 id: idSeq(),
                                 parent,
-                                typ:frame.asrt[0],
+                                typ:frame.asrt->Array.getUnsafe(0),
                                 label,
-                                children: Expln_utils_common.createArray(frame.asrt->Js_array2.length - 1),
+                                children: Expln_utils_common.createArray(frame.asrt->Array.length - 1),
                                 height:0,
                             }
                             let err = ref(None)
-                            frame.asrt->Js_array2.forEachi((s,i) => {
+                            frame.asrt->Array.forEachWithIndex((s,i) => {
                                 if (i > 0 && err.contents->Belt_Option.isNone) {
                                     if (s < 0) {
                                         this.children[i-1] = Symbol({
@@ -113,7 +113,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                             color: None,
                                         })
                                     } else {
-                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl[varToRecIdxMapping[s]]) {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl->Array.getUnsafe(varToRecIdxMapping->Array.getUnsafe(s))) {
                                             | Error(msg) => err := Some(Error(msg))
                                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
                                         }
@@ -144,11 +144,11 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
         nextId := nextId.contents + 1
         nextId.contents - 1
     }
-    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl[targetIdx])
+    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl->Array.getUnsafe(targetIdx))
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
-    node.children->Js_array2.map(childNode => {
+    node.children->Array.map(childNode => {
         switch childNode {
             | Subtree(node) => syntaxTreeToSymbols(node)
             | Symbol({sym}) => [sym]
@@ -157,7 +157,7 @@ let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
 }
 
 let syntaxTreeIsEmpty: syntaxTreeNode => bool = node => {
-    node.children->Js_array2.length == 0
+    node.children->Array.length == 0
 }
 
 let getNodeById = (
@@ -183,8 +183,7 @@ let getNodeById = (
                     }
                 }
             }
-        },
-        ()
+        }
     )
     found
 }
@@ -194,9 +193,9 @@ let buildSyntaxProofTableFromProofTreeDto = (
     ~proofTreeDto:MM_proof_tree_dto.proofTreeDto,
     ~typeStmt:expr,
 ):result<proofTable,string> => {
-    switch proofTreeDto.nodes->Js_array2.find(node => node.expr->exprEq(typeStmt)) {
+    switch proofTreeDto.nodes->Array.find(node => node.expr->exprEq(typeStmt)) {
         | None => Error(`buildSyntaxProofTableFromProofTreeDto: could not find a proof for: ${ctx->ctxIntsToStrExn(typeStmt)}`)
-        | Some(proofNode) => Ok(MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode, ()))
+        | Some(proofNode) => Ok(MM_proof_tree_dto.createProofTable(~tree=proofTreeDto, ~root=proofNode))
     }
 }
 
@@ -207,7 +206,7 @@ let buildSyntaxTreeFromProofTreeDto = (
 ):result<syntaxTreeNode,string> => {
     switch buildSyntaxProofTableFromProofTreeDto( ~ctx, ~proofTreeDto, ~typeStmt, ) {
         | Error(msg) => Error(msg)
-        | Ok(proofTable) => buildSyntaxTree(ctx, proofTable, proofTable->Js_array2.length-1)
+        | Ok(proofTable) => buildSyntaxTree(ctx, proofTable, proofTable->Array.length-1)
     }
 }
 
@@ -215,9 +214,9 @@ type unifSubs = Belt_HashMapString.t<array<string>>
 
 let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> => {
     @warning("-8")
-    switch expr.children->Js.Array2.length {
+    switch expr.children->Array.length {
         | 1 => {
-            switch expr.children[0] {
+            switch expr.children->Array.getUnsafe(0) {
                 | Subtree(_) => None
                 | Symbol({isVar,symInt,sym}) => if (isVar && isMetavar(sym)) { Some((symInt,sym)) } else { None }
             }
@@ -228,10 +227,10 @@ let isVar = (expr:syntaxTreeNode, isMetavar:string=>bool):option<(int,string)> =
 
 let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):unit => {
     let i = ref(0)
-    while (i.contents < expr->Js_array2.length) {
-        if (expr[i.contents] == e) {
-            expr->Js_array2.spliceInPlace(~pos=i.contents, ~remove=1, ~add=subExpr)->ignore
-            i := i.contents + subExpr->Js_array2.length
+    while (i.contents < expr->Array.length) {
+        if (expr->Array.getUnsafe(i.contents) == e) {
+            expr->Array.splice(~start=i.contents, ~remove=1, ~insert=subExpr)
+            i := i.contents + subExpr->Array.length
         } else {
             i := i.contents + 1
         }
@@ -243,7 +242,7 @@ let applySubsInPlace = (expr:array<string>, subs:unifSubs):unit => {
 }
 
 let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
-    if (expr->Js_array2.includes(var)) {
+    if (expr->Array.includes(var)) {
         false
     } else {
         applySubsInPlace(expr, foundSubs)
@@ -300,15 +299,15 @@ let rec unify = (
                         continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                     }
                     | None => {
-                        if (a.children->Js.Array2.length != b.children->Js.Array2.length) {
+                        if (a.children->Array.length != b.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = a.children->Js.Array2.length-1
+                            let maxI = a.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
-                                switch a.children[i.contents] {
+                                switch a.children->Array.getUnsafe(i.contents) {
                                     | Symbol({sym:aSym, isVar:aIsVar}) => {
-                                        switch b.children[i.contents] {
+                                        switch b.children->Array.getUnsafe(i.contents) {
                                             | Symbol({sym:bSym, isVar:bIsVar}) => {
                                                 if (aIsVar || bIsVar || aSym != bSym) {
                                                     continue := false
@@ -318,7 +317,7 @@ let rec unify = (
                                         }
                                     }
                                     | Subtree(aCh) => {
-                                        switch b.children[i.contents] {
+                                        switch b.children->Array.getUnsafe(i.contents) {
                                             | Symbol(_) => continue := false
                                             | Subtree(bCh) => {
                                                 unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
@@ -346,8 +345,7 @@ let syntaxTreeForEachNode = ( tree:childNode, consumer:childNode=>option<'r>):op
                 | Symbol(_) => None
             }
         },
-        ~process = (_, node) => consumer(node),
-        ()
+        ~process = (_, node) => consumer(node)
     )
     res
 }
@@ -357,7 +355,7 @@ let syntaxTreeGetIdsOfAllChildSymbols = (tree:childNode):Belt_SetInt.t => {
     tree->syntaxTreeForEachNode(node => {
         switch node {
             | Subtree(_) => ()
-            | Symbol({id}) => res->Js.Array2.push(id)->ignore
+            | Symbol({id}) => res->Array.push(id)
         }
         None
     })->ignore
@@ -369,11 +367,11 @@ let syntaxTreeToText = (node:childNode):string => {
     node->syntaxTreeForEachNode(node => {
         switch node {
             | Subtree(_) => ()
-            | Symbol({sym}) => res->Js.Array2.push(sym)->ignore
+            | Symbol({sym}) => res->Array.push(sym)
         }
         None
     })->ignore
-    res->Js.Array2.joinWith(" ")
+    res->Array.joinUnsafe(" ")
 }
 
 let syntaxTreeGetNumberOfSymbols = (node:childNode):int => {

@@ -67,14 +67,13 @@ let beginLoadingMmContext = (
                     onDone(ctx)
                 }
             }
-        },
-        ()
+        }
     )
 }
 
-let strToRegexOpt = (str:string):option<Js_re.t> => {
-    let str = str->Js_string2.trim
-    if (str->Js.String2.length == 0) {
+let strToRegexOpt = (str:string):option<RegExp.t> => {
+    let str = str->String.trim
+    if (str->String.length == 0) {
         None
     } else {
         switch str->strToRegex {
@@ -87,16 +86,16 @@ let strToRegexOpt = (str:string):option<Js_re.t> => {
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | LoadMmContext({scopes, descrRegexToDisc, labelRegexToDisc, descrRegexToDepr, labelRegexToDepr}) => {
-            let totalNumOfAssertions = scopes->Js_array2.reduce((a,e) => a+e.expectedNumOfAssertions, 0)->Belt_Int.toFloat
-            let weights = scopes->Js_array2.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
+            let totalNumOfAssertions = scopes->Array.reduce(0, (a,e) => a+e.expectedNumOfAssertions)->Belt_Int.toFloat
+            let weights = scopes->Array.map(s => s.expectedNumOfAssertions->Belt_Int.toFloat /. totalNumOfAssertions)
             try {
                 let ctx = createContext(())
-                for i in 0 to scopes->Js_array2.length-1 {
-                    let scope = scopes[i]
-                    let basePct = weights->Js_array2.reducei((a,w,idx) => if idx < i {a +. w} else {a}, 0.)
-                    let weight = weights[i]
+                for i in 0 to scopes->Array.length-1 {
+                    let scope = scopes->Array.getUnsafe(i)
+                    let basePct = weights->Array.reduceWithIndex(0., (a,w,idx) => if idx < i {a +. w} else {a})
+                    let weight = weights->Array.getUnsafe(i)
                     loadContext(
-                        scopes[i].ast,
+                        (scopes->Array.getUnsafe(i)).ast,
                         ~initialContext=ctx,
                         ~stopBefore=?scope.stopBefore,
                         ~stopAfter=?scope.stopAfter,
@@ -107,8 +106,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                         ~labelRegexToDepr=?strToRegexOpt(labelRegexToDepr),
                         ~onProgress = pct => {
                             sendToClient(MmContextLoadProgress({pct: basePct +. pct *. weight}))
-                        },
-                        ()
+                        }
                     )->ignore
                     if (scope.resetNestingLevel) {
                         while (ctx->getNestingLevel != 0) {
@@ -122,8 +120,8 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 | MmException({msg}) => {
                     sendToClient(MmContextLoaded({ctx:Error(msg)}))
                 }
-                | Js.Exn.Error(exn) => {
-                    sendToClient(MmContextLoaded({ctx:Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Internal error."))}))
+                | Exn.Error(exn) => {
+                    sendToClient(MmContextLoaded({ctx:Error(exn->Exn.message->Belt_Option.getWithDefault("Internal error."))}))
                 }
             }
         }
@@ -134,15 +132,15 @@ let getAllLabelsAfterReading = (src:mmCtxSrcDto):(option<string>, option<string>
     switch src.readInstr->readInstrFromStr {
         | ReadAll => (None, None, src.allLabels)
         | StopBefore => {
-            switch src.allLabels->Js_array2.findIndex(label => label == src.label) {
+            switch src.allLabels->Array.findIndex(label => label == src.label) {
                 | -1 => (None, None, src.allLabels)
-                | idx => (Some(src.label), None, src.allLabels->Js_array2.slice(~start=0, ~end_=idx))
+                | idx => (Some(src.label), None, src.allLabels->Array.slice(~start=0, ~end=idx))
             }
         }
         | StopAfter => {
-            switch src.allLabels->Js_array2.findIndex(label => label == src.label) {
+            switch src.allLabels->Array.findIndex(label => label == src.label) {
                 | -1 => (None, None, src.allLabels)
-                | idx => (None, Some(src.label), src.allLabels->Js_array2.slice(~start=0, ~end_=idx+1))
+                | idx => (None, Some(src.label), src.allLabels->Array.slice(~start=0, ~end=idx+1))
             }
         }
     }
@@ -151,18 +149,18 @@ let getAllLabelsAfterReading = (src:mmCtxSrcDto):(option<string>, option<string>
 let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmScope>):bool => {
     let (stopBeforeOrig, stopAfterOrig, allLabels) = getAllLabelsAfterReading(src)
     let (stopBefore, stopAfter, expectedNumOfAssertions, resetNestingLevel) =
-        if (allLabels->Js_array2.includes(label)) {
+        if (allLabels->Array.includes(label)) {
             (
                 Some(label),
                 None,
-                allLabels->Js_array2.indexOf(label),
+                allLabels->Array.indexOf(label),
                 false
             )
         } else {
             (
                 stopBeforeOrig,
                 stopAfterOrig,
-                allLabels->Js_array2.length,
+                allLabels->Array.length,
                 true
             )
         }
@@ -177,21 +175,21 @@ let convertSrcDtoAndAddToRes = (~src:mmCtxSrcDto, ~label:string, ~res:array<mmSc
         stopAfter,
         resetNestingLevel,
     }
-    res->Js_array2.push(mmScope)->ignore
-    allLabels->Js_array2.length != expectedNumOfAssertions
+    res->Array.push(mmScope)
+    allLabels->Array.length != expectedNumOfAssertions
 }
 
 let createMmScopesForFrame = ( ~srcs:array<mmCtxSrcDto>, ~label:string, ):array<mmScope> => {
     let res = []
-    srcs->Js_array2.reduce(
+    srcs->Array.reduce(
+        false,
         (found,src) => {
             if (found) {
                 found
             } else {
                 convertSrcDtoAndAddToRes(~src, ~label, ~res)
             }
-        },
-        false
+        }
     )->ignore
     res
 }

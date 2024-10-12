@@ -7,10 +7,10 @@ describe("parseMmFile", _ => {
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
 
         //when
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
 
         //then
-        let actual = stmtToStrRec(ast)->Js_array2.filter(s => !(s->Js_string2.trim->Js_string2.startsWith("$(")))
+        let actual = stmtToStrRec(ast)->Array.filter(s => !(s->String.trim->String.startsWith("$(")))
         let expected = [
                 "$c 0 + = -> ( ) term wff & => |- [ { ] } <. .> $.",
                 "$v t r s P Q $.",
@@ -36,8 +36,8 @@ describe("parseMmFile", _ => {
                 "paren2 $a |- { t } = { t } $.",
                 "paren3 $a |- <. t .> = <. t .> $.",
             ]
-        //assertEq(actual->Js_array2.length, expected->Js_array2.length)
-        //for i in 0 to actual->Js_array2.length-1 {
+        //assertEq(actual->Array.length, expected->Array.length)
+        //for i in 0 to actual->Array.length-1 {
             //assertEq(actual[i], expected[i])
         //}
         assertEq(actual, expected)

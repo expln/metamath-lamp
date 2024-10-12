@@ -9,7 +9,7 @@ type attr = {
 
 type namedNodeMap = {
     length: int,
-    item: (. int) => Js.Nullable.t<attr>
+    item: (. int) => Nullable.t<attr>
 }
 
 type rec element = {
@@ -20,7 +20,7 @@ type rec element = {
     nodeValue: string,
 } and nodeList = {
     length: int,
-    item: (. int) => Js.Nullable.t<element>
+    item: (. int) => Nullable.t<element>
 }
 
 type xmlDocument = { 
@@ -39,10 +39,10 @@ let elementGetAttrs = (element:element):Belt_MapString.t<string> => {
         | None => ()
         | Some(attrs) => {
             for i in 0 to attrs.length-1 {
-                switch attrs.item(. i)->Js.Nullable.toOption {
+                switch attrs.item(. i)->Nullable.toOption {
                     | None => ()
                     | Some(attr) => {
-                        res->Js_array2.push((attr.name,attr.value))->ignore
+                        res->Array.push((attr.name,attr.value))
                     }
                 }
             }
@@ -66,11 +66,11 @@ let parseStrExn = (str:string):xmlNode => {
                 let children = []
                 let cNodes = node.childNodes
                 for i in 0 to cNodes.length-1 {
-                    switch cNodes.item(. i)->Js.Nullable.toOption {
+                    switch cNodes.item(. i)->Nullable.toOption {
                         | None => ()
                         | Some(cNode) => {
                             if (cNode.nodeType == nodeTypeElement || cNode.nodeType == nodeTypeText) {
-                                children->Js_array2.push(cNode)->ignore
+                                children->Array.push(cNode)
                             }
                         }
                     }
@@ -91,11 +91,11 @@ let parseStrExn = (str:string):xmlNode => {
                 } else if (node.nodeType == nodeTypeText) {
                     Text(node.nodeValue)
                 } else {
-                    Js.Exn.raiseError(`Node type of ${node.nodeType->Belt.Int.toString} is not expected here.`)
+                    Exn.raiseError(`Node type of ${node.nodeType->Belt.Int.toString} is not expected here.`)
                 }
             switch parents->Belt_MutableStack.top {
                 | None => ()
-                | Some(Node({children})) => children->Js_array2.push(xmlNode)->ignore
+                | Some(Node({children})) => children->Array.push(xmlNode)
                 | Some(Text(_)) => ()
             }
             parents->Belt_MutableStack.push(xmlNode)
@@ -108,12 +108,11 @@ let parseStrExn = (str:string):xmlNode => {
                 (parents->Belt_MutableStack.pop)->ignore
                 None
             }
-        },
-        ()
+        }
     )
 
     switch rootXmlNodeOpt {
-        | None => Js.Exn.raiseError("Got None as a result of parsing.")
+        | None => Exn.raiseError("Got None as a result of parsing.")
         | Some(xmlNode) => xmlNode
     }
 }
@@ -121,11 +120,11 @@ let parseStrExn = (str:string):xmlNode => {
 
 
 let parseStr = (str:string):result<xmlNode,string> => {
-    let exToError = (ex:option<Js.Exn.t>):result<xmlNode,string> => {
+    let exToError = (ex:option<Exn.t>):result<xmlNode,string> => {
         let msg = switch ex {
             | None => "no error message"
             | Some(ex) => {
-                switch Js.Exn.message(ex) {
+                switch Exn.message(ex) {
                     | None => "no error message"
                     | Some(msg) => msg
                 }
@@ -137,7 +136,7 @@ let parseStr = (str:string):result<xmlNode,string> => {
     try {
         Ok(parseStrExn(str))
     } catch {
-        | Js.Exn.Error(ex) => exToError(Some(ex))
-        | reEx => exToError(reEx->Js.Exn.asJsExn)
+        | Exn.Error(ex) => exToError(Some(ex))
+        | reEx => exToError(reEx->Exn.asJsExn)
     }
 }

@@ -7,7 +7,6 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open Expln_React_Modal
-open Common
 open MM_cmp_user_stmt
 
 type state = {
@@ -18,8 +17,8 @@ let makeInitialState = (~ctx:mmContext, ~stmt:expr, ~symColors:Belt_HashMapStrin
     let syms = ctx->ctxIntsToSymsExn(stmt)
     {
         cont:Text({
-            text: syms->Js.Array2.joinWith(" "),
-            syms: syms->Js_array2.map(sym => {
+            text: syms->Array.joinUnsafe(" "),
+            syms: syms->Array.map(sym => {
                 {sym, color:symColors->Belt_HashMapString.get(sym)}
             })
         }),
@@ -78,7 +77,7 @@ let make = React.memoCustomCompareProps( ({
             | None => ()
             | Some(msg) => {
                 setSyntaxTreeError(_ => None)
-                openInfoDialog( ~modalRef, ~text=msg, () )
+                openInfoDialog( ~modalRef, ~text=msg )
             }
         }
         None
@@ -99,7 +98,7 @@ let make = React.memoCustomCompareProps( ({
 
     let actTreeNodeClicked = (nodeId) => {
         actUpdateSyntaxTree(treeData => {
-            {...treeData, clickedNodeId:Some((nodeId,Js_date.make())), expLvl:0}->incExpLvlIfConstClicked
+            {...treeData, clickedNodeId:Some((nodeId,Date.make())), expLvl:0}->incExpLvlIfConstClicked
         })
     }
 
@@ -147,22 +146,22 @@ let make = React.memoCustomCompareProps( ({
             | Tree(_) => setSyntaxTreeError(_ => Some(`Cannot build a syntax tree because stmtCont is a tree.`))
             | Text({text,syms}) => {
                 switch textToSyntaxTree( 
-                    ~wrkCtx=ctx, ~syms=[syms->Js_array2.map(s => s.sym)->Js_array2.sliceFrom(_, 1)], 
+                    ~wrkCtx=ctx, ~syms=[syms->Array.map(s => s.sym)->Array.sliceToEnd(_, ~start=1)],
                     ~syntaxTypes, ~frms, ~frameRestrict, ~parenCnt,
                     ~lastSyntaxType=getLastSyntaxType(),
                     ~onLastSyntaxTypeChange=setLastSyntaxType,
                 ) {
                     | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                     | Ok(syntaxTrees) => {
-                        switch syntaxTrees[0] {
+                        switch syntaxTrees->Array.getUnsafe(0) {
                             | Error(msg) => setSyntaxTreeError(_ => Some(msg))
                             | Ok(syntaxTree) => {
                                 let stmtContTreeData = {
                                     text,
-                                    exprTyp:syms[0].sym, 
-                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors, () ), 
+                                    exprTyp:(syms->Array.getUnsafe(0)).sym,
+                                    root:addColorsToSyntaxTree( ~tree=syntaxTree, ~preCtxColors=symColors ), 
                                     clickedNodeId:getNodeIdBySymIdx(~tree=syntaxTree, ~symIdx=clickedIdx)
-                                                        ->Belt.Option.map(id => (id,Js_date.make())),
+                                                        ->Belt.Option.map(id => (id,Date.make())),
                                     expLvl:0,
                                 }
                                 actUpdateStmt(Tree(stmtContTreeData->incExpLvlIfConstClicked))
@@ -192,7 +191,7 @@ let make = React.memoCustomCompareProps( ({
 
     let rndSelectionButtons = () => {
         let clickedTimeStr = switch state.cont {
-            | Tree({clickedNodeId:Some(_,time)}) => time->Js_date.toISOString
+            | Tree({clickedNodeId:Some(_,time)}) => time->Date.toISOString
             | _ => "1"
         }
         <Row alignItems=#center>
@@ -216,11 +215,10 @@ let make = React.memoCustomCompareProps( ({
                 rndHiddenTextField(
                     ~key=clickedTimeStr,
                     ~onKeyDown=kbrdHnd3(
-                        kbrdClbkMake(~key="w", ~act=actExpandSelection, ()),
-                        kbrdClbkMake(~key="s", ~act=actShrinkSelection, ()),
-                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect, ()),
-                    ),
-                    ()
+                        kbrdClbkMake(~key="w", ~act=actExpandSelection),
+                        kbrdClbkMake(~key="s", ~act=actShrinkSelection),
+                        kbrdClbkMake(~key=keyEsc, ~act=actUnselect),
+                    )
                 )
             }
         </Row>
@@ -248,21 +246,20 @@ let make = React.memoCustomCompareProps( ({
                         ~onTreeAltLeftClick=actTreeNodeClicked,
                         ~cursor="pointer",
                         ~renderSelection=true,
-                        ~symRename?,
-                        ()
+                        ~symRename?
                     )
                 }
             </span>
         ]
         if (syntaxTreeWasRequested->Belt.Option.isSome) {
-            elems->Js_array2.push(
+            elems->Array.push(
                 <span> {"Building a syntax tree..."->React.string} </span>
-            )->ignore
+            )
         }
         if (textIsSelected) {
-            elems->Js_array2.push(
+            elems->Array.push(
                 rndSelectionButtons()
-            )->ignore
+            )
         }
         <Col>
             {elems->React.array}

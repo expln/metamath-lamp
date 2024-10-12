@@ -40,8 +40,7 @@ let bottomUpProverParamsMakeDefault = (
     ~allowNewVars: bool=false,
     ~args0: array<expr>=[],
     ~args1: array<expr>=[],
-    ~maxNumberOfBranches: option<int>=?,
-    ()
+    ~maxNumberOfBranches: option<int>=?
 ):bottomUpProverParams => {
     {
         maxSearchDepth,
@@ -114,36 +113,36 @@ let findAsrtParentsWithoutNewVars = (
     ~frameRestrict:frameRestrict,
     ~onResult: exprSrc => unit,
 ):unit => {
-    let exprLen = expr->Js_array2.length
-    tree->ptGetFrms->frmsForEach(~typ=expr[0], frm => {
+    let exprLen = expr->Array.length
+    tree->ptGetFrms->frmsForEach(~typ=expr->Array.getUnsafe(0), frm => {
         if (frm.frame->frameIsAllowed(frameRestrict)) {
             let frmExpr = frm.frame.asrt
             iterateSubstitutions(
                 ~frmExpr,
                 ~expr,
-                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE],
-                ~constParts = frm.constParts[frm.numOfHypsE],
-                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE),
+                ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE),
+                ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
                 ~subs = frm.subs,
                 ~parenCnt=tree->ptGetParenCnt,
                 ~consumer = subs => {
-                    if (subs.isDefined->Js_array2.every(b=>b)
+                    if (subs.isDefined->Array.every(b=>b)
                         && verifyDisjoints(
                                 ~frmDisj=frm.frame.disj, 
                                 ~subs, 
-                                ~isDisjInCtx=tree->ptIsDisjInCtx, 
+                                ~isDisjInCtx=ptIsDisjInCtx(tree, ...),
                                 ~debugLevel=0
                             )->Belt.Option.isNone
                     ) {
                         let hyps = frm.frame.hyps
-                        let numOfArgs = hyps->Js_array2.length
+                        let numOfArgs = hyps->Array.length
                         let args = Expln_utils_common.createArray(numOfArgs)
                         let argsAreCorrect = ref(true)
                         let argIdx = ref(0)
                         let maxArgIdx = numOfArgs - 1
                         while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
                             let newExpr = applySubs(
-                                ~frmExpr = hyps[argIdx.contents].expr, 
+                                ~frmExpr = (hyps->Array.getUnsafe(argIdx.contents)).expr,
                                 ~subs,
                                 ~createWorkVar = _ => raise(MmException({
                                     msg:`Work variables are not supported in findAsrtParentsWithoutNewVars().`
@@ -151,8 +150,8 @@ let findAsrtParentsWithoutNewVars = (
                             )
                             argsAreCorrect.contents = switch restrictExprLen {
                                 | No => true
-                                | LessEq => newExpr->Js_array2.length <= exprLen
-                                | Less => newExpr->Js_array2.length < exprLen
+                                | LessEq => newExpr->Array.length <= exprLen
+                                | Less => newExpr->Array.length < exprLen
                             }
                             if (argsAreCorrect.contents) {
                                 let node = tree->ptGetNode(newExpr)
@@ -205,7 +204,7 @@ let proveFloating = (
 
         let saveArgs = (src:exprSrc) => {
             switch src {
-                | Assertion({args}) => args->Js_array2.forEach(saveNodeToCreateParentsFor)
+                | Assertion({args}) => args->Array.forEach(saveNodeToCreateParentsFor)
                 | _ => ()
             }
         }
@@ -230,7 +229,7 @@ let proveFloating = (
         while (rootNode->pnGetProof->Belt_Option.isNone && currNodeRef.contents->Belt_Option.isSome) {
             let curNode = currNodeRef.contents->Belt_Option.getExn
             switch curNode->pnGetFParents {
-                | Some(fParents) => fParents->Js_array2.forEach(saveArgs)
+                | Some(fParents) => fParents->Array.forEach(saveArgs)
                 | None => {
                     let curExpr = curNode->pnGetExpr
                     switch findNonAsrtParent(~tree, ~expr=curExpr) {
@@ -273,8 +272,7 @@ let findAsrtParentsWithNewVars = (
     ~combCntMax:int,
     ~debugLevel:int=0,
     ~maxNumberOfResults: option<int>=?,
-    ~onProgress:option<int=>unit>=?,
-    ()
+    ~onProgress:option<int=>unit>=?
 ):array<exprSrc> => {
     let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
     let applResults = []
@@ -288,7 +286,7 @@ let findAsrtParentsWithNewVars = (
         ~frms = tree->ptGetFrms,
         ~frmsToUse?,
         ~isFrameAllowed,
-        ~isDisjInCtx = tree->ptIsDisjInCtx,
+        ~isDisjInCtx = ptIsDisjInCtx(tree, ...),
         ~parenCnt=tree->ptGetParenCnt,
         ~statements = args,
         ~exactOrderOfStmts = exactOrderOfArgs,
@@ -299,9 +297,9 @@ let findAsrtParentsWithNewVars = (
         ~combCntMax,
         ~debugLevel,
         ~onMatchFound = res => {
-            applResults->Js_array2.push(res)->ignore
+            applResults->Array.push(res)
 
-            let foundCnt = applResults->Js.Array2.length
+            let foundCnt = applResults->Array.length
             switch onProgress {
                 | Some(onProgress) => {
                     if (mod(foundCnt, 100) == 0) {
@@ -315,33 +313,32 @@ let findAsrtParentsWithNewVars = (
             } else {
                 Continue
             }
-        },
-        ()
+        }
     )
     let foundParents = []
-    applResults->Js_array2.forEach(applResult => {
+    applResults->Array.forEach(applResult => {
         let frame = applResult.frame
         switch applResult.err {
             | Some(NoUnifForAsrt(_)) | Some(NoUnifForArg(_)) | Some(NewVarsAreDisabled(_)) => {
                 if (debugLevel != 0) {
-                    foundParents->Js.Array2.push( 
+                    foundParents->Array.push( 
                         AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
-                    )->ignore
+                    )
                 }
             }
             | Some(TooManyCombinations(_)) => {
-                foundParents->Js.Array2.push( 
+                foundParents->Array.push( 
                     AssertionWithErr({ args:[], frame, err:applResult.err->Belt.Option.getExn })
-                )->ignore
+                )
             }
             | None | Some(UnifErr) | Some(DisjCommonVar(_)) | Some(Disj(_)) | Some(UnprovedFloating(_)) => {
                 let applNewVarToTreeNewVar = Belt_MutableMapInt.make()
-                applResult.newVars->Js.Array2.forEachi((applResNewVar,i) => {
-                    let newVarType = applResult.newVarTypes[i]
+                applResult.newVars->Array.forEachWithIndex((applResNewVar,i) => {
+                    let newVarType = applResult.newVarTypes->Array.getUnsafe(i)
                     let treeNewVar = tree->ptAddNewVar(newVarType)
                     applNewVarToTreeNewVar->Belt_MutableMapInt.set(applResNewVar,treeNewVar)
                 })
-                let numOfArgs = frame.hyps->Js_array2.length
+                let numOfArgs = frame.hyps->Array.length
                 let args = Expln_utils_common.createArray(numOfArgs)
                 let unprovedFloating = ref(None)
                 let argIdx = ref(0)
@@ -349,15 +346,15 @@ let findAsrtParentsWithNewVars = (
 
                 while (argIdx.contents <= maxArgIdx && (unprovedFloating.contents->Belt_Option.isNone || debugLevel != 0)) {
                     let argExpr = applySubs(
-                        ~frmExpr = frame.hyps[argIdx.contents].expr, 
+                        ~frmExpr = (frame.hyps->Array.getUnsafe(argIdx.contents)).expr,
                         ~subs=applResult.subs,
                         ~createWorkVar = _ => raise(MmException({
                             msg:`New work variables are not expected here [findAsrtParentsWithNewVars].`
                         }))
                     )
-                    let maxI = argExpr->Js_array2.length-1
+                    let maxI = argExpr->Array.length-1
                     for i in 0 to maxI {
-                        let sym = argExpr[i]
+                        let sym = argExpr->Array.getUnsafe(i)
                         if (sym > maxVarBeforeSearch) {
                             argExpr[i] = switch applNewVarToTreeNewVar->Belt_MutableMapInt.get(sym) {
                                 | None => raise(MmException({msg:`Could not replace an applVar with a treeVar.`}))
@@ -367,7 +364,7 @@ let findAsrtParentsWithNewVars = (
                     }
                     let argNode = tree->ptGetNode(argExpr)
                     args[argIdx.contents] = argNode
-                    if (frame.hyps[argIdx.contents].typ == F
+                    if ((frame.hyps->Array.getUnsafe(argIdx.contents)).typ == F
                             && applResult.err->Belt_Option.isNone && unprovedFloating.contents->Belt_Option.isNone
                     ) {
                         proveFloating(
@@ -388,11 +385,11 @@ let findAsrtParentsWithNewVars = (
                 }
                 switch err {
                     | None => {
-                        foundParents->Js.Array2.push( Assertion({ args, frame, }) )->ignore
+                        foundParents->Array.push( Assertion({ args, frame, }) )
                     }
                     | Some(err) => {
                         if (debugLevel != 0) {
-                            foundParents->Js.Array2.push( AssertionWithErr({ args, frame, err }) )->ignore
+                            foundParents->Array.push( AssertionWithErr({ args, frame, err }) )
                         }
                     }
                 }
@@ -408,14 +405,13 @@ let proveWithoutJustification = (~tree:proofTree, ~expr:expr, ~allowedFrms:allow
         let parents = findAsrtParentsWithNewVars(
             ~tree, 
             ~expr, 
-            ~args=tree->ptGetRootStmts->Js.Array2.map(stmt => stmt.expr),
+            ~args=tree->ptGetRootStmts->Array.map(stmt => stmt.expr),
             ~exactOrderOfArgs=false,
             ~allowEmptyArgs=false,
             ~allowNewVars=false,
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
-            ~combCntMax,
-            () 
+            ~combCntMax 
         )
         parents->Expln_utils_common.arrForEach(parent => {
             node->pnAddParent(parent, true, false)
@@ -430,7 +426,7 @@ let getStatementsFromJustification = (
     ~jstf: jstf,
 ):option<array<expr>> => {
     let getStmtByLabel = label => {
-        switch tree->ptGetRootStmts->Js.Array2.find(stmt => stmt.label == label) {
+        switch tree->ptGetRootStmts->Array.find(stmt => stmt.label == label) {
             | Some(stmt) => Some(stmt.expr)
             | None => {
                 switch tree->ptGetHypByLabel(label) {
@@ -441,10 +437,10 @@ let getStatementsFromJustification = (
         }
     }
     let foundStmts = jstf.args
-        ->Js_array2.map(getStmtByLabel)
-        ->Js_array2.filter(Belt_Option.isSome)
-        ->Js_array2.map(Belt_Option.getExn)
-    if (foundStmts->Js_array2.length == jstf.args->Js.Array2.length) {
+        ->Array.map(getStmtByLabel)
+        ->Array.filter(Belt_Option.isSome(_))
+        ->Array.map(Belt_Option.getExn(_))
+    if (foundStmts->Array.length == jstf.args->Array.length) {
         Some(foundStmts)
     } else {
         None
@@ -470,8 +466,7 @@ let proveWithJustification = (
             ~allowNewDisjForExistingVars=false,
             ~allowedFrms,
             ~combCntMax,
-            ~debugLevel,
-            ()
+            ~debugLevel
         )
     }
 
@@ -504,7 +499,7 @@ let proveWithJustification = (
 
 let srcIsBackRef = (expr:expr, src:exprSrc):bool => {
     switch src {
-        | Assertion({args}) => args->Js_array2.some(arg => expr->exprEq(arg->pnGetExpr))
+        | Assertion({args}) => args->Array.some(arg => expr->exprEq(arg->pnGetExpr))
         | _ => false
     }
 }
@@ -519,7 +514,7 @@ let proveBottomUp = (
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
-    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => (), () ))
+    let progressState = ref(progressTrackerMake( ~step=0.01, ~onProgress = _ => () ))
 
     tree->ptClearDists
     let rootNode = tree->ptGetNode(expr)
@@ -547,10 +542,9 @@ let proveBottomUp = (
                         progressState.contents = progressTrackerMake(
                             ~step=0.01,
                             ~onProgress= pct => {
-                                let pctStr = (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString
+                                let pctStr = (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString
                                 onProgress(`Proving bottom-up: ${curDistStr}/${maxSearchDepthStr} ${pctStr}%`)
-                            }, 
-                            ()
+                            }
                         )
                         maxCnt.contents = nodesToCreateParentsFor->Belt_MutableQueue.size + 1
                         cnt.contents = 0
@@ -569,12 +563,12 @@ let proveBottomUp = (
                 | None => {
                     let newDist = curDist + 1
                     if (newDist <= maxSearchDepth) {
-                        getParents(curExpr, curDist, onProgressP.contents)->Js.Array2.forEach(src => {
+                        getParents(curExpr, curDist, onProgressP.contents)->Array.forEach(src => {
                             if (!srcIsBackRef(curExpr, src)) {
                                 curNode->pnAddParent(src, true, false)
                                 switch src {
                                     | Assertion({args}) => 
-                                        args->Js_array2.forEach(arg => {
+                                        args->Array.forEach(arg => {
                                             if (arg->pnGetProof->Belt.Option.isNone
                                                     && arg->pnGetDist->Belt.Option.isNone) {
                                                 arg->pnSetDist(newDist)
@@ -622,16 +616,16 @@ let exprMatchesAsrtMatcher = (
         true
     } else {
         let frm = matcher.frm
-        if (expr[0] != frm.frame.asrt[0]) {
+        if (expr->Array.getUnsafe(0) != frm.frame.asrt->Array.getUnsafe(0)) {
             false
         } else {
             let res = ref(false)
             iterateSubstitutions(
                 ~frmExpr = frm.frame.asrt,
                 ~expr,
-                ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-                ~constParts = frm.constParts[frm.numOfHypsE], 
-                ~varGroups = frm.varGroups[frm.numOfHypsE],
+                ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+                ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+                ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
                 ~subs = frm.subs,
                 ~parenCnt,
                 ~consumer = _ => {
@@ -651,7 +645,7 @@ let exprMatchesAsrtMatchers = (
 ):bool => {
     switch matchers {
         | None => true
-        | Some(matchers) => matchers->Js_array2.some(matcher => exprMatchesAsrtMatcher(~expr, ~matcher, ~parenCnt))
+        | Some(matchers) => matchers->Array.some(matcher => exprMatchesAsrtMatcher(~expr, ~matcher, ~parenCnt))
     }
 }
 
@@ -666,8 +660,8 @@ let proveStmtBottomUp = (
 ):proofNode => {
     let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSrc> => {
         let res = []
-        for i in 0 to params.frameParams->Js_array2.length-1 {
-            let paramsI = params.frameParams[i]
+        for i in 0 to params.frameParams->Array.length-1 {
+            let paramsI = params.frameParams->Array.getUnsafe(i)
             if (
                 isInCorrectOrder(paramsI.minDist, dist, paramsI.maxDist) 
                 && exprMatchesAsrtMatchers(~expr, ~matchers=paramsI.matches, ~parenCnt=tree->ptGetParenCnt)
@@ -685,28 +679,27 @@ let proveStmtBottomUp = (
                     ~combCntMax,
                     ~debugLevel,
                     ~maxNumberOfResults=?paramsI.maxNumberOfBranches,
-                    ~onProgress?,
-                    ()
+                    ~onProgress?
                 )
                 let parents = switch paramsI.lengthRestrict {
                     | No => parents
                     | LessEq | Less => {
-                        let exprLen = expr->Js_array2.length
-                        parents->Js.Array2.filter(parent => {
+                        let exprLen = expr->Array.length
+                        parents->Array.filter(parent => {
                             switch parent {
                                 | VarType | Hypothesis(_) | AssertionWithErr(_) => true
                                 | Assertion({args, frame}) => {
                                     let argsAreCorrect = ref(true)
-                                    let numOfArgs = frame.hyps->Js_array2.length
+                                    let numOfArgs = frame.hyps->Array.length
                                     let maxArgIdx = numOfArgs - 1
                                     let argIdx = ref(0)
                                     while (argIdx.contents <= maxArgIdx && argsAreCorrect.contents) {
-                                        let arg = args[argIdx.contents]
-                                        if (frame.hyps[argIdx.contents].typ == E) {
+                                        let arg = args->Array.getUnsafe(argIdx.contents)
+                                        if ((frame.hyps->Array.getUnsafe(argIdx.contents)).typ == E) {
                                             argsAreCorrect.contents = switch paramsI.lengthRestrict {
                                                 | No => true
-                                                | LessEq => arg->pnGetExpr->Js_array2.length <= exprLen
-                                                | Less => arg->pnGetExpr->Js_array2.length < exprLen
+                                                | LessEq => arg->pnGetExpr->Array.length <= exprLen
+                                                | Less => arg->pnGetExpr->Array.length < exprLen
                                             }
                                         }
                                         argIdx.contents = argIdx.contents + 1
@@ -720,8 +713,8 @@ let proveStmtBottomUp = (
                 let parents = switch paramsI.matches {
                     | None => parents
                     | Some(matchers) => {
-                        parents->Js.Array2.filter(parent => {
-                            matchers->Js.Array2.some(matcher => {
+                        parents->Array.filter(parent => {
+                            matchers->Array.some(matcher => {
                                 exprSrcMatches(
                                     ~expr,
                                     ~src=parent,
@@ -732,7 +725,7 @@ let proveStmtBottomUp = (
                         })
                     }
                 }
-                res->Js_array2.push(parents)->ignore
+                res->Array.push(parents)
             }
         }
         res->Belt.Array.concatMany
@@ -782,7 +775,7 @@ let makeExprToStr = (ctx, ctxMaxVar) => {
                 "&" ++ i->Belt.Int.toString
             }
         }
-        Some(expr => expr->Js_array2.map(intToSym)->Js.Array2.joinWith(" "))
+        Some(expr => expr->Array.map(intToSym)->Array.joinUnsafe(" "))
     } else {
         None
     }
@@ -832,7 +825,7 @@ let proveFloatings = (
     )
     let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
 
-    floatingsToProve->Js.Array2.forEach(expr => {
+    floatingsToProve->Array.forEach(expr => {
         proveFloating( 
             ~tree, 
             ~node=tree->ptGetNode(expr), 
@@ -851,8 +844,7 @@ let proveSyntaxTypes = (
     ~parenCnt: option<parenCnt>=?,
     ~exprs: array<expr>,
     ~syntaxTypes: array<int>,
-    ~onProgress:option<float=>unit>=?,
-    ()
+    ~onProgress:option<float=>unit>=?
 ):proofTree => {
     if (
         proofTree->Belt_Option.isNone
@@ -861,7 +853,7 @@ let proveSyntaxTypes = (
         raise(MmException({msg:`Either proofTree or (wrkCtx and frms and parenCnt) should be passed.`}))
     }
 
-    let progressState = progressTrackerMake( ~step=0.01, ~onProgress?, () )
+    let progressState = progressTrackerMake( ~step=0.01, ~onProgress? )
 
     let tree = switch proofTree {
         | Some(tree) => tree
@@ -873,14 +865,14 @@ let proveSyntaxTypes = (
             )
         }
     }
-    if (syntaxTypes->Js_array2.length == 0) {
+    if (syntaxTypes->Array.length == 0) {
         tree
     } else {
         let floatingNodesToCreateParentsFor = arrayQueueMake(1000)
-        let lastType = ref(syntaxTypes[0])
-        for ei in 0 to exprs->Js_array2.length-1 {
-            let expr = exprs[ei]
-            let node = ref(tree->ptGetNode([lastType.contents]->Js.Array2.concat(expr)))
+        let lastType = ref(syntaxTypes->Array.getUnsafe(0))
+        for ei in 0 to exprs->Array.length-1 {
+            let expr = exprs->Array.getUnsafe(ei)
+            let node = ref(tree->ptGetNode([lastType.contents]->Array.concat(expr)))
             proveFloating( 
                 ~tree, 
                 ~node=node.contents, 
@@ -888,11 +880,11 @@ let proveSyntaxTypes = (
                 ~nodesToCreateParentsFor=floatingNodesToCreateParentsFor,
             )
             let ti = ref(0)
-            while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Js_array2.length ) {
-                let typ = syntaxTypes[ti.contents]
+            while (node.contents->pnGetProof->Belt.Option.isNone && ti.contents < syntaxTypes->Array.length ) {
+                let typ = syntaxTypes->Array.getUnsafe(ti.contents)
                 ti := ti.contents + 1
                 if (typ != lastType.contents) {
-                    node := tree->ptGetNode([typ]->Js.Array2.concat(expr))
+                    node := tree->ptGetNode([typ]->Array.concat(expr))
                     proveFloating( 
                         ~tree, 
                         ~node=node.contents, 
@@ -905,11 +897,11 @@ let proveSyntaxTypes = (
                 | None => ()
                 | Some(_) => {
                     tree->ptAddSyntaxProof(expr, node.contents)
-                    lastType := (node.contents->pnGetExpr)[0]
+                    lastType := (node.contents->pnGetExpr)->Array.getUnsafe(0)
                 }
             }
             progressState->progressTrackerSetCurrPct( 
-                (ei+1)->Belt_Int.toFloat /. exprs->Js_array2.length->Belt_Int.toFloat
+                (ei+1)->Belt_Int.toFloat /. exprs->Array.length->Belt_Int.toFloat
             )
         }
 
@@ -918,10 +910,10 @@ let proveSyntaxTypes = (
 }
 
 let createProofCtx = (wrkCtx:mmContext, rootStmts:array<rootStmt>):mmContext => {
-    let proofCtx = createContext(~parent=wrkCtx, ())
-    rootStmts->Js_array2.forEach(stmt => {
+    let proofCtx = createContext(~parent=wrkCtx)
+    rootStmts->Array.forEach(stmt => {
         if (stmt.isHyp) {
-            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}), ())
+            proofCtx->applySingleStmt(Essential({label:stmt.label, expr:wrkCtx->ctxIntsToSymsExn(stmt.expr)}))
         }
     })
     proofCtx
@@ -938,15 +930,13 @@ let unifyAll = (
     ~syntaxTypes:option<array<int>>=?,
     ~exprsToSyntaxCheck:option<array<expr>>=?,
     ~debugLevel:int=0,
-    ~onProgress:option<string=>unit>=?,
-    ()
+    ~onProgress:option<string=>unit>=?
 ):proofTree => {
     let progressState = progressTrackerMake(
         ~step=0.01, 
         ~onProgress=?onProgress->Belt.Option.map(onProgress => {
             pct => onProgress(`Unifying all: ${pct->floatToPctStr}`)
-        }), 
-        ()
+        })
     )
 
     let proofCtx = createProofCtx(wrkCtx, rootStmts)
@@ -960,7 +950,7 @@ let unifyAll = (
     switch syntaxTypes {
         | None => ()
         | Some(syntaxTypes) => {
-            if (syntaxTypes->Js_array2.length > 0) {
+            if (syntaxTypes->Array.length > 0) {
                 switch exprsToSyntaxCheck {
                     | None => ()
                     | Some(exprsToSyntaxCheck) => {
@@ -971,8 +961,7 @@ let unifyAll = (
                             ~frameRestrict = allowedFrms.inSyntax,
                             ~onProgress = ?onProgress->Belt.Option.map(onProgress => {
                                 pct => onProgress(`Checking syntax: ${pct->floatToPctStr}`)
-                            }),
-                            ()
+                            })
                         )->ignore
                     }
                 }
@@ -980,10 +969,10 @@ let unifyAll = (
         }
     }
 
-    let rootProvables = rootStmts->Js_array2.filter(stmt => !stmt.isHyp)
-    let numOfStmts = rootProvables->Js_array2.length
+    let rootProvables = rootStmts->Array.filter(stmt => !stmt.isHyp)
+    let numOfStmts = rootProvables->Array.length
     let maxStmtIdx = numOfStmts - 1
-    rootProvables->Js.Array2.forEachi((stmt,stmtIdx) => {
+    rootProvables->Array.forEachWithIndex((stmt,stmtIdx) => {
         proveStmt(
             ~tree, 
             ~expr=stmt.expr, 
@@ -1010,7 +999,7 @@ let unifyAll = (
 }
 
 let getOrderedSubarray = (arr:array<string>, start:int, end:int):array<string> => {
-    arr->Js.Array2.slice(~start, ~end_=end)->Js.Array2.sortInPlace
+    arr->Array.slice(~start, ~end=end)->Js.Array2.sortInPlace
 }
 
 let compareUnorderedSubArrays = (arr1:array<string>, arr2:array<string>, start:int, end:int):bool => {
@@ -1030,35 +1019,35 @@ let makeParenCnt = (
         canBeLastMax,
     } = ctx->ctxGetOptimizedConstsOrder(~parens)
     let allConstsActual = ctx->getAllConsts
-    if (allConsts->Js.Array2.length != allConstsActual->Js.Array2.length) {
+    if (allConsts->Array.length != allConstsActual->Array.length) {
         raise(MmException({msg:`allConsts.length != allConstsActual.length`}))
     }
     if (parenMin < 0) {
-        // let allConstsStr = allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin)->Js.Array2.joinWith(" ")
-        // Js.Console.log2(`allConsts:`, allConstsStr)
+        // let allConstsStr = allConsts->Array.slice(~start=0, ~end=-parenMin)->Array.joinUnsafe(" ")
+        // Console.log2(`allConsts:`, allConstsStr)
         if (
-            allConsts->Js.Array2.slice(~start=0, ~end_=-parenMin) 
+            allConsts->Array.slice(~start=0, ~end=-parenMin)
             != 
-            allConstsActual->Js.Array2.slice(~start=0, ~end_=-parenMin)
+            allConstsActual->Array.slice(~start=0, ~end=-parenMin)
         ) {
             raise(MmException({msg:`allConsts.parens != allConstsActual.parens`}))
         }
     }
     if (canBeFirstMin <= canBeFirstMax) {
-        // let canBeFirstStr = allConsts->Js.Array2.slice(~start=(-canBeFirstMax-1), ~end_=-canBeFirstMin)->Js.Array2.joinWith(" ")
-        // Js.Console.log2(`canBeFirst:`, canBeFirstStr)
+        // let canBeFirstStr = allConsts->Array.slice(~start=(-canBeFirstMax-1), ~end=-canBeFirstMin)->Array.joinUnsafe(" ")
+        // Console.log2(`canBeFirst:`, canBeFirstStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeFirstMax-1), -canBeFirstMin)) {
             raise(MmException({msg:`allConsts.canBeFirst != allConstsActual.canBeFirst`}))
         }
     }
     if (canBeLastMin <= canBeLastMax) {
-        // let canBeLastStr = allConsts->Js.Array2.slice(~start=(-canBeLastMax-1), ~end_=-canBeLastMin)->Js.Array2.joinWith(" ")
-        // Js.Console.log2(`canBeLast:`, canBeLastStr)
+        // let canBeLastStr = allConsts->Array.slice(~start=(-canBeLastMax-1), ~end=-canBeLastMin)->Array.joinUnsafe(" ")
+        // Console.log2(`canBeLast:`, canBeLastStr)
         if (!compareUnorderedSubArrays(allConsts, allConstsActual, (-canBeLastMax-1), -canBeLastMin)) {
             raise(MmException({msg:`allConsts.canBeLast != allConstsActual.canBeLast`}))
         }
     }
-    if (!compareUnorderedSubArrays(allConsts, allConstsActual, 0, allConsts->Js_array2.length)) {
+    if (!compareUnorderedSubArrays(allConsts, allConstsActual, 0, allConsts->Array.length)) {
         raise(MmException({msg:`allConsts.remaining != allConstsActual.remaining`}))
     }
 

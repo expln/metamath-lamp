@@ -34,12 +34,11 @@ let parseMmFile: (
     ~mmFileContent:string, 
     ~skipComments:bool=?,
     ~skipProofs:bool=?,
-    ~onProgress:float => unit=?, 
-    ()
+    ~onProgress:float => unit=?
 ) => (mmAstNode,array<string>)
 let textAt: (string,int) => string
 let traverseAst: ('c, mmAstNode,
-    ~preProcess:('c, mmAstNode)=>option<'res>=?, ~process:('c, mmAstNode)=>option<'res>=?, ~postProcess:('c, mmAstNode)=>option<'res>=?, ()) => ('c, option<'res>)
+    ~preProcess:('c, mmAstNode)=>option<'res>=?, ~process:('c, mmAstNode)=>option<'res>=?, ~postProcess:('c, mmAstNode)=>option<'res>=?) => ('c, option<'res>)
 let stmtToStr: mmAstNode => string
 let stmtToStrRec: mmAstNode => array<string>
 let astToStr: mmAstNode => string

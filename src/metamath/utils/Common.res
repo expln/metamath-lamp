@@ -1,20 +1,20 @@
-let nbsp = Js_string2.fromCharCode(160)
-let circleChar = Js_string2.fromCharCode(9679)
+let nbsp = String.fromCharCode(160)
+let circleChar = String.fromCharCode(9679)
 
-let currTimeStr = () => Js.Date.now()->Js.Date.fromFloat->Js.Date.toISOString
-let compareDates = (a:Js_date.t, b:Js_date.t):int => {
-    let t1 = a->Js_date.getTime
-    let t2 = b->Js_date.getTime
+let currTimeStr = () => Date.now()->Date.fromTime->Date.toISOString
+let compareDates = (a:Date.t, b:Date.t):float => {
+    let t1 = a->Date.getTime
+    let t2 = b->Date.getTime
     if (t1 < t2) {
-        -1
+        -1.0
     } else if (t2 < t1) {
-        1
+        1.0
     } else {
-        0
+        0.0
     }
 }
 
-let floatToPctStr = pct => (pct  *. 100.)->Js.Math.round->Belt.Float.toInt->Belt_Int.toString ++ "%"
+let floatToPctStr = pct => (pct  *. 100.)->Math.round->Belt.Float.toInt->Belt_Int.toString ++ "%"
 
 type cache<'depVer,'dep,'data> = {
     recalc:'dep=>'data,
@@ -52,13 +52,13 @@ let cacheGet = (cache, depVer, dep) => {
     }
 }
 
-let strToRegex = (str:string):result<Js_re.t,string> => {
+let strToRegex = (str:string):result<RegExp.t,string> => {
     try {
-        Ok(Js_re.fromString(str))
+        Ok(RegExp.fromString(str))
     } catch {
         | exn => {
             Error(
-                exn->Js_exn.asJsExn->Belt_Option.flatMap(Js_exn.message)
+                exn->Exn.asJsExn->Belt_Option.flatMap(Exn.message)
                     ->Belt.Option.getWithDefault(`could not create a regular expression from string '${str}'`)
             )
         }
@@ -67,9 +67,9 @@ let strToRegex = (str:string):result<Js_re.t,string> => {
 
 let splitByRegex = (str,regex) => {
     str
-        ->Js_string2.splitByRe(regex)
-        ->Js_array2.map(strOpt => strOpt->Belt_Option.getWithDefault("")->Js_string2.trim)
-        ->Js_array2.filter(str => str->Js_string2.length > 0)
+        ->String.splitByRegExp(regex)
+        ->Array.map(strOpt => strOpt->Belt_Option.getWithDefault("")->String.trim)
+        ->Array.filter(str => str->String.length > 0)
 }
 
 let newLineRegex = %re("/[\n\r]/")
@@ -88,20 +88,15 @@ let underscoreSignRegex = %re("/_/g")
 let strToSafeBase64 = str => {
     str
         ->strToBase64
-        ->Js.String2.replaceByRe(plusSignRegex, "-")
-        ->Js.String2.replaceByRe(forwardSlashSignRegex, "_")
+        ->String.replaceRegExp(plusSignRegex, "-")
+        ->String.replaceRegExp(forwardSlashSignRegex, "_")
 }
 let safeBase64ToStr = safeBase64 => {
     safeBase64
-        ->Js.String2.replaceByRe(underscoreSignRegex, "/")
-        ->Js.String2.replaceByRe(minusSignRegex, "+")
+        ->String.replaceRegExp(underscoreSignRegex, "/")
+        ->String.replaceRegExp(minusSignRegex, "+")
         ->base64ToStr
 }
-
-type timeoutID = int
-@val external setTimeout: (unit => unit, int) => timeoutID = "setTimeout"
-@val external clearTimeout: (timeoutID) => unit = "clearTimeout"
-let stubTimeoutId: timeoutID = 0
 
 type version<'a> = {
     ver:int,
@@ -134,16 +129,16 @@ let arrayQueueMake = (initSize:int):arrayQueue<'a> => {
     {
         begin:0,
         end:-1,
-        maxEnd: data->Js.Array2.length-1,
+        maxEnd: data->Array.length-1,
         data,
     }
 }
 
 let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
     if (q.end == q.maxEnd) {
-        Js.Console.log(`q.end == q.maxEnd`)
-        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Js_array2.length))
-        q.maxEnd = q.data->Js.Array2.length-1
+        Console.log(`q.end == q.maxEnd`)
+        q.data = Belt_Array.concat(q.data, Expln_utils_common.createArray(q.data->Array.length))
+        q.maxEnd = q.data->Array.length-1
     }
     q.end = q.end + 1
     q.data[q.end] = elem
@@ -151,7 +146,7 @@ let arrayQueueAdd = (q:arrayQueue<'a>, elem:'a):unit => {
 
 let arrayQueuePop = (q:arrayQueue<'a>):option<'a> => {
     if (q.begin <= q.end) {
-        let res = q.data[q.begin]
+        let res = q.data->Array.getUnsafe(q.begin)
         q.begin = q.begin + 1
         Some(res)
     } else {
@@ -180,13 +175,13 @@ let createVarTypeComparator = (
         switch varOrderByType->Belt_HashMapInt.get(a) {
             | None => {
                 switch varOrderByType->Belt_HashMapInt.get(b) {
-                    | None => 0
-                    | Some(_) => 1
+                    | None => 0.0
+                    | Some(_) => 1.0
                 }
             }
             | Some(aTypOrder) => {
                 switch varOrderByType->Belt_HashMapInt.get(b) {
-                    | None => -1
+                    | None => -1.0
                     | Some(bTypOrder) => Expln_utils_common.intCmp(aTypOrder,bTypOrder)
                 }
             }
@@ -199,14 +194,14 @@ let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_
         switch varNames->Belt_HashMapInt.get(a) {
             | None => {
                 switch varNames->Belt_HashMapInt.get(b) {
-                    | None => 0
-                    | Some(_) => 1
+                    | None => 0.0
+                    | Some(_) => 1.0
                 }
             }
             | Some(aStr) => {
                 switch varNames->Belt_HashMapInt.get(b) {
-                    | None => -1
-                    | Some(bStr) => aStr->Js_string2.localeCompare(bStr)->Belt.Float.toInt
+                    | None => -1.0
+                    | Some(bStr) => aStr->String.localeCompare(bStr)
                 }
             }
         }
@@ -215,7 +210,7 @@ let createVarNameComparator = (varNames:Belt_HashMapInt.t<string>): Expln_utils_
 
 let createTypeOrderFromStr = (~sortDisjByType:string, ~typeNameToInt:string=>option<int>):Belt_HashMapInt.t<int> => {
     let typeOrderInDisj = Belt_HashMapInt.make(~hintSize=4)
-    sortDisjByType->getSpaceSeparatedValuesAsArray->Js.Array2.forEach(typStr => {
+    sortDisjByType->getSpaceSeparatedValuesAsArray->Array.forEach(typStr => {
         switch typeNameToInt(typStr) {
             | Some(i) => typeOrderInDisj->Belt_HashMapInt.set(i,typeOrderInDisj->Belt_HashMapInt.size)
             | None => ()

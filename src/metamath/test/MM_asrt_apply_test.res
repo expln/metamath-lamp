@@ -44,7 +44,7 @@ describe("iterateCombinations", _ => {
             ~stmtCanMatchHyp = (_,_)=>true,
             ~debugLevel=0,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Array.joinUnsafe(" "))
                 Continue
             },
             ~combCntMax=10000,
@@ -87,8 +87,8 @@ describe("iterateCombinations", _ => {
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
-                if (comb[0] == 1 && comb[1] == -1) {
+                res->Array.push(comb->Array.joinUnsafe(" "))
+                if (comb->Array.getUnsafe(0) == 1 && comb->Array.getUnsafe(1) == -1) {
                     Stop
                 } else {
                     Continue
@@ -128,11 +128,11 @@ describe("iterateCombinations", _ => {
         iterateCombinations(
             ~numOfStmts=3,
             ~numOfHyps=2,
-            ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Js.Math.abs_int, 2) == 1,
+            ~stmtCanMatchHyp = (s,h) => mod( (s+h)->Math.Int.abs, 2) == 1,
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Array.joinUnsafe(" "))
                 Continue
             },
             ~errConsumer = _ => Continue
@@ -162,7 +162,7 @@ describe("iterateCombinations", _ => {
             ~debugLevel=0,
             ~combCntMax=10000,
             ~combinationConsumer = comb => {
-                res->Js_array2.push(comb->Js_array2.joinWith(" "))->ignore
+                res->Array.push(comb->Array.joinUnsafe(" "))
                 Continue
             },
             ~errConsumer = _ => Continue
@@ -183,45 +183,44 @@ let testApplyAssertions = (
     ~allowEmptyArgs:bool=true,
     ~allowNewDisjForExistingVars:bool=false,
     ~result:option<string>=?,
-    ~fileWithExpectedResult:string,
-    ()
+    ~fileWithExpectedResult:string
 ) => {
     let printApplyAssertionResult = (workCtx, statements:array<labeledExpr>, res:applyAssertionResult):string => {
         workCtx->openChildContext
-        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Js_array2.length, ())
-        let workVarTypes = res.newVarTypes->Js_array2.map(workCtx->ctxIntToSymExn)
-        let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty, ())
+        let workVarHypLabels = generateNewLabels(~ctx=workCtx, ~prefix="workVar", ~amount=res.newVarTypes->Array.length)
+        let workVarTypes = res.newVarTypes->Array.map(ctxIntToSymExn(workCtx, _))
+        let workVarNames = generateNewVarNames(~ctx=workCtx, ~types=res.newVarTypes, ~typeToPrefix=Belt_MapString.empty)
 
-        workCtx->applySingleStmt(Var({symbols:workVarNames}), ())
-        workVarHypLabels->Js.Array2.forEachi((label,i) => {
-            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes[i], workVarNames[i]]}), ())
+        workCtx->applySingleStmt(Var({symbols:workVarNames}))
+        workVarHypLabels->Array.forEachWithIndex((label,i) => {
+            workCtx->applySingleStmt(Floating({label, expr:[workVarTypes->Array.getUnsafe(i), workVarNames->Array.getUnsafe(i)]}))
         })
         let args = []
         let argLabels = []
         let frame = res.frame
-        frame.hyps->Js_array2.forEach(hyp => {
+        frame.hyps->Array.forEach(hyp => {
             if (hyp.typ == E) {
                 let argExpr = applySubs(
                     ~frmExpr=hyp.expr,
                     ~subs=res.subs,
                     ~createWorkVar=_=>raise(MmException({msg:`Cannot create work var in testApplyAssertions[1]`}))
                 )
-                switch statements->Js.Array2.find(({expr}) => exprEq(expr,argExpr)) {
+                switch statements->Array.find(({expr}) => exprEq(expr,argExpr)) {
                     | Some({label}) => {
-                        args->Js_array2.push(`[${label}]`)->ignore
-                        argLabels->Js_array2.push(label)->ignore
+                        args->Array.push(`[${label}]`)
+                        argLabels->Array.push(label)
                     }
                     | None => {
-                        let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1, ())
-                        let label = newStmtLabel[0]
-                        let exprArrStr = argExpr->Js_array2.map(workCtx->ctxIntToSymExn)
+                        let newStmtLabel = generateNewLabels(~ctx=workCtx, ~prefix="provable", ~amount=1)
+                        let label = newStmtLabel->Array.getUnsafe(0)
+                        let exprArrStr = argExpr->Array.map(ctxIntToSymExn(workCtx, _))
                         workCtx->applySingleStmt(Provable({
                             label, 
                             expr:exprArrStr,
                             proof:Some(Uncompressed({labels:[]}))
-                        }), ())
-                        args->Js_array2.push(`${label}: ${exprArrStr->Js_array2.joinWith(" ")}`)->ignore
-                        argLabels->Js_array2.push(label)->ignore
+                        }))
+                        args->Array.push(`${label}: ${exprArrStr->Array.joinUnsafe(" ")}`)
+                        argLabels->Array.push(label)
                     }
                 }
             }
@@ -235,19 +234,19 @@ let testApplyAssertions = (
         )
         workCtx->resetToParentContext
 
-        let workVarsStr = if (workVarHypLabels->Js_array2.length == 0) {
+        let workVarsStr = if (workVarHypLabels->Array.length == 0) {
             ""
         } else {
-            "    " ++ workVarHypLabels->Js.Array2.mapi((label,i) => {
-                `${label} ${workVarTypes[i]} ${workVarNames[i]}`
-            })->Js_array2.joinWith("\n    ")
+            "    " ++ workVarHypLabels->Array.mapWithIndex((label,i) => {
+                `${label} ${workVarTypes->Array.getUnsafe(i)} ${workVarNames->Array.getUnsafe(i)}`
+            })->Array.joinUnsafe("\n    ")
         }
-        let argsStr = if (args->Js.Array2.length > 0) {
-            "    " ++ args->Js_array2.joinWith("\n    ")
+        let argsStr = if (args->Array.length > 0) {
+            "    " ++ args->Array.joinUnsafe("\n    ")
         } else {
             ""
         }
-        let proofStr = `:${argLabels->Js_array2.joinWith(",")}:${res.frame.label}`
+        let proofStr = `:${argLabels->Array.joinUnsafe(",")}:${res.frame.label}`
         `------------------------\n` ++ 
             `Work variables:\n${workVarsStr}\nArguments:\n${argsStr}\nProof:\n    ${proofStr}\n` ++
             `Result:\n    ${asrtExprStr}\n\n`
@@ -255,18 +254,18 @@ let testApplyAssertions = (
 
     //given
     let mmFileText = Expln_utils_files.readStringFromFile(mmFilePath)
-    let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-    let preCtx = loadContext(ast, ~stopBefore, ~stopAfter, ())
-    additionalStatements->Js_array2.forEach(stmt => preCtx->applySingleStmt(stmt, ()))
+    let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+    let preCtx = loadContext(ast, ~stopBefore, ~stopAfter)
+    additionalStatements->Array.forEach(stmt => preCtx->applySingleStmt(stmt))
     let parens = "( ) { } [ ]"
-    let workCtx = createContext(~parent=preCtx, ())
-    let workCtx = workCtx->ctxOptimizeForProver(~parens, ())
-    let frms = prepareFrmSubsData(~ctx=workCtx, ())
+    let workCtx = createContext(~parent=preCtx)
+    let workCtx = workCtx->ctxOptimizeForProver(~parens)
+    let frms = prepareFrmSubsData(~ctx=workCtx)
     let parenCnt = MM_provers.makeParenCnt(~ctx=workCtx, ~parens)
 
     let actualResults:Belt_MutableMapString.t<array<string>> = Belt_MutableMapString.make()
-    let stmtsForAppl = statements->Js_array2.map(((_,exprStr)) => ctxStrToIntsExn(workCtx,exprStr))
-    let statements = statements->Js_array2.map(((label,exprStr)) => {
+    let stmtsForAppl = statements->Array.map(((_,exprStr)) => ctxStrToIntsExn(workCtx,exprStr))
+    let statements = statements->Array.map(((label,exprStr)) => {
         {
             label, 
             expr:exprStr->getSpaceSeparatedValuesAsArray->ctxSymsToIntsExn(workCtx,_)
@@ -276,7 +275,7 @@ let testApplyAssertions = (
     //when
     applyAssertions(
         ~maxVar = workCtx->getNumOfVars-1,
-        ~isDisjInCtx = workCtx->isDisj,
+        ~isDisjInCtx = isDisj(workCtx, ...),
         ~frms,
         ~statements = stmtsForAppl,
         ~parenCnt,
@@ -290,28 +289,27 @@ let testApplyAssertions = (
                     actualResults->Belt_MutableMapString.set(res.frame.label, [printApplyAssertionResult(workCtx, statements, res)])
                 }
                 | Some(arr) => {
-                    arr->Js.Array2.push(printApplyAssertionResult(workCtx, statements, res))->ignore
+                    arr->Array.push(printApplyAssertionResult(workCtx, statements, res))
                 }
             }
-            // Js.Console.log("onMatchFound ------------------------------------------------------------------")
-            // Js.Console.log(printApplyAssertionResult(res))
+            // Console.log("onMatchFound ------------------------------------------------------------------")
+            // Console.log(printApplyAssertionResult(res))
             Continue
-        },
-        ()
+        }
     )
 
     //then
     let actualResultsStr = actualResults->Belt_MutableMapString.keysToArray
         ->Js_array2.sortInPlace
-        ->Js_array2.map(astrLabel => {
+        ->Array.map(astrLabel => {
             switch actualResults->Belt_MutableMapString.get(astrLabel) {
                 | None => failMsg("actualResults->Belt_MutableMapString.get(astrLabel) == None")
-                | Some(arr) => arr->Js_array2.joinWith("\n")
+                | Some(arr) => arr->Array.joinUnsafe("\n")
             }
         })
-        ->Js_array2.joinWith("\n")
+        ->Array.joinUnsafe("\n")
     let expectedResultStr = Expln_utils_files.readStringFromFile(fileWithExpectedResult)
-        ->Js.String2.replaceByRe(%re("/\r/g"), "")
+        ->String.replaceRegExp(%re("/\r/g"), "")
     if (actualResultsStr != expectedResultStr) {
         let fileWithActualResult = fileWithExpectedResult ++ ".actual"
         Expln_utils_files.writeStringToFile(actualResultsStr, fileWithActualResult)
@@ -328,8 +326,7 @@ describe("applyAssertions", _ => {
             ~stopAfter = "th1",
             ~additionalStatements = [],
             ~statements = [],
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-no-statements.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-no-statements.txt"
         )
     })
     it("applies assertions when there is one statement, for modus ponens", _ => {
@@ -341,8 +338,7 @@ describe("applyAssertions", _ => {
                 ("p1","|- ( t + 0 ) = t")
             ],
             ~isFrameAllowed=frame=>frame.label=="mp",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-mp.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-mp.txt"
         )
     })
     it("applies assertions when there is one statement, for all assertions from demo0", _ => {
@@ -353,8 +349,7 @@ describe("applyAssertions", _ => {
             ~statements = [
                 ("p1","|- ( t + 0 ) = t")
             ],
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement.txt"
         )
     })
     it("applies assertions when there is one statement and a result, for mp assertion from demo0", _ => {
@@ -367,8 +362,7 @@ describe("applyAssertions", _ => {
             ],
             ~isFrameAllowed = frame => frame.label == "mp",
             ~result="|- P",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-with-result.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/expected-one-statement-with-result.txt"
         )
     })
     it("doesn't fail when there are no variables in the frame's assertion", _ => {
@@ -379,8 +373,7 @@ describe("applyAssertions", _ => {
             ~statements = [ ],
             ~isFrameAllowed = frame => frame.label == "asrt-without-vars",
             ~result="|- T.",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/asrt-without-vars.txt"
         )
     })
     it("matches all non-blank hyps before blank ones to maximize number of bound variables", _ => {
@@ -391,8 +384,7 @@ describe("applyAssertions", _ => {
                 ("4", "|- ( 2 + 2 ) = ( 2 + ( 1 + 1 ) )"),
             ],
             ~result="|- ( 2 + 2 ) = 4",
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/correct-order-of-hyps-matching.txt"
         )
     })
     it("does not introduce broken disjoints", _ => {
@@ -405,8 +397,7 @@ describe("applyAssertions", _ => {
             ~result="|- ( E. x E. y x = y -> x = y )",
             ~allowEmptyArgs=false,
             ~allowNewDisjForExistingVars=true,
-            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/no-broken-disjoints.txt",
-            ()
+            ~fileWithExpectedResult = "./src/metamath/test/resources/applyAssertions-test-data/no-broken-disjoints.txt"
         )
     })
 })

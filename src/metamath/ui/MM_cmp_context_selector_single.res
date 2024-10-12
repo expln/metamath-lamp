@@ -25,19 +25,18 @@ let make = (
 ) => {
 
     let actAliasSelected = alias => {
-        switch availableWebSrcs->Js_array2.find(src => src.alias == alias) {
+        switch availableWebSrcs->Array.find(src => src.alias == alias) {
             | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
             | Some(webSrc) => {
                 FileLoader.loadFileWithProgress(
                     ~modalRef,
-                    ~showWarning=!(trustedUrls->Js_array2.includes(webSrc.url)),
+                    ~showWarning=!(trustedUrls->Array.includes(webSrc.url)),
                     ~progressText=`Downloading MM file from "${alias}"`,
                     ~transformErrorMsg= msg => `An error occurred while downloading from "${alias}":` 
                                                     ++ ` ${msg->Belt.Option.getWithDefault("")}.`,
                     ~url=webSrc.url,
                     ~onUrlBecomesTrusted,
-                    ~onReady = text => onFileChange(Web(webSrc), text),
-                    ()
+                    ~onReady = text => onFileChange(Web(webSrc), text)
                 )
             }
         }
@@ -107,7 +106,7 @@ let make = (
                     onChange=evt2str(actAliasSelected)
                 >
                     {
-                        availableWebSrcs->Js_array2.mapi((webSrc,i) => {
+                        availableWebSrcs->Array.mapWithIndex((webSrc,i) => {
                             <MenuItem value={webSrc.alias} key={i->Belt.Int.toString}>{React.string(webSrc.alias)}</MenuItem>
                         })->React.array
                     }

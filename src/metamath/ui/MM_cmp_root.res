@@ -26,12 +26,11 @@ let createInitialState = (~settings) => {
 let updatePreCtxData = (
     st:state,
     ~settings:option<settings>=?,
-    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?,
-    ()
+    ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?
 ): state => {
     {
         ...st,
-        preCtxData: st.preCtxData->preCtxDataUpdate( ~settings?, ~ctx?, () )
+        preCtxData: st.preCtxData->preCtxDataUpdate( ~settings?, ~ctx? )
     }
 }
 
@@ -76,7 +75,7 @@ let mainTheme = ThemeProvider.createTheme(
 
 let location = window["location"]
 let tempMode = ref(false)
-let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Js.Nullable.toOption {
+let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Nullable.toOption {
     | Some(initialStateSafeBase64) => {
         window["history"]["replaceState"](. 
             "removing editorState from the URL", 
@@ -101,11 +100,11 @@ let make = () => {
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
 
-    let reloadCtx: React.ref<Js.Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Js.Nullable.null)
-    let toggleCtxSelector = React.useRef(Js.Nullable.null)
-    let loadEditorState = React.useRef(Js.Nullable.null)
+    let reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Nullable.null)
+    let toggleCtxSelector = React.useRef(Nullable.null)
+    let loadEditorState = React.useRef(Nullable.null)
 
-    let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?, ()):bool => {
+    let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?):bool => {
         switch tabData {
             | ExplorerFrame({label:lbl}) => label->Belt_Option.mapWithDefault(true, label => lbl == label)
             | _ => false
@@ -120,8 +119,8 @@ let make = () => {
     }
 
     let actCloseFrmTabs = () => {
-        tabs->Js.Array2.forEach(tab => {
-            if (isFrameExplorerTab(tab.data, ())) {
+        tabs->Array.forEach(tab => {
+            if (isFrameExplorerTab(tab.data)) {
                 removeTab(tab.id)
             }
         })
@@ -129,26 +128,25 @@ let make = () => {
 
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
         actCloseFrmTabs()
-        setState(updatePreCtxData(_,~ctx=(srcs,newCtx), ()))
+        setState(updatePreCtxData(_,~ctx=(srcs,newCtx)))
     }
 
     let actSettingsUpdated = (newSettings:settings) => {
         actCloseFrmTabs()
         settingsSaveToLocStor(newSettings)
-        setState(updatePreCtxData(_,~settings=newSettings, ()))
+        setState(updatePreCtxData(_,~settings=newSettings))
         if (
             state.preCtxData.settingsV.val.descrRegexToDisc != newSettings.descrRegexToDisc
             || state.preCtxData.settingsV.val.labelRegexToDisc != newSettings.labelRegexToDisc
             || state.preCtxData.settingsV.val.descrRegexToDepr != newSettings.descrRegexToDepr
             || state.preCtxData.settingsV.val.labelRegexToDepr != newSettings.labelRegexToDepr
         ) {
-            reloadCtx.current->Js.Nullable.toOption->Belt.Option.forEach(reloadCtx => {
+            reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
                 reloadCtx(
                     ~srcs=state.preCtxData.srcs, 
                     ~settings=newSettings, 
                     ~force=true, 
-                    ~showError=true, 
-                    ()
+                    ~showError=true
                 )->ignore
             })
         }
@@ -162,16 +160,16 @@ let make = () => {
         setState(st => {
             switch st.preCtxData.ctxV.val->getFrame(label) {
                 | None => {
-                    openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'`, () )
+                    openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'` )
                 }
                 | Some(_) => {
                     updateTabs(tabsSt => {
                         let tabsSt = switch tabsSt->Expln_React_UseTabs.getTabs
-                                                ->Js.Array2.find(tab => isFrameExplorerTab(tab.data, ~label, ())) {
+                                                ->Array.find(tab => isFrameExplorerTab(tab.data, ~label)) {
                             | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                             | None => {
                                 let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                                    ~label, ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true, ()
+                                    ~label, ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true
                                 )
                                 tabsSt
                             }
@@ -187,11 +185,10 @@ let make = () => {
     let openExplorer = (~initPatternFilterStr:string):unit => {
         updateTabs(tabsSt => {
             let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                ~label=`EXPLORER ${initPatternFilterStr->Js_string2.substring(~from=0, ~to_=40)}`, 
+                ~label=`EXPLORER ${initPatternFilterStr->String.substring(~start=0, ~end=40)}`,
                 ~closable=true, 
                 ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
-                ~doOpen=true, 
-                ()
+                ~doOpen=true
             )
             tabsSt
         })
@@ -199,7 +196,7 @@ let make = () => {
 
     let focusEditorTab = ():unit => {
         updateTabs(tabsSt => {
-            switch tabsSt->Expln_React_UseTabs.getTabs->Js.Array2.find(tab => isEditorTab(tab.data)) {
+            switch tabsSt->Expln_React_UseTabs.getTabs->Array.find(tab => isEditorTab(tab.data)) {
                 | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                 | None => tabsSt
             }
@@ -208,15 +205,14 @@ let make = () => {
 
     React.useEffect0(()=>{
         updateTabs(st => {
-            if (st->Expln_React_UseTabs.getTabs->Js_array2.length == 0) {
-                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings, ())
+            if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
+                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, 
-                    ~color=?(if (tempMode.contents) {Some("orange")} else {None}), 
-                    ()
+                    ~color=?(if (tempMode.contents) {Some("orange")} else {None})
                 )
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="Explorer", ~closable=false, ~data=ExplorerIndex({initPatternFilterStr:""}), ()
+                    ~label="Explorer", ~closable=false, ~data=ExplorerIndex({initPatternFilterStr:""})
                 )
                 st
             } else {
@@ -314,7 +310,7 @@ let make = () => {
             }
             content={contentTop => {
                 <Col>
-                    {React.array(tabs->Js_array2.map(rndTabContent(contentTop, _)))}
+                    {React.array(tabs->Array.map(rndTabContent(contentTop, _)))}
                     <Expln_React_Modal modalRef />
                 </Col>
             }}

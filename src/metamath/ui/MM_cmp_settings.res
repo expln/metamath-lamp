@@ -185,7 +185,7 @@ let addWebSrcSetting = st => {
     {
         ...st,
         webSrcNextId: st.webSrcNextId + 1,
-        webSrcSettings: st.webSrcSettings->Js_array2.concat([{
+        webSrcSettings: st.webSrcSettings->Array.concat([{
             id: newId,
             alias: "",
             url: "",
@@ -196,8 +196,8 @@ let addWebSrcSetting = st => {
 }
 
 let validateAndCorrectParens = (st:settingsState):settingsState => {
-    let newParens = st.parens->Js_string2.trim
-    let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Js.Array2.length, 2) == 0) {
+    let newParens = st.parens->String.trim
+    let parensErr = if (mod(newParens->getSpaceSeparatedValuesAsArray->Array.length, 2) == 0) {
         None
     } else {
         Some("Number of parentheses must be even.")
@@ -218,20 +218,20 @@ let validateRegex = (regex:string):option<string> => {
 }
 
 let validateColor = (color:string):string => {
-    if (allColors->Js_array2.includes(color)) {
+    if (allColors->Array.includes(color)) {
         color
     } else {
-        allColors[0]
+        allColors->Array.getUnsafe(0)
     }
 }
 
 let validateAndCorrectDiscAndDeprSettings = (st:settingsState):settingsState => {
     let st = {
         ...st,
-        descrRegexToDisc: st.descrRegexToDisc->Js_string2.trim,
-        labelRegexToDisc: st.labelRegexToDisc->Js_string2.trim,
-        descrRegexToDepr: st.descrRegexToDepr->Js_string2.trim,
-        labelRegexToDepr: st.labelRegexToDepr->Js_string2.trim,
+        descrRegexToDisc: st.descrRegexToDisc->String.trim,
+        labelRegexToDisc: st.labelRegexToDisc->String.trim,
+        descrRegexToDepr: st.descrRegexToDepr->String.trim,
+        labelRegexToDepr: st.labelRegexToDepr->String.trim,
     }
     let st = {
         ...st,
@@ -248,20 +248,20 @@ let validateAndCorrectDiscAndDeprSettings = (st:settingsState):settingsState => 
 }
 
 let validateDefaultStmtLabel = (label:string):string => {
-    label->Js.String2.replaceByRe(%re("/[^A-Za-z0-9._-]/g"), "")
+    label->String.replaceRegExp(%re("/[^A-Za-z0-9._-]/g"), "")
 }
 
 let validateAndCorrectDefaultStmtType = (st:settingsState):settingsState => {
     {
         ...st,
-        defaultStmtType: st.defaultStmtType->Js_string2.trim,
+        defaultStmtType: st.defaultStmtType->String.trim,
     }
 }
 
 let validateAndCorrectUnifMetavarPrefix = (st:settingsState):settingsState => {
     {
         ...st,
-        unifMetavarPrefix: st.unifMetavarPrefix->Js_string2.trim,
+        unifMetavarPrefix: st.unifMetavarPrefix->String.trim,
     }
 }
 
@@ -276,17 +276,17 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
     let strContainsWhitespaceRegex = %re("/\s+/")
     let validateAndCorrectTypeSetting = (ts:typeSettingsState):typeSettingsState => {
         let newId = ts.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
-        let newTyp = ts.typ->Js_string2.trim
+        let newTyp = ts.typ->String.trim
         let typHasWhitespace = newTyp->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
-        let typIsEmpty = newTyp->Js_string2.length == 0
-        let newColor = if (!(allColors->Js_array2.includes(ts.color))) {
-            allColors[0]
+        let typIsEmpty = newTyp->String.length == 0
+        let newColor = if (!(allColors->Array.includes(ts.color))) {
+            allColors->Array.getUnsafe(0)
         } else {
             ts.color
         }
-        let newPrefix = ts.prefix->Js_string2.trim
+        let newPrefix = ts.prefix->String.trim
         let prefixHasWhitespace = newPrefix->Js_string2.match_(strContainsWhitespaceRegex)->Belt.Option.isSome
-        let prefixIsEmpty = newPrefix->Js_string2.length == 0
+        let prefixIsEmpty = newPrefix->String.length == 0
         let err = if (typHasWhitespace) {
             Some("Type should not contain whitespaces.")
         } else if (typIsEmpty) {
@@ -308,22 +308,22 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
         }
     }
 
-    let validatedTypeSettings = st.typeSettings->Js_array2.map(validateAndCorrectTypeSetting)
+    let validatedTypeSettings = st.typeSettings->Array.map(validateAndCorrectTypeSetting)
     let distinctTypeIds = Belt_SetInt.fromArray(
-        validatedTypeSettings->Js_array2.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getExn)
+        validatedTypeSettings->Array.map(ts => ts.id->Belt_Int.fromString->Belt.Option.getExn)
     )
-    let validatedTypeSettings = if (distinctTypeIds->Belt_SetInt.size == validatedTypeSettings->Js_array2.length) {
+    let validatedTypeSettings = if (distinctTypeIds->Belt_SetInt.size == validatedTypeSettings->Array.length) {
         validatedTypeSettings
     } else {
         let maxId = distinctTypeIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
-        validatedTypeSettings->Js_array2.mapi((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
+        validatedTypeSettings->Array.mapWithIndex((ts,i) => {...ts, id:(maxId+i+1)->Belt_Int.toString})
     }
-    let maxTypSettId = validatedTypeSettings->Js_array2.reduce(
+    let maxTypSettId = validatedTypeSettings->Array.reduce(
+        0,
         (maxId,ts) => {
             let id = ts.id->Belt_Int.fromString->Belt.Option.getExn
             if (id <= maxId) { maxId } else { id }
-        },
-        0
+        }
     )
     let newNextId = if (maxTypSettId < st.typeNextId) {st.typeNextId} else {maxTypSettId + 1}
 
@@ -335,14 +335,14 @@ let validateAndCorrectTypeSettings = (st:settingsState):settingsState => {
 }
     
 let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string):settingsState => {
-    let state = if (state.webSrcSettings->Js.Array2.find(ws => ws.alias == alias)->Belt.Option.isSome) {
+    let state = if (state.webSrcSettings->Array.find(ws => ws.alias == alias)->Belt.Option.isSome) {
         state
     } else {
         let newId = state.webSrcNextId->Belt_Int.toString
         let state = state->addWebSrcSetting
         {
             ...state,
-            webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+            webSrcSettings: state.webSrcSettings->Array.map(ws => {
                 if (ws.id == newId) {
                     {
                         ...ws,
@@ -356,7 +356,7 @@ let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string)
     }
     let state = {
         ...state,
-        webSrcSettings: state.webSrcSettings->Js.Array2.map(ws => {
+        webSrcSettings: state.webSrcSettings->Array.map(ws => {
             if (ws.alias == alias) {
                 {
                     ...ws,
@@ -369,28 +369,28 @@ let restoreDefaultsForWebSrc = (state:settingsState, alias: string, url: string)
     }
     {
         ...state,
-        webSrcSettings: state.webSrcSettings->Js.Array2.sortInPlaceWith((s1,s2) => {
-            let i1 = if defaultAliases->Js.Array2.includes(s1.alias) {0} else {1}
-            let i2 = if defaultAliases->Js.Array2.includes(s2.alias) {0} else {1}
-            i1 - i2
+        webSrcSettings: state.webSrcSettings->Expln_utils_common.sortInPlaceWith((s1,s2) => {
+            let i1 = if defaultAliases->Array.includes(s1.alias) {0} else {1}
+            let i2 = if defaultAliases->Array.includes(s2.alias) {0} else {1}
+            Belt_Float.fromInt(i1 - i2)
         })
     }
 }
 
 let restoreDefaultWebSrcSettings = (state: settingsState):settingsState => {
     let defaultSettings = createDefaultSettings()
-    defaultSettings.webSrcSettings->Js.Array2.reduce(
-        (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url),
-        state
+    defaultSettings.webSrcSettings->Array.reduce(
+        state,
+        (state, default) => restoreDefaultsForWebSrc(state, default.alias, default.url)
     )
 }
 
 let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
     let validateAndCorrectWebSrcSetting = (src:webSrcSettingsState):webSrcSettingsState => {
         let newId = src.id->Belt_Int.fromString->Belt.Option.getWithDefault(0)->Belt_Int.toString
-        let newAlias = src.alias->Js.String2.trim
-        let newUrl = src.url->Js.String2.trim
-        let err = if (newUrl->Js_string2.length == 0) {
+        let newAlias = src.alias->String.trim
+        let newUrl = src.url->String.trim
+        let err = if (newUrl->String.length == 0) {
             Some("URL should not be empty.")
         } else {
             None
@@ -405,22 +405,22 @@ let validateAndCorrectWebSrcSettings = (st:settingsState):settingsState => {
         }
     }
 
-    let validatedWebSrcSettings = st.webSrcSettings->Js_array2.map(validateAndCorrectWebSrcSetting)
+    let validatedWebSrcSettings = st.webSrcSettings->Array.map(validateAndCorrectWebSrcSetting)
     let distinctIds = Belt_SetInt.fromArray(
-        validatedWebSrcSettings->Js_array2.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
+        validatedWebSrcSettings->Array.map(src => src.id->Belt_Int.fromString->Belt.Option.getExn)
     )
-    let validatedWebSrcSettings = if (distinctIds->Belt_SetInt.size == validatedWebSrcSettings->Js_array2.length) {
+    let validatedWebSrcSettings = if (distinctIds->Belt_SetInt.size == validatedWebSrcSettings->Array.length) {
         validatedWebSrcSettings
     } else {
         let maxId = distinctIds->Belt_SetInt.maximum->Belt.Option.getWithDefault(0)
-        validatedWebSrcSettings->Js_array2.mapi((src,i) => {...src, id:(maxId+i+1)->Belt_Int.toString})
+        validatedWebSrcSettings->Array.mapWithIndex((src,i) => {...src, id:(maxId+i+1)->Belt_Int.toString})
     }
-    let maxId = validatedWebSrcSettings->Js_array2.reduce(
+    let maxId = validatedWebSrcSettings->Array.reduce(
+        0,
         (maxId,src) => {
             let id = src.id->Belt_Int.fromString->Belt.Option.getExn
             if (id <= maxId) { maxId } else { id }
-        },
-        0
+        }
     )
     let newNextId = if (maxId < st.webSrcNextId) {st.webSrcNextId} else {maxId + 1}
 
@@ -544,12 +544,12 @@ let stateToSettings = (st:settingsState):settings => {
         stickGoalToBottom:st.stickGoalToBottom,
         autoMergeStmts:st.autoMergeStmts,
         autoUnifyAll:st.autoUnifyAll,
-        typeSettings: st.typeSettings->Js_array2.map(typSett => {
+        typeSettings: st.typeSettings->Array.map(typSett => {
             typ: typSett.typ,
             color: typSett.color,
             prefix: typSett.prefix,
         }),
-        webSrcSettings: st.webSrcSettings->Js_array2.map(s => {
+        webSrcSettings: st.webSrcSettings->Array.map(s => {
             alias: s.alias,
             url: s.url,
             trusted: s.trusted,
@@ -597,7 +597,7 @@ let settingsToState = (ls:settings):settingsState => {
         autoMergeStmts:ls.autoMergeStmts,
         autoUnifyAll:ls.autoUnifyAll,
         typeNextId: 0,
-        typeSettings: ls.typeSettings->Js_array2.map(lts => {
+        typeSettings: ls.typeSettings->Array.map(lts => {
             id: "0",
             typ: lts.typ,
             color: lts.color,
@@ -605,7 +605,7 @@ let settingsToState = (ls:settings):settingsState => {
             err: None,
         }),
         webSrcNextId: 0,
-        webSrcSettings: ls.webSrcSettings->Js_array2.map(s => {
+        webSrcSettings: ls.webSrcSettings->Array.map(s => {
             id: "0",
             alias: s.alias,
             url: s.url,
@@ -642,101 +642,93 @@ let readStateFromLocStor = ():settingsState => {
             open Expln_utils_jsonParse
             let parseResult:result<settingsState,string> = parseJson(settingsLocStorStr, asObj(_, d=>{
                 {
-                    parens: d->str("parens", ~default=()=>defaultSettings.parens, ()),
+                    parens: d->str("parens", ~default=()=>defaultSettings.parens),
                     parensErr: None,
-                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_, ()), ~default=()=>defaultSettings.asrtsToSkip, ()),
-                    descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc, ()),
+                    asrtsToSkip: d->arr("asrtsToSkip", asStr(_), ~default=()=>defaultSettings.asrtsToSkip),
+                    descrRegexToDisc: d->str("descrRegexToDisc", ~default=()=>defaultSettings.descrRegexToDisc),
                     descrRegexToDiscErr: None,
-                    labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc, ()),
+                    labelRegexToDisc: d->str("labelRegexToDisc", ~default=()=>defaultSettings.labelRegexToDisc),
                     labelRegexToDiscErr: None,
-                    descrRegexToDepr: d->str("descrRegexToDepr", ~default=()=>defaultSettings.descrRegexToDepr, ()),
+                    descrRegexToDepr: d->str("descrRegexToDepr", ~default=()=>defaultSettings.descrRegexToDepr),
                     descrRegexToDeprErr: None,
-                    labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr, ()),
+                    labelRegexToDepr: d->str("labelRegexToDepr", ~default=()=>defaultSettings.labelRegexToDepr),
                     labelRegexToDeprErr: None,
-                    discColor: d->str("discColor", ~default=()=>defaultDiscColor, ()),
-                    deprColor: d->str("deprColor", ~default=()=>defaultDeprColor, ()),
-                    tranDeprColor: d->str("tranDeprColor", ~default=()=>defaultTranDeprColor, ()),
+                    discColor: d->str("discColor", ~default=()=>defaultDiscColor),
+                    deprColor: d->str("deprColor", ~default=()=>defaultDeprColor),
+                    tranDeprColor: d->str("tranDeprColor", ~default=()=>defaultTranDeprColor),
                     allowedFrms: d->obj("allowedFrms", d=>{
                         {
                             inSyntax: d->obj("inSyntax", d=>{
-                                useDisc: d->bool( "useDisc", () ),
-                                useDepr: d->bool( "useDepr", () ),
-                                useTranDepr: d->bool( "useTranDepr", () ),
-                            }, ()),
+                                useDisc: d->bool( "useDisc" ),
+                                useDepr: d->bool( "useDepr" ),
+                                useTranDepr: d->bool( "useTranDepr" ),
+                            }),
                             inEssen: d->obj("inEssen", d=>{
-                                useDisc: d->bool( "useDisc", () ),
-                                useDepr: d->bool( "useDepr", () ),
-                                useTranDepr: d->bool( "useTranDepr", () ),
-                            }, ())
+                                useDisc: d->bool( "useDisc" ),
+                                useDepr: d->bool( "useDepr" ),
+                                useTranDepr: d->bool( "useTranDepr" ),
+                            })
                         }
-                    }, ~default=()=>defaultSettings.allowedFrms, ()),
+                    }, ~default=()=>defaultSettings.allowedFrms),
                     editStmtsByLeftClick: d->bool(
-                        "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick, ()
+                        "editStmtsByLeftClick", ~default=()=>defaultSettings.editStmtsByLeftClick
                     ),
-                    initStmtIsGoal: d->bool( "initStmtIsGoal", ~default=()=>defaultSettings.initStmtIsGoal, () ),
+                    initStmtIsGoal: d->bool( "initStmtIsGoal", ~default=()=>defaultSettings.initStmtIsGoal ),
                     defaultStmtLabel: d->str("defaultStmtLabel", 
                         ~default=()=>defaultSettings.defaultStmtLabel, 
-                        ~validator = str => Ok(validateDefaultStmtLabel(str)),
-                        ()
+                        ~validator = str => Ok(validateDefaultStmtLabel(str))
                     ),
-                    defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType, ()),
-                    unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix, ()),
-                    sortDisjByType: d->str("sortDisjByType", ~default=()=>defaultSettings.sortDisjByType, ()),
-                    checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax, () ),
-                    stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom,()),
-                    autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts,()),
-                    autoUnifyAll: d->bool( "autoUnifyAll", ~default=()=>defaultSettings.autoUnifyAll,()),
+                    defaultStmtType: d->str("defaultStmtType", ~default=()=>defaultSettings.defaultStmtType),
+                    unifMetavarPrefix: d->str("unifMetavarPrefix", ~default=()=>defaultSettings.unifMetavarPrefix),
+                    sortDisjByType: d->str("sortDisjByType", ~default=()=>defaultSettings.sortDisjByType),
+                    checkSyntax: d->bool( "checkSyntax", ~default=()=>defaultSettings.checkSyntax ),
+                    stickGoalToBottom: d->bool( "stickGoalToBottom", ~default=()=>defaultSettings.stickGoalToBottom),
+                    autoMergeStmts: d->bool( "autoMergeStmts", ~default=()=>defaultSettings.autoMergeStmts),
+                    autoUnifyAll: d->bool( "autoUnifyAll", ~default=()=>defaultSettings.autoUnifyAll),
                     typeNextId: 0,
                     typeSettings: d->arr("typeSettings", asObj(_, d=>{
                         id: "0",
-                        typ: d->str("typ", ()),
-                        color: d->str("color", ()),
-                        prefix: d->str("prefix", ()),
+                        typ: d->str("typ"),
+                        color: d->str("color"),
+                        prefix: d->str("prefix"),
                         err: None,
-                    }, ()), ~default=()=>defaultSettings.typeSettings, ()),
+                    }), ~default=()=>defaultSettings.typeSettings),
                     webSrcNextId: 0,
                     webSrcSettings: d->arr("webSrcSettings", asObj(_, d=>{
                         id: "0",
-                        alias: d->str("alias", ()),
-                        url: d->str("url", ()),
-                        trusted: d->bool("trusted", ()),
+                        alias: d->str("alias"),
+                        url: d->str("url"),
+                        trusted: d->bool("trusted"),
                         err: None,
-                    }, ()), ~default=()=>defaultSettings.webSrcSettings, ()),
-                    longClickEnabled: d->bool( "longClickEnabled", ~default=()=>defaultSettings.longClickEnabled, () ),
+                    }), ~default=()=>defaultSettings.webSrcSettings),
+                    longClickEnabled: d->bool( "longClickEnabled", ~default=()=>defaultSettings.longClickEnabled ),
                     longClickDelayMsStr: d->int( "longClickDelayMs", 
                         ~default = () => longClickDelayMsDefault,
-                        ~validator = validateLongClickDelayMs,
-                        () 
+                        ~validator = validateLongClickDelayMs 
                     )->Belt_Int.toString,
                     hideContextSelector: d->bool( "hideContextSelector", 
-                        ~default=()=>defaultSettings.hideContextSelector, 
-                        () 
+                        ~default=()=>defaultSettings.hideContextSelector 
                     ),
                     showVisByDefault: d->bool( "showVisByDefault", 
-                        ~default=()=>defaultSettings.showVisByDefault, 
-                        () 
+                        ~default=()=>defaultSettings.showVisByDefault 
                     ),
                     editorHistMaxLengthStr: d->int( "editorHistMaxLength", 
                         ~default = () => editorHistMaxLengthDefault,
-                        ~validator = validateEditorHistoryMaxLength,
-                        () 
+                        ~validator = validateEditorHistoryMaxLength 
                     )->Belt_Int.toString,
                     useDefaultTransforms: d->bool( "useDefaultTransforms", 
-                        ~default=()=>defaultSettings.useDefaultTransforms, 
-                        () 
+                        ~default=()=>defaultSettings.useDefaultTransforms 
                     ),
                     useCustomTransforms: d->bool( "useCustomTransforms", 
-                        ~default=()=>defaultSettings.useCustomTransforms, 
-                        () 
+                        ~default=()=>defaultSettings.useCustomTransforms 
                     ),
-                    customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms, ()),
+                    customTransforms: d->str("customTransforms", ~default=()=>defaultSettings.customTransforms),
                     combCntMaxStr: d->int( "combCntMax", 
                         ~default = () => combCntMaxDefault,
-                        ~validator = validateCombCntMax,
-                        () 
+                        ~validator = validateCombCntMax 
                     )->Belt_Int.toString,
                 }
-            }, ()), ~default=()=>defaultSettings, ())
+            }), ~default=()=>defaultSettings)
             switch parseResult {
                 | Error(msg) => raise(MmException({msg:`Cannot read settings from the local storage: ${msg}`}))
                 | Ok(state) => {
@@ -755,8 +747,8 @@ let isValid = st => {
         && st.labelRegexToDiscErr->Belt_Option.isNone
         && st.descrRegexToDeprErr->Belt_Option.isNone
         && st.labelRegexToDeprErr->Belt_Option.isNone
-        && st.typeSettings->Js_array2.every(ts => ts.err->Belt_Option.isNone)
-        && st.webSrcSettings->Js_array2.every(s => s.err->Belt_Option.isNone)
+        && st.typeSettings->Array.every(ts => ts.err->Belt_Option.isNone)
+        && st.webSrcSettings->Array.every(s => s.err->Belt_Option.isNone)
 }
 
 let eqTypeSetting = (ts1:typeSettingsState, ts2:typeSettingsState):bool => {
@@ -791,10 +783,10 @@ let eqState = (st1, st2) => {
         && st1.stickGoalToBottom == st2.stickGoalToBottom
         && st1.autoMergeStmts == st2.autoMergeStmts
         && st1.autoUnifyAll == st2.autoUnifyAll
-        && st1.typeSettings->Js_array2.length == st2.typeSettings->Js_array2.length
-        && st1.typeSettings->Js_array2.everyi((ts1,i) => eqTypeSetting(ts1, st2.typeSettings[i]))
-        && st1.webSrcSettings->Js_array2.length == st2.webSrcSettings->Js_array2.length
-        && st1.webSrcSettings->Js_array2.everyi((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings[i]))
+        && st1.typeSettings->Array.length == st2.typeSettings->Array.length
+        && st1.typeSettings->Array.everyWithIndex((ts1,i) => eqTypeSetting(ts1, st2.typeSettings->Array.getUnsafe(i)))
+        && st1.webSrcSettings->Array.length == st2.webSrcSettings->Array.length
+        && st1.webSrcSettings->Array.everyWithIndex((ts1,i) => eqWebSrcSetting(ts1, st2.webSrcSettings->Array.getUnsafe(i)))
         && st1.longClickEnabled == st2.longClickEnabled
         && st1.longClickDelayMsStr == st2.longClickDelayMsStr
         && st1.hideContextSelector == st2.hideContextSelector
@@ -876,7 +868,7 @@ let updateUseTranDeprInEssen = (st, useTranDeprInEssen) => {
 let updateTypeSetting = (st,id,update:typeSettingsState=>typeSettingsState) => {
     {
         ...st,
-        typeSettings: st.typeSettings->Js_array2.map(ts => if (ts.id == id) { update(ts) } else { ts })
+        typeSettings: st.typeSettings->Array.map(ts => if (ts.id == id) { update(ts) } else { ts })
     }
 }
 
@@ -897,10 +889,10 @@ let addTypeSetting = st => {
     {
         ...st,
         typeNextId: st.typeNextId + 1,
-        typeSettings: st.typeSettings->Js_array2.concat([{
+        typeSettings: st.typeSettings->Array.concat([{
             id: newId,
             typ: "",
-            color: allColors[0],
+            color: allColors->Array.getUnsafe(0),
             prefix: "",
             err: None,
         }]),
@@ -910,14 +902,14 @@ let addTypeSetting = st => {
 let deleteTypeSetting = (st, id) => {
     {
         ...st,
-        typeSettings: st.typeSettings->Js_array2.filter(ts => ts.id != id)
+        typeSettings: st.typeSettings->Array.filter(ts => ts.id != id)
     }
 }
 
 let updateWebSrcSetting = (st,id,update:webSrcSettingsState=>webSrcSettingsState) => {
     {
         ...st,
-        webSrcSettings: st.webSrcSettings->Js_array2.map(s => if (s.id == id) { update(s) } else { s })
+        webSrcSettings: st.webSrcSettings->Array.map(s => if (s.id == id) { update(s) } else { s })
     }
 }
 
@@ -936,7 +928,7 @@ let updateTrusted = (st,id,trusted) => {
 let deleteWebSrcSetting = (st, id) => {
     {
         ...st,
-        webSrcSettings: st.webSrcSettings->Js_array2.filter(s => s.id != id)
+        webSrcSettings: st.webSrcSettings->Array.filter(s => s.id != id)
     }
 }
 
@@ -1133,14 +1125,14 @@ let make = (
     let actCustomTransformsChange = (customTransforms) => { setState(updateCustomTransforms(_, customTransforms)) }
 
     let restoreDefaultsForType = (state:settingsState, typ:string, color:string, prefix:string):settingsState => {
-        let state = if (state.typeSettings->Js.Array2.find(ts => ts.typ == typ)->Belt.Option.isSome) {
+        let state = if (state.typeSettings->Array.find(ts => ts.typ == typ)->Belt.Option.isSome) {
             state
         } else {
             let newId = state.typeNextId->Belt_Int.toString
             let state = state->addTypeSetting
             {
                 ...state,
-                typeSettings: state.typeSettings->Js.Array2.map(ts => {
+                typeSettings: state.typeSettings->Array.map(ts => {
                     if (ts.id == newId) {
                         {
                             ...ts,
@@ -1154,7 +1146,7 @@ let make = (
         }
         {
             ...state,
-            typeSettings: state.typeSettings->Js.Array2.map(ts => {
+            typeSettings: state.typeSettings->Array.map(ts => {
                 if (ts.typ == typ) {
                     {
                         ...ts,
@@ -1171,9 +1163,9 @@ let make = (
     let actRestoreDefaultTypeSettings = () => {
         setState(state => {
             let defaultSettings = createDefaultSettings()
-            defaultSettings.typeSettings->Js.Array2.reduce(
-                (state, default) => restoreDefaultsForType(state, default.typ, default.color, default.prefix),
-                state
+            defaultSettings.typeSettings->Array.reduce(
+                state,
+                (state, default) => restoreDefaultsForType(state, default.typ, default.color, default.prefix)
             )
         })
     }
@@ -1206,7 +1198,7 @@ let make = (
     }
 
     let rndFindParensProgress = (pct, modalIdOpt) => {
-        rndProgress(~text=`Searching parentheses`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt), ())
+        rndProgress(~text=`Searching parentheses`, ~pct, ~onTerminate=?makeActTerminate(modalIdOpt))
     }
 
     let syncParens = () => {
@@ -1304,7 +1296,7 @@ let make = (
 
     let rndParens = () => {
         let elems = []
-        elems->Js_array2.push(
+        elems->Array.push(
             <Row alignItems=#center key="parens-text-field">
                 <TextField 
                     size=#small
@@ -1321,13 +1313,13 @@ let make = (
                     </IconButton>
                 </span>
             </Row>
-        )->ignore
+        )
         switch state.parensErr {
             | None => ()
             | Some(msg) => {
-                elems->Js_array2.push(
+                elems->Array.push(
                     <pre style=ReactDOM.Style.make(~color="red", ()) key="parens-error">{React.string(msg)}</pre>
-                )->ignore
+                )
             }
         }
         elems->React.array
@@ -1367,15 +1359,13 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.descrRegexToDisc, ~onSave=actDescrRegexToDiscUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
                 {
                     rndSmallTextBtn(
                         ~text="Restore default regex",
-                        ~onClick=actRestoreDefaultDescrRegexToDisc,
-                        ()
+                        ~onClick=actRestoreDefaultDescrRegexToDisc
                     )
                 }
             </Row>
@@ -1395,8 +1385,7 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.labelRegexToDisc, ~onSave=actLabelRegexToDiscUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
             </Row>
@@ -1416,8 +1405,7 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.descrRegexToDepr, ~onSave=actDescrRegexToDeprUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
             </Row>
@@ -1437,8 +1425,7 @@ let make = (
                         ~text="Check regex",
                         ~onClick=()=>{
                             actOpenCheckRegexDialog(~initRegex=state.labelRegexToDepr, ~onSave=actLabelRegexToDeprUpdated)
-                        },
-                        ()
+                        }
                     )
                 }
             </Row>
@@ -1506,8 +1493,7 @@ let make = (
                                     rndColorSelect( 
                                         ~availableColors=allColors, 
                                         ~selectedColor=state.discColor, 
-                                        ~onNewColorSelected = actDiscColorUpdated,
-                                        ()
+                                        ~onNewColorSelected = actDiscColorUpdated
                                     )
                                 }
                             </td>->addAlignAttr("center")
@@ -1531,8 +1517,7 @@ let make = (
                                     rndColorSelect( 
                                         ~availableColors=allColors, 
                                         ~selectedColor=state.deprColor, 
-                                        ~onNewColorSelected = actDeprColorUpdated,
-                                        ()
+                                        ~onNewColorSelected = actDeprColorUpdated
                                     )
                                 }
                             </td>->addAlignAttr("center")
@@ -1556,8 +1541,7 @@ let make = (
                                     rndColorSelect( 
                                         ~availableColors=allColors, 
                                         ~selectedColor=state.tranDeprColor, 
-                                        ~onNewColorSelected = actTranDeprColorUpdated,
-                                        ()
+                                        ~onNewColorSelected = actTranDeprColorUpdated
                                     )
                                 }
                             </td>->addAlignAttr("center")
@@ -1568,8 +1552,7 @@ let make = (
             {
                 rndSmallTextBtn(
                     ~text="Restore default assertion usage settings",
-                    ~onClick=actRestoreDefaultDiscUsageSettings,
-                    ()
+                    ~onClick=actRestoreDefaultDiscUsageSettings
                 )
             }
         </Col>
@@ -1711,7 +1694,7 @@ let make = (
                 }
                 label="Use default transforms"
             />
-            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor, () ) }
+            { rndSmallTextBtn( ~text="View default transforms", ~onClick=actOpenDefaultTransformsEditor ) }
         </Row>
         <Row alignItems=#center spacing=0. >
             <FormControlLabel
@@ -1723,7 +1706,7 @@ let make = (
                 }
                 label="Use custom transforms"
             />
-            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor, () ) }
+            { rndSmallTextBtn( ~text="Edit custom transforms", ~onClick=actOpenCustomTransformsEditor ) }
         </Row>
         <TextField 
             size=#small
@@ -1780,11 +1763,11 @@ let make = (
             onDelete=actWebSrcSettingDelete
             defaultIds={
                 defaultAliases
-                    ->Js.Array2.map(defaultAlias => 
-                        state.webSrcSettings->Js.Array2.find(webSrc => webSrc.alias == defaultAlias)
+                    ->Array.map(defaultAlias => 
+                        state.webSrcSettings->Array.find(webSrc => webSrc.alias == defaultAlias)
                     )
-                    ->Js_array2.filter(Belt_Option.isSome)
-                    ->Js.Array2.map(webSrcOpt => (webSrcOpt->Belt_Option.getExn).id)
+                    ->Array.filter(Belt_Option.isSome(_))
+                    ->Array.map(webSrcOpt => (webSrcOpt->Belt_Option.getExn).id)
             }
         />
         <Divider/>

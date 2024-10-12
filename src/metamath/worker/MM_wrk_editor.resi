@@ -30,7 +30,7 @@ type stmtContTreeData = {
     text:string, 
     exprTyp:string, 
     root:syntaxTreeNode, 
-    clickedNodeId:option<(int,Js_date.t)>, 
+    clickedNodeId:option<(int,Date.t)>,
     expLvl:int
 }
 
@@ -46,8 +46,7 @@ let contToStr: stmtCont => string
 let strToCont: (
     string,
     ~preCtxColors: Belt_HashMapString.t<string>=?,
-    ~wrkCtxColors: Belt_HashMapString.t<string>=?,
-    ()
+    ~wrkCtxColors: Belt_HashMapString.t<string>=?
 ) => stmtCont
 
 type userStmtType = E | P
@@ -147,7 +146,7 @@ type editorState = {
 
     nextStmtId: int,
     stmts: array<userStmt>,
-    checkedStmtIds: array<(stmtId,Js_date.t)>,
+    checkedStmtIds: array<(stmtId,Date.t)>,
 
     nextAction:option<editorStateAction>,
 }
@@ -178,8 +177,8 @@ let moveCheckedStmts: (editorState, bool) => editorState
 let moveCheckedStmtsToTop: editorState => editorState
 let moveCheckedStmtsToBottom: editorState => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
-let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?, ()) => (editorState,stmtId)
-let addNewStatements: (editorState, stmtsDto, ~isBkm:bool=?, ()) => editorState
+let addNewStmt: (editorState, ~isHyp:bool=?, ~isBkm:bool=?) => (editorState,stmtId)
+let addNewStatements: (editorState, stmtsDto, ~isBkm:bool=?) => editorState
 let isSingleStmtChecked: editorState => bool
 let duplicateCheckedStmt: (editorState,bool) => editorState
 let bookmarkCheckedStmts: (editorState, bool) => editorState
@@ -191,7 +190,7 @@ let completeVarsEditMode: (editorState, string) => editorState
 let setDisjEditMode: editorState => editorState
 let completeDisjEditMode: (editorState, string) => editorState
 let setLabelEditMode: (editorState, string) => editorState
-let completeLabelEditMode: (editorState, string, Js_string2.t) => editorState
+let completeLabelEditMode: (editorState, string, string) => editorState
 let setContEditMode: (editorState, string) => editorState
 let completeContEditMode: (editorState, stmtId, string) => editorState
 let setStmtCont: (editorState, stmtId, stmtCont) => editorState
@@ -231,16 +230,14 @@ let createNewVars: (
     editorState, 
     ~varTypes:array<int>, 
     ~varNames:array<string>=?, 
-    ~dontAddVariablesToContext:bool=?,
-    ()
+    ~dontAddVariablesToContext:bool=?
 ) => (editorState,array<int>)
 let addSteps: (
     editorState, 
     ~atIdx:int=?, 
     ~steps:array<userStmtDtoOpt>, 
     ~vars:array<(string,option<string>)>=?,
-    ~dontAddVariablesToContext:bool,
-    ()
+    ~dontAddVariablesToContext:bool
 ) => result<(editorState,array<stmtId>),string>
 let updateSteps: ( editorState, array<userStmtDtoOpt>) => result<editorState,string>
 
@@ -259,8 +256,7 @@ let updateExpLevel: (stmtContTreeData, bool) => stmtContTreeData
 let addColorsToSyntaxTree: (
     ~tree:syntaxTreeNode,
     ~preCtxColors:Belt_HashMapString.t<string>=?,
-    ~wrkCtxColors:Belt_HashMapString.t<string>=?,
-    ()
+    ~wrkCtxColors:Belt_HashMapString.t<string>=?
 ) => syntaxTreeNode
 
 let getColorForSymbol: (

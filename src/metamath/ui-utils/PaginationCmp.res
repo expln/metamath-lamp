@@ -64,9 +64,9 @@ let make = (
                     size=3
                     value=itemsPerPageTextEffective
                     onChange=evt2str(newItemsPerPage => {
-                        setItemsPerPageText(_ => Some(newItemsPerPage->Js.String2.replaceByRe(nonDigitPattern, "")))
+                        setItemsPerPageText(_ => Some(newItemsPerPage->String.replaceRegExp(nonDigitPattern, "")))
                     })
-                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actChangeItemsPerPage, ())
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actChangeItemsPerPage)
                 />
             } else {
                 React.null
@@ -79,8 +79,8 @@ let make = (
                     style=ReactDOM.Style.make(~width="150px", ())
                     label="Go to page" 
                     value=goToPageText 
-                    onChange=evt2str(newPage => setGoToPageText(_ => newPage->Js.String2.replaceByRe(nonDigitPattern, "")))
-                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage, ())
+                    onChange=evt2str(newPage => setGoToPageText(_ => newPage->String.replaceRegExp(nonDigitPattern, "")))
+                    onKeyDown=kbrdHnd(~key=keyEnter, ~act=actGoToPage)
                 />
             } else {
                 React.null

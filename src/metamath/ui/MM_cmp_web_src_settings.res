@@ -20,7 +20,7 @@ let make = (
     ~defaultIds:array<string>,
 ) => {
     let rndWebSrcSetting = (src:webSrcSettingsState) => {
-        let isDefault = defaultIds->Js_array2.includes(src.id)
+        let isDefault = defaultIds->Array.includes(src.id)
         <Col key=src.id>
             <Row>
                 <TextField label="Alias (optional)" size=#small style=ReactDOM.Style.make(~width="150px", ()) 
@@ -62,7 +62,7 @@ let make = (
     }
 
     <Col style=ReactDOM.Style.make(~marginTop="5px", ())>
-        { webSrcSettings->Js_array2.map(rndWebSrcSetting)->React.array }
+        { webSrcSettings->Array.map(rndWebSrcSetting)->React.array }
         <Row alignItems={#baseline} >
             <IconButton key="add-button" onClick={_ => onAdd()}>
                 <MM_Icons.Add/>

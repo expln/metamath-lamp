@@ -6,15 +6,15 @@ describe("findParentheses", _ => {
     it("finds all parentheses", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
 
         //when
-        let actualFoundParens = findParentheses(ctx, ())
+        let actualFoundParens = findParentheses(ctx)
 
         //then
         assertEq(
-            actualFoundParens->Js_array2.map(ctxIntToSymExn(ctx, _)),
+            actualFoundParens->Array.map(ctxIntToSymExn(ctx, _)),
             ["(",")","[","]","{","}","<.",".>"]
         )
     })
@@ -26,7 +26,7 @@ describe("applySingleStmt", _ => {
         let ctx = createContext(())
 
         //when
-        ctx->applySingleStmt(Const({symbols:["c1"]}), ())
+        ctx->applySingleStmt(Const({symbols:["c1"]}))
 
         //then
         assertEq( ctx->ctxSymToIntExn("c1"), -1 )
@@ -40,7 +40,7 @@ describe("applySingleStmt", _ => {
         let ctx = createContext(())
 
         //when
-        ctx->applySingleStmt(Const({symbols:["c1", "c2", "c3"]}), ())
+        ctx->applySingleStmt(Const({symbols:["c1", "c2", "c3"]}))
 
         //then
         assertEq( ctx->ctxSymToIntExn("c1"), -1 )
@@ -62,12 +62,12 @@ describe("applySingleStmt", _ => {
     it("doesn't allow to add constants in inner blocks", _ => {
         //given
         let ctx = createContext(())
-        ctx->applySingleStmt(Const({symbols:["c1", "c2"]}), ())
+        ctx->applySingleStmt(Const({symbols:["c1", "c2"]}))
         ctx->openChildContext
 
         try {
             //when
-            ctx->applySingleStmt(Const({symbols:["c3", "c4"]}), ())
+            ctx->applySingleStmt(Const({symbols:["c3", "c4"]}))
             failMsg("The line below was supposed to throw an exception.")
         } catch {
             | MmException({msg}) => {
@@ -92,13 +92,13 @@ describe("moveConstsToBegin", _ => {
     it("descreases int codes of the specified constants", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
         let constsToMove = "( ) [ ] { }"
         assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens=constsToMove, ())
+        let ctx = ctx->ctxOptimizeForProver(~parens=constsToMove)
 
         //then
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
@@ -107,13 +107,13 @@ describe("moveConstsToBegin", _ => {
     it("doesn't fail if variables or unrecognized symbols are provided", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
         let constsToMove = "( ) [ ] { }"
         assertEq(ctx->ctxStrToIntsExn(constsToMove), [-5,-6,-12,-14,-13,-15])
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ t ] { } abc yyy", ())
+        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ t ] { } abc yyy")
 
         //then
         assertEq(ctx->ctxStrToIntsExn(constsToMove)->Js.Array2.sortInPlace, [-1,-2,-3,-4,-5,-6])
@@ -122,8 +122,8 @@ describe("moveConstsToBegin", _ => {
     it("doesn't break var types", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast)
         let t = ctx->ctxSymToIntExn("t")
         let r = ctx->ctxSymToIntExn("r")
         let s = ctx->ctxSymToIntExn("s")
@@ -136,7 +136,7 @@ describe("moveConstsToBegin", _ => {
         assertEq(ctx->getTypeOfVarExn(q)->ctxIntToSymExn(ctx, _), "wff")
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ ] { }", ())
+        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ ] { }")
 
         //then
         assertEq(ctx->getTypeOfVarExn(t)->ctxIntToSymExn(ctx, _), "term")
@@ -149,15 +149,15 @@ describe("moveConstsToBegin", _ => {
     it("doesn't break expr-to-hyp", _ => {
         //given
         let mmFileText = Expln_utils_files.readStringFromFile("./src/metamath/test/resources/demo0-moveConstsToBegin-test._mm")
-        let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ())
-        let ctx = loadContext(ast, ~stopBefore="mp", ())
+        let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
+        let ctx = loadContext(ast, ~stopBefore="mp")
         assertEq(
             (ctx->ctxStrToIntsExn("|- ( P -> Q )")->getHypByExpr(ctx, _)->Belt_Option.getExn).label,
             "maj"
         )
 
         //when
-        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ ] { }", ())
+        let ctx = ctx->ctxOptimizeForProver(~parens="( ) [ ] { }")
 
         //then
         assertEq(
@@ -186,7 +186,7 @@ describe("disjForEachArr", _ => {
 
         //when
         let actual = []
-        disj->disjForEachArr(arr => actual->Js_array2.push(arr)->ignore)
+        disj->disjForEachArr(arr => actual->Array.push(arr))
 
         //then
         assertEq(

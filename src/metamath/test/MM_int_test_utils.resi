@@ -26,15 +26,13 @@ let generateReducedMmFile: (
     ~pathToFullMmFile:string,
     ~pathToSaveTo:string,
     ~skipComments:bool=?,
-    ~skipProofs:bool=?,
-    ()
+    ~skipProofs:bool=?
 ) => unit
 
 let countFrames: (
   MM_parser.mmAstNode,
   ~stopBefore: string=?,
   ~stopAfter: string=?,
-  unit,
 ) => int
 
 let testProgressTrackerMake: (

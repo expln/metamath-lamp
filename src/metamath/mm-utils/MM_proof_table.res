@@ -14,27 +14,27 @@ type proofRecord = {
 type proofTable = array<proofRecord>
 
 let rightPad = (~content:string, ~char:string, ~totalLen:int):string => {
-    let contentLen = content->Js_string2.length
+    let contentLen = content->String.length
     if (totalLen <= contentLen) {
         content
     } else {
-        content ++ Js_string2.repeat(char, totalLen - contentLen)
+        content ++ String.repeat(char, totalLen - contentLen)
     }
 }
 
 let leftPad = (~content:string, ~char:string, ~totalLen:int):string => {
-    let contentLen = content->Js_string2.length
+    let contentLen = content->String.length
     if (totalLen <= contentLen) {
         content
     } else {
-        Js_string2.repeat(char, totalLen - contentLen) ++ content
+        String.repeat(char, totalLen - contentLen) ++ content
     }
 }
 
 let exprSourceToArgsStr = src => {
     switch src {
         | Hypothesis(_) => ""
-        | Assertion({args}) => args->Js_array2.map(i=>i+1)->Js_array2.joinWith(",")
+        | Assertion({args}) => args->Array.map(i=>i+1)->Array.joinUnsafe(",")
     }
 }
 
@@ -46,24 +46,24 @@ let exprSourceToLabelStr = src => {
 }
 
 let maxLength = (arr:array<string>):int => {
-    arr->Js.Array2.map(Js_string2.length)->Js.Array2.reduce(Js_math.max_int, 0)
+    arr->Array.map(String.length(_))->Array.reduce(0, Math.Int.max)
 }
 
 let proofTableToArrStr = (ctx:mmContext,tbl:proofTable):array<string> => {
-    let srcsArgs = tbl->Js_array2.map(r => r.proof->exprSourceToArgsStr)
-    let srcsLabels = tbl->Js_array2.map(r => r.proof->exprSourceToLabelStr)
-    let exprs = tbl->Js_array2.map(r => ctx->ctxIntsToStrExn(r.expr))
+    let srcsArgs = tbl->Array.map(r => r.proof->exprSourceToArgsStr)
+    let srcsLabels = tbl->Array.map(r => r.proof->exprSourceToLabelStr)
+    let exprs = tbl->Array.map(r => ctx->ctxIntsToStrExn(r.expr))
 
-    let maxNumOfDigits = tbl->Js_array2.length->Belt.Int.toFloat->Js_math.log10->Js_math.floor_int + 1
+    let maxNumOfDigits = tbl->Array.length->Belt.Int.toFloat->Math.log10->Math.Int.floor + 1
     let numColWidth = maxNumOfDigits + 1
     let argsColWidth = maxLength(srcsArgs) + 1
     let labelColWidth = maxLength(srcsLabels) + 1
 
-    tbl->Js_array2.mapi((_,i) => {
+    tbl->Array.mapWithIndex((_,i) => {
         leftPad(~content=Belt_Int.toString(i+1), ~char=" ", ~totalLen=numColWidth)
-            ++ "| " ++ rightPad(~content=srcsArgs[i], ~char=" ", ~totalLen=argsColWidth)
-            ++ "| " ++ rightPad(~content=srcsLabels[i], ~char=" ", ~totalLen=labelColWidth)
-            ++ "| " ++ exprs[i]
+            ++ "| " ++ rightPad(~content=srcsArgs->Array.getUnsafe(i), ~char=" ", ~totalLen=argsColWidth)
+            ++ "| " ++ rightPad(~content=srcsLabels->Array.getUnsafe(i), ~char=" ", ~totalLen=labelColWidth)
+            ++ "| " ++ exprs->Array.getUnsafe(i)
     })
 }
 
@@ -71,11 +71,11 @@ let proofTableToStr = (ctx,tbl,title):string => {
     let proofTableArrStr = proofTableToArrStr(ctx,tbl)
     let tableWidth = maxLength(proofTableArrStr)
     rightPad(~content=`--- ${title} `, ~char="-", ~totalLen=tableWidth) ++ "\n"
-        ++ proofTableArrStr->Js_array2.joinWith("\n") ++ "\n"
+        ++ proofTableArrStr->Array.joinUnsafe("\n") ++ "\n"
         ++ rightPad(~content="", ~char="-", ~totalLen=maxLength(proofTableArrStr))
 }
 
-let proofTablePrint = (ctx,tbl,title):unit => Js.Console.log(proofTableToStr(ctx,tbl,title))
+let proofTablePrint = (ctx,tbl,title):unit => Console.log(proofTableToStr(ctx,tbl,title))
 
 let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReuse:int=>unit) => {
     let saved = Belt_HashSetInt.make(~hintSize=64)
@@ -83,7 +83,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
         (),
         rootIdx,
         (_, idx) => {
-            switch tbl[idx].proof {
+            switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis(_) => None
                 | Assertion({args}) => {
                     if (saved->Belt_HashSetInt.has(idx)) {
@@ -95,7 +95,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
             }
         },
         ~postProcess = (_, idx) => {
-            switch tbl[idx].proof {
+            switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis(_) => onUse(idx)
                 | Assertion(_) => {
                     if (!(saved->Belt_HashSetInt.has(idx))) {
@@ -107,8 +107,7 @@ let traverseIdxsInRpnOrder = (tbl:proofTable,rootIdx:int,~onUse:int=>unit,~onReu
                 }
             }
             None
-        },
-        ()
+        }
     )->ignore
 }
 
@@ -122,13 +121,13 @@ let collectReusedIdxs = (tbl,rootIdx):Belt_HashSetInt.t => {
 }
 
 let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proof => {
-    let tblLen = tbl->Js_array2.length
+    let tblLen = tbl->Array.length
     if (tblLen <= rootIdx) {
         raise(MmException({msg:`tblLen <= rootIdx`}))
     }
-    let mandHypLen = mandHyps->Js.Array2.length
+    let mandHypLen = mandHyps->Array.length
     let mandHypLabelToInt = Belt_HashMapString.fromArray(
-        mandHyps->Js_array2.mapi(({label}, i) => (label, i+1))
+        mandHyps->Array.mapWithIndex(({label}, i) => (label, i+1))
     )
     let labels = []
     let labelToIntMap = Belt_HashMapString.make(~hintSize=64)
@@ -139,8 +138,8 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
                 switch labelToIntMap->Belt_HashMapString.get(label) {
                     | Some(i) => i
                     | None => {
-                        labels->Js.Array2.push(label)->ignore
-                        let res = mandHypLen + labels->Js.Array2.length
+                        labels->Array.push(label)
+                        let res = mandHypLen + labels->Array.length
                         labelToIntMap->Belt_HashMapString.set(label, res)
                         res
                     }
@@ -153,23 +152,23 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
     let proofSteps = []
     traverseIdxsInRpnOrder(tbl,rootIdx,
         ~onUse = idx => {
-            let stepNum = switch tbl[idx].proof {
+            let stepNum = switch (tbl->Array.getUnsafe(idx)).proof {
                 | Hypothesis({label}) | Assertion({label}) => labelToInt(label)
             }
-            proofSteps->Js_array2.push(stepNum)->ignore
+            proofSteps->Array.push(stepNum)
             if (reusedIdxs->Belt_HashSetInt.has(idx)) {
-                proofSteps->Js_array2.push(0)->ignore
+                proofSteps->Array.push(0)
                 reusedIdxToInt->Belt_HashMapInt.set(idx, reusedIdxToInt->Belt_HashMapInt.size + 1)
             }
         },
         ~onReuse = idx => {
-            proofSteps->Js_array2.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))->ignore
+            proofSteps->Array.push(-(reusedIdxToInt->Belt_HashMapInt.get(idx)->Belt_Option.getExn))
         }
     )
-    let labelsLastIdx = mandHypLen + labels->Js.Array2.length
+    let labelsLastIdx = mandHypLen + labels->Array.length
     Compressed({
         labels,
-        compressedProofBlock: proofSteps->Js_array2.map(i => {
+        compressedProofBlock: proofSteps->Array.map(i => {
             if (i == 0) {
                 "Z"
             } else if (i < 0) {
@@ -177,11 +176,11 @@ let createProof = (mandHyps:array<hypothesis>, tbl:proofTable, rootIdx:int):proo
             } else {
                 intToCompressedProofStr(i)
             }
-        })->Js_array2.joinWith("")
+        })->Array.joinUnsafe("")
     })
 }
 
-let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true, ()):proofTable => {
+let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true):proofTable => {
     let nodeIdToIdx = Belt_HashMapInt.make(~hintSize=proofNode->proofNodeGetId)
     let tbl = []
 
@@ -195,7 +194,8 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
     }
 
     let saveExprToTblWithoutChecks = (nodeId:int,expr:expr,proof:exprSource):unit => {
-        let idx = tbl->Js_array2.push({expr, proof})-1
+        tbl->Array.push({expr, proof})
+        let idx = tbl->Array.length-1
         nodeIdToIdx->Belt_HashMapInt.set(nodeId,idx)
     }
 
@@ -204,7 +204,7 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
             raise(MmException({ msg:`getIdxByNodeId(nodeId)->Belt_Option.isSome in createProofTableFromProof()` }))
         }
         if (mergeSameRows) {
-            switch tbl->Js.Array2.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
+            switch tbl->Array.findIndex(r => r.expr->exprEq(expr) && r.proof == proof) {
                 | -1 => saveExprToTblWithoutChecks(nodeId,expr,proof)
                 | idx => nodeIdToIdx->Belt_HashMapInt.set(nodeId, idx)
             }
@@ -236,15 +236,14 @@ let createProofTableFromProof = (~proofNode:proofNode, ~mergeSameRows:bool=true,
                             expr, 
                             Assertion({
                                 label:asrtLabel,
-                                args: args->Js_array2.map(argNode => argNode->proofNodeGetId->getIdxByNodeIdExn)
+                                args: args->Array.map(argNode => argNode->proofNodeGetId->getIdxByNodeIdExn)
                             })
                         )
                     }
                 }
             }
             None
-        },
-        ()
+        }
     )->ignore
     tbl
 }

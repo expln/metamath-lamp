@@ -4,9 +4,9 @@ type fragmentTransformState = string
 type reactElemDto = string
 
 type fragmentTransform = {
-    canApply: {"step":Js_json.t} => bool,
-    displayName: {"step":Js_json.t} => string,
-    createInitialState: {"step":Js_json.t} => fragmentTransformState,
+    canApply: {"step":JSON.t} => bool,
+    displayName: {"step":JSON.t} => string,
+    createInitialState: {"step":JSON.t} => fragmentTransformState,
     renderDialog: 
         {
             "state":fragmentTransformState, 
@@ -40,18 +40,18 @@ let stringToFragTransforms = (str:string):result<array<fragmentTransform>,string
 }
 
 let arrStrToFragTransforms = (texts:array<string>):result<array<fragmentTransform>,string> => {
-    texts->Js_array2.reduce(
+    texts->Array.reduce(
+        Ok([]),
         (res,text) => {
             switch res {
                 | Error(_) => res
                 | Ok(arr) => {
                     switch stringToFragTransforms(text) {
                         | Error(msg) => Error(msg)
-                        | Ok(newArr) => Ok(arr->Js_array2.concat(newArr))
+                        | Ok(newArr) => Ok(arr->Array.concat(newArr))
                     }
                 }
             }
-        },
-        Ok([])
+        }
     )
 }

@@ -11,8 +11,8 @@ open Common
 
 let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSubs:wrkSubs):unit => {
     let varToExprArr = wrkSubs.subs->Belt_MapInt.toArray
-    let typesToProve = varToExprArr->Js_array2.map(((var,expr)) => 
-        [ctx->getTypeOfVarExn(var)]->Js.Array2.concat(expr)
+    let typesToProve = varToExprArr->Array.map(((var,expr)) => 
+        [ctx->getTypeOfVarExn(var)]->Array.concat(expr)
     )
     let proofTree = proveFloatings(
         ~wrkCtx=ctx,
@@ -21,9 +21,9 @@ let verifyTypesForSubstitution = (~parenCnt, ~ctx, ~frms, ~frameRestrict, ~wrkSu
         ~floatingsToProve=typesToProve,
         ~parenCnt,
     )
-    varToExprArr->Js_array2.forEachi(((var,expr), i) =>
+    varToExprArr->Array.forEachWithIndex(((var,expr), i) =>
         if (wrkSubs.err->Belt_Option.isNone) {
-            let typeExpr = typesToProve[i]
+            let typeExpr = typesToProve->Array.getUnsafe(i)
             if (proofTree->ptGetNode(typeExpr)->pnGetProof->Belt_Option.isNone) {
                 wrkSubs.err = Some(TypeMismatch({ var, subsExpr:expr, typeExpr, }))
             }
@@ -41,7 +41,7 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
                     var, 
                     switch wrkSubs.subs->Belt_MapInt.get(var) {
                         | None => []
-                        | Some(expr) => expr->Js_array2.filter(s => s >= 0)
+                        | Some(expr) => expr->Array.filter(s => s >= 0)
                     }
                 )
                 varToSubVars->Belt_HashMapInt.get(var)->Belt.Option.getExn
@@ -52,9 +52,9 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
 
     disj->disjForEach((n,m) => {
         if (wrkSubs.err->Belt_Option.isNone) {
-            getSubVars(n)->Js_array2.forEach(nv => {
+            getSubVars(n)->Array.forEach(nv => {
                 if (wrkSubs.err->Belt_Option.isNone) {
-                    getSubVars(m)->Js_array2.forEach(mv => {
+                    getSubVars(m)->Array.forEach(mv => {
                         if (wrkSubs.err->Belt_Option.isNone) {
                             if (nv == mv) {
                                 wrkSubs.err = Some(CommonVar({
@@ -76,13 +76,13 @@ let verifyDisjoints = (~wrkSubs:wrkSubs, ~disj:disjMutable):unit => {
 
 let applyWrkSubs = (expr, wrkSubs:wrkSubs): expr => {
     let resultSize = ref(0)
-    expr->Js_array2.forEach(s => {
+    expr->Array.forEach(s => {
         if (s < 0) {
             resultSize.contents = resultSize.contents + 1
         } else {
             switch wrkSubs.subs->Belt_MapInt.get(s) {
                 | None => raise(MmException({msg:`Cannot find a substitution for ${s->Belt_Int.toString} in applyWrkSubs.`}))
-                | Some(expr) => resultSize.contents = resultSize.contents + expr->Js_array2.length
+                | Some(expr) => resultSize.contents = resultSize.contents + expr->Array.length
             }
         }
     })
@@ -90,13 +90,13 @@ let applyWrkSubs = (expr, wrkSubs:wrkSubs): expr => {
     let e = ref(0)
     let r = ref(0)
     while (r.contents < resultSize.contents) {
-        let s = expr[e.contents]
+        let s = expr->Array.getUnsafe(e.contents)
         if (s < 0) {
             res[r.contents] = s
             r.contents = r.contents + 1
         } else {
             let subExpr = wrkSubs.subs->Belt_MapInt.getExn(s)
-            let len = subExpr->Js_array2.length
+            let len = subExpr->Array.length
             Expln_utils_common.copySubArray(~src=subExpr, ~srcFromIdx=0, ~dst=res, ~dstFromIdx=r.contents, ~len)
             r.contents = r.contents + len
         }
@@ -110,7 +110,7 @@ let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wr
     let newExpr = applyWrkSubs(expr, wrkSubs)
     {
         ...stmt,
-        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors, ())
+        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors)
     }
 }
 
@@ -121,7 +121,7 @@ let applySubstitutionForEditor = (st, wrkSubs:wrkSubs):editorState => {
             let st = createNewDisj(st, wrkSubs.newDisj)
             {
                 ...st,
-                stmts: st.stmts->Js_array2.map(stmt => applySubstitutionForStmt(st, wrkCtx,stmt,wrkSubs))
+                stmts: st.stmts->Array.map(stmt => applySubstitutionForStmt(st, wrkCtx,stmt,wrkSubs))
             }
         }
     }
@@ -135,7 +135,7 @@ let convertSubsToWrkSubs = (~subs, ~tmpFrame, ~ctx):wrkSubs => {
         }
     }
     let res = Belt_Array.range(0,tmpFrame.numOfVars-1)
-        ->Js.Array2.map(v => {
+        ->Array.map(v => {
             (
                 frameVarToCtxVar(v),
                 applySubs(
@@ -167,31 +167,31 @@ let findPossibleSubsByMatch = (
     ~expr:expr
 ):result<array<wrkSubs>,string> => {
     try {
-        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1, ())[0]
+        let axLabel = generateNewLabels(~ctx=wrkCtx, ~prefix="temp-ax-", ~amount=1)->Array.getUnsafe(0)
         let tmpFrame = createFrame(
             ~ctx=wrkCtx, ~ord=0, ~isAxiom=false, ~label=axLabel, ~exprStr=wrkCtx->ctxIntsToSymsExn(frmExpr), ~proof=None,
-            ~skipEssentials=true, ~skipFirstSymCheck=true, ()
+            ~skipEssentials=true, ~skipFirstSymCheck=true
         )
         let frm = prepareFrmSubsDataForFrame(tmpFrame)
         let foundSubs = []
         iterateSubstitutions(
             ~frmExpr=tmpFrame.asrt,
             ~expr,
-            ~frmConstParts = frm.frmConstParts[frm.numOfHypsE], 
-            ~constParts = frm.constParts[frm.numOfHypsE], 
-            ~varGroups = frm.varGroups[frm.numOfHypsE],
+            ~frmConstParts = frm.frmConstParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~constParts = frm.constParts->Array.getUnsafe(frm.numOfHypsE), 
+            ~varGroups = frm.varGroups->Array.getUnsafe(frm.numOfHypsE),
             ~subs = frm.subs,
             ~parenCnt,
             ~consumer = subs => {
                 let wrkSubs = convertSubsToWrkSubs(~subs, ~tmpFrame, ~ctx=wrkCtx)
-                foundSubs->Js_array2.push(wrkSubs)->ignore
+                foundSubs->Array.push(wrkSubs)
                 Continue
             }
         )->ignore
         Ok(foundSubs)
     } catch {
         | MmException({msg}) => Error(msg)
-        | Js.Exn.Error(exn) => Error(exn->Js.Exn.message->Belt_Option.getWithDefault("Unknown error."))
+        | Exn.Error(exn) => Error(exn->Exn.message->Belt_Option.getWithDefault("Unknown error."))
     }
 }
 
@@ -274,8 +274,8 @@ let buildSyntaxTreesOfSameType = (
 }
 
 let removeTypePrefix = (expr:expr, allTypes:array<int>):expr => {
-    if (expr->Js_array2.length > 0 && allTypes->Js_array2.includes(expr[0])) {
-        expr->Js_array2.sliceFrom(1)
+    if (expr->Array.length > 0 && allTypes->Array.includes(expr->Array.getUnsafe(0))) {
+        expr->Array.sliceToEnd(~start=1)
     } else {
         expr
     }
@@ -301,13 +301,13 @@ let findPossibleSubsByUnif = (
         | Error(msg) => Error(msg)
         | Ok((tree1,tree2)) => {
             let continue = ref(true)
-            let foundSubs = Belt_HashMapString.make(~hintSize = expr1->Js_array2.length + expr2->Js_array2.length)
-            unify(tree1, tree2, ~foundSubs, ~continue, ~isMetavar=Js_string2.startsWith(_,metavarPrefix))
+            let foundSubs = Belt_HashMapString.make(~hintSize = expr1->Array.length + expr2->Array.length)
+            unify(tree1, tree2, ~foundSubs, ~continue, ~isMetavar=String.startsWith(_,metavarPrefix))
             if (!continue.contents) {
                 Error(`Cannot unify these expressions.`)
             } else {
                 let res = foundSubs->Belt_HashMapString.toArray
-                    ->Js.Array2.map(((var,expr)) => (wrkCtx->ctxSymToIntExn(var), wrkCtx->ctxSymsToIntsExn(expr)))
+                    ->Array.map(((var,expr)) => (wrkCtx->ctxSymToIntExn(var), wrkCtx->ctxSymsToIntsExn(expr)))
                     ->Belt_HashMapInt.fromArray
                 let maxVar = wrkCtx->getNumOfVars-1
                 for v in 0 to maxVar {
@@ -348,7 +348,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                 | Error(msg) => Error(msg)
                 | Ok(foundSubs) => {
                     let disj = wrkCtx->getAllDisj
-                    foundSubs->Js_array2.forEach(wrkSubs => {
+                    foundSubs->Array.forEach(wrkSubs => {
                         verifyDisjoints(~wrkSubs, ~disj)
                         if (wrkSubs.err->Belt_Option.isNone) {
                             verifyTypesForSubstitution(
@@ -371,7 +371,7 @@ let substitute = (st:editorState, ~what:string, ~with_:string):result<editorStat
     switch st.wrkCtx {
         | None => Error("Cannot apply a substitution because of errors in the editor.")
         | Some(wrkCtx) => {
-            let findIncorrectSymbol = syms => syms->Js_array2.find(sym => {
+            let findIncorrectSymbol = syms => syms->Array.find(sym => {
                 !(wrkCtx->isConst(sym) || wrkCtx->MM_context.isVar(sym))
             })
             let syms1 = what->getSpaceSeparatedValuesAsArray
@@ -391,13 +391,13 @@ let substitute = (st:editorState, ~what:string, ~with_:string):result<editorStat
                             switch foundSubs {
                                 | Error(msg) => Error(msg)
                                 | Ok(foundSubs) => {
-                                    let validSubs = foundSubs->Js_array2.filter(subs => subs.err->Belt_Option.isNone)
-                                    if (validSubs->Js_array2.length == 0) {
+                                    let validSubs = foundSubs->Array.filter(subs => subs.err->Belt_Option.isNone)
+                                    if (validSubs->Array.length == 0) {
                                         Error(`No substitutions found.`)
-                                    } else if (validSubs->Js_array2.length > 1) {
+                                    } else if (validSubs->Array.length > 1) {
                                         Error(`More than 1 substitution found.`)
                                     } else {
-                                        Ok(st->applySubstitutionForEditor(validSubs[0]))
+                                        Ok(st->applySubstitutionForEditor(validSubs->Array.getUnsafe(0)))
                                     }
                                 }
                             }
