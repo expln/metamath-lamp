@@ -122,6 +122,34 @@ let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => 
     }
 }
 
+let fixDisjFormat = (st:editorStateLocStor):editorStateLocStor => {
+    /* 
+        The fix for the issue https://github.com/expln/metamath-lamp/issues/199 introduced a breaking change.
+        This function changes the old format of disjoints to the new one.
+     */
+
+    /* 
+     The first step is to identify the old format. The old format doesn't contain spaces at all. No matter how a user 
+     formatted disjoints manually in the editor, the MM_wrk_editor.removeUnusedVars() function got called eafter each 
+     such editing and reformatted disjoints by concatenating variable names with commas. So, no space can appear in 
+     the old format. In the new format, however, a space should appear at least once. Hence, absence of the space is 
+     the indicator of the old format.
+     */
+    if (st.disjText->String.includes(" ")) {
+        st
+    } else {
+        /* 
+         To convert the old format to the new one it is enough to just replace commas with spaces. There are variable 
+         names with commas, but they are unlikely to appear in exported JSONs and URLs because of the aforementioned 
+         bug.
+         */
+        {
+            ...st,
+            disjText: st.disjText->String.replaceAll(",", " ")
+        }
+    }
+}
+
 let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,string> => {
     open Expln_utils_jsonParse
     parseJson(jsonStr, asObj(_, d=>{
@@ -152,5 +180,5 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                 }
             }))
         }
-    }))
+    }))->Result.map(fixDisjFormat)
 }

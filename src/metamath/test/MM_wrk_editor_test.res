@@ -1573,4 +1573,18 @@ describe("deleteUnrelatedSteps", _ => {
             }
         }
     })
+
+    it("readEditorStateFromJsonStr reformats old disjoints", _ => {
+        //given
+        let stateJson = `{"srcs":[{"typ":"Local","fileName":"set.mm","url":"","readInstr":"ReadAll","label":"",
+            "resetNestingLevel":true,"allLabels":[]}],"descr":"","varsText":"","disjText":"w,y\\na,x","stmts":[
+            {"label":"qed","typ":"p","isGoal":false,"cont":"|- a > x","jstfText":""},
+            {"label":"1","typ":"p","isGoal":false,"cont":"|- y < w","jstfText":""}]}`
+
+        //when
+        let state = MM_wrk_editor_json.readEditorStateFromJsonStr(stateJson)->Result.getExn
+
+        //then
+        assertEq(state.disjText, "w y\na x")
+    })
 })
