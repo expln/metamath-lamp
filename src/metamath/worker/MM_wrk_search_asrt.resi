@@ -37,8 +37,8 @@ let frameToStmtsDto: (
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 
-let frameMatchesVarPattern: (
-    frame, 
+let frameMatchesPattern: (
+    ~frame:frame, 
     ~varPat:array<int>, 
     ~constPat:array<int>,
     ~mapping:Belt_HashMapInt.t<int>

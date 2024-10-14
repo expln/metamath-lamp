@@ -95,11 +95,12 @@ let make = React.memoCustomCompareProps(({
                         preCtxData.ctxV.val->getTypeOfVarExn(sym)
                     }
                 })
-                let frameMatchesPattern = MM_wrk_search_asrt.frameMatchesVarPattern(
-                    _, 
+                let mapping = Belt_HashMapInt.make(~hintSize=varPat->Array.length)
+                let frameMatchesPattern = frame => MM_wrk_search_asrt.frameMatchesPattern(
+                    ~frame, 
                     ~varPat,
                     ~constPat,
-                    ~mapping=Belt_HashMapInt.make(~hintSize=varPat->Array.length)
+                    ~mapping
                 )
                 let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
                 let descrFilterStrTrim = descrFilterStr->String.trim->String.toLowerCase
