@@ -2,12 +2,16 @@ open Expln_test
 open MM_context
 open MM_wrk_search_asrt
 
-let createFrame = (asrt:expr, varTypes:array<int>):frame => {
+let createFrame = (asrt:expr, varTypes:array<int>, ~hyps:array<array<int>> = []):frame => {
     {
         ord:0,
         isAxiom:false,
         disj: Belt.Map.Int.empty,
-        hyps: [],
+        hyps: hyps->Array.mapWithIndex((hypExpr,i) => {
+            typ: E,
+            expr: hypExpr,
+            label: "hyp_" ++ Belt_Int.toString(i)
+        }),
         asrt,
         label: "",
         frameVarToSymb: [],
@@ -124,6 +128,23 @@ describe("frameMatchesPattern", _ => {
             frameMatchesPattern(
                 ~frame=createFrame([0,1,1,2],[-10,-11,-13]), 
                 ~varPat=[99,100,101,102], ~constPat=[-10,-11,-11,-13], 
+                ~mapping=Belt_HashMapInt.make(~hintSize=10)
+            ), 
+            true
+        )
+    })
+
+    it("searches by hypotheses", _ => {
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame([-1,-2,0,-3,-4,1,-5,-6,0,-7,-8],[-10,-40],
+                    ~hyps=[
+                        [-1,-2,-3,-4],
+                        [0,-20,-30,1,-50],
+                        [-5,-6,-7,-8],
+                    ]
+                ), 
+                ~varPat=[100,-20,123,-50], ~constPat=[-10,-20,-40,-50], 
                 ~mapping=Belt_HashMapInt.make(~hintSize=10)
             ), 
             true
