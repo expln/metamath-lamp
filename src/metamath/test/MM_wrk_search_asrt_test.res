@@ -135,19 +135,24 @@ describe("frameMatchesPattern", _ => {
     })
 
     it("searches by hypotheses", _ => {
+        let hyps = [
+            [-1,-2,-3,-4],
+            [0,-20,-30,1,-50],
+            [-5,-6,-7,-8],
+        ]
+        let varPat = [100,-20,123,-50]
+        let constPat = [-10,-20,-40,-50]
+
+        let createFrame = () => createFrame([-1,-2,0,-3,-4,1,-5,-6,0,-7,-8],[-10,-40], ~hyps)
+
         assertEq(
-            frameMatchesPattern(
-                ~frame=createFrame([-1,-2,0,-3,-4,1,-5,-6,0,-7,-8],[-10,-40],
-                    ~hyps=[
-                        [-1,-2,-3,-4],
-                        [0,-20,-30,1,-50],
-                        [-5,-6,-7,-8],
-                    ]
-                ), 
-                ~varPat=[100,-20,123,-50], ~constPat=[-10,-20,-40,-50], 
-                ~mapping=Belt_HashMapInt.make(~hintSize=10)
-            ), 
+            frameMatchesPattern(~frame=createFrame(), ~varPat, ~constPat, ~mapping=Belt_HashMapInt.make(~hintSize=10)),
             true
+        )
+        (hyps->Array.getUnsafe(1))[0] = 1
+        assertEq(
+            frameMatchesPattern(~frame=createFrame(), ~varPat, ~constPat, ~mapping=Belt_HashMapInt.make(~hintSize=10)),
+            false
         )
     })
 })
