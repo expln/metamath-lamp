@@ -131,13 +131,10 @@ let frameMatchesPattern = (
     ~mapping:Belt_HashMapInt.t<int>
 ):bool => {
     let varTypes = frame.varTypes
-    if (frmExprMatchesPattern(~frmExpr=frame.asrt, ~varPat, ~constPat, ~varTypes, ~mapping)) {
-        true
-    } else {
-        frame.hyps->Array.reduce(false, (res, hyp) => {
+    frmExprMatchesPattern(~frmExpr=frame.asrt, ~varPat, ~constPat, ~varTypes, ~mapping)
+        || frame.hyps->Array.reduce(false, (res, hyp) => {
             res || hyp.typ == E && frmExprMatchesPattern(~frmExpr=hyp.expr, ~varPat, ~constPat, ~varTypes, ~mapping)
         })
-    }
 }
 
 let searchAssertions = (
