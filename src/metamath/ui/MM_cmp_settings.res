@@ -1,4 +1,3 @@
-open MM_parser
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal

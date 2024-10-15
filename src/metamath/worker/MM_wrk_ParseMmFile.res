@@ -1,5 +1,6 @@
 open MM_wrk_client
 open MM_parser
+open Common
 
 let procName = "MM_wrk_ParseMmFile"
 

@@ -1,9 +1,9 @@
-open MM_parser
 open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_unification_debug
 open MM_statements_dto
+open Common
 
 type rootStmt = {
     isHyp: bool,

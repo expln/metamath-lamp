@@ -4,6 +4,7 @@ open MM_proof_table
 open MM_context
 open MM_proof_verifier
 open MM_int_test_utils
+open Common
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
 

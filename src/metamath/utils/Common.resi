@@ -1,6 +1,20 @@
 let nbsp:string
 let circleChar:string
 
+type mmException = {
+    msg:string,
+    begin?:int,
+}
+exception MmException(mmException)
+
+type exnData = {
+    exn:option<exn>,
+    msg:string,
+    stack:string,
+}
+
+let catchExn:(unit=>'a) => result<'a,exnData>
+
 let currTimeStr: unit => string
 let compareDates: (Date.t, Date.t) => float
 let floatToPctStr: float => string

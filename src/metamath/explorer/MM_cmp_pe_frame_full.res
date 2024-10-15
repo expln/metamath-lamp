@@ -732,15 +732,18 @@ let make = React.memoCustomCompareProps(({
                         switch res {
                             | Error(msg) => setLoadErr(_ => Some(msg))
                             | Ok((frmMmScopes,frmCtx)) => {
-                                setState(_ => {
-                                    Some(createInitialState(
+                                switch catchExn(() => {
+                                    createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
                                         ~frmMmScopes,
                                         ~preCtx=preCtxData.ctxV.val,
                                         ~frmCtx,
                                         ~frame=preCtxData.ctxV.val->getFrameExn(label)
-                                    ))
-                                })
+                                    )
+                                }) {
+                                    | Ok(state) => setState(_ => Some(state))
+                                    | Error({msg}) => setLoadErr(_ => Some(msg))
+                                }
                             }
                         }
                     },

@@ -1,5 +1,5 @@
 open MM_wrk_editor
-open MM_parser
+open Common
 
 type stmtSnapshot = {
     id: stmtId,

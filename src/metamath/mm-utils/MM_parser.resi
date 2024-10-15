@@ -24,12 +24,6 @@ and stmt =
     | Axiom({label:string, expr:array<string>})
     | Provable({label:string, expr:array<string>, proof:option<proof>})
 
-type mmException = {
-    msg:string,
-    begin?:int,
-}
-exception MmException(mmException)
-
 let parseMmFile: (
     ~mmFileContent:string, 
     ~skipComments:bool=?,

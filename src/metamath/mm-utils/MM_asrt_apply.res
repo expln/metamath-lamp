@@ -3,7 +3,7 @@ open MM_context
 open MM_parenCounter
 open MM_progress_tracker
 open MM_unification_debug
-open MM_parser
+open Common
 
 type applyAssertionResult = {
     newVars: array<int>,

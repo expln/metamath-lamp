@@ -1,6 +1,7 @@
 open MM_context
 open MM_parser
 open MM_proof_verifier
+open Common
 
 type exprSource =
     | Hypothesis({label:string})

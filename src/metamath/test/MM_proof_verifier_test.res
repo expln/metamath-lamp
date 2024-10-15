@@ -2,6 +2,7 @@ open Expln_test
 open MM_parser
 open MM_context
 open MM_proof_verifier
+open Common
 
 describe("verifyProof", _ => {
     it("successfully verifies a valid uncompressed proof", _ => {

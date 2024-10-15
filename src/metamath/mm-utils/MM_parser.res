@@ -1,4 +1,5 @@
 open MM_progress_tracker
+open Common
 
 type parserProofTableRec = {
     id:string,
@@ -25,12 +26,6 @@ and stmt =
     | Essential({label:string, expr:array<string>})
     | Axiom({label:string, expr:array<string>})
     | Provable({label:string, expr:array<string>, proof:option<proof>})
-
-type mmException = {
-    msg:string,
-    begin?:int,
-}
-exception MmException(mmException)
 
 let isWhitespace = str => str == " " || str == "\t" || str == "\n" || str == "\r"
 

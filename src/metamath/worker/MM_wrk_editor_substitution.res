@@ -1,6 +1,5 @@
 open MM_wrk_editor
 open MM_context
-open MM_parser
 open MM_proof_tree
 open MM_syntax_tree
 open MM_wrk_settings

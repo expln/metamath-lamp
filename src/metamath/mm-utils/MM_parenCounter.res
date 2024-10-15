@@ -1,4 +1,4 @@
-open MM_parser
+open Common
 
 type state = Balanced | Opened | Failed
 

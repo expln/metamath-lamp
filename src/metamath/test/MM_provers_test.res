@@ -6,6 +6,7 @@ open MM_proof_verifier
 open MM_proof_tree_dto
 open MM_provers
 open MM_substitution
+open Common
 
 let testCreateProof = (~mmFile, ~exprStr, ~expectedProofStr) => {
     //given

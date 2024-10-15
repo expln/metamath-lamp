@@ -1,10 +1,5 @@
-- autofocus label selector after scope is set to StopBefore or StopAfter
-- the proof viewer fails for incorrect proofs
-    https://github.com/expln/metamath-lamp/issues/184
 - implement pagination in MM_cmp_pe_frame_full.res
-- remove selector from the url added by the explorer. Steps to reproduce:
-    load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console:
-        DOMException: Failed to execute 'querySelectorAll' on 'Document': '#tbl-r19.12 .step' is not a valid selector.
+- autofocus label selector after scope is set to StopBefore or StopAfter
 - add "About" page.
     https://github.com/expln/metamath-lamp/issues/72
 
@@ -111,3 +106,8 @@ DONE:
 - do not repeat references to hypotheses in proof tables, example - dimkerim has 279 rows in mm-lamp and 270 on https://us.metamath.org/mpeuni/dimkerim.html
 - add "items per page" to PE index.
 - Automatically create correct labels for hypotheses.
+- remove selector from the url added by the explorer. Steps to reproduce:
+    load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console:
+        DOMException: Failed to execute 'querySelectorAll' on 'Document': '#tbl-r19.12 .step' is not a valid selector.
+- the proof viewer fails for incorrect proofs
+    https://github.com/expln/metamath-lamp/issues/184

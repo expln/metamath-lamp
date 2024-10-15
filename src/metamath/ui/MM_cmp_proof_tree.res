@@ -1,8 +1,8 @@
 open MM_proof_tree_dto
 open MM_proof_tree
 open MM_context
-open MM_parser
 open MM_wrk_settings
+open Common
 
 type state = {
     ctxMaxVar: int,

@@ -1,6 +1,7 @@
 open MM_parser
 open MM_context
 open MM_unification_debug
+open Common
 
 type proofNodeDbg = {
     exprStr: string,

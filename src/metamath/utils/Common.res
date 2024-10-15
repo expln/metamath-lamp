@@ -1,6 +1,34 @@
 let nbsp = String.fromCharCode(160)
 let circleChar = String.fromCharCode(9679)
 
+type mmException = {
+    msg:string,
+    begin?:int,
+}
+exception MmException(mmException)
+
+type exnData = {
+    exn:option<exn>,
+    msg:string,
+    stack:string,
+}
+
+let catchExn = (run:unit=>'a): result<'a,exnData> => {
+    try {
+        Ok(run())
+    } catch {
+        | MmException({msg}) => Error({ exn:None, msg, stack: "", })
+        | exn => {
+            let jsExn = Error.fromException(exn)
+            Error({
+                exn:Some(exn),
+                msg: jsExn->Option.flatMap(Error.message)->Option.getOr("Unknown error."),
+                stack: jsExn->Option.flatMap(Error.stack)->Option.getOr(""),
+            })
+        }
+    }
+}
+
 let currTimeStr = () => Date.now()->Date.fromTime->Date.toISOString
 let compareDates = (a:Date.t, b:Date.t):float => {
     let t1 = a->Date.getTime

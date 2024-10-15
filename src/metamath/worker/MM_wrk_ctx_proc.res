@@ -3,7 +3,6 @@ open MM_wrk_client
 open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
-open MM_parser
 open Common
 open MM_wrk_ctx_data
 

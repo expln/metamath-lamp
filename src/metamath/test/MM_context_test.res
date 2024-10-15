@@ -1,6 +1,7 @@
 open Expln_test
 open MM_parser
 open MM_context
+open Common
 
 describe("findParentheses", _ => {
     it("finds all parentheses", _ => {

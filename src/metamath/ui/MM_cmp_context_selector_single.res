@@ -1,8 +1,8 @@
 open Expln_React_common
 open Expln_React_Mui
-open MM_parser
 open Expln_React_Modal
 open MM_wrk_editor
+open Common
 
 @react.component
 let make = (

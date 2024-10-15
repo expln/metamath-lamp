@@ -9,6 +9,7 @@ open MM_wrk_settings
 open MM_wrk_editor
 open Local_storage_utils
 open MM_wrk_pre_ctx_data
+open Common
 
 type fileText = 
     | Text(string)

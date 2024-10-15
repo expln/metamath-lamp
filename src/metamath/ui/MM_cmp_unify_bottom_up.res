@@ -5,7 +5,6 @@ open Expln_utils_promise
 open MM_wrk_editor
 open MM_context
 open MM_substitution
-open MM_parser
 open Expln_React_Modal
 open MM_statements_dto
 open MM_provers
@@ -16,6 +15,7 @@ open MM_parenCounter
 open MM_wrk_settings
 open MM_cmp_root_stmts
 open MM_apply_asrt_matcher
+open Common
 
 type sortBy = NewStmtsNum | UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
