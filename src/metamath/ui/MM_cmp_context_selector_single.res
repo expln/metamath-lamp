@@ -24,6 +24,23 @@ let make = (
     ~onDelete:unit=>unit, 
 ) => {
 
+    let labelSelectorTextFieldRef = React.useRef(Nullable.null)
+    
+    let actFocusLabelSelector = () => {
+        switch labelSelectorTextFieldRef.current->Nullable.toOption {
+            | None => ()
+            | Some(domElem) => {
+                let input = ReactDOM.domElementToObj(domElem)
+                input["focus"]()
+            }
+        }
+    }
+
+    React.useEffect1(() => {
+        actFocusLabelSelector()
+        None
+    }, [readInstr])
+
     let actAliasSelected = alias => {
         switch availableWebSrcs->Array.find(src => src.alias == alias) {
             | None => raise(MmException({msg:`Cannot determine a URL for "${alias}" alias.`}))
@@ -91,7 +108,10 @@ let make = (
     }
 
     let rndLabelSelector = () => {
-        <AutocompleteVirtualized value=label options=allLabels size=#small onChange=onLabelChange label="Label" />
+        <AutocompleteVirtualized
+            inputRef=ReactDOM.Ref.domRef(labelSelectorTextFieldRef)
+            value=label options=allLabels size=#small onChange=onLabelChange label="Label" 
+        />
     }
 
     let rndAliasSelector = (alias: option<string>) => {

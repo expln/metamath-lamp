@@ -95,7 +95,7 @@ const StyledPopper = styled(Popper)({
     },
 })
 
-export default function make({value, options, onChange, size, width, label}) {
+export default function make({value, options, onChange, size, width, label, inputRef}) {
     return (
         <Autocomplete
             sx={{ width:width??300 }}
@@ -106,7 +106,7 @@ export default function make({value, options, onChange, size, width, label}) {
             value={value === undefined ? null : value}
             options={options}
             isOptionEqualToValue={(option,value) => option === value}
-            renderInput={(params) => <TextField {...params} label={label} />}
+            renderInput={(params) => <TextField inputRef={inputRef} {...params} label={label} />}
             renderOption={(props, option) => [props, option]}
             onChange={(e, value) => onChange(value === null ? undefined : value)}
         />
