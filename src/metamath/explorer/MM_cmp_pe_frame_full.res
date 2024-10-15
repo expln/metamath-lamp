@@ -1061,6 +1061,13 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let actHypIdxClicked = () => {
+        setTimeout(
+            () => removeQueryParamsFromUrl("Removing proof record id."),
+            2000
+        )->ignore
+    }
+
     let rndHyp = (state,pRec:proofRecord):reElem => {
         switch pRec.proof {
             | Hypothesis(_) => React.null
@@ -1078,7 +1085,9 @@ let make = React.memoCustomCompareProps(({
                             )
                         }
                         elems->Array.push(
-                            <a href={"#" ++ proofTableId ++ "-" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}>
+                            <a href={"#" ++ proofTableId ++ "-" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}
+                                onClick=clickHnd(~act=actHypIdxClicked)
+                            >
                                 {React.string(getStepNum(state,argIdx)->Belt_Int.toString)}
                             </a>
                         )

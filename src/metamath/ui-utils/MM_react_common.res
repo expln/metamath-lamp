@@ -28,6 +28,11 @@ let readFromClipboard = ():promise<string> => {
     }
 }
 
+let removeQueryParamsFromUrl = (msg:string):unit => {
+    let location = window["location"]
+    window["history"]["replaceState"](. msg, "", location["origin"] ++ location["pathname"])
+}
+
 type mouseButton = Left | Middle | Right
 
 type clickCallback = {

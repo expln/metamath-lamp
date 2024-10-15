@@ -29,6 +29,7 @@ let getFrmLabelBkgColor: (frame, settings) => option<string>
 let copyToClipboard: string => promise<unit>
 let readFromClipboard: () => promise<string>
 let getAvailWidth: () => int
+let removeQueryParamsFromUrl: (string) => unit
 
 type mouseButton = Left | Middle | Right
 type clickCallback

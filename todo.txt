@@ -1,16 +1,27 @@
+- autofocus label selector after scope is set to StopBefore or StopAfter
+- the proof viewer fails for incorrect proofs
+    https://github.com/expln/metamath-lamp/issues/184
+- implement pagination in MM_cmp_pe_frame_full.res
+- remove selector from the url added by the explorer. Steps to reproduce:
+    load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console:
+        DOMException: Failed to execute 'querySelectorAll' on 'Document': '#tbl-r19.12 .step' is not a valid selector.
+- add "About" page.
+    https://github.com/expln/metamath-lamp/issues/72
+
+- Embed the "current version of Metamath-lamp" in the exported JSON
+    https://github.com/expln/metamath-lamp/issues/128
+- implement text comments for statements
 - fix a bug: set "auto unify all" = true. Update settings - an error occurs.
-- fix a bug: completed proof should not be shown in macros.
-- simplify actUnify() in MM_cmp_editors.
-- the macro display name should be a functions of the global context
-- there should be quick access to frequently used macros from the buttons bar
-- implement "a macro is running" mode when popups are not appearing (so the screen is not blinking)
+- implement "reorder steps"
+- check where MM_context and MM_parser may throw an exception
 - add a few options to the proof tree explorer: show essentials only, show unproved steps only, show number of unproved steps for each source.
+- implement "a macro is running" mode when popups are not appearing (so the screen is not blinking)
+- there should be quick access to frequently used macros from the buttons bar
+- the macro display name should be a functions of the global context
+- fix a bug: completed proof should not be shown in macros.
 - write tests for example macros
 - write tests for different cases of "inline proof"
-- check where MM_context and MM_parser may throw an exception
-- implement "reorder steps"
-- implement pagination in MM_cmp_pe_frame_full.res
-
+- simplify actUnify() in MM_cmp_editors.
 - minimize compressed proof by placing the least used labels in the beginning
 - try to implement proof minimization https://github.com/metamath/set.mm/pull/3790#issuecomment-1913042661
 - export in uncompressed-essential and compressed-essential formats
@@ -21,20 +32,14 @@
 - Try: in proofNode.parents use an array before some threshold and a hashMap after the threshold.
 - improve performance of the fragment selector in the cmp_pe_full by reusing existing proof.
 - make "compact mode" and "small buttons" default on mobile.
-- remove selector from the url added by the explorer. Steps to reproduce:
-    load set.mm, find r19.12 in the explorer, open r19.12 to see its proof - error in the console: 
-        DOMException: Failed to execute 'querySelectorAll' on 'Document': '#tbl-r19.12 .step' is not a valid selector.
 - freeze pagination in the explorer
 - fix a bug:
     when I was proving "cotval-hyp" one label became uneditable.
 - optimize re-rendering for all tabs.
 - in the bottom up prover use existing vars together with new vars
-- move some dependencies to devDependencies.
 - review usages of "alias", it may be empty.
 - implement a builder of statements.
-- add "About" page.
 - check if adding a cache to proveStmtBottomUp() (for getParents) improves performance.
-- in the "search" dialog, in the pattern text field, replace variables with their types.
 - provide more info on substitution found when "Could not match essential hypothesis #1"
 - write a test for allowNewDisjForExistingVars
 - add an int test when a hyp is used in a bottom-up proof being applied.
@@ -45,19 +50,16 @@
 - In prove bottom up, similar to checks for var types and hyps, also check assertions without eHyps for node.dist==maxDepth.
 - write tests for collecting debug info
 - before merging of statements check if some statements should be moved up because they are referenced by above statements and don't merge in that case.
-- autofocus label selector after scope is set to StopBefore or StopAfter
 - in cmp_search use array2.slice and store idx in the rendered elem the same way as in cmp_bottom_up
 - add an int test with few hypotheses.
 - apply colors to search results, substitutions.
 - write tests for both versions of verifyDisjoints (in MM_subs and MM_wrk_editor)
-- add possibility to comment statements
+- add possibility to comment out statements so they are present in the editor but don't participate in the proof
 - make error messages more informative: add the statement caused the error (for example in "variables" or in justifications).
 - write tests for editorState -> proofTree -> editorState.
 - correct methods related to movement of statements, they became incorrect after automatic reordering.
 - use Async/Await.
 - precalculate number of combinations (store in an array)
-- use uncurried functions everywhere
-- replace a[i] with a->Js_array2.unsafe_get(i), or open Belt and replace with Option.getExn
 
 DONE:
 - fix a bug: in eliminate variables rename labels if there were merges of duplicates.

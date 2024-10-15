@@ -77,11 +77,7 @@ let location = window["location"]
 let tempMode = ref(false)
 let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Nullable.toOption {
     | Some(initialStateSafeBase64) => {
-        window["history"]["replaceState"](. 
-            "removing editorState from the URL", 
-            "", 
-            location["origin"] ++ location["pathname"]
-        )->ignore
+        removeQueryParamsFromUrl("removing editorState from the URL")
         tempMode := true
         Some(initialStateSafeBase64->safeBase64ToStr)
     }
