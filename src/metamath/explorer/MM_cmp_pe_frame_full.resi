@@ -36,6 +36,8 @@ type state = {
     expandedIdxs: array<int>,
     syntaxProofTableWasRequested: bool,
     syntaxProofTableError: option<string>,
+    proofRecordsPerPage: int,
+    pageIdx: int,
 }
 type frameProofData = state
 

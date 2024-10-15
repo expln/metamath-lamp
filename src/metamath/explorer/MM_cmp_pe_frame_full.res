@@ -52,6 +52,8 @@ type state = {
     expandedIdxs: array<int>,
     syntaxProofTableWasRequested: bool,
     syntaxProofTableError: option<string>,
+    proofRecordsPerPage: int,
+    pageIdx: int,
 }
 
 type frameProofData = state
@@ -100,6 +102,15 @@ let createVDataRec = (
             })
         }
     }
+}
+
+let calcProofRecordsPerPage = (proofTable:proofTable):int => {
+    let totalNumOfSymbols = proofTable->Array.reduce(0, (acc, r) => acc + r.expr->Array.length)
+    let totalNumOfSteps = proofTable->Array.length
+    let avgNumOfSymbolsPerStep = Belt_Int.fromFloat(Belt_Float.fromInt(totalNumOfSymbols) /. Belt_Float.fromInt(totalNumOfSteps))
+    let maxSymbolsPerPage = 50_000
+    let maxStepsPerPage = Belt_Int.fromFloat(Belt_Float.fromInt(maxSymbolsPerPage) /. Belt_Float.fromInt(avgNumOfSymbolsPerStep))
+    Math.Int.min(maxStepsPerPage, 500)
 }
 
 let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable):state => {
@@ -159,6 +170,7 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
         essIdxs,
         stepRenum,
         expandedIdxs: [],
+        proofRecordsPerPage: calcProofRecordsPerPage(proofTable),
     }
 }
 
@@ -245,6 +257,8 @@ let createInitialState = (
         expandedIdxs: [],
         syntaxProofTableWasRequested: false,
         syntaxProofTableError: None,
+        proofRecordsPerPage: 300,
+        pageIdx:0,
     }
     switch frame.proof {
         | None => st
@@ -732,6 +746,7 @@ let make = React.memoCustomCompareProps(({
                         switch res {
                             | Error(msg) => setLoadErr(_ => Some(msg))
                             | Ok((frmMmScopes,frmCtx)) => {
+                                setLoadPct(_ => 1.0)
                                 switch catchExn(() => {
                                     createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
@@ -885,7 +900,7 @@ let make = React.memoCustomCompareProps(({
         setHypWidth(_ => (calcColumnWidth(`#${proofTableIdCssSelector} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
         setRefWidth(_ => calcColumnWidth(`#${proofTableIdCssSelector} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
         None
-    }, [numberOfRowsInProofTable])
+    }, [numberOfRowsInProofTable, state->Option.mapOr(0, st => st.pageIdx)])
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
         switch preCtxData.frms->frmsGetByLabel(label) {
@@ -1064,7 +1079,40 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let actHypIdxClicked = () => {
+    let getAllProofRecordsToShow = (state:state):array<(proofRecord,int)> => {
+        switch state.proofTable {
+            | None => []
+            | Some(proofTable) => {
+                proofTable->Array.mapWithIndex((pRec,idx) => (pRec,idx))->Array.filter(((_,idx)) => {
+                    if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}
+                })
+            }
+        }
+    }
+
+    let actGoToPage = (pageIdx) => {
+        setState(st => st->Option.map(st => {...st, pageIdx}))
+    }
+
+    let actGoToPageWithStep = (idx:int) => {
+        switch state {
+            | None => ()
+            | Some(state) => {
+                switch getAllProofRecordsToShow(state)->Array.findIndexOpt(((_,pIdx)) => pIdx == idx) {
+                    | None => ()
+                    | Some(showedIdx) => {
+                        let pageIdx = Math.Int.floor(
+                            Belt_Float.fromInt(showedIdx) /. Belt_Float.fromInt(state.proofRecordsPerPage)
+                        )
+                        actGoToPage(pageIdx)
+                    }
+                }
+            }
+        }
+    }
+
+    let actHypIdxClicked = (clickedIdx:int) => {
+        actGoToPageWithStep(clickedIdx)
         setTimeout(
             () => removeQueryParamsFromUrl("Removing proof record id."),
             2000
@@ -1089,7 +1137,7 @@ let make = React.memoCustomCompareProps(({
                         }
                         elems->Array.push(
                             <a href={"#" ++ proofTableId ++ "-" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}
-                                onClick=clickHnd(~act=actHypIdxClicked)
+                                onClick=clickHnd(~act=()=>actHypIdxClicked(argIdx))
                             >
                                 {React.string(getStepNum(state,argIdx)->Belt_Int.toString)}
                             </a>
@@ -1208,6 +1256,32 @@ let make = React.memoCustomCompareProps(({
         </table>
     }
 
+    let rndPagination = state => {
+        switch state.proofTable {
+            | None => React.null
+            | Some(_) => {
+                let proofTableSize = getAllProofRecordsToShow(state)->Array.length
+                if (proofTableSize < state.proofRecordsPerPage) {
+                    React.null
+                } else {
+                    <div style=ReactDOM.Style.make(~padding="5px", ())>
+                        <PaginationCmp
+                            numOfPages=Math.Int.ceil(
+                                Belt_Float.fromInt(proofTableSize) /. Belt_Float.fromInt(state.proofRecordsPerPage)
+                            )
+                            pageIdx=state.pageIdx
+                            siblingCount=1000
+                            showGoToPage=false
+                            onPageIdxChange=actGoToPage
+                            itemsPerPage=state.proofRecordsPerPage
+                            showItemsPerPage=false
+                        />
+                    </div>
+                }
+            }
+        }
+    }
+
     let rndProof = state => {
         let tdStyle=ReactDOM.Style.make(
             ~borderCollapse="collapse", 
@@ -1243,7 +1317,7 @@ let make = React.memoCustomCompareProps(({
                     "This assertion doesn't have a proof."->React.string
                 }
             }
-            | Some(proofTable) => {
+            | Some(_) => {
                 <Col spacing=0.>
                     {
                         if (state.frame.isAxiom) {
@@ -1274,9 +1348,10 @@ let make = React.memoCustomCompareProps(({
                         </thead>
                         <tbody >
                             {
-                                proofTable->Array.mapWithIndex((pRec,idx) => (pRec,idx))->Array.filter(((_,idx)) => {
-                                    if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}
-                                })
+                                let minIdx = state.pageIdx * state.proofRecordsPerPage
+                                let maxIdx = minIdx + state.proofRecordsPerPage - 1
+                                getAllProofRecordsToShow(state)
+                                    ->Array.filterWithIndex((_, idx) => minIdx <= idx && idx <= maxIdx)
                                     ->Array.map(((pRec,idx)) => {
                                     <tr 
                                         key={idx->Belt.Int.toString} 
@@ -1333,7 +1408,13 @@ let make = React.memoCustomCompareProps(({
         | None => {
             switch loadErr {
                 | Some(msg) => `Error: ${msg}`->React.string
-                | None => `Loading ${floatToPctStr(loadPct)}`->React.string
+                | None => {
+                    if (loadPct < 1.0) {
+                        `Loading the context ${floatToPctStr(loadPct)}`->React.string
+                    } else {
+                        `Building the proof table...`->React.string
+                    }
+                }
             }
         }
         | Some(state) => {
@@ -1344,7 +1425,9 @@ let make = React.memoCustomCompareProps(({
                 {rndDisj(state)}
                 {rndDummyVarDisj(state)}
                 {rndSummary(state)}
+                {rndPagination(state)}
                 {rndProof(state)}
+                {rndPagination(state)}
                 {rndFooter()}
             </Col>
         }
