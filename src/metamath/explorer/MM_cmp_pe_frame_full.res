@@ -889,7 +889,7 @@ let make = React.memoCustomCompareProps(({
         setHypWidth(_ => (calcColumnWidth(`#${proofTableIdCssSelector} .${classColHyp}`, 30, 100)+5)->Belt.Int.toString ++ "px")
         setRefWidth(_ => calcColumnWidth(`#${proofTableIdCssSelector} .${classColRef}`, 30, 1000)->Belt.Int.toString ++ "px")
         None
-    }, [numberOfRowsInProofTable])
+    }, [numberOfRowsInProofTable, state->Option.mapOr(0, st => st.pageIdx)])
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
         switch preCtxData.frms->frmsGetByLabel(label) {
@@ -1068,7 +1068,40 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let actHypIdxClicked = () => {
+    let getAllProofRecordsToShow = (state:state):array<(proofRecord,int)> => {
+        switch state.proofTable {
+            | None => []
+            | Some(proofTable) => {
+                proofTable->Array.mapWithIndex((pRec,idx) => (pRec,idx))->Array.filter(((_,idx)) => {
+                    if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}
+                })
+            }
+        }
+    }
+
+    let actGoToPage = (pageIdx) => {
+        setState(st => st->Option.map(st => {...st, pageIdx}))
+    }
+
+    let actGoToPageWithStep = (idx:int) => {
+        switch state {
+            | None => ()
+            | Some(state) => {
+                switch getAllProofRecordsToShow(state)->Array.findIndexOpt(((_,pIdx)) => pIdx == idx) {
+                    | None => ()
+                    | Some(showedIdx) => {
+                        let pageIdx = Math.Int.floor(
+                            Belt_Float.fromInt(showedIdx) /. Belt_Float.fromInt(proofRecordsPerPage)
+                        )
+                        actGoToPage(pageIdx)
+                    }
+                }
+            }
+        }
+    }
+
+    let actHypIdxClicked = (clickedIdx:int) => {
+        actGoToPageWithStep(clickedIdx)
         setTimeout(
             () => removeQueryParamsFromUrl("Removing proof record id."),
             2000
@@ -1093,7 +1126,7 @@ let make = React.memoCustomCompareProps(({
                         }
                         elems->Array.push(
                             <a href={"#" ++ proofTableId ++ "-" ++ argIdx->Belt_Int.toString} key={"hyp-" ++ iStr}
-                                onClick=clickHnd(~act=actHypIdxClicked)
+                                onClick=clickHnd(~act=()=>actHypIdxClicked(argIdx))
                             >
                                 {React.string(getStepNum(state,argIdx)->Belt_Int.toString)}
                             </a>
@@ -1210,21 +1243,6 @@ let make = React.memoCustomCompareProps(({
                 </tr>
             </tbody>
         </table>
-    }
-
-    let actGoToPage = (pageIdx) => {
-        setState(st => st->Option.map(st => {...st, pageIdx}))
-    }
-
-    let getAllProofRecordsToShow = (state:state):array<(proofRecord,int)> => {
-        switch state.proofTable {
-            | None => []
-            | Some(proofTable) => {
-                proofTable->Array.mapWithIndex((pRec,idx) => (pRec,idx))->Array.filter(((_,idx)) => {
-                    if (state.showTypes) {true} else {state.essIdxs->Belt_HashSetInt.has(idx)}
-                })
-            }
-        }
     }
 
     let rndPagination = state => {
