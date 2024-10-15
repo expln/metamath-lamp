@@ -29,8 +29,6 @@ type vDataRec = {
     frmColors:Belt_HashMapString.t<string>,
 }
 
-let proofRecordsPerPage = 300
-
 type state = {
     settings:settings,
     frmMmScopes:array<mmScope>,
@@ -54,6 +52,7 @@ type state = {
     expandedIdxs: array<int>,
     syntaxProofTableWasRequested: bool,
     syntaxProofTableError: option<string>,
+    proofRecordsPerPage: int,
     pageIdx: int,
 }
 
@@ -103,6 +102,15 @@ let createVDataRec = (
             })
         }
     }
+}
+
+let calcProofRecordsPerPage = (proofTable:proofTable):int => {
+    let totalNumOfSymbols = proofTable->Array.reduce(0, (acc, r) => acc + r.expr->Array.length)
+    let totalNumOfSteps = proofTable->Array.length
+    let avgNumOfSymbolsPerStep = Belt_Int.fromFloat(Belt_Float.fromInt(totalNumOfSymbols) /. Belt_Float.fromInt(totalNumOfSteps))
+    let maxSymbolsPerPage = 50_000
+    let maxStepsPerPage = Belt_Int.fromFloat(Belt_Float.fromInt(maxSymbolsPerPage) /. Belt_Float.fromInt(avgNumOfSymbolsPerStep))
+    Math.Int.min(maxStepsPerPage, 500)
 }
 
 let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable):state => {
@@ -162,6 +170,7 @@ let setProofTable = (st:state, ~proofTable:proofTable, ~dummyVarDisj:disjMutable
         essIdxs,
         stepRenum,
         expandedIdxs: [],
+        proofRecordsPerPage: calcProofRecordsPerPage(proofTable),
     }
 }
 
@@ -248,6 +257,7 @@ let createInitialState = (
         expandedIdxs: [],
         syntaxProofTableWasRequested: false,
         syntaxProofTableError: None,
+        proofRecordsPerPage: 300,
         pageIdx:0,
     }
     switch frame.proof {
@@ -736,6 +746,7 @@ let make = React.memoCustomCompareProps(({
                         switch res {
                             | Error(msg) => setLoadErr(_ => Some(msg))
                             | Ok((frmMmScopes,frmCtx)) => {
+                                setLoadPct(_ => 1.0)
                                 switch catchExn(() => {
                                     createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
@@ -1091,7 +1102,7 @@ let make = React.memoCustomCompareProps(({
                     | None => ()
                     | Some(showedIdx) => {
                         let pageIdx = Math.Int.floor(
-                            Belt_Float.fromInt(showedIdx) /. Belt_Float.fromInt(proofRecordsPerPage)
+                            Belt_Float.fromInt(showedIdx) /. Belt_Float.fromInt(state.proofRecordsPerPage)
                         )
                         actGoToPage(pageIdx)
                     }
@@ -1250,19 +1261,19 @@ let make = React.memoCustomCompareProps(({
             | None => React.null
             | Some(_) => {
                 let proofTableSize = getAllProofRecordsToShow(state)->Array.length
-                if (proofTableSize < proofRecordsPerPage) {
+                if (proofTableSize < state.proofRecordsPerPage) {
                     React.null
                 } else {
                     <div style=ReactDOM.Style.make(~padding="5px", ())>
                         <PaginationCmp
                             numOfPages=Math.Int.ceil(
-                                Belt_Float.fromInt(proofTableSize) /. Belt_Float.fromInt(proofRecordsPerPage)
+                                Belt_Float.fromInt(proofTableSize) /. Belt_Float.fromInt(state.proofRecordsPerPage)
                             )
                             pageIdx=state.pageIdx
                             siblingCount=1000
                             showGoToPage=false
                             onPageIdxChange=actGoToPage
-                            itemsPerPage=proofRecordsPerPage
+                            itemsPerPage=state.proofRecordsPerPage
                             showItemsPerPage=false
                         />
                     </div>
@@ -1337,8 +1348,8 @@ let make = React.memoCustomCompareProps(({
                         </thead>
                         <tbody >
                             {
-                                let minIdx = state.pageIdx*proofRecordsPerPage
-                                let maxIdx = minIdx + proofRecordsPerPage - 1
+                                let minIdx = state.pageIdx * state.proofRecordsPerPage
+                                let maxIdx = minIdx + state.proofRecordsPerPage - 1
                                 getAllProofRecordsToShow(state)
                                     ->Array.filterWithIndex((_, idx) => minIdx <= idx && idx <= maxIdx)
                                     ->Array.map(((pRec,idx)) => {
@@ -1397,7 +1408,13 @@ let make = React.memoCustomCompareProps(({
         | None => {
             switch loadErr {
                 | Some(msg) => `Error: ${msg}`->React.string
-                | None => `Loading ${floatToPctStr(loadPct)}`->React.string
+                | None => {
+                    if (loadPct < 1.0) {
+                        `Loading the context ${floatToPctStr(loadPct)}`->React.string
+                    } else {
+                        `Building the proof table...`->React.string
+                    }
+                }
             }
         }
         | Some(state) => {
