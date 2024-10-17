@@ -132,21 +132,21 @@ let makeSearchPattern = (~searchStr:string, ~ctx:mmContext): result<array<stmtPa
                     | Ok(resArr) => {
                         if (flags->Array.includes(Hyp) && flags->Array.includes(Asrt)) {
                             Error("A sub-pattern cannot be both a hypothesis and an assertion.")
+                        } else if (flags->Array.includes(Adj) && flags->Array.includes(Exact)) {
+                            Error("A sub-pattern cannot be both Adjacent and Exact.")
+                        } else if (syms->Array.length == 0) {
+                            Error("At least one symbol must be specified.")
                         } else {
-                            if (syms->Array.length == 0) {
-                                Error("At least one symbol must be specified.")
-                            } else {
-                                let incorrectSymbol = syms->Array.find(sym => {
-                                    ctx->ctxSymToInt(sym)->Option.isNone
-                                })
-                                switch incorrectSymbol {
-                                    | Some(sym) => Error(`'${sym}' - is not a constant or a variable.`)
-                                    | None => {
-                                        let varPat = ctx->ctxSymsToIntsExn(syms)
-                                        let constPat = varPat->Array.map(sym => sym < 0 ? sym : ctx->getTypeOfVarExn(sym))
-                                        resArr->Array.push({ flags, varPat, constPat, })
-                                        Ok(resArr)
-                                    }
+                            let incorrectSymbol = syms->Array.find(sym => {
+                                ctx->ctxSymToInt(sym)->Option.isNone
+                            })
+                            switch incorrectSymbol {
+                                | Some(sym) => Error(`'${sym}' - is not a constant or a variable.`)
+                                | None => {
+                                    let varPat = ctx->ctxSymsToIntsExn(syms)
+                                    let constPat = varPat->Array.map(sym => sym < 0 ? sym : ctx->getTypeOfVarExn(sym))
+                                    resArr->Array.push({ flags, varPat, constPat, })
+                                    Ok(resArr)
                                 }
                             }
                         }
@@ -173,23 +173,76 @@ let makeSearchPattern = (~searchStr:string, ~ctx:mmContext): result<array<stmtPa
     }
 }
 
-let frmExprMatchesConstPattern = (~frmExpr:expr, ~constPat:array<int>, ~varTypes:array<int>):bool => {
+let frmExprMatchesConstPattern = (
+    ~frmExpr:expr, 
+    ~constPat:array<int>, 
+    ~varTypes:array<int>, 
+    ~flags:array<patternModifier>,
+):bool => {
     let patLen = constPat->Array.length
     let asrtLen = frmExpr->Array.length
-    let pIdx = ref(0)
-    let aIdx = ref(0)
-    while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
-        let asrtSym = frmExpr->Array.getUnsafe(aIdx.contents)
-        let patSym = constPat->Array.getUnsafe(pIdx.contents)
-        if (
-            asrtSym < 0 && asrtSym == patSym
-            || asrtSym >= 0 && varTypes->Array.getUnsafe(asrtSym) == patSym
-        ) {
-            pIdx.contents = pIdx.contents + 1
+    if (flags->Array.includes(Exact)) {
+        frmExpr == constPat
+    } else if (flags->Array.includes(Adj)) {
+        let found = ref(false)
+        let i = ref(0)
+        let maxI = asrtLen - patLen
+        while (!found.contents && i.contents <= maxI) {
+            found := compareSubArrays(~src=frmExpr, ~srcFromIdx=i.contents, ~dst=constPat, ~dstFromIdx=0, ~len=patLen)
+            i.contents = i.contents + 1
         }
-        aIdx.contents = aIdx.contents + 1
+        found.contents
+    } else {
+        let pIdx = ref(0)
+        let aIdx = ref(0)
+        while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
+            let asrtSym = frmExpr->Array.getUnsafe(aIdx.contents)
+            let patSym = constPat->Array.getUnsafe(pIdx.contents)
+            if (
+                asrtSym < 0 && asrtSym == patSym
+                || asrtSym >= 0 && varTypes->Array.getUnsafe(asrtSym) == patSym
+            ) {
+                pIdx.contents = pIdx.contents + 1
+            }
+            aIdx.contents = aIdx.contents + 1
+        }
+        pIdx.contents == patLen
     }
-    pIdx.contents == patLen
+}
+
+let frmExprMatchesVarPatternAdj = (
+    ~frmExpr:expr, 
+    ~varPat:array<int>, 
+    ~constPat:array<int>,
+    ~varTypes:array<int>,
+    ~mapping:Belt_HashMapInt.t<int>,
+    ~fromIdx:int
+):bool => {
+    let pIdx = ref(0)
+    let maxPIdx = varPat->Array.length
+    let eIdx = ref(fromIdx)
+    let maxEIdx = frmExpr->Array.length
+    let match = ref(true)
+    while (match.contents && pIdx.contents <= maxPIdx && eIdx.contents <= maxEIdx) {
+        let asrtSym = frmExpr->Array.getUnsafe(eIdx.contents)
+        let varPatSym = varPat->Array.getUnsafe(pIdx.contents)
+        if ( asrtSym < 0 ) {
+            match := asrtSym == varPatSym
+        } else {
+            match := varTypes->Array.getUnsafe(asrtSym) == constPat->Array.getUnsafe(pIdx.contents)
+            if (match.contents && varPatSym >= 0) {
+                switch mapping->Belt_HashMapInt.get(varPatSym) {
+                    | None => mapping->Belt_HashMapInt.set(varPatSym, asrtSym)
+                    | Some(asrtVar) => match := asrtVar == asrtSym
+                }
+            }
+        }
+
+        pIdx := pIdx.contents + 1
+        eIdx := eIdx.contents + 1
+    }
+    mapping->Belt_HashMapInt.clear
+    match.contents && pIdx.contents > maxPIdx
 }
 
 let rec frmExprMatchesVarPatternRec = (
@@ -248,35 +301,57 @@ let rec frmExprMatchesVarPatternRec = (
     }
 }
 
+let frmExprMatchesVarPattern = (
+    ~frmExpr:expr, 
+    ~varPat:array<int>, 
+    ~constPat:array<int>,
+    ~varTypes:array<int>,
+    ~flags:array<patternModifier>,
+    ~mapping:Belt_HashMapInt.t<int>,
+):bool => {
+    let patLen = constPat->Array.length
+    let asrtLen = frmExpr->Array.length
+    if (flags->Array.includes(Exact)) {
+        patLen == asrtLen && frmExprMatchesVarPatternAdj(~frmExpr, ~varPat, ~constPat, ~varTypes, ~mapping, ~fromIdx=0)
+    } else if (flags->Array.includes(Adj)) {
+        let found = ref(false)
+        let i = ref(0)
+        let maxI = asrtLen - patLen
+        while (!found.contents && i.contents <= maxI) {
+            found := frmExprMatchesVarPatternAdj(~frmExpr, ~varPat, ~constPat, ~varTypes, ~mapping, ~fromIdx=i.contents)
+            i := i.contents + 1
+        }
+        found.contents
+    } else {
+        frmExprMatchesVarPatternRec( ~frmExpr, ~varPat, ~constPat, ~varTypes, ~mapping, ~pIdx=0, ~minAIdx=0, )
+    }
+}
+
 let frmExprMatchesPattern = (
     ~frmExpr:array<int>, 
     ~varPat:array<int>, 
     ~constPat:array<int>,
     ~varTypes:array<int>,
+    ~flags:array<patternModifier>,
     ~mapping:Belt_HashMapInt.t<int>
 ):bool => {
-    frmExprMatchesConstPattern(~frmExpr,~constPat,~varTypes) && 
-        frmExprMatchesVarPatternRec(
-            ~frmExpr, 
-            ~varPat, 
-            ~constPat,
-            ~varTypes,
-            ~mapping:Belt_HashMapInt.t<int>,
-            ~pIdx=0,
-            ~minAIdx=0,
-        )
+    frmExprMatchesConstPattern(~frmExpr,~constPat,~varTypes,~flags,) 
+        && frmExprMatchesVarPattern( ~frmExpr, ~varPat, ~constPat, ~varTypes, ~flags, ~mapping, )
 }
 
 let frameMatchesPattern1 = (
     ~frame:frame, 
     ~varPat:array<int>, 
     ~constPat:array<int>,
+    ~flags:array<patternModifier>,
     ~mapping:Belt_HashMapInt.t<int>
 ):bool => {
     let varTypes = frame.varTypes
-    frmExprMatchesPattern(~frmExpr=frame.asrt, ~varPat, ~constPat, ~varTypes, ~mapping)
+    frmExprMatchesPattern(~frmExpr=frame.asrt, ~varPat, ~constPat, ~varTypes, ~flags, ~mapping)
         || frame.hyps->Array.reduce(false, (res, hyp) => {
-            res || hyp.typ == E && frmExprMatchesPattern(~frmExpr=hyp.expr, ~varPat, ~constPat, ~varTypes, ~mapping)
+            res || hyp.typ == E && frmExprMatchesPattern(
+                ~frmExpr=hyp.expr, ~varPat, ~constPat, ~varTypes, ~flags, ~mapping
+            )
         })
 }
 
@@ -306,7 +381,7 @@ let frameMatchesPattern2 = (
     let asrtPatterns = searchPattern->Array.filter(pat => pat.flags->Array.includes(Asrt))
     switch asrtPatterns->Array.find(pat => {
         !frmExprMatchesPattern(~frmExpr=frame.asrt, 
-            ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~mapping)
+            ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~flags=pat.flags, ~mapping)
     }) {
         | Some(_) => false
         | None => {
@@ -325,7 +400,9 @@ let frameMatchesPattern2 = (
                                 let matchedIdxs = eHyps->Array.mapWithIndex((hyp,i) => (hyp,i))
                                     ->Array.filter(((hyp,_)) => 
                                         frmExprMatchesPattern(~frmExpr=hyp.expr, 
-                                            ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~mapping)
+                                            ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~flags=pat.flags, 
+                                            ~mapping
+                                        )
                                     )
                                     ->Array.map(((_,i)) => i)
                                 if (matchedIdxs->Array.length == 0) {
@@ -360,7 +437,7 @@ let frameMatchesPattern = (
         )
     ) {
         let pat = searchPattern->Array.getUnsafe(0)
-        frameMatchesPattern1( ~frame, ~varPat=pat.varPat, ~constPat=pat.constPat, ~mapping )
+        frameMatchesPattern1( ~frame, ~varPat=pat.varPat, ~constPat=pat.constPat, ~flags=pat.flags, ~mapping )
     } else {
         frameMatchesPattern2( ~frame, ~searchPattern, ~mapping )
     }
