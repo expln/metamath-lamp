@@ -166,7 +166,7 @@ type tokenType = C | V | F | E | A | P
 let getTokenType = (ctx:mmContext, token:string):option<tokenType> => {
     ctx.contents->forEachCtxInReverseOrder(ctx => {
         switch ctx.frames->Belt_HashMapString.get(token) {
-            | Some(frame) => if (frame.proof->Belt_Option.isNone) {Some(A)} else {Some(P)}
+            | Some(frame) => if (frame.isAxiom) {Some(A)} else {Some(P)}
             | None => {
                 switch ctx.labelToHyp->Belt_HashMapString.get(token) {
                     | Some(hyp) => if (hyp.typ == F) {Some(F)} else {Some(E)}

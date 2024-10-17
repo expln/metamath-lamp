@@ -47,6 +47,22 @@ describe("MM_wrk_editor integration tests: step renumbering", _ => {
         }
     })
 
+    it("the goal step is not renumbered when its label is digits only", _ => {
+        //given
+        setTestDataDir("renumbering")
+        let st = createEditorState( 
+            ~mmFilePath="./src/metamath/test/resources/int-test-data/renumbering/goal_no_renum._mm", 
+            ~editorState="goal_no_renum_init_state"
+        )
+        assertEditorState(st, "goal_no_renum_given")
+
+        //when/then
+        switch MM_wrk_editor.renumberProvableSteps(st) {
+            | Error(msg) => failMsg(msg)
+            | Ok(st) => assertEditorState(st, "goal_no_renum_then")
+        }
+    })
+
     it_skip("bad prefix", _ => {
         //given
         setTestDataDir("renumbering")

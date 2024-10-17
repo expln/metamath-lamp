@@ -2855,7 +2855,7 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
 
 let renumberProvableSteps = (state:editorState):result<editorState, string> => {
     state->renumberSteps(
-        ~isStmtToRenumber = stmt => stmt.typ == P && stmt.label->containsOnlyDigits,
+        ~isStmtToRenumber = stmt => stmt.typ == P && !stmt.isGoal && stmt.label->containsOnlyDigits,
         ~prefix="",
         ~forHyp=false,
     )

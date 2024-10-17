@@ -1,0 +1,25 @@
+$c |- T $.
+$v x $.
+
+1 $f T x $.
+
+asrt0  $a |- T $.
+
+${
+    asrt1.1 $e |- T $.
+    asrt1  $a |- T $.
+$}
+
+${
+    asrt2.1 $e |- T $.
+    asrt2.2 $e |- T $.
+    asrt2  $a |- T $.
+$}
+
+
+${
+    asrt3.1 $e |- T $.
+    asrt3.2 $e |- T $.
+    asrt3.3 $e |- T $.
+    asrt3  $a |- T $.
+$}
