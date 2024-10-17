@@ -10,8 +10,9 @@ type response
 
 type patternModifier = Hyp | Asrt | Exact | Adj
 type stmtPattern = {
-    mods: array<patternModifier>,
-    syms: array<int>,
+    flags: array<patternModifier>,
+    varPat: array<int>,
+    constPat: array<int>,
 }
 
 let parseSearchStr: string => result<array<(array<patternModifier>, array<string>)>,string>
@@ -49,6 +50,12 @@ let frameMatchesPattern: (
     ~frame:frame, 
     ~varPat:array<int>, 
     ~constPat:array<int>,
+    ~mapping:Belt_HashMapInt.t<int>
+) => bool
+
+let frameMatchesPattern2: (
+    ~frame:frame, 
+    ~patterns:array<stmtPattern>, 
     ~mapping:Belt_HashMapInt.t<int>
 ) => bool
 

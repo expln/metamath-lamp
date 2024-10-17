@@ -17,8 +17,9 @@ type response =
 
 type patternModifier = Hyp | Asrt | Exact | Adj
 type stmtPattern = {
-    mods: array<patternModifier>,
-    syms: array<int>,
+    flags: array<patternModifier>,
+    varPat: array<int>,
+    constPat: array<int>,
 }
 
 let reqToStr = req => {
@@ -225,6 +226,73 @@ let frameMatchesPattern = (
         || frame.hyps->Array.reduce(false, (res, hyp) => {
             res || hyp.typ == E && frmExprMatchesPattern(~frmExpr=hyp.expr, ~varPat, ~constPat, ~varTypes, ~mapping)
         })
+}
+
+let frameMatchesPattern2 = (
+    ~frame:frame, 
+    ~patterns:array<stmtPattern>, 
+    ~mapping:Belt_HashMapInt.t<int>
+):bool => {
+    let rec hasNonRepeatingPath = (~foundMatches:array<array<int>>, ~patIdx:int, ~path:array<int>):bool => {
+        if (patIdx == foundMatches->Array.length) {
+            true
+        } else {
+            foundMatches->Array.getUnsafe(patIdx)->Array.some(hypIdx => {
+                if (path->Array.includes(hypIdx)) {
+                    false
+                } else {
+                    path->Array.push(hypIdx)
+                    let result = hasNonRepeatingPath(~foundMatches, ~patIdx=patIdx+1, ~path)
+                    path->Array.pop->ignore
+                    result
+                }
+            })
+        }
+    }
+
+    let varTypes = frame.varTypes
+    let asrtPatterns = patterns->Array.filter(pat => pat.flags->Array.includes(Asrt))
+    switch asrtPatterns->Array.find(pat => {
+        !frmExprMatchesPattern(~frmExpr=frame.asrt, 
+            ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~mapping)
+    }) {
+        | Some(_) => false
+        | None => {
+            let hypPatterns = patterns->Array.filter(pat => pat.flags->Array.includes(Hyp))
+            if (hypPatterns->Array.length == 0) {
+                true
+            } else {
+                let eHyps = frame.hyps->Array.filter(hyp => hyp.typ == E)
+                if (eHyps->Array.length < hypPatterns->Array.length) {
+                    false
+                } else {
+                    let foundMatches = hypPatterns->Array.reduce(Some([]), (found, pat) => {
+                        switch found {
+                            | None => None
+                            | Some(matches) => {
+                                let matchedIdxs = eHyps->Array.mapWithIndex((hyp,i) => (hyp,i))
+                                    ->Array.filter(((hyp,_)) => 
+                                        frmExprMatchesPattern(~frmExpr=hyp.expr, 
+                                            ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~mapping)
+                                    )
+                                    ->Array.map(((_,i)) => i)
+                                if (matchedIdxs->Array.length == 0) {
+                                    None
+                                } else {
+                                    matches->Array.push(matchedIdxs)
+                                    Some(matches)
+                                }
+                            }
+                        }
+                    })
+                    switch foundMatches {
+                        | None => false
+                        | Some(foundMatches) => hasNonRepeatingPath(~foundMatches, ~patIdx=0, ~path=[])
+                    }
+                }
+            }
+        }
+    }
 }
 
 let searchAssertions = (
