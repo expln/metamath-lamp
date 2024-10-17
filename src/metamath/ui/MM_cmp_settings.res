@@ -1594,12 +1594,20 @@ let make = (
         </Row>
     }
 
+    let actOpenAboutThisAppDialog = () => {
+        openInfoDialog(
+            ~modalRef,
+            ~title="About this application",
+            ~content=<Static_XML_to_HTML xmlStr="Some text"/>, 
+        )
+    }
+
     let rndAboutThisApp = () => {
         <Row>
-            <span style=ReactDOM.Style.make(~cursor="pointer", ())>
+            <span style=ReactDOM.Style.make(~cursor="pointer", ()) onClick=clickHnd(~act=actOpenAboutThisAppDialog)>
                 <MM_Icons.HelpOutline/>
             </span>
-            <span style=ReactDOM.Style.make(~cursor="pointer", ())>
+            <span style=ReactDOM.Style.make(~cursor="pointer", ()) onClick=clickHnd(~act=actOpenAboutThisAppDialog)>
                 {React.string("About this application")}
             </span>
         </Row>
