@@ -1,6 +1,7 @@
 - add "About" page.
     https://github.com/expln/metamath-lamp/issues/72
 
+- Check why "resetNestingLevel" and "allLabels" appear in the exported JSON.
 - Embed the "current version of Metamath-lamp" in the exported JSON
     https://github.com/expln/metamath-lamp/issues/128
 - implement text comments for statements

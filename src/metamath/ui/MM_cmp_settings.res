@@ -1594,7 +1594,20 @@ let make = (
         </Row>
     }
 
+    let rndAboutThisApp = () => {
+        <Row>
+            <span style=ReactDOM.Style.make(~cursor="pointer", ())>
+                <MM_Icons.HelpOutline/>
+            </span>
+            <span style=ReactDOM.Style.make(~cursor="pointer", ())>
+                {React.string("About this application")}
+            </span>
+        </Row>
+    }
+
     <Col spacing=2. style=ReactDOM.Style.make(~margin="30px", ())>
+        {rndAboutThisApp()}
+        <Divider/>
         {rndApplyChangesBtn()}
         <Divider/>
         {rndParens()}
