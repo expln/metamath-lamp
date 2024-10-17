@@ -55,7 +55,7 @@ let contToArrStr = cont => {
     }
 }
 
-let contToStr = cont => {
+let contToStr = (cont:stmtCont):string => {
     switch cont {
         | Text({text}) | Tree({text}) => text
     }
@@ -978,6 +978,22 @@ let editorStateHasCriticalErrors = st => {
     st.varsErr->Belt_Option.isSome 
         || st.disjErr->Belt_Option.isSome 
         || st.stmts->Array.some(userStmtHasCriticalErrors)
+}
+
+let editorStateGetTextDescriptionOfAllCriticalErrors = (st:editorState):string => {
+    let res = []
+    st.varsErr->Option.forEach(msg => res->Array.push(`Variable definition error: ${msg}`))
+    st.disjErr->Option.forEach(msg => res->Array.push(`Disjoints error: ${msg}`))
+    if (st.stmts->Array.some(userStmtHasCriticalErrors)) {
+        res->Array.push(`Errors for steps:`)
+        st.stmts->Array.forEach(stmt => {
+            stmt.stmtErr->Option.forEach(err => {
+                res->Array.push(`${stmt.cont->contToStr}:`)
+                res->Array.push(err.msg)
+            })
+        })
+    }
+    res->Array.join(" \n")
 }
 
 let editorStateHasAnyErrors = st => {
@@ -2844,7 +2860,9 @@ let renumberSteps = (state:editorState, ~isStmtToRenumber:userStmt=>bool, ~prefi
             | Ok(state) => {
                 let state = state->prepareEditorForUnification
                 if (state->editorStateHasCriticalErrors) {
-                    Error( `Cannot renumber steps: there was an internal error during renumbering.` )
+                    Error( "Cannot renumber steps due to an internal error." 
+                        ++ " An error was detected in the editor content after a renumbering attempt." 
+                        ++ " All errors detected are: " ++ editorStateGetTextDescriptionOfAllCriticalErrors(state) )
                 } else {
                     Ok(state)
                 }
