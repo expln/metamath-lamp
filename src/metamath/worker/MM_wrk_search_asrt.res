@@ -55,7 +55,7 @@ let parseSearchStr = (searchStr:string): result<array<(array<patternModifier>, a
     let syms = []
     let sym = []
     let pos = ref(0)
-    let maxPos = searchStr->String.length
+    let maxPos = searchStr->String.length-1
     let err = ref(None)
 
     let addPos = (msg:string) => {
@@ -79,7 +79,9 @@ let parseSearchStr = (searchStr:string): result<array<(array<patternModifier>, a
 
     let commitStmtPattern = () => {
         saveLastReadSymbol()
-        if (Array.length(syms) > 0) {
+        if (flags->Array.length > 0 && syms->Array.length == 0) {
+            setError("At least one symbol is expected")
+        } else if (Array.length(syms) > 0) {
             result->Array.push((flags->Array.copy, syms->Array.copy))
             clearArray(flags)
             clearArray(syms)
@@ -97,7 +99,14 @@ let parseSearchStr = (searchStr:string): result<array<(array<patternModifier>, a
         } else if (inFlags.contents) {
             switch strToPatternModifier(ch) {
                 | Error(msg) => setError(msg)
-                | Ok(flag) => flags->Array.push(flag)
+                | Ok(flag) => {
+                    flags->Array.push(flag)
+                    if (flags->Array.includes(Hyp) && flags->Array.includes(Asrt)) {
+                        setError("A sub-pattern cannot be both a hypothesis and an assertion")
+                    } else if (flags->Array.includes(Adj) && flags->Array.includes(Exact)) {
+                        setError("A sub-pattern cannot be both Adjacent and Exact")
+                    }
+                }
             }
         } else if (ch == "$") {
             commitStmtPattern()
@@ -111,11 +120,21 @@ let parseSearchStr = (searchStr:string): result<array<(array<patternModifier>, a
     switch err.contents {
         | Some(msg) => Error(msg)
         | None => {
-            if (Array.length(flags) > 0 && Array.length(syms) == 0) {
-                Error(addPos("At least one symbol is expected"))
-            } else {
-                commitStmtPattern()
-                Ok(result)
+            commitStmtPattern()
+            switch err.contents {
+                | Some(msg) => Error(msg)
+                | None => {
+                    if (
+                        result->Array.length > 1
+                        && result->Array.some(
+                            ((flags, _)) => !(flags->Array.includes(Hyp) || flags->Array.includes(Asrt))
+                        )
+                    ) {
+                        Error("Each sub-pattern must be either a hypothesis or an assertion.")
+                    } else {
+                        Ok(result)
+                    }
+                }
             }
         }
     }
@@ -126,49 +145,25 @@ let makeSearchPattern = (~searchStr:string, ~ctx:mmContext): result<array<stmtPa
     switch parseSearchStr(searchStr) {
         | Error(msg) => Error(msg)
         | Ok(parsed) => {
-            let res = parsed->Array.reduce(Ok([]), (res, (flags, syms)) => {
+            parsed->Array.reduce(Ok([]), (res, (flags, syms)) => {
                 switch res {
                     | Error(_) => res
                     | Ok(resArr) => {
-                        if (flags->Array.includes(Hyp) && flags->Array.includes(Asrt)) {
-                            Error("A sub-pattern cannot be both a hypothesis and an assertion.")
-                        } else if (flags->Array.includes(Adj) && flags->Array.includes(Exact)) {
-                            Error("A sub-pattern cannot be both Adjacent and Exact.")
-                        } else if (syms->Array.length == 0) {
-                            Error("At least one symbol must be specified.")
-                        } else {
-                            let incorrectSymbol = syms->Array.find(sym => {
-                                ctx->ctxSymToInt(sym)->Option.isNone
-                            })
-                            switch incorrectSymbol {
-                                | Some(sym) => Error(`'${sym}' - is not a constant or a variable.`)
-                                | None => {
-                                    let varPat = ctx->ctxSymsToIntsExn(syms)
-                                    let constPat = varPat->Array.map(sym => sym < 0 ? sym : ctx->getTypeOfVarExn(sym))
-                                    resArr->Array.push({ flags, varPat, constPat, })
-                                    Ok(resArr)
-                                }
+                        let incorrectSymbol = syms->Array.find(sym => {
+                            ctx->ctxSymToInt(sym)->Option.isNone
+                        })
+                        switch incorrectSymbol {
+                            | Some(sym) => Error(`'${sym}' - is not a constant or a variable.`)
+                            | None => {
+                                let varPat = ctx->ctxSymsToIntsExn(syms)
+                                let constPat = varPat->Array.map(sym => sym < 0 ? sym : ctx->getTypeOfVarExn(sym))
+                                resArr->Array.push({ flags, varPat, constPat, })
+                                Ok(resArr)
                             }
                         }
                     }
                 }
             })
-            switch res {
-                | Error(_) => res
-                | Ok(resArr) => {
-                    if (resArr->Array.length > 1) {
-                        if (resArr->Array.some(
-                            pat => !(pat.flags->Array.includes(Hyp) || pat.flags->Array.includes(Asrt))
-                        )) {
-                            Error("Each sub-pattern must be either hypothesis or assertion.")
-                        } else {
-                            res
-                        }
-                    } else {
-                        res
-                    }
-                }
-            }
         }
     }
 }

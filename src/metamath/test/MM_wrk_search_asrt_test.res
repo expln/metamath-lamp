@@ -351,7 +351,35 @@ describe("frameMatchesPattern", _ => {
 
 describe("parseSearchStr", _ => {
     it("parses search patterns as expected", _ => {
-        let res = parseSearchStr("$h a b c $a d e f")
-        Console.log2(`res`, res->stringify)
+        assertEq(parseSearchStr("")->Result.getExn, [])
+        assertEq(parseSearchStr("a")->Result.getExn, [([], ["a"])])
+        assertEq(parseSearchStr("abc")->Result.getExn, [([], ["abc"])])
+        assertEq(parseSearchStr("a b c")->Result.getExn, [([], ["a", "b", "c"])])
+        assertEq(parseSearchStr("abc def")->Result.getExn, [([], ["abc", "def"])])
+        assertEq(parseSearchStr("abc def ghi")->Result.getExn, [([], ["abc", "def", "ghi"])])
+        assertEq(parseSearchStr("$a abc def")->Result.getExn, [([Asrt], ["abc", "def"])])
+        assertEq(parseSearchStr("$h abc def")->Result.getExn, [([Hyp], ["abc", "def"])])
+        assertEq(parseSearchStr("$+ abc def")->Result.getExn, [([Adj], ["abc", "def"])])
+        assertEq(parseSearchStr("$! abc def")->Result.getExn, [([Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$!\tabc\ndef")->Result.getExn, [([Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$a+ abc def")->Result.getExn, [([Asrt, Adj], ["abc", "def"])])
+        assertEq(parseSearchStr("$a! abc def")->Result.getExn, [([Asrt, Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$ah abc def"), Error("A sub-pattern cannot be both a hypothesis and an assertion at position 3."))
+        assertEq(parseSearchStr("$h+ abc def")->Result.getExn, [([Hyp, Adj], ["abc", "def"])])
+        assertEq(parseSearchStr("$h! abc def")->Result.getExn, [([Hyp, Exact], ["abc", "def"])])
+        assertEq(parseSearchStr("$ha abc def"), Error("A sub-pattern cannot be both a hypothesis and an assertion at position 3."))
+        assertEq(parseSearchStr("$!+ abc def"), Error("A sub-pattern cannot be both Adjacent and Exact at position 3."))
+        assertEq(parseSearchStr("$a") , Error("At least one symbol is expected at position 3."))
+
+        assertEq(parseSearchStr("$h abc def $a ghi jkl")->Result.getExn, [([Hyp], ["abc", "def"]), ([Asrt], ["ghi", "jkl"])])
+        assertEq(parseSearchStr("   $h+   abc \n $a! ghi \t")->Result.getExn, [([Hyp, Adj], ["abc"]), ([Asrt, Exact], ["ghi"])])
+        assertEq(
+            parseSearchStr("$h+ x = A $h+ ph <-> ps $a! |- ph")->Result.getExn, 
+            [([Hyp, Adj], ["x", "=", "A"]), ([Hyp, Adj], ["ph", "<->", "ps"]), ([Asrt, Exact], ["|-", "ph"])]
+        )
+
+        assertEq(parseSearchStr("abc  $a! ghi "), Error("Each sub-pattern must be either a hypothesis or an assertion."))
+        assertEq(parseSearchStr("$h abc  $h $a ghi "), Error("At least one symbol is expected at position 12."))
+
     })
 })
