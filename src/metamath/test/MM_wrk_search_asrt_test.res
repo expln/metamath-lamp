@@ -1,6 +1,7 @@
 open Expln_test
 open MM_context
 open MM_wrk_search_asrt
+open Expln_utils_common
 
 let createFrame = (asrt:expr, varTypes:array<int>, ~hyps:array<array<int>> = []):frame => {
     {
@@ -154,5 +155,12 @@ describe("frameMatchesPattern", _ => {
             frameMatchesPattern(~frame=createFrame(), ~varPat, ~constPat, ~mapping=Belt_HashMapInt.make(~hintSize=10)),
             false
         )
+    })
+})
+
+describe("parseSearchStr", _ => {
+    it("parses search patterns as expected", _ => {
+        let res = parseSearchStr("$h a b c $a d e f")
+        Console.log2(`res`, res->stringify)
     })
 })

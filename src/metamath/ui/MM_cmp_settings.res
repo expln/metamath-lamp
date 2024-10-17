@@ -1600,7 +1600,7 @@ let make = (
             <a href="https://us.metamath.org">Metamath</a> system. 
         </p>
         <p>
-            See the <a href="https://lamp-guide.metamath.org">Metamath-lamp Guide</a> to start using Metamath-lamp.
+            See the <a href="https://lamp-guide.metamath.org">Metamath-lamp Guide</a> to get started with Metamath-lamp.
         </p>
         <p>
             Check the source code <a href="https://github.com/expln/metamath-lamp">repository</a> to get more technical 

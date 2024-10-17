@@ -15,6 +15,12 @@ type response =
     | OnProgress(float)
     | SearchResult({found:array<stmtsDto>})
 
+type patternModifier = Hyp | Asrt | Exact | Adj
+type stmtPattern = {
+    mods: array<patternModifier>,
+    syms: array<int>,
+}
+
 let reqToStr = req => {
     switch req {
         | FindAssertions({label, typ, pattern}) => 
@@ -28,6 +34,90 @@ let respToStr = resp => {
         | OnProgress(pct) => `OnProgress(pct=${pct->Belt_Float.toString})`
         | SearchResult(_) => `SearchResult`
     }
+}
+
+let strToPatternModifier = (str:string):result<patternModifier, string> => {
+    switch str {
+        | "h" => Ok(Hyp)
+        | "a" => Ok(Asrt)
+        | "!" => Ok(Exact)
+        | "+" => Ok(Adj)
+        | _ => Error(`Cannot convert '${str}' to patternModifier`)
+    }
+}
+
+let parseSearchStr = (searchStr:string): result<array<(array<patternModifier>, array<string>)>,string> => {
+    let result = []
+    let inFlags = ref(false)
+    let flags:array<patternModifier> = []
+    let syms = []
+    let sym = []
+    let pos = ref(0)
+    let maxPos = searchStr->String.length
+    let err = ref(None)
+
+    let addPos = (msg:string) => {
+        msg ++ ` at position ${(pos.contents+1)->Belt_Int.toString}.`
+    }
+
+    let setError = (msg:string) => {
+        err := Some(addPos(msg))
+    }
+
+    let clearArray: 'a. array<'a> => unit = arr => {
+        arr->Array.splice(~start=0, ~remove=arr->Array.length, ~insert=[])
+    }
+
+    let saveLastReadSymbol = () => {
+        if (Array.length(sym) > 0) {
+            syms->Array.push(sym->Array.join(""))
+            clearArray(sym)
+        }
+    }
+
+    let commitStmtPattern = () => {
+        saveLastReadSymbol()
+        if (Array.length(syms) > 0) {
+            result->Array.push((flags->Array.copy, syms->Array.copy))
+            clearArray(flags)
+            clearArray(syms)
+        }
+    }
+
+    while (pos.contents <= maxPos && err.contents->Option.isNone) {
+        let ch = searchStr->String.charAt(pos.contents)
+        if (ch->String.trim == "") {
+            if (inFlags.contents) {
+                inFlags := false
+            } else {
+                saveLastReadSymbol()
+            }
+        } else if (inFlags.contents) {
+            switch strToPatternModifier(ch) {
+                | Error(msg) => setError(msg)
+                | Ok(flag) => flags->Array.push(flag)
+            }
+        } else if (ch == "$") {
+            commitStmtPattern()
+            inFlags := true
+        } else {
+            sym->Array.push(ch)
+        }
+        pos.contents = pos.contents + 1
+    }
+
+    switch err.contents {
+        | Some(msg) => Error(msg)
+        | None => {
+            if (Array.length(flags) > 0 && Array.length(syms) == 0) {
+                Error(addPos("At least one symbol is expected"))
+            } else {
+                commitStmtPattern()
+                Ok(result)
+            }
+        }
+    }
+    
 }
 
 let frmExprMatchesConstPattern = (~frmExpr:expr, ~constPat:array<int>, ~varTypes:array<int>):bool => {

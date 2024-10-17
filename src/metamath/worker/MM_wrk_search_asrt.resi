@@ -8,6 +8,14 @@ let procName: string
 type request
 type response
 
+type patternModifier = Hyp | Asrt | Exact | Adj
+type stmtPattern = {
+    mods: array<patternModifier>,
+    syms: array<int>,
+}
+
+let parseSearchStr: string => result<array<(array<patternModifier>, array<string>)>,string>
+
 let doSearchAssertions: (
     ~wrkCtx:mmContext,
     ~frms: frms,
