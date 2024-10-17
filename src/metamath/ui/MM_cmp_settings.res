@@ -1594,11 +1594,25 @@ let make = (
         </Row>
     }
 
+    let aboutThisAppText = `
+        <p>
+            Metamath-lamp is a proof assistant for creating formal mathematical proofs in the 
+            <a href="https://us.metamath.org">Metamath</a> system. 
+        </p>
+        <p>
+            See the <a href="https://lamp-guide.metamath.org">Metamath-lamp Guide</a> to start using Metamath-lamp.
+        </p>
+        <p>
+            Check the source code <a href="https://github.com/expln/metamath-lamp">repository</a> to get more technical 
+            details or report an issue.
+        </p>
+    `
+
     let actOpenAboutThisAppDialog = () => {
         openInfoDialog(
             ~modalRef,
             ~title="About this application",
-            ~content=<Static_XML_to_HTML xmlStr="Some text"/>, 
+            ~content=<Static_XML_to_HTML xmlStr=aboutThisAppText/>, 
         )
     }
 
