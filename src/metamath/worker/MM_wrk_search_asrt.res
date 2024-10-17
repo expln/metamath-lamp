@@ -5,15 +5,7 @@ open MM_substitution
 open MM_statements_dto
 open MM_progress_tracker
 open MM_wrk_settings
-
-let procName = "MM_wrk_search_asrt"
-
-type request = 
-    | FindAssertions({label:string, typ:int, pattern:array<int>})
-
-type response =
-    | OnProgress(float)
-    | SearchResult({found:array<stmtsDto>})
+open Expln_utils_common
 
 type patternModifier = Hyp | Asrt | Exact | Adj
 type stmtPattern = {
@@ -22,11 +14,20 @@ type stmtPattern = {
     constPat: array<int>,
 }
 
+let procName = "MM_wrk_search_asrt"
+
+type request = 
+    | FindAssertions({label:string, typ:int, searchPattern:array<stmtPattern>})
+
+type response =
+    | OnProgress(float)
+    | SearchResult({found:array<stmtsDto>})
+
 let reqToStr = req => {
     switch req {
-        | FindAssertions({label, typ, pattern}) => 
+        | FindAssertions({label, typ, searchPattern}) => 
             `FindAssertions(label="${label}", typ=${typ->Belt_Int.toString}, `
-                ++ `pattern=[${pattern->Array.map(Belt_Int.toString(_))->Array.joinUnsafe(", ")}])`
+                ++ `pattern=${stringify(searchPattern)})`
     }
 }
 
@@ -119,6 +120,57 @@ let parseSearchStr = (searchStr:string): result<array<(array<patternModifier>, a
         }
     }
     
+}
+
+let makeSearchPattern = (~searchStr:string, ~ctx:mmContext): result<array<stmtPattern>,string> => {
+    switch parseSearchStr(searchStr) {
+        | Error(msg) => Error(msg)
+        | Ok(parsed) => {
+            let res = parsed->Array.reduce(Ok([]), (res, (flags, syms)) => {
+                switch res {
+                    | Error(_) => res
+                    | Ok(resArr) => {
+                        if (flags->Array.includes(Hyp) && flags->Array.includes(Asrt)) {
+                            Error("A sub-pattern cannot be both a hypothesis and an assertion.")
+                        } else {
+                            if (syms->Array.length == 0) {
+                                Error("At least one symbol must be specified.")
+                            } else {
+                                let incorrectSymbol = syms->Array.find(sym => {
+                                    ctx->ctxSymToInt(sym)->Option.isNone
+                                })
+                                switch incorrectSymbol {
+                                    | Some(sym) => Error(`'${sym}' - is not a constant or a variable.`)
+                                    | None => {
+                                        let varPat = ctx->ctxSymsToIntsExn(syms)
+                                        let constPat = varPat->Array.map(sym => sym < 0 ? sym : ctx->getTypeOfVarExn(sym))
+                                        resArr->Array.push({ flags, varPat, constPat, })
+                                        Ok(resArr)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+            switch res {
+                | Error(_) => res
+                | Ok(resArr) => {
+                    if (resArr->Array.length > 1) {
+                        if (resArr->Array.some(
+                            pat => !(pat.flags->Array.includes(Hyp) || pat.flags->Array.includes(Asrt))
+                        )) {
+                            Error("Each sub-pattern must be either hypothesis or assertion.")
+                        } else {
+                            res
+                        }
+                    } else {
+                        res
+                    }
+                }
+            }
+        }
+    }
 }
 
 let frmExprMatchesConstPattern = (~frmExpr:expr, ~constPat:array<int>, ~varTypes:array<int>):bool => {
@@ -215,7 +267,7 @@ let frmExprMatchesPattern = (
         )
 }
 
-let frameMatchesPattern = (
+let frameMatchesPattern1 = (
     ~frame:frame, 
     ~varPat:array<int>, 
     ~constPat:array<int>,
@@ -230,7 +282,7 @@ let frameMatchesPattern = (
 
 let frameMatchesPattern2 = (
     ~frame:frame, 
-    ~patterns:array<stmtPattern>, 
+    ~searchPattern:array<stmtPattern>, 
     ~mapping:Belt_HashMapInt.t<int>
 ):bool => {
     let rec hasNonRepeatingPath = (~foundMatches:array<array<int>>, ~patIdx:int, ~path:array<int>):bool => {
@@ -251,14 +303,14 @@ let frameMatchesPattern2 = (
     }
 
     let varTypes = frame.varTypes
-    let asrtPatterns = patterns->Array.filter(pat => pat.flags->Array.includes(Asrt))
+    let asrtPatterns = searchPattern->Array.filter(pat => pat.flags->Array.includes(Asrt))
     switch asrtPatterns->Array.find(pat => {
         !frmExprMatchesPattern(~frmExpr=frame.asrt, 
             ~varPat=pat.varPat, ~constPat=pat.constPat, ~varTypes, ~mapping)
     }) {
         | Some(_) => false
         | None => {
-            let hypPatterns = patterns->Array.filter(pat => pat.flags->Array.includes(Hyp))
+            let hypPatterns = searchPattern->Array.filter(pat => pat.flags->Array.includes(Hyp))
             if (hypPatterns->Array.length == 0) {
                 true
             } else {
@@ -295,6 +347,25 @@ let frameMatchesPattern2 = (
     }
 }
 
+let frameMatchesPattern = (
+    ~frame:frame, 
+    ~searchPattern:array<stmtPattern>, 
+    ~mapping:Belt_HashMapInt.t<int>
+):bool => {
+    if (
+        searchPattern->Array.length == 1 
+        && !(
+            (searchPattern->Array.getUnsafe(0)).flags->Array.includes(Hyp) 
+            || (searchPattern->Array.getUnsafe(0)).flags->Array.includes(Asrt)
+        )
+    ) {
+        let pat = searchPattern->Array.getUnsafe(0)
+        frameMatchesPattern1( ~frame, ~varPat=pat.varPat, ~constPat=pat.constPat, ~mapping )
+    } else {
+        frameMatchesPattern2( ~frame, ~searchPattern, ~mapping )
+    }
+}
+
 let searchAssertions = (
     ~settingsVer:int,
     ~settings:settings,
@@ -304,7 +375,7 @@ let searchAssertions = (
     ~disjText: string,
     ~label:string,
     ~typ:int, 
-    ~pattern:array<int>,
+    ~searchPattern:array<stmtPattern>,
     ~onProgress:float=>unit,
 ): promise<array<stmtsDto>> => {
     promise(resolve => {
@@ -316,7 +387,7 @@ let searchAssertions = (
             ~varsText,
             ~disjText,
             ~procName,
-            ~initialRequest = FindAssertions({label:label->String.toLowerCase, typ, pattern}),
+            ~initialRequest = FindAssertions({label:label->String.toLowerCase, typ, searchPattern}),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
@@ -386,21 +457,13 @@ let doSearchAssertions = (
     ~frms:frms,
     ~label:string, 
     ~typ:int, 
-    ~pattern:array<int>, 
+    ~searchPattern:array<stmtPattern>,
     ~onProgress:option<float=>unit>=?
 ):array<stmtsDto> => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = frms->frmsSize->Belt_Int.toFloat
-    let varPat = pattern
-    let constPat = varPat->Array.map(sym => {
-        if (sym < 0) {
-            sym
-        } else {
-            wrkCtx->getTypeOfVarExn(sym)
-        }
-    })
-    let mapping = Belt_HashMapInt.make(~hintSize=varPat->Array.length)
+    let mapping = Belt_HashMapInt.make(~hintSize=10)
 
     let results = []
     let framesInDeclarationOrder = frms->frmsSelect
@@ -410,7 +473,7 @@ let doSearchAssertions = (
         if (
             frame.label->String.toLowerCase->String.includes(label)
             && frame.asrt->Array.getUnsafe(0) == typ 
-            && frameMatchesPattern(~frame, ~varPat, ~constPat, ~mapping)
+            && frameMatchesPattern(~frame, ~searchPattern, ~mapping)
         ) {
             results->Array.push(frameToStmtsDto( ~wrkCtx, ~frame, ))
         }
@@ -425,13 +488,13 @@ let doSearchAssertions = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({label, typ, pattern}) => {
+        | FindAssertions({label, typ, searchPattern}) => {
             let results = doSearchAssertions(
                 ~wrkCtx=getWrkCtxExn(), 
                 ~frms = getWrkFrmsExn(),
                 ~label, 
                 ~typ, 
-                ~pattern, 
+                ~searchPattern, 
                 ~onProgress = pct => sendToClient(OnProgress(pct))
             )
             sendToClient(SearchResult({found:results}))

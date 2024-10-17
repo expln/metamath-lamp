@@ -79,28 +79,17 @@ let make = React.memoCustomCompareProps(({
     }
 
     let actApplyFilters = () => {
-        let patternFilterSyms = patternFilterStr->getSpaceSeparatedValuesAsArray
-        let incorrectSymbol = patternFilterSyms->Array.find(sym => {
-            preCtxData.ctxV.val->ctxSymToInt(sym)->Belt.Option.isNone
-        })
-        switch incorrectSymbol {
-            | Some(sym) => setPatternFilterErr(_ => Some(`'${sym}' - is not a constant or a variable.`))
-            | None => {
+        let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
+            ~searchStr=patternFilterStr->String.trim,
+            ~ctx=preCtxData.ctxV.val
+        )
+        switch searchPattern {
+            | Error(msg) => setPatternFilterErr(_ => Some(msg))
+            | Ok(searchPattern) => {
                 setPatternFilterErr(_ => None)
-                let varPat = preCtxData.ctxV.val->ctxSymsToIntsExn(patternFilterSyms)
-                let constPat = varPat->Array.map(sym => {
-                    if (sym < 0) {
-                        sym
-                    } else {
-                        preCtxData.ctxV.val->getTypeOfVarExn(sym)
-                    }
-                })
-                let mapping = Belt_HashMapInt.make(~hintSize=varPat->Array.length)
+                let mapping = Belt_HashMapInt.make(~hintSize=10)
                 let frameMatchesPattern = frame => MM_wrk_search_asrt.frameMatchesPattern(
-                    ~frame, 
-                    ~varPat,
-                    ~constPat,
-                    ~mapping
+                    ~frame, ~searchPattern, ~mapping
                 )
                 let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
                 let descrFilterStrTrim = descrFilterStr->String.trim->String.toLowerCase

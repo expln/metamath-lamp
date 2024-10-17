@@ -228,7 +228,10 @@ let addStmtsBySearch = (
                 ~frms=st.frms,
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
                 ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
-                ~pattern=st.preCtx->ctxStrToIntsExn(filterPattern->Belt_Option.getWithDefault(""))
+                ~searchPattern=makeSearchPattern(
+                    ~searchStr=filterPattern->Belt_Option.getWithDefault(""),
+                    ~ctx=st.preCtx
+                )->Result.getExn
             )
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 

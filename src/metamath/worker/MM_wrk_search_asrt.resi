@@ -16,13 +16,14 @@ type stmtPattern = {
 }
 
 let parseSearchStr: string => result<array<(array<patternModifier>, array<string>)>,string>
+let makeSearchPattern: (~searchStr:string, ~ctx:mmContext) => result<array<stmtPattern>, string>
 
 let doSearchAssertions: (
     ~wrkCtx:mmContext,
     ~frms: frms,
     ~label: string,
     ~typ: int,
-    ~pattern: array<int>,
+    ~searchPattern:array<stmtPattern>,
     ~onProgress: float => unit=?,
 ) => array<stmtsDto>
 
@@ -35,7 +36,7 @@ let searchAssertions: (
     ~disjText: string,
     ~label:string,
     ~typ: int,
-    ~pattern: array<int>,
+    ~searchPattern:array<stmtPattern>,
     ~onProgress:float=>unit,
 ) => promise<array<stmtsDto>>
 
@@ -48,14 +49,7 @@ let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => uni
 
 let frameMatchesPattern: (
     ~frame:frame, 
-    ~varPat:array<int>, 
-    ~constPat:array<int>,
-    ~mapping:Belt_HashMapInt.t<int>
-) => bool
-
-let frameMatchesPattern2: (
-    ~frame:frame, 
-    ~patterns:array<stmtPattern>, 
+    ~searchPattern:array<stmtPattern>, 
     ~mapping:Belt_HashMapInt.t<int>
 ) => bool
 
