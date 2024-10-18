@@ -1,7 +1,6 @@
 open Expln_test
 open MM_context
 open MM_wrk_search_asrt
-open Expln_utils_common
 
 let createFrame = (~asrt:expr, ~varTypes:array<int>, ~hyps:array<array<int>> = []):frame => {
     {
@@ -556,6 +555,89 @@ describe("frameMatchesPattern", _ => {
             frameMatchesPattern(
                 ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
                 ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+    })
+
+    it("single sub-pattern with Exact matches asrt or hyp", _ => {
+        let frmExprToMatch = [dblarr,2,arr,3]
+        let frmExpr1 = [0, eq, 1, eq, 2]
+        let frmExpr2 = [1,eq,0]
+        let varPat = [dblarr,100,arr,101]
+        let constPat = [dblarr,wff,arr,wff]
+        let mapping=Belt_HashMapInt.make(~hintSize=10)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Exact], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExprToMatch, frmExpr2, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Exact], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Exact], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Exact], varPat:constPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )        
+
+        //when distinct vars condition is not met
+        let varPat2 = varPat->Array.copy
+        varPat2[3] = varPat2->Array.getUnsafe(1)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Exact], varPat:varPat2, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+
+        //when the expression to match has additional symbols
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch->Array.splice(~start=0, ~remove=0, ~insert=[eq])
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Exact], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch->Array.splice(~start=frmExprToMismatch->Array.length, ~remove=0, ~insert=[eq])
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Exact], varPat:varPat, constPat:constPat} ], 
                 ~mapping
             ), 
             false
