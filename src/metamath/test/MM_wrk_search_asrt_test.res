@@ -651,6 +651,78 @@ describe("frameMatchesPattern", _ => {
             true
         )
     })
+
+    it("multiple sub-patterns with different modifiers match asrt and hyp", _ => {
+        let hyp1Expr = [0, eq, 1, dblarr, 2]
+        let hyp2Expr = [1,eq,0]
+        let asrtExpr = [dblarr,2,3,eq,0,arr,2]
+        let mapping=Belt_HashMapInt.make(~hintSize=10)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ hyp1Expr, hyp2Expr, ], ~asrt=asrtExpr, ),
+                ~searchPattern=[ 
+                    {flags:[Hyp], varPat:[eq,100,101], constPat:[eq,class,wff]},
+                    {flags:[Hyp,Exact], varPat:[200,eq,201], constPat:[class,eq,setvar]},
+                    {flags:[Asrt,Adj], varPat:[300,arr,301], constPat:[setvar,arr,wff]},
+                ], 
+                ~mapping
+            ), 
+            true
+        )
+        //fails for hyp1
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ hyp1Expr, hyp2Expr, ], ~asrt=asrtExpr, ),
+                ~searchPattern=[ 
+                    {flags:[Hyp,Exact], varPat:[eq,100,101], constPat:[eq,class,wff]},
+                    {flags:[Hyp,Exact], varPat:[200,eq,201], constPat:[class,eq,setvar]},
+                    {flags:[Asrt,Adj], varPat:[300,arr,301], constPat:[setvar,arr,wff]},
+                ], 
+                ~mapping
+            ), 
+            false
+        )
+        //fails for hyp2
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ hyp1Expr, hyp2Expr, ], ~asrt=asrtExpr, ),
+                ~searchPattern=[ 
+                    {flags:[Hyp], varPat:[eq,100,101], constPat:[eq,class,wff]},
+                    {flags:[Hyp,Exact], varPat:[200,eq,200], constPat:[class,eq,setvar]},
+                    {flags:[Asrt,Adj], varPat:[300,arr,301], constPat:[setvar,arr,wff]},
+                ], 
+                ~mapping
+            ), 
+            false
+        )
+        //fails for asrt
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ hyp1Expr, hyp2Expr, ], ~asrt=asrtExpr, ),
+                ~searchPattern=[ 
+                    {flags:[Hyp], varPat:[eq,100,101], constPat:[eq,class,wff]},
+                    {flags:[Hyp,Exact], varPat:[200,eq,201], constPat:[class,eq,setvar]},
+                    {flags:[Asrt,Adj], varPat:[302,300,arr,301], constPat:[wff,setvar,arr,wff]},
+                ], 
+                ~mapping
+            ), 
+            false
+        )
+        //fails due to same hyp is matched by two sub-patterns
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ hyp1Expr, hyp2Expr, ], ~asrt=asrtExpr, ),
+                ~searchPattern=[ 
+                    {flags:[Hyp], varPat:[eq,100,101], constPat:[eq,class,wff]},
+                    {flags:[Hyp], varPat:[eq,100,101], constPat:[eq,class,wff]},
+                    {flags:[Asrt,Adj], varPat:[300,arr,301], constPat:[setvar,arr,wff]},
+                ], 
+                ~mapping
+            ), 
+            false
+        )
+        
+    })
 })
 
 describe("parseSearchStr", _ => {
