@@ -197,13 +197,13 @@ let frmExprMatchesConstPattern = (
     ~flags:array<patternModifier>,
 ):bool => {
     let patLen = constPat->Array.length
-    let asrtLen = frmExpr->Array.length
+    let frmExprLen = frmExpr->Array.length
     if (flags->Array.includes(Exact)) {
-        frmExprMatchesConstPatternAdj( ~frmExpr, ~constPat, ~varTypes, ~fromIdx=0 )
+        patLen == frmExprLen && frmExprMatchesConstPatternAdj( ~frmExpr, ~constPat, ~varTypes, ~fromIdx=0 )
     } else if (flags->Array.includes(Adj)) {
         let found = ref(false)
         let i = ref(0)
-        let maxI = asrtLen - patLen
+        let maxI = frmExprLen - patLen
         while (!found.contents && i.contents <= maxI) {
             found := frmExprMatchesConstPatternAdj( ~frmExpr, ~constPat, ~varTypes, ~fromIdx=i.contents )
             i.contents = i.contents + 1
@@ -212,7 +212,7 @@ let frmExprMatchesConstPattern = (
     } else {
         let pIdx = ref(0)
         let aIdx = ref(0)
-        while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
+        while (pIdx.contents < patLen && aIdx.contents < frmExprLen) {
             let frmSym = frmExpr->Array.getUnsafe(aIdx.contents)
             let patSym = constPat->Array.getUnsafe(pIdx.contents)
             if (
@@ -327,13 +327,14 @@ let frmExprMatchesVarPattern = (
     ~mapping:Belt_HashMapInt.t<int>,
 ):bool => {
     let patLen = constPat->Array.length
-    let asrtLen = frmExpr->Array.length
+    let frmExprLen = frmExpr->Array.length
     if (flags->Array.includes(Exact)) {
-        patLen == asrtLen && frmExprMatchesVarPatternAdj(~frmExpr, ~varPat, ~constPat, ~varTypes, ~mapping, ~fromIdx=0)
+        patLen == frmExprLen 
+            && frmExprMatchesVarPatternAdj(~frmExpr, ~varPat, ~constPat, ~varTypes, ~mapping, ~fromIdx=0)
     } else if (flags->Array.includes(Adj)) {
         let found = ref(false)
         let i = ref(0)
-        let maxI = asrtLen - patLen
+        let maxI = frmExprLen - patLen
         while (!found.contents && i.contents <= maxI) {
             found := frmExprMatchesVarPatternAdj(~frmExpr, ~varPat, ~constPat, ~varTypes, ~mapping, ~fromIdx=i.contents)
             i := i.contents + 1
