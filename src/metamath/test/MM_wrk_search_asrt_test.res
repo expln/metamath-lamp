@@ -392,12 +392,12 @@ describe("frameMatchesPattern", _ => {
         )
 
         //when distinct vars condition is not met
-        let frmExprToMismatch = frmExprToMatch->Array.copy
-        frmExprToMismatch[3] = frmExprToMismatch->Array.getUnsafe(1)
+        let varPat2 = varPat->Array.copy
+        varPat2[3] = varPat2->Array.getUnsafe(1)
         assertEq(
             frameMatchesPattern(
-                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
-                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat2, constPat:constPat} ], 
                 ~mapping
             ), 
             false
@@ -465,12 +465,12 @@ describe("frameMatchesPattern", _ => {
         )
 
         //when distinct vars condition is not met
-        let frmExprToMismatch = frmExprToMatch->Array.copy
-        frmExprToMismatch[5] = frmExprToMismatch->Array.getUnsafe(3)
+        let varPat2 = varPat->Array.copy
+        varPat2[3] = varPat2->Array.getUnsafe(1)
         assertEq(
             frameMatchesPattern(
-                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
-                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat2, constPat:constPat} ], 
                 ~mapping
             ), 
             false
@@ -538,12 +538,12 @@ describe("frameMatchesPattern", _ => {
         )        
 
         //when distinct vars condition is not met
-        let frmExprToMismatch = frmExprToMatch->Array.copy
-        frmExprToMismatch[7] = frmExprToMismatch->Array.getUnsafe(5)
+        let varPat2 = varPat->Array.copy
+        varPat2[3] = varPat2->Array.getUnsafe(1)
         assertEq(
             frameMatchesPattern(
-                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
-                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat2, constPat:constPat} ], 
                 ~mapping
             ), 
             false
