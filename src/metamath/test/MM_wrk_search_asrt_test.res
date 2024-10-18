@@ -181,8 +181,11 @@ describe("frameMatchesPattern", _ => {
     })
 
     let arr = -12
-    let eq = -13
+    let dblarr = -13
+    let eq = -14
     let wff = -1
+    let setvar = -2
+    let class = -3
 
     it("only asrt pattern", _ => {
         assertEq(
@@ -343,6 +346,225 @@ describe("frameMatchesPattern", _ => {
                     {flags:[Asrt], varPat:[100,arr,101], constPat:[wff,arr,wff]},
                 ], 
                 ~mapping=Belt_HashMapInt.make(~hintSize=10)
+            ), 
+            true
+        )
+    })
+
+    it("single sub-pattern with Adj matches asrt or hyp at the left edge", _ => {
+        let frmExprToMatch = [dblarr,2,arr,3,eq,0,eq,1,]
+        let frmExpr1 = [0, eq, 1, eq, 2]
+        let frmExpr2 = [1,eq,0]
+        let varPat = [dblarr,100,arr,101]
+        let constPat = [dblarr,wff,arr,wff]
+        let mapping=Belt_HashMapInt.make(~hintSize=10)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExprToMatch, frmExpr2, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:constPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+
+        //when distinct vars condition is not met
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch[3] = frmExprToMismatch->Array.getUnsafe(1)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+
+        //when the expression to match is not adjacent
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch->Array.splice(~start=1, ~remove=0, ~insert=[eq])
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+    })
+
+    it("single sub-pattern with Adj matches asrt or hyp in the middle", _ => {
+        let frmExprToMatch = [arr,2,dblarr,2,arr,3,eq,0,eq,1,]
+        let frmExpr1 = [0, eq, 1, eq, 2]
+        let frmExpr2 = [1,eq,0]
+        let varPat = [dblarr,100,arr,101]
+        let constPat = [dblarr,wff,arr,wff]
+        let mapping=Belt_HashMapInt.make(~hintSize=10)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExprToMatch, frmExpr2, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:constPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+
+        //when distinct vars condition is not met
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch[5] = frmExprToMismatch->Array.getUnsafe(3)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+
+        //when the expression to match is not adjacent
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch->Array.splice(~start=3, ~remove=0, ~insert=[eq])
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+    })
+
+    it("single sub-pattern with Adj matches asrt or hyp at the right edge", _ => {
+        let frmExprToMatch = [eq,0,eq,1,dblarr,2,arr,3]
+        let frmExpr1 = [0, eq, 1, eq, 2]
+        let frmExpr2 = [1,eq,0]
+        let varPat = [dblarr,100,arr,101]
+        let constPat = [dblarr,wff,arr,wff]
+        let mapping=Belt_HashMapInt.make(~hintSize=10)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExprToMatch, frmExpr2, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr2, frmExprToMatch, ], ~asrt=frmExpr1, ),
+                ~searchPattern=[ {flags:[Adj], varPat:constPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            true
+        )        
+
+        //when distinct vars condition is not met
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch[7] = frmExprToMismatch->Array.getUnsafe(5)
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+
+        //when the expression to match is not adjacent
+        let frmExprToMismatch = frmExprToMatch->Array.copy
+        frmExprToMismatch->Array.splice(~start=5, ~remove=0, ~insert=[eq])
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[Adj], varPat:varPat, constPat:constPat} ], 
+                ~mapping
+            ), 
+            false
+        )
+        assertEq(
+            frameMatchesPattern(
+                ~frame=createFrame( ~varTypes=[setvar,class,wff,wff], ~hyps=[ frmExpr1, frmExpr2, ], ~asrt=frmExprToMismatch, ),
+                ~searchPattern=[ {flags:[], varPat:varPat, constPat:constPat} ], 
+                ~mapping
             ), 
             true
         )

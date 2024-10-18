@@ -168,6 +168,28 @@ let makeSearchPattern = (~searchStr:string, ~ctx:mmContext): result<array<stmtPa
     }
 }
 
+let frmExprMatchesConstPatternAdj = (
+    ~frmExpr:expr, 
+    ~constPat:array<int>,
+    ~varTypes:array<int>,
+    ~fromIdx:int
+):bool => {
+    let pIdx = ref(0)
+    let maxPIdx = constPat->Array.length-1
+    let eIdx = ref(fromIdx)
+    let maxEIdx = frmExpr->Array.length-1
+    let match = ref(true)
+    while (match.contents && pIdx.contents <= maxPIdx && eIdx.contents <= maxEIdx) {
+        let frmSym = frmExpr->Array.getUnsafe(eIdx.contents)
+        let constPatSym = constPat->Array.getUnsafe(pIdx.contents)
+        match := frmSym < 0 && frmSym == constPatSym
+            || frmSym >= 0 && varTypes->Array.getUnsafe(frmSym) == constPatSym
+        pIdx := pIdx.contents + 1
+        eIdx := eIdx.contents + 1
+    }
+    match.contents && pIdx.contents > maxPIdx
+}
+
 let frmExprMatchesConstPattern = (
     ~frmExpr:expr, 
     ~constPat:array<int>, 
@@ -177,13 +199,13 @@ let frmExprMatchesConstPattern = (
     let patLen = constPat->Array.length
     let asrtLen = frmExpr->Array.length
     if (flags->Array.includes(Exact)) {
-        frmExpr == constPat
+        frmExprMatchesConstPatternAdj( ~frmExpr, ~constPat, ~varTypes, ~fromIdx=0 )
     } else if (flags->Array.includes(Adj)) {
         let found = ref(false)
         let i = ref(0)
         let maxI = asrtLen - patLen
         while (!found.contents && i.contents <= maxI) {
-            found := compareSubArrays(~src=frmExpr, ~srcFromIdx=i.contents, ~dst=constPat, ~dstFromIdx=0, ~len=patLen)
+            found := frmExprMatchesConstPatternAdj( ~frmExpr, ~constPat, ~varTypes, ~fromIdx=i.contents )
             i.contents = i.contents + 1
         }
         found.contents
@@ -191,11 +213,11 @@ let frmExprMatchesConstPattern = (
         let pIdx = ref(0)
         let aIdx = ref(0)
         while (pIdx.contents < patLen && aIdx.contents < asrtLen) {
-            let asrtSym = frmExpr->Array.getUnsafe(aIdx.contents)
+            let frmSym = frmExpr->Array.getUnsafe(aIdx.contents)
             let patSym = constPat->Array.getUnsafe(pIdx.contents)
             if (
-                asrtSym < 0 && asrtSym == patSym
-                || asrtSym >= 0 && varTypes->Array.getUnsafe(asrtSym) == patSym
+                frmSym < 0 && frmSym == patSym
+                || frmSym >= 0 && varTypes->Array.getUnsafe(frmSym) == patSym
             ) {
                 pIdx.contents = pIdx.contents + 1
             }
@@ -214,21 +236,21 @@ let frmExprMatchesVarPatternAdj = (
     ~fromIdx:int
 ):bool => {
     let pIdx = ref(0)
-    let maxPIdx = varPat->Array.length
+    let maxPIdx = varPat->Array.length-1
     let eIdx = ref(fromIdx)
-    let maxEIdx = frmExpr->Array.length
+    let maxEIdx = frmExpr->Array.length-1
     let match = ref(true)
     while (match.contents && pIdx.contents <= maxPIdx && eIdx.contents <= maxEIdx) {
-        let asrtSym = frmExpr->Array.getUnsafe(eIdx.contents)
+        let frmSym = frmExpr->Array.getUnsafe(eIdx.contents)
         let varPatSym = varPat->Array.getUnsafe(pIdx.contents)
-        if ( asrtSym < 0 ) {
-            match := asrtSym == varPatSym
+        if ( frmSym < 0 ) {
+            match := frmSym == varPatSym
         } else {
-            match := varTypes->Array.getUnsafe(asrtSym) == constPat->Array.getUnsafe(pIdx.contents)
+            match := varTypes->Array.getUnsafe(frmSym) == constPat->Array.getUnsafe(pIdx.contents)
             if (match.contents && varPatSym >= 0) {
                 switch mapping->Belt_HashMapInt.get(varPatSym) {
-                    | None => mapping->Belt_HashMapInt.set(varPatSym, asrtSym)
-                    | Some(asrtVar) => match := asrtVar == asrtSym
+                    | None => mapping->Belt_HashMapInt.set(varPatSym, frmSym)
+                    | Some(savedFrmSym) => match := savedFrmSym == frmSym
                 }
             }
         }
@@ -268,22 +290,22 @@ let rec frmExprMatchesVarPatternRec = (
         let found = ref(false)
         let maxAIdx = frmExpr->Array.length - (varPat->Array.length - pIdx)
         while (!found.contents && aIdx.contents <= maxAIdx) {
-            let asrtSym = frmExpr->Array.getUnsafe(aIdx.contents)
+            let frmSym = frmExpr->Array.getUnsafe(aIdx.contents)
             let varPatSym = varPat->Array.getUnsafe(pIdx)
-            if ( asrtSym < 0 && asrtSym == varPatSym ) {
+            if ( frmSym < 0 && frmSym == varPatSym ) {
                 found := remainingMatches()
-            } else if ( asrtSym >= 0 && varTypes->Array.getUnsafe(asrtSym) == constPat->Array.getUnsafe(pIdx) ) {
+            } else if ( frmSym >= 0 && varTypes->Array.getUnsafe(frmSym) == constPat->Array.getUnsafe(pIdx) ) {
                 if ( varPatSym < 0 ) {
                     found := remainingMatches()
                 } else {
                     switch mapping->Belt_HashMapInt.get(varPatSym) {
                         | None => {
-                            mapping->Belt_HashMapInt.set(varPatSym, asrtSym)
+                            mapping->Belt_HashMapInt.set(varPatSym, frmSym)
                             found := remainingMatches()
                             mapping->Belt_HashMapInt.remove(varPatSym)
                         }
-                        | Some(asrtVar) => {
-                            if (asrtVar == asrtSym) {
+                        | Some(savedFrmSym) => {
+                            if (savedFrmSym == frmSym) {
                                 found := remainingMatches()
                             }
                         }
