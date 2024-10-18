@@ -2,7 +2,6 @@ open MM_parser
 open MM_context
 open MM_unification_debug
 open Common
-open Expln_utils_common
 
 type proofNodeDbg = {
     exprStr: string,
@@ -30,6 +29,23 @@ let proofNodeGetId = (node:proofNode):int => {
 }
 
 let stGetExpr = (stack:proofStack, i:int):expr => stack.nodes->Array.getUnsafe(i)->proofNodeGetExpr
+
+let compareSubArrays = (~src:array<'t>, ~srcFromIdx:int, ~dst:array<'t>, ~dstFromIdx:int, ~len:int): bool => {
+    let s = ref(srcFromIdx)
+    let d = ref(dstFromIdx)
+    let srcLen = src->Array.length
+    let dstLen = dst->Array.length
+    if (srcLen < srcFromIdx+len || dstLen < dstFromIdx+len) {
+        false
+    } else {
+        let sMax = srcFromIdx+len-1
+        while (s.contents <= sMax && src->Array.getUnsafe(s.contents) == dst->Array.getUnsafe(d.contents)) {
+            d.contents = d.contents + 1
+            s.contents = s.contents + 1
+        }
+        s.contents > sMax
+    }
+}
 
 let compareExprAfterSubstitution = (expr:expr, subs, eqTo:expr): bool => {
     let e = ref(0)
