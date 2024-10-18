@@ -197,15 +197,12 @@ let make = (
 
     let actSearch = () => {
         onTypChange(state.typ)
-        let incorrectSymbol = state.patternStr->getSpaceSeparatedValuesAsArray->Array.find(sym => {
-            wrkCtx->ctxSymToInt(sym)->Belt.Option.isNone
-        })
-        switch incorrectSymbol {
-            | Some(sym) => {
-                setState(setPatternErr(_, Some(`'${sym}' - is not a constant or a variable.`)))
+        switch makeSearchPattern( ~searchStr=state.patternStr->String.trim, ~ctx=wrkCtx ) {
+            | Error(msg) => {
+                setState(setPatternErr(_, Some(msg)))
                 actResultsRetrieved([])
             }
-            | None => {
+            | Ok(searchPattern) => {
                 setState(setPatternErr(_, None))
                 openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
                     updateModal(
@@ -222,7 +219,7 @@ let make = (
                         ~disjText,
                         ~label=state.label->String.trim,
                         ~typ=state.typ,
-                        ~pattern=wrkCtx->ctxStrToIntsExn(state.patternStr),
+                        ~searchPattern,
                         ~onProgress = pct => updateModal(
                             modalRef, modalId, () => rndProgress(
                                 ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
