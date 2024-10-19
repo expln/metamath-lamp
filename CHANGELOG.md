@@ -1,8 +1,31 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+* Change the default value of "Allowed statements: first level" to None in the bottom-up prover dialog.
+* Allow specifying steps for the "Allowed statements: first level" option of the bottom-up prover by selecting steps in the editor before invoking the bottom-up prover dialog.
+* Add pagination in the Editor to simplify work with long proofs. Number of steps per page is configurable in the "View options" menu.
+* Add possibility to bookmark steps in the Editor. This allows to show only bookmarked steps.
+* In the bottom-up prover dialog, add possibility to set "Allowed statements: first level" equal to "Allowed statements: other levels".
+* Changes in the API of the Fragment Transform feature.
+* Add a new transform "Extract: X ⇒ ( ph -> X )" which extracts a part of a step in a deduction proof.
+* Add possibility to "Delete unrelated steps and hypotheses" in the Editor.
+* Make it possible to run a macro from the UI.
+* Implement the "Inline proof" in the editor.
+* Make it possible to move all selected steps to the top or bottom in the Editor.
+* Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
+* Add filtering by description in the Explorer. https://github.com/expln/metamath-lamp/issues/178
+* Migrate to ReScript 11. No functional changes.
+* Make it possible to add assertions from the Explorer tab to the Editor. This is an equivalent of using the Search button in the Editor, but more handy in some cases.
+* Extend the search by pattern functionality: match assertions and hypotheses simultaneously; match assertion and hypotheses separately; 
+  adjacent symbols (https://github.com/expln/metamath-lamp/issues/57); exact match.
+* Allow opening a new Explorer tab manually.
+* Bug fix: An assertion tab crashes if the assertion proof contains errors. https://github.com/expln/metamath-lamp/issues/184
+* Implement pagination in the Proof Explorer.
+* Bug fix: Renumber fails if the goal label is a number. https://github.com/expln/metamath-lamp/issues/207
+* Add "About this application" button on the Settings tab. https://github.com/expln/metamath-lamp/issues/72
 ### Version 24
-* 
+* Add a new validation in the Editor: "Any statement must begin with a constant".
 ### Version 23
-* Implement the feature of Macros in the experimental mode (this allows to automate certain actions in mm-lamp using custom JS code). 
+* Implement the feature of Macros in the experimental mode (this allows to automate certain actions in Metamath-lamp using custom JavaScript code). 
+  In this version it is not possible to run a macro from the UI.
 * Add more info to the Merge dialog to understand easier what statement to use https://github.com/expln/metamath-lamp/issues/188
 ### Version 22
 * Implement the "Delete unrelated steps" feature in the Editor.
@@ -11,11 +34,11 @@
 * Usability improvement: Add empty space at the bottom of the editor for longer proofs.
 * Usability improvement: Allow sorting by "Number of new steps" in the Bottom-up prover dialog.
 * Support variables in the pattern search https://github.com/expln/metamath-lamp/issues/13
-* Set the default value of "Allow new variables" in the bottom-up prover to false https://github.com/expln/metamath-lamp/issues/180
+* Set the default value of "Allow new variables" in the bottom-up prover to False https://github.com/expln/metamath-lamp/issues/180
 ### Version 21
 * Bug fix: Unify hangs for certain statements/theorems https://github.com/expln/metamath-lamp/issues/175
 ### Version 20
-* Allow opening multiple Explorer tabs by clicking a "search" button on a selected fragment.
+* Allow opening multiple Explorer tabs by clicking the "search" button on a selected fragment.
 * Always sort variables in disjoints according to the specified order https://github.com/expln/metamath-lamp/issues/172
 ### Version 19
 * Bug fix: Bottom-up prover adds unnecessary disjoints https://github.com/expln/metamath-lamp/issues/166
