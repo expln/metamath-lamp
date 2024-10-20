@@ -16,7 +16,7 @@
 * Bug fix: Renumber fails if the goal label is a number. https://github.com/expln/metamath-lamp/issues/207
 * Implement pagination in the Proof Explorer.
 * Add "About this application" button on the Settings tab. https://github.com/expln/metamath-lamp/issues/72
-* In the bottom-up prover dialog, add possibility to set "Allowed statements: first level" equal to "Allowed statements: other levels".
+* In the bottom-up prover dialog, add possibility to set "Allowed statements: other levels" equal to "Allowed statements: first level".
 * Change the default value of "Allowed statements: first level" to None in the bottom-up prover dialog.
 * Changes in the API of the Fragment Transform feature.
 * Make it possible to run a macro from the UI.
