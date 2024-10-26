@@ -1,6 +1,7 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
 * Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
-* Extend the pattern search functionality: match assertions and hypotheses simultaneously; match assertion and hypotheses separately;
+* Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/search_by_pattern.md):
+match assertions and hypotheses simultaneously; match assertion and hypotheses separately;
   adjacent symbols (https://github.com/expln/metamath-lamp/issues/57); exact match.
 * Allow opening a new Explorer tab with empty search filters.
 * Add possibility to bookmark steps in the Editor. This allows to show only bookmarked steps.
@@ -28,7 +29,7 @@
 * Implement the feature of Macros in the experimental mode (this allows to automate certain actions in Metamath-lamp using custom JavaScript code). 
   In this version it is not possible to run a macro from the UI.
 ### Version 22
-* Support variables in the pattern search https://github.com/expln/metamath-lamp/issues/13
+* Support variables in the [pattern search](https://github.com/expln/metamath-lamp-docs/blob/master/search_by_pattern.md) (https://github.com/expln/metamath-lamp/issues/13)
 * Implement the "Delete unrelated steps" feature in the Editor.
 * Implement the "Rename hypotheses" feature in the Editor.
 * Implement the "Auto unify all" feature in the Editor.
