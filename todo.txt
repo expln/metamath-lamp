@@ -10,10 +10,10 @@
     + Automatic merge of duplicated statements https://github.com/expln/metamath-lamp/issues/47
     + Implement the "Rename hypotheses" feature in the Editor.
     + Automate creating of labels for hypotheses https://github.com/expln/metamath-lamp/issues/32
-    * Allow opening multiple Explorer tabs by clicking the "search" button on a selected fragment.
-    * Allow opening a new Explorer tab with empty search filters.
-    * Make it possible to move all selected steps to the top or bottom in the Editor.
-    * Allow specifying steps for the "Allowed statements: first level" option of the bottom-up prover by selecting steps in the editor before invoking the bottom-up prover dialog.
+    + Allow opening multiple Explorer tabs by clicking the "search" button on a selected fragment.
+    + Allow opening a new Explorer tab with empty search filters.
+    + Make it possible to move all selected steps to the top or bottom in the Editor.
+    + Allow specifying steps for the "Allowed statements: first level" option of the bottom-up prover by selecting steps in the editor before invoking the bottom-up prover dialog.
 
 - Check why "resetNestingLevel" and "allLabels" appear in the exported JSON.
 - Embed the "current version of Metamath-lamp" in the exported JSON
