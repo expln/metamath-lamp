@@ -1603,6 +1603,10 @@ let make = (
             See the <a href="https://lamp-guide.metamath.org">Metamath-lamp Guide</a> to get started with Metamath-lamp.
         </p>
         <p>
+            <a href="https://github.com/expln/metamath-lamp-docs">metamath-lamp-docs</a>
+            contains a collection of short documents describing selected features of Metamath-lamp.
+        </p>
+        <p>
             Check the source code <a href="https://github.com/expln/metamath-lamp">repository</a> to get more technical 
             details or report an issue.
         </p>
