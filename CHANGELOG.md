@@ -54,7 +54,7 @@ by clicking the "search" button on a selected fragment.
 * Bug fix: Bottom-up prover adds unnecessary disjoints https://github.com/expln/metamath-lamp/issues/166
 * Usability improvement: Make it possible to manually add disjoints on mobile https://github.com/expln/metamath-lamp/issues/164
 ### Version 18
-* Implement ["Fragment Transformers"](https://lamp-guide.metamath.org/#transformers-more-than-meets-the-eye) https://github.com/expln/metamath-lamp/issues/121 
+* Implement ["Fragment Transformers"](https://lamp-guide.metamath.org/#transformers-more-than-meets-the-eye) (https://github.com/expln/metamath-lamp/issues/121) 
 ### Version 17
 * Implement rules how to work with `discouraged`/`deprecated`/`transitively deprecated` assertions https://github.com/expln/metamath-lamp/issues/31 https://github.com/expln/metamath-lamp/issues/111
 * Add "Duplicate up" button in the Editor https://github.com/expln/metamath-lamp/issues/154
@@ -66,7 +66,7 @@ by clicking the "search" button on a selected fragment.
 * Make it more obvious how to get a completed proof https://github.com/expln/metamath-lamp/issues/11
 * Allow [merging multiple statements](https://github.com/expln/metamath-lamp-docs/blob/master/editor/merge_similar_steps.md) 
 with one merge button click https://github.com/expln/metamath-lamp/issues/149
-* Automatic [merge of duplicated statements](https://github.com/expln/metamath-lamp-docs/blob/master/editor/merge_similar_steps.md) https://github.com/expln/metamath-lamp/issues/47
+* Automatic [merge of duplicated statements](https://github.com/expln/metamath-lamp-docs/blob/master/editor/merge_similar_steps.md) (https://github.com/expln/metamath-lamp/issues/47)
 * Usability improvement: Replacement fields should use selections consistently in the Substitution dialog https://github.com/expln/metamath-lamp/issues/82
 * Full unification in the Substitution dialog https://github.com/expln/metamath-lamp/pull/147
 * Add a "Reset editor content" menu item in the Editor https://github.com/expln/metamath-lamp/issues/21
