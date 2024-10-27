@@ -152,6 +152,8 @@ let make = (
     let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
     let (contIsHidden, setContIsHidden) = React.useState(_ => false)
     let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
+    let showBkmOnlyRef:React.ref<bool> = React.useRef(showBkmOnly)
+    showBkmOnlyRef.current = showBkmOnly
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true,
@@ -732,7 +734,7 @@ let make = (
     }
 
     let addNewStatementsPriv = (st:editorState, stmtsDto:stmtsDto):editorState => {
-        st->addNewStatements(stmtsDto, ~isBkm=showBkmOnly)
+        st->addNewStatements(stmtsDto, ~isBkm=showBkmOnlyRef.current)
     }
 
     let actAsrtSearchResultsSelected = (selectedResults:array<stmtsDto>) => {

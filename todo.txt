@@ -1,3 +1,21 @@
+- write docs for:
+    + Add possibility to bookmark steps in the Editor. This allows to show only bookmarked steps.
+    * Make it possible to move all selected steps to the top or bottom in the Editor.
+    * Add a new transform "Extract: X ⇒ ( ph -> X )" which extracts a part of a step in a deduction proof.
+    * Add possibility to "Delete unrelated steps and hypotheses" in the Editor.
+    * Implement the "Delete unrelated steps" feature in the Editor.
+    * Allow specifying steps for the "Allowed statements: first level" option of the bottom-up prover by selecting steps in the editor before invoking the bottom-up prover dialog.
+    * Implement the "Inline proof" in the editor.
+    * Make it possible to add assertions from the Explorer tab to the Editor. This is an equivalent of using the Search button in the Editor, but more handy in some cases.
+    * Changes in the API of the Fragment Transform feature.
+    * Add more info to the Merge dialog to understand easier what statement to use https://github.com/expln/metamath-lamp/issues/188
+    * Allow merging multiple statements with one merge button click https://github.com/expln/metamath-lamp/issues/149
+    * Automatic merge of duplicated statements https://github.com/expln/metamath-lamp/issues/47
+    * Implement the "Rename hypotheses" feature in the Editor.
+    * Automate creating of labels for hypotheses https://github.com/expln/metamath-lamp/issues/32
+    * Allow opening multiple Explorer tabs by clicking the "search" button on a selected fragment.
+    * Allow opening a new Explorer tab with empty search filters.
+
 - Check why "resetNestingLevel" and "allLabels" appear in the exported JSON.
 - Embed the "current version of Metamath-lamp" in the exported JSON
     https://github.com/expln/metamath-lamp/issues/128
