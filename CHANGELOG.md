@@ -1,4 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### Version 25
 * Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
 * Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/search_by_pattern.md):
 match assertions and hypotheses simultaneously; match assertion and hypotheses separately;
