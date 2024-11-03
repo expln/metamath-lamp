@@ -55,9 +55,12 @@ type propsInner = {
     exprToReElem: expr=>reElem,
     frmExprToStr: (string,expr)=>string,
     getFrmLabelBkgColor: string=>option<string>,
+    showUnprovedOnly:bool,
 }
 
-let propsInnerAreSame = (_,_) => true
+let propsInnerAreSame = (a:propsInner,b:propsInner) => {
+    a.showUnprovedOnly == b.showUnprovedOnly
+}
 
 module rec ProofNodeDtoCmp: {
     let make: propsInner => reElem
@@ -72,6 +75,7 @@ module rec ProofNodeDtoCmp: {
         exprToReElem,
         frmExprToStr,
         getFrmLabelBkgColor,
+        showUnprovedOnly,
     }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
@@ -159,6 +163,10 @@ module rec ProofNodeDtoCmp: {
             }
         }
 
+        let isNodeProved = (argIdx:int):bool => {
+            (tree.nodes->Array.getUnsafe(argIdx)).proof->Option.isSome
+        }
+
         let rndExpandedArgs = (args, srcIdx) => {
             let src = parents->Array.getUnsafe(srcIdx)
             <table>
@@ -186,22 +194,25 @@ module rec ProofNodeDtoCmp: {
                                 </td>
                             </tr>
                         } else {
-                            args->Array.mapWithIndex((arg,argIdx) => {
-                                <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
-                                    <td>
-                                        <ProofNodeDtoCmp
-                                            tree
-                                            nodeIdx=arg
-                                            isRootStmt
-                                            nodeIdxToLabel
-                                            exprToStr
-                                            exprToReElem
-                                            frmExprToStr
-                                            getFrmLabelBkgColor
-                                        />
-                                    </td>
-                                </tr>
-                            })->React.array
+                            args
+                                ->Array.filter(arg => !showUnprovedOnly || !isNodeProved(arg))
+                                ->Array.mapWithIndex((arg,argIdx) => {
+                                    <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
+                                        <td>
+                                            <ProofNodeDtoCmp
+                                                tree
+                                                nodeIdx=arg
+                                                isRootStmt
+                                                nodeIdxToLabel
+                                                exprToStr
+                                                exprToReElem
+                                                frmExprToStr
+                                                getFrmLabelBkgColor
+                                                showUnprovedOnly
+                                            />
+                                        </td>
+                                    </tr>
+                                })->React.array
                         }
                     }
                 </tbody>
@@ -243,7 +254,7 @@ module rec ProofNodeDtoCmp: {
             }
         }
 
-        let rndSrc = (src,srcIdx) => {
+        let rndSrc = (src:exprSrcDto,srcIdx:int) => {
             let key = srcIdx->Belt_Int.toString
             switch src {
                 | VarType => {
@@ -359,6 +370,7 @@ let make = (
     ~exprToReElem: expr=>reElem,
     ~frmExprToStr: (string,expr)=>string,
     ~getFrmLabelBkgColor: string=>option<string>,
+    ~showUnprovedOnly:bool,
 ) => {
     <ProofNodeDtoCmp
         tree
@@ -369,5 +381,6 @@ let make = (
         exprToReElem
         frmExprToStr
         getFrmLabelBkgColor
+        showUnprovedOnly
     />
 }
