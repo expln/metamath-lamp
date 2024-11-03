@@ -79,8 +79,7 @@ let compareSrcDtos = (a:exprSrcDto, b:exprSrcDto):float => {
         }
         | Assertion({label:aLabel}) | AssertionWithErr({label:aLabel}) => {
             switch b {
-                | VarType => 1.0
-                | Hypothesis(_) => 1.0
+                | VarType | Hypothesis(_) => 1.0
                 | Assertion({label:bLabel}) | AssertionWithErr({label:bLabel}) => String.compare(aLabel, bLabel)
             }
         }

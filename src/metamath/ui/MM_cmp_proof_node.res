@@ -76,12 +76,11 @@ let rndExpandCollapseIcon = (
     ~visible:bool,
     ~onClick: unit => unit,
 ) => {
-    let char = if (expand) {"\u229E"} else {"\u229F"}
     <span 
         style=ReactDOM.Style.make( ~fontSize="13px", ~opacity={visible ? {"1.0"} : {"0.0"}}, ~cursor="pointer", () )
         onClick={_=>onClick()}
     >
-        {React.string(char)}
+        {React.string(expand ? "\u229E" : "\u229F")}
     </span>
 }
 
@@ -368,12 +367,8 @@ module rec ProofNodeDtoCmp: {
                             }
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
-                        <td>
-                            <span
-                                style=ReactDOM.Style.make(~minWidth="500px", ())
-                            >
-                                {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
-                            </span>
+                        <td style=ReactDOM.Style.make(~minWidth="500px", ()) >
+                            {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
                             {
                                 rndExpandCollapseIcon(
                                     ~expand=!state.allSrcsExpanded,
