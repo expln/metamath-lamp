@@ -13,6 +13,7 @@ type state = {
     expr1Err: option<string>,
     expr2Str: string,
     expr2Err: option<string>,
+    swapCnt:int,
     results: option<result<array<wrkSubs>,string>>,
     checkedResultIdx: option<int>,
     invalidResults: option<array<wrkSubs>>,
@@ -27,6 +28,7 @@ let makeInitialState = (
         expr1Err: None,
         expr2Str: expr2Init->Belt.Option.getWithDefault(""),
         expr2Err: None,
+        swapCnt:0,
         results: None,
         checkedResultIdx: None,
         invalidResults: None,
@@ -84,6 +86,7 @@ let swapExprs = (st):state => {
         expr2Err:None,
         expr1Str: st.expr2Str,
         expr2Str: st.expr1Str,
+        swapCnt: st.swapCnt + 1,
     }
 }
 
@@ -188,6 +191,13 @@ let make = (
             actClearResults()
         }
     }
+
+    React.useEffect2(() => {
+        if (state.expr1Str->String.trim->String.length > 0 && state.expr2Str->String.trim->String.length > 0) {
+            actDetermineSubs()
+        }
+        None
+    }, (findSubsBy, state.swapCnt))
 
     let actToggleResultChecked = idx => {
         setState(toggleResultChecked(_,idx))
