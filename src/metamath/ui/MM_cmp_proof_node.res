@@ -71,14 +71,16 @@ let propsInnerAreSame = (a:propsInner,b:propsInner) => {
     a.showUnprovedOnly == b.showUnprovedOnly
 }
 
-let rndExpandCollapseIcon = (~expand:bool,~visible:bool) => {
+let rndExpandCollapseIcon = (
+    ~expand:bool,
+    ~visible:bool,
+    ~onClick: unit => unit,
+) => {
     let char = if (expand) {"\u229E"} else {"\u229F"}
     <span 
-        style=ReactDOM.Style.make(
-            ~fontSize="13px", 
-            ~opacity={visible ? {"1.0"} : {"0.0"}}, 
-            ()
-        )>
+        style=ReactDOM.Style.make( ~fontSize="13px", ~opacity={visible ? {"1.0"} : {"0.0"}}, ~cursor="pointer", () )
+        onClick={_=>onClick()}
+    >
         {React.string(char)}
     </span>
 }
@@ -305,14 +307,12 @@ module rec ProofNodeDtoCmp: {
                 | Assertion({args, label}) | AssertionWithErr({args, label}) => {
                     <tr key>
                         <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
-                        <td
-                            onClick={_=>actToggleSrcExpanded(srcIdx)}
-                            style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
-                        >
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ()) >
                             {
                                 rndExpandCollapseIcon(
                                     ~expand=!(state->isExpandedSrc(srcIdx)),
-                                    ~visible=parents->Array.length != 0
+                                    ~visible=parents->Array.length != 0,
+                                    ~onClick=(()=>actToggleSrcExpanded(srcIdx))
                                 )
                             }
                             <span
@@ -358,40 +358,29 @@ module rec ProofNodeDtoCmp: {
                 <tbody>
                     <tr>
                         <td> {rndStatusIconForStmt(node)} </td>
-                        <td
-                            style=ReactDOM.Style.make(
-                                ~cursor="pointer", 
-                                ~color=getColorForLabel(nodeIdx), ()
-                            )
-                            onClick={_=>actToggleExpanded()}
-                        > 
+                        <td style=ReactDOM.Style.make( ~color=getColorForLabel(nodeIdx), () ) > 
                             {
                                 rndExpandCollapseIcon(
                                     ~expand=!state.expanded,
-                                    ~visible=parents->Array.length != 0
+                                    ~visible=parents->Array.length != 0,
+                                    ~onClick=actToggleExpanded,
                                 )
                             }
-                            
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
-                        <td> 
-                            <span 
-                                style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ()) 
-                                onClick={_=>actToggleExpanded()}
+                        <td>
+                            <span
+                                style=ReactDOM.Style.make(~minWidth="500px", ())
                             >
                                 {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
                             </span>
-                            <span 
-                                style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ()) 
-                                onClick={_=>actToggleAllSrcsExpanded()}
-                            >
-                                {
-                                    rndExpandCollapseIcon(
-                                        ~expand=!state.allSrcsExpanded,
-                                        ~visible=parents->Array.length != 0
-                                    )
-                                }
-                            </span>
+                            {
+                                rndExpandCollapseIcon(
+                                    ~expand=!state.allSrcsExpanded,
+                                    ~visible=parents->Array.length != 0,
+                                    ~onClick=actToggleAllSrcsExpanded,
+                                )
+                            }
                         </td>
                     </tr>
                     {
