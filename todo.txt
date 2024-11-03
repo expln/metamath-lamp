@@ -1,3 +1,5 @@
+- update changelog:
+    - Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog. (TODO: write docs for https://github.com/expln/metamath-lamp/pull/213)
 - docs:
     - debug bottom-up proof for:
         hyp1: |- ( ph -> A e. RR )
