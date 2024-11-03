@@ -62,6 +62,31 @@ let exprSrcToDto = (
     }
 }
 
+let compareSrcDtos = (a:exprSrcDto, b:exprSrcDto):float => {
+    switch a {
+        | VarType => {
+            switch b {
+                | VarType => 0.0
+                | Hypothesis(_) | Assertion(_) | AssertionWithErr(_) => -1.0
+            }
+        }
+        | Hypothesis({label:aLabel}) => {
+            switch b {
+                | VarType => 1.0
+                | Hypothesis({label:bLabel}) => String.compare(aLabel, bLabel)
+                | Assertion(_) | AssertionWithErr(_) => -1.0
+            }
+        }
+        | Assertion({label:aLabel}) | AssertionWithErr({label:aLabel}) => {
+            switch b {
+                | VarType => 1.0
+                | Hypothesis(_) => 1.0
+                | Assertion({label:bLabel}) | AssertionWithErr({label:bLabel}) => String.compare(aLabel, bLabel)
+            }
+        }
+    }
+}
+
 let proofNodeToDto = (
     node:proofNode, 
     exprToIdx:Belt_HashMap.t<expr,int,ExprHash.identity>,
@@ -73,7 +98,7 @@ let proofNodeToDto = (
                 exprStr: dbg.exprStr,
             }
         }),
-        parents: node->pnGetEParents->Array.map(exprSrcToDto(_,exprToIdx)),
+        parents: node->pnGetEParents->Array.map(exprSrcToDto(_,exprToIdx))->Array.toSorted(compareSrcDtos),
         proof: node->pnGetProof->Belt.Option.map(exprSrcToDto(_,exprToIdx)),
     }
 }
