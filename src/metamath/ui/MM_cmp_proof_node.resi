@@ -12,4 +12,5 @@ let make: (
   ~exprToReElem: expr => reElem,
   ~frmExprToStr: (string,expr)=>string,
   ~getFrmLabelBkgColor: string=>option<string>,
+  ~showUnprovedOnly:bool,
 ) => React.element

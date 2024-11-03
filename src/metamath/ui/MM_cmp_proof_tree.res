@@ -3,19 +3,23 @@ open MM_proof_tree
 open MM_context
 open MM_wrk_settings
 open Common
+open Expln_React_Mui
+open Expln_React_common
 
 type state = {
     ctxMaxVar: int,
-    exprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>
+    exprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
+    showUnprovedOnly:bool,
 }
 
-let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>,) => {
+let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>,):state => {
     {
         ctxMaxVar: wrkCtx->getNumOfVars - 1,
         exprToLabel: Belt_HashMap.fromArray(
             rootStmts->Array.map(stmt => (stmt.expr, stmt.label)), 
             ~id=module(ExprHash)
         ),
+        showUnprovedOnly:false,
     }
 }
 
@@ -27,7 +31,11 @@ let make = (
     ~wrkCtx:mmContext,
     ~rootStmts: array<rootStmt>,
 ) => {
-    let (state, _) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
+    let (state, setState) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
+
+    let actSetShowUnprovedOnly = (newShowUnprovedOnly:bool):unit => {
+        setState(st => ({...st, showUnprovedOnly:newShowUnprovedOnly}))
+    }
 
     let nodeIdxToLabel = idx => {
         switch state.exprToLabel->Belt_HashMap.get((tree.nodes->Array.getUnsafe(idx)).expr) {
@@ -68,19 +76,43 @@ let make = (
         }
     }
 
-    switch tree.nodes->Array.findIndex(node => node.expr->exprEq(rootExpr)) {
-        | -1 => React.string(`The proof tree doesn't contain expression [${exprToStr(rootExpr)}]`)
-        | nodeIdx => {
-            <MM_cmp_proof_node 
-                tree
-                nodeIdx
-                isRootStmt
-                nodeIdxToLabel
-                exprToStr
-                exprToReElem
-                frmExprToStr
-                getFrmLabelBkgColor
-            />
+    let rndRootExpr = () => {
+        switch tree.nodes->Array.findIndex(node => node.expr->exprEq(rootExpr)) {
+            | -1 => React.string(`The proof tree doesn't contain expression [${exprToStr(rootExpr)}]`)
+            | nodeIdx => {
+                <MM_cmp_proof_node 
+                    tree
+                    nodeIdx
+                    isRootStmt
+                    nodeIdxToLabel
+                    exprToStr
+                    exprToReElem
+                    frmExprToStr
+                    getFrmLabelBkgColor
+                    showUnprovedOnly=state.showUnprovedOnly
+                />
+            }
         }
     }
+
+    let rndControls = () => {
+        <Row>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked=state.showUnprovedOnly
+                        onChange=evt2bool(actSetShowUnprovedOnly)
+                    />
+                }
+                label="Show unproved only"
+                style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+            />
+        </Row>
+    }
+
+    <Col>
+        {rndControls()}
+        {rndRootExpr()}
+    </Col>
+
 }

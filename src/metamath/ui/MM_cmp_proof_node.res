@@ -6,12 +6,14 @@ open MM_unification_debug
 type state = {
     expanded: bool,
     expandedSrcs: array<int>,
+    allSrcsExpanded:bool,
 }
 
 let makeInitialState = ():state => {
     {
         expanded: false,
         expandedSrcs: [],
+        allSrcsExpanded:false,
     }
 }
 
@@ -19,6 +21,13 @@ let toggleExpanded = st => {
     {
         ...st,
         expanded: !st.expanded
+    }
+}
+
+let toggleAllSrcsExpanded = st => {
+    {
+        ...st,
+        allSrcsExpanded: !st.allSrcsExpanded
     }
 }
 
@@ -55,9 +64,25 @@ type propsInner = {
     exprToReElem: expr=>reElem,
     frmExprToStr: (string,expr)=>string,
     getFrmLabelBkgColor: string=>option<string>,
+    showUnprovedOnly:bool,
 }
 
-let propsInnerAreSame = (_,_) => true
+let propsInnerAreSame = (a:propsInner,b:propsInner) => {
+    a.showUnprovedOnly == b.showUnprovedOnly
+}
+
+let rndExpandCollapseIcon = (
+    ~expand:bool,
+    ~visible:bool,
+    ~onClick: unit => unit,
+) => {
+    <span 
+        style=ReactDOM.Style.make( ~fontSize="13px", ~opacity={visible ? {"1.0"} : {"0.0"}}, ~cursor="pointer", () )
+        onClick={_=>onClick()}
+    >
+        {React.string(expand ? "\u229E" : "\u229F")}
+    </span>
+}
 
 module rec ProofNodeDtoCmp: {
     let make: propsInner => reElem
@@ -72,6 +97,7 @@ module rec ProofNodeDtoCmp: {
         exprToReElem,
         frmExprToStr,
         getFrmLabelBkgColor,
+        showUnprovedOnly,
     }:props) => {
         let (state, setState) = React.useState(makeInitialState)
 
@@ -94,6 +120,28 @@ module rec ProofNodeDtoCmp: {
             setState(toggleExpanded)
         }
 
+        let actToggleAllSrcsExpanded = () => {
+            setState(st => {
+                let st = st->toggleAllSrcsExpanded
+                if (parents->Array.length > 0) {
+                    if (st.allSrcsExpanded) {
+                        {
+                            ...st,
+                            expanded:true,
+                            expandedSrcs: Belt.Array.range(0,parents->Array.length-1) 
+                        }
+                    } else {
+                        {
+                            ...st,
+                            expandedSrcs: []
+                        }
+                    }
+                } else {
+                    st
+                }
+            })
+        }
+
         let actToggleSrcExpanded = (srcIdx) => {
             setState(expandCollapseSrc(_, srcIdx))
         }
@@ -104,18 +152,6 @@ module rec ProofNodeDtoCmp: {
             } else {
                 "lightgrey"
             }
-        }
-
-        let rndExpandCollapseIcon = (expand) => {
-            let char = if (expand) {"\u229E"} else {"\u229F"}
-            <span 
-                style=ReactDOM.Style.make(
-                    ~fontSize="13px", 
-                    ~opacity={if (parents->Array.length == 0) {"0.0"} else {"1.0"}}, 
-                    ()
-                )>
-                {React.string(char)}
-            </span>
         }
 
         let rndCollapsedArgs = (args, srcIdx) => {
@@ -159,6 +195,10 @@ module rec ProofNodeDtoCmp: {
             }
         }
 
+        let isNodeProved = (argIdx:int):bool => {
+            (tree.nodes->Array.getUnsafe(argIdx)).proof->Option.isSome
+        }
+
         let rndExpandedArgs = (args, srcIdx) => {
             let src = parents->Array.getUnsafe(srcIdx)
             <table>
@@ -186,22 +226,25 @@ module rec ProofNodeDtoCmp: {
                                 </td>
                             </tr>
                         } else {
-                            args->Array.mapWithIndex((arg,argIdx) => {
-                                <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
-                                    <td>
-                                        <ProofNodeDtoCmp
-                                            tree
-                                            nodeIdx=arg
-                                            isRootStmt
-                                            nodeIdxToLabel
-                                            exprToStr
-                                            exprToReElem
-                                            frmExprToStr
-                                            getFrmLabelBkgColor
-                                        />
-                                    </td>
-                                </tr>
-                            })->React.array
+                            args
+                                ->Array.filter(arg => !showUnprovedOnly || !isNodeProved(arg))
+                                ->Array.mapWithIndex((arg,argIdx) => {
+                                    <tr key={argIdx->Belt_Int.toString ++ "-exp"}>
+                                        <td>
+                                            <ProofNodeDtoCmp
+                                                tree
+                                                nodeIdx=arg
+                                                isRootStmt
+                                                nodeIdxToLabel
+                                                exprToStr
+                                                exprToReElem
+                                                frmExprToStr
+                                                getFrmLabelBkgColor
+                                                showUnprovedOnly
+                                            />
+                                        </td>
+                                    </tr>
+                                })->React.array
                         }
                     }
                 </tbody>
@@ -243,7 +286,7 @@ module rec ProofNodeDtoCmp: {
             }
         }
 
-        let rndSrc = (src,srcIdx) => {
+        let rndSrc = (src:exprSrcDto,srcIdx:int) => {
             let key = srcIdx->Belt_Int.toString
             switch src {
                 | VarType => {
@@ -263,11 +306,14 @@ module rec ProofNodeDtoCmp: {
                 | Assertion({args, label}) | AssertionWithErr({args, label}) => {
                     <tr key>
                         <td style=ReactDOM.Style.make(~verticalAlign="top", ())> {rndStatusIconForSrc(src)} </td>
-                        <td
-                            onClick={_=>actToggleSrcExpanded(srcIdx)}
-                            style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
-                        >
-                            {rndExpandCollapseIcon(!(state->isExpandedSrc(srcIdx)))}
+                        <td style=ReactDOM.Style.make(~verticalAlign="top", ()) >
+                            {
+                                rndExpandCollapseIcon(
+                                    ~expand=!(state->isExpandedSrc(srcIdx)),
+                                    ~visible=parents->Array.length != 0,
+                                    ~onClick=(()=>actToggleSrcExpanded(srcIdx))
+                                )
+                            }
                             <span
                                 style=ReactDOM.Style.make(
                                     ~backgroundColor=?getFrmLabelBkgColor(label), 
@@ -311,21 +357,25 @@ module rec ProofNodeDtoCmp: {
                 <tbody>
                     <tr>
                         <td> {rndStatusIconForStmt(node)} </td>
-                        <td
-                            style=ReactDOM.Style.make(
-                                ~cursor="pointer", 
-                                ~color=getColorForLabel(nodeIdx), ()
-                            )
-                            onClick={_=>actToggleExpanded()}
-                        > 
-                            {rndExpandCollapseIcon(!state.expanded)}
+                        <td style=ReactDOM.Style.make( ~color=getColorForLabel(nodeIdx), () ) > 
+                            {
+                                rndExpandCollapseIcon(
+                                    ~expand=!state.expanded,
+                                    ~visible=parents->Array.length != 0,
+                                    ~onClick=actToggleExpanded,
+                                )
+                            }
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
-                        <td
-                            style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ())
-                            onClick={_=>actToggleExpanded()}
-                        > 
+                        <td style=ReactDOM.Style.make(~minWidth="500px", ()) >
                             {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
+                            {
+                                rndExpandCollapseIcon(
+                                    ~expand=!state.allSrcsExpanded,
+                                    ~visible=parents->Array.length != 0,
+                                    ~onClick=actToggleAllSrcsExpanded,
+                                )
+                            }
                         </td>
                     </tr>
                     {
@@ -359,6 +409,7 @@ let make = (
     ~exprToReElem: expr=>reElem,
     ~frmExprToStr: (string,expr)=>string,
     ~getFrmLabelBkgColor: string=>option<string>,
+    ~showUnprovedOnly:bool,
 ) => {
     <ProofNodeDtoCmp
         tree
@@ -369,5 +420,6 @@ let make = (
         exprToReElem
         frmExprToStr
         getFrmLabelBkgColor
+        showUnprovedOnly
     />
 }
