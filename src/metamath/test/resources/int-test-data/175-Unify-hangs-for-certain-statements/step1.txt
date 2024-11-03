@@ -100,4 +100,4 @@ ready
 
 |- ( ph -> E. h E. q ( h ( Cycles ` G ) q /\ h =/= (/) ) )
 noJstf
-Unif Error: Some assertions produce too big search space. Only part of that search space was examined. Those assertions are: syl13anc, syl31anc, syl112anc, syl121anc, syl211anc, syl122anc, syl212anc, syl221anc, syl113anc, syl131anc, syl311anc, syl222anc, syl123anc, syl132anc, syl213anc, syl231anc, syl312anc, syl321anc, syl133anc, syl313anc, syl331anc, syl223anc, syl232anc, syl322anc, syl233anc, syl323anc, syl332anc, syl333anc .
+Unif Error: Some assertions produce too big search space. Only part of that search space was examined. Those assertions are: syl112anc, syl113anc, syl121anc, syl122anc, syl123anc, syl131anc, syl132anc, syl133anc, syl13anc, syl211anc, syl212anc, syl213anc, syl221anc, syl222anc, syl223anc, syl231anc, syl232anc, syl233anc, syl311anc, syl312anc, syl313anc, syl31anc, syl321anc, syl322anc, syl323anc, syl331anc, syl332anc, syl333anc .
