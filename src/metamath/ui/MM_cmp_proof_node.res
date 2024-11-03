@@ -6,12 +6,14 @@ open MM_unification_debug
 type state = {
     expanded: bool,
     expandedSrcs: array<int>,
+    allSrcsExpanded:bool,
 }
 
 let makeInitialState = ():state => {
     {
         expanded: false,
         expandedSrcs: [],
+        allSrcsExpanded:false,
     }
 }
 
@@ -19,6 +21,13 @@ let toggleExpanded = st => {
     {
         ...st,
         expanded: !st.expanded
+    }
+}
+
+let toggleAllSrcsExpanded = st => {
+    {
+        ...st,
+        allSrcsExpanded: !st.allSrcsExpanded
     }
 }
 
@@ -62,6 +71,18 @@ let propsInnerAreSame = (a:propsInner,b:propsInner) => {
     a.showUnprovedOnly == b.showUnprovedOnly
 }
 
+let rndExpandCollapseIcon = (~expand:bool,~visible:bool) => {
+    let char = if (expand) {"\u229E"} else {"\u229F"}
+    <span 
+        style=ReactDOM.Style.make(
+            ~fontSize="13px", 
+            ~opacity={visible ? {"1.0"} : {"0.0"}}, 
+            ()
+        )>
+        {React.string(char)}
+    </span>
+}
+
 module rec ProofNodeDtoCmp: {
     let make: propsInner => reElem
 } = {
@@ -98,6 +119,28 @@ module rec ProofNodeDtoCmp: {
             setState(toggleExpanded)
         }
 
+        let actToggleAllSrcsExpanded = () => {
+            setState(st => {
+                let st = st->toggleAllSrcsExpanded
+                if (parents->Array.length > 0) {
+                    if (st.allSrcsExpanded) {
+                        {
+                            ...st,
+                            expanded:true,
+                            expandedSrcs: Belt.Array.range(0,parents->Array.length-1) 
+                        }
+                    } else {
+                        {
+                            ...st,
+                            expandedSrcs: []
+                        }
+                    }
+                } else {
+                    st
+                }
+            })
+        }
+
         let actToggleSrcExpanded = (srcIdx) => {
             setState(expandCollapseSrc(_, srcIdx))
         }
@@ -108,18 +151,6 @@ module rec ProofNodeDtoCmp: {
             } else {
                 "lightgrey"
             }
-        }
-
-        let rndExpandCollapseIcon = (expand) => {
-            let char = if (expand) {"\u229E"} else {"\u229F"}
-            <span 
-                style=ReactDOM.Style.make(
-                    ~fontSize="13px", 
-                    ~opacity={if (parents->Array.length == 0) {"0.0"} else {"1.0"}}, 
-                    ()
-                )>
-                {React.string(char)}
-            </span>
         }
 
         let rndCollapsedArgs = (args, srcIdx) => {
@@ -278,7 +309,12 @@ module rec ProofNodeDtoCmp: {
                             onClick={_=>actToggleSrcExpanded(srcIdx)}
                             style=ReactDOM.Style.make(~cursor="pointer", ~verticalAlign="top", ())
                         >
-                            {rndExpandCollapseIcon(!(state->isExpandedSrc(srcIdx)))}
+                            {
+                                rndExpandCollapseIcon(
+                                    ~expand=!(state->isExpandedSrc(srcIdx)),
+                                    ~visible=parents->Array.length != 0
+                                )
+                            }
                             <span
                                 style=ReactDOM.Style.make(
                                     ~backgroundColor=?getFrmLabelBkgColor(label), 
@@ -329,14 +365,33 @@ module rec ProofNodeDtoCmp: {
                             )
                             onClick={_=>actToggleExpanded()}
                         > 
-                            {rndExpandCollapseIcon(!state.expanded)}
+                            {
+                                rndExpandCollapseIcon(
+                                    ~expand=!state.expanded,
+                                    ~visible=parents->Array.length != 0
+                                )
+                            }
+                            
                             {React.string(nodeIdxToLabel(nodeIdx) ++ ":")}
                         </td>
-                        <td
-                            style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ())
-                            onClick={_=>actToggleExpanded()}
-                        > 
-                            {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
+                        <td> 
+                            <span 
+                                style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ()) 
+                                onClick={_=>actToggleExpanded()}
+                            >
+                                {exprToReElem((tree.nodes->Array.getUnsafe(nodeIdx)).expr)}
+                            </span>
+                            <span 
+                                style=ReactDOM.Style.make( ~cursor="pointer", ~minWidth="500px", ()) 
+                                onClick={_=>actToggleAllSrcsExpanded()}
+                            >
+                                {
+                                    rndExpandCollapseIcon(
+                                        ~expand=!state.allSrcsExpanded,
+                                        ~visible=parents->Array.length != 0
+                                    )
+                                }
+                            </span>
                         </td>
                     </tr>
                     {
