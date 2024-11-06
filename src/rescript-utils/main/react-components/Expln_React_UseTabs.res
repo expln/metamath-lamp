@@ -2,6 +2,8 @@ open Expln_React_common
 open Expln_React_Mui
 open Expln_utils_promise
 
+@val external window: {..} = "window"
+
 type tabId = string
 
 type tab<'a> = {
@@ -9,6 +11,8 @@ type tab<'a> = {
     label: string,
     closable: bool,
     color:option<string>,
+    scrollX:float,
+    scrollY:float,
     data: 'a
 }
 
@@ -47,7 +51,7 @@ let getTabs = (st:state<'a>) => st.tabs
 
 let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false) => {
     let (st, newId) = st->getNextId
-    let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, data}])
+    let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
     let newActiveTabId = if (newTabs->Array.length == 1) {
         newId
     } else {
@@ -72,8 +76,15 @@ let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:
 let openTab = (st:state<'a>, tabId):state<'a> => {
     if (st.tabs->Array.some(t => t.id == tabId)) {
         {
-            ...st, 
-            activeTabId:tabId, 
+            ...st,
+            activeTabId:tabId,
+            tabs: st.tabs->Array.map(tab => {
+                if (tab.id == st.activeTabId) {
+                    {...tab, scrollX:window["scrollX"], scrollY:window["scrollY"]}
+                } else {
+                    tab
+                }
+            }),
             tabHistory:
                 if (
                     st.tabHistory->Belt_Array.get(st.tabHistory->Array.length-1)
@@ -110,6 +121,14 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
 
 let useTabs = ():tabMethods<'a> => {
     let (state, setState) = React.useState(createEmptyState)
+
+    React.useEffect1(() => {
+        switch state.tabs->Array.find(tab => tab.id == state.activeTabId) {
+            | None => ()
+            | Some(curTab) => window["scrollTo"](curTab.scrollX, curTab.scrollY)
+        }
+        None
+    }, [state.activeTabId])
 
     let addTab = (~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false):promise<tabId> => promise(rlv => {
         setState(prev => {
