@@ -7,6 +7,8 @@ type tab<'a> = {
     label: string,
     closable: bool,
     color:option<string>,
+    scrollX:float,
+    scrollY:float,
     data: 'a
 }
 
