@@ -65,7 +65,13 @@ let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:
     (
         {
             ...st,
-            tabs: newTabs,
+            tabs: newTabs->Array.map(tab => {
+                if (tab.id == st.activeTabId) {
+                    {...tab, scrollX:window["scrollX"], scrollY:window["scrollY"]}
+                } else {
+                    tab
+                }
+            }),
             activeTabId: newActiveTabId,
             tabHistory: newTabHistory,
         },
