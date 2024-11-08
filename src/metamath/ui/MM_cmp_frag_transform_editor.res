@@ -216,7 +216,7 @@ let make = (
 
             checkboxDisabled=true
             checkboxChecked={false}
-            checkboxOnChange={_ => ()}
+            checkboxOnChange={(~checked as _, ~shift as _) => ()}
 
             onGenerateProof={()=>()}
             onDebug={() => ()}

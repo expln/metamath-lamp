@@ -564,7 +564,7 @@ type props = {
 
     checkboxDisabled:bool,
     checkboxChecked:bool,
-    checkboxOnChange:bool=>unit,
+    checkboxOnChange:(~checked:bool,~shift:bool)=>unit,
 
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
@@ -1759,7 +1759,12 @@ let make = React.memoCustomCompareProps( ({
             )
             disabled=checkboxDisabled
             checked=checkboxChecked
-            onChange=evt2bool(checkboxOnChange)
+            onChange={evt => {
+                checkboxOnChange(
+                    ~checked=ReactEvent.Form.target(evt)["checked"],
+                    ~shift=ReactEvent.Form.nativeEvent(evt)["shiftKey"],
+                )
+            }}
         />
     }
 

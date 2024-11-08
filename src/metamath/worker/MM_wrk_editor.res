@@ -334,7 +334,7 @@ let isStmtChecked = (st:editorState,stmtId:stmtId):bool => {
     st.checkedStmtIds->Array.some(((id,_)) => id == stmtId)
 }
 
-let toggleStmtChecked = (st,stmtId:stmtId) => {
+let toggleStmtChecked = (st:editorState, stmtId:stmtId) => {
     if (isStmtChecked(st,stmtId)) {
         {
             ...st,
@@ -344,6 +344,62 @@ let toggleStmtChecked = (st,stmtId:stmtId) => {
         {
             ...st,
             checkedStmtIds: st.checkedStmtIds->Array.concat([(stmtId,Date.make())])
+        }
+    }
+}
+
+let getStmtIdsBetweenIncluding = (stmtIds:array<stmtId>, stmtId1:stmtId, stmtId2:stmtId):array<stmtId> => {
+    let (_,res) = stmtIds->Array.reduce((false,[]), ((inBetween,res),stmtId) => {
+        if (stmtId == stmtId1 || stmtId == stmtId2) {
+            res->Array.push(stmtId)
+            (!inBetween,res)
+        } else {
+            if (inBetween) {
+                res->Array.push(stmtId)
+            }
+            (inBetween,res)
+        }
+    })
+    res
+}
+
+let toggleStmtCheckedWithShift = (st:editorState, stmtId:stmtId, ~showBkmOnly:bool) => {
+    if (isStmtChecked(st,stmtId)) {
+        {
+            ...st,
+            checkedStmtIds: st.checkedStmtIds->Array.filter(((checkedId,_)) => checkedId != stmtId)
+        }
+    } else {
+        let visibleStmtIds = st.stmts
+                ->Array.filter(stmt => !showBkmOnly || stmt.isBkm)
+                ->Array.map(stmt => stmt.id)
+        let lastCheckedStmtId = st.checkedStmtIds->Array.toSorted(((_,date1),(_,date2)) => {
+            let t1:float = date1->Date.getTime
+            let t2:float = date2->Date.getTime
+            //sort desc
+            if (t1 < t2) {
+                1.0
+            } else if (t1 > t2) {
+                -1.0
+            } else {
+                0.0
+            }
+        })->Array.at(0)
+        let stmtIdsToCheck = switch lastCheckedStmtId {
+            | None => [stmtId]
+            | Some((lastCheckedStmtId,_)) => getStmtIdsBetweenIncluding(visibleStmtIds, lastCheckedStmtId, stmtId)
+        }
+        //To avoid having duplicated ids in checkedStmtIds, first uncheck all stmts which will be checked
+        let st = {
+            ...st,
+            checkedStmtIds: st.checkedStmtIds
+                ->Array.filter(((checkedId,_)) => !(stmtIdsToCheck->Array.includes(checkedId)))
+        }
+        {
+            ...st,
+            checkedStmtIds: st.checkedStmtIds->Array.concat(
+                stmtIdsToCheck->Array.map(id=>(id,Date.make()))
+            )
         }
     }
 }

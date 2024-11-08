@@ -1573,8 +1573,10 @@ describe("deleteUnrelatedSteps", _ => {
             }
         }
     })
+})
 
-    it("readEditorStateFromJsonStr reformats old disjoints", _ => {
+describe("readEditorStateFromJsonStr", _ => {
+    it("reformats old disjoints", _ => {
         //given
         let stateJson = `{"srcs":[{"typ":"Local","fileName":"set.mm","url":"","readInstr":"ReadAll","label":"",
             "resetNestingLevel":true,"allLabels":[]}],"descr":"","varsText":"","disjText":"w,y\\na,x","stmts":[
@@ -1586,5 +1588,11 @@ describe("deleteUnrelatedSteps", _ => {
 
         //then
         assertEq(state.disjText, "w y\na x")
+    })
+})
+
+describe("toggleStmtCheckedWithShift", _ => {
+    it("test1", _ => {
+        failMsg("not implemented")
     })
 })

@@ -406,8 +406,12 @@ let make = (
             })
         })->ignore
     }
-    let actToggleStmtChecked = id => {
-        setStatePriv(st => toggleStmtChecked(st,id))
+    let actToggleStmtChecked = (~id:stmtId, ~shift:bool) => {
+        if (shift) {
+            setStatePriv(st => toggleStmtCheckedWithShift(st, id, ~showBkmOnly=showBkmOnlyRef.current))
+        } else {
+            setStatePriv(st => toggleStmtChecked(st, id))
+        }
     }
     let actToggleMainCheckbox = () => {
         let action = switch mainCheckboxState {
@@ -1906,7 +1910,7 @@ let make = (
 
             checkboxDisabled=editIsActive
             checkboxChecked={state->isStmtChecked(stmt.id)}
-            checkboxOnChange={_ => actToggleStmtChecked(stmt.id)}
+            checkboxOnChange={(~checked as _, ~shift) => actToggleStmtChecked(~id=stmt.id, ~shift)}
 
             onGenerateProof={()=>actExportProof(stmt.id)}
             onDebug={() => notifyEditInTempMode(()=>actDebugUnifyAll(stmt.id))}
