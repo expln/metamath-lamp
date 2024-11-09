@@ -598,6 +598,14 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertProof(st, st->getStmtId(~label="stmt11"), "proof-no-redundant-hyps")
     })
 
+    it("actExportProof exports all hypotheses when requested", _ => {
+        setTestDataDir("all-hyps-in-export")
+        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state")
+        let st = st->unifyAll
+        assertEditorState(st, "step1")
+        assertProof(st, st->getStmtId(~label="stmt11"), "proof-all-hyps", ~useAllLocalEHyps=true)
+    })
+
     it("actExportProof exports implicit local vars", _ => {
         setTestDataDir("implicit-loc-vars-in-export")
         let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state", 

@@ -1,0 +1,139 @@
+Variables:
+.var1 class width
+
+Disjoints:
+F r u v x y
+width r u v x y
+
+
+--- e -------------------------------------------------------------------------------
+stmt8
+
+|- width e. _V
+None
+
+--- p -------------------------------------------------------------------------------
+2
+: tgjustf
+|- ( width e. _V -> E. r ( r Er width /\ A. x e. width A. y e. width ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+1
+: breq
+|- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( x r y <-> x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt9-opabex2.11
+ : elex
+|- ( width e. _V -> width e. _V )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt9-opabex2.31
+ : simprll
+|- ( ( width e. _V /\ ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) ) -> u e. width )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt9-opabex2.41
+ : simprlr
+|- ( ( width e. _V /\ ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) ) -> v e. width )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt9
+stmt9-opabex2.11 stmt9-opabex2.11 stmt9-opabex2.31 stmt9-opabex2.41: opabex2
+|- ( width e. _V -> { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } e. _V )
+ready
+
+--- p -------------------------------------------------------------------------------
+3
+stmt8 stmt9 : ax-mp
+|- { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } e. _V
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt6
+ : fveq2
+|- ( u = x -> ( F ` u ) = ( F ` x ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt7
+ : fveq2
+|- ( v = y -> ( F ` v ) = ( F ` y ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt5
+stmt7 : adantl
+|- ( ( u = x /\ v = y ) -> ( F ` v ) = ( F ` y ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt4
+stmt6 : adantr
+|- ( ( u = x /\ v = y ) -> ( F ` u ) = ( F ` x ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt3-brab2a.11
+stmt4 stmt5 : eqeq12d
+|- ( ( u = x /\ v = y ) -> ( ( F ` u ) = ( F ` v ) <-> ( F ` x ) = ( F ` y ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt3-brab2a.21
+: axfrege54c
+|- { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) }
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt3
+stmt3-brab2a.11 stmt3-brab2a.21 : brab2a
+|- ( x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( ( x e. width /\ y e. width ) /\ ( F ` x ) = ( F ` y ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt11
+: ereq1
+|- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er width <-> { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } Er width ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt13
+1 : bibi1d
+|- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> ( x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt14
+stmt13 : ralbidv
+|- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. y e. width ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. y e. width ( x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt12
+stmt13 : 2ralbidv
+|- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( A. x e. width A. y e. width ( x r y <-> ( F ` x ) = ( F ` y ) ) <-> A. x e. width A. y e. width ( x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt2-spcgv.11
+stmt11 stmt12 : anbi12d
+|- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( ( r Er width /\ A. x e. width A. y e. width ( x r y <-> ( F ` x ) = ( F ` y ) ) ) <-> ( { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } Er width /\ A. x e. width A. y e. width ( x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt2
+3 stmt2-spcgv.11 : spcev
+|- ( ( { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } Er width /\ A. x e. width A. y e. width ( x { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } y <-> ( F ` x ) = ( F ` y ) ) ) -> E. r ( r Er width /\ A. x e. width A. y e. width ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
+ready
+
+--- p -------------------------------------------------------------------------------
+stmt1
+stmt8 2 : mp1i
+|- ( F Fn width -> E. r ( r Er width /\ A. x e. width A. y e. width ( x r y <-> ( F ` x ) = ( F ` y ) ) ) )
+ready
