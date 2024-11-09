@@ -1159,17 +1159,22 @@ let make = (
     }, [state.nextAction])
 
     let actExportProof = (stmtId) => {
-        switch generateCompressedProof(state, stmtId) {
+        switch generateCompressedProof(state, stmtId, ~useAllLocalEHyps=false) {
             | None => ()
-            | Some((proofText,proofTableWithTypes,proofTableWithoutTypes)) => {
-                openModal(modalRef, () => React.null)->promiseMap(modalId => {
-                    updateModal(modalRef, modalId, () => {
-                        <MM_cmp_export_proof 
-                            proofText proofTableWithTypes proofTableWithoutTypes 
-                            onClose={_=>closeModal(modalRef, modalId)} 
-                        />
-                    })
-                })->ignore
+            | Some((proofTextReqHyps,proofTableWithTypes,proofTableWithoutTypes)) => {
+                switch generateCompressedProof(state, stmtId, ~useAllLocalEHyps=true) {
+                    | None => ()
+                    | Some((proofTextAllHyps,_,_)) => {
+                        openModal(modalRef, () => React.null)->promiseMap(modalId => {
+                            updateModal(modalRef, modalId, () => {
+                                <MM_cmp_export_proof 
+                                    proofTextReqHyps proofTextAllHyps proofTableWithTypes proofTableWithoutTypes 
+                                    onClose={_=>closeModal(modalRef, modalId)} 
+                                />
+                            })
+                        })->ignore
+                    }
+                }
             }
         }
     }
