@@ -1573,8 +1573,10 @@ describe("deleteUnrelatedSteps", _ => {
             }
         }
     })
+})
 
-    it("readEditorStateFromJsonStr reformats old disjoints", _ => {
+describe("readEditorStateFromJsonStr", _ => {
+    it("reformats old disjoints", _ => {
         //given
         let stateJson = `{"srcs":[{"typ":"Local","fileName":"set.mm","url":"","readInstr":"ReadAll","label":"",
             "resetNestingLevel":true,"allLabels":[]}],"descr":"","varsText":"","disjText":"w,y\\na,x","stmts":[
@@ -1586,5 +1588,201 @@ describe("deleteUnrelatedSteps", _ => {
 
         //then
         assertEq(state.disjText, "w y\na x")
+    })
+})
+
+describe("toggleStmtCheckedWithShift", _ => {
+    let prepareEditorState = (numOfSteps:int):editorState => {
+        let st = ref(createEditorState(demo0))
+        for _ in 0 to numOfSteps-1 {
+            let (newSt, _) = addNewStmt(st.contents)
+            st := newSt
+        }
+        st.contents
+    }
+
+    let delay = () => {
+        let startMillis = Date.now()
+        let curMillis = ref(Date.now())
+        while (curMillis.contents -. startMillis < 1.0) {
+            curMillis := Date.now()
+        }
+    }
+
+    let checkStmt = (st:editorState,idx:int):editorState => {
+        let st = st->toggleStmtChecked((st.stmts->Array.getUnsafe(idx)).id)
+        delay()
+        st
+    }
+
+    let checkStmtWithShift = (st:editorState,showBkmOnly:bool,idx:int,):editorState => {
+        let st = st->toggleStmtCheckedWithShift((st.stmts->Array.getUnsafe(idx)).id, ~showBkmOnly)
+        delay()
+        st
+    }
+
+    let bookmarkStmts = (st:editorState, idxs:array<int>):editorState => {
+        let st = st->uncheckAllStmts
+        let st = idxs->Array.reduce(st, (st,idx) => checkStmt(st,idx))
+        let st = st->bookmarkCheckedStmts(true)
+        let st = st->uncheckAllStmts
+        st
+    }
+
+    let assertStmtsChecked = (st, checked:array<int>) => {
+        for i in 0 to st.stmts->Array.length-1 {
+            assertEqMsg(
+                checked->Array.includes(i), 
+                st->isStmtChecked((st.stmts->Array.getUnsafe(i)).id), 
+                `assertStmtsChecked failed for ${i->Belt_Int.toString}`
+            )
+        }
+    }
+
+    it("checks multiple steps when the first checked step is above when showBkmOnly=false", _ => {
+        //given
+        let st = prepareEditorState(8)
+
+        //when
+        // 0 1 2c 3 4 5s 6 7
+        let st = checkStmt(st,2)
+        let st = checkStmtWithShift(st,false,5)
+
+        //then
+        assertStmtsChecked(st, [2,3,4,5])
+    })
+
+    it("checks multiple steps when the first checked step is below when showBkmOnly=false", _ => {
+        //given
+        let st = prepareEditorState(8)
+
+        //when
+        // 0 1 2 3s 4 5 6c 7
+        let st = checkStmt(st,6)
+        let st = checkStmtWithShift(st,false,3)
+
+        //then
+        assertStmtsChecked(st, [3,4,5,6])
+    })
+
+    it("is able to select two disjoint parts of steps going down when showBkmOnly=false", _ => {
+        //given
+        let st = prepareEditorState(9)
+
+        //when
+        // 0 1c 2 3s 4 5c 6 7s 8
+        let st = checkStmt(st,1)
+        let st = checkStmtWithShift(st,false,3)
+        let st = checkStmt(st,5)
+        let st = checkStmtWithShift(st,false,7)
+
+        //then
+        assertStmtsChecked(st, [1,2,3,5,6,7])
+    })
+
+    it("is able to select two disjoint parts of steps going up when showBkmOnly=false", _ => {
+        //given
+        let st = prepareEditorState(9)
+
+        //when
+        // 0 1s 2 3c 4 5s 6 7c 8
+        let st = checkStmt(st,7)
+        let st = checkStmtWithShift(st,false,5)
+        let st = checkStmt(st,3)
+        let st = checkStmtWithShift(st,false,1)
+
+        //then
+        assertStmtsChecked(st, [1,2,3,5,6,7])
+    })
+
+    it("is able to select two disjoint parts of steps going up and down when showBkmOnly=false", _ => {
+        //given
+        let st = prepareEditorState(9)
+
+        //when
+        // 0 1s 2 3c 4 5c 6 7s 8
+        let st = checkStmt(st,3)
+        let st = checkStmtWithShift(st,false,1)
+        let st = checkStmt(st,5)
+        let st = checkStmtWithShift(st,false,7)
+
+        //then
+        assertStmtsChecked(st, [1,2,3,5,6,7])
+    })
+
+    it("checks multiple steps when the first checked step is above when showBkmOnly=true", _ => {
+        //given
+        let st = prepareEditorState(8)
+
+        //when
+        // 0 1bc 2 3 4b 5bs 6 7
+        let st = bookmarkStmts(st,[1,4,5])
+        let st = checkStmt(st,1)
+        let st = checkStmtWithShift(st,true,5)
+
+        //then
+        assertStmtsChecked(st, [1,4,5])
+    })
+
+    it("checks multiple steps when the first checked step is below when showBkmOnly=true", _ => {
+        //given
+        let st = prepareEditorState(8)
+
+        //when
+        // 0 1bs 2b 3 4 5b 6bc 7
+        let st = bookmarkStmts(st,[1,2,5,6])
+        let st = checkStmt(st,6)
+        let st = checkStmtWithShift(st,true,1)
+
+        //then
+        assertStmtsChecked(st, [1,2,5,6])
+    })
+
+    it("is able to select two disjoint parts of steps going down when showBkmOnly=true", _ => {
+        //given
+        let st = prepareEditorState(14)
+
+        //when
+        // 0 1bc 2 3b 4 5bs 6 7b 8 9bc 10 11b 12 13bs
+        let st = bookmarkStmts(st,[1,3,5,7,9,11,13])
+        let st = checkStmt(st,1)
+        let st = checkStmtWithShift(st,true,5)
+        let st = checkStmt(st,9)
+        let st = checkStmtWithShift(st,true,13)
+
+        //then
+        assertStmtsChecked(st, [1,3,5,9,11,13])
+    })
+
+    it("is able to select two disjoint parts of steps going up when showBkmOnly=true", _ => {
+        //given
+        let st = prepareEditorState(14)
+
+        //when
+        // 0 1bs 2 3b 4 5bc 6 7b 8 9bs 10 11b 12 13bc
+        let st = bookmarkStmts(st,[1,3,5,7,9,11,13])
+        let st = checkStmt(st,13)
+        let st = checkStmtWithShift(st,true,9)
+        let st = checkStmt(st,5)
+        let st = checkStmtWithShift(st,true,1)
+
+        //then
+        assertStmtsChecked(st, [1,3,5,9,11,13])
+    })
+
+    it("is able to select two disjoint parts of steps going up and down when showBkmOnly=true", _ => {
+        //given
+        let st = prepareEditorState(14)
+
+        //when
+        // 0 1bs 2 3b 4 5bc 6 7b 8 9bc 10 11b 12 13bs
+        let st = bookmarkStmts(st,[1,3,5,7,9,11,13])
+        let st = checkStmt(st,5)
+        let st = checkStmtWithShift(st,true,1)
+        let st = checkStmt(st,9)
+        let st = checkStmtWithShift(st,true,13)
+
+        //then
+        assertStmtsChecked(st, [1,3,5,9,11,13])
     })
 })

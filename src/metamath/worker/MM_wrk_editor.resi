@@ -167,6 +167,7 @@ let userStmtToRootStmt: userStmt => rootStmt
 let updateStmt: (editorState, stmtId, userStmt => userStmt) => editorState
 let isStmtChecked: (editorState, stmtId) => bool
 let toggleStmtChecked: (editorState, stmtId) => editorState
+let toggleStmtCheckedWithShift: (editorState, stmtId, ~showBkmOnly:bool) => editorState
 let checkAllStmts: editorState => editorState
 let uncheckAllStmts: editorState => editorState
 let deleteCheckedStmts: editorState => editorState

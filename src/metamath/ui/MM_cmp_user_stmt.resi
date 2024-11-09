@@ -71,7 +71,7 @@ type props = {
 
     checkboxDisabled:bool,
     checkboxChecked:bool,
-    checkboxOnChange:bool=>unit,
+    checkboxOnChange:(~checked:bool,~shift:bool)=>unit,
 
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
