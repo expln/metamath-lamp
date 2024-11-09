@@ -2095,7 +2095,7 @@ let proofToText = (
     }
 }
 
-let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
+let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<(string,string,string)> => {
     switch st.wrkCtx {
         | None => None
         | Some(wrkCtx) => {
@@ -2117,6 +2117,13 @@ let generateCompressedProof = (st, stmtId):option<(string,string,string)> => {
                                     let exprsUsedInProof = proofTableWithTypes->Array.map(r => r.expr)
                                         ->Belt_HashSet.fromArray(~id=module(ExprHash))
                                     let rootStmts = st.stmts->Array.map(userStmtToRootStmt)
+                                    if (useAllLocalEHyps) {
+                                        rootStmts->Array.forEach(stmt => {
+                                            if (stmt.isHyp) {
+                                                exprsUsedInProof->Belt_HashSet.add(stmt.expr)
+                                            }
+                                        })
+                                    }
                                     let proofCtx = createProofCtx(
                                         wrkCtx,
                                         rootStmts->Array.filter(stmt => {

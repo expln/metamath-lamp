@@ -152,8 +152,8 @@ let assertStmtsDto = (stmtsDto, expectedStrFileName:string) => {
     assertStrEqFile(actualStr, expectedStrFileName)
 }
 
-let assertProof = (st, stmtId:string, expectedStrFileName:string) => {
-    let actualStr = switch st->generateCompressedProof(stmtId) {
+let assertProof = (st, stmtId:string, expectedStrFileName:string, ~useAllLocalEHyps:bool=false) => {
+    let actualStr = switch st->generateCompressedProof(stmtId, ~useAllLocalEHyps) {
         | None => "no proof generated"
         | Some((actualStr, _, _)) => actualStr->String.replaceRegExp(%re("/\r/g"), "")
     }

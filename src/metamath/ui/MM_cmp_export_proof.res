@@ -6,7 +6,8 @@ open Local_storage_utils
 
 @react.component
 let make = (
-    ~proofText:string, 
+    ~proofTextReqHyps:string, 
+    ~proofTextAllHyps:string, 
     ~proofTableWithTypes:string, 
     ~proofTableWithoutTypes:string,
     ~onClose:unit=>unit,
@@ -17,7 +18,12 @@ let make = (
     let (essentialsOnly, setEssentialsOnly) = useStateFromLocalStorageBool(
         ~key="export-proof-essentials-only", ~default=false
     )
+    let (useAllEHyps, setUseAllEHyps) = useStateFromLocalStorageBool(
+        ~key="export-proof-include-all-hyps", ~default=false
+    )
     let (copiedToClipboard, setCopiedToClipboard) = React.useState(() => None)
+
+    let proofText = useAllEHyps ? proofTextAllHyps : proofTextReqHyps
 
     let getTextToCopy = () => {
         proofText 
@@ -84,6 +90,16 @@ let make = (
                     }
                     label="essentials only"
                     disabled={!showProofTable}
+                />
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked=useAllEHyps
+                            onChange={evt2bool(b => setUseAllEHyps(_ => b))}
+                        />
+                    }
+                    label="all hypotheses"
+                    disabled={proofTextReqHyps == proofTextAllHyps}
                 />
                 <Button onClick={_=>actCopyToClipboard()} variant=#contained style=ReactDOM.Style.make(~width="90px", ()) > 
                     {

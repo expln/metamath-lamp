@@ -596,6 +596,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertProof(st, st->getStmtId(~label="stmt5"), "proof-no-redundant-vars")
         assertProof(st, st->getStmtId(~label="3"), "proof-no-redundant-disj")
         assertProof(st, st->getStmtId(~label="stmt11"), "proof-no-redundant-hyps")
+        //actExportProof exports all hypotheses when requested
+        assertProof(st, st->getStmtId(~label="stmt11"), "proof-all-hyps", ~useAllLocalEHyps=true)
     })
 
     it("actExportProof exports implicit local vars", _ => {

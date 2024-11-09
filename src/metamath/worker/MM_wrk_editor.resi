@@ -208,7 +208,7 @@ let createNewDisj: (editorState, disjMutable) => editorState
 let removeUnusedVars: editorState => editorState
 let applyUnifyAllResults: (editorState,proofTreeDto) => editorState
 let verifyEditorState: editorState => editorState
-let generateCompressedProof: (editorState, string) => option<(string,string,string)>
+let generateCompressedProof: (editorState, string, ~useAllLocalEHyps:bool=?) => option<(string,string,string)>
 let updateColorsInAllStmts: editorState => editorState
 let getTheOnlyCheckedStmt: editorState => option<userStmt>
 let editorGetStmtById: (editorState, stmtId) => option<userStmt>

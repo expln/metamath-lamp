@@ -16,7 +16,7 @@ let assertStrEqFile: (string, string) => unit
 let assertEditorState: (editorState, string) => unit
 let assertStmtsDto: (stmtsDto, string) => unit
 let assertEditorHistory: (editorHistory, string) => unit
-let assertProof: (editorState, string, string) => unit
+let assertProof: (editorState, string, string, ~useAllLocalEHyps:bool=?) => unit
 let assertTextsEq: (string, string, string, string) => unit
 let assertTextEqFile: (string, string) => unit
 let assertFileContentsEq: (string, string) => unit
