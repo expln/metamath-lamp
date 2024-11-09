@@ -596,13 +596,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertProof(st, st->getStmtId(~label="stmt5"), "proof-no-redundant-vars")
         assertProof(st, st->getStmtId(~label="3"), "proof-no-redundant-disj")
         assertProof(st, st->getStmtId(~label="stmt11"), "proof-no-redundant-hyps")
-    })
-
-    it("actExportProof exports all hypotheses when requested", _ => {
-        setTestDataDir("all-hyps-in-export")
-        let st = createEditorState(~mmFilePath=setMmPath, ~debug, ~editorState="editor-initial-state")
-        let st = st->unifyAll
-        assertEditorState(st, "step1")
+        //actExportProof exports all hypotheses when requested
         assertProof(st, st->getStmtId(~label="stmt11"), "proof-all-hyps", ~useAllLocalEHyps=true)
     })
 
