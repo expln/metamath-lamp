@@ -3,6 +3,7 @@
 * Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog. (TODO: write docs for https://github.com/expln/metamath-lamp/pull/213)
 * Bug fix: scrolling position changes "randomly" when switching between tabs.
 * Allow selecting multiple steps in the editor by holding the Shift key.
+* Add the option to include all hypotheses (even unused ones) in the compressed proof.
 ### Version 25
 * Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
 * Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/search_by_pattern.md):
