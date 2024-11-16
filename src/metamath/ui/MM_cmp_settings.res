@@ -824,6 +824,7 @@ let eqState = (st1, st2) => {
         && st1.useCustomTransforms == st2.useCustomTransforms
         && st1.customTransforms == st2.customTransforms
         && st1.combCntMaxStr == st2.combCntMaxStr
+        && st1.bottomUpProverDefaults == st2.bottomUpProverDefaults
 }
 
 let updateParens = (st,parens) => {
@@ -974,6 +975,10 @@ let updateCombCntMaxStr = (st, str) => {
 
 let updateEditorHistMaxLengthStr = (st, editorHistMaxLengthStr) => {
     { ...st, editorHistMaxLengthStr: editorHistMaxLengthStr }
+}
+
+let updateBottomUpProverDefaults = (st, bottomUpProverDefaults) => {
+    { ...st, bottomUpProverDefaults: bottomUpProverDefaults }
 }
 
 @react.component
@@ -1139,6 +1144,10 @@ let make = (
 
     let actTrustedChange = (id,trusted) => {
         setState(updateTrusted(_, id, trusted))
+    }
+
+    let actBottomUpProverDefaultsChange = (bottomUpProverDefaults) => {
+        setState(updateBottomUpProverDefaults(_, bottomUpProverDefaults))
     }
 
     let actUseDiscInSyntaxChange = (useDiscInSyntax) => { setState(updateUseDiscInSyntax(_, useDiscInSyntax)) }
@@ -1791,6 +1800,18 @@ let make = (
             onChange=evt2str(actCombCntMaxStrChange)
             title="Max number of distinct combinations of arguments to check per assertion in \"Unify All\" and when proving bottom-up."
         />
+        <Divider/>
+        {React.string("Default parameter values for the bottom-up prover")}
+        <MM_cmp_bottom_up_prover_settings 
+            initSettings=state.bottomUpProverDefaults
+            onChange=actBottomUpProverDefaultsChange
+        />
+        {
+            rndSmallTextBtn(
+                ~text="Restore default parameter values for the bottom-up prover",
+                ~onClick={_=>actBottomUpProverDefaultsChange(createDefaultSettings().bottomUpProverDefaults)}
+            )
+        }
         <Divider/>
         {rndDiscAsrtsSettings()}
         <Divider/>
