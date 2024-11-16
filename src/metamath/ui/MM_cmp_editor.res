@@ -154,6 +154,7 @@ let make = (
     let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
     let showBkmOnlyRef:React.ref<bool> = React.useRef(showBkmOnly)
     showBkmOnlyRef.current = showBkmOnly
+    let onOpenSubstitutionDialogRef:React.ref<unit=>unit> = React.useRef(()=>())
 
     let (showCheckbox, setShowCheckbox) = useStateFromLocalStorageBool(
         ~key="editor-showCheckbox", ~default=true,
@@ -955,6 +956,7 @@ let make = (
             }
         }
     }
+    onOpenSubstitutionDialogRef.current = actSubstitute
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
         () => {
@@ -1919,6 +1921,7 @@ let make = (
 
             onGenerateProof={()=>actExportProof(stmt.id)}
             onDebug={() => notifyEditInTempMode(()=>actDebugUnifyAll(stmt.id))}
+            onOpenSubstitutionDialog=Some(onOpenSubstitutionDialogRef)
 
             addStmtAbove=
                 {text => actAddStmtAbove(~id=stmt.id, ~text, ~isBkm = stmt.isBkm || showBkmOnly && stmt.typ == E)}

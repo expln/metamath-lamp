@@ -220,6 +220,7 @@ let make = (
 
             onGenerateProof={()=>()}
             onDebug={() => ()}
+            onOpenSubstitutionDialog=None
 
             addStmtAbove={_ => ()}
             addStmtBelow={_ => ()}
