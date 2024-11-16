@@ -21,6 +21,15 @@ type allowedFrms = {
     inEssen: frameRestrict,
 }
 
+type bottomUpProverDefaults = {
+    searchDepth: int,
+    lengthRestrict: string,
+    allowNewDisjForExistingVars: bool,
+    allowNewStmts: bool,
+    allowNewVars: bool,
+    debugLevel:int,
+}
+
 type settings = {
     parens: string,
     asrtsToSkip: array<string>, //deprecated
@@ -56,6 +65,8 @@ type settings = {
     useDefaultTransforms:bool,
     useCustomTransforms:bool,
     customTransforms:string,
+
+    bottomUpProverDefaults: bottomUpProverDefaults,
 }
 
 let markUrlAsTrusted: (settings, string) => settings

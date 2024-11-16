@@ -59,6 +59,8 @@ type settingsState = {
     customTransforms:string,
 
     combCntMaxStr:string,
+
+    bottomUpProverDefaults: bottomUpProverDefaults,
 }
 
 let allColors = [
@@ -176,6 +178,14 @@ let createDefaultSettings = ():settingsState => {
         useCustomTransforms:false,
         customTransforms:"",
         combCntMaxStr:combCntMaxDefault->Belt.Int.toString,
+        bottomUpProverDefaults: {
+            searchDepth: 4,
+            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            allowNewDisjForExistingVars: true,
+            allowNewStmts: true,
+            allowNewVars: false,
+            debugLevel: 0,
+        },
     }
 }
 
@@ -565,6 +575,7 @@ let stateToSettings = (st:settingsState):settings => {
         customTransforms: st.customTransforms,
         combCntMax: 
             st.combCntMaxStr->Belt_Int.fromString->Belt.Option.getWithDefault(combCntMaxDefault),
+        bottomUpProverDefaults: st.bottomUpProverDefaults,
     }
 }
 
@@ -620,6 +631,7 @@ let settingsToState = (ls:settings):settingsState => {
         useCustomTransforms: ls.useCustomTransforms,
         customTransforms: ls.customTransforms,
         combCntMaxStr: ls.combCntMax->Belt.Int.toString,
+        bottomUpProverDefaults: ls.bottomUpProverDefaults,
     }
     validateAndCorrectState(res)
 }
@@ -635,6 +647,7 @@ let settingsSaveToLocStor = (settings:settings):unit => {
 
 let readStateFromLocStor = ():settingsState => {
     let defaultSettings = createDefaultSettings()
+    let bottomUpProverDefaults = defaultSettings.bottomUpProverDefaults
     switch Dom_storage2.localStorage->Dom_storage2.getItem(settingsLocStorKey) {
         | None => defaultSettings
         | Some(settingsLocStorStr) => {
@@ -726,6 +739,22 @@ let readStateFromLocStor = ():settingsState => {
                         ~default = () => combCntMaxDefault,
                         ~validator = validateCombCntMax 
                     )->Belt_Int.toString,
+                    bottomUpProverDefaults: d->obj("bottomUpProverDefaults", d=>{
+                        {
+                            searchDepth: d->int("searchDepth", 
+                                ~default=()=>bottomUpProverDefaults.searchDepth),
+                            lengthRestrict: d->str("lengthRestrict", 
+                                ~default=()=>bottomUpProverDefaults.lengthRestrict),
+                            allowNewDisjForExistingVars: d->bool("allowNewDisjForExistingVars", 
+                                ~default=()=>bottomUpProverDefaults.allowNewDisjForExistingVars),
+                            allowNewStmts: d->bool("allowNewStmts", 
+                                ~default=()=>bottomUpProverDefaults.allowNewStmts),
+                            allowNewVars: d->bool("allowNewVars", 
+                                ~default=()=>bottomUpProverDefaults.allowNewVars),
+                            debugLevel: d->int("debugLevel", 
+                                ~default=()=>bottomUpProverDefaults.debugLevel),
+                        }
+                    }, ~default=()=>bottomUpProverDefaults),
                 }
             }), ~default=()=>defaultSettings)
             switch parseResult {
