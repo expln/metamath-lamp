@@ -1803,7 +1803,7 @@ let make = (
         <Divider/>
         {React.string("Default parameter values for the bottom-up prover")}
         <MM_cmp_bottom_up_prover_settings 
-            initSettings=state.bottomUpProverDefaults
+            settings=state.bottomUpProverDefaults
             onChange=actBottomUpProverDefaultsChange
         />
         {
