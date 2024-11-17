@@ -168,7 +168,7 @@ let createDefaultSettings = ():settingsState => {
             },
         ],
         webSrcNextId: 1,
-        webSrcSettings: [ setmm, isetmm ],
+        webSrcSettings: [ setmm, isetmm ]->Array.mapWithIndex((src,idx) => {...src, id:idx->Int.toString}),
         longClickEnabled:true,
         longClickDelayMsStr:longClickDelayMsDefault->Belt.Int.toString,
         hideContextSelector:false,
@@ -1150,6 +1150,10 @@ let make = (
         setState(updateBottomUpProverDefaults(_, bottomUpProverDefaults))
     }
 
+    let actRestoreDefaultSettings = () => {
+        setState(_ => createDefaultSettings())
+    }
+
     let actUseDiscInSyntaxChange = (useDiscInSyntax) => { setState(updateUseDiscInSyntax(_, useDiscInSyntax)) }
     let actUseDiscInEssenChange = (useDiscInEssen) => { setState(updateUseDiscInEssen(_, useDiscInEssen)) }
     let actUseDeprInSyntaxChange = (useDeprInSyntax) => { setState(updateUseDeprInSyntax(_, useDeprInSyntax)) }
@@ -1620,7 +1624,7 @@ let make = (
 
     let rndApplyChangesBtn = () => {
         let disabled = eqState(prevState, state) 
-        <Row spacing=3. >
+        <Row spacing=3. alignItems={#baseline}>
             <Button disabled onClick={_=>actApplyChanges()} variant=#contained 
                 color=?{if(!isValid(state)){Some("pastelred")}else{None}}
             >
@@ -1629,6 +1633,12 @@ let make = (
             <Button disabled onClick={_ => discardChanges()}>
                 {React.string("Discard changes")}
             </Button>
+            {
+                rndSmallTextBtn(
+                    ~text="Restore default settings",
+                    ~onClick={_=>actRestoreDefaultSettings()}
+                )
+            }
         </Row>
     }
 
