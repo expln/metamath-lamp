@@ -1035,11 +1035,18 @@ let make = (
                                 switch getArgs0AndAsrtLabel(checkedStmts, rootStmts) {
                                     | None => None
                                     | Some((args0,asrtLabel)) => {
+                                        let bottomUpProverDefaults = preCtxData.settingsV.val.bottomUpProverDefaults
                                         Some(
                                             bottomUpProverParamsMakeDefault(
                                                 ~asrtLabel?, 
                                                 ~args0, 
-                                                ~allowNewVars=false
+                                                ~maxSearchDepth=bottomUpProverDefaults.searchDepth,
+                                                ~lengthRestrict=bottomUpProverDefaults.lengthRestrict
+                                                    ->lengthRestrictFromStr->Option.getOr(Less),
+                                                ~allowNewDisjForExistingVars=
+                                                    bottomUpProverDefaults.allowNewDisjForExistingVars,
+                                                ~allowNewStmts=bottomUpProverDefaults.allowNewStmts,
+                                                ~allowNewVars=bottomUpProverDefaults.allowNewVars,
                                             )
                                         )
                                     }
