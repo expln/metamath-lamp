@@ -4,6 +4,9 @@
 * Bug fix: scrolling position changes "randomly" when switching between tabs.
 * Allow selecting multiple steps in the editor by holding the Shift key.
 * Add the option to include all hypotheses (even unused ones) in the compressed proof.
+* Add the "Apply a substitution to all steps" button to the fragment selection actions.
+* Add an additional pagination UI element at the bottom of the Explorer page.
+* Make it possible to change default parameter values for the bottom-up prover.
 ### Version 25
 * Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
 * Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/search_by_pattern.md):
