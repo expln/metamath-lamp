@@ -306,13 +306,9 @@ let rec unify = (
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
                                 switch a.children->Array.getUnsafe(i.contents) {
-                                    | Symbol({sym:aSym, isVar:aIsVar}) => {
+                                    | Symbol({sym:aSym}) => {
                                         switch b.children->Array.getUnsafe(i.contents) {
-                                            | Symbol({sym:bSym, isVar:bIsVar}) => {
-                                                if (aIsVar || bIsVar || aSym != bSym) {
-                                                    continue := false
-                                                }
-                                            }
+                                            | Symbol({sym:bSym}) => continue := aSym == bSym
                                             | Subtree(_) => continue := false
                                         }
                                     }

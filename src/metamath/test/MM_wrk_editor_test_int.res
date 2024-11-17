@@ -695,6 +695,8 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
                 ("&W1", "( ph -> ( ps -> ch ) )"),
             ] 
         )
+
+        testUnifSubs( ~expr1="A e. &C1", ~expr2="A e. X", ~expected = [ ("&C1", "X"), ] )
     })
 
     it("autoMergeDuplicatedStatements", _ => {
