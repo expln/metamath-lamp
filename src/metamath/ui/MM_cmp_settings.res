@@ -59,6 +59,8 @@ type settingsState = {
     customTransforms:string,
 
     combCntMaxStr:string,
+
+    bottomUpProverDefaults: bottomUpProverDefaults,
 }
 
 let allColors = [
@@ -176,6 +178,14 @@ let createDefaultSettings = ():settingsState => {
         useCustomTransforms:false,
         customTransforms:"",
         combCntMaxStr:combCntMaxDefault->Belt.Int.toString,
+        bottomUpProverDefaults: {
+            searchDepth: 20,
+            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            allowNewDisjForExistingVars: true,
+            allowNewStmts: true,
+            allowNewVars: false,
+            debugLevel: 1,
+        },
     }
 }
 
@@ -565,6 +575,7 @@ let stateToSettings = (st:settingsState):settings => {
         customTransforms: st.customTransforms,
         combCntMax: 
             st.combCntMaxStr->Belt_Int.fromString->Belt.Option.getWithDefault(combCntMaxDefault),
+        bottomUpProverDefaults: st.bottomUpProverDefaults,
     }
 }
 
@@ -620,6 +631,7 @@ let settingsToState = (ls:settings):settingsState => {
         useCustomTransforms: ls.useCustomTransforms,
         customTransforms: ls.customTransforms,
         combCntMaxStr: ls.combCntMax->Belt.Int.toString,
+        bottomUpProverDefaults: ls.bottomUpProverDefaults,
     }
     validateAndCorrectState(res)
 }
@@ -635,6 +647,7 @@ let settingsSaveToLocStor = (settings:settings):unit => {
 
 let readStateFromLocStor = ():settingsState => {
     let defaultSettings = createDefaultSettings()
+    let bottomUpProverDefaults = defaultSettings.bottomUpProverDefaults
     switch Dom_storage2.localStorage->Dom_storage2.getItem(settingsLocStorKey) {
         | None => defaultSettings
         | Some(settingsLocStorStr) => {
@@ -726,6 +739,22 @@ let readStateFromLocStor = ():settingsState => {
                         ~default = () => combCntMaxDefault,
                         ~validator = validateCombCntMax 
                     )->Belt_Int.toString,
+                    bottomUpProverDefaults: d->obj("bottomUpProverDefaults", d=>{
+                        {
+                            searchDepth: d->int("searchDepth", 
+                                ~default=()=>bottomUpProverDefaults.searchDepth),
+                            lengthRestrict: d->str("lengthRestrict", 
+                                ~default=()=>bottomUpProverDefaults.lengthRestrict),
+                            allowNewDisjForExistingVars: d->bool("allowNewDisjForExistingVars", 
+                                ~default=()=>bottomUpProverDefaults.allowNewDisjForExistingVars),
+                            allowNewStmts: d->bool("allowNewStmts", 
+                                ~default=()=>bottomUpProverDefaults.allowNewStmts),
+                            allowNewVars: d->bool("allowNewVars", 
+                                ~default=()=>bottomUpProverDefaults.allowNewVars),
+                            debugLevel: d->int("debugLevel", 
+                                ~default=()=>bottomUpProverDefaults.debugLevel),
+                        }
+                    }, ~default=()=>bottomUpProverDefaults),
                 }
             }), ~default=()=>defaultSettings)
             switch parseResult {
@@ -795,6 +824,7 @@ let eqState = (st1, st2) => {
         && st1.useCustomTransforms == st2.useCustomTransforms
         && st1.customTransforms == st2.customTransforms
         && st1.combCntMaxStr == st2.combCntMaxStr
+        && st1.bottomUpProverDefaults == st2.bottomUpProverDefaults
 }
 
 let updateParens = (st,parens) => {
@@ -945,6 +975,10 @@ let updateCombCntMaxStr = (st, str) => {
 
 let updateEditorHistMaxLengthStr = (st, editorHistMaxLengthStr) => {
     { ...st, editorHistMaxLengthStr: editorHistMaxLengthStr }
+}
+
+let updateBottomUpProverDefaults = (st, bottomUpProverDefaults) => {
+    { ...st, bottomUpProverDefaults: bottomUpProverDefaults }
 }
 
 @react.component
@@ -1110,6 +1144,10 @@ let make = (
 
     let actTrustedChange = (id,trusted) => {
         setState(updateTrusted(_, id, trusted))
+    }
+
+    let actBottomUpProverDefaultsChange = (bottomUpProverDefaults) => {
+        setState(updateBottomUpProverDefaults(_, bottomUpProverDefaults))
     }
 
     let actUseDiscInSyntaxChange = (useDiscInSyntax) => { setState(updateUseDiscInSyntax(_, useDiscInSyntax)) }
@@ -1762,6 +1800,18 @@ let make = (
             onChange=evt2str(actCombCntMaxStrChange)
             title="Max number of distinct combinations of arguments to check per assertion in \"Unify All\" and when proving bottom-up."
         />
+        <Divider/>
+        {React.string("Default parameter values for the bottom-up prover")}
+        <MM_cmp_bottom_up_prover_settings 
+            settings=state.bottomUpProverDefaults
+            onChange=actBottomUpProverDefaultsChange
+        />
+        {
+            rndSmallTextBtn(
+                ~text="Restore default parameter values for the bottom-up prover",
+                ~onClick={_=>actBottomUpProverDefaultsChange(createDefaultSettings().bottomUpProverDefaults)}
+            )
+        }
         <Divider/>
         {rndDiscAsrtsSettings()}
         <Divider/>

@@ -568,6 +568,7 @@ type props = {
 
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
+    onOpenSubstitutionDialog:option<React.ref<unit=>unit>>,
     addStmtAbove:string=>unit,
     addStmtBelow:string=>unit,
     setShowTabs:bool=>unit,
@@ -635,6 +636,7 @@ let make = React.memoCustomCompareProps( ({
     onJstfEditCancel,
     onGenerateProof,
     onDebug,
+    onOpenSubstitutionDialog,
     checkboxDisabled,
     checkboxChecked,
     checkboxOnChange,
@@ -1095,6 +1097,13 @@ let make = React.memoCustomCompareProps( ({
         })
     }
 
+    let actOpenSubstitutionDialog = () => {
+        switch onOpenSubstitutionDialog {
+            | None => ()
+            | Some(onOpenSubstitutionDialog) => onOpenSubstitutionDialog.current()
+        }
+    }
+
     let rndLabel = () => {
         if (stmt.labelEditMode) {
             <Col 
@@ -1206,6 +1215,17 @@ let make = React.memoCustomCompareProps( ({
                         </Button>
                     }
                 }
+                {
+                    if (readOnly) {React.null} else {
+                        <Button 
+                            title="Apply a substitution to all steps, R" 
+                            onClick={_=>actOpenSubstitutionDialog()} 
+                            ?style
+                        > 
+                            <MM_Icons.TextRotationNone/>
+                        </Button>
+                    }
+                }
                 <Button title="Copy to the clipboard, A" onClick={_=>actCopyToClipboard()} ?style> <MM_Icons.ContentCopy/> </Button>
                 {
                     if (readOnly) {React.null} else {
@@ -1233,6 +1253,7 @@ let make = React.memoCustomCompareProps( ({
                         kbrdClbkMake(~key="w", ~act=actExpandSelection),
                         kbrdClbkMake(~key="s", ~act=actShrinkSelection),
                         kbrdClbkMake(~key="q", ~act=actOpenFragmentTransform),
+                        kbrdClbkMake(~key="r", ~act=actOpenSubstitutionDialog),
                         kbrdClbkMake(~key="e", ~act=actEditSelection),
                         kbrdClbkMake(~key="a", ~act=actCopyToClipboard),
                         kbrdClbkMake(~key="d", ~act=actPasteFromClipboard),

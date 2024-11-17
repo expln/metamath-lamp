@@ -7,6 +7,8 @@ open MM_substitution
 open MM_parenCounter
 open MM_wrk_settings
 
+@val external window: {..} = "window"
+
 let nonDigitPattern = %re("/\D/g")
 
 type props = {
@@ -76,6 +78,7 @@ let make = React.memoCustomCompareProps(({
         if (1 <= newPageNum && newPageNum <= numOfPages) {
             setPageIdx(_ => newPageNum-1)
             setGoToPageText(_ => "")
+            window["scrollTo"](0, 0)
         }
     }
 
@@ -131,7 +134,7 @@ let make = React.memoCustomCompareProps(({
 
     let rndFrames = () => {
         if (labels->Array.length == 0) {
-            "No assertions loaded."->React.string
+            "No assertions found."->React.string
         } else {
             <Col spacing=2.>
                 {rndPagination()}
@@ -140,6 +143,7 @@ let make = React.memoCustomCompareProps(({
                         ->Array.map(((order,label)) => rndFrameSummary(order,label))
                         ->React.array
                 }
+                {rndPagination()}
             </Col>
         }
     }

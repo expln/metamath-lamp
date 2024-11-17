@@ -31,6 +31,14 @@ let createEditorState = ():editorState => {
         useCustomTransforms:false,
         customTransforms:"",
         combCntMax:10000,
+        bottomUpProverDefaults: {
+            searchDepth: 4,
+            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            allowNewDisjForExistingVars: true,
+            allowNewStmts: true,
+            allowNewVars: false,
+            debugLevel: 0,
+        },
     }
     createInitialEditorState(
         ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(()))),

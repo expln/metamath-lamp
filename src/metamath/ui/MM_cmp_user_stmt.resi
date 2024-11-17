@@ -75,6 +75,7 @@ type props = {
 
     onGenerateProof:unit=>unit,
     onDebug:unit=>unit,
+    onOpenSubstitutionDialog:option<React.ref<unit=>unit>>,
     addStmtAbove:string=>unit,
     addStmtBelow:string=>unit,
     setShowTabs:bool=>unit,

@@ -156,6 +156,7 @@ let makeInitialState = (
     ~initialParams: option<bottomUpProverParams>,
     ~initialDebugLevel: option<int>,
     ~allowedFrms:allowedFrms,
+    ~bottomUpProverDefaults: bottomUpProverDefaults,
 ) => {
     let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
     let rootStmtsLen = rootStmts->Array.length
@@ -165,7 +166,13 @@ let makeInitialState = (
 
     let params = switch initialParams {
         | Some(params) => params
-        | None => bottomUpProverParamsMakeDefault(())
+        | None => bottomUpProverParamsMakeDefault(
+            ~maxSearchDepth=bottomUpProverDefaults.searchDepth,
+            ~lengthRestrict=bottomUpProverDefaults.lengthRestrict->lengthRestrictFromStr->Option.getOr(Less),
+            ~allowNewDisjForExistingVars=bottomUpProverDefaults.allowNewDisjForExistingVars,
+            ~allowNewStmts=bottomUpProverDefaults.allowNewStmts,
+            ~allowNewVars=bottomUpProverDefaults.allowNewVars,
+        )
     }
 
     let frameParams = params.frameParams
@@ -248,7 +255,9 @@ let makeInitialState = (
         useDepr:allowedFrms.inEssen.useDepr,
         useTranDepr:allowedFrms.inEssen.useTranDepr,
         debugLevel: initialDebugLevel
-            ->Belt_Option.map(lvl => if (0 <= lvl && lvl <= 2) {lvl} else {0})->Belt_Option.getWithDefault(0),
+            ->Option.map(lvl => {
+                if (0 <= lvl && lvl <= 2) {lvl} else {bottomUpProverDefaults.debugLevel}
+            })->Option.getOr(bottomUpProverDefaults.debugLevel),
         maxNumberOfBranchesStr: 
             if (frameParamsLen > 0) {
                 (frameParams->Array.getUnsafe(0)).maxNumberOfBranches->Belt_Option.map(Belt_Int.toString)->Belt.Option.getWithDefault("")
@@ -666,7 +675,7 @@ let make = (
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
         ~rootUserStmts=rootStmts, ~frms, ~parenCnt, ~initialParams, ~initialDebugLevel, 
-        ~allowedFrms=settings.allowedFrms
+        ~allowedFrms=settings.allowedFrms, ~bottomUpProverDefaults=settings.bottomUpProverDefaults,
     ))
 
     let isApiCall = apiCallStartTime->Belt.Option.isSome
