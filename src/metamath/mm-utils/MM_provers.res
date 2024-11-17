@@ -33,7 +33,7 @@ type bottomUpProverParams = {
 
 let bottomUpProverParamsMakeDefault = (
     ~asrtLabel: option<string>=?,
-    ~maxSearchDepth: int=20,
+    ~maxSearchDepth: int=4,
     ~lengthRestrict: lengthRestrict=Less,
     ~allowNewDisjForExistingVars: bool=true,
     ~allowNewStmts: bool=true,

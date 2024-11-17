@@ -179,12 +179,12 @@ let createDefaultSettings = ():settingsState => {
         customTransforms:"",
         combCntMaxStr:combCntMaxDefault->Belt.Int.toString,
         bottomUpProverDefaults: {
-            searchDepth: 20,
+            searchDepth: 4,
             lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
             allowNewDisjForExistingVars: true,
             allowNewStmts: true,
             allowNewVars: false,
-            debugLevel: 1,
+            debugLevel: 0,
         },
     }
 }
