@@ -7,6 +7,8 @@
 * Add the "Apply a substitution to all steps" button to the fragment selection actions.
 * Add an additional pagination UI element at the bottom of the Explorer page.
 * Make it possible to change default parameter values for the bottom-up prover.
+* Fix a bug in "Find substitution by unification".
+* Add a "Restore default settings" button to the Settings tab.
 ### Version 25
 * Bug fix: Use spaces instead of commas to separate variables in the disjoints section of the editor. https://github.com/expln/metamath-lamp/issues/199
 * Extend the [pattern search functionality](https://github.com/expln/metamath-lamp-docs/blob/master/explorer/search_by_pattern.md):
