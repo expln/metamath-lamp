@@ -1,4 +1,5 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
+### Version 26
 * Enable automatic substitution search to minimize presses of the "Find Substitution" button.
 * Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog.
 * Bug fix: scrolling position changes "randomly" when switching between tabs.
