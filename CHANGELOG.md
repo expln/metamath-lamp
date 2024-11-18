@@ -1,6 +1,6 @@
 ### [DEV Version](https://expln.github.io/lamp/dev/index.html)
-* Enable automatic substitution search to minimize presses of the "Find Substitution" button. (TODO: write docs for https://github.com/expln/metamath-lamp/pull/214)
-* Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog. (TODO: write docs for https://github.com/expln/metamath-lamp/pull/213)
+* Enable automatic substitution search to minimize presses of the "Find Substitution" button.
+* Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog.
 * Bug fix: scrolling position changes "randomly" when switching between tabs.
 * Allow selecting multiple steps in the editor by holding the Shift key.
 * Add the option to include all hypotheses (even unused ones) in the compressed proof.
