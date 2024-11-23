@@ -52,7 +52,8 @@ describe("proveSyntaxTypes", _ => {
                 | None => {
                     let newVar = createNewVar(typ)
                     typToLocVars->Belt_HashMapInt.set(typ,[newVar])
-                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
+                    // typToNextLocVarIdx->Belt_HashMapInt.set(typ,1)
+                    typToNextLocVarIdx->Belt_HashMapInt.set(typ,0)
                     newVar
                 }
                 | Some(locVars) => {
@@ -62,11 +63,13 @@ describe("proveSyntaxTypes", _ => {
                             if (locVars->Array.length <= idx) {
                                 let newVar = createNewVar(typ)
                                 locVars->Array.push(newVar)
-                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Array.length)
+                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Array.length)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,locVars->Array.length-1)
                                 newVar
                             } else {
                                 let existingVar = locVars->Array.getUnsafe(idx)
-                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
+                                // typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx+1)
+                                typToNextLocVarIdx->Belt_HashMapInt.set(typ,idx)
                                 existingVar
                             }
                         }
@@ -110,6 +113,21 @@ describe("proveSyntaxTypes", _ => {
             if (maxNumOfVars.contents < frame.numOfVars) {
                 maxNumOfVars := frame.numOfVars
             }
+            frame.hyps->Array.forEachWithIndex((hyp,idx) => {
+                if (hyp.typ == E) {
+                    asrtExprs->Belt_HashMapString.set(
+                        frame.label ++ "---" ++ idx->Int.toString,
+                        {
+                            "ctxExpr": hyp.expr->Array.map(asrtIntToCtxInt(_,asrtVarToLocVar)),
+                            "ctxVarToAsrtVar": 
+                                asrtVarToLocVar->Array.mapWithIndex((ctxVar,asrtVar) => (ctxVar,asrtVar))->Belt_HashMapInt.fromArray
+                        }
+                    )            
+                    if (maxNumOfVars.contents < frame.numOfVars) {
+                        maxNumOfVars := frame.numOfVars
+                    }
+                }
+            })
             None
         })->ignore
         let asrtExprsToProve = asrtExprs->Belt_HashMapString.valuesToArray
