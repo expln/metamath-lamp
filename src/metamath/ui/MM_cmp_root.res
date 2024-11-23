@@ -9,6 +9,7 @@ open MM_react_common
 
 type tabData =
     | Settings
+    | TabsManager
     | Editor
     | ExplorerIndex({initPatternFilterStr:string})
     | ExplorerFrame({label:string})
@@ -204,6 +205,7 @@ let make = () => {
         updateTabs(st => {
             if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
+                let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, 
                     ~color=?(if (tempMode.contents) {Some("orange")} else {None})
@@ -228,6 +230,15 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             onChange=actSettingsUpdated
+                        />
+                    | TabsManager => 
+                        <MM_cmp_tabs_manager
+                            modalRef
+                            tabs={
+                                tabs
+                                    ->Array.sliceToEnd(~start=2)
+                                    ->Array.map(tab => {MM_cmp_tabs_manager.id:tab.id, label:tab.label})
+                            }
                         />
                     | Editor => 
                         <MM_cmp_editor
