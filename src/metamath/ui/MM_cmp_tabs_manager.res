@@ -26,10 +26,21 @@ type tabProps = {
 @react.component
 let make = (
     ~modalRef:modalRef, 
-    ~tabs: array<tabProps>
+    ~tabs: array<tabProps>,
 ) => {
+    let rndTabButtons = (tab:tabProps) => {
+        <ButtonGroup variant=#outlined size=#small >
+            <Button title="Close" onClick={_=>()}> <MM_Icons.CancelOutlined/> </Button>
+            <Button title="Go to this tab" onClick={_=>()}> <MM_Icons.OpenInBrowser/> </Button>
+            <Button title="Rename" onClick={_=>()}> <MM_Icons.Edit/> </Button>
+            <Button title="Move down" onClick={_=>()}> <MM_Icons.ArrowDownward/> </Button>
+            <Button title="Move up" onClick={_=>()}> <MM_Icons.ArrowUpward/> </Button>
+        </ButtonGroup>
+    }
+
     let rndTabControls = (tab:tabProps) => {
         <Row key=tab.id>
+            {rndTabButtons(tab)}
             <Paper style=ReactDOM.Style.make(~padding="5px", ())>
                 {tab.label->React.string}
             </Paper>
