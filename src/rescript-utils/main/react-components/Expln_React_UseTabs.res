@@ -26,6 +26,8 @@ type state<'a> = {
 type tabMethods<'a> = {
     addTab: (~label:string, ~closable:bool, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
     openTab: tabId => unit,
+    moveTabLeft: tabId => unit,
+    moveTabRight: tabId => unit,
     removeTab: tabId => unit,
     tabs: array<tab<'a>>,
     activeTabId: tabId,
@@ -107,6 +109,27 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
     }
 }
 
+let moveTab = (st:state<'a>, tabId:tabId, toRight:bool):state<'a> => {
+    switch st.tabs->Array.findIndexOpt(t => t.id == tabId) {
+        | None => st
+        | Some(curIdx) => {
+            let newIndex = toRight ? curIdx+1 : curIdx-1
+            if (0 <= newIndex && newIndex < st.tabs->Array.length) {
+                let newTabs = st.tabs->Array.toSpliced(~start=curIdx, ~remove=1, ~insert=[])
+                let newTabs = newTabs->Array.toSpliced(
+                    ~start=newIndex, ~remove=0, ~insert=[st.tabs->Array.getUnsafe(curIdx)]
+                )
+                {...st, tabs:newTabs}
+            } else {
+                st
+            }
+        }
+    }
+}
+
+let moveTabLeft = (st:state<'a>, tabId:tabId):state<'a> => moveTab(st, tabId, false)
+let moveTabRight = (st:state<'a>, tabId:tabId):state<'a> => moveTab(st, tabId, true)
+
 let removeTab = (st:state<'a>, tabId):state<'a> => {
     let newTabs = st.tabs->Array.filter(t => t.id != tabId)
     let newTabHistory = st.tabHistory->Array.filter(id => id != tabId)
@@ -160,6 +183,14 @@ let useTabs = ():tabMethods<'a> => {
 
     let openTab = id => {
         setState(prev => prev->openTab(id))
+    }
+
+    let moveTabLeft = id => {
+        setState(prev => prev->moveTabLeft(id))
+    }
+
+    let moveTabRight = id => {
+        setState(prev => prev->moveTabRight(id))
     }
 
     let removeTab = id => {
@@ -229,6 +260,8 @@ let useTabs = ():tabMethods<'a> => {
     {
         addTab,
         openTab,
+        moveTabLeft,
+        moveTabRight,
         removeTab,
         tabs: state.tabs->Array.copy,
         activeTabId: state.activeTabId,

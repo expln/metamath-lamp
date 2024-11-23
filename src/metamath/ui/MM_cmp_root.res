@@ -93,8 +93,9 @@ if (tempMode.contents) {
 let make = () => {
     let modalRef = useModalRef()
     @warning("-27")
-    let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId, setLabel} = 
-        Expln_React_UseTabs.useTabs()
+    let {
+        tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId, setLabel, moveTabLeft, moveTabRight
+    } = Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
 
@@ -158,6 +159,20 @@ let make = () => {
     let actRenameTab = (id:Expln_React_UseTabs.tabId, newName:string) => {
         setLabel(id,newName)
     }
+
+    let actMoveTab = (id:Expln_React_UseTabs.tabId, toRight:bool) => {
+        switch tabs->Array.findIndexOpt(t => t.id == id) {
+            | None => ()
+            | Some(curIdx) => {
+                let newIdx = toRight ? curIdx+1 : curIdx-1
+                if (2 <= newIdx) {
+                    toRight ? moveTabRight(id) : moveTabLeft(id)
+                }
+            }
+        }
+    }
+    let actMoveTabLeft = (id:Expln_React_UseTabs.tabId) => actMoveTab(id, false)
+    let actMoveTabRight = (id:Expln_React_UseTabs.tabId) => actMoveTab(id, true)
 
     let openFrameExplorer = (label:string):unit => {
         setState(st => {
@@ -245,6 +260,8 @@ let make = () => {
                                     ->Array.map(tab => {MM_cmp_tabs_manager.id:tab.id, label:tab.label})
                             }
                             onTabRename=actRenameTab
+                            onTabMoveUp=actMoveTabLeft
+                            onTabMoveDown=actMoveTabRight
                         />
                     | Editor => 
                         <MM_cmp_editor

@@ -21,6 +21,8 @@ let removeTab: (state<'a>, tabId) => state<'a>
 type tabMethods<'a> = {
     addTab: (~label:string, ~closable:bool, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
     openTab: tabId => unit,
+    moveTabLeft: tabId => unit,
+    moveTabRight: tabId => unit,
     removeTab: tabId => unit,
     tabs: array<tab<'a>>,
     activeTabId: tabId,

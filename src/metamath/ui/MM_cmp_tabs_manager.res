@@ -74,6 +74,8 @@ let make = (
     ~modalRef:modalRef, 
     ~tabs: array<tabProps>,
     ~onTabRename:(Expln_React_UseTabs.tabId, string)=>unit,
+    ~onTabMoveUp:Expln_React_UseTabs.tabId=>unit,
+    ~onTabMoveDown:Expln_React_UseTabs.tabId=>unit,
 ) => {
     let actRenameTab = (tab:tabProps) => {
         openModalPaneWithTitle(
@@ -97,8 +99,8 @@ let make = (
             <Button title="Close" onClick={_=>()}> <MM_Icons.CancelOutlined/> </Button>
             <Button title="Go to this tab" onClick={_=>()}> <MM_Icons.OpenInBrowser/> </Button>
             <Button title="Rename" onClick={_=>actRenameTab(tab)}> <MM_Icons.Edit/> </Button>
-            <Button title="Move down" onClick={_=>()}> <MM_Icons.ArrowDownward/> </Button>
-            <Button title="Move up" onClick={_=>()}> <MM_Icons.ArrowUpward/> </Button>
+            <Button title="Move down" onClick={_=>onTabMoveDown(tab.id)}> <MM_Icons.ArrowDownward/> </Button>
+            <Button title="Move up" onClick={_=>onTabMoveUp(tab.id)}> <MM_Icons.ArrowUpward/> </Button>
         </ButtonGroup>
     }
 
