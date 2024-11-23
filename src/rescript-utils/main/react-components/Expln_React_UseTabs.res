@@ -30,6 +30,7 @@ type tabMethods<'a> = {
     tabs: array<tab<'a>>,
     activeTabId: tabId,
     renderTabs: unit => reElem,
+    setLabel: (tabId,string) => unit,
 
     updateTabs: (state<'a> => state<'a>) => unit
 }
@@ -125,6 +126,19 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
     }
 }
 
+let setLabel = (st:state<'a>, tabId:tabId, newLabel:string):state<'a> => {
+    {
+        ...st, 
+        tabs: st.tabs->Array.map(tab => {
+            if (tab.id == tabId) {
+                {...tab, label:newLabel}
+            } else {
+                tab
+            }
+        }),
+    }
+}
+
 let useTabs = ():tabMethods<'a> => {
     let (state, setState) = React.useState(createEmptyState)
 
@@ -150,6 +164,10 @@ let useTabs = ():tabMethods<'a> => {
 
     let removeTab = id => {
         setState(prev => prev->removeTab(id))
+    }
+
+    let setLabel = (id:tabId, newLabel:string) => {
+        setState(prev => prev->setLabel(id,newLabel))
     }
 
     let renderTabs = () => {
@@ -215,6 +233,7 @@ let useTabs = ():tabMethods<'a> => {
         tabs: state.tabs->Array.copy,
         activeTabId: state.activeTabId,
         renderTabs,
+        setLabel,
 
         updateTabs: modifier => setState(modifier)
     }

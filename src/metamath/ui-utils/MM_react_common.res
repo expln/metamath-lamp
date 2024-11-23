@@ -209,22 +209,9 @@ let rndHiddenTextField = (~key:option<string>=?, ~onKeyDown:reKeyboardHnd):reEle
     />
 }
 
-let rndDialogContent = (
-    ~text:option<string>, 
-    ~content:option<React.element>, 
-) => {
-    switch content {
-        | Some(content) => content
-        | None => text->Belt_Option.getWithDefault("")->React.string
-    }
-}
-
-let rndInfoDialog = (
-    ~text:option<string>=?, 
-    ~content:option<React.element>=?, 
-    ~icon:option<React.element>=?,
-    ~onOk:unit=>unit, 
-    ~title:option<string>=?
+let rndModalPaneWithTitle = (
+    ~title:option<string>=?,
+    ~content:React.element, 
 ) => {
     <Paper style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
@@ -237,68 +224,117 @@ let rndInfoDialog = (
             >
                 {title->Belt_Option.getWithDefault("")->React.string}
             </span>
-            {
-                switch icon {
-                    | None => {
-                        <span>
-                            {rndDialogContent(~text, ~content)}
-                        </span>
-                    }
-                    | Some(icon) => {
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        icon
-                                    </td>
-                                    <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
-                                        {rndDialogContent(~text, ~content)}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    }
-                }
-            }
-            <Row>
-                <Button onClick={_=>onOk()} variant=#contained >
-                    {React.string("Ok")}
-                </Button>
-                {
-                    rndHiddenTextField(
-                        ~onKeyDown=kbrdHnd2(
-                            kbrdClbkMake(~key=keyEnter, ~act=onOk),
-                            kbrdClbkMake(~key=keyEsc, ~act=onOk),
-                        )
-                    )
-                }
-            </Row>
+            content
         </Col>
     </Paper>
 }
 
-let openInfoDialog = (
+let openModalPane = (
     ~modalRef:modalRef, 
-    ~text:option<string>=?, 
-    ~content:option<React.element>=?, 
-    ~icon:option<React.element>=?,
-    ~onOk:option<unit=>unit>=?, 
-    ~title:option<string>=?
+    ~content:(~close:unit=>unit) => React.element,
 ) => {
     openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-        updateModal(modalRef, modalId, () => {
-            rndInfoDialog(
-                ~text?, 
-                ~content?, 
-                ~icon?,
-                ~onOk = () => {
-                    closeModal(modalRef, modalId)
-                    onOk->Belt_Option.forEach(clbk => clbk())
-                },
-                ~title?
-            )
-        })
+        updateModal(modalRef, modalId, () => content(~close=()=>closeModal(modalRef, modalId)))
     })->ignore
+}
+
+let openModalPaneWithTitle = (
+    ~modalRef:modalRef, 
+    ~title:option<string>=?,
+    ~content:(~close:unit=>unit) => React.element,
+) => {
+    openModalPane(
+        ~modalRef,
+        ~content=(~close)=>rndModalPaneWithTitle(
+            ~title?,
+            ~content=content(~close),
+        )
+    )
+}
+
+let rndDialogContent = (
+    ~text:option<string>, 
+    ~content:option<React.element>, 
+) => {
+    switch content {
+        | Some(content) => content
+        | None => text->Belt_Option.getWithDefault("")->React.string
+    }
+}
+
+let rndInfoDialog = (
+    ~title:option<string>=?,
+    ~icon:option<React.element>=?,
+    ~content:option<React.element>=?, 
+    ~text:option<string>=?, 
+    ~onOk:unit=>unit,
+) => {
+    rndModalPaneWithTitle(
+        ~title?,
+        ~content={
+            <>
+                {
+                    switch icon {
+                        | None => {
+                            <span>
+                                {rndDialogContent(~text, ~content)}
+                            </span>
+                        }
+                        | Some(icon) => {
+                            <table>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            icon
+                                        </td>
+                                        <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
+                                            {rndDialogContent(~text, ~content)}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        }
+                    }
+                }
+                <Row>
+                    <Button onClick={_=>onOk()} variant=#contained >
+                        {React.string("Ok")}
+                    </Button>
+                    {
+                        rndHiddenTextField(
+                            ~onKeyDown=kbrdHnd2(
+                                kbrdClbkMake(~key=keyEnter, ~act=onOk),
+                                kbrdClbkMake(~key=keyEsc, ~act=onOk),
+                            )
+                        )
+                    }
+                </Row>
+            </>
+        }
+    )
+}
+
+let openInfoDialog = (
+    ~modalRef:modalRef, 
+    ~title:option<string>=?,
+    ~icon:option<React.element>=?,
+    ~content:option<React.element>=?, 
+    ~text:option<string>=?, 
+    ~onOk:option<unit=>unit>=?, 
+) => {
+    openModalPane(
+        ~modalRef,
+        ~content=(~close)=>rndInfoDialog(
+            ~title?,
+            ~icon?,
+            ~content?, 
+            ~text?, 
+            ~onOk = () => {
+                close()
+                onOk->Option.forEach(clbk => clbk())
+            },
+        )
+    )
 }
 
 let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey" ):React.element => {

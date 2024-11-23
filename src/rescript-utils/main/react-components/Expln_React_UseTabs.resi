@@ -25,6 +25,7 @@ type tabMethods<'a> = {
     tabs: array<tab<'a>>,
     activeTabId: tabId,
     renderTabs: unit => reElem,
+    setLabel: (tabId,string) => unit,
 
     updateTabs: (state<'a> => state<'a>) => unit
 }

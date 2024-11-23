@@ -93,7 +93,8 @@ if (tempMode.contents) {
 let make = () => {
     let modalRef = useModalRef()
     @warning("-27")
-    let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId} = Expln_React_UseTabs.useTabs()
+    let {tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId, setLabel} = 
+        Expln_React_UseTabs.useTabs()
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
 
@@ -152,6 +153,10 @@ let make = () => {
 
     let actCtxSelectorExpandedChange = (expanded) => {
         setState(updateCtxSelectorIsExpanded(_,expanded))
+    }
+
+    let actRenameTab = (id:Expln_React_UseTabs.tabId, newName:string) => {
+        setLabel(id,newName)
     }
 
     let openFrameExplorer = (label:string):unit => {
@@ -239,6 +244,7 @@ let make = () => {
                                     ->Array.sliceToEnd(~start=2)
                                     ->Array.map(tab => {MM_cmp_tabs_manager.id:tab.id, label:tab.label})
                             }
+                            onTabRename=actRenameTab
                         />
                     | Editor => 
                         <MM_cmp_editor
