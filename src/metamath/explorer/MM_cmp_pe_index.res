@@ -13,7 +13,7 @@ type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?)=>unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
@@ -456,7 +456,7 @@ let make = React.memoCustomCompareProps(({
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                openExplorer(~initPatternFilterStr="")
+                                openExplorer()
                             }}
                         >
                             {React.string("Open new Explorer tab")}

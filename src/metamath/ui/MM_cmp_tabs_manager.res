@@ -78,6 +78,7 @@ let make = (
     ~onTabMoveDown:Expln_React_UseTabs.tabId=>unit,
     ~onTabFocus:Expln_React_UseTabs.tabId=>unit,
     ~onTabClose:Expln_React_UseTabs.tabId=>unit,
+    ~onOpenExplorer:unit=>unit,
 ) => {
     let actRenameTab = (tab:tabProps) => {
         openModalPaneWithTitle(
@@ -94,6 +95,14 @@ let make = (
                 />
             }
         )
+    }
+
+    let rndOpenButtons = () => {
+        <Row alignItems={#baseline}>
+            {"Open new tab: "->React.string}
+            <Button onClick={_=>()}> {React.string("Editor")} </Button>
+            <Button onClick={_=>onOpenExplorer()}> {React.string("Explorer")} </Button>
+        </Row>
     }
 
     let rndTabButtons = (tab:tabProps) => {
@@ -115,8 +124,7 @@ let make = (
         </Row>
     }
     <Col spacing=1. style=ReactDOM.Style.make(~margin="10px", ())>
-        {
-            tabs->Array.map(rndTabControls)->React.array
-        }
+        {rndOpenButtons()}
+        {tabs->Array.map(rndTabControls)->React.array}
     </Col>
 }

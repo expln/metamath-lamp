@@ -229,7 +229,7 @@ let make = () => {
         })
     }
 
-    let openExplorer = (~initPatternFilterStr:string):unit => {
+    let openExplorer = (~initPatternFilterStr:string=""):unit => {
         updateTabs(tabsSt => {
             let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
                 ~label=`EXPLORER ${initPatternFilterStr->String.substring(~start=0, ~end=40)}`,
@@ -293,6 +293,7 @@ let make = () => {
                             onTabMoveDown=actMoveTabRight
                             onTabFocus=openTab
                             onTabClose=actCloseTab
+                            onOpenExplorer={()=>openExplorer()}
                         />
                     | Editor => 
                         <MM_cmp_editor
