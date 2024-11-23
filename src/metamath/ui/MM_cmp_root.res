@@ -262,6 +262,7 @@ let make = () => {
                             onTabRename=actRenameTab
                             onTabMoveUp=actMoveTabLeft
                             onTabMoveDown=actMoveTabRight
+                            onTabFocus=openTab
                         />
                     | Editor => 
                         <MM_cmp_editor
