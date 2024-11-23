@@ -268,11 +268,14 @@ let rndInfoDialog = (
     ~content:option<React.element>=?, 
     ~text:option<string>=?, 
     ~onOk:unit=>unit,
+    ~okBtnText:option<string>=?,
+    ~onCancel:option<unit=>unit>=?,
+    ~cancelBtnText:option<string>=?,
 ) => {
     rndModalPaneWithTitle(
         ~title?,
         ~content={
-            <>
+            <Col>
                 {
                     switch icon {
                         | None => {
@@ -298,18 +301,28 @@ let rndInfoDialog = (
                 }
                 <Row>
                     <Button onClick={_=>onOk()} variant=#contained >
-                        {React.string("Ok")}
+                        {okBtnText->Option.getOr("Ok")->React.string}
                     </Button>
+                    {
+                        switch onCancel {
+                            | None => React.null
+                            | Some(onCancel) => {
+                                <Button onClick={_=>onCancel()} variant=#outlined >
+                                    {cancelBtnText->Option.getOr("Cancel")->React.string}
+                                </Button>
+                            }
+                        }
+                    }
                     {
                         rndHiddenTextField(
                             ~onKeyDown=kbrdHnd2(
                                 kbrdClbkMake(~key=keyEnter, ~act=onOk),
-                                kbrdClbkMake(~key=keyEsc, ~act=onOk),
+                                kbrdClbkMake(~key=keyEsc, ~act=onCancel->Option.getOr(onOk)),
                             )
                         )
                     }
                 </Row>
-            </>
+            </Col>
         }
     )
 }
@@ -321,6 +334,9 @@ let openInfoDialog = (
     ~content:option<React.element>=?, 
     ~text:option<string>=?, 
     ~onOk:option<unit=>unit>=?, 
+    ~okBtnText:option<string>=?,
+    ~onCancel:option<unit=>unit>=?,
+    ~cancelBtnText:option<string>=?,
 ) => {
     openModalPane(
         ~modalRef,
@@ -333,8 +349,40 @@ let openInfoDialog = (
                 close()
                 onOk->Option.forEach(clbk => clbk())
             },
+            ~okBtnText?,
+            ~onCancel = ?(onCancel->Option.map(onCancel => {
+                () => {
+                    close()
+                    onCancel()
+                }
+            })),
+            ~cancelBtnText?,
         )
     )
+}
+
+let openOkCancelDialog = (
+    ~modalRef:modalRef, 
+    ~title:option<string>=?,
+    ~icon:option<React.element>=?,
+    ~content:option<React.element>=?, 
+    ~text:option<string>=?, 
+    ~okBtnText:option<string>=?,
+    ~cancelBtnText:option<string>=?,
+):promise<bool> => {
+    promise(resolve => {
+        openInfoDialog(
+            ~modalRef, 
+            ~title?,
+            ~icon?,
+            ~content?, 
+            ~text?, 
+            ~onOk=()=>resolve(true), 
+            ~okBtnText?,
+            ~onCancel=()=>resolve(false),
+            ~cancelBtnText?,
+        )
+    })
 }
 
 let rndSmallTextBtn = ( ~onClick:unit=>unit, ~text:string, ~color:string="grey" ):React.element => {

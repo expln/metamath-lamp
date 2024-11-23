@@ -92,10 +92,25 @@ if (tempMode.contents) {
 @react.component
 let make = () => {
     let modalRef = useModalRef()
+
+    let beforeTabRemove = (tab:Expln_React_UseTabs.tab<'a>) => {
+        switch tab.data {
+            | Settings | TabsManager => Promise.resolve(false)
+            | ExplorerIndex(_) | ExplorerFrame(_) => Promise.resolve(true)
+            | Editor => {
+                openOkCancelDialog(
+                    ~modalRef, 
+                    ~title="Confirm closing an editor tab",
+                    ~text=`Close this editor tab? "${tab.label}"`, 
+                )
+            }
+        }
+    }
+
     @warning("-27")
     let {
         tabs, addTab, openTab, removeTab, renderTabs, updateTabs, activeTabId, setLabel, moveTabLeft, moveTabRight
-    } = Expln_React_UseTabs.useTabs()
+    } = Expln_React_UseTabs.useTabs(~beforeTabRemove)
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
 
@@ -174,6 +189,20 @@ let make = () => {
     let actMoveTabLeft = (id:Expln_React_UseTabs.tabId) => actMoveTab(id, false)
     let actMoveTabRight = (id:Expln_React_UseTabs.tabId) => actMoveTab(id, true)
 
+    let actCloseTab = (tabId:Expln_React_UseTabs.tabId) => {
+        switch tabs->Array.find(t => t.id == tabId) {
+            | None => ()
+            | Some(tab) => {
+                if (tab.closable) {
+                    switch tab.data {
+                        | Editor => removeTab(tab.id)
+                        | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => removeTab(tab.id)
+                    }
+                }
+            }
+        }
+    }
+
     let openFrameExplorer = (label:string):unit => {
         setState(st => {
             switch st.preCtxData.ctxV.val->getFrame(label) {
@@ -227,11 +256,11 @@ let make = () => {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="Editor", ~closable=false, ~data=Editor, ~doOpen=true, 
+                    ~label="EDITOR", ~closable=true, ~data=Editor, ~doOpen=true, 
                     ~color=?(if (tempMode.contents) {Some("orange")} else {None})
                 )
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="Explorer", ~closable=false, ~data=ExplorerIndex({initPatternFilterStr:""})
+                    ~label="EXPLORER", ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""})
                 )
                 st
             } else {
@@ -263,6 +292,7 @@ let make = () => {
                             onTabMoveUp=actMoveTabLeft
                             onTabMoveDown=actMoveTabRight
                             onTabFocus=openTab
+                            onTabClose=actCloseTab
                         />
                     | Editor => 
                         <MM_cmp_editor

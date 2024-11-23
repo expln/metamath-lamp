@@ -32,4 +32,7 @@ type tabMethods<'a> = {
     updateTabs: (state<'a> => state<'a>) => unit
 }
 
-let useTabs: unit => tabMethods<'a>
+let useTabs: (
+    ~beforeTabRemove:tab<'a>=>promise<bool>=?
+) => tabMethods<'a>
+

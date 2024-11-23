@@ -77,6 +77,7 @@ let make = (
     ~onTabMoveUp:Expln_React_UseTabs.tabId=>unit,
     ~onTabMoveDown:Expln_React_UseTabs.tabId=>unit,
     ~onTabFocus:Expln_React_UseTabs.tabId=>unit,
+    ~onTabClose:Expln_React_UseTabs.tabId=>unit,
 ) => {
     let actRenameTab = (tab:tabProps) => {
         openModalPaneWithTitle(
@@ -97,7 +98,7 @@ let make = (
 
     let rndTabButtons = (tab:tabProps) => {
         <ButtonGroup variant=#outlined size=#small >
-            <Button title="Close" onClick={_=>()}> <MM_Icons.CancelOutlined/> </Button>
+            <Button title="Close" onClick={_=>onTabClose(tab.id)}> <MM_Icons.DeleteForever/> </Button>
             <Button title="Go to this tab" onClick={_=>onTabFocus(tab.id)}> <MM_Icons.OpenInBrowser/> </Button>
             <Button title="Rename" onClick={_=>actRenameTab(tab)}> <MM_Icons.Edit/> </Button>
             <Button title="Move down" onClick={_=>onTabMoveDown(tab.id)}> <MM_Icons.ArrowDownward/> </Button>

@@ -162,7 +162,9 @@ let setLabel = (st:state<'a>, tabId:tabId, newLabel:string):state<'a> => {
     }
 }
 
-let useTabs = ():tabMethods<'a> => {
+let useTabs = (
+    ~beforeTabRemove:option<tab<'a>=>promise<bool>>=?,
+):tabMethods<'a> => {
     let (state, setState) = React.useState(createEmptyState)
 
     React.useEffect1(() => {
@@ -194,7 +196,21 @@ let useTabs = ():tabMethods<'a> => {
     }
 
     let removeTab = id => {
-        setState(prev => prev->removeTab(id))
+        switch state.tabs->Array.find(tab => tab.id == id) {
+            | None => ()
+            | Some(tabToRemove) => {
+                switch beforeTabRemove {
+                    | None => setState(prev => prev->removeTab(id))
+                    | Some(beforeTabRemove) => {
+                        beforeTabRemove(tabToRemove)->Promise.thenResolve(confirmed => {
+                            if (confirmed) {
+                                setState(prev => prev->removeTab(id))
+                            }
+                        })->ignore
+                    }
+                }
+            }
+        }
     }
 
     let setLabel = (id:tabId, newLabel:string) => {
