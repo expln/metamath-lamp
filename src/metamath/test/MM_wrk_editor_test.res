@@ -316,7 +316,6 @@ describe("prepareEditorForUnification", _ => {
         assertEq(st.disjErr->Belt_Option.isNone, true)
         assertEq(st.wrkCtx->Belt_Option.isSome, true)
         assertEqMsg((st.stmts->Array.getUnsafe(0)).id, hypId, "the hypothesis is the first")
-        Console.log2(`st`, st)
         assertEq(
             (st.stmts->Array.getUnsafe(0)).stmtErr->Belt.Option.map(err => err.msg)->Belt_Option.getWithDefault(""),
             "Any statement must begin with a constant."

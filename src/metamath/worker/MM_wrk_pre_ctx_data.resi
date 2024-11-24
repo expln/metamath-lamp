@@ -20,10 +20,13 @@ type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
     ctxV: version<mmContext>,
+    ctxMinV: version<mmContext>,
     frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
-    syntaxTypes: array<int>,
+    syntaxTypes:array<int>,
+    parensMap: Belt_HashMapString.t<string>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
 }
 
 let preCtxDataMake: (~settings: settings) => preCtxData

@@ -1,22 +1,7 @@
-open MM_context
 open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
-open MM_wrk_editor
-open MM_wrk_editor_substitution
-open MM_wrk_settings
-open MM_wrk_unify
-open Expln_utils_promise
 open MM_react_common
-open MM_statements_dto
-open MM_wrk_editor_json
-open MM_proof_tree
-open MM_provers
-open Local_storage_utils
-open Common
-open MM_wrk_pre_ctx_data
-open MM_editor_history
-open MM_proof_tree_dto
 
 module RenameTabCmp = {
     @react.component
