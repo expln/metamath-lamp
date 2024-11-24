@@ -115,16 +115,16 @@ type editorStateAction =
     | Action(unit=>unit)
 
 type editorState = {
+    preCtxData:preCtxData,
+
     settingsV:int,
     settings:settings,
-    typeColors: Belt_HashMapString.t<string>,
 
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
     frms: frms,
     parenCnt: parenCnt,
-    preCtxColors: Belt_HashMapString.t<string>,
     allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
@@ -265,8 +265,6 @@ let getColorForSymbol: (
     ~preCtxColors:option<Belt_HashMapString.t<string>>,
     ~wrkCtxColors:option<Belt_HashMapString.t<string>>,
 ) => option<string>
-
-let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>
 
 let renumberProvableSteps: editorState => result<editorState, string>
 let renumberHypothesisSteps: (editorState, ~goalLabel:string) => result<editorState, string>

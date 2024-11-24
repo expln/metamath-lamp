@@ -1890,8 +1890,8 @@ let make = (
             syntaxTypes=state.syntaxTypes
             parensMap=state.parensMap
             stmt
-            typeColors=state.typeColors
-            preCtxColors=state.preCtxColors
+            typeColors=state.preCtxData.typeColors
+            preCtxColors=state.preCtxData.symColors
             wrkCtxColors=state.wrkCtxColors
             viewOptions
             readOnly=false

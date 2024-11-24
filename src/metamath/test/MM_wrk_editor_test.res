@@ -72,17 +72,17 @@ let createEditorState = (
     }
     let preCtxV = 1
     let preCtx = ctx
+    let preCtxData = preCtxDataMake(~settings)->preCtxDataUpdate( ~settings, ~ctx=([], preCtx) )
     let st = {
+        preCtxData:preCtxData,
         settingsV,
         settings,
-        typeColors: Belt_HashMapString.make(~hintSize=0),
 
         srcs: [],
         preCtxV,
         preCtx,
         frms: prepareFrmSubsData(~ctx),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
-        preCtxColors: Belt_HashMapString.make(~hintSize=0),
         allTypes: [],
         syntaxTypes: [],
         parensMap:Belt_HashMapString.make(~hintSize=0),
@@ -108,12 +108,7 @@ let createEditorState = (
 
         nextAction: None,
     }
-    let st = st->setPreCtxData(
-        preCtxDataMake(~settings)->preCtxDataUpdate(
-            ~settings,
-            ~ctx=([], preCtx)
-        )
-    )
+    let st = st->setPreCtxData(preCtxData)
     st
 }
 

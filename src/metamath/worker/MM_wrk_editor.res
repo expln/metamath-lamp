@@ -216,16 +216,16 @@ type editorStateAction =
     | Action(unit=>unit)
 
 type editorState = {
+    preCtxData:preCtxData,
+
     settingsV:int,
     settings:settings,
-    typeColors: Belt_HashMapString.t<string>,
 
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
     frms: frms,
     parenCnt: parenCnt,
-    preCtxColors: Belt_HashMapString.t<string>,
     allTypes: array<int>,
     syntaxTypes: array<int>,
     parensMap: Belt_HashMapString.t<string>,
@@ -769,7 +769,7 @@ let completeContEditMode = (st, stmtId, newContText):editorState => {
         } else {
             {
                 ...stmt,
-                cont:strToCont(newContText, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors),
+                cont:strToCont(newContText, ~preCtxColors=st.preCtxData.symColors, ~wrkCtxColors=st.wrkCtxColors),
                 contEditMode: false,
                 isDuplicated: false,
             }
@@ -830,48 +830,10 @@ let extractVarColorsFromVarsText = (varsText:string, typeColors:Belt_HashMapStri
     res
 }
 
-let recalcTypeColors = (st:editorState):editorState => {
-    {
-        ...st,
-        typeColors: st.settings->settingsGetTypeColors
-    }
-}
-
-let createSymbolColors = (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
-    let symbolColors = Belt_HashMapString.make(~hintSize=100)
-    ctx->forEachHypothesisInDeclarationOrder(hyp => {
-        if (hyp.typ == F) {
-            switch ctx->ctxIntToSym(hyp.expr->Array.getUnsafe(0)) {
-                | None => ()
-                | Some(typeStr) => {
-                    switch typeColors->Belt_HashMapString.get(typeStr) {
-                        | None => ()
-                        | Some(color) => {
-                            symbolColors->Belt_HashMapString.set(
-                                ctx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)),
-                                color
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        None
-    })->ignore
-    symbolColors
-}
-
-let recalcPreCtxColors = (st:editorState):editorState => {
-    {
-        ...st,
-        preCtxColors: createSymbolColors(~ctx=st.preCtx, ~typeColors=st.typeColors)
-    }
-}
-
 let recalcWrkCtxColors = (st:editorState):editorState => {
     {
         ...st,
-        wrkCtxColors: extractVarColorsFromVarsText(st.varsText, st.typeColors),
+        wrkCtxColors: extractVarColorsFromVarsText(st.varsText, st.preCtxData.typeColors),
     }
 }
 
@@ -880,7 +842,7 @@ let updateColorsInAllStmts = st => {
         ...st,
         stmts: st.stmts->Array.map(stmt => {
             ...stmt,
-            cont: stmt.cont->contToStr->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors)
+            cont: stmt.cont->contToStr->strToCont(~preCtxColors=st.preCtxData.symColors, ~wrkCtxColors=st.wrkCtxColors)
         })
     }
 }
@@ -905,6 +867,7 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
     )
     let st = {
         ...st, 
+        preCtxData:preCtxData,
         settingsV:preCtxData.settingsV.ver, 
         settings,
         srcs:preCtxData.srcs,
@@ -917,8 +880,6 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
         parensMap,
         typeOrderInDisj,
     }
-    let st = recalcTypeColors(st)
-    let st = recalcPreCtxColors(st)
     let st = recalcWrkCtxColors(st)
     let st = updateColorsInAllStmts(st)
     st
@@ -1543,7 +1504,7 @@ let insertStmt = (
                                 typ: P,
                                 cont: strToCont( 
                                     wrkCtx->ctxIntsToStrExn(expr), 
-                                    ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors
+                                    ~preCtxColors=st.preCtxData.symColors, ~wrkCtxColors=st.wrkCtxColors
                                 ),
                                 contEditMode: false,
                                 isBkm,
@@ -1954,7 +1915,7 @@ let stmtSetSyntaxTree = (
                             exprTyp: (syms->Array.getUnsafe(0)).sym,
                             root: addColorsToSyntaxTree( 
                                 ~tree=syntaxTree, 
-                                ~preCtxColors=st.preCtxColors, 
+                                ~preCtxColors=st.preCtxData.symColors, 
                                 ~wrkCtxColors=st.wrkCtxColors
                             ), 
                             clickedNodeId: None,
@@ -2532,7 +2493,7 @@ let updateSteps = (
                     } else {
                         Ok({
                             ...stmt,
-                            cont:strToCont(cont, ~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors),
+                            cont:strToCont(cont, ~preCtxColors=st.preCtxData.symColors, ~wrkCtxColors=st.wrkCtxColors),
                             contEditMode: false,
                             isDuplicated: false,
                         })

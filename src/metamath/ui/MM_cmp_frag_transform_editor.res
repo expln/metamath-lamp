@@ -178,8 +178,8 @@ let make = (
             syntaxTypes=editorState.syntaxTypes
             parensMap=editorState.parensMap
             stmt
-            typeColors=editorState.typeColors
-            preCtxColors=editorState.preCtxColors
+            typeColors=editorState.preCtxData.typeColors
+            preCtxColors=editorState.preCtxData.symColors
             wrkCtxColors=editorState.wrkCtxColors
             viewOptions={
                 showCheckbox:false,

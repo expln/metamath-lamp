@@ -109,7 +109,7 @@ let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wr
     let newExpr = applyWrkSubs(expr, wrkSubs)
     {
         ...stmt,
-        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors)
+        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxData.symColors, ~wrkCtxColors=st.wrkCtxColors)
     }
 }
 

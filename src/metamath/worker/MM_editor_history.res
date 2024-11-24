@@ -111,7 +111,7 @@ let updateEditorStateFromSnapshot = (st:editorState, sn:editorSnapshot):editorSt
                 isGoal: stmt.isGoal,
                 isBkm: stmt.isBkm,
                 cont: stmt.cont->strToCont(
-                    ~preCtxColors=st.preCtxColors,
+                    ~preCtxColors=st.preCtxData.symColors,
                     ~wrkCtxColors=st.wrkCtxColors
                 ),
                 contEditMode: false,
