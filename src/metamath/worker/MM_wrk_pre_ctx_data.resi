@@ -27,6 +27,8 @@ type preCtxData = {
     syntaxTypes:array<int>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
+    typeColors: Belt_HashMapString.t<string>,
+    symColors: Belt_HashMapString.t<string>,
 }
 
 let preCtxDataMake: (~settings: settings) => preCtxData

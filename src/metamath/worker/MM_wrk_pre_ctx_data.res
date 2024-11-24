@@ -28,12 +28,13 @@ type preCtxData = {
     syntaxTypes:array<int>,
     parensMap: Belt_HashMapString.t<string>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
+    typeColors: Belt_HashMapString.t<string>,
+    symColors: Belt_HashMapString.t<string>,
 }
 
 let preCtxDataMake = (~settings:settings):preCtxData => {
     {
         settingsV:versionMake(settings),
-
         srcs: [],
         ctxV: versionMake(createContext(())),
         ctxMinV: versionMake(createContext(())),
@@ -43,6 +44,8 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
         syntaxTypes:[],
         parensMap: Belt_HashMapString.make(~hintSize=0),
         typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
+        typeColors: Belt_HashMapString.make(~hintSize=0),
+        symColors: Belt_HashMapString.make(~hintSize=0),
     }
 }
 
@@ -69,6 +72,30 @@ let findTypes = (ctx:mmContext): (array<int>,array<int>) => {
         None
     })->ignore
     (allTypes->Belt_HashSetInt.toArray, syntaxTypes->Belt_HashSetInt.toArray)
+}
+
+let createSymbolColors = (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>):Belt_HashMapString.t<string> => {
+    let symbolColors = Belt_HashMapString.make(~hintSize=100)
+    ctx->forEachHypothesisInDeclarationOrder(hyp => {
+        if (hyp.typ == F) {
+            switch ctx->ctxIntToSym(hyp.expr->Array.getUnsafe(0)) {
+                | None => ()
+                | Some(typeStr) => {
+                    switch typeColors->Belt_HashMapString.get(typeStr) {
+                        | None => ()
+                        | Some(color) => {
+                            symbolColors->Belt_HashMapString.set(
+                                ctx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)),
+                                color
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        None
+    })->ignore
+    symbolColors
 }
 
 let preCtxDataUpdate = (
@@ -112,6 +139,9 @@ let preCtxDataUpdate = (
         ~typeNameToInt=ctxSymToInt(ctxMinV.val, _)
     )
 
+    let typeColors = settingsV.val->settingsGetTypeColors
+    let symColors = createSymbolColors(~ctx=ctxMinV.val, ~typeColors=typeColors)
+
     {
         settingsV,
         srcs,
@@ -123,5 +153,7 @@ let preCtxDataUpdate = (
         syntaxTypes,
         parensMap,
         typeOrderInDisj,
+        typeColors,
+        symColors,
     }
 }
