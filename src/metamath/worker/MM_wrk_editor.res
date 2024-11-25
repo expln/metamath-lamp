@@ -218,9 +218,6 @@ type editorStateAction =
 type editorState = {
     preCtxData:preCtxData,
 
-    settingsV:int,
-    settings:settings,
-
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
@@ -583,7 +580,7 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?):(edi
         0,
         (cnt,stmt) => if (stmt.typ == P) {cnt + 1} else {cnt}
     )
-    let defaultStmtLabel = st.settings.defaultStmtLabel->String.trim
+    let defaultStmtLabel = st.preCtxData.settingsV.val.defaultStmtLabel->String.trim
     let newLabel = 
         if (pCnt == 0 && defaultStmtLabel->String.length > 0) {
             if (st.stmts->Array.some(stmt => stmt.label == defaultStmtLabel)) {
@@ -594,7 +591,7 @@ let addNewStmt = (st:editorState, ~isHyp:bool=false, ~isBkm:option<bool>=?):(edi
         } else {
             createNewLabel(st, ~prefix="", ~forHyp=isHyp)
         }
-    let isGoal = pCnt == 0 && st.settings.initStmtIsGoal
+    let isGoal = pCnt == 0 && st.preCtxData.settingsV.val.initStmtIsGoal
     let idToAddBefore = getTopmostCheckedStmt(st)->Belt_Option.map(stmt => stmt.id)
     (
         {
@@ -779,7 +776,8 @@ let completeContEditMode = (st, stmtId, newContText):editorState => {
 
 let setStmtCont = (st, stmtId, stmtCont):editorState => {
     let newContStr = stmtCont->contToStr
-    let isDuplicated = st.settings.autoMergeStmts && st.stmts->Array.some(stmt => stmt.cont->contToStr == newContStr)
+    let isDuplicated = st.preCtxData.settingsV.val.autoMergeStmts 
+        && st.stmts->Array.some(stmt => stmt.cont->contToStr == newContStr)
     updateStmt(st, stmtId, stmt => {
         {
             ...stmt,
@@ -868,8 +866,6 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
     let st = {
         ...st, 
         preCtxData:preCtxData,
-        settingsV:preCtxData.settingsV.ver, 
-        settings,
         srcs:preCtxData.srcs,
         preCtxV:preCtxData.ctxV.ver, 
         preCtx, 
@@ -941,7 +937,7 @@ let sortStmtsByType = st => {
         switch stmt.typ {
             | E => 1
             | P => {
-                if (st.settings.stickGoalToBottom) {
+                if (st.preCtxData.settingsV.val.stickGoalToBottom) {
                     if (stmt.isGoal) {3} else {2}
                 } else {
                     2
@@ -1362,7 +1358,7 @@ let createNewVars = (
                         }
                         | None => {
                             let typeToPrefix = Belt_MapString.fromArray(
-                                st.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
+                                st.preCtxData.settingsV.val.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                             )
                             generateNewVarNames(
                                 ~ctx=wrkCtx,
@@ -1892,7 +1888,7 @@ let stmtSetSyntaxTree = (
             }
             switch syntaxTree {
                 | None => {
-                    if (st.settings.checkSyntax) {
+                    if (st.preCtxData.settingsV.val.checkSyntax) {
                         {
                             ...stmt,
                             syntaxErr: Some(if (checkParensMatch(expr, st.parenCnt)) {""} else {"parentheses mismatch"}),
@@ -2327,10 +2323,10 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
                 }
             }
         )
-        
-        let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal || st.settings.initStmtIsGoal && pCnt == 0 }
-        let newLabel = if (newIsGoal && !stmt.isGoal && st.settings.defaultStmtLabel->String.length > 0) {
-            st.settings.defaultStmtLabel
+        let settings = st.preCtxData.settingsV.val
+        let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal || settings.initStmtIsGoal && pCnt == 0 }
+        let newLabel = if (newIsGoal && !stmt.isGoal && settings.defaultStmtLabel->String.length > 0) {
+            settings.defaultStmtLabel
         } else { 
             stmt.label
         }
@@ -2660,7 +2656,7 @@ let verifyEditorState = (st:editorState):editorState => {
     let st = prepareEditorForUnification(st)
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)
-        let st = if (st.settings.autoMergeStmts) {
+        let st = if (st.preCtxData.settingsV.val.autoMergeStmts) {
             let (st,_) = autoMergeDuplicatedStatements(st, ~selectFirst=false)
             st
         } else {

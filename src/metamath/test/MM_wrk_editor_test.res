@@ -75,8 +75,6 @@ let createEditorState = (
     let preCtxData = preCtxDataMake(~settings)->preCtxDataUpdate( ~settings, ~ctx=([], preCtx) )
     let st = {
         preCtxData:preCtxData,
-        settingsV,
-        settings,
 
         srcs: [],
         preCtxV,

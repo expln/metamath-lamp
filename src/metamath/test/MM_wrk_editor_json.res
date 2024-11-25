@@ -55,8 +55,6 @@ let createInitialEditorState = (
 ) => {
     let st = {
         preCtxData:preCtxData,
-        settingsV:preCtxData.settingsV.ver,
-        settings:preCtxData.settingsV.val,
 
         srcs:preCtxData.srcs,
         preCtxV:preCtxData.ctxV.ver,

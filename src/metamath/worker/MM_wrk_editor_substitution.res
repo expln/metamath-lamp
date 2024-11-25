@@ -336,11 +336,11 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                     ~allTypes=st.allTypes,
                     ~syntaxTypes=st.syntaxTypes,
                     ~frms=st.frms,
-                    ~frameRestrict=st.settings.allowedFrms.inSyntax,
+                    ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
                     ~parenCnt=st.parenCnt,
                     ~expr1=frmExpr, 
                     ~expr2=expr,
-                    ~metavarPrefix=st.settings.unifMetavarPrefix,
+                    ~metavarPrefix=st.preCtxData.settingsV.val.unifMetavarPrefix,
                 )
             }
             switch foundSubs {
@@ -354,7 +354,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                                 ~parenCnt=st.parenCnt, 
                                 ~ctx=wrkCtx, 
                                 ~frms=st.frms, 
-                                ~frameRestrict=st.settings.allowedFrms.inSyntax,
+                                ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
                                 ~wrkSubs
                             )
                         }

@@ -234,7 +234,7 @@ let make = (
     }
 
     let scheduleUnifyAllIfAllowed = (st:editorState):editorState => {
-        if (st.settings.autoUnifyAll) {
+        if (st.preCtxData.settingsV.val.autoUnifyAll) {
             switch st.nextAction {
                 | Some(_) => st
                 | None => {
@@ -563,7 +563,10 @@ let make = (
                 let contNew = newContText->strToCont
                 let textOld = contOld->contToStr
                 let textNew = contNew->contToStr
-                if (textOld == textNew || (textOld == "" && textNew == state.settings.defaultStmtType->String.trim)) {
+                if (
+                    textOld == textNew 
+                    || (textOld == "" && textNew == state.preCtxData.settingsV.val.defaultStmtType->String.trim)
+                ) {
                     if (textOld == "") {
                         setState(deleteStmt(_,stmtId))
                     } else {
@@ -871,8 +874,8 @@ let make = (
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_search_asrt
                             modalRef
-                            settingsVer=state.settingsV
-                            settings=state.settings
+                            settingsVer=state.preCtxData.settingsV.ver
+                            settings=state.preCtxData.settingsV.val
                             preCtxVer=state.preCtxV
                             preCtx=state.preCtx
                             varsText=state.varsText
@@ -1028,6 +1031,7 @@ let make = (
                         ->Belt_HashSetString.fromArray
                     let checkedStmts = state.stmts
                         ->Array.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
+                    let settings = state.preCtxData.settingsV.val
                     if (checkedStmts->Array.length > 0 && (checkedStmts->Array.getUnsafe(checkedStmts->Array.length-1)).typ == P) {
                         let initialParams = switch params {
                             | Some(_) => params
@@ -1057,8 +1061,8 @@ let make = (
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
                                     modalRef
-                                    settingsVer=state.settingsV
-                                    settings=state.settings
+                                    settingsVer=state.preCtxData.settingsV.ver
+                                    settings
                                     preCtxVer=state.preCtxV
                                     preCtx=state.preCtx
                                     frms=state.frms parenCnt=state.parenCnt
@@ -1067,7 +1071,7 @@ let make = (
                                     reservedLabels={state.stmts->Array.map(stmt => stmt.label)}
                                     typeToPrefix = {
                                         Belt_MapString.fromArray(
-                                            state.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
+                                            settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                                         )
                                     }
                                     initialParams=?initialParams
@@ -1097,18 +1101,18 @@ let make = (
                                 )
                                 let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
                                 unify(
-                                    ~settingsVer=state.settingsV,
-                                    ~settings=state.settings,
+                                    ~settingsVer=state.preCtxData.settingsV.ver,
+                                    ~settings,
                                     ~preCtxVer=state.preCtxV,
                                     ~preCtx=state.preCtx,
                                     ~varsText,
                                     ~disjText,
                                     ~rootStmts,
                                     ~bottomUpProverParams=None,
-                                    ~allowedFrms=state.settings.allowedFrms,
+                                    ~allowedFrms=settings.allowedFrms,
                                     ~syntaxTypes=Some(state.syntaxTypes),
                                     ~exprsToSyntaxCheck=
-                                        if (state.settings.checkSyntax) {
+                                        if (settings.checkSyntax) {
                                             Some(state->getAllExprsToSyntaxCheck(rootStmts))
                                         } else {
                                             None
@@ -1268,7 +1272,7 @@ let make = (
                 ->setNextAction(Some(Action(()=>())))
         })
         reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
-            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings)->promiseMap(res => {
+            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->promiseMap(res => {
                 switch res {
                     | Ok(_) => ()
                     | Error(msg) => {
@@ -1878,10 +1882,11 @@ let make = (
     }
 
     let rndStmt = (stmt:userStmt):reElem => {
+        let settings = state.preCtxData.settingsV.val
         <MM_cmp_user_stmt
             modalRef
-            settingsVer=state.settingsV
-            settings=state.settings
+            settingsVer=state.preCtxData.settingsV.ver
+            settings
             preCtxVer=state.preCtxV
             varsText=state.varsText
             wrkCtx=state.wrkCtx
@@ -1897,11 +1902,11 @@ let make = (
             readOnly=false
             parenAc
             toggleParenAc=actToggleParenAc
-            editStmtsByLeftClick=state.settings.editStmtsByLeftClick
-            longClickEnabled=state.settings.longClickEnabled
-            longClickDelayMs=state.settings.longClickDelayMs
-            defaultStmtType=state.settings.defaultStmtType
-            showVisByDefault=state.settings.showVisByDefault
+            editStmtsByLeftClick=settings.editStmtsByLeftClick
+            longClickEnabled=settings.longClickEnabled
+            longClickDelayMs=settings.longClickDelayMs
+            defaultStmtType=settings.defaultStmtType
+            showVisByDefault=settings.showVisByDefault
 
             onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
             onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
@@ -1957,8 +1962,8 @@ let make = (
                     editMode=state.descrEditMode
                     editByClick=false
                     editByAltClick=true
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
+                    longClickEnabled=state.preCtxData.settingsV.val.longClickEnabled
+                    longClickDelayMs=state.preCtxData.settingsV.val.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
                     onEditDone=actDescrEditComplete
                     onEditCancel={newText => actCancelEditDescr(newText)}
@@ -1992,8 +1997,8 @@ let make = (
                     editMode=state.varsEditMode
                     editByClick=true
                     editByAltClick=true
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
+                    longClickEnabled=state.preCtxData.settingsV.val.longClickEnabled
+                    longClickDelayMs=state.preCtxData.settingsV.val.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setVarsEditMode)}
                     onEditDone=actVarsEditComplete
                     onEditCancel={newText => actCancelEditVars(newText)}
@@ -2017,8 +2022,8 @@ let make = (
                     editMode=state.disjEditMode
                     editByClick=true
                     editByAltClick=true
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
+                    longClickEnabled=state.preCtxData.settingsV.val.longClickEnabled
+                    longClickDelayMs=state.preCtxData.settingsV.val.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDisjEditMode)}
                     onEditDone=actDisjEditComplete
                     onEditCancel={newText => actCancelEditDisj(newText)}
@@ -2157,7 +2162,7 @@ let make = (
                         textToSyntaxTree( 
                             ~wrkCtx, ~syms, 
                             ~syntaxTypes=state.syntaxTypes, ~frms=state.frms, 
-                            ~frameRestrict=state.settings.allowedFrms.inSyntax,
+                            ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
                             ~parenCnt=state.parenCnt,
                             ~lastSyntaxType=None,
                             ~onLastSyntaxTypeChange=_=>(),

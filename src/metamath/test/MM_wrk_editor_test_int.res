@@ -702,7 +702,12 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
     it("autoMergeDuplicatedStatements", _ => {
         setTestDataDir("autoMergeDuplicatedStatements")
         let st = createEditorState(~mmFilePath=setMmPath, ~stopBefore="bj-0", ~debug, ~editorState="editor-initial-state")
-        let st = {...st, settings:{...st.settings, autoMergeStmts:true}}
+        let st = {
+            ...st, 
+            preCtxData:st.preCtxData->MM_wrk_pre_ctx_data.preCtxDataUpdate(
+                ~settings={...st.preCtxData.settingsV.val, autoMergeStmts:true}
+            )
+        }
         let st = st->MM_wrk_editor.verifyEditorState
         assertEditorState(st, "step1")
 

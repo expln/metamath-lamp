@@ -345,8 +345,8 @@ let unifyAll = (st):editorState => {
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
-                ~allowedFrms = st.settings.allowedFrms,
-                ~combCntMax = st.settings.combCntMax,
+                ~allowedFrms = st.preCtxData.settingsV.val.allowedFrms,
+                ~combCntMax = st.preCtxData.settingsV.val.combCntMax,
                 ~wrkCtx,
                 ~rootStmts,
                 ~syntaxTypes=st.syntaxTypes,
@@ -394,6 +394,7 @@ let unifyBottomUp = (
             let st = st->toggleStmtChecked(stmtId)
             let rootUserStmts = st->getRootStmtsForUnification
             let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
+            let settings = st.preCtxData.settingsV.val
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
                 ~frms = st.frms,
@@ -416,11 +417,11 @@ let unifyBottomUp = (
                         }
                     },
                 ~allowedFrms={
-                    inSyntax: st.settings.allowedFrms.inSyntax,
+                    inSyntax: settings.allowedFrms.inSyntax,
                     inEssen: {
-                        useDisc: useDisc->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useDisc),
-                        useDepr: useDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useDepr),
-                        useTranDepr: useTranDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useTranDepr),
+                        useDisc: useDisc->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useDisc),
+                        useDepr: useDepr->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useDepr),
+                        useTranDepr: useTranDepr->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useTranDepr),
                     }
                 },
                 ~combCntMax,
@@ -436,7 +437,7 @@ let unifyBottomUp = (
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
-                        st.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
+                        settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                     ),
                 ~rootExprToLabel,
                 ~reservedLabels=st.stmts->Array.map(stmt => stmt.label)

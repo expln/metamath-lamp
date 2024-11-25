@@ -117,9 +117,6 @@ type editorStateAction =
 type editorState = {
     preCtxData:preCtxData,
 
-    settingsV:int,
-    settings:settings,
-
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,

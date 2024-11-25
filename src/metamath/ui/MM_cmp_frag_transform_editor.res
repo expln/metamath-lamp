@@ -157,17 +157,18 @@ let make = (
     }
 
     let rndStmt = (stmt:userStmt):reElem => {
+        let settings = editorState.preCtxData.settingsV.val
         <MM_cmp_user_stmt
             modalRef
-            settingsVer=editorState.settingsV
+            settingsVer=editorState.preCtxData.settingsV.ver
             settings={
                 if (isCustom) {
                     {
-                        ...editorState.settings,
+                        ...settings,
                         customTransforms: transformsText,
                     }
                 } else {
-                    editorState.settings
+                    settings
                 }
             }
             preCtxVer=editorState.preCtxV
@@ -192,11 +193,11 @@ let make = (
             readOnly=false
             parenAc
             toggleParenAc=actToggleParenAc
-            editStmtsByLeftClick=editorState.settings.editStmtsByLeftClick
-            longClickEnabled=editorState.settings.longClickEnabled
-            longClickDelayMs=editorState.settings.longClickDelayMs
-            defaultStmtType=editorState.settings.defaultStmtType
-            showVisByDefault=editorState.settings.showVisByDefault
+            editStmtsByLeftClick=settings.editStmtsByLeftClick
+            longClickEnabled=settings.longClickEnabled
+            longClickDelayMs=settings.longClickDelayMs
+            defaultStmtType=settings.defaultStmtType
+            showVisByDefault=settings.showVisByDefault
 
             onLabelEditRequested={() => ()}
             onLabelEditDone={_ => ()}
