@@ -117,15 +117,6 @@ type editorStateAction =
 type editorState = {
     preCtxData:preCtxData,
 
-    srcs: array<mmCtxSrcDto>,
-    preCtxV: int,
-    preCtx: mmContext,
-    parenCnt: parenCnt,
-    allTypes: array<int>,
-    syntaxTypes: array<int>,
-    parensMap: Belt_HashMapString.t<string>,
-    typeOrderInDisj:Belt_HashMapInt.t<int>,
-
     descr: string,
     descrEditMode: bool,
 

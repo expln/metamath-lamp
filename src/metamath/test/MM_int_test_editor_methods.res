@@ -235,10 +235,10 @@ let addStmtsBySearch = (
                 ~wrkCtx,
                 ~frms=st.preCtxData.frms,
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
-                ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
+                ~typ=st.preCtxData.ctxMinV.val->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
                 ~searchPattern=makeSearchPattern(
                     ~searchStr=filterPattern->Belt_Option.getWithDefault(""),
-                    ~ctx=st.preCtx
+                    ~ctx=st.preCtxData.ctxMinV.val
                 )->Result.getExn
             )
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
@@ -343,13 +343,13 @@ let unifyAll = (st):editorState => {
         | Some(wrkCtx) => {
             let rootStmts = st->getRootStmtsForUnification->Array.map(userStmtToRootStmt)
             let proofTree = unifyAll(
-                ~parenCnt = st.parenCnt,
+                ~parenCnt = st.preCtxData.parenCnt,
                 ~frms = st.preCtxData.frms,
                 ~allowedFrms = st.preCtxData.settingsV.val.allowedFrms,
                 ~combCntMax = st.preCtxData.settingsV.val.combCntMax,
                 ~wrkCtx,
                 ~rootStmts,
-                ~syntaxTypes=st.syntaxTypes,
+                ~syntaxTypes=st.preCtxData.syntaxTypes,
                 ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts)
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
@@ -396,7 +396,7 @@ let unifyBottomUp = (
             let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
             let settings = st.preCtxData.settingsV.val
             let proofTree = MM_provers.unifyAll(
-                ~parenCnt = st.parenCnt,
+                ~parenCnt = st.preCtxData.parenCnt,
                 ~frms = st.preCtxData.frms,
                 ~wrkCtx,
                 ~rootStmts,

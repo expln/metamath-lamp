@@ -1,5 +1,4 @@
 open MM_wrk_editor
-open MM_parenCounter
 open MM_wrk_pre_ctx_data
 
 type userStmtLocStor = {
@@ -56,15 +55,6 @@ let createInitialEditorState = (
     let st = {
         preCtxData:preCtxData,
 
-        srcs:preCtxData.srcs,
-        preCtxV:preCtxData.ctxV.ver,
-        preCtx:preCtxData.ctxV.val,
-        parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
-        allTypes: [],
-        syntaxTypes: [],
-        parensMap:Belt_HashMapString.make(~hintSize=0),
-        typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
-
         descr: stateLocStor->Belt.Option.map(obj => obj.descr)->Belt.Option.getWithDefault(""),
         descrEditMode: false,
 
@@ -101,7 +91,7 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
+        srcs: state.preCtxData.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,

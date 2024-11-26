@@ -4,8 +4,6 @@ open MM_context
 open MM_wrk_editor
 open MM_wrk_editor_substitution
 open MM_wrk_settings
-open MM_substitution
-open MM_parenCounter
 open MM_wrk_pre_ctx_data
 
 let createEditorState = (
@@ -17,7 +15,6 @@ let createEditorState = (
     let (ast, _) = parseMmFile(~mmFileContent=mmFileText, ~skipComments=true, ~skipProofs=true)
     let ctx = loadContext(ast)
     let parens = "( ) { } [ ]"
-    let settingsV = 1
     let settings = {
         parens,
         asrtsToSkip: [],
@@ -70,20 +67,10 @@ let createEditorState = (
             debugLevel: 0,
         },
     }
-    let preCtxV = 1
     let preCtx = ctx
     let preCtxData = preCtxDataMake(~settings)->preCtxDataUpdate( ~settings, ~ctx=([], preCtx) )
     let st = {
         preCtxData:preCtxData,
-
-        srcs: [],
-        preCtxV,
-        preCtx,
-        parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
-        allTypes: [],
-        syntaxTypes: [],
-        parensMap:Belt_HashMapString.make(~hintSize=0),
-        typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
 
         descr: "",
         descrEditMode: false,

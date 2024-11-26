@@ -329,15 +329,15 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
             let foundSubs = if (useMatching) {
-                findPossibleSubsByMatch(~wrkCtx, ~parenCnt=st.parenCnt, ~frmExpr, ~expr)
+                findPossibleSubsByMatch(~wrkCtx, ~parenCnt=st.preCtxData.parenCnt, ~frmExpr, ~expr)
             } else {
                 findPossibleSubsByUnif(
                     ~wrkCtx, 
-                    ~allTypes=st.allTypes,
-                    ~syntaxTypes=st.syntaxTypes,
+                    ~allTypes=st.preCtxData.allTypes,
+                    ~syntaxTypes=st.preCtxData.syntaxTypes,
                     ~frms=st.preCtxData.frms,
                     ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
-                    ~parenCnt=st.parenCnt,
+                    ~parenCnt=st.preCtxData.parenCnt,
                     ~expr1=frmExpr, 
                     ~expr2=expr,
                     ~metavarPrefix=st.preCtxData.settingsV.val.unifMetavarPrefix,
@@ -351,7 +351,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                         verifyDisjoints(~wrkSubs, ~disj)
                         if (wrkSubs.err->Belt_Option.isNone) {
                             verifyTypesForSubstitution(
-                                ~parenCnt=st.parenCnt, 
+                                ~parenCnt=st.preCtxData.parenCnt, 
                                 ~ctx=wrkCtx, 
                                 ~frms=st.preCtxData.frms, 
                                 ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,

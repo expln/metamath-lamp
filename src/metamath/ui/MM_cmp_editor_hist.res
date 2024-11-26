@@ -118,13 +118,13 @@ let make = (
             modalRef
             settingsVer=state.preCtxData.settingsV.ver
             settings
-            preCtxVer=state.preCtxV
+            preCtxVer=state.preCtxData.ctxMinV.ver
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
-            parenCnt=state.parenCnt
-            syntaxTypes=state.syntaxTypes
-            parensMap=state.parensMap
+            parenCnt=state.preCtxData.parenCnt
+            syntaxTypes=state.preCtxData.syntaxTypes
+            parensMap=state.preCtxData.parensMap
             stmt
             typeColors=state.preCtxData.typeColors
             preCtxColors=state.preCtxData.symColors

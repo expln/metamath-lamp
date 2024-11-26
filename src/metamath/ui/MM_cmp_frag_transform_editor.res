@@ -171,13 +171,13 @@ let make = (
                     settings
                 }
             }
-            preCtxVer=editorState.preCtxV
+            preCtxVer=editorState.preCtxData.ctxMinV.ver
             varsText=editorState.varsText
             wrkCtx=editorState.wrkCtx
             frms=editorState.preCtxData.frms
-            parenCnt=editorState.parenCnt
-            syntaxTypes=editorState.syntaxTypes
-            parensMap=editorState.parensMap
+            parenCnt=editorState.preCtxData.parenCnt
+            syntaxTypes=editorState.preCtxData.syntaxTypes
+            parensMap=editorState.preCtxData.parensMap
             stmt
             typeColors=editorState.preCtxData.typeColors
             preCtxColors=editorState.preCtxData.symColors

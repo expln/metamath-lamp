@@ -218,15 +218,6 @@ type editorStateAction =
 type editorState = {
     preCtxData:preCtxData,
 
-    srcs: array<mmCtxSrcDto>,
-    preCtxV: int,
-    preCtx: mmContext,
-    parenCnt: parenCnt,
-    allTypes: array<int>,
-    syntaxTypes: array<int>,
-    parensMap: Belt_HashMapString.t<string>,
-    typeOrderInDisj:Belt_HashMapInt.t<int>,
-
     descr: string,
     descrEditMode: bool,
 
@@ -530,8 +521,8 @@ let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=fal
     }
 
     let labelIsReserved = (label:string):bool => {
-        reservedLabels->Belt_HashSetString.has(label) || st.preCtx->isHyp(label) ||
-            forHyp && st.preCtx->getTokenType(label)->Belt.Option.isSome
+        reservedLabels->Belt_HashSetString.has(label) || st.preCtxData.ctxMinV.val->isHyp(label) ||
+            forHyp && st.preCtxData.ctxMinV.val->getTokenType(label)->Belt.Option.isSome
     }
 
     let prefixToUse = switch prefix {
@@ -844,38 +835,15 @@ let updateColorsInAllStmts = st => {
     }
 }
 
-let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
-    let settings = preCtxData.settingsV.val
-    let preCtx = preCtxData.ctxV.val->ctxOptimizeForProver(
-        ~parens=settings.parens, ~removeAsrtDescr=true, ~removeProofs=true
-    )
-    let parenInts = prepareParenInts(preCtx, settings.parens)
-    let numOfParens = parenInts->Array.length / 2
-    let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
-    for i in 0 to numOfParens-1 {
-        parensMap->Belt_HashMapString.set(
-            preCtx->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i)), 
-            preCtx->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i+1))
-        )
-    }
-    let typeOrderInDisj = createTypeOrderFromStr(
-        ~sortDisjByType=settings.sortDisjByType, 
-        ~typeNameToInt=ctxSymToInt(preCtx, _)
-    )
-    let st = {
-        ...st, 
-        preCtxData:preCtxData,
-        srcs:preCtxData.srcs,
-        preCtxV:preCtxData.ctxV.ver, 
-        preCtx, 
-        parenCnt:preCtxData.parenCnt,
-        allTypes:preCtxData.allTypes,
-        syntaxTypes:preCtxData.syntaxTypes,
-        parensMap,
-        typeOrderInDisj,
-    }
+let recalcWrkColors = (st:editorState):editorState => {
     let st = recalcWrkCtxColors(st)
     let st = updateColorsInAllStmts(st)
+    st
+}
+
+let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
+    let st = { ...st, preCtxData:preCtxData, }
+    let st = recalcWrkColors(st)
     st
 }
 
@@ -885,12 +853,6 @@ let completeDescrEditMode = (st, newDescr) => {
         descr:newDescr,
         descrEditMode: false
     }
-}
-
-let recalcWrkColors = (st:editorState):editorState => {
-    let st = recalcWrkCtxColors(st)
-    let st = updateColorsInAllStmts(st)
-    st
 }
 
 let completeVarsEditMode = (st, newVarsText) => {
@@ -1035,7 +997,7 @@ let parseWrkCtxErr = (st:editorState, wrkCtxErr:wrkCtxErr):editorState => {
 
 let refreshWrkCtx = (st:editorState):editorState => {
     let wrkCtxRes = createWrkCtx(
-        ~preCtx=st.preCtx,
+        ~preCtx=st.preCtxData.ctxMinV.val,
         ~varsText=st.varsText,
         ~disjText=st.disjText,
     )
@@ -1656,7 +1618,7 @@ let removeUnusedVars = (st:editorState):editorState => {
                 ~sortByTypeAndName=true,
                 ~varIntToVarName=ctxIntToSym(wrkCtx, _),
                 ~varIntToVarType=getTypeOfVar(wrkCtx, _),
-                ~typeOrder=st.typeOrderInDisj
+                ~typeOrder=st.preCtxData.typeOrderInDisj
             )
                 ->Array.map(dgrp => wrkCtx->ctxIntsToSymsExn(dgrp)->Array.joinUnsafe(" "))
                 ->Array.joinUnsafe("\n")
@@ -1889,7 +1851,7 @@ let stmtSetSyntaxTree = (
                     if (st.preCtxData.settingsV.val.checkSyntax) {
                         {
                             ...stmt,
-                            syntaxErr: Some(if (checkParensMatch(expr, st.parenCnt)) {""} else {"parentheses mismatch"}),
+                            syntaxErr: Some(if (checkParensMatch(expr, st.preCtxData.parenCnt)) {""} else {"parentheses mismatch"}),
                         }
                     } else {
                         stmt
@@ -2063,7 +2025,7 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                             switch stmt.proof {
                                 | None => None
                                 | Some(proofNode) => {
-                                    let preCtx = st.preCtx
+                                    let preCtx = st.preCtxData.ctxMinV.val
                                     let expr = userStmtToRootStmt(stmt).expr
                                     let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode)
                                     let proofTableWithoutTypes = createProofTable(
@@ -2135,7 +2097,7 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                                     
                                     Some((
                                         proofToText( 
-                                            ~wrkCtx=wrkCtx, ~typeOrderInDisj=st.typeOrderInDisj,
+                                            ~wrkCtx=wrkCtx, ~typeOrderInDisj=st.preCtxData.typeOrderInDisj,
                                             ~newHyps, ~newDisj, ~descr=st.descr, ~stmt, ~proof 
                                         ),
                                         MM_proof_table.proofTableToStr(wrkCtx, proofTableWithTypes, stmt.label),
@@ -2265,7 +2227,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
         let newLabel = 
             if (
                 st.stmts->Array.find(stmt => stmt.isGoal)->Belt.Option.isSome
-                || st.preCtx->getTokenType(newStmt.label)->Belt.Option.isSome
+                || st.preCtxData.ctxMinV.val->getTokenType(newStmt.label)->Belt.Option.isSome
             ) {
                 createNewLabel(st, ~forHyp=true)
             } else {

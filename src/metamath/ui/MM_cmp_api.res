@@ -379,8 +379,8 @@ let optArrayToMatchers = (
 let lastPreCtxV = ref(-100)
 let sortedFrames = ref(Belt_HashMapString.make(~hintSize=0))
 let sortFrames = (st:editorState, frames:array<string>):array<string> => {
-    if (lastPreCtxV.contents != st.preCtxV) {
-        lastPreCtxV := st.preCtxV
+    if (lastPreCtxV.contents != st.preCtxData.ctxMinV.ver) {
+        lastPreCtxV := st.preCtxData.ctxMinV.ver
         sortedFrames := Belt_HashMapString.make(~hintSize=64)
     }
     let framesStr = frames->Array.joinUnsafe(" ")

@@ -876,14 +876,14 @@ let make = (
                             modalRef
                             settingsVer=state.preCtxData.settingsV.ver
                             settings=state.preCtxData.settingsV.val
-                            preCtxVer=state.preCtxV
-                            preCtx=state.preCtx
+                            preCtxVer=state.preCtxData.ctxMinV.ver
+                            preCtx=state.preCtxData.ctxMinV.val
                             varsText=state.varsText
                             disjText=state.disjText
                             wrkCtx
                             frms=state.preCtxData.frms
-                            initialTyp={getLastUsedTyp(state.preCtx)}
-                            onTypChange={saveLastUsedTyp(state.preCtx, _, tempMode)}
+                            initialTyp={getLastUsedTyp(state.preCtxData.ctxMinV.val)}
+                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxMinV.val, _, tempMode)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onResultsSelected={selectedResults=>{
                                 closeModal(modalRef, modalId)
@@ -1063,9 +1063,9 @@ let make = (
                                     modalRef
                                     settingsVer=state.preCtxData.settingsV.ver
                                     settings
-                                    preCtxVer=state.preCtxV
-                                    preCtx=state.preCtx
-                                    frms=state.preCtxData.frms parenCnt=state.parenCnt
+                                    preCtxVer=state.preCtxData.ctxMinV.ver
+                                    preCtx=state.preCtxData.ctxMinV.val
+                                    frms=state.preCtxData.frms parenCnt=state.preCtxData.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
                                     reservedLabels={state.stmts->Array.map(stmt => stmt.label)}
@@ -1103,14 +1103,14 @@ let make = (
                                 unify(
                                     ~settingsVer=state.preCtxData.settingsV.ver,
                                     ~settings,
-                                    ~preCtxVer=state.preCtxV,
-                                    ~preCtx=state.preCtx,
+                                    ~preCtxVer=state.preCtxData.ctxMinV.ver,
+                                    ~preCtx=state.preCtxData.ctxMinV.val,
                                     ~varsText,
                                     ~disjText,
                                     ~rootStmts,
                                     ~bottomUpProverParams=None,
                                     ~allowedFrms=settings.allowedFrms,
-                                    ~syntaxTypes=Some(state.syntaxTypes),
+                                    ~syntaxTypes=Some(state.preCtxData.syntaxTypes),
                                     ~exprsToSyntaxCheck=
                                         if (settings.checkSyntax) {
                                             Some(state->getAllExprsToSyntaxCheck(rootStmts))
@@ -1888,13 +1888,13 @@ let make = (
             modalRef
             settingsVer=state.preCtxData.settingsV.ver
             settings
-            preCtxVer=state.preCtxV
+            preCtxVer=state.preCtxData.ctxMinV.ver
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
-            parenCnt=state.parenCnt
-            syntaxTypes=state.syntaxTypes
-            parensMap=state.parensMap
+            parenCnt=state.preCtxData.parenCnt
+            syntaxTypes=state.preCtxData.syntaxTypes
+            parensMap=state.preCtxData.parensMap
             stmt
             typeColors=state.preCtxData.typeColors
             preCtxColors=state.preCtxData.symColors
@@ -2162,9 +2162,9 @@ let make = (
                     | None => {
                         textToSyntaxTree( 
                             ~wrkCtx, ~syms, 
-                            ~syntaxTypes=state.syntaxTypes, ~frms=state.preCtxData.frms, 
+                            ~syntaxTypes=state.preCtxData.syntaxTypes, ~frms=state.preCtxData.frms, 
                             ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
-                            ~parenCnt=state.parenCnt,
+                            ~parenCnt=state.preCtxData.parenCnt,
                             ~lastSyntaxType=None,
                             ~onLastSyntaxTypeChange=_=>(),
                         )
