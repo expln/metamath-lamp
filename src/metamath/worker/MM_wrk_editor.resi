@@ -120,7 +120,6 @@ type editorState = {
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
-    frms: frms,
     parenCnt: parenCnt,
     allTypes: array<int>,
     syntaxTypes: array<int>,

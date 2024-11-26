@@ -335,7 +335,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                     ~wrkCtx, 
                     ~allTypes=st.allTypes,
                     ~syntaxTypes=st.syntaxTypes,
-                    ~frms=st.frms,
+                    ~frms=st.preCtxData.frms,
                     ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
                     ~parenCnt=st.parenCnt,
                     ~expr1=frmExpr, 
@@ -353,7 +353,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                             verifyTypesForSubstitution(
                                 ~parenCnt=st.parenCnt, 
                                 ~ctx=wrkCtx, 
-                                ~frms=st.frms, 
+                                ~frms=st.preCtxData.frms, 
                                 ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
                                 ~wrkSubs
                             )

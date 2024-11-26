@@ -387,7 +387,7 @@ let sortFrames = (st:editorState, frames:array<string>):array<string> => {
     switch sortedFrames.contents->Belt_HashMapString.get(framesStr) {
         | Some(sorted) => sorted
         | None => {
-            let sorted = MM_substitution.sortFrames(st.frms, frames)
+            let sorted = MM_substitution.sortFrames(st.preCtxData.frms, frames)
             sortedFrames.contents->Belt_HashMapString.set(framesStr, sorted)
             sorted
         }

@@ -358,7 +358,7 @@ let make = (
     React.useEffect1(() => {
         actPreCtxDataUpdated()
         None
-    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver])
+    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver, preCtxData.ctxMinV.ver])
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -881,7 +881,7 @@ let make = (
                             varsText=state.varsText
                             disjText=state.disjText
                             wrkCtx
-                            frms=state.frms
+                            frms=state.preCtxData.frms
                             initialTyp={getLastUsedTyp(state.preCtx)}
                             onTypChange={saveLastUsedTyp(state.preCtx, _, tempMode)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
@@ -1065,7 +1065,7 @@ let make = (
                                     settings
                                     preCtxVer=state.preCtxV
                                     preCtx=state.preCtx
-                                    frms=state.frms parenCnt=state.parenCnt
+                                    frms=state.preCtxData.frms parenCnt=state.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
                                     reservedLabels={state.stmts->Array.map(stmt => stmt.label)}
@@ -1824,7 +1824,8 @@ let make = (
                     ~title="Merge two similar steps", ~smallBtns)}
                 { 
                     rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
-                        ~active=generalModificationActionIsEnabled && state.frms->MM_substitution.frmsSize > 0,
+                        ~active=generalModificationActionIsEnabled 
+                            && state.preCtxData.frms->MM_substitution.frmsSize > 0,
                         ~title="Add new steps from existing assertions (and place before selected steps if any)", 
                         ~smallBtns
                     ) 
@@ -1890,7 +1891,7 @@ let make = (
             preCtxVer=state.preCtxV
             varsText=state.varsText
             wrkCtx=state.wrkCtx
-            frms=state.frms
+            frms=state.preCtxData.frms
             parenCnt=state.parenCnt
             syntaxTypes=state.syntaxTypes
             parensMap=state.parensMap
@@ -2161,7 +2162,7 @@ let make = (
                     | None => {
                         textToSyntaxTree( 
                             ~wrkCtx, ~syms, 
-                            ~syntaxTypes=state.syntaxTypes, ~frms=state.frms, 
+                            ~syntaxTypes=state.syntaxTypes, ~frms=state.preCtxData.frms, 
                             ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
                             ~parenCnt=state.parenCnt,
                             ~lastSyntaxType=None,

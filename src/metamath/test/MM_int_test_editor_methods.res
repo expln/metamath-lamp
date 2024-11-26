@@ -233,7 +233,7 @@ let addStmtsBySearch = (
             }
             let searchResults = doSearchAssertions(
                 ~wrkCtx,
-                ~frms=st.frms,
+                ~frms=st.preCtxData.frms,
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
                 ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
                 ~searchPattern=makeSearchPattern(
@@ -344,7 +344,7 @@ let unifyAll = (st):editorState => {
             let rootStmts = st->getRootStmtsForUnification->Array.map(userStmtToRootStmt)
             let proofTree = unifyAll(
                 ~parenCnt = st.parenCnt,
-                ~frms = st.frms,
+                ~frms = st.preCtxData.frms,
                 ~allowedFrms = st.preCtxData.settingsV.val.allowedFrms,
                 ~combCntMax = st.preCtxData.settingsV.val.combCntMax,
                 ~wrkCtx,
@@ -397,7 +397,7 @@ let unifyBottomUp = (
             let settings = st.preCtxData.settingsV.val
             let proofTree = MM_provers.unifyAll(
                 ~parenCnt = st.parenCnt,
-                ~frms = st.frms,
+                ~frms = st.preCtxData.frms,
                 ~wrkCtx,
                 ~rootStmts,
                 ~bottomUpProverParams = 

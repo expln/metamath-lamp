@@ -79,7 +79,6 @@ let createEditorState = (
         srcs: [],
         preCtxV,
         preCtx,
-        frms: prepareFrmSubsData(~ctx),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         allTypes: [],
         syntaxTypes: [],

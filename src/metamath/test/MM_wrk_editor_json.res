@@ -59,7 +59,6 @@ let createInitialEditorState = (
         srcs:preCtxData.srcs,
         preCtxV:preCtxData.ctxV.ver,
         preCtx:preCtxData.ctxV.val,
-        frms: MM_substitution.frmsEmpty(),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         allTypes: [],
         syntaxTypes: [],

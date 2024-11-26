@@ -221,7 +221,6 @@ type editorState = {
     srcs: array<mmCtxSrcDto>,
     preCtxV: int,
     preCtx: mmContext,
-    frms: frms,
     parenCnt: parenCnt,
     allTypes: array<int>,
     syntaxTypes: array<int>,
@@ -869,7 +868,6 @@ let setPreCtxData = (st:editorState, preCtxData:preCtxData):editorState => {
         srcs:preCtxData.srcs,
         preCtxV:preCtxData.ctxV.ver, 
         preCtx, 
-        frms:preCtxData.frms,
         parenCnt:preCtxData.parenCnt,
         allTypes:preCtxData.allTypes,
         syntaxTypes:preCtxData.syntaxTypes,
@@ -1271,7 +1269,7 @@ let prepareUserStmtsForUnification = (st:editorState):editorState => {
                 setStmtExpr(_, wrkCtx),
                 validateStmtIsGoal(_, goalLabel),
                 setStmtJstf,
-                validateStmtJstf(_, wrkCtx, definedUserLabels, st.frms),
+                validateStmtJstf(_, wrkCtx, definedUserLabels, st.preCtxData.frms),
                 validateStmtExpr(_, wrkCtx, definedUserExprs),
             ]
             st.stmts->Array.reduce(
