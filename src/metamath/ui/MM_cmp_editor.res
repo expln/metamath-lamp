@@ -137,7 +137,7 @@ let make = (
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
-    ~addAsrtByLabel: React.ref<Nullable.t<string=>promise<result<unit,string>>>>,
+    ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     ~loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
     ~tempMode:bool,
@@ -755,7 +755,7 @@ let make = (
     }
 
     React.useEffect0(() => {
-        addAsrtByLabel.current = Nullable.make(label => Promise.make((resolve, _) => {
+        addAsrtByLabel.contents = Some(label => Promise.make((resolve, _) => {
             setState(st => {
                 switch st.wrkCtx {
                     | None => {

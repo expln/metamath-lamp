@@ -17,7 +17,7 @@ type props = {
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
-    addAsrtByLabel:React.ref<Nullable.t<string=>promise<result<unit,string>>>>,
+    addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -506,7 +506,7 @@ let make = React.memoCustomCompareProps(({
             asrtsPerPage
             typeOrderInDisj
             addAsrtByLabel={label=>{
-                switch addAsrtByLabel.current->Nullable.toOption {
+                switch addAsrtByLabel.current {
                     | Some(addAsrtByLabel) => addAsrtByLabel(label)
                     | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
                 }
