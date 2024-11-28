@@ -12,6 +12,11 @@ type editorTabData = {
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>
 }
 
+type editorTabDataLocStor = {
+    editorId:int, 
+    tabTitle: string,
+}
+
 type tabData =
     | Settings
     | TabsManager
@@ -81,12 +86,17 @@ let mainTheme = ThemeProvider.createTheme(
 
 let editorsOrderLocStorKey = "editors-order"
 
-let readEditorsOrderFromLocStor = ():array<int> => {
+let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
     switch Local_storage_utils.locStorReadString(editorsOrderLocStorKey) {
         | None => []
         | Some(orderStr) => {
             open Expln_utils_jsonParse
-            let parseRes = orderStr->parseJson(asArr(_, asInt(_)), ~default=()=>[])
+            let parseRes = orderStr->parseJson(asArr(_, asObj(_, o => {
+                {
+                    editorId:o->int("editorId"),
+                    tabTitle:o->str("tabTitle"),
+                }
+            })), ~default=()=>[])
             switch parseRes {
                 | Error(_) => []
                 | Ok(res) => res
@@ -94,6 +104,38 @@ let readEditorsOrderFromLocStor = ():array<int> => {
         }
     }
 }
+
+let saveEditorsOrderToLocStor = (editorsOrder):unit => {
+    Local_storage_utils.locStorWriteString(editorsOrderLocStorKey, Expln_utils_common.stringify(editorsOrder))
+}
+
+let updateEditorsDataInLocStor = () => {
+    /* 
+    This function transforms local storage data of editors from the old format (when only a single editor was supported)
+    to the newer format which supports multiple editors.
+    */
+    switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorStateLocStorKey) {
+        | None => ()
+        | Some(oldEditorStateStr) => {
+            let newEditorsOrder = readEditorsOrderFromLocStor()
+            if (newEditorsOrder->Array.length == 0) {
+                saveEditorsOrderToLocStor([{editorId:0, tabTitle:"EDITOR"}])
+                Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorLocStorKey(0), oldEditorStateStr)
+                switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorHistRegLocStorKey) {
+                    | None => ()
+                    | Some(oldHistReg) => {
+                        Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorHistLocStorKey(0), oldHistReg)
+                    }
+                }
+                // Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorStateLocStorKey)
+                // Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorHistRegLocStorKey)
+                // Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorHistTmpLocStorKey)
+            }
+        }
+    }
+}
+
+updateEditorsDataInLocStor()
 
 let location = window["location"]
 let tempMode = ref(false)
