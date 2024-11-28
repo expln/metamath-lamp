@@ -79,6 +79,22 @@ let mainTheme = ThemeProvider.createTheme(
 @val external window: {..} = "window"
 @val external document: {..} = "document"
 
+let editorsOrderLocStorKey = "editors-order"
+
+let readEditorsOrderFromLocStor = ():array<int> => {
+    switch Local_storage_utils.locStorReadString(editorsOrderLocStorKey) {
+        | None => []
+        | Some(orderStr) => {
+            open Expln_utils_jsonParse
+            let parseRes = orderStr->parseJson(asArr(_, asInt(_)), ~default=()=>[])
+            switch parseRes {
+                | Error(_) => []
+                | Ok(res) => res
+            }
+        }
+    }
+}
+
 let location = window["location"]
 let tempMode = ref(false)
 let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Nullable.toOption {
@@ -318,8 +334,9 @@ let make = () => {
                             onTabClose=actCloseTab
                             onOpenExplorer={()=>openExplorer()}
                         />
-                    | Editor({addAsrtByLabel}) => 
+                    | Editor({editorId, addAsrtByLabel}) => 
                         <MM_cmp_editor
+                            editorId
                             top
                             modalRef
                             preCtxData=state.preCtxData

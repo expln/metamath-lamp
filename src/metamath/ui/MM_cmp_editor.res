@@ -18,30 +18,31 @@ open MM_wrk_pre_ctx_data
 open MM_editor_history
 open MM_proof_tree_dto
 
-let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
-    if (!tempMode) {
-        locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
-    }
-}
-
+let editorStateLocStorKey = "editor-state"
+let editorHistLocStorKey = "editor-hist"
 let editorHistRegLocStorKey = "hist-reg"
 let editorHistTmpLocStorKey = "hist-tmp"
+let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
-let getHistLockStorKey = (tempMode:bool):string => {
-    if (tempMode) { 
-        editorHistTmpLocStorKey 
-    } else { 
-        editorHistRegLocStorKey 
-    }
+let getEditorLocStorKey = (editorId:int):string => {
+    editorStateLocStorKey ++ "-" ++ Int.toString(editorId)
 }
 
-let histSaveToLocStor = (hist:editorHistory, tempMode:bool):unit => {
+let getEditorHistLocStorKey = (editorId:int):string => {
+    editorHistLocStorKey ++ "-" ++ Int.toString(editorId)
+}
+
+let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
+    locStorWriteString(getEditorLocStorKey(editorId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+}
+
+let histSaveToLocStor = (hist:editorHistory, ~editorId:int):unit => {
     let histStr = hist->editorHistToString
-    locStorWriteString( getHistLockStorKey(tempMode), histStr )
+    locStorWriteString( getEditorHistLocStorKey(editorId), histStr )
 }
 
-let histReadFromLocStor = (~editorState:editorState, ~tempMode:bool, ~maxLength:int):editorHistory => {
-    switch locStorReadString(getHistLockStorKey(tempMode)) {
+let histReadFromLocStor = (~editorId:int, ~editorState:editorState, ~maxLength:int):editorHistory => {
+    switch locStorReadString(getEditorHistLocStorKey(editorId)) {
         | None => editorHistMake(~initState=editorState, ~maxLength)
         | Some(histStr) => {
             switch editorHistFromString(histStr) {
@@ -79,10 +80,6 @@ let rndIconButton = (
         </IconButton>
     </span>
 }
-
-let editorStateLocStorKey = "editor-state"
-
-let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
 let saveLastUsedTyp = (ctx:mmContext,typInt:int,tempMode:bool):unit => {
     if (!tempMode) {
@@ -134,6 +131,7 @@ let infoAboutInliningProof = `In order to inline a proof please do the following
 @react.component
 let make = (
     ~modalRef:modalRef, 
+    ~editorId:int,
     ~preCtxData:preCtxData,
     ~top:int,
     ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
@@ -174,6 +172,9 @@ let make = (
     let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
         ~key="editor-smallBtns", ~default=false,
     )
+    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
+        ~key="editor-steps-per-page", ~default=100,
+    )
     let (parenAc, setParenAc) = useStateFromLocalStorageBool(
         ~key="paren-autocomplete", ~default=true,
     )
@@ -183,7 +184,7 @@ let make = (
         ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
     ))
     let (hist, setHistPriv) = React.useState(() => {
-        histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
+        histReadFromLocStor(~editorId, ~editorState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
     })
 
     let stmtsToShow =
@@ -196,10 +197,6 @@ let make = (
         } else {
             state.stmts
         }
-
-    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
-        ~key="editor-steps-per-page", ~default=100,
-    )
     let maxStepsPerPage = 300
     let stepsPerPage = Math.Int.max(1, Math.Int.min(stepsPerPage, maxStepsPerPage))
     let numOfPages = (stmtsToShow->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
@@ -228,7 +225,7 @@ let make = (
     let setHist = (update:editorHistory=>editorHistory):unit => {
         setHistPriv(ht => {
             let ht = update(ht)
-            histSaveToLocStor(ht, tempMode)
+            histSaveToLocStor(ht, ~editorId)
             ht
         })
     }
@@ -260,7 +257,7 @@ let make = (
     }
 
     let saveStateToLocStorAndMakeHistSnapshot = (st:editorState):editorState => {
-        editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+        editorSaveStateToLocStor(st, ~editorId)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
     }

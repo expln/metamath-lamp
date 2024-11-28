@@ -39,6 +39,10 @@ let locStorReadFloat = (key:string):option<float> => {
     locStorReadString(key)->Belt_Option.flatMap(Belt_Float.fromString)
 }
 
+let locStorDeleteKey = (key:string):unit => {
+    Dom_storage2.localStorage->Dom_storage2.removeItem(key)
+}
+
 let useStateFromLocalStorage = (
     ~key:string,
     ~fromString:option<string>=>'a,
