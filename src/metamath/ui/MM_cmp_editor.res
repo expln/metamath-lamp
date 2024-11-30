@@ -136,8 +136,8 @@ let make = (
     ~top:int,
     ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
     ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
-    ~loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
     ~initialStateJsonStr:option<string>,
+    ~initialStateLocStor:option<editorStateLocStor>,
     ~tempMode:bool,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ~ctxSelectorIsExpanded:bool,
@@ -181,7 +181,7 @@ let make = (
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~preCtxData:preCtxData, 
-        ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
+        ~stateLocStor=initialStateLocStor->Option.orElse(jsonStrOptToEditorStateLocStor(initialStateJsonStr))
     ))
     let (hist, setHistPriv) = React.useState(() => {
         histReadFromLocStor(~editorId, ~editorState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
@@ -1262,7 +1262,7 @@ let make = (
         </Col>
     }
 
-    let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
+    let actLoadEditorState = (stateLocStor:editorStateLocStor):unit => {
         actResetPageIdx()
         setState(_ => {
             createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
@@ -1299,7 +1299,6 @@ let make = (
             })->ignore
         })
     }
-    loadEditorState.current = Nullable.make(loadEditorStatePriv)
 
     let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
@@ -1319,7 +1318,7 @@ let make = (
                 false
             }
             | Ok(stateLocStor) => {
-                loadEditorStatePriv(stateLocStor)
+                actLoadEditorState(stateLocStor)
                 true
             }
         }

@@ -15,6 +15,7 @@ type editorTabDataLocStor = {
 type editorTabData = {
     editorId:int, 
     initialStateJsonStr:option<string>,
+    initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>,
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>
 }
 
@@ -268,7 +269,6 @@ let make = () => {
     let reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Nullable.null)
     let addAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let toggleCtxSelector = React.useRef(Nullable.null)
-    let loadEditorState = React.useRef(Nullable.null)
 
     let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
 
@@ -428,7 +428,9 @@ let make = () => {
         })
     }
 
-    let actOpenEditor = (~initialStateJsonStr:option<string>=None):unit => {
+    let actOpenEditor = (
+        ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>=None,
+    ):unit => {
         updateTabs(tabsSt => {
             let newTabTitle = makeNewTabTitle(
                 ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
@@ -438,19 +440,15 @@ let make = () => {
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label=newTabTitle,
                 ~closable=true, 
-                ~data=Editor({editorId:newEditorId, initialStateJsonStr, addAsrtByLabel:ref(None)}),
+                ~data=Editor({
+                    editorId:newEditorId, 
+                    initialStateJsonStr:None, 
+                    initialStateLocStor,
+                    addAsrtByLabel:ref(None)
+                }),
                 ~doOpen=true
             )
             tabsSt
-        })
-    }
-
-    let focusEditorTab = ():unit => {
-        updateTabs(tabsSt => {
-            switch tabsSt->Expln_React_UseTabs.getTabs->Array.find(tab => isEditorTab(tab.data)->Option.isSome) {
-                | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
-                | None => tabsSt
-            }
         })
     }
 
@@ -462,7 +460,13 @@ let make = () => {
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId,tabTitle},idx) => {
                     let (st, _) = st->Expln_React_UseTabs.addTab(
                         ~label=tabTitle, ~closable=true, 
-                        ~data=Editor({editorId, initialStateJsonStr:None, addAsrtByLabel:ref(None)}), 
+                        ~data=Editor({
+                            editorId, 
+                            initialStateJsonStr:
+                                Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)),
+                            initialStateLocStor:None,
+                            addAsrtByLabel:ref(None)
+                        }), 
                         ~doOpen= idx==0 && editorInitialStateJsonStrFromUrl->Option.isNone,
                     )
                     st
@@ -476,6 +480,7 @@ let make = () => {
                             ~data=Editor({
                                 editorId:newEditorId, 
                                 initialStateJsonStr:Some(editorInitialStateJsonStrFromUrl), 
+                                initialStateLocStor:None,
                                 addAsrtByLabel:ref(None)
                             }), 
                             ~doOpen=true,
@@ -484,7 +489,8 @@ let make = () => {
                     }
                 }
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="EXPLORER", ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""})
+                    ~label="EXPLORER", ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""}),
+                    ~doOpen=!(st->Expln_React_UseTabs.getTabs->Array.some(t => isEditorTab(t.data)->Option.isSome))
                 )
                 st
             } else {
@@ -522,7 +528,7 @@ let make = () => {
                             onOpenEditor={()=>actOpenEditor()}
                             onOpenExplorer={()=>actOpenExplorer()}
                         />
-                    | Editor({editorId, initialStateJsonStr, addAsrtByLabel}) => 
+                    | Editor({editorId, initialStateJsonStr, initialStateLocStor, addAsrtByLabel}) => 
                         <MM_cmp_editor
                             editorId
                             top
@@ -530,8 +536,8 @@ let make = () => {
                             preCtxData=state.preCtxData
                             reloadCtx
                             addAsrtByLabel
-                            loadEditorState
                             initialStateJsonStr
+                            initialStateLocStor
                             tempMode=false
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
@@ -558,8 +564,9 @@ let make = () => {
                             label
                             openFrameExplorer
                             openExplorer=actOpenExplorer
-                            loadEditorState
-                            focusEditorTab
+                            openEditor={editorStateLocStor=>
+                                actOpenEditor(~initialStateLocStor=Some(editorStateLocStor))
+                            }
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                         />

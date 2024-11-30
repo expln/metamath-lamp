@@ -360,8 +360,7 @@ type props = {
     label:string,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string=?)=>unit,
-    loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
-    focusEditorTab: unit=>unit,
+    openEditor: editorStateLocStor => unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
 }
@@ -716,8 +715,7 @@ let make = React.memoCustomCompareProps(({
     label,
     openFrameExplorer,
     openExplorer,
-    loadEditorState,
-    focusEditorTab,
+    openEditor,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
 }:props) => {
@@ -838,17 +836,14 @@ let make = React.memoCustomCompareProps(({
     let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
 
     let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
-        loadEditorState.current->Nullable.toOption->Belt.Option.forEach(loadEditorState => {
-            loadEditorState(
-                frameProofDataToEditorStateLocStor(
-                    ~preCtxData,
-                    ~frameProofData=state, 
-                    ~adjustContext, 
-                    ~loadSteps
-                )
+        openEditor(
+            frameProofDataToEditorStateLocStor(
+                ~preCtxData,
+                ~frameProofData=state, 
+                ~adjustContext, 
+                ~loadSteps
             )
-            focusEditorTab()
-        })
+        )
     }
 
     let actOpenLoadProofToEditorDialog = state => {
