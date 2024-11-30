@@ -64,6 +64,7 @@ let make = (
     ~onTabFocus:Expln_React_UseTabs.tabId=>unit,
     ~onTabClose:Expln_React_UseTabs.tabId=>unit,
     ~onOpenExplorer:unit=>unit,
+    ~onOpenEditor:unit=>unit,
 ) => {
     let actRenameTab = (tab:tabProps) => {
         openModalPaneWithTitle(
@@ -85,7 +86,7 @@ let make = (
     let rndOpenButtons = () => {
         <Row alignItems={#baseline}>
             {"Open new tab: "->React.string}
-            <Button onClick={_=>()}> {React.string("Editor")} </Button>
+            <Button onClick={_=>onOpenEditor()}> {React.string("Editor")} </Button>
             <Button onClick={_=>onOpenExplorer()}> {React.string("Explorer")} </Button>
         </Row>
     }

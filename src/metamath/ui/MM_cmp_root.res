@@ -144,14 +144,16 @@ let deleteOutdatedEditorsDataInLocStor = () => {
     )->Belt_SetString.fromArray
     let locStorLen = Local_storage_utils.locStorLength()
     let keysToDelete = Belt_MutableSetString.make()
+    let editorLocStorKeyPrefix = MM_cmp_editor.editorStateLocStorKey ++ "-"
+    let editorHistLocStorKeyPrefix = MM_cmp_editor.editorHistLocStorKey ++ "-"
     for i in 0 to locStorLen-1 {
         switch Local_storage_utils.locStorKey(i) {
             | None => ()
             | Some(key) => {
                 if (
                     (
-                        key->String.startsWith(MM_cmp_editor.editorStateLocStorKey)
-                        || key->String.startsWith(MM_cmp_editor.editorHistLocStorKey)
+                        key->String.startsWith(editorLocStorKeyPrefix)
+                        || key->String.startsWith(editorHistLocStorKeyPrefix)
                     ) && !(allowedLocStorKeys->Belt_SetString.has(key))
                 ) {
                     keysToDelete->Belt_MutableSetString.add(key)
@@ -175,14 +177,45 @@ let editorInitialStateJsonStrFromUrl:option<string> =
         | None => None
     }
 
-let getNewEditorId = (existingTabs: array<Expln_React_UseTabs.tab<'a>>):int => {
-    //fix a bug here: take existing editor ids from editor data, not tab data
-    let existingIds = existingTabs->Array.map(t => t.id)->Belt_HashSetString.fromArray
+let getNewEditorId = (~existingTabs: array<Expln_React_UseTabs.tab<'a>>):int => {
+    let existingIds = []
+    existingTabs->Array.forEach(t => {
+        switch t.data {
+            | Editor({editorId}) => existingIds->Array.push(editorId)
+            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => ()
+        }
+    })
     let newId = ref(0)
-    while (existingIds->Belt_HashSetString.has(newId.contents->Int.toString)) {
+    while (existingIds->Array.includes(newId.contents)) {
         newId := newId.contents + 1
     }
     newId.contents
+}
+
+let makeNewTabTitle = (
+    ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
+    ~prefix:string
+):string => {
+    let existingTitles = existingTabs->Array.map(t => t.label)
+    let newId = ref(1)
+    let makeTitle = (i:int):string => prefix ++ " [" ++ i->Int.toString ++ "]"
+    let newTitle = ref(makeTitle(newId.contents))
+    while (existingTitles->Array.includes(newTitle.contents)) {
+        newId := newId.contents + 1
+        newTitle := makeTitle(newId.contents)
+    }
+    newTitle.contents
+}
+
+let getNewExplorerTabTitle = (
+    ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
+    ~initPatternFilterStr:string=""
+):string => {
+    if (initPatternFilterStr->String.length > 0) {
+        "EXPLORER " ++ initPatternFilterStr->String.substring(~start=0, ~end=40)
+    } else {
+        makeNewTabTitle(~existingTabs, ~prefix="EXPLORER")
+    }
 }
 
 @react.component
@@ -342,12 +375,33 @@ let make = () => {
         })
     }
 
-    let openExplorer = (~initPatternFilterStr:string=""):unit => {
+    let actOpenExplorer = (~initPatternFilterStr:string=""):unit => {
         updateTabs(tabsSt => {
-            let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                ~label=`EXPLORER ${initPatternFilterStr->String.substring(~start=0, ~end=40)}`,
+            let newTabTitle = getNewExplorerTabTitle(
+                ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
+                ~initPatternFilterStr=initPatternFilterStr->String.trim
+            )
+            let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
+                ~label=newTabTitle,
                 ~closable=true, 
                 ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
+                ~doOpen=true
+            )
+            tabsSt
+        })
+    }
+
+    let actOpenEditor = (~initialStateJsonStr:option<string>=None):unit => {
+        updateTabs(tabsSt => {
+            let newTabTitle = makeNewTabTitle(
+                ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
+                ~prefix="EDITOR"
+            )
+            let newEditorId = getNewEditorId(~existingTabs=tabsSt->Expln_React_UseTabs.getTabs)
+            let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
+                ~label=newTabTitle,
+                ~closable=true, 
+                ~data=Editor({editorId:newEditorId, initialStateJsonStr, addAsrtByLabel:ref(None)}),
                 ~doOpen=true
             )
             tabsSt
@@ -379,7 +433,7 @@ let make = () => {
                 let st = switch editorInitialStateJsonStrFromUrl {
                     | None => st
                     | Some(editorInitialStateJsonStrFromUrl) => {
-                        let newEditorId = getNewEditorId(st->Expln_React_UseTabs.getTabs)
+                        let newEditorId = getNewEditorId(~existingTabs=st->Expln_React_UseTabs.getTabs)
                         let (st, _) = st->Expln_React_UseTabs.addTab(
                             ~label="EDITOR[" ++ newEditorId->Int.toString ++ "]", ~closable=true, 
                             ~data=Editor({
@@ -426,7 +480,8 @@ let make = () => {
                             onTabMoveDown=actMoveTabRight
                             onTabFocus=openTab
                             onTabClose=actCloseTab
-                            onOpenExplorer={()=>openExplorer()}
+                            onOpenEditor={()=>actOpenEditor()}
+                            onOpenExplorer={()=>actOpenExplorer()}
                         />
                     | Editor({editorId, initialStateJsonStr, addAsrtByLabel}) => 
                         <MM_cmp_editor
@@ -450,7 +505,7 @@ let make = () => {
                             modalRef
                             preCtxData=state.preCtxData
                             openFrameExplorer
-                            openExplorer
+                            openExplorer=actOpenExplorer
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             initPatternFilterStr
@@ -463,7 +518,7 @@ let make = () => {
                             preCtxData=state.preCtxData
                             label
                             openFrameExplorer
-                            openExplorer
+                            openExplorer=actOpenExplorer
                             loadEditorState
                             focusEditorTab
                             toggleCtxSelector
