@@ -14,7 +14,6 @@ type editorTabDataLocStor = {
 
 type editorTabData = {
     editorId:int, 
-    initialStateJsonStr:option<string>,
     initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>,
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>
 }
@@ -177,12 +176,16 @@ let deleteOutdatedEditorsDataInLocStor = () => {
     keysToDelete->Belt_MutableSetString.forEach(Local_storage_utils.locStorDeleteKey)
 }
 
+let readEditorStateFromJsonStr = (str:string):option<MM_wrk_editor_json.editorStateLocStor> => {
+    MM_wrk_editor_json.readEditorStateFromJsonStr(str)->Result.mapOr(None, res=>Some(res))
+}
+
 let location = window["location"]
-let editorInitialStateJsonStrFromUrl:option<string> = 
+let editorInitialStateFromUrl:option<MM_wrk_editor_json.editorStateLocStor> = 
     switch parseUrlQuery(location["search"])["get"]("editorState")->Nullable.toOption {
         | Some(initialStateSafeBase64) => {
             removeQueryParamsFromUrl("removing editorState from the URL")
-            Some(initialStateSafeBase64->safeBase64ToStr)
+            readEditorStateFromJsonStr(initialStateSafeBase64->safeBase64ToStr)
         }
         | None => None
     }
@@ -442,7 +445,6 @@ let make = () => {
                 ~closable=true, 
                 ~data=Editor({
                     editorId:newEditorId, 
-                    initialStateJsonStr:None, 
                     initialStateLocStor,
                     addAsrtByLabel:ref(None)
                 }),
@@ -458,29 +460,36 @@ let make = () => {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId,tabTitle},idx) => {
-                    let (st, _) = st->Expln_React_UseTabs.addTab(
-                        ~label=tabTitle, ~closable=true, 
-                        ~data=Editor({
-                            editorId, 
-                            initialStateJsonStr:
-                                Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)),
-                            initialStateLocStor:None,
-                            addAsrtByLabel:ref(None)
-                        }), 
-                        ~doOpen= idx==0 && editorInitialStateJsonStrFromUrl->Option.isNone,
-                    )
-                    st
+                    switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {
+                        | None => st
+                        | Some(editorStateJsonStr) => {
+                            switch readEditorStateFromJsonStr(editorStateJsonStr) {
+                                | None => st
+                                | Some(editorStateLocStor) => {
+                                    let (st, _) = st->Expln_React_UseTabs.addTab(
+                                        ~label=tabTitle, ~closable=true, 
+                                        ~doOpen= idx==0 && editorInitialStateFromUrl->Option.isNone,
+                                        ~data=Editor({
+                                            editorId, 
+                                            initialStateLocStor:Some(editorStateLocStor),
+                                            addAsrtByLabel:ref(None)
+                                        }), 
+                                    )
+                                    st
+                                }
+                            }
+                        }
+                    }
                 })
-                let st = switch editorInitialStateJsonStrFromUrl {
+                let st = switch editorInitialStateFromUrl {
                     | None => st
-                    | Some(editorInitialStateJsonStrFromUrl) => {
+                    | Some(editorInitialStateFromUrl) => {
                         let newEditorId = getNewEditorId(~existingTabs=st->Expln_React_UseTabs.getTabs)
                         let (st, _) = st->Expln_React_UseTabs.addTab(
                             ~label="EDITOR[" ++ newEditorId->Int.toString ++ "]", ~closable=true, 
                             ~data=Editor({
                                 editorId:newEditorId, 
-                                initialStateJsonStr:Some(editorInitialStateJsonStrFromUrl), 
-                                initialStateLocStor:None,
+                                initialStateLocStor:Some(editorInitialStateFromUrl),
                                 addAsrtByLabel:ref(None)
                             }), 
                             ~doOpen=true,
@@ -528,7 +537,7 @@ let make = () => {
                             onOpenEditor={()=>actOpenEditor()}
                             onOpenExplorer={()=>actOpenExplorer()}
                         />
-                    | Editor({editorId, initialStateJsonStr, initialStateLocStor, addAsrtByLabel}) => 
+                    | Editor({editorId, initialStateLocStor, addAsrtByLabel}) => 
                         <MM_cmp_editor
                             editorId
                             top
@@ -536,7 +545,6 @@ let make = () => {
                             preCtxData=state.preCtxData
                             reloadCtx
                             addAsrtByLabel
-                            initialStateJsonStr
                             initialStateLocStor
                             tempMode=false
                             toggleCtxSelector

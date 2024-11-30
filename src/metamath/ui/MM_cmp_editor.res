@@ -136,7 +136,6 @@ let make = (
     ~top:int,
     ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
     ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
-    ~initialStateJsonStr:option<string>,
     ~initialStateLocStor:option<editorStateLocStor>,
     ~tempMode:bool,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
@@ -181,7 +180,7 @@ let make = (
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~preCtxData:preCtxData, 
-        ~stateLocStor=initialStateLocStor->Option.orElse(jsonStrOptToEditorStateLocStor(initialStateJsonStr))
+        ~stateLocStor=initialStateLocStor
     ))
     let (hist, setHistPriv) = React.useState(() => {
         histReadFromLocStor(~editorId, ~editorState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
@@ -1323,14 +1322,6 @@ let make = (
             }
         }
     }
-
-    React.useEffect0(() => {
-        switch initialStateJsonStr {
-            | None => ()
-            | Some(jsonStr) => actImportFromJson(jsonStr)->ignore
-        }
-        None
-    })
 
     let actOpenImportFromJsonDialog = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
