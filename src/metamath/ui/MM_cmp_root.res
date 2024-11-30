@@ -110,6 +110,15 @@ let saveEditorsOrderToLocStor = (editorsOrder):unit => {
     Local_storage_utils.locStorWriteString(editorsOrderLocStorKey, Expln_utils_common.stringify(editorsOrder))
 }
 
+let getNewEditorIdFromEditorsOrder = (~editorsOrder: array<editorTabDataLocStor>):int => {
+    let existingIds = editorsOrder->Array.map(ord => ord.editorId)
+    let newId = ref(0)
+    while (existingIds->Array.includes(newId.contents)) {
+        newId := newId.contents + 1
+    }
+    newId.contents
+}
+
 let updateEditorsDataInLocStor = () => {
     /* 
     This function transforms local storage data of editors from the old format (when only a single editor was supported)
@@ -118,23 +127,26 @@ let updateEditorsDataInLocStor = () => {
     switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorStateLocStorKey) {
         | None => ()
         | Some(oldEditorStateStr) => {
-            let newEditorsOrder = readEditorsOrderFromLocStor()
-            if (newEditorsOrder->Array.length == 0) {
-                saveEditorsOrderToLocStor([{editorId:0, tabTitle:"EDITOR"}])
-                Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorLocStorKey(0), oldEditorStateStr)
-                switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorHistRegLocStorKey) {
-                    | None => ()
-                    | Some(oldHistReg) => {
-                        Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorHistLocStorKey(0), oldHistReg)
-                    }
+            let editorsOrder = readEditorsOrderFromLocStor()
+            let newEditorId = getNewEditorIdFromEditorsOrder(~editorsOrder=editorsOrder)
+            editorsOrder->Array.splice( ~start=0, ~remove=0, ~insert=[ {editorId:newEditorId, tabTitle:"EDITOR"} ] )
+            saveEditorsOrderToLocStor(editorsOrder)
+            Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorLocStorKey(newEditorId), oldEditorStateStr)
+            switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorHistRegLocStorKey) {
+                | None => ()
+                | Some(oldHistReg) => {
+                    Local_storage_utils.locStorWriteString(
+                        MM_cmp_editor.getEditorHistLocStorKey(newEditorId), oldHistReg
+                    )
                 }
-                // Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorStateLocStorKey)
-                // Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorHistRegLocStorKey)
-                // Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorHistTmpLocStorKey)
             }
         }
     }
+    Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorStateLocStorKey)
+    Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorHistRegLocStorKey)
+    Local_storage_utils.locStorDeleteKey(MM_cmp_editor.editorHistTmpLocStorKey)
 }
+updateEditorsDataInLocStor()
 
 let deleteOutdatedEditorsDataInLocStor = () => {
     let existingEditorIds = readEditorsOrderFromLocStor()->Array.map(d => d.editorId)
@@ -163,9 +175,6 @@ let deleteOutdatedEditorsDataInLocStor = () => {
     }
     keysToDelete->Belt_MutableSetString.forEach(Local_storage_utils.locStorDeleteKey)
 }
-
-updateEditorsDataInLocStor()
-deleteOutdatedEditorsDataInLocStor()
 
 let location = window["location"]
 let editorInitialStateJsonStrFromUrl:option<string> = 
@@ -218,6 +227,18 @@ let getNewExplorerTabTitle = (
     }
 }
 
+let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a>>):unit => {
+    let editorsOrder = []
+    existingTabs->Array.forEach(tab => {
+        switch tab.data {
+            | Editor({editorId}) => editorsOrder->Array.push({editorId, tabTitle: tab.label})
+            | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => ()
+        }
+    })
+    saveEditorsOrderToLocStor(editorsOrder)
+    deleteOutdatedEditorsDataInLocStor()
+}
+
 @react.component
 let make = () => {
     let modalRef = useModalRef()
@@ -248,6 +269,15 @@ let make = () => {
     let addAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let toggleCtxSelector = React.useRef(Nullable.null)
     let loadEditorState = React.useRef(Nullable.null)
+
+    let (canStartSynchTabsOrder, setCanStartSynchTabsOrder) = React.useState(() => false)
+
+    React.useEffect2(() => {
+        if (canStartSynchTabsOrder) {
+            synchEditorsDataInLocStor(~existingTabs=tabs)
+        }
+        None
+    }, (canStartSynchTabsOrder, tabs))
 
     let isFrameExplorerTab = (tabData:tabData, ~label:option<string>=?):bool => {
         switch tabData {
@@ -419,7 +449,7 @@ let make = () => {
 
     React.useEffect0(()=>{
         updateTabs(st => {
-            if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
+            let st = if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
                 let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId,tabTitle},idx) => {
@@ -453,6 +483,8 @@ let make = () => {
             } else {
                 st
             }
+            setCanStartSynchTabsOrder(_ => true)
+            st
         })
         None
     })
