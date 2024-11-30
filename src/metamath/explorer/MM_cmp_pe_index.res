@@ -130,7 +130,7 @@ let make = React.memoCustomCompareProps(({
         None
     }, [applyFiltersRequested])
 
-    let actPreCtxDataChanged = (~isFirstInvocation:bool) => {
+    let actPreCtxDataChanged = () => {
         let settings = preCtxData.settingsV.val
         setTypeColors(_ => settings->settingsGetTypeColors)
 
@@ -162,17 +162,11 @@ let make = React.memoCustomCompareProps(({
         )
         setTypeOrderInDisj(_ => typeOrderInDisj)
 
-        if (isFirstInvocation) {
-            setApplyFiltersRequested(_ => true)
-        } else {
-            actClearFilters(~applyFilters=false)
-        }
+        setApplyFiltersRequested(_ => true)
     }
 
-    let (preCtxDataHasChangedPreviously, setPreCtxDataHasChangedPreviously) = React.useState(() => false)
     React.useEffect1(() => {
-        actPreCtxDataChanged(~isFirstInvocation=!preCtxDataHasChangedPreviously)
-        setPreCtxDataHasChangedPreviously(_ => true)
+        actPreCtxDataChanged()
         None
     }, [preCtxData])
 
