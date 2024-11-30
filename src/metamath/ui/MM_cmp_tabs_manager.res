@@ -84,10 +84,10 @@ let make = (
     }
 
     let rndOpenButtons = () => {
-        <Row alignItems={#baseline}>
+        <Row alignItems={#baseline} style=ReactDOM.Style.make(~marginBottom="20px", ())>
             {"Open new tab: "->React.string}
-            <Button onClick={_=>onOpenEditor()}> {React.string("Editor")} </Button>
-            <Button onClick={_=>onOpenExplorer()}> {React.string("Explorer")} </Button>
+            <Button onClick={_=>onOpenEditor()} variant={#outlined}> {React.string("Editor")} </Button>
+            <Button onClick={_=>onOpenExplorer()} variant={#outlined}> {React.string("Explorer")} </Button>
         </Row>
     }
 
