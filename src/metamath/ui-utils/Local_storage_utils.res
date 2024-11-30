@@ -39,6 +39,14 @@ let locStorReadFloat = (key:string):option<float> => {
     locStorReadString(key)->Belt_Option.flatMap(Belt_Float.fromString)
 }
 
+let locStorLength = ():int => {
+    Dom_storage2.localStorage->Dom_storage2.length
+}
+
+let locStorKey = (idx:int):option<string> => {
+    Dom_storage2.localStorage->Dom_storage2.key(idx)
+}
+
 let locStorDeleteKey = (key:string):unit => {
     Dom_storage2.localStorage->Dom_storage2.removeItem(key)
 }

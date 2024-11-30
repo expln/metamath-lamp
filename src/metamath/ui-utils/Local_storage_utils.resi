@@ -8,6 +8,8 @@ let locStorWriteFloat: (string, float) => unit
 let locStorReadFloat: string => option<float>
 
 let locStorDeleteKey: (string) => unit
+let locStorLength: unit=>int
+let locStorKey: int=>option<string>
 
 let useStateFromLocalStorage: (
     ~key:string,

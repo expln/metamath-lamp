@@ -7,14 +7,15 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_react_common
 
-type editorTabData = {
-    editorId:int, 
-    addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>
-}
-
 type editorTabDataLocStor = {
     editorId:int, 
     tabTitle: string,
+}
+
+type editorTabData = {
+    editorId:int, 
+    initialStateJsonStr:option<string>,
+    addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>
 }
 
 type tabData =
@@ -135,21 +136,53 @@ let updateEditorsDataInLocStor = () => {
     }
 }
 
-updateEditorsDataInLocStor()
-
-let location = window["location"]
-let tempMode = ref(false)
-let editorInitialStateJsonStr = switch parseUrlQuery(location["search"])["get"](. "editorState")->Nullable.toOption {
-    | Some(initialStateSafeBase64) => {
-        removeQueryParamsFromUrl("removing editorState from the URL")
-        tempMode := true
-        Some(initialStateSafeBase64->safeBase64ToStr)
+let deleteOutdatedEditorsDataInLocStor = () => {
+    let existingEditorIds = readEditorsOrderFromLocStor()->Array.map(d => d.editorId)
+    let allowedLocStorKeys = Array.concat(
+        existingEditorIds->Array.map(MM_cmp_editor.getEditorLocStorKey),
+        existingEditorIds->Array.map(MM_cmp_editor.getEditorHistLocStorKey)
+    )->Belt_SetString.fromArray
+    let locStorLen = Local_storage_utils.locStorLength()
+    let keysToDelete = Belt_MutableSetString.make()
+    for i in 0 to locStorLen-1 {
+        switch Local_storage_utils.locStorKey(i) {
+            | None => ()
+            | Some(key) => {
+                if (
+                    (
+                        key->String.startsWith(MM_cmp_editor.editorStateLocStorKey)
+                        || key->String.startsWith(MM_cmp_editor.editorHistLocStorKey)
+                    ) && !(allowedLocStorKeys->Belt_SetString.has(key))
+                ) {
+                    keysToDelete->Belt_MutableSetString.add(key)
+                }
+            }
+        }
     }
-    | None => Local_storage_utils.locStorReadString(MM_cmp_editor.editorStateLocStorKey)
+    keysToDelete->Belt_MutableSetString.forEach(Local_storage_utils.locStorDeleteKey)
 }
 
-if (tempMode.contents) {
-    document["title"] = "TEMP " ++ document["title"]
+updateEditorsDataInLocStor()
+deleteOutdatedEditorsDataInLocStor()
+
+let location = window["location"]
+let editorInitialStateJsonStrFromUrl:option<string> = 
+    switch parseUrlQuery(location["search"])["get"]("editorState")->Nullable.toOption {
+        | Some(initialStateSafeBase64) => {
+            removeQueryParamsFromUrl("removing editorState from the URL")
+            Some(initialStateSafeBase64->safeBase64ToStr)
+        }
+        | None => None
+    }
+
+let getNewEditorId = (existingTabs: array<Expln_React_UseTabs.tab<'a>>):int => {
+    //fix a bug here: take existing editor ids from editor data, not tab data
+    let existingIds = existingTabs->Array.map(t => t.id)->Belt_HashSetString.fromArray
+    let newId = ref(0)
+    while (existingIds->Belt_HashSetString.has(newId.contents->Int.toString)) {
+        newId := newId.contents + 1
+    }
+    newId.contents
 }
 
 @react.component
@@ -335,11 +368,30 @@ let make = () => {
             if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
-                let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="EDITOR", ~closable=true, 
-                    ~data=Editor({editorId:0, addAsrtByLabel:ref(None)}), 
-                    ~doOpen=true, ~color=?(if (tempMode.contents) {Some("orange")} else {None})
-                )
+                let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId,tabTitle},idx) => {
+                    let (st, _) = st->Expln_React_UseTabs.addTab(
+                        ~label=tabTitle, ~closable=true, 
+                        ~data=Editor({editorId, initialStateJsonStr:None, addAsrtByLabel:ref(None)}), 
+                        ~doOpen= idx==0 && editorInitialStateJsonStrFromUrl->Option.isNone,
+                    )
+                    st
+                })
+                let st = switch editorInitialStateJsonStrFromUrl {
+                    | None => st
+                    | Some(editorInitialStateJsonStrFromUrl) => {
+                        let newEditorId = getNewEditorId(st->Expln_React_UseTabs.getTabs)
+                        let (st, _) = st->Expln_React_UseTabs.addTab(
+                            ~label="EDITOR[" ++ newEditorId->Int.toString ++ "]", ~closable=true, 
+                            ~data=Editor({
+                                editorId:newEditorId, 
+                                initialStateJsonStr:Some(editorInitialStateJsonStrFromUrl), 
+                                addAsrtByLabel:ref(None)
+                            }), 
+                            ~doOpen=true,
+                        )
+                        st
+                    }
+                }
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="EXPLORER", ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""})
                 )
@@ -376,7 +428,7 @@ let make = () => {
                             onTabClose=actCloseTab
                             onOpenExplorer={()=>openExplorer()}
                         />
-                    | Editor({editorId, addAsrtByLabel}) => 
+                    | Editor({editorId, initialStateJsonStr, addAsrtByLabel}) => 
                         <MM_cmp_editor
                             editorId
                             top
@@ -385,8 +437,8 @@ let make = () => {
                             reloadCtx
                             addAsrtByLabel
                             loadEditorState
-                            initialStateJsonStr=editorInitialStateJsonStr
-                            tempMode=tempMode.contents
+                            initialStateJsonStr
+                            tempMode=false
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             showTabs
