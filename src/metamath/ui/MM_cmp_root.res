@@ -301,7 +301,14 @@ let make = () => {
                     | None => ()
                     | Some({editorId, addAsrtByLabel:addAsrtByLabelRef}) => {
                         setLastOpenedEditorId(_ => Some(editorId))
-                        addAsrtByLabel.current = addAsrtByLabelRef.contents
+                        addAsrtByLabel.current = addAsrtByLabelRef.contents->Option.map(addAsrtByLabelOrig => {
+                            str => {
+                                addAsrtByLabelOrig(str)->Promise.thenResolve(res => {
+                                    openTab(activeTabId)
+                                    res
+                                })
+                            }
+                        })
                     }
                 }
             }
