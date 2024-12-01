@@ -1,3 +1,8 @@
+- multiple editors:
+    - reload context for import from (URL / JSON / exiting proof)
+    - update macros API
+    - delete temp mode
+    - check how multiple editors interact with the worker thread
 - Implement dynamic bottom-up prover params. Bind params to each statement.
 - docs:
     - debug bottom-up proof for:
