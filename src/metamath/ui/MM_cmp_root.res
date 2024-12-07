@@ -269,7 +269,7 @@ let make = () => {
     let (showTabs, setShowTabs) = React.useState(() => true)
     let (lastOpenedEditorId, setLastOpenedEditorId) = React.useState(() => None)
 
-    let reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(Nullable.null)
+    let reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(None)
     let addAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
     let toggleCtxSelector = React.useRef(Nullable.null)
 
@@ -327,11 +327,6 @@ let make = () => {
         })
     }
 
-    let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
-        actCloseFrmTabs()
-        setState(updatePreCtxData(_,~ctx=(srcs,newCtx)))
-    }
-
     let actSettingsUpdated = (newSettings:settings) => {
         actCloseFrmTabs()
         settingsSaveToLocStor(newSettings)
@@ -342,15 +337,15 @@ let make = () => {
             || state.preCtxData.settingsV.val.descrRegexToDepr != newSettings.descrRegexToDepr
             || state.preCtxData.settingsV.val.labelRegexToDepr != newSettings.labelRegexToDepr
         ) {
-            reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
-                reloadCtx(
-                    ~srcs=state.preCtxData.srcs, 
-                    ~settings=newSettings, 
-                    ~force=true, 
-                    ~showError=true
-                )->ignore
+            reloadCtx.current->Option.forEach(reloadCtx => {
+                reloadCtx(~srcs=state.preCtxData.srcs, ~settings=newSettings, ~force=true)->ignore
             })
         }
+    }
+
+    let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
+        actCloseFrmTabs()
+        setState(updatePreCtxData(_,~ctx=(srcs,newCtx)))
     }
 
     let actCtxSelectorExpandedChange = (expanded) => {
