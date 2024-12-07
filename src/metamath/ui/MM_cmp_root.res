@@ -243,6 +243,8 @@ let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a
     deleteOutdatedEditorsDataInLocStor()
 }
 
+let contextFromUrlHasBeenReloaded = ref(false)
+
 @react.component
 let make = () => {
     let modalRef = useModalRef()
@@ -427,7 +429,7 @@ let make = () => {
     }
 
     let actOpenEditor = (
-        ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>=None,
+        ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>=?,
     ):unit => {
         updateTabs(tabsSt => {
             let newTabTitle = makeNewTabTitle(
@@ -451,10 +453,7 @@ let make = () => {
             | None => ()
             | Some(initialStateLocStor) => {
                 reloadCtx.current->Option.forEach(reloadCtx => {
-                    reloadCtx(
-                        ~srcs=initialStateLocStor.srcs, 
-                        ~settings=state.preCtxData.settingsV.val, 
-                    )->ignore
+                    reloadCtx(~srcs=initialStateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->ignore
                 })
             }
         }
@@ -487,22 +486,6 @@ let make = () => {
                         }
                     }
                 })
-                let st = switch editorInitialStateFromUrl {
-                    | None => st
-                    | Some(editorInitialStateFromUrl) => {
-                        let newEditorId = getNewEditorId(~existingTabs=st->Expln_React_UseTabs.getTabs)
-                        let (st, _) = st->Expln_React_UseTabs.addTab(
-                            ~label="EDITOR[" ++ newEditorId->Int.toString ++ "]", ~closable=true, 
-                            ~data=Editor({
-                                editorId:newEditorId, 
-                                initialStateLocStor:Some(editorInitialStateFromUrl),
-                                addAsrtByLabel:ref(None)
-                            }), 
-                            ~doOpen=true,
-                        )
-                        st
-                    }
-                }
                 let (st, _) = st->Expln_React_UseTabs.addTab(
                     ~label="EXPLORER", ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""}),
                     ~doOpen=!(st->Expln_React_UseTabs.getTabs->Array.some(t => isEditorTab(t.data)->Option.isSome))
@@ -514,6 +497,15 @@ let make = () => {
             setCanStartSynchTabsOrder(_ => true)
             st
         })
+        switch editorInitialStateFromUrl {
+            | None => ()
+            | Some(editorInitialStateFromUrl) => {
+                if (!contextFromUrlHasBeenReloaded.contents) {
+                    contextFromUrlHasBeenReloaded := true
+                    actOpenEditor(~initialStateLocStor=editorInitialStateFromUrl)
+                }
+            }
+        }
         None
     })
 
@@ -579,7 +571,7 @@ let make = () => {
                             openFrameExplorer
                             openExplorer=actOpenExplorer
                             openEditor={editorStateLocStor=>
-                                actOpenEditor(~initialStateLocStor=Some(editorStateLocStor))
+                                actOpenEditor(~initialStateLocStor=editorStateLocStor)
                             }
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
