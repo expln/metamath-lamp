@@ -447,6 +447,17 @@ let make = () => {
             )
             tabsSt
         })
+        switch initialStateLocStor {
+            | None => ()
+            | Some(initialStateLocStor) => {
+                reloadCtx.current->Option.forEach(reloadCtx => {
+                    reloadCtx(
+                        ~srcs=initialStateLocStor.srcs, 
+                        ~settings=state.preCtxData.settingsV.val, 
+                    )->ignore
+                })
+            }
+        }
     }
 
     React.useEffect0(()=>{
