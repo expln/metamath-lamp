@@ -12,6 +12,7 @@ open MM_statements_dto
 open MM_wrk_editor_json
 open MM_wrk_pre_ctx_data
 open MM_int_test_utils
+open MM_substitution
 open Common
 
 type rootStmtsToUse =
@@ -231,15 +232,22 @@ let addStmtsBySearch = (
                 | None => st
                 | Some(stmtId) => st->toggleStmtChecked(stmtId)
             }
-            let searchResults = doSearchAssertions(
+            let (searchResults,_) = doSearchAssertions(
                 ~wrkCtx,
-                ~frms=st.preCtxData.frms,
+                ~allFramesInDeclarationOrder=st.preCtxData.frms->frmsSelect
+                    ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
+                    ->Array.map(frm => frm.frame),
+                ~isAxiom=None,
+                ~typ=Some(st.preCtxData.ctxMinV.val->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-"))),
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
-                ~typ=st.preCtxData.ctxMinV.val->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
                 ~searchPattern=makeSearchPattern(
                     ~searchStr=filterPattern->Belt_Option.getWithDefault(""),
                     ~ctx=st.preCtxData.ctxMinV.val
-                )->Result.getExn
+                )->Result.getExn,
+                ~isDisc=None,
+                ~isDepr=None,
+                ~isTranDepr=None,
+                ~returnLabelsOnly=false,
             )
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 

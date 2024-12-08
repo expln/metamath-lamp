@@ -874,8 +874,6 @@ let make = (
                             settings=state.preCtxData.settingsV.val
                             preCtxVer=state.preCtxData.ctxMinV.ver
                             preCtx=state.preCtxData.ctxMinV.val
-                            varsText=state.varsText
-                            disjText=state.disjText
                             wrkCtx
                             frms=state.preCtxData.frms
                             initialTyp={getLastUsedTyp(state.preCtxData.ctxMinV.val)}

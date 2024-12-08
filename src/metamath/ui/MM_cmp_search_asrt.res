@@ -164,8 +164,6 @@ let make = (
     ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~varsText: string,
-    ~disjText: string,
     ~wrkCtx: mmContext,
     ~frms: frms,
     ~initialTyp:option<int>,
@@ -215,17 +213,20 @@ let make = (
                         ~settings,
                         ~preCtxVer,
                         ~preCtx,
-                        ~varsText,
-                        ~disjText,
+                        ~isAxiom=None,
+                        ~typ=Some(state.typ),
                         ~label=state.label->String.trim,
-                        ~typ=state.typ,
                         ~searchPattern,
+                        ~isDisc=None,
+                        ~isDepr=None,
+                        ~isTranDepr=None,
+                        ~returnLabelsOnly=false,
                         ~onProgress = pct => updateModal(
                             modalRef, modalId, () => rndProgress(
                                 ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                             )
                         )
-                    )->promiseMap(found => {
+                    )->promiseMap(((found,_)) => {
                         closeModal(modalRef, modalId)
                         actResultsRetrieved(found)
                     })

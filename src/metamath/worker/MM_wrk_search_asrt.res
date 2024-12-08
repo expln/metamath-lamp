@@ -1,7 +1,6 @@
 open MM_context
 open Expln_utils_promise
 open MM_wrk_ctx_proc
-open MM_substitution
 open MM_statements_dto
 open MM_progress_tracker
 open MM_wrk_settings
@@ -17,17 +16,25 @@ type stmtPattern = {
 let procName = "MM_wrk_search_asrt"
 
 type request = 
-    | FindAssertions({label:string, typ:int, searchPattern:array<stmtPattern>})
+    | FindAssertions({
+        isAxiom:option<bool>,
+        typ:option<int>, 
+        label:string, 
+        searchPattern:array<stmtPattern>,
+        isDisc:option<bool>,
+        isDepr:option<bool>,
+        isTranDepr:option<bool>,
+        returnLabelsOnly:bool,
+    })
 
 type response =
     | OnProgress(float)
-    | SearchResult({found:array<stmtsDto>})
+    | SearchResult({found:array<stmtsDto>, foundLabels:array<string>})
 
 let reqToStr = req => {
     switch req {
-        | FindAssertions({label, typ, searchPattern}) => 
-            `FindAssertions(label="${label}", typ=${typ->Belt_Int.toString}, `
-                ++ `pattern=${stringify(searchPattern)})`
+        | FindAssertions({label, searchPattern}) => 
+            `FindAssertions(label="${label}", pattern=${stringify(searchPattern)})`
     }
 }
 
@@ -466,29 +473,34 @@ let searchAssertions = (
     ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~varsText: string,
-    ~disjText: string,
-    ~label:string,
-    ~typ:int, 
+    ~isAxiom:option<bool>,
+    ~typ:option<int>, 
+    ~label:string, 
     ~searchPattern:array<stmtPattern>,
+    ~isDisc:option<bool>,
+    ~isDepr:option<bool>,
+    ~isTranDepr:option<bool>,
+    ~returnLabelsOnly:bool,
     ~onProgress:float=>unit,
-): promise<array<stmtsDto>> => {
+): promise<(array<stmtsDto>,array<string>)> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
             ~settings,
             ~preCtxVer,
             ~preCtx,
-            ~varsText,
-            ~disjText,
+            ~varsText="",
+            ~disjText="",
             ~procName,
-            ~initialRequest = FindAssertions({label:label->String.toLowerCase, typ, searchPattern}),
+            ~initialRequest = FindAssertions({
+                isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly,
+            }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
-                    | SearchResult({found}) => {
+                    | SearchResult({found, foundLabels}) => {
                         endWorkerInteraction()
-                        resolve(found)
+                        resolve((found,foundLabels))
                     }
                 }
             },
@@ -546,31 +558,50 @@ let frameToStmtsDto = (
     }
 }
 
-//todo: review this function
+let threeStateBoolMatchesTwoStateBool = (threeStateBool:option<bool>, twoStateBool:bool):bool => {
+    switch threeStateBool {
+        | None => true
+        | Some(trueOrFalse) => trueOrFalse == twoStateBool
+    }
+}
+
 let doSearchAssertions = (
     ~wrkCtx:mmContext,
-    ~frms:frms,
+    ~allFramesInDeclarationOrder:array<frame>,
+    ~isAxiom:option<bool>,
+    ~typ:option<int>, 
     ~label:string, 
-    ~typ:int, 
     ~searchPattern:array<stmtPattern>,
+    ~isDisc:option<bool>,
+    ~isDepr:option<bool>,
+    ~isTranDepr:option<bool>,
+    ~returnLabelsOnly:bool,
     ~onProgress:option<float=>unit>=?
-):array<stmtsDto> => {
+):(array<stmtsDto>,array<string>) => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
-    let numOfFrames = frms->frmsSize->Belt_Int.toFloat
+    let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat
     let mapping = Belt_HashMapInt.make(~hintSize=10)
 
     let results = []
-    let framesInDeclarationOrder = frms->frmsSelect
-        ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
-    framesInDeclarationOrder->Array.forEach(frm => {
-        let frame = frm.frame
+    let resultLabels = []
+    let labelTrim = label->String.trim->String.toLowerCase
+    allFramesInDeclarationOrder->Array.forEach(frame => {
         if (
-            frame.label->String.toLowerCase->String.includes(label)
-            && frame.asrt->Array.getUnsafe(0) == typ 
+
+            isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
+            && typ->Option.mapOr( true, typ => typ == frame.asrt->Array.getUnsafe(0) ) 
+            && frame.label->String.toLowerCase->String.includes(labelTrim)
             && frameMatchesPattern(~frame, ~searchPattern, ~mapping)
+            && (threeStateBoolMatchesTwoStateBool(isDisc, frame.isDisc))
+            && (threeStateBoolMatchesTwoStateBool(isDepr, frame.isDepr))
+            && (threeStateBoolMatchesTwoStateBool(isTranDepr, frame.isTranDepr))
         ) {
-            results->Array.push(frameToStmtsDto( ~wrkCtx, ~frame, ))
+            if (returnLabelsOnly) {
+                resultLabels->Array.push(frame.label)
+            } else {
+                results->Array.push(frameToStmtsDto( ~wrkCtx, ~frame, ))
+            }
         }
 
         framesProcessed.contents = framesProcessed.contents +. 1.
@@ -578,21 +609,26 @@ let doSearchAssertions = (
             framesProcessed.contents /. numOfFrames
         )
     })
-    results
+    (results,resultLabels)
 }
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({label, typ, searchPattern}) => {
-            let results = doSearchAssertions(
+        | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly}) => {
+            let (results,labels) = doSearchAssertions(
                 ~wrkCtx=getWrkCtxExn(), 
-                ~frms = getWrkFrmsExn(),
-                ~label, 
-                ~typ, 
-                ~searchPattern, 
+                ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
+                ~isAxiom,
+                ~typ,
+                ~label,
+                ~searchPattern,
+                ~isDisc,
+                ~isDepr,
+                ~isTranDepr,
+                ~returnLabelsOnly,
                 ~onProgress = pct => sendToClient(OnProgress(pct))
             )
-            sendToClient(SearchResult({found:results}))
+            sendToClient(SearchResult({found:results,foundLabels:labels}))
         }
     }
 }

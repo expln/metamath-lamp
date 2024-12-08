@@ -45,6 +45,7 @@ type wrkPrecalcData = {
     wrkFrms: frms,
     wrkParenCnt: parenCnt,
     wrkCtx: mmContext,
+    allFramesInDeclarationOrder: array<frame>
 }
 
 let wrkPrecalcData = ref(None)
@@ -70,6 +71,13 @@ let getWrkFrmsExn = () => {
     }
 }
 
+let getAllFramesInDeclarationOrderExn = () => {
+    switch wrkPrecalcData.contents {
+        | None => raise(MmException({msg:`wrkFrms is not created in the worker thread.`}))
+        | Some({allFramesInDeclarationOrder}) => allFramesInDeclarationOrder
+    }
+}
+
 let settingsCache = cacheMake(
     ~recalc = settings => settings,
     ~depVerEq = (v1,v2) => v1 == v2
@@ -90,6 +98,15 @@ let parenCntCache = cacheMake(
     ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
 )
 
+let allFramesInDeclarationOrderCache = cacheMake(
+    ~recalc = frms => {
+        frms->frmsSelect
+            ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
+            ->Array.map(frm => frm.frame)
+    },
+    ~depVerEq = (ctxV1,ctxV2) => ctxV1 == ctxV2
+)
+
 let makeWrkPrecalcData = (
     ~settingsVer:int, 
     ~preCtxVer:int,
@@ -105,10 +122,13 @@ let makeWrkPrecalcData = (
                     switch createWrkCtx( ~preCtx, ~varsText, ~disjText, ) {
                         | Error(_) => raise(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
                         | Ok(wrkCtx) => {
+                            let wrkFrms = frmsCache->cacheGet(preCtxVer, preCtx)
                             Ok({
-                                wrkFrms: frmsCache->cacheGet(preCtxVer, preCtx),
+                                wrkFrms,
                                 wrkParenCnt: parenCntCache->cacheGet((settingsVer, preCtxVer), (settings, preCtx)),
                                 wrkCtx,
+                                allFramesInDeclarationOrder:
+                                    allFramesInDeclarationOrderCache->cacheGet(preCtxVer, wrkFrms),
                             })
                         }
                     }
