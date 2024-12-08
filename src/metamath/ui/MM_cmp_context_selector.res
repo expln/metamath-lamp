@@ -577,23 +577,23 @@ let make = (
         }
     }
 
-    let applyChanges = ( ~state:mmScope, ~settings:settings, ):promise<result<unit,string>> => {
-        if (scopeIsEmpty(state.singleScopes)) {
+    let applyChanges = ( ~mmScope:mmScope, ~settings:settings, ):promise<result<unit,string>> => {
+        if (scopeIsEmpty(mmScope.singleScopes)) {
             promise(rslv => {
-                setState(_ => state)
+                setState(_ => mmScope)
                 actNewCtxIsReady([],createContext(()))
                 rslv(Ok(()))
             })
         } else {
             loadMmContext(
-                ~singleScopes=state.singleScopes, 
+                ~singleScopes=mmScope.singleScopes, 
                 ~settings,
                 ~modalRef, 
             )->promiseMap(res => {
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {
-                        let mmCtxSrcDtos = state.singleScopes->Array.map(ss => {
+                        let mmCtxSrcDtos = mmScope.singleScopes->Array.map(ss => {
                             switch ss.fileSrc {
                                 | None => raise(MmException({msg:`ss.fileSrc is None`}))
                                 | Some(src) => {
@@ -630,7 +630,7 @@ let make = (
                                 }
                             }
                         })
-                        setState(_ => state)
+                        setState(_ => mmScope)
                         actNewCtxIsReady(mmCtxSrcDtos, ctx)
                         Ok(())
                     }
@@ -746,7 +746,7 @@ let make = (
                 switch mmScope {
                     | Error(msg) => Promise.resolve(Error(msg))
                     | Ok(None) => Promise.resolve(Ok())
-                    | Ok(Some(mmScope)) => applyChanges( ~state=mmScope, ~settings )
+                    | Ok(Some(mmScope)) => applyChanges( ~mmScope=mmScope, ~settings )
                 }
             })
             ->Promise.then(reloadRes => {

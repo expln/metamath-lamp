@@ -345,7 +345,7 @@ let make = (
     let actPreCtxDataUpdated = () => {
         setState(st => {
             let st = st->setPreCtxData(preCtxData)
-            let st = st->setNextAction(Some(Action(()=>())))
+            let st = st->setNextAction(Some(Action(()=>()))) //this prevents automatic unification
             st
         })
         setHist(editorHistSetMaxLength(_, preCtxData.settingsV.val.editorHistMaxLength))
