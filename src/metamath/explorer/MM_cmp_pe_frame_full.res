@@ -461,9 +461,9 @@ let makeFrameProofData = (
                                 createInitialState(
                                     ~settings=preCtxData.settingsV.val, 
                                     ~frmMmScopes,
-                                    ~preCtx=preCtxData.ctxV.val,
+                                    ~preCtx=preCtxData.ctxFullV.val,
                                     ~frmCtx,
-                                    ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                                    ~frame=preCtxData.ctxFullV.val->getFrameExn(label)
                                 )
                             )
                         )
@@ -508,7 +508,7 @@ let frameProofDataToEditorStateLocStor = (
     let vars = []
     frameProofData.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F) {
-            switch preCtxData.ctxV.val->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
+            switch preCtxData.ctxFullV.val->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
                 | Some(V) => ()
                 | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
                     vars->Array.push(`${hyp.label} ${frameProofData.frmCtx->ctxIntsToStrExn(hyp.expr)}`)
@@ -527,7 +527,7 @@ let frameProofDataToEditorStateLocStor = (
     })
     frmDisj->disjForEachArr(disjGrp => {
         disjArr->Array.push(
-            preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
+            preCtxData.ctxFullV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
         )
     })
     switch frameProofData.dummyVarDisj {
@@ -559,7 +559,7 @@ let frameProofDataToEditorStateLocStor = (
                     typ: userStmtTypeToStr(E), 
                     isGoal: false,
                     isBkm: false,
-                    cont: preCtxData.ctxV.val->frmIntsToStrExn(frameProofData.frame, hyp.expr),
+                    cont: preCtxData.ctxFullV.val->frmIntsToStrExn(frameProofData.frame, hyp.expr),
                     jstfText: "",
                 }
             )
@@ -749,9 +749,9 @@ let make = React.memoCustomCompareProps(({
                                     createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
                                         ~frmMmScopes,
-                                        ~preCtx=preCtxData.ctxV.val,
+                                        ~preCtx=preCtxData.ctxFullV.val,
                                         ~frmCtx,
-                                        ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                                        ~frame=preCtxData.ctxFullV.val->getFrameExn(label)
                                     )
                                 }) {
                                     | Ok(state) => setState(_ => Some(state))

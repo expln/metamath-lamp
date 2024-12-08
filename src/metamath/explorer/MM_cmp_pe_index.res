@@ -35,9 +35,9 @@ let make = React.memoCustomCompareProps(({
     addAsrtByLabel,
 }:props) => {
     let settings = preCtxData.settingsV.val
-    let preCtx = preCtxData.ctxV.val
+    let preCtx = preCtxData.ctxFullV.val
 
-    let (preCtxVer, setPreCtxVer) = React.useState(() => preCtxData.ctxV.ver)
+    let (preCtxVer, setPreCtxVer) = React.useState(() => preCtxData.ctxFullV.ver)
     let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
     let (allLabels, setAllLabels) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
@@ -81,7 +81,7 @@ let make = React.memoCustomCompareProps(({
     let actApplyFilters = () => {
         let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
             ~searchStr=patternFilterStr->String.trim,
-            ~ctx=preCtxData.ctxV.val
+            ~ctx=preCtxData.ctxFullV.val
         )
         switch searchPattern {
             | Error(msg) => setPatternFilterErr(_ => Some(msg))
@@ -96,7 +96,7 @@ let make = React.memoCustomCompareProps(({
                 let filterByDescr = descrFilterStrTrim->String.length > 0
                 setFilteredLabels(_ => {
                     allLabels->Array.filter(((_,label)) => {
-                        let frame = preCtxData.ctxV.val->getFrameExn(label)
+                        let frame = preCtxData.ctxFullV.val->getFrameExn(label)
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
                             isAxiomFilter => isAxiomFilter === frame.isAxiom
@@ -134,8 +134,8 @@ let make = React.memoCustomCompareProps(({
         let settings = preCtxData.settingsV.val
         setTypeColors(_ => settings->settingsGetTypeColors)
 
-        let preCtx = preCtxData.ctxV.val
-        setPreCtxVer(_ => preCtxData.ctxV.ver)
+        let preCtx = preCtxData.ctxFullV.val
+        setPreCtxVer(_ => preCtxData.ctxFullV.ver)
         let allFrames = preCtx->getAllFrames
         let allLabels = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
         allFrames->Belt_MapString.forEach((_,frame) => {

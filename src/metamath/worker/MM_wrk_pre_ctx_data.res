@@ -20,7 +20,7 @@ type mmCtxSrcDto = {
 type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
-    ctxV: version<mmContext>,
+    ctxFullV: version<mmContext>,
     ctxMinV: version<mmContext>,
     frms: frms,
     parenCnt: parenCnt,
@@ -36,7 +36,7 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
     {
         settingsV:versionMake(settings),
         srcs: [],
-        ctxV: versionMake(createContext(())),
+        ctxFullV: versionMake(createContext(())),
         ctxMinV: versionMake(createContext(())),
         frms: frmsEmpty(),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
@@ -107,17 +107,17 @@ let preCtxDataUpdate = (
         preCtxData.settingsV, 
         settings => preCtxData.settingsV->versionSet(settings)
     )
-    let (srcs,ctxV) = ctx->Belt_Option.mapWithDefault(
-        (preCtxData.srcs, preCtxData.ctxV),
-        ((srcs,ctx)) => (srcs, preCtxData.ctxV->versionSet(ctx))
+    let (srcs,ctxFullV) = ctx->Belt_Option.mapWithDefault(
+        (preCtxData.srcs, preCtxData.ctxFullV),
+        ((srcs,ctx)) => (srcs, preCtxData.ctxFullV->versionSet(ctx))
     )
 
-    let ctxV = ctxV->versionSet(
-        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false)
+    let ctxFullV = ctxFullV->versionSet(
+        ctxFullV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false)
     )
 
-    let ctxMinV = ctxV->versionSet(
-        ctxV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=true, ~removeProofs=true)
+    let ctxMinV = preCtxData.ctxMinV->versionSet(
+        ctxFullV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=true, ~removeProofs=true)
     )
 
     let frms = prepareFrmSubsData( ~ctx=ctxMinV.val )
@@ -145,7 +145,7 @@ let preCtxDataUpdate = (
     {
         settingsV,
         srcs,
-        ctxV,
+        ctxFullV,
         ctxMinV,
         frms,
         parenCnt,

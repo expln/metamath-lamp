@@ -19,7 +19,7 @@ type mmCtxSrcDto = {
 type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
-    ctxV: version<mmContext>,
+    ctxFullV: version<mmContext>,
     ctxMinV: version<mmContext>,
     frms: frms,
     parenCnt: parenCnt,

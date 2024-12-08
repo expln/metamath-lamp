@@ -1246,7 +1246,7 @@ let make = (
         openModal(modalRef, _ => rndFindParensProgress(0., None))->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => rndFindParensProgress(0., Some(modalId)))
             MM_wrk_FindParens.beginFindParens(
-                ~ctx=preCtxData.ctxV.val,
+                ~ctx=preCtxData.ctxFullV.val,
                 ~onProgress = pct => updateModal(modalRef, modalId, () => rndFindParensProgress(pct, Some(modalId))),
                 ~onDone = parens => {
                     actParensChange(parens)

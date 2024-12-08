@@ -354,7 +354,7 @@ let make = (
     React.useEffect1(() => {
         actPreCtxDataUpdated()
         None
-    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver, preCtxData.ctxMinV.ver])
+    }, [preCtxData.settingsV.ver, preCtxData.ctxFullV.ver, preCtxData.ctxMinV.ver])
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
