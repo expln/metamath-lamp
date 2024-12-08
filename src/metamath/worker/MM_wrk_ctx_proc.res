@@ -81,10 +81,8 @@ let preCtxCache = cacheMake(
 )
 
 let frmsCache = cacheMake(
-    ~recalc = ((_,ctx)) => {
-        prepareFrmSubsData(~ctx)
-    },
-    ~depVerEq = ((sv1,cv1),(sv2,cv2)) => sv1 == sv2 && cv1 == cv2
+    ~recalc = ctx => prepareFrmSubsData(~ctx),
+    ~depVerEq = (ctxV1,ctxV2) => ctxV1 == ctxV2
 )
 
 let parenCntCache = cacheMake(
@@ -108,7 +106,7 @@ let makeWrkPrecalcData = (
                         | Error(_) => raise(MmException({msg:`There was an error creating wrkCtx in the worker thread.`}))
                         | Ok(wrkCtx) => {
                             Ok({
-                                wrkFrms: frmsCache->cacheGet((settingsVer, preCtxVer), (settings, preCtx)),
+                                wrkFrms: frmsCache->cacheGet(preCtxVer, preCtx),
                                 wrkParenCnt: parenCntCache->cacheGet((settingsVer, preCtxVer), (settings, preCtx)),
                                 wrkCtx,
                             })
