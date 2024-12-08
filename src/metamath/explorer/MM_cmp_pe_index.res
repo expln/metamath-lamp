@@ -51,9 +51,9 @@ let make = React.memoCustomCompareProps(({
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (descrFilterStr, setDescrFilterStr) = React.useState(() => "")
-    let (discFilter, setDiscFilter) = React.useState(() => false)
-    let (deprFilter, setDeprFilter) = React.useState(() => false)
-    let (tranDeprFilter, setTranDeprFilter) = React.useState(() => false)
+    let (discFilter, setDiscFilter) = React.useState(() => None)
+    let (deprFilter, setDeprFilter) = React.useState(() => None)
+    let (tranDeprFilter, setTranDeprFilter) = React.useState(() => None)
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
@@ -70,11 +70,18 @@ let make = React.memoCustomCompareProps(({
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
         setDescrFilterStr(_ => "")
-        setDiscFilter(_ => false)
-        setDeprFilter(_ => false)
-        setTranDeprFilter(_ => false)
+        setDiscFilter(_ => None)
+        setDeprFilter(_ => None)
+        setTranDeprFilter(_ => None)
         if (applyFilters) {
             setApplyFiltersRequested(_ => true)
+        }
+    }
+
+    let threeStateBoolMatchesTwoStateBool = (threeStateBool:option<bool>, twoStateBool:bool):bool => {
+        switch threeStateBool {
+            | None => true
+            | Some(trueOrFalse) => trueOrFalse == twoStateBool
         }
     }
 
@@ -105,9 +112,9 @@ let make = React.memoCustomCompareProps(({
                             true, 
                             stmtType => stmtType === frame.asrt->Array.getUnsafe(0)
                         ) 
-                        && (!discFilter || frame.isDisc)
-                        && (!deprFilter || frame.isDepr)
-                        && (!tranDeprFilter || frame.isTranDepr)
+                        && (threeStateBoolMatchesTwoStateBool(discFilter, frame.isDisc))
+                        && (threeStateBoolMatchesTwoStateBool(deprFilter, frame.isDepr))
+                        && (threeStateBoolMatchesTwoStateBool(tranDeprFilter, frame.isTranDepr))
                         && label->String.toLowerCase->String.includes(labelFilterTrim)
                         && (
                             !filterByDescr
@@ -354,43 +361,53 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let rndDiscFilter = () => {
+    let rnd3StateCheckbox = (
+        ~label:string, ~style:ReactDOM.Style.t, ~checked:option<bool>, ~onChange:option<bool>=>unit
+    ) => {
         <FormControlLabel
             control={
                 <Checkbox
-                    checked=discFilter
-                    onChange=evt2bool(actDiscFilterUpdated)
+                    checked={checked->Option.getOr(false)}
+                    indeterminate={checked->Option.getOr(true) == false}
+                    onChange={_ => {
+                        switch checked {
+                            | None => onChange(Some(true))
+                            | Some(true) => onChange(Some(false))
+                            | Some(false) => onChange(None)
+                        }
+                    }}
                 />
             }
-            label="Discouraged"
-            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
+            label
+            style
         />
+    }
+
+    let rndDiscFilter = () => {
+        rnd3StateCheckbox(
+            ~label="Discouraged", 
+            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~checked=discFilter, 
+            ~onChange=actDiscFilterUpdated
+        )
     }
 
     let rndDeprFilter = () => {
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=deprFilter
-                    onChange=evt2bool(actDeprFilterUpdated)
-                />
-            }
-            label="Deprecated"
-            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
-        />
+        rnd3StateCheckbox(
+            ~label="Deprecated", 
+            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~checked=deprFilter, 
+            ~onChange=actDeprFilterUpdated
+        )
     }
 
     let rndTranDeprFilter = () => {
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=tranDeprFilter
-                    onChange=evt2bool(actTranDeprFilterUpdated)
-                />
-            }
-            label="Transitively deprecated"
-            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
-        />
+        rnd3StateCheckbox(
+            ~label="Transitively deprecated", 
+            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~checked=tranDeprFilter, 
+            ~onChange=actTranDeprFilterUpdated
+        )
     }
 
     let rndApplyFiltersBtn = () => {
