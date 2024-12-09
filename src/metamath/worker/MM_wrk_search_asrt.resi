@@ -16,6 +16,7 @@ type stmtPattern = {
 
 let parseSearchStr: string => result<array<(array<patternModifier>, array<string>)>,string>
 let makeSearchPattern: (~searchStr:string, ~ctx:mmContext) => result<array<stmtPattern>, string>
+let threeStateBoolMatchesTwoStateBool: (option<bool>, bool) => bool
 
 let doSearchAssertions: (
     ~wrkCtx:mmContext,

@@ -78,13 +78,6 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let threeStateBoolMatchesTwoStateBool = (threeStateBool:option<bool>, twoStateBool:bool):bool => {
-        switch threeStateBool {
-            | None => true
-            | Some(trueOrFalse) => trueOrFalse == twoStateBool
-        }
-    }
-
     let actApplyFilters = () => {
         let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
             ~searchStr=patternFilterStr->String.trim,
@@ -99,11 +92,10 @@ let make = React.memoCustomCompareProps(({
                     ~frame, ~searchPattern, ~mapping
                 )
                 let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
-                let descrFilterStrTrim = descrFilterStr->String.trim->String.toLowerCase
-                let filterByDescr = descrFilterStrTrim->String.length > 0
+                let descrFilterStrNorm = normalizeDescr(descrFilterStr)
+                let filterByDescr = descrFilterStrNorm->String.length > 0
                 setFilteredLabels(_ => {
-                    allLabels->Array.filter(((_,label)) => {
-                        let frame = preCtxData.ctxFullV.val->getFrameExn(label)
+                    allLabels->Array.filter(((_,label,frame)) => {
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
                             isAxiomFilter => isAxiomFilter === frame.isAxiom
@@ -112,18 +104,18 @@ let make = React.memoCustomCompareProps(({
                             true, 
                             stmtType => stmtType === frame.asrt->Array.getUnsafe(0)
                         ) 
-                        && (threeStateBoolMatchesTwoStateBool(discFilter, frame.isDisc))
-                        && (threeStateBoolMatchesTwoStateBool(deprFilter, frame.isDepr))
-                        && (threeStateBoolMatchesTwoStateBool(tranDeprFilter, frame.isTranDepr))
+                        && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(discFilter, frame.isDisc))
+                        && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(deprFilter, frame.isDepr))
+                        && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(tranDeprFilter, frame.isTranDepr))
                         && label->String.toLowerCase->String.includes(labelFilterTrim)
                         && (
                             !filterByDescr
-                            || frame.descr->Belt.Option.mapWithDefault(false, descr => {
-                                descr->String.toLowerCase->String.includes(descrFilterStrTrim)
+                            || frame.descrNorm->Belt.Option.mapWithDefault(false, descrNorm => {
+                                descrNorm->String.includes(descrFilterStrNorm)
                             })
                         )
                         && frameMatchesPattern(frame)
-                    })
+                    })->Array.map(((idx,label,_)) => (idx,label))
                 })
             }
         }
@@ -146,10 +138,10 @@ let make = React.memoCustomCompareProps(({
         let allFrames = preCtx->getAllFrames
         let allLabels = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
         allFrames->Belt_MapString.forEach((_,frame) => {
-            allLabels[frame.ord] = (frame.ord+1, frame.label)
+            allLabels[frame.ord] = (frame.ord+1, frame.label, frame)
         })
         setAllLabels(_ => allLabels)
-        setFilteredLabels(_ => allLabels)
+        setFilteredLabels(_ => allLabels->Array.map(((idx,label,_)) => (idx,label)))
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {

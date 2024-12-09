@@ -24,6 +24,7 @@ let createEmptyFrame = (label:string):frame => {
         numOfVars: 0,
         numOfArgs: 0,
         descr:None,
+        descrNorm: None,
         proof:None,
         isDisc:false,
         isDepr:false,
