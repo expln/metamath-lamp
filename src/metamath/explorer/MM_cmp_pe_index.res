@@ -39,7 +39,7 @@ let make = React.memoCustomCompareProps(({
 
     let (preCtxVer, setPreCtxVer) = React.useState(() => preCtxData.ctxFullV.ver)
     let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
-    let (allLabels, setAllLabels) = React.useState(() => [])
+    let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
@@ -95,7 +95,7 @@ let make = React.memoCustomCompareProps(({
                 let descrFilterStrNorm = normalizeDescr(descrFilterStr)
                 let filterByDescr = descrFilterStrNorm->String.length > 0
                 setFilteredLabels(_ => {
-                    allLabels->Array.filter(((_,label,frame)) => {
+                    allFramesInDeclarationOrder->Array.filter(((_,frame)) => {
                         isAxiomFilter->Belt_Option.mapWithDefault(
                             true, 
                             isAxiomFilter => isAxiomFilter === frame.isAxiom
@@ -107,7 +107,7 @@ let make = React.memoCustomCompareProps(({
                         && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(discFilter, frame.isDisc))
                         && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(deprFilter, frame.isDepr))
                         && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(tranDeprFilter, frame.isTranDepr))
-                        && label->String.toLowerCase->String.includes(labelFilterTrim)
+                        && frame.label->String.toLowerCase->String.includes(labelFilterTrim)
                         && (
                             !filterByDescr
                             || frame.descrNorm->Belt.Option.mapWithDefault(false, descrNorm => {
@@ -115,7 +115,7 @@ let make = React.memoCustomCompareProps(({
                             })
                         )
                         && frameMatchesPattern(frame)
-                    })->Array.map(((idx,label,_)) => (idx,label))
+                    })->Array.map(((idx,frame)) => (idx,frame.label))
                 })
             }
         }
@@ -136,12 +136,12 @@ let make = React.memoCustomCompareProps(({
         let preCtx = preCtxData.ctxFullV.val
         setPreCtxVer(_ => preCtxData.ctxFullV.ver)
         let allFrames = preCtx->getAllFrames
-        let allLabels = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
+        let allFramesInDeclarationOrder = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
         allFrames->Belt_MapString.forEach((_,frame) => {
-            allLabels[frame.ord] = (frame.ord+1, frame.label, frame)
+            allFramesInDeclarationOrder[frame.ord] = (frame.ord+1, frame)
         })
-        setAllLabels(_ => allLabels)
-        setFilteredLabels(_ => allLabels->Array.map(((idx,label,_)) => (idx,label)))
+        setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
+        setFilteredLabels(_ => allFramesInDeclarationOrder->Array.map(((idx,frame)) => (idx,frame.label)))
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
