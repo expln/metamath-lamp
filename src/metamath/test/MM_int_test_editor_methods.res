@@ -232,8 +232,7 @@ let addStmtsBySearch = (
                 | None => st
                 | Some(stmtId) => st->toggleStmtChecked(stmtId)
             }
-            let (searchResults,_) = doSearchAssertions(
-                ~wrkCtx,
+            let searchResults = doSearchAssertions(
                 ~allFramesInDeclarationOrder=st.preCtxData.frms->frmsSelect
                     ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
                     ->Array.map(frm => frm.frame),
@@ -247,8 +246,7 @@ let addStmtsBySearch = (
                 ~isDisc=None,
                 ~isDepr=None,
                 ~isTranDepr=None,
-                ~returnLabelsOnly=false,
-            )
+            )->Array.map(frame => frameToStmtsDto(~wrkCtx, ~frame))
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
                     raise(MmException({

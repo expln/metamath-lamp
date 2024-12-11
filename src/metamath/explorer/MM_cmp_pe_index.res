@@ -78,6 +78,30 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
+    let filterByDescr = (frames:array<frame>):array<frame> => {
+        let descrFilterStrNorm = normalizeDescr(descrFilterStr)
+        if (descrFilterStrNorm->String.length > 0) {
+            frames->Array.filter(frame => {
+                frame.descrNorm->Belt.Option.mapWithDefault(false, descrNorm => {
+                    descrNorm->String.includes(descrFilterStrNorm)
+                })
+            })
+        } else {
+            frames
+        }
+    }
+
+    let mapToOrdAndLabel = (frames:array<frame>):array<(int,string)> => {
+        frames->Array.map(frame => (frame.ord+1,frame.label))
+    }
+
+    let makeActTerminate = (modalId:modalId):(unit=>unit) => {
+        () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
+        }
+    }
+
     let actApplyFilters = () => {
         let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
             ~searchStr=patternFilterStr->String.trim,
@@ -87,36 +111,58 @@ let make = React.memoCustomCompareProps(({
             | Error(msg) => setPatternFilterErr(_ => Some(msg))
             | Ok(searchPattern) => {
                 setPatternFilterErr(_ => None)
-                let mapping = Belt_HashMapInt.make(~hintSize=10)
-                let frameMatchesPattern = frame => MM_wrk_search_asrt.frameMatchesPattern(
-                    ~frame, ~searchPattern, ~mapping
-                )
-                let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
-                let descrFilterStrNorm = normalizeDescr(descrFilterStr)
-                let filterByDescr = descrFilterStrNorm->String.length > 0
-                setFilteredLabels(_ => {
-                    allFramesInDeclarationOrder->Array.filter(((_,frame)) => {
-                        isAxiomFilter->Belt_Option.mapWithDefault(
-                            true, 
-                            isAxiomFilter => isAxiomFilter === frame.isAxiom
-                        ) 
-                        && stmtTypeFilter->Belt_Option.mapWithDefault(
-                            true, 
-                            stmtType => stmtType === frame.asrt->Array.getUnsafe(0)
-                        ) 
-                        && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(discFilter, frame.isDisc))
-                        && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(deprFilter, frame.isDepr))
-                        && (MM_wrk_search_asrt.threeStateBoolMatchesTwoStateBool(tranDeprFilter, frame.isTranDepr))
-                        && frame.label->String.toLowerCase->String.includes(labelFilterTrim)
-                        && (
-                            !filterByDescr
-                            || frame.descrNorm->Belt.Option.mapWithDefault(false, descrNorm => {
-                                descrNorm->String.includes(descrFilterStrNorm)
-                            })
+                if (searchPattern->Array.length == 0) {
+                    setFilteredLabels(_ => {
+                        MM_wrk_search_asrt.doSearchAssertions(
+                            ~allFramesInDeclarationOrder,
+                            ~isAxiom=isAxiomFilter,
+                            ~typ=stmtTypeFilter, 
+                            ~label=labelFilter, 
+                            ~searchPattern=[],
+                            ~isDisc=discFilter,
+                            ~isDepr=deprFilter,
+                            ~isTranDepr=tranDeprFilter,
                         )
-                        && frameMatchesPattern(frame)
-                    })->Array.map(((idx,frame)) => (idx,frame.label))
-                })
+                        ->filterByDescr
+                        ->mapToOrdAndLabel
+                    })
+                } else {
+                    openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
+                        updateModal(
+                            modalRef, modalId, () => rndProgress(
+                                ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
+                            )
+                        )
+                        MM_wrk_search_asrt.searchAssertions(
+                            ~settingsVer=preCtxData.settingsV.ver,
+                            ~settings=preCtxData.settingsV.val,
+                            ~preCtxVer=preCtxData.ctxMinV.ver,
+                            ~preCtx=preCtxData.ctxMinV.val,
+                            ~isAxiom=isAxiomFilter,
+                            ~typ=stmtTypeFilter,
+                            ~label=labelFilter,
+                            ~searchPattern,
+                            ~isDisc=discFilter,
+                            ~isDepr=deprFilter,
+                            ~isTranDepr=tranDeprFilter,
+                            ~returnLabelsOnly=true,
+                            ~onProgress = pct => updateModal(
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
+                                )
+                            )
+                        )->promiseMap(((_,foundLabels)) => {
+                            let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
+                            setFilteredLabels(_ => {
+                                allFramesInDeclarationOrder
+                                    ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
+                                    ->filterByDescr
+                                    ->mapToOrdAndLabel
+                            })
+                            closeModal(modalRef, modalId)
+                        })
+                    })->ignore
+                }
             }
         }
     }
@@ -135,13 +181,10 @@ let make = React.memoCustomCompareProps(({
 
         let preCtx = preCtxData.ctxFullV.val
         setPreCtxVer(_ => preCtxData.ctxFullV.ver)
-        let allFrames = preCtx->getAllFrames
-        let allFramesInDeclarationOrder = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
-        allFrames->Belt_MapString.forEach((_,frame) => {
-            allFramesInDeclarationOrder[frame.ord] = (frame.ord+1, frame)
-        })
+        let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
+            ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
-        setFilteredLabels(_ => allFramesInDeclarationOrder->Array.map(((idx,frame)) => (idx,frame.label)))
+        setFilteredLabels(_ => allFramesInDeclarationOrder->mapToOrdAndLabel)
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
@@ -342,17 +385,6 @@ let make = React.memoCustomCompareProps(({
         />
     }
 
-    let rndPatternError = () => {
-        switch patternFilterErr {
-            | None => <></>
-            | Some(msg) => {
-                <pre style=ReactDOM.Style.make(~color="red", ())>
-                    {React.string("Malformed pattern text: " ++ msg)}
-                </pre>
-            }
-        }
-    }
-
     let rnd3StateCheckbox = (
         ~label:string, ~style:ReactDOM.Style.t, ~checked:option<bool>, ~onChange:option<bool>=>unit
     ) => {
@@ -491,30 +523,40 @@ let make = React.memoCustomCompareProps(({
 
     <Col style=ReactDOM.Style.make(~margin="15px", ())>
         {rndFilters()}
-        {rndPatternError()}
         {rndMainMenu()}
-        <MM_cmp_pe_frame_list
-            key=`${preCtxVer->Belt_Int.toString}`
-            modalRef
-            editStmtsByLeftClick=settings.editStmtsByLeftClick
-            settings=preCtxData.settingsV.val
-            typeColors
-            preCtx
-            frms=preCtxData.frms
-            parenCnt=preCtxData.parenCnt
-            syntaxTypes=preCtxData.syntaxTypes
-            labels=filteredLabels
-            openFrameExplorer
-            openExplorer
-            asrtsPerPage
-            typeOrderInDisj
-            addAsrtByLabel={label=>{
-                switch addAsrtByLabel.current {
-                    | Some(addAsrtByLabel) => addAsrtByLabel(label)
-                    | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+        {
+            switch patternFilterErr {
+                | Some(msg) => {
+                    <pre style=ReactDOM.Style.make(~color="red", ())>
+                        {React.string("Malformed pattern text: " ++ msg)}
+                    </pre>
                 }
-            }}
-        />
+                | None => {
+                    <MM_cmp_pe_frame_list
+                        key=`${preCtxVer->Belt_Int.toString}`
+                        modalRef
+                        editStmtsByLeftClick=settings.editStmtsByLeftClick
+                        settings=preCtxData.settingsV.val
+                        typeColors
+                        preCtx
+                        frms=preCtxData.frms
+                        parenCnt=preCtxData.parenCnt
+                        syntaxTypes=preCtxData.syntaxTypes
+                        labels=filteredLabels
+                        openFrameExplorer
+                        openExplorer
+                        asrtsPerPage
+                        typeOrderInDisj
+                        addAsrtByLabel={label=>{
+                            switch addAsrtByLabel.current {
+                                | Some(addAsrtByLabel) => addAsrtByLabel(label)
+                                | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+                            }
+                        }}
+                    />
+                }
+            }
+        }
     </Col>
 
 }, propsAreSame)

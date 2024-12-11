@@ -19,7 +19,6 @@ let makeSearchPattern: (~searchStr:string, ~ctx:mmContext) => result<array<stmtP
 let threeStateBoolMatchesTwoStateBool: (option<bool>, bool) => bool
 
 let doSearchAssertions: (
-    ~wrkCtx:mmContext,
     ~allFramesInDeclarationOrder:array<frame>,
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
@@ -28,9 +27,8 @@ let doSearchAssertions: (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
-    ~returnLabelsOnly:bool,
     ~onProgress:float=>unit=?
-) => (array<stmtsDto>,array<string>)
+) => array<frame>
 
 let searchAssertions: (
     ~settingsVer:int,

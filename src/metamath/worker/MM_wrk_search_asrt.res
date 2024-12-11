@@ -566,7 +566,6 @@ let threeStateBoolMatchesTwoStateBool = (threeStateBool:option<bool>, twoStateBo
 }
 
 let doSearchAssertions = (
-    ~wrkCtx:mmContext,
     ~allFramesInDeclarationOrder:array<frame>,
     ~isAxiom:option<bool>,
     ~typ:option<int>, 
@@ -575,48 +574,38 @@ let doSearchAssertions = (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
-    ~returnLabelsOnly:bool,
     ~onProgress:option<float=>unit>=?
-):(array<stmtsDto>,array<string>) => {
+):array<frame> => {
     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
     let framesProcessed = ref(0.)
     let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat
     let mapping = Belt_HashMapInt.make(~hintSize=10)
 
-    let results = []
-    let resultLabels = []
     let labelTrim = label->String.trim->String.toLowerCase
-    allFramesInDeclarationOrder->Array.forEach(frame => {
-        if (
-
-            isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
-            && typ->Option.mapOr( true, typ => typ == frame.asrt->Array.getUnsafe(0) ) 
+    allFramesInDeclarationOrder->Array.filter(frame => {
+        switch onProgress {
+            | None => ()
+            | Some(_) => {
+                framesProcessed.contents = framesProcessed.contents +. 1.
+                progressState->progressTrackerSetCurrPct(
+                    framesProcessed.contents /. numOfFrames
+                )
+            }
+        }
+        isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
+            && typ->Option.mapOr( true, typ => typ == frame.asrt->Array.getUnsafe(0) )
             && frame.label->String.toLowerCase->String.includes(labelTrim)
-            && frameMatchesPattern(~frame, ~searchPattern, ~mapping)
             && (threeStateBoolMatchesTwoStateBool(isDisc, frame.isDisc))
             && (threeStateBoolMatchesTwoStateBool(isDepr, frame.isDepr))
             && (threeStateBoolMatchesTwoStateBool(isTranDepr, frame.isTranDepr))
-        ) {
-            if (returnLabelsOnly) {
-                resultLabels->Array.push(frame.label)
-            } else {
-                results->Array.push(frameToStmtsDto( ~wrkCtx, ~frame, ))
-            }
-        }
-
-        framesProcessed.contents = framesProcessed.contents +. 1.
-        progressState->progressTrackerSetCurrPct(
-            framesProcessed.contents /. numOfFrames
-        )
+            && frameMatchesPattern(~frame, ~searchPattern, ~mapping)
     })
-    (results,resultLabels)
 }
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly}) => {
-            let (results,labels) = doSearchAssertions(
-                ~wrkCtx=getWrkCtxExn(), 
+            let filteredFrames = doSearchAssertions(
                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
                 ~isAxiom,
                 ~typ,
@@ -625,9 +614,13 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~isDisc,
                 ~isDepr,
                 ~isTranDepr,
-                ~returnLabelsOnly,
                 ~onProgress = pct => sendToClient(OnProgress(pct))
             )
+            let (results,labels) = if (returnLabelsOnly) {
+                ([], filteredFrames->Array.map(frame => frame.label))
+            } else {
+                (filteredFrames->Array.map(frame => frameToStmtsDto(~wrkCtx=getWrkCtxExn(), ~frame)),[])
+            }
             sendToClient(SearchResult({found:results,foundLabels:labels}))
         }
     }
