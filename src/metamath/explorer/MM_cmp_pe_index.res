@@ -53,6 +53,11 @@ let make = React.memoCustomCompareProps(({
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
 
+    let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
+        () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+    )
+    let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
+
     let (asrtsPerPage, setAsrtsPerPage) = useStateFromLocalStorageInt(
         ~key="pe-index-asrts-per-page", ~default=10
     )
@@ -96,79 +101,6 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let actApplyFilters = () => {
-        let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
-            ~searchStr=patternFilterStr->String.trim,
-            ~ctx=preCtxData.ctxFullV.val
-        )
-        switch searchPattern {
-            | Error(msg) => setPatternFilterErr(_ => Some(msg))
-            | Ok(searchPattern) => {
-                setPatternFilterErr(_ => None)
-                if (searchPattern->Array.length == 0) {
-                    setFilteredLabels(_ => {
-                        MM_wrk_search_asrt.doSearchAssertions(
-                            ~allFramesInDeclarationOrder,
-                            ~isAxiom=isAxiomFilter,
-                            ~typ=stmtTypeFilter, 
-                            ~label=labelFilter, 
-                            ~searchPattern=[],
-                            ~isDisc=discFilter,
-                            ~isDepr=deprFilter,
-                            ~isTranDepr=tranDeprFilter,
-                        )
-                        ->filterByDescr
-                        ->mapToOrdAndLabel
-                    })
-                } else {
-                    openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
-                        updateModal(
-                            modalRef, modalId, () => rndProgress(
-                                ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
-                            )
-                        )
-                        MM_wrk_search_asrt.searchAssertions(
-                            ~settingsVer=preCtxData.settingsV.ver,
-                            ~settings=preCtxData.settingsV.val,
-                            ~preCtxVer=preCtxData.ctxMinV.ver,
-                            ~preCtx=preCtxData.ctxMinV.val,
-                            ~isAxiom=isAxiomFilter,
-                            ~typ=stmtTypeFilter,
-                            ~label=labelFilter,
-                            ~searchPattern,
-                            ~isDisc=discFilter,
-                            ~isDepr=deprFilter,
-                            ~isTranDepr=tranDeprFilter,
-                            ~returnLabelsOnly=true,
-                            ~onProgress = pct => updateModal(
-                                modalRef, modalId, () => rndProgress(
-                                    ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
-                                )
-                            )
-                        )->promiseMap(((_,foundLabels)) => {
-                            let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
-                            setFilteredLabels(_ => {
-                                allFramesInDeclarationOrder
-                                    ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
-                                    ->filterByDescr
-                                    ->mapToOrdAndLabel
-                            })
-                            closeModal(modalRef, modalId)
-                        })
-                    })->ignore
-                }
-            }
-        }
-    }
-
-    React.useEffect1(() => {
-        if (applyFiltersRequested) {
-            setApplyFiltersRequested(_ => false)
-            actApplyFilters()
-        }
-        None
-    }, [applyFiltersRequested])
-
     let actPreCtxDataChanged = () => {
         let preCtx = preCtxData.ctxFullV.val
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
@@ -191,8 +123,101 @@ let make = React.memoCustomCompareProps(({
         setApplyFiltersRequested(_ => true)
     }
 
-    React.useEffect1(() => {
+    let actRefreshOnPreCtxDataChange = () => {
         actPreCtxDataChanged()
+        setLastNonEmptyPreCtxVer( _ => Some(preCtxData.ctxFullV.ver) )
+        setRefreshIsNeeded(_ => false)
+    }
+
+    let actApplyFilters = () => {
+        if (refreshIsNeeded) {
+            actRefreshOnPreCtxDataChange()
+        } else {
+            let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
+                ~searchStr=patternFilterStr->String.trim,
+                ~ctx=preCtxData.ctxFullV.val
+            )
+            switch searchPattern {
+                | Error(msg) => setPatternFilterErr(_ => Some(msg))
+                | Ok(searchPattern) => {
+                    setPatternFilterErr(_ => None)
+                    if (searchPattern->Array.length == 0) {
+                        setFilteredLabels(_ => {
+                            MM_wrk_search_asrt.doSearchAssertions(
+                                ~allFramesInDeclarationOrder,
+                                ~isAxiom=isAxiomFilter,
+                                ~typ=stmtTypeFilter, 
+                                ~label=labelFilter, 
+                                ~searchPattern=[],
+                                ~isDisc=discFilter,
+                                ~isDepr=deprFilter,
+                                ~isTranDepr=tranDeprFilter,
+                            )
+                            ->filterByDescr
+                            ->mapToOrdAndLabel
+                        })
+                    } else {
+                        openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
+                            updateModal(
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
+                                )
+                            )
+                            MM_wrk_search_asrt.searchAssertions(
+                                ~settingsVer=preCtxData.settingsV.ver,
+                                ~settings=preCtxData.settingsV.val,
+                                ~preCtxVer=preCtxData.ctxMinV.ver,
+                                ~preCtx=preCtxData.ctxMinV.val,
+                                ~isAxiom=isAxiomFilter,
+                                ~typ=stmtTypeFilter,
+                                ~label=labelFilter,
+                                ~searchPattern,
+                                ~isDisc=discFilter,
+                                ~isDepr=deprFilter,
+                                ~isTranDepr=tranDeprFilter,
+                                ~returnLabelsOnly=true,
+                                ~onProgress = pct => updateModal(
+                                    modalRef, modalId, () => rndProgress(
+                                        ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
+                                    )
+                                )
+                            )->promiseMap(((_,foundLabels)) => {
+                                let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
+                                setFilteredLabels(_ => {
+                                    allFramesInDeclarationOrder
+                                        ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
+                                        ->filterByDescr
+                                        ->mapToOrdAndLabel
+                                })
+                                closeModal(modalRef, modalId)
+                            })
+                        })->ignore
+                    }
+                }
+            }
+        }
+    }
+
+    React.useEffect1(() => {
+        if (applyFiltersRequested) {
+            setApplyFiltersRequested(_ => false)
+            actApplyFilters()
+        }
+        None
+    }, [applyFiltersRequested])
+
+    React.useEffect1(() => {
+        switch lastNonEmptyPreCtxVer {
+            | Some(lastNonEmptyPreCtxVer) => {
+                setRefreshIsNeeded(_ => lastNonEmptyPreCtxVer != preCtxData.ctxFullV.ver)
+            }
+            | None => {
+                setLastNonEmptyPreCtxVer(
+                    _ => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+                )
+                actPreCtxDataChanged()
+            }
+        }
         None
     }, [preCtxData])
 
@@ -509,35 +534,41 @@ let make = React.memoCustomCompareProps(({
         {rndFilters()}
         {rndMainMenu()}
         {
-            switch patternFilterErr {
-                | Some(msg) => {
-                    <pre style=ReactDOM.Style.make(~color="red", ())>
-                        {React.string("Malformed pattern text: " ++ msg)}
-                    </pre>
-                }
-                | None => {
-                    <MM_cmp_pe_frame_list
-                        key=`${preCtxData.ctxFullV.ver->Belt_Int.toString}`
-                        modalRef
-                        editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-                        settings=preCtxData.settingsV.val
-                        typeColors=preCtxData.typeColors
-                        preCtx=preCtxData.ctxFullV.val
-                        frms=preCtxData.frms
-                        parenCnt=preCtxData.parenCnt
-                        syntaxTypes=preCtxData.syntaxTypes
-                        labels=filteredLabels
-                        openFrameExplorer
-                        openExplorer
-                        asrtsPerPage
-                        typeOrderInDisj=preCtxData.typeOrderInDisj
-                        addAsrtByLabel={label=>{
-                            switch addAsrtByLabel.current {
-                                | Some(addAsrtByLabel) => addAsrtByLabel(label)
-                                | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
-                            }
-                        }}
-                    />
+            if (refreshIsNeeded) {
+                <Button onClick=(_=>actRefreshOnPreCtxDataChange()) variant=#contained > 
+                    { React.string("Refresh") }
+                </Button>
+            } else {
+                switch patternFilterErr {
+                    | Some(msg) => {
+                        <pre style=ReactDOM.Style.make(~color="red", ())>
+                            {React.string("Malformed pattern text: " ++ msg)}
+                        </pre>
+                    }
+                    | None => {
+                        <MM_cmp_pe_frame_list
+                            key=`${preCtxData.ctxFullV.ver->Belt_Int.toString}`
+                            modalRef
+                            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                            settings=preCtxData.settingsV.val
+                            typeColors=preCtxData.typeColors
+                            preCtx=preCtxData.ctxFullV.val
+                            frms=preCtxData.frms
+                            parenCnt=preCtxData.parenCnt
+                            syntaxTypes=preCtxData.syntaxTypes
+                            labels=filteredLabels
+                            openFrameExplorer
+                            openExplorer
+                            asrtsPerPage
+                            typeOrderInDisj=preCtxData.typeOrderInDisj
+                            addAsrtByLabel={label=>{
+                                switch addAsrtByLabel.current {
+                                    | Some(addAsrtByLabel) => addAsrtByLabel(label)
+                                    | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+                                }
+                            }}
+                        />
+                    }
                 }
             }
         }
