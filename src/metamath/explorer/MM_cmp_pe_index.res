@@ -34,16 +34,10 @@ let make = React.memoCustomCompareProps(({
     initPatternFilterStr,
     addAsrtByLabel,
 }:props) => {
-    let settings = preCtxData.settingsV.val
-    let preCtx = preCtxData.ctxFullV.val
-
-    let (preCtxVer, setPreCtxVer) = React.useState(() => preCtxData.ctxFullV.ver)
-    let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
     let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
-    let (typeOrderInDisj, setTypeOrderInDisj) = React.useState(() => Belt_HashMapInt.make(~hintSize=0))
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
@@ -176,11 +170,7 @@ let make = React.memoCustomCompareProps(({
     }, [applyFiltersRequested])
 
     let actPreCtxDataChanged = () => {
-        let settings = preCtxData.settingsV.val
-        setTypeColors(_ => settings->settingsGetTypeColors)
-
         let preCtx = preCtxData.ctxFullV.val
-        setPreCtxVer(_ => preCtxData.ctxFullV.ver)
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
             ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
@@ -197,12 +187,6 @@ let make = React.memoCustomCompareProps(({
         let allStmtTypes = preCtx->ctxIntsToSymsExn(allStmtIntTypes)->Js.Array2.sortInPlace
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
-
-        let typeOrderInDisj = createTypeOrderFromStr(
-            ~sortDisjByType=settings.sortDisjByType, 
-            ~typeNameToInt=ctxSymToInt(preCtx, _)
-        )
-        setTypeOrderInDisj(_ => typeOrderInDisj)
 
         setApplyFiltersRequested(_ => true)
     }
@@ -231,7 +215,7 @@ let make = React.memoCustomCompareProps(({
     let stmtTypeFilterToStr = typeFilter => {
         switch typeFilter {
             | None => allStmtTypesConcat
-            | Some(n) => preCtx->ctxIntToSymExn(n)
+            | Some(n) => preCtxData.ctxFullV.val->ctxIntToSymExn(n)
         }
     }
 
@@ -239,7 +223,7 @@ let make = React.memoCustomCompareProps(({
         if (str == allStmtTypesConcat) {
             None
         } else {
-            preCtx->ctxSymToInt(str)
+            preCtxData.ctxFullV.val->ctxSymToInt(str)
         }
     }
 
@@ -533,12 +517,12 @@ let make = React.memoCustomCompareProps(({
                 }
                 | None => {
                     <MM_cmp_pe_frame_list
-                        key=`${preCtxVer->Belt_Int.toString}`
+                        key=`${preCtxData.ctxFullV.ver->Belt_Int.toString}`
                         modalRef
-                        editStmtsByLeftClick=settings.editStmtsByLeftClick
+                        editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
                         settings=preCtxData.settingsV.val
-                        typeColors
-                        preCtx
+                        typeColors=preCtxData.typeColors
+                        preCtx=preCtxData.ctxFullV.val
                         frms=preCtxData.frms
                         parenCnt=preCtxData.parenCnt
                         syntaxTypes=preCtxData.syntaxTypes
@@ -546,7 +530,7 @@ let make = React.memoCustomCompareProps(({
                         openFrameExplorer
                         openExplorer
                         asrtsPerPage
-                        typeOrderInDisj
+                        typeOrderInDisj=preCtxData.typeOrderInDisj
                         addAsrtByLabel={label=>{
                             switch addAsrtByLabel.current {
                                 | Some(addAsrtByLabel) => addAsrtByLabel(label)
