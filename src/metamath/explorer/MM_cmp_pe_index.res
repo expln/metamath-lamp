@@ -209,7 +209,11 @@ let make = React.memoCustomCompareProps(({
     React.useEffect1(() => {
         switch lastNonEmptyPreCtxVer {
             | Some(lastNonEmptyPreCtxVer) => {
-                setRefreshIsNeeded(_ => lastNonEmptyPreCtxVer != preCtxData.ctxFullV.ver)
+                if (lastNonEmptyPreCtxVer != preCtxData.ctxFullV.ver) {
+                    setRefreshIsNeeded(_ => true)
+                } else {
+                    actPreCtxDataChanged()
+                }
             }
             | None => {
                 setLastNonEmptyPreCtxVer(
