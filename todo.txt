@@ -1,11 +1,10 @@
 - multiple editors:
-    - move search in explorers to the worker thread
-    - implement "Refresh this tab" button
-    - change view options across multiple editors
+    - save the editor tab name in the editor state
     - update macros API
     - delete temp mode
     - add "rename this tab" to editors and explorers
     - mark editors and explorers so that it is easy to distinguish them even if they have same names
+    - change view options across multiple editors
 
 - fix the "aModLen != bLen" bug in the editor history
 

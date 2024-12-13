@@ -34,6 +34,11 @@ let make = React.memoCustomCompareProps(({
     initPatternFilterStr,
     addAsrtByLabel,
 }:props) => {
+    let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
+        () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+    )
+    let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
+
     let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
@@ -52,11 +57,6 @@ let make = React.memoCustomCompareProps(({
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
-
-    let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
-        () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
-    )
-    let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
 
     let (asrtsPerPage, setAsrtsPerPage) = useStateFromLocalStorageInt(
         ~key="pe-index-asrts-per-page", ~default=10

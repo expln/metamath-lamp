@@ -321,16 +321,7 @@ let make = () => {
         None
     }, [activeTabId])
 
-    let actCloseFrmTabs = () => {
-        tabs->Array.forEach(tab => {
-            if (isFrameExplorerTab(tab.data)) {
-                removeTab(tab.id)
-            }
-        })
-    }
-
     let actSettingsUpdated = (newSettings:settings) => {
-        actCloseFrmTabs()
         settingsSaveToLocStor(newSettings)
         setState(updatePreCtxData(_,~settings=newSettings))
         if (
@@ -346,7 +337,6 @@ let make = () => {
     }
 
     let actCtxUpdated = (srcs:array<mmCtxSrcDto>, newCtx:mmContext) => {
-        actCloseFrmTabs()
         setState(updatePreCtxData(_,~ctx=(srcs,newCtx)))
     }
 

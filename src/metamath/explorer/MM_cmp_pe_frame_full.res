@@ -368,6 +368,7 @@ type props = {
 let propsAreSame = (a:props, b:props):bool => {
     a.top === b.top 
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
+    && a.preCtxData.ctxFullV.ver === b.preCtxData.ctxFullV.ver
 }
 
 let rndIconButton = (
@@ -719,6 +720,9 @@ let make = React.memoCustomCompareProps(({
     toggleCtxSelector,
     ctxSelectorIsExpanded,
 }:props) => {
+    let (lastPreCtxVer, setLastPreCtxVer) = React.useState(() => preCtxData.ctxFullV.ver)
+    let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
+
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
     let (state, setState) = React.useState(() => None)
@@ -729,7 +733,7 @@ let make = React.memoCustomCompareProps(({
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
 
-    React.useEffect0(() => {
+    let actPreCtxDataChanged = () => {
         setTimeout(
             () => {
                 loadFrameContext(
@@ -764,8 +768,24 @@ let make = React.memoCustomCompareProps(({
             },
             10
         )->ignore
+    }
+
+    let actRefreshOnPreCtxDataChange = () => {
+        actPreCtxDataChanged()
+        setLastPreCtxVer( _ => preCtxData.ctxFullV.ver )
+        setRefreshIsNeeded(_ => false)
+    }
+
+    React.useEffect1(() => {
+        if (lastPreCtxVer != preCtxData.ctxFullV.ver) {
+            setRefreshIsNeeded(_ => true)
+            setState(_ => None)
+            setLoadErr(_ => None)
+        } else {
+            actPreCtxDataChanged()
+        }
         None
-    })
+    }, [preCtxData.ctxFullV.ver])
 
     let modifyState = (update:state=>state):unit => {
         setState(st => {
@@ -1399,32 +1419,44 @@ let make = React.memoCustomCompareProps(({
         })->React.array
     }
 
-    switch state {
-        | None => {
-            switch loadErr {
-                | Some(msg) => `Error: ${msg}`->React.string
-                | None => {
-                    if (loadPct < 1.0) {
-                        `Loading the context ${floatToPctStr(loadPct)}`->React.string
-                    } else {
-                        `Building the proof table...`->React.string
+    if (refreshIsNeeded) {
+        <Button onClick=(_=>actRefreshOnPreCtxDataChange()) variant=#contained 
+            style=ReactDOM.Style.make(~margin="10px", ())
+        > 
+            { React.string("Refresh") }
+        </Button>
+    } else {
+        switch state {
+            | None => {
+                switch loadErr {
+                    | Some(msg) => {
+                        <pre style=ReactDOM.Style.make(~color="red", ~margin="10px", ())>
+                            {React.string(`Error: ${msg}`)}
+                        </pre>
+                    }
+                    | None => {
+                        if (loadPct < 1.0) {
+                            `Loading the context ${floatToPctStr(loadPct)}`->React.string
+                        } else {
+                            `Building the proof table...`->React.string
+                        }
                     }
                 }
             }
-        }
-        | Some(state) => {
-            <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
-                {rndMainMenu(state)}
-                {rndLabel(state)}
-                {rndDescr(state)}
-                {rndDisj(state)}
-                {rndDummyVarDisj(state)}
-                {rndSummary(state)}
-                {rndPagination(state)}
-                {rndProof(state)}
-                {rndPagination(state)}
-                {rndFooter()}
-            </Col>
+            | Some(state) => {
+                <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                    {rndMainMenu(state)}
+                    {rndLabel(state)}
+                    {rndDescr(state)}
+                    {rndDisj(state)}
+                    {rndDummyVarDisj(state)}
+                    {rndSummary(state)}
+                    {rndPagination(state)}
+                    {rndProof(state)}
+                    {rndPagination(state)}
+                    {rndFooter()}
+                </Col>
+            }
         }
     }
 
