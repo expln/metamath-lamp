@@ -1,10 +1,11 @@
 - multiple editors:
-    - save the editor tab name in the editor state
+    - pass initial tab title to new editor tabs (and delete initialEditorLocStor when it is not needed anymore)
     - update macros API
     - delete temp mode
     - add "rename this tab" to editors and explorers
     - mark editors and explorers so that it is easy to distinguish them even if they have same names
     - change view options across multiple editors
+    - fix the bug with loading an assertion without proof to the editor
 
 - fix the "aModLen != bLen" bug in the editor history
 

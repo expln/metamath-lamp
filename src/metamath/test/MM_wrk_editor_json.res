@@ -11,6 +11,7 @@ type userStmtLocStor = {
 }
 
 type editorStateLocStor = {
+    tabTitle: string,
     srcs: array<mmCtxSrcDto>,
     descr: string,
     varsText: string,
@@ -55,6 +56,8 @@ let createInitialEditorState = (
     let st = {
         preCtxData:preCtxData,
 
+        tabTitle: stateLocStor->Belt.Option.map(obj => obj.tabTitle)->Belt.Option.getWithDefault(""),
+
         descr: stateLocStor->Belt.Option.map(obj => obj.descr)->Belt.Option.getWithDefault(""),
         descrEditMode: false,
 
@@ -92,6 +95,7 @@ let createInitialEditorState = (
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
         srcs: state.preCtxData.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
+        tabTitle:state.tabTitle,
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
@@ -152,6 +156,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     allLabels: [],
                 }
             }), ~default=()=>[]),
+            tabTitle: d->str("tabTitle", ~default=()=>""),
             descr: d->str("descr", ~default=()=>""),
             varsText: d->str("varsText", ~default=()=>""),
             disjText: d->str("disjText", ~default=()=>""),

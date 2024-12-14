@@ -9,13 +9,13 @@ open MM_react_common
 
 type editorTabDataLocStor = {
     editorId:int, 
-    tabTitle: string,
 }
 
 type editorTabData = {
     editorId:int, 
     initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>,
-    addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>
+    addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
+    updateTabTitle: ref<option<string=>unit>>,
 }
 
 type tabData =
@@ -95,7 +95,6 @@ let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
             let parseRes = orderStr->parseJson(asArr(_, asObj(_, o => {
                 {
                     editorId:o->int("editorId"),
-                    tabTitle:o->str("tabTitle"),
                 }
             })), ~default=()=>[])
             switch parseRes {
@@ -106,7 +105,7 @@ let readEditorsOrderFromLocStor = ():array<editorTabDataLocStor> => {
     }
 }
 
-let saveEditorsOrderToLocStor = (editorsOrder):unit => {
+let saveEditorsOrderToLocStor = (editorsOrder: array<editorTabDataLocStor>):unit => {
     Local_storage_utils.locStorWriteString(editorsOrderLocStorKey, Expln_utils_common.stringify(editorsOrder))
 }
 
@@ -129,7 +128,7 @@ let updateEditorsDataInLocStor = () => {
         | Some(oldEditorStateStr) => {
             let editorsOrder = readEditorsOrderFromLocStor()
             let newEditorId = getNewEditorIdFromEditorsOrder(~editorsOrder=editorsOrder)
-            editorsOrder->Array.splice( ~start=0, ~remove=0, ~insert=[ {editorId:newEditorId, tabTitle:"EDITOR"} ] )
+            editorsOrder->Array.splice( ~start=0, ~remove=0, ~insert=[ {editorId:newEditorId} ] )
             saveEditorsOrderToLocStor(editorsOrder)
             Local_storage_utils.locStorWriteString(MM_cmp_editor.getEditorLocStorKey(newEditorId), oldEditorStateStr)
             switch Local_storage_utils.locStorReadString(MM_cmp_editor.editorHistRegLocStorKey) {
@@ -181,7 +180,7 @@ let readEditorStateFromJsonStr = (str:string):option<MM_wrk_editor_json.editorSt
 }
 
 let location = window["location"]
-let editorInitialStateFromUrl:option<MM_wrk_editor_json.editorStateLocStor> = 
+let editorInitialStateFromUrl:option<MM_wrk_editor_json.editorStateLocStor> =
     switch parseUrlQuery(location["search"])["get"]("editorState")->Nullable.toOption {
         | Some(initialStateSafeBase64) => {
             removeQueryParamsFromUrl("removing editorState from the URL")
@@ -235,7 +234,7 @@ let synchEditorsDataInLocStor = (~existingTabs: array<Expln_React_UseTabs.tab<'a
     let editorsOrder = []
     existingTabs->Array.forEach(tab => {
         switch tab.data {
-            | Editor({editorId}) => editorsOrder->Array.push({editorId, tabTitle: tab.label})
+            | Editor({editorId}) => editorsOrder->Array.push({editorId:editorId})
             | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => ()
         }
     })
@@ -346,6 +345,14 @@ let make = () => {
 
     let actRenameTab = (id:Expln_React_UseTabs.tabId, newName:string) => {
         setLabel(id,newName)
+        tabs->Array.forEach(tab => {
+            switch isEditorTab(tab.data) {
+                | None => ()
+                | Some({updateTabTitle}) => {
+                    updateTabTitle.contents->Option.forEach(updateTabTitle => updateTabTitle(newName))
+                }
+            }
+        })
     }
 
     let actMoveTab = (id:Expln_React_UseTabs.tabId, toRight:bool) => {
@@ -418,14 +425,39 @@ let make = () => {
         })
     }
 
+    let setAndGetTabTitle = (
+        ~editorStateLocStor:MM_wrk_editor_json.editorStateLocStor,
+        ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
+    ):(string,MM_wrk_editor_json.editorStateLocStor) => {
+        if (editorStateLocStor.tabTitle->String.trim == "") {
+            let newTabTitle = makeNewTabTitle( ~existingTabs, ~prefix="EDITOR" )
+            let newEditorStateLocStor = {...editorStateLocStor, tabTitle:newTabTitle}
+            (newTabTitle, newEditorStateLocStor)
+        } else {
+            (editorStateLocStor.tabTitle, editorStateLocStor)
+        }
+    }
+
     let actOpenEditor = (
         ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>=?,
     ):unit => {
         updateTabs(tabsSt => {
-            let newTabTitle = makeNewTabTitle(
-                ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
-                ~prefix="EDITOR"
-            )
+            let (newTabTitle, initialStateLocStor) = switch initialStateLocStor {
+                | Some(initialStateLocStor) => {
+                    let (newTabTitle, newInitialStateLocStor) = setAndGetTabTitle(
+                        ~editorStateLocStor=initialStateLocStor,
+                        ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
+                    )
+                    (newTabTitle, Some(newInitialStateLocStor))
+                }
+                | None => {
+                    let newTabTitle = makeNewTabTitle(
+                        ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
+                        ~prefix="EDITOR"
+                    )
+                    (newTabTitle, None)
+                }
+            }
             let newEditorId = getNewEditorId(~existingTabs=tabsSt->Expln_React_UseTabs.getTabs)
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label=newTabTitle,
@@ -433,7 +465,8 @@ let make = () => {
                 ~data=Editor({
                     editorId:newEditorId, 
                     initialStateLocStor,
-                    addAsrtByLabel:ref(None)
+                    addAsrtByLabel:ref(None),
+                    updateTabTitle:ref(None),
                 }),
                 ~doOpen=true
             )
@@ -454,20 +487,25 @@ let make = () => {
             let st = if (st->Expln_React_UseTabs.getTabs->Array.length == 0) {
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Settings", ~closable=false, ~data=Settings)
                 let (st, _) = st->Expln_React_UseTabs.addTab(~label="Tabs", ~closable=false, ~data=TabsManager)
-                let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId,tabTitle},idx) => {
+                let st = readEditorsOrderFromLocStor()->Array.reduceWithIndex(st, (st,{editorId},idx) => {
                     switch Local_storage_utils.locStorReadString(MM_cmp_editor.getEditorLocStorKey(editorId)) {
                         | None => st
                         | Some(editorStateJsonStr) => {
                             switch readEditorStateFromJsonStr(editorStateJsonStr) {
                                 | None => st
                                 | Some(editorStateLocStor) => {
+                                    let (tabTitle, editorStateLocStor) = setAndGetTabTitle(
+                                        ~editorStateLocStor,
+                                        ~existingTabs=st->Expln_React_UseTabs.getTabs,
+                                    )
                                     let (st, _) = st->Expln_React_UseTabs.addTab(
                                         ~label=tabTitle, ~closable=true, 
                                         ~doOpen= idx==0 && editorInitialStateFromUrl->Option.isNone,
                                         ~data=Editor({
                                             editorId, 
                                             initialStateLocStor:Some(editorStateLocStor),
-                                            addAsrtByLabel:ref(None)
+                                            addAsrtByLabel:ref(None),
+                                            updateTabTitle:ref(None),
                                         }), 
                                     )
                                     st
@@ -499,6 +537,18 @@ let make = () => {
         None
     })
 
+    let actTabTitleUpdatedFromEditor = (tabId:Expln_React_UseTabs.tabId, newTitle:string):string => {
+        if (newTitle->String.trim == "") {
+            switch tabs->Array.find(tab => tab.id == tabId) {
+                | None => newTitle
+                | Some(tab) => tab.label
+            }
+        } else {
+            actRenameTab(tabId, newTitle)
+            newTitle
+        }
+    }
+
     let rndTabContent = (top:int, tab:Expln_React_UseTabs.tab<'a>) => {
         <div key=tab.id style=ReactDOM.Style.make(~display=if (tab.id == activeTabId) {"block"} else {"none"}, ())>
             {
@@ -525,7 +575,7 @@ let make = () => {
                             onOpenEditor={()=>actOpenEditor()}
                             onOpenExplorer={()=>actOpenExplorer()}
                         />
-                    | Editor({editorId, initialStateLocStor, addAsrtByLabel}) => 
+                    | Editor({editorId, initialStateLocStor, addAsrtByLabel, updateTabTitle}) => 
                         <MM_cmp_editor
                             editorId
                             top
@@ -533,6 +583,7 @@ let make = () => {
                             preCtxData=state.preCtxData
                             reloadCtx
                             addAsrtByLabel
+                            updateTabTitle
                             initialStateLocStor
                             tempMode=false
                             toggleCtxSelector
@@ -540,6 +591,7 @@ let make = () => {
                             showTabs
                             setShowTabs={b=>setShowTabs(_ => b)}
                             openFrameExplorer
+                            onTabTitleChange=actTabTitleUpdatedFromEditor(tab.id, _)
                         />
                     | ExplorerIndex({initPatternFilterStr}) => 
                         <MM_cmp_pe_index

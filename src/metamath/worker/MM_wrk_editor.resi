@@ -117,6 +117,8 @@ type editorStateAction =
 type editorState = {
     preCtxData:preCtxData,
 
+    tabTitle: string,
+
     descr: string,
     descrEditMode: bool,
 

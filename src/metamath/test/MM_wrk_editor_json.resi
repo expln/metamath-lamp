@@ -11,6 +11,7 @@ type userStmtLocStor = {
 }
 
 type editorStateLocStor = {
+    tabTitle: string,
     srcs: array<mmCtxSrcDto>,
     descr: string,
     varsText: string, 

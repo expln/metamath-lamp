@@ -136,6 +136,7 @@ let make = (
     ~top:int,
     ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,
     ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
+    ~updateTabTitle: ref<option<string=>unit>>,
     ~initialStateLocStor:option<editorStateLocStor>,
     ~tempMode:bool,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
@@ -143,6 +144,7 @@ let make = (
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
     ~openFrameExplorer:string=>unit,
+    ~onTabTitleChange:string=>string,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
@@ -774,6 +776,9 @@ let make = (
                 }
             })
         }))
+        updateTabTitle.contents = Some(newTabTitle => {
+            setStatePriv(st => {...st, tabTitle:newTabTitle})
+        })
         None
     })
 
@@ -1238,10 +1243,10 @@ let make = (
 
     let actLoadEditorState = (stateLocStor:editorStateLocStor):unit => {
         actResetPageIdx()
-        setState(_ => {
-            createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
-                ->setNextAction(Some(Action(()=>())))
-        })
+        let newState = createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
+            ->setNextAction(Some(Action(()=>())))
+        let newTabTitle = onTabTitleChange(newState.tabTitle)//the root component decides what the tab title should be
+        setState(_ => {...newState, tabTitle:newTabTitle})
         reloadCtx.current->Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->ignore
         })

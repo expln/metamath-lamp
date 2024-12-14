@@ -72,6 +72,8 @@ let createEditorState = (
     let st = {
         preCtxData:preCtxData,
 
+        tabTitle: "",
+
         descr: "",
         descrEditMode: false,
 
