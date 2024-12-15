@@ -1,7 +1,6 @@
 - multiple editors:
     - update macros API
     - delete temp mode
-    - add "rename this tab" to editors and explorers
     - mark editors and explorers so that it is easy to distinguish them even if they have same names
     - change view options across multiple editors
     - fix the bug with loading an assertion without proof to the editor

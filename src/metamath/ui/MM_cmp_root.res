@@ -538,16 +538,16 @@ let make = () => {
         None
     })
 
-    let actTabTitleUpdatedFromEditor = (tabId:Expln_React_UseTabs.tabId, newTitle:string):string => {
-        if (newTitle->String.trim == "") {
+    let actTabTitleUpdatedFromEditor = (tabId:Expln_React_UseTabs.tabId, newTitle:string):unit => {
+        let newVerifiedTitle = if (newTitle->String.trim == "") {
             switch tabs->Array.find(tab => tab.id == tabId) {
                 | None => newTitle
                 | Some(tab) => tab.label
             }
         } else {
-            actRenameTab(tabId, newTitle)
             newTitle
         }
+        actRenameTab(tabId, newVerifiedTitle)
     }
 
     let rndTabContent = (top:int, tab:Expln_React_UseTabs.tab<'a>) => {
@@ -598,12 +598,14 @@ let make = () => {
                         <MM_cmp_pe_index
                             modalRef
                             preCtxData=state.preCtxData
+                            tabTitle=tab.label
                             openFrameExplorer
                             openExplorer=actOpenExplorer
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             initPatternFilterStr
                             addAsrtByLabel
+                            onTabTitleChange={newTitle=>actRenameTab(tab.id, newTitle)}
                         />
                     | ExplorerFrame({label}) => 
                         <MM_cmp_pe_frame_full

@@ -12,12 +12,14 @@ open Expln_utils_promise
 type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
+    tabTitle:string,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string=?)=>unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
     addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
+    onTabTitleChange:string=>unit,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -27,12 +29,14 @@ let propsAreSame = (a:props, b:props):bool => {
 let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
+    tabTitle,
     openFrameExplorer,
     openExplorer,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
     initPatternFilterStr,
     addAsrtByLabel,
+    onTabTitleChange,
 }:props) => {
     let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
         () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
@@ -305,6 +309,23 @@ let make = React.memoCustomCompareProps(({
         setMainMenuIsOpened(_ => false)
     }
 
+    let actRenameThisTab = () => {
+        openModalPaneWithTitle(
+            ~modalRef,
+            ~title="Rename tab",
+            ~content = (~close) => {
+                <MM_cmp_rename_tab 
+                    initName=tabTitle
+                    onOk={newName => {
+                        close()
+                        onTabTitleChange(newName)
+                    }}
+                    onCancel=close
+                />
+            }
+        )
+    }
+
     let actSetAsrtsPerPage = (strNum:string):unit => {
         switch strNum->Belt_Int.fromString {
             | None => ()
@@ -517,6 +538,14 @@ let make = React.memoCustomCompareProps(({
                             }}
                         >
                             {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenameThisTab()
+                            }}
+                        >
+                            {React.string("Rename this tab")}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

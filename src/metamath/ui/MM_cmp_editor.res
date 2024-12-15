@@ -144,7 +144,7 @@ let make = (
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
     ~openFrameExplorer:string=>unit,
-    ~onTabTitleChange:string=>string,
+    ~onTabTitleChange:string=>unit,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
@@ -1249,8 +1249,8 @@ let make = (
         actResetPageIdx()
         let newState = createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
             ->setNextAction(Some(Action(()=>())))
-        let newTabTitle = onTabTitleChange(newState.tabTitle)//the root component decides what the tab title should be
-        setState(_ => {...newState, tabTitle:newTabTitle})
+        setState(_ => newState)
+        onTabTitleChange(newState.tabTitle)
         reloadCtx.current->Option.forEach(reloadCtx => {
             reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->ignore
         })
@@ -1551,6 +1551,23 @@ let make = (
         })->ignore
     }
 
+    let actRenameThisTab = () => {
+        openModalPaneWithTitle(
+            ~modalRef,
+            ~title="Rename tab",
+            ~content = (~close) => {
+                <MM_cmp_rename_tab 
+                    initName=state.tabTitle
+                    onOk={newName => {
+                        close()
+                        onTabTitleChange(newName)
+                    }}
+                    onCancel=close
+                />
+            }
+        )
+    }
+
     let actResetEditorContent = () => {
         setState(resetEditorContent)
     }
@@ -1588,6 +1605,14 @@ let make = (
                             }}
                         >
                             {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenameThisTab()
+                            }}
+                        >
+                            {React.string("Rename this tab")}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
