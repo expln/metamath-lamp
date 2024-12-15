@@ -23,7 +23,9 @@ type props = {
 }
 
 let propsAreSame = (a:props, b:props):bool => {
-    a.preCtxData === b.preCtxData && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
+    a.preCtxData === b.preCtxData
+    && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
+    && a.tabTitle == b.tabTitle
 }
 
 let make = React.memoCustomCompareProps(({
