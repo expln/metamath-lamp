@@ -18,30 +18,31 @@ open MM_wrk_pre_ctx_data
 open MM_editor_history
 open MM_proof_tree_dto
 
-let editorSaveStateToLocStor = (state:editorState, key:string, tempMode:bool):unit => {
-    if (!tempMode) {
-        locStorWriteString(key, Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
-    }
-}
-
+let editorStateLocStorKey = "editor-state"
+let editorHistLocStorKey = "editor-hist"
 let editorHistRegLocStorKey = "hist-reg"
 let editorHistTmpLocStorKey = "hist-tmp"
+let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
 
-let getHistLockStorKey = (tempMode:bool):string => {
-    if (tempMode) { 
-        editorHistTmpLocStorKey 
-    } else { 
-        editorHistRegLocStorKey 
-    }
+let getEditorLocStorKey = (editorId:int):string => {
+    editorStateLocStorKey ++ "-" ++ Int.toString(editorId)
 }
 
-let histSaveToLocStor = (hist:editorHistory, tempMode:bool):unit => {
+let getEditorHistLocStorKey = (editorId:int):string => {
+    editorHistLocStorKey ++ "-" ++ Int.toString(editorId)
+}
+
+let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
+    locStorWriteString(getEditorLocStorKey(editorId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
+}
+
+let histSaveToLocStor = (hist:editorHistory, ~editorId:int):unit => {
     let histStr = hist->editorHistToString
-    locStorWriteString( getHistLockStorKey(tempMode), histStr )
+    locStorWriteString( getEditorHistLocStorKey(editorId), histStr )
 }
 
-let histReadFromLocStor = (~editorState:editorState, ~tempMode:bool, ~maxLength:int):editorHistory => {
-    switch locStorReadString(getHistLockStorKey(tempMode)) {
+let histReadFromLocStor = (~editorId:int, ~editorState:editorState, ~maxLength:int):editorHistory => {
+    switch locStorReadString(getEditorHistLocStorKey(editorId)) {
         | None => editorHistMake(~initState=editorState, ~maxLength)
         | Some(histStr) => {
             switch editorHistFromString(histStr) {
@@ -56,7 +57,6 @@ let rndIconButton = (
     ~icon:reElem, 
     ~onClick:unit=>unit, 
     ~active:bool, 
-    ~notifyEditInTempMode:option<(unit=>'a)=>'a>=?,
     ~ref:option<ReactDOM.domRef>=?,
     ~title:option<string>=?, 
     ~smallBtns:bool=false
@@ -64,12 +64,7 @@ let rndIconButton = (
     <span ?ref ?title>
         <IconButton 
             disabled={!active} 
-            onClick={_ => {
-                switch notifyEditInTempMode {
-                    | None => onClick()
-                    | Some(notifyEditInTempMode) => notifyEditInTempMode(() => onClick())
-                }
-            }} 
+            onClick={_ => onClick()}
             color="primary"
             style=?{
                 if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
@@ -80,17 +75,11 @@ let rndIconButton = (
     </span>
 }
 
-let editorStateLocStorKey = "editor-state"
-
-let lastUsedAsrtSearchTypLocStorKey = "search-asrt-typ"
-
-let saveLastUsedTyp = (ctx:mmContext,typInt:int,tempMode:bool):unit => {
-    if (!tempMode) {
-        switch ctx->ctxIntToSym(typInt) {
-            | None => ()
-            | Some(typStr) =>
-                Dom_storage2.localStorage->Dom_storage2.setItem(lastUsedAsrtSearchTypLocStorKey, typStr)
-        }
+let saveLastUsedTyp = (ctx:mmContext,typInt:int):unit => {
+    switch ctx->ctxIntToSym(typInt) {
+        | None => ()
+        | Some(typStr) =>
+            Dom_storage2.localStorage->Dom_storage2.setItem(lastUsedAsrtSearchTypLocStorKey, typStr)
     }
 }
 
@@ -112,15 +101,6 @@ let previousEditingIsNotCompletedText =
     `You've attempted to edit something in the editor while the previous edit is not complete.`
         ++ ` Please complete the previous edit before starting a new one.`
 
-let editingInTempModeTitle = "Editing in TEMP mode"
-let editingInTempModeText = 
-    `You are about to edit in TEMP mode.`
-        ++ ` All changes you do in TEMP mode will be erased upon closing current browser tab.`
-        ++ ` If you want to continue editing in regular mode, please do the following actions:`
-        ++ ` 1) use "Export to JSON" to copy current editor state to the clipboard;`
-        ++ ` 2) open a new tab (or switch to an already opened tab) with metamath-lamp in regular mode;`
-        ++ ` 3) use "Import from JSON" to load the copied editor state from the clipboard.`
-
 let infoAboutGettingCompletedProof = `In order to show a completed proof please do the following: ` 
                 ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
                 ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
@@ -134,22 +114,22 @@ let infoAboutInliningProof = `In order to inline a proof please do the following
 @react.component
 let make = (
     ~modalRef:modalRef, 
+    ~editorId:int,
     ~preCtxData:preCtxData,
     ~top:int,
-    ~reloadCtx: React.ref<Nullable.t<MM_cmp_context_selector.reloadCtxFunc>>,
-    ~addAsrtByLabel: React.ref<Nullable.t<string=>promise<result<unit,string>>>>,
-    ~loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
-    ~initialStateJsonStr:option<string>,
-    ~tempMode:bool,
+    ~reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>>,
+    ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
+    ~updateTabTitle: ref<option<string=>unit>>,
+    ~initialStateLocStor:option<editorStateLocStor>,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ~ctxSelectorIsExpanded:bool,
     ~showTabs:bool,
     ~setShowTabs:bool=>unit,
     ~openFrameExplorer:string=>unit,
+    ~onTabTitleChange:string=>unit,
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
-    let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
     let (contIsHidden, setContIsHidden) = React.useState(_ => false)
     let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
     let showBkmOnlyRef:React.ref<bool> = React.useRef(showBkmOnly)
@@ -174,16 +154,19 @@ let make = (
     let (smallBtns, setSmallBtns) = useStateFromLocalStorageBool(
         ~key="editor-smallBtns", ~default=false,
     )
+    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
+        ~key="editor-steps-per-page", ~default=100,
+    )
     let (parenAc, setParenAc) = useStateFromLocalStorageBool(
         ~key="paren-autocomplete", ~default=true,
     )
 
     let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
         ~preCtxData:preCtxData, 
-        ~stateLocStor=jsonStrOptToEditorStateLocStor(initialStateJsonStr)
+        ~stateLocStor=initialStateLocStor
     ))
     let (hist, setHistPriv) = React.useState(() => {
-        histReadFromLocStor(~editorState=state, ~tempMode, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
+        histReadFromLocStor(~editorId, ~editorState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
     })
 
     let stmtsToShow =
@@ -196,10 +179,6 @@ let make = (
         } else {
             state.stmts
         }
-
-    let (stepsPerPage, setStepsPerPage) = useStateFromLocalStorageInt(
-        ~key="editor-steps-per-page", ~default=100,
-    )
     let maxStepsPerPage = 300
     let stepsPerPage = Math.Int.max(1, Math.Int.min(stepsPerPage, maxStepsPerPage))
     let numOfPages = (stmtsToShow->Array.length->Belt_Int.toFloat /. stepsPerPage->Belt.Int.toFloat)
@@ -228,13 +207,13 @@ let make = (
     let setHist = (update:editorHistory=>editorHistory):unit => {
         setHistPriv(ht => {
             let ht = update(ht)
-            histSaveToLocStor(ht, tempMode)
+            histSaveToLocStor(ht, ~editorId)
             ht
         })
     }
 
     let scheduleUnifyAllIfAllowed = (st:editorState):editorState => {
-        if (st.settings.autoUnifyAll) {
+        if (st.preCtxData.settingsV.val.autoUnifyAll) {
             switch st.nextAction {
                 | Some(_) => st
                 | None => {
@@ -260,7 +239,7 @@ let make = (
     }
 
     let saveStateToLocStorAndMakeHistSnapshot = (st:editorState):editorState => {
-        editorSaveStateToLocStor(st, editorStateLocStorKey, tempMode)
+        editorSaveStateToLocStor(st, ~editorId)
         setHist(ht => ht->editorHistAddSnapshot(st))
         st
     }
@@ -297,22 +276,6 @@ let make = (
         )
     }
 
-    let notifyEditInTempMode = (continue:unit=>'a):'a => {
-        if (tempMode && !warnedAboutTempMode) {
-            openInfoDialog(
-                ~modalRef, 
-                ~title=editingInTempModeTitle,
-                ~text=editingInTempModeText,
-                ~onOk = () => {
-                    setWarnedAboutTempMode(_ => true)
-                    continue()
-                }
-            )
-        } else {
-            continue()
-        }
-    }
-
     let editIsActive = state->isEditMode
     let thereAreCriticalErrorsInEditor = editorStateHasCriticalErrors(state)
     let thereAreAnyErrorsInEditor = editorStateHasAnyErrors(state)
@@ -339,17 +302,13 @@ let make = (
     }
 
     let generalModificationActionIsEnabled = !editIsActive && !thereAreCriticalErrorsInEditor
-    let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
-        | Some(stmt) if stmt.typ == P => Some(stmt)
-        | _ => None
-    }
     let numOfCheckedStmts = state.checkedStmtIds->Array.length
     let thereIsDuplicatedStmt = state->editorStateHasDuplicatedStmts
 
     let actPreCtxDataUpdated = () => {
         setState(st => {
             let st = st->setPreCtxData(preCtxData)
-            let st = st->setNextAction(Some(Action(()=>())))
+            let st = st->setNextAction(Some(Action(()=>()))) //this prevents automatic unification
             st
         })
         setHist(editorHistSetMaxLength(_, preCtxData.settingsV.val.editorHistMaxLength))
@@ -358,7 +317,7 @@ let make = (
     React.useEffect1(() => {
         actPreCtxDataUpdated()
         None
-    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver])
+    }, [preCtxData.settingsV.ver, preCtxData.ctxFullV.ver, preCtxData.ctxMinV.ver])
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -469,30 +428,26 @@ let make = (
     }
 
     let actBeginEdit0 = (setter:editorState=>editorState) => {
-        notifyEditInTempMode(() => {
-            if (!editIsActive) {
-                setState(setter)
-            } else {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~title=previousEditingIsNotCompletedTitle,
-                    ~text=previousEditingIsNotCompletedText
-                )
-            }
-        })
+        if (!editIsActive) {
+            setState(setter)
+        } else {
+            openInfoDialog(
+                ~modalRef, 
+                ~title=previousEditingIsNotCompletedTitle,
+                ~text=previousEditingIsNotCompletedText
+            )
+        }
     }
     let actBeginEdit = (setter:(editorState,stmtId)=>editorState, stmtId:string) => {
-        notifyEditInTempMode(() => {
-            if (!editIsActive) {
-                setState(setter(_,stmtId))
-            } else {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~title=previousEditingIsNotCompletedTitle,
-                    ~text=previousEditingIsNotCompletedText
-                )
-            }
-        })
+        if (!editIsActive) {
+            setState(setter(_,stmtId))
+        } else {
+            openInfoDialog(
+                ~modalRef, 
+                ~title=previousEditingIsNotCompletedTitle,
+                ~text=previousEditingIsNotCompletedText
+            )
+        }
     }
     let actCompleteEdit = (setter:editorState=>editorState) => {
         setState(setter)
@@ -563,7 +518,10 @@ let make = (
                 let contNew = newContText->strToCont
                 let textOld = contOld->contToStr
                 let textNew = contNew->contToStr
-                if (textOld == textNew || (textOld == "" && textNew == state.settings.defaultStmtType->String.trim)) {
+                if (
+                    textOld == textNew 
+                    || (textOld == "" && textNew == state.preCtxData.settingsV.val.defaultStmtType->String.trim)
+                ) {
                     if (textOld == "") {
                         setState(deleteStmt(_,stmtId))
                     } else {
@@ -752,7 +710,7 @@ let make = (
     }
 
     React.useEffect0(() => {
-        addAsrtByLabel.current = Nullable.make(label => Promise.make((resolve, _) => {
+        addAsrtByLabel.contents = Some(label => Promise.make((resolve, _) => {
             setState(st => {
                 switch st.wrkCtx {
                     | None => {
@@ -775,6 +733,13 @@ let make = (
                 }
             })
         }))
+        updateTabTitle.contents = Some(newTabTitle => {
+            setStatePriv(st => {
+                let st = {...st, tabTitle:newTabTitle}
+                editorSaveStateToLocStor(st, ~editorId)
+                st
+            })
+        })
         None
     })
 
@@ -807,12 +772,10 @@ let make = (
     }
 
     let actRestorePrevState = (histIdx:int):unit => {
-        notifyEditInTempMode(() => {
-            switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
-                | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg )
-                | Ok(editorState) => setState(_ => editorState->recalcWrkColors)
-            }
-        })
+        switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
+            | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg )
+            | Ok(editorState) => setState(_ => editorState->recalcWrkColors)
+        }
     }
 
     let viewOptions = { 
@@ -871,16 +834,14 @@ let make = (
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_search_asrt
                             modalRef
-                            settingsVer=state.settingsV
-                            settings=state.settings
-                            preCtxVer=state.preCtxV
-                            preCtx=state.preCtx
-                            varsText=state.varsText
-                            disjText=state.disjText
+                            settingsVer=state.preCtxData.settingsV.ver
+                            settings=state.preCtxData.settingsV.val
+                            preCtxVer=state.preCtxData.ctxMinV.ver
+                            preCtx=state.preCtxData.ctxMinV.val
                             wrkCtx
-                            frms=state.frms
-                            initialTyp={getLastUsedTyp(state.preCtx)}
-                            onTypChange={saveLastUsedTyp(state.preCtx, _, tempMode)}
+                            frms=state.preCtxData.frms
+                            initialTyp={getLastUsedTyp(state.preCtxData.ctxMinV.val)}
+                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxMinV.val, _)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onResultsSelected={selectedResults=>{
                                 closeModal(modalRef, modalId)
@@ -1028,6 +989,7 @@ let make = (
                         ->Belt_HashSetString.fromArray
                     let checkedStmts = state.stmts
                         ->Array.filter(stmt => checkedStmtIds->Belt_HashSetString.has(stmt.id))
+                    let settings = state.preCtxData.settingsV.val
                     if (checkedStmts->Array.length > 0 && (checkedStmts->Array.getUnsafe(checkedStmts->Array.length-1)).typ == P) {
                         let initialParams = switch params {
                             | Some(_) => params
@@ -1057,17 +1019,17 @@ let make = (
                             updateModal(modalRef, modalId, () => {
                                 <MM_cmp_unify_bottom_up
                                     modalRef
-                                    settingsVer=state.settingsV
-                                    settings=state.settings
-                                    preCtxVer=state.preCtxV
-                                    preCtx=state.preCtx
-                                    frms=state.frms parenCnt=state.parenCnt
+                                    settingsVer=state.preCtxData.settingsV.ver
+                                    settings
+                                    preCtxVer=state.preCtxData.ctxMinV.ver
+                                    preCtx=state.preCtxData.ctxMinV.val
+                                    frms=state.preCtxData.frms parenCnt=state.preCtxData.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
                                     reservedLabels={state.stmts->Array.map(stmt => stmt.label)}
                                     typeToPrefix = {
                                         Belt_MapString.fromArray(
-                                            state.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
+                                            settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                                         )
                                     }
                                     initialParams=?initialParams
@@ -1097,18 +1059,18 @@ let make = (
                                 )
                                 let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
                                 unify(
-                                    ~settingsVer=state.settingsV,
-                                    ~settings=state.settings,
-                                    ~preCtxVer=state.preCtxV,
-                                    ~preCtx=state.preCtx,
+                                    ~settingsVer=state.preCtxData.settingsV.ver,
+                                    ~settings,
+                                    ~preCtxVer=state.preCtxData.ctxMinV.ver,
+                                    ~preCtx=state.preCtxData.ctxMinV.val,
                                     ~varsText,
                                     ~disjText,
                                     ~rootStmts,
                                     ~bottomUpProverParams=None,
-                                    ~allowedFrms=state.settings.allowedFrms,
-                                    ~syntaxTypes=Some(state.syntaxTypes),
+                                    ~allowedFrms=settings.allowedFrms,
+                                    ~syntaxTypes=Some(state.preCtxData.syntaxTypes),
                                     ~exprsToSyntaxCheck=
-                                        if (state.settings.checkSyntax) {
+                                        if (settings.checkSyntax) {
                                             Some(state->getAllExprsToSyntaxCheck(rootStmts))
                                         } else {
                                             None
@@ -1238,67 +1200,16 @@ let make = (
         })->ignore
     }
 
-    let rndSrcDtos = (srcs:array<mmCtxSrcDto>):reElem => {
-        <Col>
-        {
-            srcs->Array.mapWithIndex((src,i) => {
-                <Paper key={i->Belt.Int.toString} style=ReactDOM.Style.make(~padding="3px", ())>
-                    <Col>
-                        {src.url->React.string}
-                        {
-                            let readInstr = src.readInstr->readInstrFromStr
-                            if (readInstr == ReadAll) {
-                                `read all`->React.string
-                            } else {
-                                let readInstrStr = if (readInstr == StopBefore) {"stop before"} else {"stop after"}
-                                `${readInstrStr}: ${src.label}`->React.string
-                            }
-                        }
-                    </Col>
-                </Paper>
-            })->React.array
-        }
-        </Col>
-    }
-
-    let loadEditorStatePriv = (stateLocStor:editorStateLocStor):unit => {
+    let actLoadEditorState = (stateLocStor:editorStateLocStor):unit => {
         actResetPageIdx()
-        setState(_ => {
-            createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
-                ->setNextAction(Some(Action(()=>())))
-        })
-        reloadCtx.current->Nullable.toOption->Belt.Option.forEach(reloadCtx => {
-            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.settings)->promiseMap(res => {
-                switch res {
-                    | Ok(_) => ()
-                    | Error(msg) => {
-                        openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                            updateModal(modalRef, modalId, () => {
-                                <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                    <Col spacing=1.>
-                                        <span style=ReactDOM.Style.make(~fontWeight="bold", ())>
-                                            { React.string(`Could not reload the context because of the error:`) }
-                                        </span>
-                                        <span style=ReactDOM.Style.make(~color="red", ())>
-                                            { React.string(msg) }
-                                        </span>
-                                        <span>
-                                            { React.string(`This error happened when loading the context:`) }
-                                        </span>
-                                        {rndSrcDtos(stateLocStor.srcs)}
-                                        <Button onClick={_ => closeModal(modalRef, modalId) } variant=#contained> 
-                                            {React.string("Ok")} 
-                                        </Button>
-                                    </Col>
-                                </Paper>
-                            })
-                        })->ignore
-                    }
-                }
-            })->ignore
+        let newState = createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
+            ->setNextAction(Some(Action(()=>())))
+        setState(_ => newState)
+        onTabTitleChange(newState.tabTitle)
+        reloadCtx.current->Option.forEach(reloadCtx => {
+            reloadCtx(~srcs=stateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->ignore
         })
     }
-    loadEditorState.current = Nullable.make(loadEditorStatePriv)
 
     let actImportFromJson = (jsonStr:string):bool => {
         switch readEditorStateFromJsonStr(jsonStr) {
@@ -1318,19 +1229,11 @@ let make = (
                 false
             }
             | Ok(stateLocStor) => {
-                loadEditorStatePriv(stateLocStor)
+                actLoadEditorState(stateLocStor)
                 true
             }
         }
     }
-
-    React.useEffect0(() => {
-        switch initialStateJsonStr {
-            | None => ()
-            | Some(jsonStr) => actImportFromJson(jsonStr)->ignore
-        }
-        None
-    })
 
     let actOpenImportFromJsonDialog = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
@@ -1441,44 +1344,38 @@ let make = (
     }
 
     let actDeleteUnrelatedSteps = (~deleteHyps:bool) => {
-        notifyEditInTempMode(() => {
-            switch state->deleteUnrelatedSteps(
-                ~stepIdsToKeep=state.checkedStmtIds->Array.map(((id,_)) => id),
-                ~deleteHyps
-            ) {
-                | Ok(state) => setState(_ => state)
-                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
-            }
-        })
+        switch state->deleteUnrelatedSteps(
+            ~stepIdsToKeep=state.checkedStmtIds->Array.map(((id,_)) => id),
+            ~deleteHyps
+        ) {
+            | Ok(state) => setState(_ => state)
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
+        }
     }
 
     let actRenumberSteps = () => {
-        notifyEditInTempMode(() => {
-            switch state->renumberProvableSteps {
-                | Ok(state) => setState(_ => state)
-                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
-            }
-        })
+        switch state->renumberProvableSteps {
+            | Ok(state) => setState(_ => state)
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
+        }
     }
 
     let actRenameHypotheses = () => {
-        notifyEditInTempMode(() => {
-            switch state.stmts->Array.find(stmt => stmt.isGoal) {
-                | None => {
-                    openInfoDialog( 
-                        ~modalRef, 
-                        ~title="Cannot rename hypotheses",
-                        ~text=`The goal step is not set. Please mark one of the steps as the goal step.` 
-                    )
-                }
-                | Some(goalStmt) => {
-                    switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
-                        | Ok(state) => setState(_ => state)
-                        | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
-                    }
+        switch state.stmts->Array.find(stmt => stmt.isGoal) {
+            | None => {
+                openInfoDialog( 
+                    ~modalRef, 
+                    ~title="Cannot rename hypotheses",
+                    ~text=`The goal step is not set. Please mark one of the steps as the goal step.` 
+                )
+            }
+            | Some(goalStmt) => {
+                switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
+                    | Ok(state) => setState(_ => state)
+                    | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
                 }
             }
-        })
+        }
     }
 
     let actOpenMoveStepsDialog = () => {
@@ -1603,6 +1500,23 @@ let make = (
         })->ignore
     }
 
+    let actRenameThisTab = () => {
+        openModalPaneWithTitle(
+            ~modalRef,
+            ~title="Rename tab",
+            ~content = (~close) => {
+                <MM_cmp_rename_tab 
+                    initName=state.tabTitle
+                    onOk={newName => {
+                        close()
+                        onTabTitleChange(newName)
+                    }}
+                    onCancel=close
+                />
+            }
+        )
+    }
+
     let actResetEditorContent = () => {
         setState(resetEditorContent)
     }
@@ -1640,6 +1554,14 @@ let make = (
                             }}
                         >
                             {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenameThisTab()
+                            }}
+                        >
+                            {React.string("Rename this tab")}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
@@ -1784,63 +1706,60 @@ let make = (
                 />
                 {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreBookmarked,
-                    ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Bookmark selected steps", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=actUnbookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreUnbookmarked,
-                    ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Unbookmark selected steps", ~smallBtns, )}
                 {rndIconButton(
                     ~icon=if (showBkmOnly){<MM_Icons.Bookmark/>}else{<MM_Icons.BookmarkBorder/>}, 
                     ~onClick=actToggleShowBkmOnly, ~active=true,
                     ~title="Show bookmarked steps only / show all steps", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
                 ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Move selected steps down", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
                 ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Move selected steps up", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode)}
-                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
+                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, )}
+                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
                     ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns
                 )}
                 {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
                     ~onClick=()=>actDuplicateStmt(true), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step up", 
-                    ~smallBtns, ~notifyEditInTempMode)}
+                    ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(+90deg)", ()) />, 
                     ~onClick=()=>actDuplicateStmt(false), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step down", 
-                    ~smallBtns, ~notifyEditInTempMode)}
+                    ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
-                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
+                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog,
                     ~title="Restore previous state", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
-                    ~onClick=actMergeStmts, ~notifyEditInTempMode,
+                    ~onClick=actMergeStmts,
                     ~active= numOfCheckedStmts==1 || thereIsDuplicatedStmt, 
                     ~title="Merge two similar steps", ~smallBtns)}
                 { 
-                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
-                        ~active=generalModificationActionIsEnabled && state.frms->MM_substitution.frmsSize > 0,
+                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
+                        ~active=generalModificationActionIsEnabled 
+                            && state.preCtxData.frms->MM_substitution.frmsSize > 0,
                         ~title="Add new steps from existing assertions (and place before selected steps if any)", 
                         ~smallBtns
                     ) 
                 }
-                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~notifyEditInTempMode,
+                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute,
                     ~active=generalModificationActionIsEnabled,
                     ~title="Apply a substitution to all steps", ~smallBtns ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
                                     && state.stmts->Array.length > 0, 
-                        ~notifyEditInTempMode=?{
-                            if (singleProvableChecked->Belt.Option.isSome) {Some(notifyEditInTempMode)} else {None}
-                        },
                         ~title="Unify all steps or unify selected provable bottom-up", ~smallBtns )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.PlayArrow/>, ~onClick=actOpenMacros,
                         ~active=!editIsActive, 
-                        ~notifyEditInTempMode,
                         ~title="Run a macro", ~smallBtns )
                 }
                 { 
@@ -1878,30 +1797,31 @@ let make = (
     }
 
     let rndStmt = (stmt:userStmt):reElem => {
+        let settings = state.preCtxData.settingsV.val
         <MM_cmp_user_stmt
             modalRef
-            settingsVer=state.settingsV
-            settings=state.settings
-            preCtxVer=state.preCtxV
+            settingsVer=state.preCtxData.settingsV.ver
+            settings
+            preCtxVer=state.preCtxData.ctxMinV.ver
             varsText=state.varsText
             wrkCtx=state.wrkCtx
-            frms=state.frms
-            parenCnt=state.parenCnt
-            syntaxTypes=state.syntaxTypes
-            parensMap=state.parensMap
+            frms=state.preCtxData.frms
+            parenCnt=state.preCtxData.parenCnt
+            syntaxTypes=state.preCtxData.syntaxTypes
+            parensMap=state.preCtxData.parensMap
             stmt
-            typeColors=state.typeColors
-            preCtxColors=state.preCtxColors
+            typeColors=state.preCtxData.typeColors
+            preCtxColors=state.preCtxData.symColors
             wrkCtxColors=state.wrkCtxColors
             viewOptions
             readOnly=false
             parenAc
             toggleParenAc=actToggleParenAc
-            editStmtsByLeftClick=state.settings.editStmtsByLeftClick
-            longClickEnabled=state.settings.longClickEnabled
-            longClickDelayMs=state.settings.longClickDelayMs
-            defaultStmtType=state.settings.defaultStmtType
-            showVisByDefault=state.settings.showVisByDefault
+            editStmtsByLeftClick=settings.editStmtsByLeftClick
+            longClickEnabled=settings.longClickEnabled
+            longClickDelayMs=settings.longClickDelayMs
+            defaultStmtType=settings.defaultStmtType
+            showVisByDefault=settings.showVisByDefault
 
             onLabelEditRequested={() => actBeginEdit(setLabelEditMode,stmt.id)}
             onLabelEditDone={newLabel => actCompleteEditLabel(stmt.id,newLabel)}
@@ -1927,7 +1847,7 @@ let make = (
             checkboxOnChange={(~checked as _, ~shift) => actToggleStmtChecked(~id=stmt.id, ~shift)}
 
             onGenerateProof={()=>actExportProof(stmt.id)}
-            onDebug={() => notifyEditInTempMode(()=>actDebugUnifyAll(stmt.id))}
+            onDebug={() => actDebugUnifyAll(stmt.id)}
             onOpenSubstitutionDialog=Some(onOpenSubstitutionDialogRef)
 
             addStmtAbove=
@@ -1957,8 +1877,8 @@ let make = (
                     editMode=state.descrEditMode
                     editByClick=false
                     editByAltClick=true
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
+                    longClickEnabled=state.preCtxData.settingsV.val.longClickEnabled
+                    longClickDelayMs=state.preCtxData.settingsV.val.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDescrEditMode)}
                     onEditDone=actDescrEditComplete
                     onEditCancel={newText => actCancelEditDescr(newText)}
@@ -1992,8 +1912,8 @@ let make = (
                     editMode=state.varsEditMode
                     editByClick=true
                     editByAltClick=true
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
+                    longClickEnabled=state.preCtxData.settingsV.val.longClickEnabled
+                    longClickDelayMs=state.preCtxData.settingsV.val.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setVarsEditMode)}
                     onEditDone=actVarsEditComplete
                     onEditCancel={newText => actCancelEditVars(newText)}
@@ -2017,8 +1937,8 @@ let make = (
                     editMode=state.disjEditMode
                     editByClick=true
                     editByAltClick=true
-                    longClickEnabled=state.settings.longClickEnabled
-                    longClickDelayMs=state.settings.longClickDelayMs
+                    longClickEnabled=state.preCtxData.settingsV.val.longClickEnabled
+                    longClickDelayMs=state.preCtxData.settingsV.val.longClickDelayMs
                     onEditRequested={() => actBeginEdit0(setDisjEditMode)}
                     onEditDone=actDisjEditComplete
                     onEditCancel={newText => actCancelEditDisj(newText)}
@@ -2156,9 +2076,9 @@ let make = (
                     | None => {
                         textToSyntaxTree( 
                             ~wrkCtx, ~syms, 
-                            ~syntaxTypes=state.syntaxTypes, ~frms=state.frms, 
-                            ~frameRestrict=state.settings.allowedFrms.inSyntax,
-                            ~parenCnt=state.parenCnt,
+                            ~syntaxTypes=state.preCtxData.syntaxTypes, ~frms=state.preCtxData.frms, 
+                            ~frameRestrict=state.preCtxData.settingsV.val.allowedFrms.inSyntax,
+                            ~parenCnt=state.preCtxData.parenCnt,
                             ~lastSyntaxType=None,
                             ~onLastSyntaxTypeChange=_=>(),
                         )
@@ -2187,6 +2107,7 @@ let make = (
     }
 
     MM_cmp_api.updateEditorApi(
+        ~editorId,
         ~state,
         ~showInfoMsg=showInfoMsgForApi,
         ~showErrMsg=showErrMsgForApi,

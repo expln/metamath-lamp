@@ -20,6 +20,7 @@ let createFrame = (~asrt:expr, ~varTypes:array<int>, ~hyps:array<array<int>> = [
         numOfVars: varTypes->Array.length,
         numOfArgs: 0,
         descr: None,
+        descrNorm: None,
         proof: None,
         isDisc:false,
         isDepr:false,

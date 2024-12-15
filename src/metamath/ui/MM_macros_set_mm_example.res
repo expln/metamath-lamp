@@ -102,15 +102,15 @@ async function showErrMsg(msg) {
 }
 
 async function setContentIsHidden(contIsHidden) {
-    return getResponse(await api.editor.setContentIsHidden(contIsHidden))
+    return getResponse(await api.editor().setContentIsHidden(contIsHidden))
 }
 
 async function getEditorState() {
-    return getResponse(await api.editor.getState())
+    return getResponse(await api.editor().getState())
 }
 
 async function unifyAll() {
-    getResponse(await api.editor.unifyAll())
+    getResponse(await api.editor().unifyAll())
     return await getEditorState()
 }
 
@@ -136,11 +136,11 @@ async function allIsProved() {
 }
 
 async function updateSteps(steps) {
-    return getResponse(await api.editor.updateSteps(steps))
+    return getResponse(await api.editor().updateSteps(steps))
 }
 
 async function deleteSteps(labels) {
-    return getResponse(await api.editor.deleteSteps(labels))
+    return getResponse(await api.editor().deleteSteps(labels))
 }
 
 function undefToNull(value) {
@@ -148,23 +148,23 @@ function undefToNull(value) {
 }
 
 async function addSteps({atIdx, steps, vars}) {
-    return getResponse(await api.editor.addSteps({atIdx:undefToNull(atIdx), steps, vars:undefToNull(vars)}))
+    return getResponse(await api.editor().addSteps({atIdx:undefToNull(atIdx), steps, vars:undefToNull(vars)}))
 }
 
 async function buildSyntaxTrees(exprs) {
-    return getResponse(await api.editor.buildSyntaxTrees(exprs))
+    return getResponse(await api.editor().buildSyntaxTrees(exprs))
 }
 
 async function getTokenType(token) {
-    return getResponse(await api.editor.getTokenType(token))
+    return getResponse(await api.editor().getTokenType(token))
 }
 
 async function substitute({what, with_}) {
-    return getResponse(await api.editor.substitute({what, with_}))
+    return getResponse(await api.editor().substitute({what, with_}))
 }
 
 async function mergeDuplicatedSteps() {
-    return getResponse(await api.editor.mergeDuplicatedSteps())
+    return getResponse(await api.editor().mergeDuplicatedSteps())
 }
 
 function isSymbol(tree) {
@@ -414,7 +414,7 @@ async function prove({
     const frameParameters = resolveFrmParams(frmParams).map(p => ({...p, stepsToDeriveFrom}))
 
     async function doProve(debugLevel) {
-        return getResponse(await api.editor.proveBottomUp({
+        return getResponse(await api.editor().proveBottomUp({
             tags:frmParams,
             stepToProve: stepToProve,
             maxSearchDepth,

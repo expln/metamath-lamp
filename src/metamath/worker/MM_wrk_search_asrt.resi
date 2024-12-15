@@ -1,5 +1,4 @@
 open MM_context
-open MM_substitution
 open MM_statements_dto
 open MM_wrk_settings
 
@@ -17,28 +16,35 @@ type stmtPattern = {
 
 let parseSearchStr: string => result<array<(array<patternModifier>, array<string>)>,string>
 let makeSearchPattern: (~searchStr:string, ~ctx:mmContext) => result<array<stmtPattern>, string>
+let threeStateBoolMatchesTwoStateBool: (option<bool>, bool) => bool
 
 let doSearchAssertions: (
-    ~wrkCtx:mmContext,
-    ~frms: frms,
-    ~label: string,
-    ~typ: int,
+    ~allFramesInDeclarationOrder:array<frame>,
+    ~isAxiom:option<bool>,
+    ~typ:option<int>, 
+    ~label:string, 
     ~searchPattern:array<stmtPattern>,
-    ~onProgress: float => unit=?,
-) => array<stmtsDto>
+    ~isDisc:option<bool>,
+    ~isDepr:option<bool>,
+    ~isTranDepr:option<bool>,
+    ~onProgress:float=>unit=?
+) => array<frame>
 
 let searchAssertions: (
     ~settingsVer:int,
     ~settings:settings,
     ~preCtxVer: int,
     ~preCtx: mmContext,
-    ~varsText: string,
-    ~disjText: string,
-    ~label:string,
-    ~typ: int,
+    ~isAxiom:option<bool>,
+    ~typ:option<int>, 
+    ~label:string, 
     ~searchPattern:array<stmtPattern>,
+    ~isDisc:option<bool>,
+    ~isDepr:option<bool>,
+    ~isTranDepr:option<bool>,
+    ~returnLabelsOnly:bool,
     ~onProgress:float=>unit,
-) => promise<array<stmtsDto>>
+) => promise<(array<stmtsDto>,array<string>)>
 
 let frameToStmtsDto: (
     ~wrkCtx:mmContext,

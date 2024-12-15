@@ -36,6 +36,7 @@ type frame = {
     numOfVars: int,
     numOfArgs: int,
     descr:option<string>,
+    descrNorm:option<string>,
     proof:option<proof>,
     isDisc:bool, /* is discouraged */
     isDepr:bool, /* is deprecated */
@@ -200,3 +201,5 @@ module ExprHash: {
     let hash: Belt_Id.hash<t, identity>
     let eq: Belt_Id.eq<t, identity>
 }
+
+let normalizeDescr: string => string

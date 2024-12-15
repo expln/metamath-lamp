@@ -1,3 +1,6 @@
+- fix the bug with loading an assertion without proof to the editor
+- fix the "aModLen != bLen" bug in the editor history
+
 - Implement dynamic bottom-up prover params. Bind params to each statement.
 - docs:
     - debug bottom-up proof for:

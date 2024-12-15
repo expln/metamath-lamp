@@ -28,7 +28,7 @@ type props = {
     frame:frame,
     order:int,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?)=>unit,
     addAsrtByLabel:string=>promise<result<unit,string>>,
 }
 

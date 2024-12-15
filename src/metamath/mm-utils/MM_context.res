@@ -78,6 +78,7 @@ type frame = {
     numOfVars: int,
     numOfArgs: int,
     descr:option<string>,
+    descrNorm:option<string>,
     proof:option<proof>,
     isDisc:bool, /* is discouraged */
     isDepr:bool, /* is deprecated */
@@ -1077,6 +1078,11 @@ let getAsrtVarHyps = (numOfVars:int, asrtHyps:array<hypothesis>):array<int> => {
     }
 }
 
+let normalizeDescrRegex = RegExp.fromStringWithFlags("\\s+", ~flags="g")
+let normalizeDescr = (descr:string):string => {
+    descr->String.trim->String.toLowerCase->String.replaceAllRegExp(normalizeDescrRegex, " ")
+}
+
 let createFrame = (
     ~ctx:mmContext,
     ~ord:int,
@@ -1116,6 +1122,7 @@ let createFrame = (
                                         ->Array.mapWithIndex((cv,fv) => (cv,fv))
                                         ->Belt_HashMapInt.fromArray
                 let descr = ctx.contents.lastComment
+                let descrNorm = descr->Option.map(normalizeDescr)
                 let hyps = mandatoryHypotheses->Array.map(renumberVarsInHypothesis(ctxToFrameRenum, _))
                 let numOfVars = mandatoryVarsArr->Array.length
                 let frame = {
@@ -1131,6 +1138,7 @@ let createFrame = (
                     numOfVars,
                     numOfArgs: mandatoryHypotheses->Array.length,
                     descr,
+                    descrNorm,
                     proof,
                     isDisc: isMatch( 
                         ~descr, ~label, ~descrRegexToMatch=descrRegexToDisc, ~labelRegexToMatch=labelRegexToDisc, 
@@ -1422,6 +1430,7 @@ let frameRemoveRedundantText = (
     {
         ...frame,
         descr: if (removeAsrtDescr) {None} else {frame.descr},
+        descrNorm: if (removeAsrtDescr) {None} else {frame.descrNorm},
         proof: if (removeProofs) {None} else {frame.proof},
     }
 }

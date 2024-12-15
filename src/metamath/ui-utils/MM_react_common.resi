@@ -6,14 +6,33 @@ let rndProgress: (~text:string, ~pct:float=?, ~onTerminate:unit=>unit=?) => reEl
 
 let rndHiddenTextField: (~key:string=?, ~onKeyDown:reKeyboardHnd) => reElem
 
+let openModalPaneWithTitle: (
+    ~modalRef: Expln_React_Modal.modalRef, 
+    ~title:string=?,
+    ~content:(~close:unit=>unit) => React.element,
+) => unit
+
 let openInfoDialog: (
     ~modalRef: Expln_React_Modal.modalRef,
-    ~text: string=?,
-    ~content:React.element=?, 
-    ~icon:React.element=?,
-    ~onOk: unit => unit =?,
     ~title:string=?,
+    ~icon:React.element=?,
+    ~content:React.element=?, 
+    ~text: string=?,
+    ~onOk: unit => unit =?,
+    ~okBtnText:string=?,
+    ~onCancel:unit=>unit=?,
+    ~cancelBtnText:string=?,
 ) => unit
+
+let openOkCancelDialog: (
+    ~modalRef: Expln_React_Modal.modalRef, 
+    ~title:string=?,
+    ~icon:React.element=?,
+    ~content:React.element=?, 
+    ~text:string=?, 
+    ~okBtnText:string=?,
+    ~cancelBtnText:string=?,
+) => promise<bool>
 
 let rndSmallTextBtn: ( ~onClick:unit=>unit, ~text:string, ~color:string=?) => React.element
 

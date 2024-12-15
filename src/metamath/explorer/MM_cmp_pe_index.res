@@ -12,12 +12,14 @@ open Expln_utils_promise
 type props = {
     modalRef:modalRef,
     preCtxData:preCtxData,
+    tabTitle:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string)=>unit,
+    openExplorer:(~initPatternFilterStr:string=?)=>unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
     initPatternFilterStr:string,
-    addAsrtByLabel:React.ref<Nullable.t<string=>promise<result<unit,string>>>>,
+    addAsrtByLabel:React.ref<option<string=>promise<result<unit,string>>>>,
+    onTabTitleChange:string=>unit,
 }
 
 let propsAreSame = (a:props, b:props):bool => {
@@ -27,23 +29,24 @@ let propsAreSame = (a:props, b:props):bool => {
 let make = React.memoCustomCompareProps(({
     modalRef,
     preCtxData,
+    tabTitle,
     openFrameExplorer,
     openExplorer,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
     initPatternFilterStr,
     addAsrtByLabel,
+    onTabTitleChange,
 }:props) => {
-    let settings = preCtxData.settingsV.val
-    let preCtx = preCtxData.ctxV.val
+    let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
+        () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+    )
+    let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
 
-    let (preCtxVer, setPreCtxVer) = React.useState(() => preCtxData.ctxV.ver)
-    let (typeColors, setTypeColors) = React.useState(() => settings->settingsGetTypeColors)
-    let (allLabels, setAllLabels) = React.useState(() => [])
+    let (allFramesInDeclarationOrder, setAllFramesInDeclarationOrder) = React.useState(() => [])
     let (filteredLabels, setFilteredLabels) = React.useState(() => [])
     let (allStmtTypes, setAllStmtTypes) = React.useState(() => [])
     let (allStmtTypesConcat, setAllStmtTypesConcat) = React.useState(() => "all")
-    let (typeOrderInDisj, setTypeOrderInDisj) = React.useState(() => Belt_HashMapInt.make(~hintSize=0))
 
     let (isAxiomFilter, setIsAxiomFilter) = React.useState(() => None)
     let (stmtTypeFilter, setStmtTypeFilter) = React.useState(() => None)
@@ -51,9 +54,9 @@ let make = React.memoCustomCompareProps(({
     let (patternFilterStr, setPatternFilterStr) = React.useState(() => initPatternFilterStr)
     let (patternFilterErr, setPatternFilterErr) = React.useState(() => None)
     let (descrFilterStr, setDescrFilterStr) = React.useState(() => "")
-    let (discFilter, setDiscFilter) = React.useState(() => false)
-    let (deprFilter, setDeprFilter) = React.useState(() => false)
-    let (tranDeprFilter, setTranDeprFilter) = React.useState(() => false)
+    let (discFilter, setDiscFilter) = React.useState(() => None)
+    let (deprFilter, setDeprFilter) = React.useState(() => None)
+    let (tranDeprFilter, setTranDeprFilter) = React.useState(() => None)
     let (applyFiltersRequested, setApplyFiltersRequested) = React.useState(() => false)
 
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
@@ -70,79 +73,44 @@ let make = React.memoCustomCompareProps(({
         setPatternFilterStr(_ => "")
         setPatternFilterErr(_ => None)
         setDescrFilterStr(_ => "")
-        setDiscFilter(_ => false)
-        setDeprFilter(_ => false)
-        setTranDeprFilter(_ => false)
+        setDiscFilter(_ => None)
+        setDeprFilter(_ => None)
+        setTranDeprFilter(_ => None)
         if (applyFilters) {
             setApplyFiltersRequested(_ => true)
         }
     }
 
-    let actApplyFilters = () => {
-        let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
-            ~searchStr=patternFilterStr->String.trim,
-            ~ctx=preCtxData.ctxV.val
-        )
-        switch searchPattern {
-            | Error(msg) => setPatternFilterErr(_ => Some(msg))
-            | Ok(searchPattern) => {
-                setPatternFilterErr(_ => None)
-                let mapping = Belt_HashMapInt.make(~hintSize=10)
-                let frameMatchesPattern = frame => MM_wrk_search_asrt.frameMatchesPattern(
-                    ~frame, ~searchPattern, ~mapping
-                )
-                let labelFilterTrim = labelFilter->String.trim->String.toLowerCase
-                let descrFilterStrTrim = descrFilterStr->String.trim->String.toLowerCase
-                let filterByDescr = descrFilterStrTrim->String.length > 0
-                setFilteredLabels(_ => {
-                    allLabels->Array.filter(((_,label)) => {
-                        let frame = preCtxData.ctxV.val->getFrameExn(label)
-                        isAxiomFilter->Belt_Option.mapWithDefault(
-                            true, 
-                            isAxiomFilter => isAxiomFilter === frame.isAxiom
-                        ) 
-                        && stmtTypeFilter->Belt_Option.mapWithDefault(
-                            true, 
-                            stmtType => stmtType === frame.asrt->Array.getUnsafe(0)
-                        ) 
-                        && (!discFilter || frame.isDisc)
-                        && (!deprFilter || frame.isDepr)
-                        && (!tranDeprFilter || frame.isTranDepr)
-                        && label->String.toLowerCase->String.includes(labelFilterTrim)
-                        && (
-                            !filterByDescr
-                            || frame.descr->Belt.Option.mapWithDefault(false, descr => {
-                                descr->String.toLowerCase->String.includes(descrFilterStrTrim)
-                            })
-                        )
-                        && frameMatchesPattern(frame)
-                    })
+    let filterByDescr = (frames:array<frame>):array<frame> => {
+        let descrFilterStrNorm = normalizeDescr(descrFilterStr)
+        if (descrFilterStrNorm->String.length > 0) {
+            frames->Array.filter(frame => {
+                frame.descrNorm->Belt.Option.mapWithDefault(false, descrNorm => {
+                    descrNorm->String.includes(descrFilterStrNorm)
                 })
-            }
+            })
+        } else {
+            frames
         }
     }
 
-    React.useEffect1(() => {
-        if (applyFiltersRequested) {
-            setApplyFiltersRequested(_ => false)
-            actApplyFilters()
+    let mapToOrdAndLabel = (frames:array<frame>):array<(int,string)> => {
+        frames->Array.map(frame => (frame.ord+1,frame.label))
+    }
+
+    let makeActTerminate = (modalId:modalId):(unit=>unit) => {
+        () => {
+            MM_wrk_client.terminateWorker()
+            closeModal(modalRef, modalId)
         }
-        None
-    }, [applyFiltersRequested])
+    }
 
-    let actPreCtxDataChanged = (~isFirstInvocation:bool) => {
-        let settings = preCtxData.settingsV.val
-        setTypeColors(_ => settings->settingsGetTypeColors)
-
-        let preCtx = preCtxData.ctxV.val
-        setPreCtxVer(_ => preCtxData.ctxV.ver)
-        let allFrames = preCtx->getAllFrames
-        let allLabels = Expln_utils_common.createArray(allFrames->Belt_MapString.size)
-        allFrames->Belt_MapString.forEach((_,frame) => {
-            allLabels[frame.ord] = (frame.ord+1, frame.label)
-        })
-        setAllLabels(_ => allLabels)
-        setFilteredLabels(_ => allLabels)
+    let actPreCtxDataChanged = () => {
+        let preCtx = preCtxData.ctxFullV.val
+        let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
+            ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
+        setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
+        setFilteredLabels(_ => allFramesInDeclarationOrder->mapToOrdAndLabel)
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
@@ -156,23 +124,108 @@ let make = React.memoCustomCompareProps(({
         setAllStmtTypes(_ => allStmtTypes)
         setAllStmtTypesConcat(_ => "all" ++ allStmtTypes->Array.joinUnsafe(""))
 
-        let typeOrderInDisj = createTypeOrderFromStr(
-            ~sortDisjByType=settings.sortDisjByType, 
-            ~typeNameToInt=ctxSymToInt(preCtx, _)
-        )
-        setTypeOrderInDisj(_ => typeOrderInDisj)
+        setApplyFiltersRequested(_ => true)
+    }
 
-        if (isFirstInvocation) {
-            setApplyFiltersRequested(_ => true)
+    let actRefreshOnPreCtxDataChange = () => {
+        actPreCtxDataChanged()
+        setLastNonEmptyPreCtxVer( _ => Some(preCtxData.ctxFullV.ver) )
+        setRefreshIsNeeded(_ => false)
+    }
+
+    let actApplyFilters = () => {
+        if (refreshIsNeeded) {
+            actRefreshOnPreCtxDataChange()
         } else {
-            actClearFilters(~applyFilters=false)
+            let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
+                ~searchStr=patternFilterStr->String.trim,
+                ~ctx=preCtxData.ctxFullV.val
+            )
+            switch searchPattern {
+                | Error(msg) => setPatternFilterErr(_ => Some(msg))
+                | Ok(searchPattern) => {
+                    setPatternFilterErr(_ => None)
+                    if (searchPattern->Array.length == 0) {
+                        setFilteredLabels(_ => {
+                            MM_wrk_search_asrt.doSearchAssertions(
+                                ~allFramesInDeclarationOrder,
+                                ~isAxiom=isAxiomFilter,
+                                ~typ=stmtTypeFilter, 
+                                ~label=labelFilter, 
+                                ~searchPattern=[],
+                                ~isDisc=discFilter,
+                                ~isDepr=deprFilter,
+                                ~isTranDepr=tranDeprFilter,
+                            )
+                            ->filterByDescr
+                            ->mapToOrdAndLabel
+                        })
+                    } else {
+                        openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
+                            updateModal(
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Searching", ~pct=0., ~onTerminate=makeActTerminate(modalId)
+                                )
+                            )
+                            MM_wrk_search_asrt.searchAssertions(
+                                ~settingsVer=preCtxData.settingsV.ver,
+                                ~settings=preCtxData.settingsV.val,
+                                ~preCtxVer=preCtxData.ctxMinV.ver,
+                                ~preCtx=preCtxData.ctxMinV.val,
+                                ~isAxiom=isAxiomFilter,
+                                ~typ=stmtTypeFilter,
+                                ~label=labelFilter,
+                                ~searchPattern,
+                                ~isDisc=discFilter,
+                                ~isDepr=deprFilter,
+                                ~isTranDepr=tranDeprFilter,
+                                ~returnLabelsOnly=true,
+                                ~onProgress = pct => updateModal(
+                                    modalRef, modalId, () => rndProgress(
+                                        ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
+                                    )
+                                )
+                            )->promiseMap(((_,foundLabels)) => {
+                                let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
+                                setFilteredLabels(_ => {
+                                    allFramesInDeclarationOrder
+                                        ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
+                                        ->filterByDescr
+                                        ->mapToOrdAndLabel
+                                })
+                                closeModal(modalRef, modalId)
+                            })
+                        })->ignore
+                    }
+                }
+            }
         }
     }
 
-    let (preCtxDataHasChangedPreviously, setPreCtxDataHasChangedPreviously) = React.useState(() => false)
     React.useEffect1(() => {
-        actPreCtxDataChanged(~isFirstInvocation=!preCtxDataHasChangedPreviously)
-        setPreCtxDataHasChangedPreviously(_ => true)
+        if (applyFiltersRequested) {
+            setApplyFiltersRequested(_ => false)
+            actApplyFilters()
+        }
+        None
+    }, [applyFiltersRequested])
+
+    React.useEffect1(() => {
+        switch lastNonEmptyPreCtxVer {
+            | Some(lastNonEmptyPreCtxVer) => {
+                if (lastNonEmptyPreCtxVer != preCtxData.ctxFullV.ver) {
+                    setRefreshIsNeeded(_ => true)
+                } else {
+                    actPreCtxDataChanged()
+                }
+            }
+            | None => {
+                setLastNonEmptyPreCtxVer(
+                    _ => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+                )
+                actPreCtxDataChanged()
+            }
+        }
         None
     }, [preCtxData])
 
@@ -195,7 +248,7 @@ let make = React.memoCustomCompareProps(({
     let stmtTypeFilterToStr = typeFilter => {
         switch typeFilter {
             | None => allStmtTypesConcat
-            | Some(n) => preCtx->ctxIntToSymExn(n)
+            | Some(n) => preCtxData.ctxFullV.val->ctxIntToSymExn(n)
         }
     }
 
@@ -203,7 +256,7 @@ let make = React.memoCustomCompareProps(({
         if (str == allStmtTypesConcat) {
             None
         } else {
-            preCtx->ctxSymToInt(str)
+            preCtxData.ctxFullV.val->ctxSymToInt(str)
         }
     }
 
@@ -254,6 +307,23 @@ let make = React.memoCustomCompareProps(({
 
     let actCloseMainMenu = () => {
         setMainMenuIsOpened(_ => false)
+    }
+
+    let actRenameThisTab = () => {
+        openModalPaneWithTitle(
+            ~modalRef,
+            ~title="Rename tab",
+            ~content = (~close) => {
+                <MM_cmp_rename_tab 
+                    initName=tabTitle
+                    onOk={newName => {
+                        close()
+                        onTabTitleChange(newName)
+                    }}
+                    onCancel=close
+                />
+            }
+        )
     }
 
     let actSetAsrtsPerPage = (strNum:string):unit => {
@@ -349,54 +419,53 @@ let make = React.memoCustomCompareProps(({
         />
     }
 
-    let rndPatternError = () => {
-        switch patternFilterErr {
-            | None => <></>
-            | Some(msg) => {
-                <pre style=ReactDOM.Style.make(~color="red", ())>
-                    {React.string("Malformed pattern text: " ++ msg)}
-                </pre>
+    let rnd3StateCheckbox = (
+        ~label:string, ~style:ReactDOM.Style.t, ~checked:option<bool>, ~onChange:option<bool>=>unit
+    ) => {
+        <FormControlLabel
+            control={
+                <Checkbox
+                    checked={checked->Option.getOr(false)}
+                    indeterminate={checked->Option.getOr(true) == false}
+                    onChange={_ => {
+                        switch checked {
+                            | None => onChange(Some(true))
+                            | Some(true) => onChange(Some(false))
+                            | Some(false) => onChange(None)
+                        }
+                    }}
+                />
             }
-        }
+            label
+            style
+        />
     }
 
     let rndDiscFilter = () => {
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=discFilter
-                    onChange=evt2bool(actDiscFilterUpdated)
-                />
-            }
-            label="Discouraged"
-            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
-        />
+        rnd3StateCheckbox(
+            ~label="Discouraged", 
+            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~checked=discFilter, 
+            ~onChange=actDiscFilterUpdated
+        )
     }
 
     let rndDeprFilter = () => {
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=deprFilter
-                    onChange=evt2bool(actDeprFilterUpdated)
-                />
-            }
-            label="Deprecated"
-            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
-        />
+        rnd3StateCheckbox(
+            ~label="Deprecated", 
+            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~checked=deprFilter, 
+            ~onChange=actDeprFilterUpdated
+        )
     }
 
     let rndTranDeprFilter = () => {
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked=tranDeprFilter
-                    onChange=evt2bool(actTranDeprFilterUpdated)
-                />
-            }
-            label="Transitively deprecated"
-            style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () )
-        />
+        rnd3StateCheckbox(
+            ~label="Transitively deprecated", 
+            ~style=ReactDOM.Style.make( ~paddingRight="10px", ~marginTop="-2px", ~marginLeft="2px", () ), 
+            ~checked=tranDeprFilter, 
+            ~onChange=actTranDeprFilterUpdated
+        )
     }
 
     let rndApplyFiltersBtn = () => {
@@ -456,7 +525,7 @@ let make = React.memoCustomCompareProps(({
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                openExplorer(~initPatternFilterStr="")
+                                openExplorer()
                             }}
                         >
                             {React.string("Open new Explorer tab")}
@@ -469,6 +538,14 @@ let make = React.memoCustomCompareProps(({
                             }}
                         >
                             {React.string(if ctxSelectorIsExpanded {"Hide context"} else {"Show context"})}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actRenameThisTab()
+                            }}
+                        >
+                            {React.string("Rename this tab")}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
@@ -488,30 +565,46 @@ let make = React.memoCustomCompareProps(({
 
     <Col style=ReactDOM.Style.make(~margin="15px", ())>
         {rndFilters()}
-        {rndPatternError()}
         {rndMainMenu()}
-        <MM_cmp_pe_frame_list
-            key=`${preCtxVer->Belt_Int.toString}`
-            modalRef
-            editStmtsByLeftClick=settings.editStmtsByLeftClick
-            settings=preCtxData.settingsV.val
-            typeColors
-            preCtx
-            frms=preCtxData.frms
-            parenCnt=preCtxData.parenCnt
-            syntaxTypes=preCtxData.syntaxTypes
-            labels=filteredLabels
-            openFrameExplorer
-            openExplorer
-            asrtsPerPage
-            typeOrderInDisj
-            addAsrtByLabel={label=>{
-                switch addAsrtByLabel.current->Nullable.toOption {
-                    | Some(addAsrtByLabel) => addAsrtByLabel(label)
-                    | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+        {
+            if (refreshIsNeeded) {
+                <Button onClick=(_=>actRefreshOnPreCtxDataChange()) variant=#contained > 
+                    { React.string("Refresh") }
+                </Button>
+            } else {
+                switch patternFilterErr {
+                    | Some(msg) => {
+                        <pre style=ReactDOM.Style.make(~color="red", ())>
+                            {React.string("Malformed pattern text: " ++ msg)}
+                        </pre>
+                    }
+                    | None => {
+                        <MM_cmp_pe_frame_list
+                            key=`${preCtxData.ctxFullV.ver->Belt_Int.toString}`
+                            modalRef
+                            editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                            settings=preCtxData.settingsV.val
+                            typeColors=preCtxData.typeColors
+                            preCtx=preCtxData.ctxFullV.val
+                            frms=preCtxData.frms
+                            parenCnt=preCtxData.parenCnt
+                            syntaxTypes=preCtxData.syntaxTypes
+                            labels=filteredLabels
+                            openFrameExplorer
+                            openExplorer
+                            asrtsPerPage
+                            typeOrderInDisj=preCtxData.typeOrderInDisj
+                            addAsrtByLabel={label=>{
+                                switch addAsrtByLabel.current {
+                                    | Some(addAsrtByLabel) => addAsrtByLabel(label)
+                                    | None => Promise.resolve(Error("Internal error: addAsrtByLabel is null"))
+                                }
+                            }}
+                        />
+                    }
                 }
-            }}
-        />
+            }
+        }
     </Col>
 
 }, propsAreSame)

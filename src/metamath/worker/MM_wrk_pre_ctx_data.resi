@@ -19,11 +19,16 @@ type mmCtxSrcDto = {
 type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
-    ctxV: version<mmContext>,
+    ctxFullV: version<mmContext>,
+    ctxMinV: version<mmContext>,
     frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
-    syntaxTypes: array<int>,
+    syntaxTypes:array<int>,
+    parensMap: Belt_HashMapString.t<string>,
+    typeOrderInDisj:Belt_HashMapInt.t<int>,
+    typeColors: Belt_HashMapString.t<string>,
+    symColors: Belt_HashMapString.t<string>,
 }
 
 let preCtxDataMake: (~settings: settings) => preCtxData
@@ -35,3 +40,5 @@ let preCtxDataUpdate: (
 ) => preCtxData
 
 let findTypes: mmContext => (array<int>,array<int>)
+
+let createSymbolColors: (~ctx:mmContext, ~typeColors: Belt_HashMapString.t<string>) => Belt_HashMapString.t<string>

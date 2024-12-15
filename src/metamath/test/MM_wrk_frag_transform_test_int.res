@@ -51,9 +51,9 @@ let testTransform = (
         ~wrkCtx,
         ~syms=[selectedFragment->getSpaceSeparatedValuesAsArray],
         ~syntaxTypes=["wff", "class", "setvar"]->Array.map(ctxSymToIntExn(wrkCtx, _)),
-        ~frms=editorState.frms,
-        ~frameRestrict=editorState.settings.allowedFrms.inSyntax,
-        ~parenCnt=editorState.parenCnt,
+        ~frms=editorState.preCtxData.frms,
+        ~frameRestrict=editorState.preCtxData.settingsV.val.allowedFrms.inSyntax,
+        ~parenCnt=editorState.preCtxData.parenCnt,
         ~lastSyntaxType=None,
         ~onLastSyntaxTypeChange=_=>(),
     )

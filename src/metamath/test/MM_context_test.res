@@ -200,3 +200,15 @@ describe("disjForEachArr", _ => {
         )
     })
 })
+
+describe("normalizeDescr", _ => {
+
+    it("replaces all whitespaces with a single whitespace and lowecase all characters", _ => {
+        assertEq( normalizeDescr("A  B"), "a b", )
+        assertEq( normalizeDescr(" A  B "), "a b", )
+        assertEq( normalizeDescr(" A \t B "), "a b", )
+        assertEq( normalizeDescr(" A \n B "), "a b", )
+        assertEq( normalizeDescr(" A \t\n B "), "a b", )
+        assertEq( normalizeDescr(" A \t\n B      C"), "a b c", )
+    })
+})

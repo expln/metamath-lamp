@@ -1,6 +1,7 @@
 open MM_wrk_api
 
-@new external newWorker: string => {..} = "Worker"
+@new
+external newWorker: string => {..} = "Worker"
 
 exception WorkerException(string)
 
@@ -20,7 +21,7 @@ let terminateWorker = () => {
     switch webworkerRef.contents {
         | None => ()
         | Some(webworker) => {
-            webworker["terminate"](.)
+            webworker["terminate"]()
             webworkerRef.contents = None
             clients->Array.splice(~start=0, ~remove=clients->Array.length, ~insert=[])
         }
@@ -69,7 +70,7 @@ let sendToWorkerPriv: workerRequest => unit = req => {
     }
     switch webworkerRef.contents {
         | None => raise(WorkerException(`Could not instantiate a webworker.`))
-        | Some(webworker) => webworker["postMessage"](. req)
+        | Some(webworker) => webworker["postMessage"](req)
     }
 }
 

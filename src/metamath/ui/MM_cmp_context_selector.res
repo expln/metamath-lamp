@@ -38,7 +38,6 @@ type reloadCtxFunc = (
     ~srcs:array<mmCtxSrcDto>, 
     ~settings:settings, 
     ~force:bool=?, 
-    ~showError:bool=?
 ) => promise<result<unit,string>>
 
 let createEmptySingleScope = (~id:string, ~srcType:mmFileSourceType) => {
@@ -278,7 +277,6 @@ let loadMmContext = (
     ~singleScopes: array<mmSingleScope>, 
     ~settings:settings,
     ~modalRef:modalRef,
-    ~showError:bool,
 ):promise<result<mmContext,string>> => {
     promise(rsv => {
         if (scopeIsEmpty(singleScopes)) {
@@ -315,31 +313,6 @@ let loadMmContext = (
                     ~onProgress = pct => 
                         updateModal( modalRef, modalId, () => rndProgress(~text=progressText, ~pct, ~onTerminate)),
                     ~onDone = ctx => {
-                        switch ctx {
-                            | Error(msg) => {
-                                if (showError) {
-                                    openModal(modalRef, _ => React.null)->promiseMap(modalId => {
-                                        updateModal(modalRef, modalId, () => {
-                                            <Paper style=ReactDOM.Style.make(~padding="10px", ())>
-                                                <Col spacing=1.>
-                                                    {React.string("Error loading context:")}
-                                                    <pre style=ReactDOM.Style.make(~color="red", ())>
-                                                        {React.string(msg)}
-                                                    </pre>
-                                                    <Button
-                                                        onClick={_=>closeModal(modalRef, modalId)}
-                                                        variant=#contained
-                                                    > 
-                                                        {React.string("Ok")}
-                                                    </Button>
-                                                </Col>
-                                            </Paper>
-                                        })
-                                    })->ignore
-                                }
-                            }
-                            | Ok(_) => ()
-                        }
                         rsv(ctx)
                         closeModal(modalRef, modalId)
                     },
@@ -495,7 +468,7 @@ let make = (
     ~settings:settings,
     ~onUrlBecomesTrusted:string=>unit,
     ~onChange:(array<mmCtxSrcDto>, mmContext)=>unit, 
-    ~reloadCtx: React.ref<Nullable.t<reloadCtxFunc>>,
+    ~reloadCtx: React.ref<option<reloadCtxFunc>>,
     ~style as _ :option<reStyle>=?,
     ~onExpandedChange:bool=>unit,
     ~doToggle: React.ref<Nullable.t<unit=>unit>>,
@@ -604,24 +577,23 @@ let make = (
         }
     }
 
-    let applyChanges = ( ~state:mmScope, ~showError:bool, ~settings:settings, ):promise<result<unit,string>> => {
-        if (scopeIsEmpty(state.singleScopes)) {
+    let applyChanges = ( ~mmScope:mmScope, ~settings:settings, ):promise<result<unit,string>> => {
+        if (scopeIsEmpty(mmScope.singleScopes)) {
             promise(rslv => {
-                setState(_ => state)
+                setState(_ => mmScope)
                 actNewCtxIsReady([],createContext(()))
                 rslv(Ok(()))
             })
         } else {
             loadMmContext(
-                ~singleScopes=state.singleScopes, 
+                ~singleScopes=mmScope.singleScopes, 
                 ~settings,
                 ~modalRef, 
-                ~showError
             )->promiseMap(res => {
                 switch res {
                     | Error(msg) => Error(msg)
                     | Ok(ctx) => {
-                        let mmCtxSrcDtos = state.singleScopes->Array.map(ss => {
+                        let mmCtxSrcDtos = mmScope.singleScopes->Array.map(ss => {
                             switch ss.fileSrc {
                                 | None => raise(MmException({msg:`ss.fileSrc is None`}))
                                 | Some(src) => {
@@ -658,7 +630,7 @@ let make = (
                                 }
                             }
                         })
-                        setState(_ => state)
+                        setState(_ => mmScope)
                         actNewCtxIsReady(mmCtxSrcDtos, ctx)
                         Ok(())
                     }
@@ -667,39 +639,134 @@ let make = (
         }
     }
 
-    reloadCtx.current = Nullable.make(
-        (~srcs:array<mmCtxSrcDto>, ~settings:settings, ~force:bool=false, ~showError:bool=false):promise<result<unit,string>> => {
-            if (!shouldReloadContext(prevState.singleScopes, srcs, force)) {
-                promise(rslv => rslv(Ok(())))
-            } else {
-                let loadedTexts = Belt_HashMapString.fromArray(
-                    prevState.singleScopes->Array.map(ss => {
-                        switch ss.fileSrc {
-                            | None | Some(Local(_)) => None
-                            | Some(Web({url})) => {
-                                switch ss.fileText {
-                                    | None | Some(UseAst) => None
-                                    | Some(Text(text)) => Some((url,text))
+    let getMmScopeToReload = (
+        ~settings:settings, 
+        ~force:bool=false, 
+        ~srcs:option<array<mmCtxSrcDto>>=None, 
+        ~mmScope:option<mmScope>=None
+    ):promise<result<option<mmScope>,string>> => {
+        switch mmScope {
+            | Some(_) => Promise.resolve(Ok(mmScope))
+            | None => {
+                switch srcs {
+                    | None => Promise.resolve(Error("srcs and mmScope are not provided."))
+                    | Some(srcs) => {
+                        if (!shouldReloadContext(prevState.singleScopes, srcs, force)) {
+                            Promise.resolve(Ok(None))
+                        } else {
+                            let loadedTexts = Belt_HashMapString.fromArray(
+                                prevState.singleScopes->Array.map(ss => {
+                                    switch ss.fileSrc {
+                                        | None | Some(Local(_)) => None
+                                        | Some(Web({url})) => {
+                                            switch ss.fileText {
+                                                | None | Some(UseAst) => None
+                                                | Some(Text(text)) => Some((url,text))
+                                            }
+                                        }
+                                        
+                                    }
+                                })->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
+                            )
+                            makeMmScopeFromSrcDtos(
+                                ~modalRef,
+                                ~webSrcSettings=settings.webSrcSettings,
+                                ~srcs,
+                                ~trustedUrls,
+                                ~onUrlBecomesTrusted,
+                                ~loadedTexts,
+                            )->Promise.thenResolve(res => {
+                                switch res {
+                                    | Error(msg) => Error(msg)
+                                    | Ok(mmScope) => Ok(Some(mmScope))
                                 }
-                            }
-                            
+                            })
                         }
-                    })->Array.filter(Belt_Option.isSome(_))->Array.map(Belt_Option.getExn(_))
-                )
-                makeMmScopeFromSrcDtos(
-                    ~modalRef,
-                    ~webSrcSettings=settings.webSrcSettings,
-                    ~srcs,
-                    ~trustedUrls,
-                    ~onUrlBecomesTrusted,
-                    ~loadedTexts,
-                )->promiseFlatMap(res => {
-                    switch res {
-                        | Error(msg) => promise(rslv => rslv(Error(msg)))
-                        | Ok(mmScope) => applyChanges( ~state=mmScope, ~showError, ~settings )
                     }
-                })
+                }
             }
+        }
+    }
+
+    let rndSrcDtos = (srcs:array<mmCtxSrcDto>):React.element => {
+        <Col>
+        {
+            srcs->Array.mapWithIndex((src,i) => {
+                <Paper key={i->Belt.Int.toString} style=ReactDOM.Style.make(~padding="3px", ())>
+                    <Col>
+                        {src.url->React.string}
+                        {
+                            let readInstr = src.readInstr->readInstrFromStr
+                            if (readInstr == ReadAll) {
+                                `read all`->React.string
+                            } else {
+                                let readInstrStr = if (readInstr == StopBefore) {"stop before"} else {"stop after"}
+                                `${readInstrStr}: ${src.label}`->React.string
+                            }
+                        }
+                    </Col>
+                </Paper>
+            })->React.array
+        }
+        </Col>
+    }
+
+    let rndReloadCtxError = (~errMsg:string, ~srcs:option<array<mmCtxSrcDto>>) => {
+        <Col spacing=1.>
+            <span>
+                { React.string(`Could not reload the context because of the error:`) }
+            </span>
+            <span style=ReactDOM.Style.make(~color="red", ())>
+                { React.string(errMsg) }
+            </span>
+            {
+                switch srcs {
+                    | None => React.null
+                    | Some(srcs) => {
+                        <>
+                            <span>
+                                { React.string(`This error happened when loading the context:`) }
+                            </span>
+                            {rndSrcDtos(srcs)}
+                        </>
+                    }
+                }
+            }
+        </Col>
+    }
+
+    let actReloadCtxPriv = (
+        ~settings:settings, ~force:bool=false, ~srcs:option<array<mmCtxSrcDto>>=?, ~mmScope:option<mmScope>=?, 
+    ):promise<result<unit,string>> => {
+        if (srcs->Option.isSome && mmScope->Option.isSome) {
+            raise(MmException({msg:`Only one of srcs or mmScope must be specified.`}))
+        }
+        getMmScopeToReload(~settings, ~force, ~srcs, ~mmScope)
+            ->Promise.then(mmScope => {
+                switch mmScope {
+                    | Error(msg) => Promise.resolve(Error(msg))
+                    | Ok(None) => Promise.resolve(Ok())
+                    | Ok(Some(mmScope)) => applyChanges( ~mmScope=mmScope, ~settings )
+                }
+            })
+            ->Promise.then(reloadRes => {
+                switch reloadRes {
+                    | Ok(_) => Promise.resolve(reloadRes)
+                    | Error(msg) => Promise.make((resolve,_) => {
+                        openInfoDialog(
+                            ~modalRef,
+                            ~title="Error reloading the context",
+                            ~content=rndReloadCtxError(~errMsg=msg, ~srcs), 
+                            ~onOk=()=>resolve(reloadRes),
+                        )
+                    })
+                }
+            })
+    }
+
+    reloadCtx.current = Some(
+        (~srcs:array<mmCtxSrcDto>, ~settings:settings, ~force:bool=false):promise<result<unit,string>> => {
+            actReloadCtxPriv( ~settings, ~force, ~srcs, )
         }
     )
 
@@ -731,7 +798,7 @@ let make = (
             <Row>
                 <Button variant=#contained disabled={!scopeIsCorrect && !scopeIsEmpty} 
                     onClick={_=>{
-                        applyChanges( ~state, ~showError=true, ~settings )->promiseMap(res => {
+                        actReloadCtxPriv(~settings, ~force=true, ~mmScope=state)->promiseMap(res => {
                             switch res {
                                 | Error(_) => ()
                                 | Ok(_) => {

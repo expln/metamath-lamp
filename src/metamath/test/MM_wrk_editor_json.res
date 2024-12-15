@@ -1,5 +1,4 @@
 open MM_wrk_editor
-open MM_parenCounter
 open MM_wrk_pre_ctx_data
 
 type userStmtLocStor = {
@@ -12,6 +11,7 @@ type userStmtLocStor = {
 }
 
 type editorStateLocStor = {
+    tabTitle: string,
     srcs: array<mmCtxSrcDto>,
     descr: string,
     varsText: string,
@@ -49,52 +49,52 @@ let userStmtLocStorToUserStmt = (userStmtLocStor:userStmtLocStor):userStmt => {
     }
 }
 
+let makeEmptyEditorStateLocStor = (~tabTitle:option<string>=?):editorStateLocStor => {
+    {
+        tabTitle: tabTitle->Option.getOr(""),
+        srcs: [],
+        descr: "",
+        varsText: "",
+        disjText: "",
+        stmts: [],
+    }
+}
+
 let createInitialEditorState = (
     ~preCtxData:preCtxData, 
     ~stateLocStor:option<editorStateLocStor>,
 ) => {
+    let stateLocStor = switch stateLocStor {
+        | Some(stateLocStor) => stateLocStor
+        | None => makeEmptyEditorStateLocStor()
+    }
     let st = {
-        settingsV:preCtxData.settingsV.ver,
-        settings:preCtxData.settingsV.val,
-        typeColors: Belt_HashMapString.make(~hintSize=0),
+        preCtxData:preCtxData,
 
-        srcs:preCtxData.srcs,
-        preCtxV:preCtxData.ctxV.ver,
-        preCtx:preCtxData.ctxV.val,
-        frms: MM_substitution.frmsEmpty(),
-        parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
-        preCtxColors: Belt_HashMapString.make(~hintSize=0),
-        allTypes: [],
-        syntaxTypes: [],
-        parensMap:Belt_HashMapString.make(~hintSize=0),
-        typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
+        tabTitle: stateLocStor.tabTitle,
 
-        descr: stateLocStor->Belt.Option.map(obj => obj.descr)->Belt.Option.getWithDefault(""),
+        descr: stateLocStor.descr,
         descrEditMode: false,
 
-        varsText: stateLocStor->Belt.Option.map(obj => obj.varsText)->Belt.Option.getWithDefault(""),
+        varsText: stateLocStor.varsText,
         varsEditMode: false,
         varsErr: None,
         wrkCtxColors: Belt_HashMapString.make(~hintSize=0),
 
-        disjText: stateLocStor->Belt.Option.map(obj => obj.disjText)->Belt.Option.getWithDefault(""),
+        disjText: stateLocStor.disjText,
         disjEditMode: false,
         disjErr: None,
 
         wrkCtx: None,
 
-        nextStmtId: stateLocStor
-            ->Belt.Option.map(stateLocStor => stateLocStor.stmts->Array.length)
-            ->Belt.Option.getWithDefault(0),
+        nextStmtId: stateLocStor.stmts->Array.length,
         stmts: 
-            stateLocStor
-                ->Belt.Option.map(obj => obj.stmts->Array.mapWithIndex((stmtLocStor,i) => {
-                    {
-                        ...userStmtLocStorToUserStmt(stmtLocStor),
-                        id: i->Belt_Int.toString
-                    }
-                }))
-                ->Belt.Option.getWithDefault([]),
+            stateLocStor.stmts->Array.mapWithIndex((stmtLocStor,i) => {
+                {
+                    ...userStmtLocStorToUserStmt(stmtLocStor),
+                    id: i->Belt_Int.toString
+                }
+            }),
         checkedStmtIds: [],
 
         nextAction: None,
@@ -105,7 +105,8 @@ let createInitialEditorState = (
 
 let editorStateToEditorStateLocStor = (state:editorState):editorStateLocStor => {
     {
-        srcs: state.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
+        srcs: state.preCtxData.srcs->Array.map(src => {...src, ast:None, allLabels:[]}),
+        tabTitle:state.tabTitle,
         descr:state.descr,
         varsText: state.varsText,
         disjText: state.disjText,
@@ -166,6 +167,7 @@ let readEditorStateFromJsonStr = (jsonStr:string):result<editorStateLocStor,stri
                     allLabels: [],
                 }
             }), ~default=()=>[]),
+            tabTitle: d->str("tabTitle", ~default=()=>""),
             descr: d->str("descr", ~default=()=>""),
             varsText: d->str("varsText", ~default=()=>""),
             disjText: d->str("disjText", ~default=()=>""),

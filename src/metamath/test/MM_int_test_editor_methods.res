@@ -12,6 +12,7 @@ open MM_statements_dto
 open MM_wrk_editor_json
 open MM_wrk_pre_ctx_data
 open MM_int_test_utils
+open MM_substitution
 open Common
 
 type rootStmtsToUse =
@@ -232,15 +233,20 @@ let addStmtsBySearch = (
                 | Some(stmtId) => st->toggleStmtChecked(stmtId)
             }
             let searchResults = doSearchAssertions(
-                ~wrkCtx,
-                ~frms=st.frms,
+                ~allFramesInDeclarationOrder=st.preCtxData.frms->frmsSelect
+                    ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
+                    ->Array.map(frm => frm.frame),
+                ~isAxiom=None,
+                ~typ=Some(st.preCtxData.ctxMinV.val->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-"))),
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
-                ~typ=st.preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-")),
                 ~searchPattern=makeSearchPattern(
                     ~searchStr=filterPattern->Belt_Option.getWithDefault(""),
-                    ~ctx=st.preCtx
-                )->Result.getExn
-            )
+                    ~ctx=st.preCtxData.ctxMinV.val
+                )->Result.getExn,
+                ~isDisc=None,
+                ~isDepr=None,
+                ~isTranDepr=None,
+            )->Array.map(frame => frameToStmtsDto(~wrkCtx, ~frame))
             let st = switch searchResults->Array.find(res => (res.stmts->Array.getUnsafe(res.stmts->Array.length-1)).label == chooseLabel) {
                 | None => 
                     raise(MmException({
@@ -343,13 +349,13 @@ let unifyAll = (st):editorState => {
         | Some(wrkCtx) => {
             let rootStmts = st->getRootStmtsForUnification->Array.map(userStmtToRootStmt)
             let proofTree = unifyAll(
-                ~parenCnt = st.parenCnt,
-                ~frms = st.frms,
-                ~allowedFrms = st.settings.allowedFrms,
-                ~combCntMax = st.settings.combCntMax,
+                ~parenCnt = st.preCtxData.parenCnt,
+                ~frms = st.preCtxData.frms,
+                ~allowedFrms = st.preCtxData.settingsV.val.allowedFrms,
+                ~combCntMax = st.preCtxData.settingsV.val.combCntMax,
                 ~wrkCtx,
                 ~rootStmts,
-                ~syntaxTypes=st.syntaxTypes,
+                ~syntaxTypes=st.preCtxData.syntaxTypes,
                 ~exprsToSyntaxCheck=st->getAllExprsToSyntaxCheck(rootStmts)
             )
             let proofTreeDto = proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))
@@ -394,9 +400,10 @@ let unifyBottomUp = (
             let st = st->toggleStmtChecked(stmtId)
             let rootUserStmts = st->getRootStmtsForUnification
             let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
+            let settings = st.preCtxData.settingsV.val
             let proofTree = MM_provers.unifyAll(
-                ~parenCnt = st.parenCnt,
-                ~frms = st.frms,
+                ~parenCnt = st.preCtxData.parenCnt,
+                ~frms = st.preCtxData.frms,
                 ~wrkCtx,
                 ~rootStmts,
                 ~bottomUpProverParams = 
@@ -416,11 +423,11 @@ let unifyBottomUp = (
                         }
                     },
                 ~allowedFrms={
-                    inSyntax: st.settings.allowedFrms.inSyntax,
+                    inSyntax: settings.allowedFrms.inSyntax,
                     inEssen: {
-                        useDisc: useDisc->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useDisc),
-                        useDepr: useDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useDepr),
-                        useTranDepr: useTranDepr->Belt_Option.getWithDefault(st.settings.allowedFrms.inEssen.useTranDepr),
+                        useDisc: useDisc->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useDisc),
+                        useDepr: useDepr->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useDepr),
+                        useTranDepr: useTranDepr->Belt_Option.getWithDefault(settings.allowedFrms.inEssen.useTranDepr),
                     }
                 },
                 ~combCntMax,
@@ -436,7 +443,7 @@ let unifyBottomUp = (
                 ~ctx = wrkCtx,
                 ~typeToPrefix = 
                     Belt_MapString.fromArray(
-                        st.settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
+                        settings.typeSettings->Array.map(ts => (ts.typ, ts.prefix))
                     ),
                 ~rootExprToLabel,
                 ~reservedLabels=st.stmts->Array.map(stmt => stmt.label)

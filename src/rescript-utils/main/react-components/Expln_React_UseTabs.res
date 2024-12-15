@@ -8,6 +8,7 @@ type tabId = string
 
 type tab<'a> = {
     id:tabId,
+    icon: string,
     label: string,
     closable: bool,
     color:option<string>,
@@ -26,10 +27,13 @@ type state<'a> = {
 type tabMethods<'a> = {
     addTab: (~label:string, ~closable:bool, ~color:string=?, ~data:'a, ~doOpen:bool=?) => promise<tabId>,
     openTab: tabId => unit,
+    moveTabLeft: tabId => unit,
+    moveTabRight: tabId => unit,
     removeTab: tabId => unit,
     tabs: array<tab<'a>>,
     activeTabId: tabId,
     renderTabs: unit => reElem,
+    setLabel: (tabId,string) => unit,
 
     updateTabs: (state<'a> => state<'a>) => unit
 }
@@ -49,9 +53,11 @@ let getNextId = st => {
 
 let getTabs = (st:state<'a>) => st.tabs
 
-let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false) => {
+let addTab = (
+    st, ~icon:string="", ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+) => {
     let (st, newId) = st->getNextId
-    let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
+    let newTabs = st.tabs->Array.concat([{id:newId, icon, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
     let newActiveTabId = if (newTabs->Array.length == 1) {
         newId
     } else {
@@ -106,6 +112,27 @@ let openTab = (st:state<'a>, tabId):state<'a> => {
     }
 }
 
+let moveTab = (st:state<'a>, tabId:tabId, toRight:bool):state<'a> => {
+    switch st.tabs->Array.findIndexOpt(t => t.id == tabId) {
+        | None => st
+        | Some(curIdx) => {
+            let newIndex = toRight ? curIdx+1 : curIdx-1
+            if (0 <= newIndex && newIndex < st.tabs->Array.length) {
+                let newTabs = st.tabs->Array.toSpliced(~start=curIdx, ~remove=1, ~insert=[])
+                let newTabs = newTabs->Array.toSpliced(
+                    ~start=newIndex, ~remove=0, ~insert=[st.tabs->Array.getUnsafe(curIdx)]
+                )
+                {...st, tabs:newTabs}
+            } else {
+                st
+            }
+        }
+    }
+}
+
+let moveTabLeft = (st:state<'a>, tabId:tabId):state<'a> => moveTab(st, tabId, false)
+let moveTabRight = (st:state<'a>, tabId:tabId):state<'a> => moveTab(st, tabId, true)
+
 let removeTab = (st:state<'a>, tabId):state<'a> => {
     let newTabs = st.tabs->Array.filter(t => t.id != tabId)
     let newTabHistory = st.tabHistory->Array.filter(id => id != tabId)
@@ -125,7 +152,22 @@ let removeTab = (st:state<'a>, tabId):state<'a> => {
     }
 }
 
-let useTabs = ():tabMethods<'a> => {
+let setLabel = (st:state<'a>, tabId:tabId, newLabel:string):state<'a> => {
+    {
+        ...st, 
+        tabs: st.tabs->Array.map(tab => {
+            if (tab.id == tabId) {
+                {...tab, label:newLabel}
+            } else {
+                tab
+            }
+        }),
+    }
+}
+
+let useTabs = (
+    ~beforeTabRemove:option<tab<'a>=>promise<bool>>=?,
+):tabMethods<'a> => {
     let (state, setState) = React.useState(createEmptyState)
 
     React.useEffect1(() => {
@@ -148,8 +190,34 @@ let useTabs = ():tabMethods<'a> => {
         setState(prev => prev->openTab(id))
     }
 
+    let moveTabLeft = id => {
+        setState(prev => prev->moveTabLeft(id))
+    }
+
+    let moveTabRight = id => {
+        setState(prev => prev->moveTabRight(id))
+    }
+
     let removeTab = id => {
-        setState(prev => prev->removeTab(id))
+        switch state.tabs->Array.find(tab => tab.id == id) {
+            | None => ()
+            | Some(tabToRemove) => {
+                switch beforeTabRemove {
+                    | None => setState(prev => prev->removeTab(id))
+                    | Some(beforeTabRemove) => {
+                        beforeTabRemove(tabToRemove)->Promise.thenResolve(confirmed => {
+                            if (confirmed) {
+                                setState(prev => prev->removeTab(id))
+                            }
+                        })->ignore
+                    }
+                }
+            }
+        }
+    }
+
+    let setLabel = (id:tabId, newLabel:string) => {
+        setState(prev => prev->setLabel(id,newLabel))
     }
 
     let renderTabs = () => {
@@ -172,10 +240,13 @@ let useTabs = ():tabMethods<'a> => {
                             key=tab.id 
                             value=tab.id 
                             label={
+                                let labelWithIcon = tab.icon->String.length == 0 
+                                    ? tab.label 
+                                    : tab.icon ++ tab.label
                                 if (tab.closable) {
                                     <span style=ReactDOM.Style.make(~textTransform="none", ())>
                                         <span style=ReactDOM.Style.make(~marginRight="5px", ())>
-                                            {React.string(tab.label)}
+                                            {React.string(labelWithIcon)}
                                         </span>
                                         <IconButton 
                                             component="div" 
@@ -192,7 +263,7 @@ let useTabs = ():tabMethods<'a> => {
                                         </IconButton>
                                     </span>
                                 } else {
-                                    React.string(tab.label)
+                                    React.string(labelWithIcon)
                                 }
                             }
                             style=ReactDOM.Style.make(
@@ -211,10 +282,13 @@ let useTabs = ():tabMethods<'a> => {
     {
         addTab,
         openTab,
+        moveTabLeft,
+        moveTabRight,
         removeTab,
         tabs: state.tabs->Array.copy,
         activeTabId: state.activeTabId,
         renderTabs,
+        setLabel,
 
         updateTabs: modifier => setState(modifier)
     }

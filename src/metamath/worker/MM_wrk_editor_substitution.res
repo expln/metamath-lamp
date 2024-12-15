@@ -109,7 +109,7 @@ let applySubstitutionForStmt = (st:editorState, ctx:mmContext, stmt:userStmt, wr
     let newExpr = applyWrkSubs(expr, wrkSubs)
     {
         ...stmt,
-        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxColors, ~wrkCtxColors=st.wrkCtxColors)
+        cont: ctx->ctxIntsToStrExn(newExpr)->strToCont(~preCtxColors=st.preCtxData.symColors, ~wrkCtxColors=st.wrkCtxColors)
     }
 }
 
@@ -329,18 +329,18 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
         | None => raise(MmException({msg:`Cannot search for substitutions without wrkCtx.`}))
         | Some(wrkCtx) => {
             let foundSubs = if (useMatching) {
-                findPossibleSubsByMatch(~wrkCtx, ~parenCnt=st.parenCnt, ~frmExpr, ~expr)
+                findPossibleSubsByMatch(~wrkCtx, ~parenCnt=st.preCtxData.parenCnt, ~frmExpr, ~expr)
             } else {
                 findPossibleSubsByUnif(
                     ~wrkCtx, 
-                    ~allTypes=st.allTypes,
-                    ~syntaxTypes=st.syntaxTypes,
-                    ~frms=st.frms,
-                    ~frameRestrict=st.settings.allowedFrms.inSyntax,
-                    ~parenCnt=st.parenCnt,
+                    ~allTypes=st.preCtxData.allTypes,
+                    ~syntaxTypes=st.preCtxData.syntaxTypes,
+                    ~frms=st.preCtxData.frms,
+                    ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
+                    ~parenCnt=st.preCtxData.parenCnt,
                     ~expr1=frmExpr, 
                     ~expr2=expr,
-                    ~metavarPrefix=st.settings.unifMetavarPrefix,
+                    ~metavarPrefix=st.preCtxData.settingsV.val.unifMetavarPrefix,
                 )
             }
             switch foundSubs {
@@ -351,10 +351,10 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
                         verifyDisjoints(~wrkSubs, ~disj)
                         if (wrkSubs.err->Belt_Option.isNone) {
                             verifyTypesForSubstitution(
-                                ~parenCnt=st.parenCnt, 
+                                ~parenCnt=st.preCtxData.parenCnt, 
                                 ~ctx=wrkCtx, 
-                                ~frms=st.frms, 
-                                ~frameRestrict=st.settings.allowedFrms.inSyntax,
+                                ~frms=st.preCtxData.frms, 
+                                ~frameRestrict=st.preCtxData.settingsV.val.allowedFrms.inSyntax,
                                 ~wrkSubs
                             )
                         }

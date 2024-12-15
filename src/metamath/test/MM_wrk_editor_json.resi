@@ -11,6 +11,7 @@ type userStmtLocStor = {
 }
 
 type editorStateLocStor = {
+    tabTitle: string,
     srcs: array<mmCtxSrcDto>,
     descr: string,
     varsText: string, 
@@ -28,3 +29,5 @@ let createInitialEditorState: (
 let editorStateToEditorStateLocStor: editorState => editorStateLocStor
 
 let readEditorStateFromJsonStr: string => result<editorStateLocStor,string>
+
+let makeEmptyEditorStateLocStor: (~tabTitle:string=?) => editorStateLocStor

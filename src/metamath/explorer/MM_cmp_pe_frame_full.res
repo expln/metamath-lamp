@@ -359,9 +359,8 @@ type props = {
     preCtxData:preCtxData,
     label:string,
     openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string)=>unit,
-    loadEditorState: React.ref<Nullable.t<editorStateLocStor => unit>>,
-    focusEditorTab: unit=>unit,
+    openExplorer:(~initPatternFilterStr:string=?)=>unit,
+    openEditor: editorStateLocStor => unit,
     toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ctxSelectorIsExpanded:bool,
 }
@@ -369,6 +368,7 @@ type props = {
 let propsAreSame = (a:props, b:props):bool => {
     a.top === b.top 
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
+    && a.preCtxData.ctxFullV.ver === b.preCtxData.ctxFullV.ver
 }
 
 let rndIconButton = (
@@ -462,9 +462,9 @@ let makeFrameProofData = (
                                 createInitialState(
                                     ~settings=preCtxData.settingsV.val, 
                                     ~frmMmScopes,
-                                    ~preCtx=preCtxData.ctxV.val,
+                                    ~preCtx=preCtxData.ctxFullV.val,
                                     ~frmCtx,
-                                    ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                                    ~frame=preCtxData.ctxFullV.val->getFrameExn(label)
                                 )
                             )
                         )
@@ -509,7 +509,7 @@ let frameProofDataToEditorStateLocStor = (
     let vars = []
     frameProofData.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F) {
-            switch preCtxData.ctxV.val->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
+            switch preCtxData.ctxFullV.val->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
                 | Some(V) => ()
                 | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
                     vars->Array.push(`${hyp.label} ${frameProofData.frmCtx->ctxIntsToStrExn(hyp.expr)}`)
@@ -528,7 +528,7 @@ let frameProofDataToEditorStateLocStor = (
     })
     frmDisj->disjForEachArr(disjGrp => {
         disjArr->Array.push(
-            preCtxData.ctxV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
+            preCtxData.ctxFullV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
         )
     })
     switch frameProofData.dummyVarDisj {
@@ -560,7 +560,7 @@ let frameProofDataToEditorStateLocStor = (
                     typ: userStmtTypeToStr(E), 
                     isGoal: false,
                     isBkm: false,
-                    cont: preCtxData.ctxV.val->frmIntsToStrExn(frameProofData.frame, hyp.expr),
+                    cont: preCtxData.ctxFullV.val->frmIntsToStrExn(frameProofData.frame, hyp.expr),
                     jstfText: "",
                 }
             )
@@ -634,6 +634,7 @@ let frameProofDataToEditorStateLocStor = (
         []
     }
     {
+        tabTitle: frameProofData.frame.label,
         srcs,
         descr: frameProofData.frame.descr->Belt.Option.getWithDefault(""),
         varsText: vars->Array.joinUnsafe("\n"),
@@ -716,11 +717,13 @@ let make = React.memoCustomCompareProps(({
     label,
     openFrameExplorer,
     openExplorer,
-    loadEditorState,
-    focusEditorTab,
+    openEditor,
     toggleCtxSelector,
     ctxSelectorIsExpanded,
 }:props) => {
+    let (lastPreCtxVer, setLastPreCtxVer) = React.useState(() => preCtxData.ctxFullV.ver)
+    let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
+
     let (loadPct, setLoadPct) = React.useState(() => 0.)
     let (loadErr, setLoadErr) = React.useState(() => None)
     let (state, setState) = React.useState(() => None)
@@ -731,7 +734,7 @@ let make = React.memoCustomCompareProps(({
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
 
-    React.useEffect0(() => {
+    let actPreCtxDataChanged = () => {
         setTimeout(
             () => {
                 loadFrameContext(
@@ -751,9 +754,9 @@ let make = React.memoCustomCompareProps(({
                                     createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
                                         ~frmMmScopes,
-                                        ~preCtx=preCtxData.ctxV.val,
+                                        ~preCtx=preCtxData.ctxFullV.val,
                                         ~frmCtx,
-                                        ~frame=preCtxData.ctxV.val->getFrameExn(label)
+                                        ~frame=preCtxData.ctxFullV.val->getFrameExn(label)
                                     )
                                 }) {
                                     | Ok(state) => setState(_ => Some(state))
@@ -766,8 +769,24 @@ let make = React.memoCustomCompareProps(({
             },
             10
         )->ignore
+    }
+
+    let actRefreshOnPreCtxDataChange = () => {
+        actPreCtxDataChanged()
+        setLastPreCtxVer( _ => preCtxData.ctxFullV.ver )
+        setRefreshIsNeeded(_ => false)
+    }
+
+    React.useEffect1(() => {
+        if (lastPreCtxVer != preCtxData.ctxFullV.ver) {
+            setRefreshIsNeeded(_ => true)
+            setState(_ => None)
+            setLoadErr(_ => None)
+        } else {
+            actPreCtxDataChanged()
+        }
         None
-    })
+    }, [preCtxData.ctxFullV.ver])
 
     let modifyState = (update:state=>state):unit => {
         setState(st => {
@@ -838,17 +857,14 @@ let make = React.memoCustomCompareProps(({
     let actToggleIdxExpanded = (idx:int) => modifyState(toggleIdxExpanded(_, idx))
 
     let actLoadProofToEditor = (~state:state, ~adjustContext:bool, ~loadSteps:bool) => {
-        loadEditorState.current->Nullable.toOption->Belt.Option.forEach(loadEditorState => {
-            loadEditorState(
-                frameProofDataToEditorStateLocStor(
-                    ~preCtxData,
-                    ~frameProofData=state, 
-                    ~adjustContext, 
-                    ~loadSteps
-                )
+        openEditor(
+            frameProofDataToEditorStateLocStor(
+                ~preCtxData,
+                ~frameProofData=state, 
+                ~adjustContext, 
+                ~loadSteps
             )
-            focusEditorTab()
-        })
+        )
     }
 
     let actOpenLoadProofToEditorDialog = state => {
@@ -1404,32 +1420,44 @@ let make = React.memoCustomCompareProps(({
         })->React.array
     }
 
-    switch state {
-        | None => {
-            switch loadErr {
-                | Some(msg) => `Error: ${msg}`->React.string
-                | None => {
-                    if (loadPct < 1.0) {
-                        `Loading the context ${floatToPctStr(loadPct)}`->React.string
-                    } else {
-                        `Building the proof table...`->React.string
+    if (refreshIsNeeded) {
+        <Button onClick=(_=>actRefreshOnPreCtxDataChange()) variant=#contained 
+            style=ReactDOM.Style.make(~margin="10px", ())
+        > 
+            { React.string("Refresh") }
+        </Button>
+    } else {
+        switch state {
+            | None => {
+                switch loadErr {
+                    | Some(msg) => {
+                        <pre style=ReactDOM.Style.make(~color="red", ~margin="10px", ())>
+                            {React.string(`Error: ${msg}`)}
+                        </pre>
+                    }
+                    | None => {
+                        if (loadPct < 1.0) {
+                            `Loading the context ${floatToPctStr(loadPct)}`->React.string
+                        } else {
+                            `Building the proof table...`->React.string
+                        }
                     }
                 }
             }
-        }
-        | Some(state) => {
-            <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
-                {rndMainMenu(state)}
-                {rndLabel(state)}
-                {rndDescr(state)}
-                {rndDisj(state)}
-                {rndDummyVarDisj(state)}
-                {rndSummary(state)}
-                {rndPagination(state)}
-                {rndProof(state)}
-                {rndPagination(state)}
-                {rndFooter()}
-            </Col>
+            | Some(state) => {
+                <Col spacing=3. style=ReactDOM.Style.make(~padding="5px 10px", ())>
+                    {rndMainMenu(state)}
+                    {rndLabel(state)}
+                    {rndDescr(state)}
+                    {rndDisj(state)}
+                    {rndDummyVarDisj(state)}
+                    {rndSummary(state)}
+                    {rndPagination(state)}
+                    {rndProof(state)}
+                    {rndPagination(state)}
+                    {rndFooter()}
+                </Col>
+            }
         }
     }
 
