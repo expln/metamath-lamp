@@ -29,3 +29,5 @@ let createInitialEditorState: (
 let editorStateToEditorStateLocStor: editorState => editorStateLocStor
 
 let readEditorStateFromJsonStr: string => result<editorStateLocStor,string>
+
+let makeEmptyEditorStateLocStor: (~tabTitle:string=?) => editorStateLocStor

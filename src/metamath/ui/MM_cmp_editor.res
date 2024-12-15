@@ -777,7 +777,11 @@ let make = (
             })
         }))
         updateTabTitle.contents = Some(newTabTitle => {
-            setStatePriv(st => {...st, tabTitle:newTabTitle})
+            setStatePriv(st => {
+                let st = {...st, tabTitle:newTabTitle}
+                editorSaveStateToLocStor(st, ~editorId)
+                st
+            })
         })
         None
     })

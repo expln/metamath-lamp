@@ -13,7 +13,7 @@ type editorTabDataLocStor = {
 
 type editorTabData = {
     editorId:int, 
-    initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>,
+    initialStateLocStor:MM_wrk_editor_json.editorStateLocStor,
     addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     updateTabTitle: ref<option<string=>unit>>,
 }
@@ -346,10 +346,12 @@ let make = () => {
     let actRenameTab = (id:Expln_React_UseTabs.tabId, newName:string) => {
         setLabel(id,newName)
         tabs->Array.forEach(tab => {
-            switch isEditorTab(tab.data) {
-                | None => ()
-                | Some({updateTabTitle}) => {
-                    updateTabTitle.contents->Option.forEach(updateTabTitle => updateTabTitle(newName))
+            if (tab.id == id) {
+                switch isEditorTab(tab.data) {
+                    | None => ()
+                    | Some({updateTabTitle}) => {
+                        updateTabTitle.contents->Option.forEach(updateTabTitle => updateTabTitle(newName))
+                    }
                 }
             }
         })
@@ -425,16 +427,16 @@ let make = () => {
         })
     }
 
-    let setAndGetTabTitle = (
+    let setTabTitle = (
         ~editorStateLocStor:MM_wrk_editor_json.editorStateLocStor,
         ~existingTabs: array<Expln_React_UseTabs.tab<'a>>, 
-    ):(string,MM_wrk_editor_json.editorStateLocStor) => {
+    ):MM_wrk_editor_json.editorStateLocStor => {
         if (editorStateLocStor.tabTitle->String.trim == "") {
             let newTabTitle = makeNewTabTitle( ~existingTabs, ~prefix="EDITOR" )
             let newEditorStateLocStor = {...editorStateLocStor, tabTitle:newTabTitle}
-            (newTabTitle, newEditorStateLocStor)
+            newEditorStateLocStor
         } else {
-            (editorStateLocStor.tabTitle, editorStateLocStor)
+            editorStateLocStor
         }
     }
 
@@ -442,25 +444,24 @@ let make = () => {
         ~initialStateLocStor:option<MM_wrk_editor_json.editorStateLocStor>=?,
     ):unit => {
         updateTabs(tabsSt => {
-            let (newTabTitle, initialStateLocStor) = switch initialStateLocStor {
+            let initialStateLocStor = switch initialStateLocStor {
                 | Some(initialStateLocStor) => {
-                    let (newTabTitle, newInitialStateLocStor) = setAndGetTabTitle(
+                    setTabTitle(
                         ~editorStateLocStor=initialStateLocStor,
                         ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
                     )
-                    (newTabTitle, Some(newInitialStateLocStor))
                 }
                 | None => {
                     let newTabTitle = makeNewTabTitle(
                         ~existingTabs=tabsSt->Expln_React_UseTabs.getTabs,
                         ~prefix="EDITOR"
                     )
-                    (newTabTitle, None)
+                    MM_wrk_editor_json.makeEmptyEditorStateLocStor(~tabTitle=newTabTitle)
                 }
             }
             let newEditorId = getNewEditorId(~existingTabs=tabsSt->Expln_React_UseTabs.getTabs)
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
-                ~label=newTabTitle,
+                ~label=initialStateLocStor.tabTitle,
                 ~closable=true, 
                 ~data=Editor({
                     editorId:newEditorId, 
@@ -494,16 +495,16 @@ let make = () => {
                             switch readEditorStateFromJsonStr(editorStateJsonStr) {
                                 | None => st
                                 | Some(editorStateLocStor) => {
-                                    let (tabTitle, editorStateLocStor) = setAndGetTabTitle(
+                                    let editorStateLocStor = setTabTitle(
                                         ~editorStateLocStor,
                                         ~existingTabs=st->Expln_React_UseTabs.getTabs,
                                     )
                                     let (st, _) = st->Expln_React_UseTabs.addTab(
-                                        ~label=tabTitle, ~closable=true, 
+                                        ~label=editorStateLocStor.tabTitle, ~closable=true, 
                                         ~doOpen= idx==0 && editorInitialStateFromUrl->Option.isNone,
                                         ~data=Editor({
                                             editorId, 
-                                            initialStateLocStor:Some(editorStateLocStor),
+                                            initialStateLocStor:editorStateLocStor,
                                             addAsrtByLabel:ref(None),
                                             updateTabTitle:ref(None),
                                         }), 
@@ -584,7 +585,7 @@ let make = () => {
                             reloadCtx
                             addAsrtByLabel
                             updateTabTitle
-                            initialStateLocStor
+                            initialStateLocStor=Some(initialStateLocStor)
                             tempMode=false
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded

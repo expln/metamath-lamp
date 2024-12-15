@@ -1,5 +1,4 @@
 - multiple editors:
-    - pass initial tab title to new editor tabs (and delete initialEditorLocStor when it is not needed anymore)
     - update macros API
     - delete temp mode
     - add "rename this tab" to editors and explorers
