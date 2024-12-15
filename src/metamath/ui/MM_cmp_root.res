@@ -247,17 +247,26 @@ let contextFromUrlHasBeenReloaded = ref(false)
 @react.component
 let make = () => {
     let modalRef = useModalRef()
+    let (lastOpenedEditorId, setLastOpenedEditorId) = React.useState(() => None)
 
     let beforeTabRemove = (tab:Expln_React_UseTabs.tab<'a>) => {
         switch tab.data {
             | Settings | TabsManager => Promise.resolve(false)
             | ExplorerIndex(_) | ExplorerFrame(_) => Promise.resolve(true)
-            | Editor(_) => {
+            | Editor({editorId}) => {
                 openOkCancelDialog(
                     ~modalRef, 
                     ~title="Confirm closing an editor tab",
                     ~text=`Close this editor tab? "${tab.label}"`, 
-                )
+                )->Promise.thenResolve(confirmed => {
+                    if (confirmed) {
+                        MM_cmp_api.deleteEditor(editorId)
+                        if (lastOpenedEditorId == Some(editorId)) {
+                            setLastOpenedEditorId(_ => None)
+                        }
+                    }
+                    confirmed
+                })
             }
         }
     }
@@ -268,7 +277,6 @@ let make = () => {
     } = Expln_React_UseTabs.useTabs(~beforeTabRemove)
     let (state, setState) = React.useState(_ => createInitialState(~settings=settingsReadFromLocStor()))
     let (showTabs, setShowTabs) = React.useState(() => true)
-    let (lastOpenedEditorId, setLastOpenedEditorId) = React.useState(() => None)
 
     let reloadCtx: React.ref<option<MM_cmp_context_selector.reloadCtxFunc>> = React.useRef(None)
     let addAsrtByLabel: React.ref<option<string=>promise<result<unit,string>>>> = React.useRef(None)
@@ -305,6 +313,7 @@ let make = () => {
                     | None => ()
                     | Some({editorId, addAsrtByLabel:addAsrtByLabelRef}) => {
                         setLastOpenedEditorId(_ => Some(editorId))
+                        MM_cmp_api.setLastOpenedEditorId(editorId)
                         addAsrtByLabel.current = addAsrtByLabelRef.contents->Option.map(addAsrtByLabelOrig => {
                             str => {
                                 addAsrtByLabelOrig(str)->Promise.thenResolve(res => {

@@ -14,7 +14,7 @@ let api: {
     "setLogApiCallsToConsole": api,
     "showInfoMsg": api,
     "showErrMsg": api,
-    "editor" : {
+    "editor" : option<int> => {
         "getState": api,
         "proveBottomUp": api,
         "unifyAll": api,
@@ -37,7 +37,11 @@ type proverParams = {
     selectFirstFoundProof:bool,
 }
 
+let deleteEditor: int => unit
+let setLastOpenedEditorId: int => unit
+
 let updateEditorApi: (
+    ~editorId:int,
     ~state: editorState,
     ~showInfoMsg:string=>unit,
     ~showErrMsg:string=>unit,

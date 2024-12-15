@@ -148,55 +148,63 @@ let getAllSteps = (~state:editorState):JSON.t => {
     state.stmts->Array.map(stmtToJson(_, ctxConstIntToSymExn))->JSON.Encode.array
 }
 
-let stateCached = ref(None)
-let stateJsonCached = ref(None)
-let getEditorState = (~state:editorState):promise<result<JSON.t,string>> => {
-    let canUseCachedValue = switch stateCached.contents {
-        | None => false
-        | Some(stateCached) => stateCached === state
+let stateCached:Belt_HashMapInt.t<editorState> = Belt_HashMapInt.make(~hintSize=4)
+let stateJsonCached:Belt_HashMapInt.t<JSON.t> = Belt_HashMapInt.make(~hintSize=4)
+let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,string>> => {
+    let cachedResult = switch stateCached->Belt_HashMapInt.get(editorId) {
+        | None => None
+        | Some(stateCached) => {
+            if (stateCached === state) {
+                stateJsonCached->Belt_HashMapInt.get(editorId)
+            } else {
+                None
+            }
+        }
     }
-    if (canUseCachedValue) {
-        promiseResolved(Ok(stateJsonCached.contents->Belt_Option.getExn))
-    } else {
-        let stmtIdToLabel = Belt_HashMapString.fromArray(
-            state.stmts->Array.map(stmt => (stmt.id, stmt.label))
-        )
-        let stateJson = Dict.fromArray([
-            ("descr", state.descr->JSON.Encode.string),
-            ("varsText", state.varsText->JSON.Encode.string),
-            ("varsErr", state.varsErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
-            ("vars", 
-                switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
-                    | Error(_) => JSON.Encode.null
-                    | Ok(varDefs) => {
-                        varDefs->Array.map(varDef => {
-                            varDef->Array.map(JSON.Encode.string(_))->JSON.Encode.array
-                        })->JSON.Encode.array
+    switch cachedResult {
+        | Some(cachedResult) => Promise.resolve(Ok(cachedResult))
+        | None => {
+            let stmtIdToLabel = Belt_HashMapString.fromArray(
+                state.stmts->Array.map(stmt => (stmt.id, stmt.label))
+            )
+            let stateJson = Dict.fromArray([
+                ("editorId", editorId->JSON.Encode.int),
+                ("descr", state.descr->JSON.Encode.string),
+                ("varsText", state.varsText->JSON.Encode.string),
+                ("varsErr", state.varsErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
+                ("vars", 
+                    switch MM_wrk_ctx_data.textToVarDefs(state.varsText) {
+                        | Error(_) => JSON.Encode.null
+                        | Ok(varDefs) => {
+                            varDefs->Array.map(varDef => {
+                                varDef->Array.map(JSON.Encode.string(_))->JSON.Encode.array
+                            })->JSON.Encode.array
+                        }
                     }
-                }
-            ),
-            ("disjText", state.disjText->JSON.Encode.string),
-            ("disjErr", state.disjErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
-            ("disj",
-                state.disjText->multilineTextToNonEmptyLines->Array.map(disjLine => {
-                    disjLine->String.split(" ")
-                        ->Array.map(String.trim(_))
-                        ->Array.filter(str => str != "")
-                        ->Array.map(JSON.Encode.string(_))
+                ),
+                ("disjText", state.disjText->JSON.Encode.string),
+                ("disjErr", state.disjErr->Belt.Option.map(JSON.Encode.string)->Belt_Option.getWithDefault(JSON.Encode.null)),
+                ("disj",
+                    state.disjText->multilineTextToNonEmptyLines->Array.map(disjLine => {
+                        disjLine->String.split(" ")
+                            ->Array.map(String.trim(_))
+                            ->Array.filter(str => str != "")
+                            ->Array.map(JSON.Encode.string(_))
+                            ->JSON.Encode.array
+                    })->JSON.Encode.array
+                ),
+                ("steps", getAllSteps(~state)),
+                ("selectedSteps", 
+                    state.checkedStmtIds->Array.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
+                        ->Array.filter(Belt.Option.isSome(_))
+                        ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->JSON.Encode.string)
                         ->JSON.Encode.array
-                })->JSON.Encode.array
-            ),
-            ("steps", getAllSteps(~state)),
-            ("selectedSteps", 
-                state.checkedStmtIds->Array.map(((stmtId,_)) => stmtIdToLabel->Belt_HashMapString.get(stmtId))
-                    ->Array.filter(Belt.Option.isSome(_))
-                    ->Array.map(labelOpt => labelOpt->Belt.Option.getExn->JSON.Encode.string)
-                    ->JSON.Encode.array
-            ),
-        ])->JSON.Encode.object
-        stateCached := Some(state)
-        stateJsonCached := Some(stateJson)
-        promiseResolved(Ok(stateJson))
+                ),
+            ])->JSON.Encode.object
+            stateCached->Belt_HashMapInt.set(editorId, state)
+            stateJsonCached->Belt_HashMapInt.set(editorId, stateJson)
+            promiseResolved(Ok(stateJson))
+        }
     }
 }
 
@@ -962,17 +970,31 @@ let apiShowErrMsg = (params:JSON.t, showErrMsg:string=>unit):promise<result<JSON
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let apiShowInfoMsgRef:ref<option<api>> = ref(None)
 let apiShowErrMsgRef:ref<option<api>> = ref(None)
-let getStateRef:ref<option<api>> = ref(None)
-let proveBottomUpRef:ref<option<api>> = ref(None)
-let unifyAllRef:ref<option<api>> = ref(None)
-let addStepsRef:ref<option<api>> = ref(None)
-let updateStepsRef:ref<option<api>> = ref(None)
-let deleteStepsRef:ref<option<api>> = ref(None)
-let getTokenTypeRef:ref<option<api>> = ref(None)
-let substituteRef:ref<option<api>> = ref(None)
-let mergeDuplicatedStepsRef:ref<option<api>> = ref(None)
-let editorSetContIsHiddenRef:ref<option<api>> = ref(None)
-let editorBuildSyntaxTreesRef:ref<option<api>> = ref(None)
+let getStateEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let proveBottomUpEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let unifyAllEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let addStepsEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let updateStepsEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let deleteStepsEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let getTokenTypeEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let substituteEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let mergeDuplicatedStepsEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let editorSetContIsHiddenEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+let editorBuildSyntaxTreesEditorMap:Belt_HashMapInt.t<api> = Belt_HashMapInt.make(~hintSize=4)
+
+let allEditorMaps = [
+    getStateEditorMap,
+    proveBottomUpEditorMap,
+    unifyAllEditorMap,
+    addStepsEditorMap,
+    updateStepsEditorMap,
+    deleteStepsEditorMap,
+    getTokenTypeEditorMap,
+    substituteEditorMap,
+    mergeDuplicatedStepsEditorMap,
+    editorSetContIsHiddenEditorMap,
+    editorBuildSyntaxTreesEditorMap,
+]
 
 let makeApiFuncRef = (ref:ref<option<api>>):api => {
     params => {
@@ -983,22 +1005,42 @@ let makeApiFuncRef = (ref:ref<option<api>>):api => {
     }
 }
 
+let lastOpenedEditorId:ref<option<int>> = ref(None)
+
+let setLastOpenedEditorId = (editorId:int):unit => {
+    lastOpenedEditorId := Some(editorId)
+}
+
+let makeApiFuncEditorMap = (editorId:option<int>, map:Belt_HashMapInt.t<api>):api => {
+    params => {
+        switch editorId->Option.orElse(lastOpenedEditorId.contents) {
+            | None => Promise.resolve(errResp("Cannot determine what editor tab to use."))
+            | Some(editorId) => {
+                switch map->Belt_HashMapInt.get(editorId) {
+                    | None => Promise.resolve(errResp("Cannot find an editor with id=" ++ editorId->Int.toString))
+                    | Some(func) => func(params)
+                }
+            }
+        }
+    }
+}
+
 let api = {
     "setLogApiCallsToConsole": makeApiFuncRef(setLogApiCallsToConsoleRef),
     "showInfoMsg": makeApiFuncRef(apiShowInfoMsgRef),
     "showErrMsg": makeApiFuncRef(apiShowErrMsgRef),
-    "editor": {
-        "getState": makeApiFuncRef(getStateRef),
-        "proveBottomUp": makeApiFuncRef(proveBottomUpRef),
-        "unifyAll": makeApiFuncRef(unifyAllRef),
-        "addSteps": makeApiFuncRef(addStepsRef),
-        "updateSteps": makeApiFuncRef(updateStepsRef),
-        "deleteSteps": makeApiFuncRef(deleteStepsRef),
-        "getTokenType": makeApiFuncRef(getTokenTypeRef),
-        "substitute": makeApiFuncRef(substituteRef),
-        "mergeDuplicatedSteps": makeApiFuncRef(mergeDuplicatedStepsRef),
-        "setContentIsHidden": makeApiFuncRef(editorSetContIsHiddenRef),
-        "buildSyntaxTrees": makeApiFuncRef(editorBuildSyntaxTreesRef),
+    "editor": (editorId:option<int>) => {
+        "getState": makeApiFuncEditorMap(editorId, getStateEditorMap),
+        "proveBottomUp": makeApiFuncEditorMap(editorId, proveBottomUpEditorMap),
+        "unifyAll": makeApiFuncEditorMap(editorId, unifyAllEditorMap),
+        "addSteps": makeApiFuncEditorMap(editorId, addStepsEditorMap),
+        "updateSteps": makeApiFuncEditorMap(editorId, updateStepsEditorMap),
+        "deleteSteps": makeApiFuncEditorMap(editorId, deleteStepsEditorMap),
+        "getTokenType": makeApiFuncEditorMap(editorId, getTokenTypeEditorMap),
+        "substitute": makeApiFuncEditorMap(editorId, substituteEditorMap),
+        "mergeDuplicatedSteps": makeApiFuncEditorMap(editorId, mergeDuplicatedStepsEditorMap),
+        "setContentIsHidden": makeApiFuncEditorMap(editorId, editorSetContIsHiddenEditorMap),
+        "buildSyntaxTrees": makeApiFuncEditorMap(editorId, editorBuildSyntaxTreesEditorMap),
     },
 }
 
@@ -1024,7 +1066,17 @@ let makeApiFunc = (name:string, func:JSON.t=>promise<result<JSON.t,string>>):api
     }
 }
 
+let deleteEditor = (editorId:int):unit => {
+    if (lastOpenedEditorId.contents == Some(editorId)) {
+        lastOpenedEditorId := None
+    }
+    allEditorMaps->Array.forEach(Belt_HashMapInt.remove(_, editorId))
+    stateCached->Belt_HashMapInt.remove(editorId)
+    stateJsonCached->Belt_HashMapInt.remove(editorId)
+}
+
 let updateEditorApi = (
+    ~editorId:int,
     ~state:editorState,
     ~showInfoMsg:string=>unit,
     ~showErrMsg:string=>unit,
@@ -1039,40 +1091,62 @@ let updateEditorApi = (
     setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
     apiShowInfoMsgRef := Some(makeApiFunc("showInfoMsg", params => apiShowInfoMsg(params, showInfoMsg)))
     apiShowErrMsgRef := Some(makeApiFunc("showErrMsg", params => apiShowErrMsg(params, showErrMsg)))
-    getStateRef := Some(makeApiFunc("editor.getState", _ => getEditorState(~state)))
-    proveBottomUpRef := Some(makeApiFunc("editor.proveBottomUp", params => {
-        proveBottomUp(
-            ~paramsJson=params,
-            ~state, 
-            ~canStartProvingBottomUp,
-            ~startProvingBottomUp,
-        )
-    }))
-    unifyAllRef := Some(makeApiFunc("editor.unifyAll", _ => {
-        unifyAll( ~canStartUnifyAll, ~startUnifyAll, )
-    }))
-    addStepsRef := Some(makeApiFunc("editor.addSteps", params => {
-        addSteps( ~state, ~paramsJson=params, ~setState, )
-    }))
-    updateStepsRef := Some(makeApiFunc("editor.updateSteps", params => {
-        updateSteps( ~paramsJson=params, ~setState, )
-    }))
-    deleteStepsRef := Some(makeApiFunc("editor.deleteSteps", params => {
-        deleteSteps( ~params, ~setState, )
-    }))
-    getTokenTypeRef := Some(makeApiFunc("editor.getTokenType", params => {
-        getTokenType( ~paramsJson=params, ~state, )
-    }))
-    substituteRef := Some(makeApiFunc("editor.substitute", params => {
-        substitute( ~paramsJson=params, ~setState, )
-    }))
-    mergeDuplicatedStepsRef := Some(makeApiFunc("editor.mergeDuplicatedSteps", _ => {
-        mergeDuplicatedSteps( ~setState, )
-    }))
-    editorSetContIsHiddenRef := Some(makeApiFunc("editor.setContentIsHidden", params => {
-        editorSetContIsHidden( ~params, ~setEditorContIsHidden, )
-    }))
-    editorBuildSyntaxTreesRef := Some(makeApiFunc("editor.buildSyntaxTrees", params => {
-        editorBuildSyntaxTrees( ~params, ~buildSyntaxTrees, ~state, )
-    }))
+    getStateEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state))
+    )
+    proveBottomUpEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.proveBottomUp", params => {
+            proveBottomUp(
+                ~paramsJson=params,
+                ~state, 
+                ~canStartProvingBottomUp,
+                ~startProvingBottomUp,
+            )
+        })
+    )
+    unifyAllEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.unifyAll", _ => {
+            unifyAll( ~canStartUnifyAll, ~startUnifyAll, )
+        })
+    )
+    addStepsEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.addSteps", params => {
+            addSteps( ~state, ~paramsJson=params, ~setState, )
+        })
+    )
+    updateStepsEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.updateSteps", params => {
+            updateSteps( ~paramsJson=params, ~setState, )
+        })
+    )
+    deleteStepsEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.deleteSteps", params => {
+            deleteSteps( ~params, ~setState, )
+        })
+    )
+    getTokenTypeEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.getTokenType", params => {
+            getTokenType( ~paramsJson=params, ~state, )
+        })
+    )
+    substituteEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.substitute", params => {
+            substitute( ~paramsJson=params, ~setState, )
+        })
+    )
+    mergeDuplicatedStepsEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.mergeDuplicatedSteps", _ => {
+            mergeDuplicatedSteps( ~setState, )
+        })
+    )
+    editorSetContIsHiddenEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.setContentIsHidden", params => {
+            editorSetContIsHidden( ~params, ~setEditorContIsHidden, )
+        })
+    )
+    editorBuildSyntaxTreesEditorMap->Belt_HashMapInt.set(editorId, 
+        makeApiFunc("editor.buildSyntaxTrees", params => {
+            editorBuildSyntaxTrees( ~params, ~buildSyntaxTrees, ~state, )
+        })
+    )
 }
