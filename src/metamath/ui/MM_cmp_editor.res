@@ -57,7 +57,6 @@ let rndIconButton = (
     ~icon:reElem, 
     ~onClick:unit=>unit, 
     ~active:bool, 
-    ~notifyEditInTempMode:option<(unit=>'a)=>'a>=?,
     ~ref:option<ReactDOM.domRef>=?,
     ~title:option<string>=?, 
     ~smallBtns:bool=false
@@ -65,12 +64,7 @@ let rndIconButton = (
     <span ?ref ?title>
         <IconButton 
             disabled={!active} 
-            onClick={_ => {
-                switch notifyEditInTempMode {
-                    | None => onClick()
-                    | Some(notifyEditInTempMode) => notifyEditInTempMode(() => onClick())
-                }
-            }} 
+            onClick={_ => onClick()}
             color="primary"
             style=?{
                 if (smallBtns) {Some(ReactDOM.Style.make(~padding="2px", ()))} else {None}
@@ -81,13 +75,11 @@ let rndIconButton = (
     </span>
 }
 
-let saveLastUsedTyp = (ctx:mmContext,typInt:int,tempMode:bool):unit => {
-    if (!tempMode) {
-        switch ctx->ctxIntToSym(typInt) {
-            | None => ()
-            | Some(typStr) =>
-                Dom_storage2.localStorage->Dom_storage2.setItem(lastUsedAsrtSearchTypLocStorKey, typStr)
-        }
+let saveLastUsedTyp = (ctx:mmContext,typInt:int):unit => {
+    switch ctx->ctxIntToSym(typInt) {
+        | None => ()
+        | Some(typStr) =>
+            Dom_storage2.localStorage->Dom_storage2.setItem(lastUsedAsrtSearchTypLocStorKey, typStr)
     }
 }
 
@@ -109,15 +101,6 @@ let previousEditingIsNotCompletedText =
     `You've attempted to edit something in the editor while the previous edit is not complete.`
         ++ ` Please complete the previous edit before starting a new one.`
 
-let editingInTempModeTitle = "Editing in TEMP mode"
-let editingInTempModeText = 
-    `You are about to edit in TEMP mode.`
-        ++ ` All changes you do in TEMP mode will be erased upon closing current browser tab.`
-        ++ ` If you want to continue editing in regular mode, please do the following actions:`
-        ++ ` 1) use "Export to JSON" to copy current editor state to the clipboard;`
-        ++ ` 2) open a new tab (or switch to an already opened tab) with metamath-lamp in regular mode;`
-        ++ ` 3) use "Import from JSON" to load the copied editor state from the clipboard.`
-
 let infoAboutGettingCompletedProof = `In order to show a completed proof please do the following: ` 
                 ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
                 ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
@@ -138,7 +121,6 @@ let make = (
     ~addAsrtByLabel: ref<option<string=>promise<result<unit,string>>>>,
     ~updateTabTitle: ref<option<string=>unit>>,
     ~initialStateLocStor:option<editorStateLocStor>,
-    ~tempMode:bool,
     ~toggleCtxSelector:React.ref<Nullable.t<unit=>unit>>,
     ~ctxSelectorIsExpanded:bool,
     ~showTabs:bool,
@@ -148,7 +130,6 @@ let make = (
 ) => {
     let (mainMenuIsOpened, setMainMenuIsOpened) = React.useState(_ => false)
     let mainMenuButtonRef = React.useRef(Nullable.null)
-    let (warnedAboutTempMode, setWarnedAboutTempMode) = React.useState(_ => false)
     let (contIsHidden, setContIsHidden) = React.useState(_ => false)
     let (showBkmOnly, setShowBkmOnly) = React.useState(_ => false)
     let showBkmOnlyRef:React.ref<bool> = React.useRef(showBkmOnly)
@@ -295,22 +276,6 @@ let make = (
         )
     }
 
-    let notifyEditInTempMode = (continue:unit=>'a):'a => {
-        if (tempMode && !warnedAboutTempMode) {
-            openInfoDialog(
-                ~modalRef, 
-                ~title=editingInTempModeTitle,
-                ~text=editingInTempModeText,
-                ~onOk = () => {
-                    setWarnedAboutTempMode(_ => true)
-                    continue()
-                }
-            )
-        } else {
-            continue()
-        }
-    }
-
     let editIsActive = state->isEditMode
     let thereAreCriticalErrorsInEditor = editorStateHasCriticalErrors(state)
     let thereAreAnyErrorsInEditor = editorStateHasAnyErrors(state)
@@ -337,10 +302,6 @@ let make = (
     }
 
     let generalModificationActionIsEnabled = !editIsActive && !thereAreCriticalErrorsInEditor
-    let singleProvableChecked = switch getTheOnlyCheckedStmt(state) {
-        | Some(stmt) if stmt.typ == P => Some(stmt)
-        | _ => None
-    }
     let numOfCheckedStmts = state.checkedStmtIds->Array.length
     let thereIsDuplicatedStmt = state->editorStateHasDuplicatedStmts
 
@@ -467,30 +428,26 @@ let make = (
     }
 
     let actBeginEdit0 = (setter:editorState=>editorState) => {
-        notifyEditInTempMode(() => {
-            if (!editIsActive) {
-                setState(setter)
-            } else {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~title=previousEditingIsNotCompletedTitle,
-                    ~text=previousEditingIsNotCompletedText
-                )
-            }
-        })
+        if (!editIsActive) {
+            setState(setter)
+        } else {
+            openInfoDialog(
+                ~modalRef, 
+                ~title=previousEditingIsNotCompletedTitle,
+                ~text=previousEditingIsNotCompletedText
+            )
+        }
     }
     let actBeginEdit = (setter:(editorState,stmtId)=>editorState, stmtId:string) => {
-        notifyEditInTempMode(() => {
-            if (!editIsActive) {
-                setState(setter(_,stmtId))
-            } else {
-                openInfoDialog(
-                    ~modalRef, 
-                    ~title=previousEditingIsNotCompletedTitle,
-                    ~text=previousEditingIsNotCompletedText
-                )
-            }
-        })
+        if (!editIsActive) {
+            setState(setter(_,stmtId))
+        } else {
+            openInfoDialog(
+                ~modalRef, 
+                ~title=previousEditingIsNotCompletedTitle,
+                ~text=previousEditingIsNotCompletedText
+            )
+        }
     }
     let actCompleteEdit = (setter:editorState=>editorState) => {
         setState(setter)
@@ -815,12 +772,10 @@ let make = (
     }
 
     let actRestorePrevState = (histIdx:int):unit => {
-        notifyEditInTempMode(() => {
-            switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
-                | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg )
-                | Ok(editorState) => setState(_ => editorState->recalcWrkColors)
-            }
-        })
+        switch state->restoreEditorStateFromSnapshot(hist, histIdx) {
+            | Error(msg) => openInfoDialog( ~modalRef, ~title="Could not restore editor state", ~text=msg )
+            | Ok(editorState) => setState(_ => editorState->recalcWrkColors)
+        }
     }
 
     let viewOptions = { 
@@ -886,7 +841,7 @@ let make = (
                             wrkCtx
                             frms=state.preCtxData.frms
                             initialTyp={getLastUsedTyp(state.preCtxData.ctxMinV.val)}
-                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxMinV.val, _, tempMode)}
+                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxMinV.val, _)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onResultsSelected={selectedResults=>{
                                 closeModal(modalRef, modalId)
@@ -1389,44 +1344,38 @@ let make = (
     }
 
     let actDeleteUnrelatedSteps = (~deleteHyps:bool) => {
-        notifyEditInTempMode(() => {
-            switch state->deleteUnrelatedSteps(
-                ~stepIdsToKeep=state.checkedStmtIds->Array.map(((id,_)) => id),
-                ~deleteHyps
-            ) {
-                | Ok(state) => setState(_ => state)
-                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
-            }
-        })
+        switch state->deleteUnrelatedSteps(
+            ~stepIdsToKeep=state.checkedStmtIds->Array.map(((id,_)) => id),
+            ~deleteHyps
+        ) {
+            | Ok(state) => setState(_ => state)
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
+        }
     }
 
     let actRenumberSteps = () => {
-        notifyEditInTempMode(() => {
-            switch state->renumberProvableSteps {
-                | Ok(state) => setState(_ => state)
-                | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
-            }
-        })
+        switch state->renumberProvableSteps {
+            | Ok(state) => setState(_ => state)
+            | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
+        }
     }
 
     let actRenameHypotheses = () => {
-        notifyEditInTempMode(() => {
-            switch state.stmts->Array.find(stmt => stmt.isGoal) {
-                | None => {
-                    openInfoDialog( 
-                        ~modalRef, 
-                        ~title="Cannot rename hypotheses",
-                        ~text=`The goal step is not set. Please mark one of the steps as the goal step.` 
-                    )
-                }
-                | Some(goalStmt) => {
-                    switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
-                        | Ok(state) => setState(_ => state)
-                        | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
-                    }
+        switch state.stmts->Array.find(stmt => stmt.isGoal) {
+            | None => {
+                openInfoDialog( 
+                    ~modalRef, 
+                    ~title="Cannot rename hypotheses",
+                    ~text=`The goal step is not set. Please mark one of the steps as the goal step.` 
+                )
+            }
+            | Some(goalStmt) => {
+                switch state->renumberHypothesisSteps(~goalLabel=goalStmt.label) {
+                    | Ok(state) => setState(_ => state)
+                    | Error(msg) => openInfoDialog( ~modalRef, ~text=msg )
                 }
             }
-        })
+        }
     }
 
     let actOpenMoveStepsDialog = () => {
@@ -1757,64 +1706,60 @@ let make = (
                 />
                 {rndIconButton(~icon=<MM_Icons.BookmarkAddOutlined/>, ~onClick=actBookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreBookmarked,
-                    ~title="Bookmark selected steps", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Bookmark selected steps", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.BookmarkRemoveOutlined/>, ~onClick=actUnbookmarkCheckedStmts, 
                     ~active= !editIsActive && atLeastOneStmtIsChecked && !allCheckedStmtsAreUnbookmarked,
-                    ~title="Unbookmark selected steps", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Unbookmark selected steps", ~smallBtns, )}
                 {rndIconButton(
                     ~icon=if (showBkmOnly){<MM_Icons.Bookmark/>}else{<MM_Icons.BookmarkBorder/>}, 
                     ~onClick=actToggleShowBkmOnly, ~active=true,
                     ~title="Show bookmarked steps only / show all steps", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
                 ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
-                    ~title="Move selected steps down", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Move selected steps down", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
                 ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
-                    ~title="Move selected steps up", ~smallBtns, ~notifyEditInTempMode)}
+                    ~title="Move selected steps up", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
-                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, ~notifyEditInTempMode)}
-                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts, ~notifyEditInTempMode,
+                    ~title="Add new step (and place before selected steps if any)", ~smallBtns, )}
+                {rndIconButton(~icon=<MM_Icons.DeleteForever/>, ~onClick=actDeleteCheckedStmts,
                     ~active= !editIsActive && atLeastOneStmtIsChecked, ~title="Delete selected steps", ~smallBtns
                 )}
                 {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(-90deg)", ()) />, 
                     ~onClick=()=>actDuplicateStmt(true), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step up", 
-                    ~smallBtns, ~notifyEditInTempMode)}
+                    ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Logout style=ReactDOM.Style.make(~transform="rotate(+90deg)", ()) />, 
                     ~onClick=()=>actDuplicateStmt(false), 
                     ~active= !editIsActive && isSingleStmtChecked(state), ~title="Duplicate selected step down", 
-                    ~smallBtns, ~notifyEditInTempMode)}
+                    ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Restore/>, 
-                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog, ~notifyEditInTempMode,
+                    ~active= !editIsActive, ~onClick=actOpenRestorePrevStateDialog,
                     ~title="Restore previous state", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.MergeType style=ReactDOM.Style.make(~transform="rotate(180deg)", ())/>, 
-                    ~onClick=actMergeStmts, ~notifyEditInTempMode,
+                    ~onClick=actMergeStmts,
                     ~active= numOfCheckedStmts==1 || thereIsDuplicatedStmt, 
                     ~title="Merge two similar steps", ~smallBtns)}
                 { 
-                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt, ~notifyEditInTempMode,
+                    rndIconButton(~icon=<MM_Icons.Search/>, ~onClick=actSearchAsrt,
                         ~active=generalModificationActionIsEnabled 
                             && state.preCtxData.frms->MM_substitution.frmsSize > 0,
                         ~title="Add new steps from existing assertions (and place before selected steps if any)", 
                         ~smallBtns
                     ) 
                 }
-                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute, ~notifyEditInTempMode,
+                { rndIconButton(~icon=<MM_Icons.TextRotationNone/>, ~onClick=actSubstitute,
                     ~active=generalModificationActionIsEnabled,
                     ~title="Apply a substitution to all steps", ~smallBtns ) }
                 { 
                     rndIconButton(~icon=<MM_Icons.Hub/>, ~onClick={() => actUnify(())},
                         ~active=generalModificationActionIsEnabled 
                                     && state.stmts->Array.length > 0, 
-                        ~notifyEditInTempMode=?{
-                            if (singleProvableChecked->Belt.Option.isSome) {Some(notifyEditInTempMode)} else {None}
-                        },
                         ~title="Unify all steps or unify selected provable bottom-up", ~smallBtns )
                 }
                 { 
                     rndIconButton(~icon=<MM_Icons.PlayArrow/>, ~onClick=actOpenMacros,
                         ~active=!editIsActive, 
-                        ~notifyEditInTempMode,
                         ~title="Run a macro", ~smallBtns )
                 }
                 { 
@@ -1902,7 +1847,7 @@ let make = (
             checkboxOnChange={(~checked as _, ~shift) => actToggleStmtChecked(~id=stmt.id, ~shift)}
 
             onGenerateProof={()=>actExportProof(stmt.id)}
-            onDebug={() => notifyEditInTempMode(()=>actDebugUnifyAll(stmt.id))}
+            onDebug={() => actDebugUnifyAll(stmt.id)}
             onOpenSubstitutionDialog=Some(onOpenSubstitutionDialogRef)
 
             addStmtAbove=

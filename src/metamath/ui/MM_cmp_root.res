@@ -603,7 +603,6 @@ let make = () => {
                             addAsrtByLabel
                             updateTabTitle
                             initialStateLocStor=Some(initialStateLocStor)
-                            tempMode=false
                             toggleCtxSelector
                             ctxSelectorIsExpanded=state.ctxSelectorIsExpanded
                             showTabs
