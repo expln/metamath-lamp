@@ -7,6 +7,10 @@ open Common
 open MM_wrk_pre_ctx_data
 open MM_react_common
 
+let pencilSymbol = String.fromCodePoint(0x1F589)
+let magnifyingGlassSymbol = String.fromCodePoint(0x02315)
+let turnstileSymbol = String.fromCodePoint(8866)
+
 type editorTabDataLocStor = {
     editorId:int, 
 }
@@ -407,7 +411,8 @@ let make = () => {
                             | Some(tab) => tabsSt->Expln_React_UseTabs.openTab(tab.id)
                             | None => {
                                 let (tabsSt, tabId) = tabsSt->Expln_React_UseTabs.addTab( 
-                                    ~label, ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true
+                                    ~label, ~icon=turnstileSymbol, 
+                                    ~closable=true, ~data=ExplorerFrame({label:label}), ~doOpen=true
                                 )
                                 tabsSt
                             }
@@ -428,6 +433,7 @@ let make = () => {
             )
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label=newTabTitle,
+                ~icon=magnifyingGlassSymbol,
                 ~closable=true, 
                 ~data=ExplorerIndex({initPatternFilterStr:initPatternFilterStr}), 
                 ~doOpen=true
@@ -471,6 +477,7 @@ let make = () => {
             let newEditorId = getNewEditorId(~existingTabs=tabsSt->Expln_React_UseTabs.getTabs)
             let (tabsSt, _) = tabsSt->Expln_React_UseTabs.addTab(
                 ~label=initialStateLocStor.tabTitle,
+                ~icon=pencilSymbol,
                 ~closable=true, 
                 ~data=Editor({
                     editorId:newEditorId, 
@@ -509,7 +516,7 @@ let make = () => {
                                         ~existingTabs=st->Expln_React_UseTabs.getTabs,
                                     )
                                     let (st, _) = st->Expln_React_UseTabs.addTab(
-                                        ~label=editorStateLocStor.tabTitle, ~closable=true, 
+                                        ~label=editorStateLocStor.tabTitle, ~icon=pencilSymbol, ~closable=true, 
                                         ~doOpen= idx==0 && editorInitialStateFromUrl->Option.isNone,
                                         ~data=Editor({
                                             editorId, 
@@ -525,7 +532,8 @@ let make = () => {
                     }
                 })
                 let (st, _) = st->Expln_React_UseTabs.addTab(
-                    ~label="EXPLORER", ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""}),
+                    ~label="EXPLORER", ~icon=magnifyingGlassSymbol, 
+                    ~closable=true, ~data=ExplorerIndex({initPatternFilterStr:""}),
                     ~doOpen=!(st->Expln_React_UseTabs.getTabs->Array.some(t => isEditorTab(t.data)->Option.isSome))
                 )
                 st
@@ -575,7 +583,7 @@ let make = () => {
                             tabs={
                                 tabs
                                     ->Array.sliceToEnd(~start=2)
-                                    ->Array.map(tab => {MM_cmp_tabs_manager.id:tab.id, label:tab.label})
+                                    ->Array.map(tab => {MM_cmp_tabs_manager.id:tab.id, icon:tab.icon, label:tab.label})
                             }
                             onTabRename=actRenameTab
                             onTabMoveUp=actMoveTabLeft

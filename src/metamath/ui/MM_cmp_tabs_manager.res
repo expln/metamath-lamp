@@ -1,10 +1,10 @@
-open Expln_React_common
 open Expln_React_Mui
 open Expln_React_Modal
 open MM_react_common
 
 type tabProps = {
     id: Expln_React_UseTabs.tabId,
+    icon:string,
     label: string,
 }
 
@@ -59,7 +59,7 @@ let make = (
         <Row key=tab.id>
             {rndTabButtons(tab)}
             <Paper style=ReactDOM.Style.make(~padding="5px", ())>
-                {tab.label->React.string}
+                {(tab.icon ++ " " ++ tab.label)->React.string}
             </Paper>
         </Row>
     }

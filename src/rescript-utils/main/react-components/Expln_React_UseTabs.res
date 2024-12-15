@@ -8,6 +8,7 @@ type tabId = string
 
 type tab<'a> = {
     id:tabId,
+    icon: string,
     label: string,
     closable: bool,
     color:option<string>,
@@ -52,9 +53,11 @@ let getNextId = st => {
 
 let getTabs = (st:state<'a>) => st.tabs
 
-let addTab = (st, ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false) => {
+let addTab = (
+    st, ~icon:string="", ~label:string, ~closable:bool, ~color:option<string>=?, ~data:'a, ~doOpen:bool=false
+) => {
     let (st, newId) = st->getNextId
-    let newTabs = st.tabs->Array.concat([{id:newId, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
+    let newTabs = st.tabs->Array.concat([{id:newId, icon, label, closable, color, scrollX:0.0, scrollY:0.0, data}])
     let newActiveTabId = if (newTabs->Array.length == 1) {
         newId
     } else {
@@ -237,10 +240,13 @@ let useTabs = (
                             key=tab.id 
                             value=tab.id 
                             label={
+                                let labelWithIcon = tab.icon->String.length == 0 
+                                    ? tab.label 
+                                    : tab.icon ++ tab.label
                                 if (tab.closable) {
                                     <span style=ReactDOM.Style.make(~textTransform="none", ())>
                                         <span style=ReactDOM.Style.make(~marginRight="5px", ())>
-                                            {React.string(tab.label)}
+                                            {React.string(labelWithIcon)}
                                         </span>
                                         <IconButton 
                                             component="div" 
@@ -257,7 +263,7 @@ let useTabs = (
                                         </IconButton>
                                     </span>
                                 } else {
-                                    React.string(tab.label)
+                                    React.string(labelWithIcon)
                                 }
                             }
                             style=ReactDOM.Style.make(

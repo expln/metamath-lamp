@@ -1,10 +1,8 @@
 - multiple editors:
-    - update macros API
     - delete temp mode
-    - mark editors and explorers so that it is easy to distinguish them even if they have same names
     - change view options across multiple editors
-    - fix the bug with loading an assertion without proof to the editor
 
+- fix the bug with loading an assertion without proof to the editor
 - fix the "aModLen != bLen" bug in the editor history
 
 - Implement dynamic bottom-up prover params. Bind params to each statement.
