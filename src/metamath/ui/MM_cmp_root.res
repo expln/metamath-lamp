@@ -389,10 +389,7 @@ let make = () => {
             | None => ()
             | Some(tab) => {
                 if (tab.closable) {
-                    switch tab.data {
-                        | Editor(_) => removeTab(tab.id)
-                        | Settings | TabsManager | ExplorerIndex(_) | ExplorerFrame(_) => removeTab(tab.id)
-                    }
+                    removeTab(tab.id)
                 }
             }
         }
