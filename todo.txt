@@ -1,4 +1,3 @@
-- check this: //TODO: child nodes have incorrect parent reference because of {...this, ...}
 - fix the bug with loading an assertion without proof to the editor
 - fix the "aModLen != bLen" bug in the editor history
 - rename tabs by Alt+click

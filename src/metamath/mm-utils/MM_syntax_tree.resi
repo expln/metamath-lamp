@@ -3,7 +3,6 @@ open MM_proof_table
 
 type rec syntaxTreeNode = {
     id: int,
-    parent:option<syntaxTreeNode>,
     typ:int,
     label:string,
     children:array<childNode>,
@@ -11,7 +10,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, symInt:int, sym:string, color:option<string>, isVar:bool})
+    | Symbol({id:int, symInt:int, sym:string, color:option<string>, isVar:bool})
 
 let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 
@@ -36,6 +35,7 @@ let syntaxTreeForEachNode: (childNode, childNode=>option<'r>) => option<'r>
 let syntaxTreeGetIdsOfAllChildSymbols: childNode => Belt_SetInt.t
 let syntaxTreeToText: childNode => string
 let syntaxTreeGetNumberOfSymbols: childNode => int
+let syntaxTreeGetParent: (syntaxTreeNode, int) => option<syntaxTreeNode>
 
 type unifSubs = Belt_HashMapString.t<array<string>>
 

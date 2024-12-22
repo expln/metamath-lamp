@@ -99,23 +99,21 @@ let rec buildSyntaxTreeInner = (
     ~asrtIntToSym:int=>string,
     ~asrtVarToHypLabel:int=>string,
     ~idSeq:unit=>int,
-    ~parent:option<MM_syntax_tree.syntaxTreeNode>,
 ):result<MM_syntax_tree.syntaxTreeNode,string> => {
     let expr = proofNode->pnGetExpr
     switch proofNode->pnGetProof {
         | None => Error("Cannot build a syntax tree from a node without proof.")
         | Some(AssertionWithErr(_)) => Error("Cannot build a syntax tree from a node with an AssertionWithErr proof.")
         | Some(Hypothesis({label})) => {
-            Ok(makeSyntaxTreeNodeForVarTypeAndHyp( ~expr, ~label, ~idSeq, ~parent, ~ctxIntToAsrtInt, ~asrtIntToSym, ))
+            Ok(makeSyntaxTreeNodeForVarTypeAndHyp( ~expr, ~label, ~idSeq, ~ctxIntToAsrtInt, ~asrtIntToSym, ))
         }
         | Some(VarType) => {
             let label = expr->Array.getUnsafe(1)->ctxIntToAsrtInt->asrtVarToHypLabel
-            Ok(makeSyntaxTreeNodeForVarTypeAndHyp( ~expr, ~label, ~idSeq, ~parent, ~ctxIntToAsrtInt, ~asrtIntToSym, ))
+            Ok(makeSyntaxTreeNodeForVarTypeAndHyp( ~expr, ~label, ~idSeq, ~ctxIntToAsrtInt, ~asrtIntToSym, ))
         }
         | Some(Assertion({args, frame})) => {
             let this:MM_syntax_tree.syntaxTreeNode = {
                 id: idSeq(),
-                parent,
                 typ:frame.asrt->Array.getUnsafe(0),
                 label:frame.label,
                 children: Expln_utils_common.createArray(frame.asrt->Array.length - 1),
@@ -128,7 +126,6 @@ let rec buildSyntaxTreeInner = (
                         let symInt = s->ctxIntToAsrtInt
                         this.children[i-1] = Symbol({
                             id: idSeq(),
-                            parent:this,
                             symInt,
                             sym: symInt->asrtIntToSym,
                             isVar: false,
@@ -141,7 +138,6 @@ let rec buildSyntaxTreeInner = (
                             ~asrtIntToSym,
                             ~asrtVarToHypLabel,
                             ~idSeq,
-                            ~parent=Some(this),
                         ) {
                             | Error(msg) => err := Some(Error(msg))
                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
@@ -161,14 +157,12 @@ and let makeSyntaxTreeNodeForVarTypeAndHyp = (
     ~expr:expr,
     ~label:string,
     ~idSeq:unit=>int,
-    ~parent:option<MM_syntax_tree.syntaxTreeNode>,
     ~ctxIntToAsrtInt:int=>int,
     ~asrtIntToSym:int=>string,
 ):MM_syntax_tree.syntaxTreeNode => {
     let maxI = expr->Array.length - 1
     let this:MM_syntax_tree.syntaxTreeNode = {
         id: idSeq(),
-        parent,
         typ:expr->Array.getUnsafe(0),
         label,
         children: Expln_utils_common.createArray(maxI),
@@ -178,7 +172,6 @@ and let makeSyntaxTreeNodeForVarTypeAndHyp = (
         let symInt = expr->Array.getUnsafe(i)->ctxIntToAsrtInt
         this.children[i-1] = Symbol({
             id: idSeq(),
-            parent:this,
             symInt,
             sym: symInt->asrtIntToSym,
             isVar: symInt >= 0,
@@ -199,7 +192,7 @@ let buildSyntaxTree = (
         lastId := lastId.contents + 1
         lastId.contents
     }
-    buildSyntaxTreeInner(~proofNode, ~ctxIntToAsrtInt, ~asrtIntToSym, ~asrtVarToHypLabel, ~idSeq, ~parent=None, )
+    buildSyntaxTreeInner(~proofNode, ~ctxIntToAsrtInt, ~asrtIntToSym, ~asrtVarToHypLabel, ~idSeq, )
 }
 
 let isVar = (expr:asrtSyntaxTreeNode):option<int> => {

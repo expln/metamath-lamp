@@ -2638,15 +2638,15 @@ let getSelectedSubtree = (treeData:stmtContTreeData):option<childNode> => {
             switch treeData.root->getNodeById(nodeId) {
                 | None => None
                 | Some(Subtree(_)) => None //this should never happen because a Subtree cannot be clicked
-                | Some(Symbol({id, parent, symInt, sym, color, isVar})) => {
+                | Some(Symbol({id, symInt, sym, color, isVar})) => {
                     if (treeData.expLvl == 0) {
-                        Some(Symbol({id, parent, symInt, sym, color, isVar}))
+                        Some(Symbol({id, symInt, sym, color, isVar}))
                     } else {
-                        let curParent = ref(Some(parent))
+                        let curParent = ref(treeData.root->syntaxTreeGetParent(id))
                         let curLvl = ref(treeData.expLvl)
                         while (curLvl.contents > 1 && curParent.contents->Belt_Option.isSome) {
                             curLvl := curLvl.contents - 1
-                            curParent := (curParent.contents->Belt_Option.getExn).parent
+                            curParent := treeData.root->syntaxTreeGetParent((curParent.contents->Belt_Option.getExn).id)
                         }
                         switch curParent.contents {
                             | Some(parent) => Some(Subtree(parent))
@@ -2778,12 +2778,17 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
             | Some((clickedNodeId,_)) => {
                 switch treeData.root->getNodeById(clickedNodeId) {
                     | None => treeData
-                    | Some(Symbol({parent})) => {
-                        if (syntaxTreeGetNumberOfSymbols(Subtree(parent)) == 1) {
-                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
-                            treeData
-                        } else {
-                            treeData->updateExpLevel(true)
+                    | Some(Symbol({id})) => {
+                        switch treeData.root->syntaxTreeGetParent(id) {
+                            | None => treeData // this should never happen because a symbol cannot be the root
+                            | Some(parent) => {
+                                if (syntaxTreeGetNumberOfSymbols(Subtree(parent)) == 1) {
+                                    /* if size == 1 then the clicked symbol is a variable in the syntax definition */
+                                    treeData
+                                } else {
+                                    treeData->updateExpLevel(true)
+                                }
+                            }
                         }
                     }
                     | Some(Subtree(_)) => treeData
