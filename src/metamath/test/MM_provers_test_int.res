@@ -191,27 +191,42 @@ describe("proveSyntaxTypes", _ => {
         // Expln_utils_files.writeStringToFile(unprovedAsrtExprStr, "./unprovedAsrtExprStr.txt")
         assertEqMsg(unprovedAsrtExprs->Array.length, 0, "unprovedAsrtExprs->Array.length = 0")
 
-        let ctxIntToAsrtInt = label => {
-            let ctxVarToAsrtVar = (asrtExprs->Belt_HashMapString.get(label)->Belt.Option.getExn)["ctxVarToAsrtVar"]
-            i => {
-                if (i < 0) {
-                    i
+        let makeCtxIntToAsrtInt = (asrtExpr:expr):(int=>int) => {
+            let curIdx = ref(-1)
+            let maxIdx = asrtExpr->Array.length-1
+            (ctxInt:int) => {
+                curIdx := curIdx.contents + 1
+                while (curIdx.contents <= maxIdx && asrtExpr->Array.getUnsafe(curIdx.contents) < 0) {
+                    curIdx := curIdx.contents + 1
+                }
+                if (maxIdx < curIdx.contents) {
+                    Exn.raiseError(
+                        `makeCtxIntToAsrtInt: asrtExpr=${asrtExpr->Expln_utils_common.stringify}`
+                        ++ `, ctxInt=${ctxInt->Int.toString}`
+                    )
                 } else {
-                    ctxVarToAsrtVar->Belt_HashMapInt.get(i)->Belt.Option.getExn
+                    asrtExpr->Array.getUnsafe(curIdx.contents)
                 }
             }
         }
 
         let syntaxTrees:Belt_HashMapString.t<asrtSyntaxTreeNode> = 
             Belt_HashMapString.make(~hintSize=asrtExprs->Belt_HashMapString.size)
-        asrtExprs->Belt_HashMapString.forEach((label,obj) => {
-            switch buildAsrtSyntaxTree(proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Array.sliceToEnd(~start=1))->Belt_Option.getExn, ctxIntToAsrtInt(label)) {
-                | Error(msg) => Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
-                | Ok(syntaxTree) => {
-                    syntaxTrees->Belt_HashMapString.set(label, syntaxTree)
+        ctx->forEachFrame(frame => {
+            switch asrtExprs->Belt_HashMapString.get(frame.label) {
+                | None => Exn.raiseError(`asrtExprs->Belt_HashMapString.get("${frame.label}") is None`)
+                | Some(obj) => {
+                    switch buildAsrtSyntaxTree(proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Array.sliceToEnd(~start=1))->Belt_Option.getExn, makeCtxIntToAsrtInt(frame.asrt)) {
+                        | Error(msg) => Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
+                        | Ok(syntaxTree) => {
+                            syntaxTrees->Belt_HashMapString.set(frame.label, syntaxTree)
+                        }
+                    }
                 }
             }
-        })
+            None
+        })->ignore
+
         Console.log2(`syntaxTrees->Belt_HashMapString.size`, syntaxTrees->Belt_HashMapString.size)
         // let asrtToPrint = "sylcom"
         // Console.log2(`${asrtToPrint}:`, syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Expln_utils_common.stringify)

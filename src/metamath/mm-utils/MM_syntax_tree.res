@@ -80,6 +80,7 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                     color: None,
                 })
             }
+            //TODO: child nodes have incorrect parent reference because of {...this, ...}
             Ok({
                 ...this,
                 height: getMaxHeight(this.children) + 1
