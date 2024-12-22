@@ -16,6 +16,12 @@ type unifSubs
 let symEq: (sym, sym) => bool
 let arrSymEq: (array<sym>, array<sym>) => bool
 let buildAsrtSyntaxTree: (MM_proof_tree.proofNode, int => int) => result<asrtSyntaxTreeNode, string>
+let buildSyntaxTree: (
+    ~proofNode:MM_proof_tree.proofNode,
+    ~ctxIntToAsrtInt:int=>int,
+    ~asrtIntToSym:int=>string,
+    ~asrtVarToHypLabel:int=>string,
+) => result<MM_syntax_tree.syntaxTreeNode,string>
 let unifSubsMake: () => unifSubs
 let unifSubsGet: (unifSubs,sym) => option<array<sym>>
 let unifSubsSize: unifSubs => int

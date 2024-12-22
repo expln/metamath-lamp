@@ -93,6 +93,115 @@ let rec buildAsrtSyntaxTree = (proofNode:proofNode, ctxIntToAsrtInt:int=>int):re
     }
 }
 
+let rec buildSyntaxTreeInner = (
+    ~proofNode:proofNode,
+    ~ctxIntToAsrtInt:int=>int,
+    ~asrtIntToSym:int=>string,
+    ~asrtVarToHypLabel:int=>string,
+    ~idSeq:unit=>int,
+    ~parent:option<MM_syntax_tree.syntaxTreeNode>,
+):result<MM_syntax_tree.syntaxTreeNode,string> => {
+    let expr = proofNode->pnGetExpr
+    switch proofNode->pnGetProof {
+        | None => Error("Cannot build a syntax tree from a node without proof.")
+        | Some(AssertionWithErr(_)) => Error("Cannot build a syntax tree from a node with an AssertionWithErr proof.")
+        | Some(Hypothesis({label})) => {
+            Ok(makeSyntaxTreeNodeForVarTypeAndHyp( ~expr, ~label, ~idSeq, ~parent, ~ctxIntToAsrtInt, ~asrtIntToSym, ))
+        }
+        | Some(VarType) => {
+            let label = expr->Array.getUnsafe(1)->ctxIntToAsrtInt->asrtVarToHypLabel
+            Ok(makeSyntaxTreeNodeForVarTypeAndHyp( ~expr, ~label, ~idSeq, ~parent, ~ctxIntToAsrtInt, ~asrtIntToSym, ))
+        }
+        | Some(Assertion({args, frame})) => {
+            let this:MM_syntax_tree.syntaxTreeNode = {
+                id: idSeq(),
+                parent,
+                typ:frame.asrt->Array.getUnsafe(0),
+                label:frame.label,
+                children: Expln_utils_common.createArray(frame.asrt->Array.length - 1),
+                height:-1,
+            }
+            let err = ref(None)
+            frame.asrt->Array.forEachWithIndex((s,i) => {
+                if (i > 0 && err.contents->Belt_Option.isNone) {
+                    if (s < 0) {
+                        let symInt = s->ctxIntToAsrtInt
+                        this.children[i-1] = Symbol({
+                            id: idSeq(),
+                            parent:this,
+                            symInt,
+                            sym: symInt->asrtIntToSym,
+                            isVar: false,
+                            color: None,
+                        })
+                    } else {
+                        switch buildSyntaxTreeInner(
+                            ~proofNode=args->Array.getUnsafe(frame.varHyps->Array.getUnsafe(s)),
+                            ~ctxIntToAsrtInt,
+                            ~asrtIntToSym,
+                            ~asrtVarToHypLabel,
+                            ~idSeq,
+                            ~parent=Some(this),
+                        ) {
+                            | Error(msg) => err := Some(Error(msg))
+                            | Ok(subtree) => this.children[i-1] = Subtree(subtree)
+                        }
+                        
+                    }
+                }
+            })
+            switch err.contents {
+                | Some(err) => err
+                | None => Ok(this)
+            }
+        }
+    }
+}
+and let makeSyntaxTreeNodeForVarTypeAndHyp = (
+    ~expr:expr,
+    ~label:string,
+    ~idSeq:unit=>int,
+    ~parent:option<MM_syntax_tree.syntaxTreeNode>,
+    ~ctxIntToAsrtInt:int=>int,
+    ~asrtIntToSym:int=>string,
+):MM_syntax_tree.syntaxTreeNode => {
+    let maxI = expr->Array.length - 1
+    let this:MM_syntax_tree.syntaxTreeNode = {
+        id: idSeq(),
+        parent,
+        typ:expr->Array.getUnsafe(0),
+        label,
+        children: Expln_utils_common.createArray(maxI),
+        height:-1,
+    }
+    for i in 1 to maxI {
+        let symInt = expr->Array.getUnsafe(i)->ctxIntToAsrtInt
+        this.children[i-1] = Symbol({
+            id: idSeq(),
+            parent:this,
+            symInt,
+            sym: symInt->asrtIntToSym,
+            isVar: symInt >= 0,
+            color: None,
+        })
+    }
+    this
+}
+
+let buildSyntaxTree = (
+    ~proofNode:proofNode,
+    ~ctxIntToAsrtInt:int=>int,
+    ~asrtIntToSym:int=>string,
+    ~asrtVarToHypLabel:int=>string,
+):result<MM_syntax_tree.syntaxTreeNode,string> => {
+    let lastId = ref(-1)
+    let idSeq = () => {
+        lastId := lastId.contents + 1
+        lastId.contents
+    }
+    buildSyntaxTreeInner(~proofNode, ~ctxIntToAsrtInt, ~asrtIntToSym, ~asrtVarToHypLabel, ~idSeq, ~parent=None, )
+}
+
 let isVar = (expr:asrtSyntaxTreeNode):option<int> => {
     @warning("-8")
     switch expr.children->Array.length {

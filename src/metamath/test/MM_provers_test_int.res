@@ -17,6 +17,13 @@ let compareExprBySize = comparatorBy(Array.length(_))
 
 let log = msg => Console.log(`${currTimeStr()} ${msg}`)
 
+let rec printSyntaxTree = (tree:MM_syntax_tree.childNode, ~level:int=0):unit => {
+    switch tree {
+        | Symbol({sym}) => Console.log2("\n" ++ "    "->String.repeat(level), sym)
+        | Subtree({children}) => children->Array.forEach(printSyntaxTree(_, ~level=level+1))
+    }
+}
+
 describe("proveSyntaxTypes", _ => {
 
     it("finds syntax proofs for each assertion in set.mm", _ => {
@@ -195,17 +202,21 @@ describe("proveSyntaxTypes", _ => {
             let curIdx = ref(-1)
             let maxIdx = asrtExpr->Array.length-1
             (ctxInt:int) => {
-                curIdx := curIdx.contents + 1
-                while (curIdx.contents <= maxIdx && asrtExpr->Array.getUnsafe(curIdx.contents) < 0) {
-                    curIdx := curIdx.contents + 1
-                }
-                if (maxIdx < curIdx.contents) {
-                    Exn.raiseError(
-                        `makeCtxIntToAsrtInt: asrtExpr=${asrtExpr->Expln_utils_common.stringify}`
-                        ++ `, ctxInt=${ctxInt->Int.toString}`
-                    )
+                if (ctxInt < 0) {
+                    ctxInt
                 } else {
-                    asrtExpr->Array.getUnsafe(curIdx.contents)
+                    curIdx := curIdx.contents + 1
+                    while (curIdx.contents <= maxIdx && asrtExpr->Array.getUnsafe(curIdx.contents) < 0) {
+                        curIdx := curIdx.contents + 1
+                    }
+                    if (maxIdx < curIdx.contents) {
+                        Exn.raiseError(
+                            `makeCtxIntToAsrtInt: asrtExpr=${asrtExpr->Expln_utils_common.stringify}`
+                            ++ `, ctxInt=${ctxInt->Int.toString}`
+                        )
+                    } else {
+                        asrtExpr->Array.getUnsafe(curIdx.contents)
+                    }
                 }
             }
         }
@@ -227,9 +238,33 @@ describe("proveSyntaxTypes", _ => {
             None
         })->ignore
 
+        let syntaxTrees2:Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode> = 
+            Belt_HashMapString.make(~hintSize=asrtExprs->Belt_HashMapString.size)
+        ctx->forEachFrame(frame => {
+            switch asrtExprs->Belt_HashMapString.get(frame.label) {
+                | None => Exn.raiseError(`asrtExprs->Belt_HashMapString.get("${frame.label}") is None`)
+                | Some(obj) => {
+                    switch buildSyntaxTree(
+                        ~proofNode=proofTree->ptGetSyntaxProof(obj["ctxExpr"]->Array.sliceToEnd(~start=1))->Belt_Option.getExn,
+                        ~ctxIntToAsrtInt=makeCtxIntToAsrtInt(frame.asrt),
+                        ~asrtIntToSym=asrtInt=>ctx->frmIntToSymExn(frame,asrtInt),
+                        ~asrtVarToHypLabel=asrtVar=>(frame.hyps->Array.getUnsafe(frame.varHyps->Array.getUnsafe(asrtVar))).label,
+                    ) {
+                        | Error(msg) => Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
+                        | Ok(syntaxTree) => {
+                            syntaxTrees2->Belt_HashMapString.set(frame.label, syntaxTree)
+                        }
+                    }
+                }
+            }
+            None
+        })->ignore
+
         Console.log2(`syntaxTrees->Belt_HashMapString.size`, syntaxTrees->Belt_HashMapString.size)
-        // let asrtToPrint = "sylcom"
-        // Console.log2(`${asrtToPrint}:`, syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Expln_utils_common.stringify)
+        let asrtToPrint = "mdsymlem8"
+        Console.log(`--- ${asrtToPrint} ------------------------------------------------`)
+        syntaxTrees2->Belt_HashMapString.get(asrtToPrint)->Option.getExn->Subtree->printSyntaxTree
+        Console.log(`-------------------------------------------------------------------`)
         let ctxExprStr = "( ( ch -> ph ) -> th )"
         Expln_test.startTimer("find match")
         switch MM_wrk_editor.textToSyntaxTree(
