@@ -233,7 +233,7 @@ let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):un
 }
 
 let applySubsInPlace = (expr:array<string>, subs:unifSubs):unit => {
-    subs->Belt_HashMapString.forEachU((. v, subExpr) => substituteInPlace(expr, v, subExpr))
+    subs->Belt_HashMapString.forEachU((v, subExpr) => substituteInPlace(expr, v, subExpr))
 }
 
 let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
@@ -245,7 +245,7 @@ let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
             | Some(existingExpr) => expr == existingExpr
             | None => {
                 foundSubs->Belt_HashMapString.set(var, expr)
-                foundSubs->Belt_HashMapString.forEachU((. _, expr) => applySubsInPlace(expr, foundSubs))
+                foundSubs->Belt_HashMapString.forEachU((_, expr) => applySubsInPlace(expr, foundSubs))
                 true
             }
         }
