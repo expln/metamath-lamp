@@ -13,14 +13,19 @@ let mmFilePath = "./src/metamath/test/resources/set._mm"
 let getCurrMillis = () => Date.make()->Date.getTime
 let durationToSeconds = (start,end):int => ((end -. start) /. 1000.0)->Belt_Float.toInt
 let durationToSecondsStr = (start,end):string => durationToSeconds(start,end)->Belt.Int.toString
-let compareExprBySize = comparatorBy(Array.length(_))
+let compareExprBySize:comparator<expr> = comparatorBy(Array.length(_))
 
 let log = msg => Console.log(`${currTimeStr()} ${msg}`)
 
+let getIndentForLevel = (level:int):string => "    "->String.repeat(level)
+
 let rec printSyntaxTree = (tree:MM_syntax_tree.childNode, ~level:int=0):unit => {
     switch tree {
-        | Symbol({sym}) => Console.log2("\n" ++ "    "->String.repeat(level), sym)
-        | Subtree({children}) => children->Array.forEach(printSyntaxTree(_, ~level=level+1))
+        | Symbol({sym}) => Console.log(getIndentForLevel(level) ++ sym)
+        | Subtree({label, children}) => {
+            Console.log(getIndentForLevel(level+1) ++ `#${label}`)
+            children->Array.forEach(printSyntaxTree(_, ~level=level+1))
+        }
     }
 }
 
@@ -32,7 +37,8 @@ describe("proveSyntaxTypes", _ => {
         let (ast, _) = parseMmFile(~mmFileContent=mmFileText)
 
         let ctx = ast->loadContext(
-            ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
+            // ~descrRegexToDisc = "\\(New usage is discouraged\\.\\)"->strToRegex->Belt_Result.getExn,
+            ~labelRegexToDisc = "bj-0"->strToRegex->Belt_Result.getExn,
             // ~stopBefore="mathbox",
             // ~debug=true
         )
@@ -86,7 +92,7 @@ describe("proveSyntaxTypes", _ => {
         let startMs = getCurrMillis()
         let lastPct = ref(startMs)
         let frameRestrict:MM_wrk_settings.frameRestrict = {
-            useDisc:true,
+            useDisc:false,
             useDepr:true,
             useTranDepr:true,
         }
@@ -169,6 +175,8 @@ describe("proveSyntaxTypes", _ => {
         syntaxTrees->Belt_HashMapString.get(asrtToPrint)->Option.getExn->Subtree->printSyntaxTree
         Console.log(`-------------------------------------------------------------------`)
         let ctxExprStr = "( ( ch -> ph ) -> th )"
+        let matchedAsrts = []
+        Console.log2("Find matching assertions for ", ctxExprStr)
         Expln_test.startTimer("find match")
         switch MM_wrk_editor.textToSyntaxTree(
             ~wrkCtx=ctx,
@@ -185,6 +193,9 @@ describe("proveSyntaxTypes", _ => {
                 switch arr->Array.getUnsafe(0) {
                     | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
                     | Ok(ctxSyntaxTree) => {
+                        Console.log(`--- ${ctxExprStr} ------------------------------------------------`)
+                        Subtree(ctxSyntaxTree)->printSyntaxTree
+                        Console.log(`-------------------------------------------------------------------`)
                         let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
                         syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {
                             let continue = ref(true)
@@ -197,7 +208,9 @@ describe("proveSyntaxTypes", _ => {
                                 ~continue,
                             )
                             if (continue.contents) {
-                                Console.log(`found match: ${label}`)
+                                matchedAsrts->Array.push(label)
+                                // let frame = ctx->getFrameExn(label)
+                                // Console.log(`${label}: ${ctx->frmIntsToStrExn(frame, frame.asrt)}`)
                             }
                         })
                     }
@@ -205,5 +218,8 @@ describe("proveSyntaxTypes", _ => {
             }
         }
         Expln_test.stopTimer("find match")
+        matchedAsrts->Array.sort(strCmp)
+        Console.log(`Found ${matchedAsrts->Array.length->Int.toString} matching assertions.`)
+        // matchedAsrts->Array.forEach(Console.log)
     })
 })
