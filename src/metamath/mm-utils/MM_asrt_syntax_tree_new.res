@@ -154,6 +154,7 @@ type unifSubs = Belt_HashMap.t<sym,array<sym>,SymHash.identity>
 let unifSubsMake = () => Belt_HashMap.make(~hintSize=16, ~id=module(SymHash))
 let unifSubsGet = (unifSubs,sym) => unifSubs->Belt_HashMap.get(sym)
 let unifSubsSize = unifSubs => unifSubs->Belt_HashMap.size
+let unifSubsReset = unifSubs => unifSubs->Belt_HashMap.clear
 
 let substituteInPlace = (expr:array<sym>, e:sym, subExpr:array<sym>):unit => {
     let i = ref(0)

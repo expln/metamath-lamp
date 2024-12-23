@@ -18,6 +18,7 @@ type unifSubs
 let unifSubsMake: () => unifSubs
 let unifSubsGet: (unifSubs,sym) => option<array<sym>>
 let unifSubsSize: unifSubs => int
+let unifSubsReset: unifSubs => unit
 
 let unify: (
   ~asrtExpr: MM_syntax_tree.syntaxTreeNode,
