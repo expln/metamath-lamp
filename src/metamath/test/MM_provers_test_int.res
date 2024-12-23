@@ -6,7 +6,7 @@ open MM_substitution
 open Common
 open MM_proof_tree
 open Expln_utils_common
-open MM_asrt_syntax_tree_new
+open MM_asrt_syntax_tree
 
 let mmFilePath = "./src/metamath/test/resources/set._mm"
 
@@ -185,11 +185,11 @@ describe("proveSyntaxTypes", _ => {
                 switch arr->Array.getUnsafe(0) {
                     | Error(msg) => Exn.raiseError(`Could not build a syntax tree for the expression '${ctxExprStr}', error message: ${msg}`)
                     | Ok(ctxSyntaxTree) => {
-                        let foundSubs = MM_asrt_syntax_tree_new.unifSubsMake()
+                        let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
                         syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {
                             let continue = ref(true)
-                            MM_asrt_syntax_tree_new.unifSubsReset(foundSubs)
-                            MM_asrt_syntax_tree_new.unify(
+                            MM_asrt_syntax_tree.unifSubsReset(foundSubs)
+                            MM_asrt_syntax_tree.unify(
                                 ~asrtExpr=asrtTree,
                                 ~ctxExpr=ctxSyntaxTree,
                                 ~isMetavar = _ => true,
