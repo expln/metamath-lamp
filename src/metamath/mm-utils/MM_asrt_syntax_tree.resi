@@ -2,7 +2,7 @@ let buildSyntaxTree: (
     ~proofNode:MM_proof_tree.proofNode,
     ~ctxIntToAsrtInt:int=>int,
     ~asrtIntToSym:int=>string,
-    ~asrtVarToHypLabel:int=>string,
+    ~ctxHypLabelAndAsrtVarToAsrtHypLabel:(string,int)=>option<string>,
 ) => result<MM_syntax_tree.syntaxTreeNode,string>
 
 type sym = 

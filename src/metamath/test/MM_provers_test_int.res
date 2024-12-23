@@ -49,6 +49,8 @@ describe("proveSyntaxTypes", _ => {
 
         let typToLocVar: Belt_HashMapInt.t<int> = Belt_HashMapInt.make(~hintSize=4)
 
+        let tmpCtxHyps:Belt_HashMapString.t<hypothesis> = Belt_HashMapString.make(~hintSize=4)
+
         let createNewVar = (typ:int):int => {
             @warning("-8")
             let [label] = generateNewLabels( ~ctx=ctx, ~prefix="locVar", ~amount=1 )
@@ -56,6 +58,7 @@ describe("proveSyntaxTypes", _ => {
             let [varName] = generateNewVarNames( ~ctx=ctx, ~types=[typ] )
             ctx->applySingleStmt( Var({symbols:[varName]}) )
             ctx->applySingleStmt( Floating({label, expr:[ctx->ctxIntToSymExn(typ), varName]}) )
+            tmpCtxHyps->Belt_HashMapString.set(label, ctx->getHypothesis(label)->Option.getExn(~message="tmpCtxHyps"))
             ctx->ctxSymToIntExn(varName)
         }
 
@@ -148,6 +151,18 @@ describe("proveSyntaxTypes", _ => {
             }
         }
 
+        let ctxHypLabelToAsrtHypLabel = (ctxHypLabel:string, asrtVar:int, frame:frame):option<string> => {
+            tmpCtxHyps->Belt_HashMapString.get(ctxHypLabel)->Option.flatMap(ctxHyp => {
+                let typ = ctxHyp.typ
+                let asrtHyp = frame.hyps->Array.getUnsafe(frame.varHyps->Array.getUnsafe(asrtVar))
+                if (asrtHyp.typ == typ) {
+                    Some(asrtHyp.label)
+                } else {
+                    None
+                }
+            })
+        }
+
         let syntaxTrees:Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode> = 
             Belt_HashMapString.make(~hintSize=asrtExprsWithCtxVars->Belt_HashMapString.size)
         ctx->forEachFrame(frame => {
@@ -158,7 +173,7 @@ describe("proveSyntaxTypes", _ => {
                         ~proofNode=proofTree->ptGetSyntaxProof(asrtExprWithCtxVars->Array.sliceToEnd(~start=1))->Belt_Option.getExn,
                         ~ctxIntToAsrtInt=makeCtxIntToAsrtInt(frame.asrt),
                         ~asrtIntToSym=asrtInt=>ctx->frmIntToSymExn(frame,asrtInt),
-                        ~asrtVarToHypLabel=asrtVar=>(frame.hyps->Array.getUnsafe(frame.varHyps->Array.getUnsafe(asrtVar))).label,
+                        ~ctxHypLabelAndAsrtVarToAsrtHypLabel=(label,asrtVar)=>ctxHypLabelToAsrtHypLabel(label,asrtVar,frame),
                     ) {
                         | Error(msg) => Exn.raiseError("Could not build an asrt syntax tree: " ++ msg)
                         | Ok(syntaxTree) => {
