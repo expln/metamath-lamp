@@ -146,6 +146,12 @@ let arrSymEq = (a:array<sym>,b:array<sym>):bool => {
         && a->Array.everyWithIndex((sa,i) => sa->symEq(b->Array.getUnsafe(i)))
 }
 
+let symToInt = (sym:sym):int => {
+    switch sym {
+        | Const(i) | CtxVar(i) | AsrtVar(i) => i
+    }
+}
+
 module SymHash = Belt.Id.MakeHashableU({
     type t = sym
     let hash = var => {
@@ -156,12 +162,23 @@ module SymHash = Belt.Id.MakeHashableU({
     let eq = symEq
 })
 
-type unifSubs = Belt_HashMap.t<sym,array<sym>,SymHash.identity>
+type unifSubs = {
+    subs: Belt_HashMap.t<sym,array<sym>,SymHash.identity>,
+    newDisj: array<(sym,sym)>,
+}
 
-let unifSubsMake = () => Belt_HashMap.make(~hintSize=16, ~id=module(SymHash))
-let unifSubsGet = (unifSubs,sym) => unifSubs->Belt_HashMap.get(sym)
-let unifSubsSize = unifSubs => unifSubs->Belt_HashMap.size
-let unifSubsReset = unifSubs => unifSubs->Belt_HashMap.clear
+let unifSubsMake = () => {
+    {
+        subs:Belt_HashMap.make(~hintSize=16, ~id=module(SymHash)),
+        newDisj:[],
+    }
+}
+let unifSubsGet = (unifSubs,sym) => unifSubs.subs->Belt_HashMap.get(sym)
+let unifSubsSize = unifSubs => unifSubs.subs->Belt_HashMap.size
+let unifSubsReset = unifSubs => {
+    unifSubs.subs->Belt_HashMap.clear
+    unifSubs.newDisj->Expln_utils_common.clearArray
+}
 
 let substituteInPlace = (expr:array<sym>, e:sym, subExpr:array<sym>):unit => {
     let i = ref(0)
@@ -175,8 +192,8 @@ let substituteInPlace = (expr:array<sym>, e:sym, subExpr:array<sym>):unit => {
     }
 }
 
-let applySubsInPlace = (expr:array<sym>, subs:unifSubs):unit => {
-    subs->Belt_HashMap.forEachU((v, subExpr) => substituteInPlace(expr, v, subExpr))
+let applySubsInPlace = (expr:array<sym>, unifSubs:unifSubs):unit => {
+    unifSubs.subs->Belt_HashMap.forEachU((v, subExpr) => substituteInPlace(expr, v, subExpr))
 }
 
 let assignSubs = (foundSubs:unifSubs, var:sym, expr:array<sym>):bool => {
@@ -184,11 +201,11 @@ let assignSubs = (foundSubs:unifSubs, var:sym, expr:array<sym>):bool => {
         false
     } else {
         applySubsInPlace(expr, foundSubs)
-        switch foundSubs->Belt_HashMap.get(var) {
+        switch foundSubs.subs->Belt_HashMap.get(var) {
             | Some(existingExpr) => arrSymEq(expr, existingExpr)
             | None => {
-                foundSubs->Belt_HashMap.set(var, expr)
-                foundSubs->Belt_HashMap.forEachU((_, expr) => applySubsInPlace(expr, foundSubs))
+                foundSubs.subs->Belt_HashMap.set(var, expr)
+                foundSubs.subs->Belt_HashMap.forEachU((_, expr) => applySubsInPlace(expr, foundSubs))
                 true
             }
         }
@@ -204,16 +221,87 @@ let rec getAllSymbols = (syntaxTreeNode:MM_syntax_tree.syntaxTreeNode, ~isAsrt:b
     })
 }
 
+let disjForEach = (
+    ~isAsrt:bool, ~ctxDisj:disjMutable, ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>, consumer:(int,int)=>unit
+) => {
+    if (isAsrt) {
+        asrtDisj->disjImmForEach(consumer)
+    } else {
+        ctxDisj->disjForEach(consumer)
+    }
+}
+
+let verifyDisjoints = (
+    ~unifSubs:unifSubs, 
+    ~isAsrt:bool,
+    ~ctxDisj:disjMutable, 
+    ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~isDisj:(sym,sym)=>bool
+):bool => {
+    let continue = ref(true)
+    disjForEach(~isAsrt, ~ctxDisj, ~asrtDisj, (n,m) => {
+        if (continue.contents) {
+            switch unifSubs->unifSubsGet(isAsrt ? AsrtVar(n) : CtxVar(n)) {
+                | None => ()
+                | Some(nSyms) => nSyms->Array.forEach(nSym => {
+                    if (continue.contents && nSym->symToInt >= 0) {
+                        switch unifSubs->unifSubsGet(isAsrt ? AsrtVar(m) : CtxVar(m)) {
+                            | None => ()
+                            | Some(mSyms) => mSyms->Array.forEach(mSym => {
+                                if (continue.contents && mSym->symToInt >= 0) {
+                                    continue := !symEq(nSym, mSym)
+                                    if (continue.contents && !isDisj(nSym,mSym)) {
+                                        unifSubs.newDisj->Array.push((nSym,mSym))
+                                    }
+                                }
+                            })
+                        }
+                    }
+                })
+            }
+        }
+    })
+    continue.contents
+}
+
+let isDisj = (a:sym, b:sym, ~ctxDisj:disjMutable, ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>):bool => {
+    switch a {
+        | Const(_) => false
+        | CtxVar(a) => {
+            switch b {
+                | Const(_) => false
+                | CtxVar(b) => ctxDisj->disjContains(a,b)
+                | AsrtVar(_) => false
+            }
+        }
+        | AsrtVar(a) => {
+            switch b {
+                | Const(_) => false
+                | CtxVar(_) => false
+                | AsrtVar(b) => asrtDisj->disjImmContains(a,b)
+            }
+        }
+    }
+}
+
+let verifyAllDisjoints = (~unifSubs:unifSubs, ~ctxDisj:disjMutable, ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>):bool => {
+    let isDisj = (a,b) => isDisj(a, b, ~ctxDisj, ~asrtDisj)
+    verifyDisjoints( ~unifSubs, ~isAsrt=true, ~ctxDisj, ~asrtDisj, ~isDisj )
+        && verifyDisjoints( ~unifSubs, ~isAsrt=false, ~ctxDisj, ~asrtDisj, ~isDisj )
+}
+
 /*
     The core idea of the unification algorithm is as per explanations by Mario Carneiro.
     https://github.com/expln/metamath-lamp/issues/77#issuecomment-1577804381
 */
-let rec unify = ( 
+let rec unifyPriv = ( 
+    ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~ctxDisj:disjMutable,
     ~asrtExpr:MM_syntax_tree.syntaxTreeNode,
     ~ctxExpr:MM_syntax_tree.syntaxTreeNode,
     ~isMetavar:string=>bool,
     ~foundSubs:unifSubs,
-    ~continue:ref<bool>
+    ~continue:ref<bool>,
 ):unit => {
     if (asrtExpr.typ != ctxExpr.typ) {
         continue := false
@@ -245,7 +333,8 @@ let rec unify = (
                                         switch ctxExpr.children->Array.getUnsafe(i.contents) {
                                             | Symbol(_) => continue := false
                                             | Subtree(ctxCh) => {
-                                                unify(
+                                                unifyPriv(
+                                                    ~asrtDisj, ~ctxDisj,
                                                     ~asrtExpr=asrtCh, ~ctxExpr=ctxCh, ~isMetavar, ~foundSubs, ~continue
                                                 )
                                             }
@@ -260,4 +349,18 @@ let rec unify = (
             }
         }
     }
+    continue := continue.contents && verifyAllDisjoints(~unifSubs=foundSubs, ~ctxDisj, ~asrtDisj)
+}
+
+let unify = ( 
+    ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>,
+    ~ctxDisj:disjMutable,
+    ~asrtExpr:MM_syntax_tree.syntaxTreeNode,
+    ~ctxExpr:MM_syntax_tree.syntaxTreeNode,
+    ~isMetavar:string=>bool,
+    ~foundSubs:unifSubs,
+):bool => {
+    let continue=ref(true)
+    unifyPriv( ~asrtDisj, ~ctxDisj, ~asrtExpr, ~ctxExpr, ~isMetavar, ~foundSubs, ~continue, )
+    continue.contents
 }

@@ -108,20 +108,22 @@ describe("proveSyntaxTypes", _ => {
                         // Console.log(`--- ${ctxExprStr} ------------------------------------------------`)
                         // Subtree(ctxSyntaxTree)->printSyntaxTree
                         // Console.log(`-------------------------------------------------------------------`)
+                        let ctxDisj = ctx->getAllDisj
                         let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
                         syntaxTrees->Belt_HashMapString.forEach((label,asrtTree) => {
-                            let continue = ref(true)
+                            let frame = ctx->getFrameExn(label)
                             MM_asrt_syntax_tree.unifSubsReset(foundSubs)
-                            MM_asrt_syntax_tree.unify(
-                                ~asrtExpr=asrtTree,
-                                ~ctxExpr=ctxSyntaxTree,
-                                ~isMetavar = _ => true,
-                                ~foundSubs,
-                                ~continue,
-                            )
-                            if (continue.contents) {
+                            if (
+                                MM_asrt_syntax_tree.unify(
+                                    ~asrtDisj=frame.disj,
+                                    ~ctxDisj,
+                                    ~asrtExpr=asrtTree,
+                                    ~ctxExpr=ctxSyntaxTree,
+                                    ~isMetavar = _ => true,
+                                    ~foundSubs,
+                                )
+                            ) {
                                 matchedAsrts->Array.push(label)
-                                // let frame = ctx->getFrameExn(label)
                                 // Console.log(`${label}: ${ctx->frmIntsToStrExn(frame, frame.asrt)}`)
                             }
                         })
