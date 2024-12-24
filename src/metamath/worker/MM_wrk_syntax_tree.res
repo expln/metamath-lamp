@@ -1,19 +1,13 @@
+open Common
 open MM_context
 open MM_wrk_ctx_proc
-open MM_progress_tracker
 open MM_wrk_settings
 open Expln_utils_common
-
-type rec syntaxTreeNode = {
-    id: int,
-    typ:int,
-    label:string,
-    children:array<childNode>,
-    height:int,
-}
-and childNode =
-    | Subtree(syntaxTreeNode)
-    | Symbol({id:int, symInt:int, sym:string, color:option<string>, isVar:bool})
+open MM_syntax_tree
+open MM_substitution
+open MM_parenCounter
+open MM_provers
+open MM_proof_tree
 
 let procName = "MM_wrk_syntax_tree"
 
@@ -37,103 +31,169 @@ let respToStr = resp => {
     }
 }
 
-// let buildSyntaxTreesForAllAssertions = (
-//     ~settings:settingsV,
-//     ~preCtxVer: int,
-//     ~preCtx: mmContext,
-//     ~isAxiom:option<bool>,
-//     ~typ:option<int>, 
-//     ~label:string, 
-//     ~searchPattern:array<stmtPattern>,
-//     ~isDisc:option<bool>,
-//     ~isDepr:option<bool>,
-//     ~isTranDepr:option<bool>,
-//     ~returnLabelsOnly:bool,
-//     ~onProgress:float=>unit,
-// ): promise<(array<stmtsDto>,array<string>)> => {
-//     promise(resolve => {
-//         beginWorkerInteractionUsingCtx(
-//             ~settingsVer,
-//             ~settings,
-//             ~preCtxVer,
-//             ~preCtx,
-//             ~varsText="",
-//             ~disjText="",
-//             ~procName,
-//             ~initialRequest = FindAssertions({
-//                 isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly,
-//             }),
-//             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
-//                 switch resp {
-//                     | OnProgress(pct) => onProgress(pct)
-//                     | SearchResult({found, foundLabels}) => {
-//                         endWorkerInteraction()
-//                         resolve((found,foundLabels))
-//                     }
-//                 }
-//             },
-//             ~enableTrace=false
-//         )
-//     })
-// }
+let buildSyntaxTreesForAllAssertions = (
+    ~settingsV:version<settings>,
+    ~preCtxVer: int,
+    ~preCtx: mmContext,
+    ~onProgress:float=>unit,
+): promise<array<(string,syntaxTreeNode)>> => {
+    Promise.make((resolve,_) => {
+        beginWorkerInteractionUsingCtx(
+            ~settingsVer=settingsV.ver,
+            ~settings=settingsV.val,
+            ~preCtxVer,
+            ~preCtx,
+            ~varsText="",
+            ~disjText="",
+            ~procName,
+            ~initialRequest=BuildSyntaxTreesForAllAsrts,
+            ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
+                switch resp {
+                    | OnProgress(pct) => onProgress(pct)
+                    | Result(res) => {
+                        endWorkerInteraction()
+                        resolve(res)
+                    }
+                }
+            },
+            ~enableTrace=false
+        )
+    })
+}
 
-// let doSearchAssertions = (
-//     ~allFramesInDeclarationOrder:array<frame>,
-//     ~isAxiom:option<bool>,
-//     ~typ:option<int>, 
-//     ~label:string, 
-//     ~searchPattern:array<stmtPattern>,
-//     ~isDisc:option<bool>,
-//     ~isDepr:option<bool>,
-//     ~isTranDepr:option<bool>,
-//     ~onProgress:option<float=>unit>=?
-// ):array<frame> => {
-//     let progressState = progressTrackerMake(~step=0.01, ~onProgress?)
-//     let framesProcessed = ref(0.)
-//     let numOfFrames = allFramesInDeclarationOrder->Array.length->Belt_Int.toFloat
-//     let mapping = Belt_HashMapInt.make(~hintSize=10)
+let doBuildSyntaxTreesForAllAssertions = (
+    ~ctx:mmContext,
+    ~frms:frms,
+    ~parenCnt:parenCnt,
+    ~settings:settings,
+    ~syntaxTypes:array<int>,
+    ~onProgress:option<float=>unit>=?,
+):array<(string,syntaxTreeNode)> => {
+    let ctx = createContext(~parent=ctx)
 
-//     let labelTrim = label->String.trim->String.toLowerCase
-//     allFramesInDeclarationOrder->Array.filter(frame => {
-//         switch onProgress {
-//             | None => ()
-//             | Some(_) => {
-//                 framesProcessed.contents = framesProcessed.contents +. 1.
-//                 progressState->progressTrackerSetCurrPct(
-//                     framesProcessed.contents /. numOfFrames
-//                 )
-//             }
-//         }
-//         isAxiom->Option.mapOr( true, isAxiom => isAxiom == frame.isAxiom ) 
-//             && typ->Option.mapOr( true, typ => typ == frame.asrt->Array.getUnsafe(0) )
-//             && frame.label->String.toLowerCase->String.includes(labelTrim)
-//             && (threeStateBoolMatchesTwoStateBool(isDisc, frame.isDisc))
-//             && (threeStateBoolMatchesTwoStateBool(isDepr, frame.isDepr))
-//             && (threeStateBoolMatchesTwoStateBool(isTranDepr, frame.isTranDepr))
-//             && frameMatchesPattern(~frame, ~searchPattern, ~mapping)
-//     })
-// }
+    let typToLocVar: Belt_HashMapInt.t<int> = Belt_HashMapInt.make(~hintSize=4)
 
-// let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
-//     switch req {
-//         | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly}) => {
-//             let filteredFrames = doSearchAssertions(
-//                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
-//                 ~isAxiom,
-//                 ~typ,
-//                 ~label,
-//                 ~searchPattern,
-//                 ~isDisc,
-//                 ~isDepr,
-//                 ~isTranDepr,
-//                 ~onProgress = pct => sendToClient(OnProgress(pct))
-//             )
-//             let (results,labels) = if (returnLabelsOnly) {
-//                 ([], filteredFrames->Array.map(frame => frame.label))
-//             } else {
-//                 (filteredFrames->Array.map(frame => frameToStmtsDto(~wrkCtx=getWrkCtxExn(), ~frame)),[])
-//             }
-//             sendToClient(SearchResult({found:results,foundLabels:labels}))
-//         }
-//     }
-// }
+    let tmpCtxHyps:Belt_HashMapString.t<hypothesis> = Belt_HashMapString.make(~hintSize=4)
+
+    let createNewVar = (typ:int):int => {
+        @warning("-8")
+        let [label] = generateNewLabels( ~ctx=ctx, ~prefix="locVar", ~amount=1 )
+        @warning("-8")
+        let [varName] = generateNewVarNames( ~ctx=ctx, ~types=[typ] )
+        ctx->applySingleStmt( Var({symbols:[varName]}) )
+        ctx->applySingleStmt( Floating({label, expr:[ctx->ctxIntToSymExn(typ), varName]}) )
+        tmpCtxHyps->Belt_HashMapString.set(label, ctx->getHypothesis(label)->Option.getExn(~message="tmpCtxHyps"))
+        ctx->ctxSymToIntExn(varName)
+    }
+
+    let getCtxLocVar = (typ:int):int => {
+        switch typToLocVar->Belt_HashMapInt.get(typ) {
+            | None => {
+                let newVar = createNewVar(typ)
+                typToLocVar->Belt_HashMapInt.set(typ,newVar)
+                newVar
+            }
+            | Some(locVar) => locVar
+        }
+    }
+
+    let asrtExprsWithCtxVars:Belt_HashMapString.t<expr> = Belt_HashMapString.make(~hintSize=1000)
+    ctx->forEachFrame(frame => {
+        asrtExprsWithCtxVars->Belt_HashMapString.set(
+            frame.label,
+            frame.asrt->Array.map(i => i < 0 ? i : getCtxLocVar(frame.varTypes->Array.getUnsafe(i)))
+        )            
+        None
+    })->ignore
+    let exprsToSyntaxProve = asrtExprsWithCtxVars->Belt_HashMapString.valuesToArray
+        ->Expln_utils_common.sortInPlaceWith(comparatorBy(Array.length(_))->comparatorInverse)
+        ->Array.map(expr => expr->Array.sliceToEnd(~start=1))
+
+    let proofTree = proveSyntaxTypes(
+        ~wrkCtx=ctx,
+        ~frms,
+        ~frameRestrict=settings.allowedFrms.inSyntax,
+        ~parenCnt,
+        ~exprs=exprsToSyntaxProve,
+        ~syntaxTypes,
+        ~onProgress?,
+    )
+
+    let makeCtxIntToAsrtInt = (asrtExpr:expr):(int=>int) => {
+        let curIdx = ref(-1)
+        let maxIdx = asrtExpr->Array.length-1
+        (ctxInt:int) => {
+            if (ctxInt < 0) {
+                ctxInt
+            } else {
+                curIdx := curIdx.contents + 1
+                while (curIdx.contents <= maxIdx && asrtExpr->Array.getUnsafe(curIdx.contents) < 0) {
+                    curIdx := curIdx.contents + 1
+                }
+                if (maxIdx < curIdx.contents) {
+                    let errMsg = `makeCtxIntToAsrtInt: asrtExpr=${asrtExpr->Expln_utils_common.stringify}`
+                        ++ `, ctxInt=${ctxInt->Int.toString}`
+                    Console.error(errMsg)
+                    Exn.raiseError(errMsg)
+                } else {
+                    asrtExpr->Array.getUnsafe(curIdx.contents)
+                }
+            }
+        }
+    }
+
+    let ctxHypLabelToAsrtHypLabel = (ctxHypLabel:string, asrtVar:int, frame:frame):option<string> => {
+        tmpCtxHyps->Belt_HashMapString.get(ctxHypLabel)->Option.flatMap(ctxHyp => {
+            let typ = ctxHyp.typ
+            let asrtHyp = frame.hyps->Array.getUnsafe(frame.varHyps->Array.getUnsafe(asrtVar))
+            if (asrtHyp.typ == typ) {
+                Some(asrtHyp.label)
+            } else {
+                None
+            }
+        })
+    }
+
+    let result:array<(string,syntaxTreeNode)> = []
+    ctx->forEachFrame(frame => {
+        switch asrtExprsWithCtxVars->Belt_HashMapString.get(frame.label) {
+            | None => ()
+            | Some(asrtExprWithCtxVars) => {
+                switch proofTree->ptGetSyntaxProof(asrtExprWithCtxVars->Array.sliceToEnd(~start=1)) {
+                    | None => ()
+                    | Some(proofNode) => {
+                        switch MM_asrt_syntax_tree.buildSyntaxTree(
+                            ~proofNode,
+                            ~ctxIntToAsrtInt=makeCtxIntToAsrtInt(frame.asrt),
+                            ~asrtIntToSym=asrtInt=>ctx->frmIntToSymExn(frame,asrtInt),
+                            ~ctxHypLabelAndAsrtVarToAsrtHypLabel=
+                                (label,asrtVar)=>ctxHypLabelToAsrtHypLabel(label,asrtVar,frame),
+                        ) {
+                            | Error(msg) => Console.error("Could not build an asrt syntax tree: " ++ msg)
+                            | Ok(syntaxTree) => result->Array.push((frame.label, syntaxTree))
+                        }
+                    }
+                }
+            }
+        }
+        None
+    })->ignore
+    result
+}
+
+let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
+    switch req {
+        | BuildSyntaxTreesForAllAsrts => {
+            sendToClient(Result(
+                doBuildSyntaxTreesForAllAssertions(
+                    ~ctx=getWrkCtxExn(),
+                    ~frms=getWrkFrmsExn(),
+                    ~parenCnt=getWrkParenCntExn(),
+                    ~settings=getSettingsExn(),
+                    ~syntaxTypes=getSyntaxTypesExn(),
+                    ~onProgress = pct => sendToClient(OnProgress(pct))
+                )
+            ))
+        }
+    }
+}

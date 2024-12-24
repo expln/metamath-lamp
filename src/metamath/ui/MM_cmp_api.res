@@ -2,7 +2,7 @@ open MM_wrk_editor
 open Expln_utils_promise
 open Common
 open MM_context
-open MM_wrk_syntax_tree
+open MM_syntax_tree
 open MM_wrk_editor_substitution
 open MM_substitution
 open MM_apply_asrt_matcher

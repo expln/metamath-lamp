@@ -1,4 +1,4 @@
-open MM_wrk_syntax_tree
+open MM_syntax_tree
 open Expln_React_common
 open Expln_React_Mui
 open MM_wrk_editor

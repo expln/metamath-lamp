@@ -19,7 +19,7 @@ let log = msg => Console.log(`${currTimeStr()} ${msg}`)
 
 let getIndentForLevel = (level:int):string => "    "->String.repeat(level)
 
-let rec printSyntaxTree = (tree:MM_wrk_syntax_tree.childNode, ~level:int=0):unit => {
+let rec printSyntaxTree = (tree:MM_syntax_tree.childNode, ~level:int=0):unit => {
     switch tree {
         | Symbol({sym}) => Console.log(getIndentForLevel(level) ++ sym)
         | Subtree({label, children}) => {
@@ -163,7 +163,7 @@ describe("proveSyntaxTypes", _ => {
             })
         }
 
-        let syntaxTrees:Belt_HashMapString.t<MM_wrk_syntax_tree.syntaxTreeNode> = 
+        let syntaxTrees:Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode> = 
             Belt_HashMapString.make(~hintSize=asrtExprsWithCtxVars->Belt_HashMapString.size)
         ctx->forEachFrame(frame => {
             switch asrtExprsWithCtxVars->Belt_HashMapString.get(frame.label) {

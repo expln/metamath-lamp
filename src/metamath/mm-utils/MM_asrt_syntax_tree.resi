@@ -3,7 +3,7 @@ let buildSyntaxTree: (
     ~ctxIntToAsrtInt:int=>int,
     ~asrtIntToSym:int=>string,
     ~ctxHypLabelAndAsrtVarToAsrtHypLabel:(string,int)=>option<string>,
-) => result<MM_wrk_syntax_tree.syntaxTreeNode,string>
+) => result<MM_syntax_tree.syntaxTreeNode,string>
 
 type sym = 
     | Const(int)
@@ -21,8 +21,8 @@ let unifSubsSize: unifSubs => int
 let unifSubsReset: unifSubs => unit
 
 let unify: (
-  ~asrtExpr: MM_wrk_syntax_tree.syntaxTreeNode,
-  ~ctxExpr: MM_wrk_syntax_tree.syntaxTreeNode,
+  ~asrtExpr: MM_syntax_tree.syntaxTreeNode,
+  ~ctxExpr: MM_syntax_tree.syntaxTreeNode,
   ~isMetavar: string => bool,
   ~foundSubs: unifSubs,
   ~continue: ref<bool>,

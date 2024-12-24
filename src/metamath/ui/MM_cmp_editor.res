@@ -2062,7 +2062,7 @@ let make = (
         })
     }
 
-    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_wrk_syntax_tree.syntaxTreeNode,string>>,string> => {
+    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_syntax_tree.syntaxTreeNode,string>>,string> => {
         switch state.wrkCtx {
             | None => Error(`There are errors in the editor.`)
             | Some(wrkCtx) => {

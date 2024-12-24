@@ -7,7 +7,7 @@ let rec buildSyntaxTreeInner = (
     ~asrtIntToSym:int=>string,
     ~ctxHypLabelAndAsrtVarToAsrtHypLabel:(string,int)=>option<string>,
     ~idSeq:unit=>int,
-):result<MM_wrk_syntax_tree.syntaxTreeNode,string> => {
+):result<MM_syntax_tree.syntaxTreeNode,string> => {
     let expr = proofNode->pnGetExpr
     switch proofNode->pnGetProof {
         | None => Error("Cannot build a syntax tree from a node without proof.")
@@ -18,7 +18,7 @@ let rec buildSyntaxTreeInner = (
             let parentNodeId = idSeq()
             for i in 1 to maxI {
                 let symInt = expr->Array.getUnsafe(i)->ctxIntToAsrtInt
-                children[i-1] = MM_wrk_syntax_tree.Symbol({
+                children[i-1] = MM_syntax_tree.Symbol({
                     id: idSeq(),
                     symInt,
                     sym: symInt->asrtIntToSym,
@@ -54,7 +54,7 @@ let rec buildSyntaxTreeInner = (
             Exn.raiseError("buildSyntaxTreeInner.VarType")
         }
         | Some(Assertion({args, frame})) => {
-            let this:MM_wrk_syntax_tree.syntaxTreeNode = {
+            let this:MM_syntax_tree.syntaxTreeNode = {
                 id: idSeq(),
                 typ:frame.asrt->Array.getUnsafe(0),
                 label:frame.label,
@@ -66,7 +66,7 @@ let rec buildSyntaxTreeInner = (
                 if (i > 0 && err.contents->Belt_Option.isNone) {
                     if (s < 0) {
                         let symInt = s->ctxIntToAsrtInt
-                        this.children[i-1] = MM_wrk_syntax_tree.Symbol({
+                        this.children[i-1] = MM_syntax_tree.Symbol({
                             id: idSeq(),
                             symInt,
                             sym: symInt->asrtIntToSym,
@@ -99,7 +99,7 @@ let buildSyntaxTree = (
     ~ctxIntToAsrtInt:int=>int,
     ~asrtIntToSym:int=>string,
     ~ctxHypLabelAndAsrtVarToAsrtHypLabel:(string,int)=>option<string>,
-):result<MM_wrk_syntax_tree.syntaxTreeNode,string> => {
+):result<MM_syntax_tree.syntaxTreeNode,string> => {
     let lastId = ref(-1)
     let idSeq = () => {
         lastId := lastId.contents + 1
@@ -195,7 +195,7 @@ let assignSubs = (foundSubs:unifSubs, var:sym, expr:array<sym>):bool => {
     }
 }
 
-let rec getAllSymbols = (syntaxTreeNode:MM_wrk_syntax_tree.syntaxTreeNode, ~isAsrt:bool):array<sym> => {
+let rec getAllSymbols = (syntaxTreeNode:MM_syntax_tree.syntaxTreeNode, ~isAsrt:bool):array<sym> => {
     syntaxTreeNode.children->Expln_utils_common.arrFlatMap(ch => {
         switch ch {
             | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode, ~isAsrt)
@@ -209,8 +209,8 @@ let rec getAllSymbols = (syntaxTreeNode:MM_wrk_syntax_tree.syntaxTreeNode, ~isAs
     https://github.com/expln/metamath-lamp/issues/77#issuecomment-1577804381
 */
 let rec unify = ( 
-    ~asrtExpr:MM_wrk_syntax_tree.syntaxTreeNode,
-    ~ctxExpr:MM_wrk_syntax_tree.syntaxTreeNode,
+    ~asrtExpr:MM_syntax_tree.syntaxTreeNode,
+    ~ctxExpr:MM_syntax_tree.syntaxTreeNode,
     ~isMetavar:string=>bool,
     ~foundSubs:unifSubs,
     ~continue:ref<bool>

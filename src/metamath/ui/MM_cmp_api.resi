@@ -1,5 +1,5 @@
 open MM_wrk_editor
-open MM_wrk_syntax_tree
+open MM_syntax_tree
 open MM_apply_asrt_matcher
 
 type apiResp = {

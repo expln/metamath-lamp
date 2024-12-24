@@ -3,7 +3,6 @@ open MM_parser
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_syntax_tree
-open MM_wrk_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution

@@ -1,6 +1,16 @@
 open MM_context
 open MM_proof_table
-open MM_wrk_syntax_tree
+
+type rec syntaxTreeNode = {
+    id: int,
+    typ:int,
+    label:string,
+    children:array<childNode>,
+    height:int,
+}
+and childNode =
+    | Subtree(syntaxTreeNode)
+    | Symbol({id:int, symInt:int, sym:string, color:option<string>, isVar:bool})
 
 let buildSyntaxTree: (mmContext, proofTable, int) => result<syntaxTreeNode,string>
 

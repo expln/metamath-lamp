@@ -999,7 +999,7 @@ let make = React.memoCustomCompareProps(({
                                 actOpenLoadProofToEditorDialog(state)
                             }}
                         >
-                            {React.string("Load this proof to the editor")}
+                            {React.string("Open this proof in a new editor tab")}
                         </MenuItem>
                     </Menu>
                 }
