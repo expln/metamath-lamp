@@ -5,7 +5,7 @@ open MM_wrk_frag_transform
 open MM_context
 open Common
 open MM_wrk_editor
-open MM_syntax_tree
+open MM_wrk_syntax_tree
 
 let rec extractResult = (reactElemDto:{..}):option<string> => {
     switch reactElemDto["cmp"]->Nullable.toOption {

@@ -1,16 +1,6 @@
 open MM_context
 open MM_proof_table
-
-type rec syntaxTreeNode = {
-    id: int,
-    typ:int,
-    label:string,
-    children:array<childNode>,
-    height:int,
-}
-and childNode =
-    | Subtree(syntaxTreeNode)
-    | Symbol({id:int, symInt:int, sym:string, color:option<string>, isVar:bool})
+open MM_wrk_syntax_tree
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)

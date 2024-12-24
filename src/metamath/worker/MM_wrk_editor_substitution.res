@@ -2,6 +2,7 @@ open MM_wrk_editor
 open MM_context
 open MM_proof_tree
 open MM_syntax_tree
+open MM_wrk_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution

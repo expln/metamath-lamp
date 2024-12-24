@@ -16,11 +16,15 @@ type mmCtxSrcDto = {
     allLabels: array<string>,
 }
 
+type preCtx = {
+    full:mmContext,
+    min:mmContext,
+}
+
 type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
-    ctxFullV: version<mmContext>,
-    ctxMinV: version<mmContext>,
+    ctxV: version<preCtx>,
     frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
@@ -34,9 +38,9 @@ type preCtxData = {
 let preCtxDataMake: (~settings: settings) => preCtxData
 
 let preCtxDataUpdate: (
-  preCtxData,
-  ~settings: settings=?,
-  ~ctx: (array<mmCtxSrcDto>, mmContext)=?,
+    preCtxData,
+    ~settings: settings=?,
+    ~ctx: (array<mmCtxSrcDto>, mmContext)=?,
 ) => preCtxData
 
 let findTypes: mmContext => (array<int>,array<int>)

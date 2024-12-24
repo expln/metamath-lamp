@@ -397,7 +397,7 @@ let make = () => {
 
     let openFrameExplorer = (label:string):unit => {
         setState(st => {
-            switch st.preCtxData.ctxFullV.val->getFrame(label) {
+            switch st.preCtxData.ctxV.val.full->getFrame(label) {
                 | None => {
                     openInfoDialog( ~modalRef, ~text=`Cannot find an assertion by label '${label}'` )
                 }

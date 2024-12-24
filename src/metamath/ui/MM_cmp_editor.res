@@ -317,7 +317,7 @@ let make = (
     React.useEffect1(() => {
         actPreCtxDataUpdated()
         None
-    }, [preCtxData.settingsV.ver, preCtxData.ctxFullV.ver, preCtxData.ctxMinV.ver])
+    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver])
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -836,12 +836,12 @@ let make = (
                             modalRef
                             settingsVer=state.preCtxData.settingsV.ver
                             settings=state.preCtxData.settingsV.val
-                            preCtxVer=state.preCtxData.ctxMinV.ver
-                            preCtx=state.preCtxData.ctxMinV.val
+                            preCtxVer=state.preCtxData.ctxV.ver
+                            preCtx=state.preCtxData.ctxV.val.min
                             wrkCtx
                             frms=state.preCtxData.frms
-                            initialTyp={getLastUsedTyp(state.preCtxData.ctxMinV.val)}
-                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxMinV.val, _)}
+                            initialTyp={getLastUsedTyp(state.preCtxData.ctxV.val.min)}
+                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxV.val.min, _)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onResultsSelected={selectedResults=>{
                                 closeModal(modalRef, modalId)
@@ -1021,8 +1021,8 @@ let make = (
                                     modalRef
                                     settingsVer=state.preCtxData.settingsV.ver
                                     settings
-                                    preCtxVer=state.preCtxData.ctxMinV.ver
-                                    preCtx=state.preCtxData.ctxMinV.val
+                                    preCtxVer=state.preCtxData.ctxV.ver
+                                    preCtx=state.preCtxData.ctxV.val.min
                                     frms=state.preCtxData.frms parenCnt=state.preCtxData.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
@@ -1061,8 +1061,8 @@ let make = (
                                 unify(
                                     ~settingsVer=state.preCtxData.settingsV.ver,
                                     ~settings,
-                                    ~preCtxVer=state.preCtxData.ctxMinV.ver,
-                                    ~preCtx=state.preCtxData.ctxMinV.val,
+                                    ~preCtxVer=state.preCtxData.ctxV.ver,
+                                    ~preCtx=state.preCtxData.ctxV.val.min,
                                     ~varsText,
                                     ~disjText,
                                     ~rootStmts,
@@ -1802,7 +1802,7 @@ let make = (
             modalRef
             settingsVer=state.preCtxData.settingsV.ver
             settings
-            preCtxVer=state.preCtxData.ctxMinV.ver
+            preCtxVer=state.preCtxData.ctxV.ver
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
@@ -2062,7 +2062,7 @@ let make = (
         })
     }
 
-    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_syntax_tree.syntaxTreeNode,string>>,string> => {
+    let actBuildSyntaxTrees = (exprs:array<string>):result<array<result<MM_wrk_syntax_tree.syntaxTreeNode,string>>,string> => {
         switch state.wrkCtx {
             | None => Error(`There are errors in the editor.`)
             | Some(wrkCtx) => {

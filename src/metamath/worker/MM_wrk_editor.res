@@ -3,6 +3,7 @@ open MM_parser
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_syntax_tree
+open MM_wrk_syntax_tree
 open MM_wrk_settings
 open MM_parenCounter
 open MM_substitution
@@ -522,9 +523,11 @@ let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=fal
         }
     }
 
+    let preCtx = st.preCtxData.ctxV.val.min
     let labelIsReserved = (label:string):bool => {
-        reservedLabels->Belt_HashSetString.has(label) || st.preCtxData.ctxMinV.val->isHyp(label) ||
-            forHyp && st.preCtxData.ctxMinV.val->getTokenType(label)->Belt.Option.isSome
+        reservedLabels->Belt_HashSetString.has(label) 
+            || preCtx->isHyp(label) 
+            || forHyp && preCtx->getTokenType(label)->Belt.Option.isSome
     }
 
     let prefixToUse = switch prefix {
@@ -999,7 +1002,7 @@ let parseWrkCtxErr = (st:editorState, wrkCtxErr:wrkCtxErr):editorState => {
 
 let refreshWrkCtx = (st:editorState):editorState => {
     let wrkCtxRes = createWrkCtx(
-        ~preCtx=st.preCtxData.ctxMinV.val,
+        ~preCtx=st.preCtxData.ctxV.val.min,
         ~varsText=st.varsText,
         ~disjText=st.disjText,
     )
@@ -2027,7 +2030,7 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                             switch stmt.proof {
                                 | None => None
                                 | Some(proofNode) => {
-                                    let preCtx = st.preCtxData.ctxMinV.val
+                                    let preCtx = st.preCtxData.ctxV.val.min
                                     let expr = userStmtToRootStmt(stmt).expr
                                     let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode)
                                     let proofTableWithoutTypes = createProofTable(
@@ -2229,7 +2232,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
         let newLabel = 
             if (
                 st.stmts->Array.find(stmt => stmt.isGoal)->Belt.Option.isSome
-                || st.preCtxData.ctxMinV.val->getTokenType(newStmt.label)->Belt.Option.isSome
+                || st.preCtxData.ctxV.val.min->getTokenType(newStmt.label)->Belt.Option.isSome
             ) {
                 createNewLabel(st, ~forHyp=true)
             } else {

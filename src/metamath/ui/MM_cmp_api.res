@@ -2,7 +2,7 @@ open MM_wrk_editor
 open Expln_utils_promise
 open Common
 open MM_context
-open MM_syntax_tree
+open MM_wrk_syntax_tree
 open MM_wrk_editor_substitution
 open MM_substitution
 open MM_apply_asrt_matcher
@@ -387,8 +387,8 @@ let optArrayToMatchers = (
 let lastPreCtxV = ref(-100)
 let sortedFrames = ref(Belt_HashMapString.make(~hintSize=0))
 let sortFrames = (st:editorState, frames:array<string>):array<string> => {
-    if (lastPreCtxV.contents != st.preCtxData.ctxMinV.ver) {
-        lastPreCtxV := st.preCtxData.ctxMinV.ver
+    if (lastPreCtxV.contents != st.preCtxData.ctxV.ver) {
+        lastPreCtxV := st.preCtxData.ctxV.ver
         sortedFrames := Belt_HashMapString.make(~hintSize=64)
     }
     let framesStr = frames->Array.joinUnsafe(" ")
