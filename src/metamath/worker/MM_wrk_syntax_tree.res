@@ -65,7 +65,7 @@ let doBuildSyntaxTreesForAllAssertions = (
     ~ctx:mmContext,
     ~frms:frms,
     ~parenCnt:parenCnt,
-    ~settings:settings,
+    ~allowedFrmsInSyntax:frameRestrict,
     ~syntaxTypes:array<int>,
     ~onProgress:option<float=>unit>=?,
 ):array<(string,syntaxTreeNode)> => {
@@ -109,15 +109,20 @@ let doBuildSyntaxTreesForAllAssertions = (
         ->Expln_utils_common.sortInPlaceWith(comparatorBy(Array.length(_))->comparatorInverse)
         ->Array.map(expr => expr->Array.sliceToEnd(~start=1))
 
+    // let asrtExprStr = asrtExprsWithCtxVars->Array.map(ctxIntsToStrExn(ctx, _))->Array.joinUnsafe("\n")
+    // Expln_utils_files.writeStringToFile(asrtExprStr, "./asrtExprStr.txt")
+
     let proofTree = proveSyntaxTypes(
         ~wrkCtx=ctx,
         ~frms,
-        ~frameRestrict=settings.allowedFrms.inSyntax,
+        ~frameRestrict=allowedFrmsInSyntax,
         ~parenCnt,
         ~exprs=exprsToSyntaxProve,
         ~syntaxTypes,
         ~onProgress?,
     )
+
+    // Expln_utils_files.writeStringToFile(proofTree->ptPrintStats, "./unprovedNodes.txt")
 
     let makeCtxIntToAsrtInt = (asrtExpr:expr):(int=>int) => {
         let curIdx = ref(-1)
@@ -189,7 +194,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                     ~ctx=getWrkCtxExn(),
                     ~frms=getWrkFrmsExn(),
                     ~parenCnt=getWrkParenCntExn(),
-                    ~settings=getSettingsExn(),
+                    ~allowedFrmsInSyntax=getSettingsExn().allowedFrms.inSyntax,
                     ~syntaxTypes=getSyntaxTypesExn(),
                     ~onProgress = pct => sendToClient(OnProgress(pct))
                 )

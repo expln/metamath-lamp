@@ -62,6 +62,10 @@ let processors: Belt_MapString.t<requestProcessor> = Belt_MapString.fromArray([
         MM_wrk_unify.procName, 
         makeRequestProcessor(MM_wrk_unify.processOnWorkerSide, MM_wrk_unify.reqToStr, MM_wrk_unify.respToStr)
     ),
+    (
+        MM_wrk_syntax_tree.procName, 
+        makeRequestProcessor(MM_wrk_syntax_tree.processOnWorkerSide, MM_wrk_syntax_tree.reqToStr, MM_wrk_syntax_tree.respToStr)
+    ),
 ])
 
 let processRequest: workerRequest => unit = req => {
