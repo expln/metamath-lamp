@@ -87,7 +87,7 @@ let testTransform = (
         expr: None, jstf: None, proofTreeDto: None, src: None, proof: None, proofStatus: None, unifErr: None, 
         syntaxErr: None,
     }
-    let stepJson = MM_api.stmtToJson(step, Some(ctxIntToSymExn(wrkCtx, _)))
+    let stepJson = MM_api2_editor.stmtToJson(step, Some(ctxIntToSymExn(wrkCtx, _)))
     let param = {"step":stepJson}
     let allTransforms = arrStrToFragTransforms([MM_frag_transform_default_script.fragmentTransformsDefaultScript])->Belt_Result.getExn
     let filteredTransforms = allTransforms->Array.filter(tr => tr.displayName(param) == transformName)

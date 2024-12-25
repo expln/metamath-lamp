@@ -2106,11 +2106,9 @@ let make = (
         )
     }
 
-    MM_api.updateEditorApi(
+    MM_api2_editor.updateEditorData(
         ~editorId,
         ~state,
-        ~showInfoMsg=showInfoMsgForApi,
-        ~showErrMsg=showErrMsgForApi,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
