@@ -22,11 +22,20 @@ type singleEditorApi = {
 
 type editorApi = option<int> => singleEditorApi
 
+type macroApi = {
+    "registerMacroModule": api,
+    "unregisterMacroModule": api,
+    "listRegisteredMacroModules": api,
+    "listRegisteredMacrosInModule": api,
+    "runMacro": api,
+}
+
 let api: {
     "setLogApiCallsToConsole": api,
     "showInfoMsg": api,
     "showErrMsg": api,
-    "editor" : editorApi
+    "editor" : editorApi,
+    "macro" : macroApi,
 }
 
 let makeApiFunc: (string, JSON.t=>promise<result<JSON.t,string>>) => api

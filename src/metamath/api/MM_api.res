@@ -89,10 +89,29 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
     }
 }
 
+type macroApi = {
+    "registerMacroModule": api,
+    "unregisterMacroModule": api,
+    "listRegisteredMacroModules": api,
+    "listRegisteredMacrosInModule": api,
+    "runMacro": api,
+}
+
+let makeEmptyMacroApi = (msg:string):macroApi => {
+    {
+        "registerMacroModule": _ => Promise.resolve(errResp(msg)),
+        "unregisterMacroModule": _ => Promise.resolve(errResp(msg)),
+        "listRegisteredMacroModules": _ => Promise.resolve(errResp(msg)),
+        "listRegisteredMacrosInModule": _ => Promise.resolve(errResp(msg)),
+        "runMacro": _ => Promise.resolve(errResp(msg)),
+    }
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
+let macroRef:ref<option<macroApi>> = ref(None)
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
@@ -103,7 +122,8 @@ let api = {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")
             | Some(func) => func(editorId)
         }
-    }
+    },
+    "macro": makeEmptyMacroApi("The macro API function is not defined."),
 }
 
 let setLogApiCallsToConsole = (params:JSON.t):promise<result<JSON.t,string>> => {
