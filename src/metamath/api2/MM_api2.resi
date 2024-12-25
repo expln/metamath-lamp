@@ -6,7 +6,7 @@ type apiResp = {
 
 type api = JSON.t => promise<apiResp>
 
-type editorApi = option<int> => {
+type singleEditorApi = {
     "getState": api,
     "proveBottomUp": api,
     "unifyAll": api,
@@ -20,6 +20,8 @@ type editorApi = option<int> => {
     "buildSyntaxTrees": api,
 }
 
+type editorApi = option<int> => singleEditorApi
+
 let api: {
     "setLogApiCallsToConsole": api,
     "showInfoMsg": api,
@@ -29,4 +31,7 @@ let api: {
 
 let makeApiFunc: (string, JSON.t=>promise<result<JSON.t,string>>) => api
 
-let updateUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ) => unit
+let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ) => unit
+let setEditorApi: editorApi => unit
+
+let makeEmptySingleEditorApi: string => singleEditorApi

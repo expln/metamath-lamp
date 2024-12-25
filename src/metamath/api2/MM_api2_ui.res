@@ -20,7 +20,7 @@ let make = React.memo((
     }
 
     React.useEffect0(() => {
-        updateUiApi(
+        setUiApi(
             ~showInfoMsg = makeApiFunc("showInfoMsg", params => {
                 switch JSON.Decode.string(params) {
                     | None => Promise.resolve(Error("The parameter of showInfoMsg() must be a string."))

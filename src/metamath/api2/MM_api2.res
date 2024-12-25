@@ -57,7 +57,7 @@ let makeApiFuncFromRef = (ref:ref<option<api>>):api => {
     }
 }
 
-type editorApi = option<int> => {
+type singleEditorApi = {
     "getState": api,
     "proveBottomUp": api,
     "unifyAll": api,
@@ -71,26 +71,38 @@ type editorApi = option<int> => {
     "buildSyntaxTrees": api,
 }
 
+type editorApi = option<int> => singleEditorApi
+
+let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
+    {
+        "getState": _ => Promise.resolve(errResp(msg)),
+        "proveBottomUp": _ => Promise.resolve(errResp(msg)),
+        "unifyAll": _ => Promise.resolve(errResp(msg)),
+        "addSteps": _ => Promise.resolve(errResp(msg)),
+        "updateSteps": _ => Promise.resolve(errResp(msg)),
+        "deleteSteps": _ => Promise.resolve(errResp(msg)),
+        "getTokenType": _ => Promise.resolve(errResp(msg)),
+        "substitute": _ => Promise.resolve(errResp(msg)),
+        "mergeDuplicatedSteps": _ => Promise.resolve(errResp(msg)),
+        "setContentIsHidden": _ => Promise.resolve(errResp(msg)),
+        "buildSyntaxTrees": _ => Promise.resolve(errResp(msg)),
+    }
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
+let editorRef:ref<option<editorApi>> = ref(None)
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
     "showInfoMsg": makeApiFuncFromRef(showInfoMsgRef),
     "showErrMsg": makeApiFuncFromRef(showErrMsgRef),
     "editor": (editorId:option<int>) => {
-        "getState": _ => Promise.resolve(errResp("Not implemented")),
-        "proveBottomUp": _ => Promise.resolve(errResp("Not implemented")),
-        "unifyAll": _ => Promise.resolve(errResp("Not implemented")),
-        "addSteps": _ => Promise.resolve(errResp("Not implemented")),
-        "updateSteps": _ => Promise.resolve(errResp("Not implemented")),
-        "deleteSteps": _ => Promise.resolve(errResp("Not implemented")),
-        "getTokenType": _ => Promise.resolve(errResp("Not implemented")),
-        "substitute": _ => Promise.resolve(errResp("Not implemented")),
-        "mergeDuplicatedSteps": _ => Promise.resolve(errResp("Not implemented")),
-        "setContentIsHidden": _ => Promise.resolve(errResp("Not implemented")),
-        "buildSyntaxTrees": _ => Promise.resolve(errResp("Not implemented")),
+        switch editorRef.contents {
+            | None => makeEmptySingleEditorApi("The editor API function is not defined.")
+            | Some(func) => func(editorId)
+        }
     }
 }
 
@@ -106,10 +118,14 @@ let setLogApiCallsToConsole = (params:JSON.t):promise<result<JSON.t,string>> => 
 
 setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLogApiCallsToConsole))
 
-let updateUiApi = (
+let setUiApi = (
     ~showInfoMsg:api,
     ~showErrMsg:api,
 ):unit => {
     showInfoMsgRef := Some(showInfoMsg)
     showErrMsgRef := Some(showErrMsg)
+}
+
+let setEditorApi = ( editorApi:editorApi ):unit => {
+    editorRef:= Some(editorApi)
 }
