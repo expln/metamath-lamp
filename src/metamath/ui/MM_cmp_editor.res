@@ -2106,7 +2106,7 @@ let make = (
         )
     }
 
-    MM_api2_editor.updateEditorData(
+    MM_api_editor.updateEditorData(
         ~editorId,
         ~state,
         ~setState=actSetStateFromApi,

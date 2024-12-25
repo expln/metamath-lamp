@@ -6,7 +6,7 @@ open MM_syntax_tree
 open MM_wrk_editor_substitution
 open MM_substitution
 open MM_apply_asrt_matcher
-open MM_api2
+open MM_api
 
 let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
     Dict.fromArray([

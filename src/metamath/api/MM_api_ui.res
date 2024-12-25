@@ -1,5 +1,5 @@
 open MM_react_common
-open MM_api2
+open MM_api
 open Expln_React_Modal
 
 @react.component
