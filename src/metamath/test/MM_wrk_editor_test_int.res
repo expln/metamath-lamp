@@ -790,7 +790,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let prepareBottomUpProverParams = (
             state:MM_wrk_editor.editorState,
-            matcher:MM_cmp_api.apiApplyAsrtResultMatcher,
+            matcher:MM_api.apiApplyAsrtResultMatcher,
         ):MM_provers.bottomUpProverParams => {
             {
                 maxSearchDepth:3,
@@ -803,7 +803,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
                     {
                         ...defaultFrameParams,
                         frmsToUse: Some(["syl"]),
-                        matches: MM_cmp_api.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
+                        matches: MM_api.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
                     }
                 ],
             }

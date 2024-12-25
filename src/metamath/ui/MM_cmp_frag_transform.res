@@ -21,7 +21,7 @@ let createInitialState = (
     ~ctxConstIntToSymExn:int=>string,
 ):state => {
     {
-        step: MM_cmp_api.stmtToJson(step, Some(ctxConstIntToSymExn)),
+        step: MM_api.stmtToJson(step, Some(ctxConstIntToSymExn)),
         transformsParseErr: None,
         availableTransforms: None,
         selectedTransform: None,

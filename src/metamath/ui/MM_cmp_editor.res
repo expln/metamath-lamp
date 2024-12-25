@@ -2106,7 +2106,7 @@ let make = (
         )
     }
 
-    MM_cmp_api.updateEditorApi(
+    MM_api.updateEditorApi(
         ~editorId,
         ~state,
         ~showInfoMsg=showInfoMsgForApi,

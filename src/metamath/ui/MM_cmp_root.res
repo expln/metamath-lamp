@@ -264,7 +264,7 @@ let make = () => {
                     ~text=`Close this editor tab? "${tab.label}"`, 
                 )->Promise.thenResolve(confirmed => {
                     if (confirmed) {
-                        MM_cmp_api.deleteEditor(editorId)
+                        MM_api.deleteEditor(editorId)
                         if (lastOpenedEditorId == Some(editorId)) {
                             setLastOpenedEditorId(_ => None)
                         }
@@ -317,7 +317,7 @@ let make = () => {
                     | None => ()
                     | Some({editorId, addAsrtByLabel:addAsrtByLabelRef}) => {
                         setLastOpenedEditorId(_ => Some(editorId))
-                        MM_cmp_api.setLastOpenedEditorId(editorId)
+                        MM_api.setLastOpenedEditorId(editorId)
                         addAsrtByLabel.current = addAsrtByLabelRef.contents->Option.map(addAsrtByLabelOrig => {
                             str => {
                                 addAsrtByLabelOrig(str)->Promise.thenResolve(res => {
@@ -676,6 +676,7 @@ let make = () => {
                 <Col>
                     {React.array(tabs->Array.map(rndTabContent(contentTop, _)))}
                     <Expln_React_Modal modalRef />
+                    <MM_api_ui modalRef />
                 </Col>
             }}
         />

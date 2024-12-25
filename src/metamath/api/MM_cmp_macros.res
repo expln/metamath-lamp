@@ -47,7 +47,7 @@ let createMacroFromObject = (obj:{..}):macro => {
     let runFn = reqFuncExn(obj["run"], "'run' attribute of a macro must be a function.")
     {
         displayName: reqStrExn(obj["displayName"], "'displayName' attribute of a macro must be a string."),
-        run: ctx => runFn(. ctx),
+        run: ctx => runFn(ctx),
     }
 }
 
@@ -57,7 +57,7 @@ let stringToMacros = (~displayName:string, ~script:string):result<array<macro>,s
         | Ok(macros) => {
             invokeExnFunc(
                 `Convert macros from the script for '${displayName}' to internal representation`, 
-                () => macros["map"](. createMacroFromObject)
+                () => macros["map"](createMacroFromObject)
             )
         }
     }
@@ -95,24 +95,26 @@ let setMmExampleScript = MM_macros_set_mm_example.setMmExampleMacros
     ->String.replaceRegExp(%re("/\{!@#\}/g"), "$")
 let setMmExampleDisplayName = "set.mm example macros"
 
+let defaultCollsOfMacros = [
+    {
+        id: -1,
+        version: 1,
+        displayName: setMmExampleDisplayName,
+        displayNameEdit: setMmExampleDisplayName,
+        scriptText: setMmExampleScript,
+        scriptTextEdit: setMmExampleScript,
+        macros: getMacrosFromCache(
+            ~displayName=setMmExampleDisplayName,
+            ~script=setMmExampleScript
+        )
+    }
+]
+
 let makeEmptyState = () => {
     {
         nextId:0,
         activeCollOfMacrosId:-1,
-        collsOfMacros:[
-            {
-                id: -1,
-                version: 1,
-                displayName: setMmExampleDisplayName,
-                displayNameEdit: setMmExampleDisplayName,
-                scriptText: setMmExampleScript,
-                scriptTextEdit: setMmExampleScript,
-                macros: getMacrosFromCache(
-                    ~displayName=setMmExampleDisplayName,
-                    ~script=setMmExampleScript
-                )
-            }
-        ],
+        collsOfMacros:defaultCollsOfMacros,
     }
 }
 
@@ -282,20 +284,6 @@ let stateToStateLocStor = (st:state):stateLocStor => {
 }
 
 let stateLocStorToState = (ls:stateLocStor):state => {
-    let defaultColls = [
-        {
-            id: -1,
-            version: 1,
-            displayName: setMmExampleDisplayName,
-            displayNameEdit: setMmExampleDisplayName,
-            scriptText: setMmExampleScript,
-            scriptTextEdit: setMmExampleScript,
-            macros: getMacrosFromCache(
-                ~displayName=setMmExampleDisplayName,
-                ~script=setMmExampleScript
-            )
-        }
-    ]
     let collsOfMacros = Belt_Array.concatMany([
         ls.collsOfMacros->Array.mapWithIndex((coll,i) => {
             {
@@ -311,7 +299,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
                 )
             }
         }),
-        defaultColls,
+        defaultCollsOfMacros,
     ])
     {
         nextId:ls.collsOfMacros->Array.length,
