@@ -9,8 +9,9 @@ type apiResp = {
 
 type api = apiInput => promise<apiResp>
 
-let apiInputToNullableObj: apiInput => Nullable.t<{..}>
 let apiInputToJson: apiInput => JSON.t
+let apiInputToNullableObj: apiInput => Nullable.t<{..}>
+let apiInputToObjExn: (apiInput, string) => {..}
 
 let makeApiFunc: (string, apiInput=>promise<result<'a,string>>) => api
 
@@ -42,11 +43,12 @@ let api: {
     "setLogApiCallsToConsole": api,
     "showInfoMsg": api,
     "showErrMsg": api,
+    "multilineTextInput": api,
     "editor" : editorApi,
     "macro" : macroApi,
 }
 
-let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ) => unit
+let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ~multilineTextInput:api, ) => unit
 let setEditorApi: editorApi => unit
 let setMacroApi: macroApi => unit
 

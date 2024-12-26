@@ -1,0 +1,1 @@
+let initMacroApi: () => unit

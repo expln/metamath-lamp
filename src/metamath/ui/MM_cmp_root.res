@@ -676,7 +676,7 @@ let make = () => {
                 <Col>
                     {React.array(tabs->Array.map(rndTabContent(contentTop, _)))}
                     <Expln_React_Modal modalRef />
-                    <MM_api_ui modalRef />
+                    <MM_cmp_api modalRef />
                 </Col>
             }}
         />

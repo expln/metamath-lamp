@@ -28,8 +28,15 @@ let errResp = (msg:string):apiResp => {
     }
 }
 
-external apiInputToNullableObj: apiInput => Nullable.t<{..}> = "%identity"
 external apiInputToJson: apiInput => JSON.t = "%identity"
+external apiInputToNullableObj: apiInput => Nullable.t<{..}> = "%identity"
+
+let apiInputToObjExn = (apiInput:apiInput, msg:string):{..} => {
+    switch apiInput->apiInputToNullableObj->Nullable.toOption {
+        | None => Exn.raiseError(msg)
+        | Some(obj) => obj
+    }
+}
 
 external makeApiOutput: 'a => apiOutput = "%identity"
 
@@ -119,6 +126,7 @@ let makeEmptyMacroApi = (msg:string):macroApi => {
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
+let multilineTextInputRef:ref<option<api>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
 
@@ -126,6 +134,7 @@ let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
     "showInfoMsg": makeApiFuncFromRef(showInfoMsgRef),
     "showErrMsg": makeApiFuncFromRef(showErrMsgRef),
+    "multilineTextInput": makeApiFuncFromRef(multilineTextInputRef),
     "editor": (editorId:option<int>) => {
         switch editorRef.contents {
             | None => makeEmptySingleEditorApi("The editor API function is not defined.")
@@ -150,9 +159,11 @@ setLogApiCallsToConsoleRef := Some(makeApiFunc("setLogApiCallsToConsole", setLog
 let setUiApi = (
     ~showInfoMsg:api,
     ~showErrMsg:api,
+    ~multilineTextInput:api,
 ):unit => {
     showInfoMsgRef := Some(showInfoMsg)
     showErrMsgRef := Some(showErrMsg)
+    multilineTextInputRef := Some(multilineTextInput)
 }
 
 let setEditorApi = ( editorApi:editorApi ):unit => {
