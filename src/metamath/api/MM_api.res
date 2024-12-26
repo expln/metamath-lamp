@@ -113,22 +113,31 @@ type macroApi = {
     "runMacro": api,
 }
 
-let makeEmptyMacroApi = (msg:string):macroApi => {
-    {
-        "registerMacroModule": _ => Promise.resolve(errResp(msg)),
-        "unregisterMacroModule": _ => Promise.resolve(errResp(msg)),
-        "listRegisteredMacroModules": _ => Promise.resolve(errResp(msg)),
-        "listRegisteredMacrosInModule": _ => Promise.resolve(errResp(msg)),
-        "runMacro": _ => Promise.resolve(errResp(msg)),
-    }
-}
-
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
 let multilineTextInputRef:ref<option<api>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
+
+let makeSingleMacroApi = (methodGetter:macroApi=>api):api => {
+    apiInput => {
+        switch macroRef.contents {
+            | None => Promise.resolve(errResp("The macro API function is not defined."))
+            | Some(macroApi) => methodGetter(macroApi)(apiInput)
+        }
+    }
+}
+
+let makeMacroApi = ():macroApi => {
+    {
+        "registerMacroModule": makeSingleMacroApi(a => a["registerMacroModule"]),
+        "unregisterMacroModule": makeSingleMacroApi(a => a["unregisterMacroModule"]),
+        "listRegisteredMacroModules": makeSingleMacroApi(a => a["listRegisteredMacroModules"]),
+        "listRegisteredMacrosInModule": makeSingleMacroApi(a => a["listRegisteredMacrosInModule"]),
+        "runMacro": makeSingleMacroApi(a => a["runMacro"]),
+    }
+}
 
 let api = {
     "setLogApiCallsToConsole": makeApiFuncFromRef(setLogApiCallsToConsoleRef),
@@ -141,7 +150,7 @@ let api = {
             | Some(func) => func(editorId)
         }
     },
-    "macro": makeEmptyMacroApi("The macro API function is not defined."),
+    "macro": makeMacroApi(),
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {

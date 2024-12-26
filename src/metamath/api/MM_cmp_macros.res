@@ -95,26 +95,28 @@ let setMmExampleScript = MM_macros_set_mm_example.setMmExampleMacros
     ->String.replaceRegExp(%re("/\{!@#\}/g"), "$")
 let setMmExampleDisplayName = "set.mm example macros"
 
-let defaultCollsOfMacros = [
-    {
-        id: -1,
-        version: 1,
-        displayName: setMmExampleDisplayName,
-        displayNameEdit: setMmExampleDisplayName,
-        scriptText: setMmExampleScript,
-        scriptTextEdit: setMmExampleScript,
-        macros: getMacrosFromCache(
-            ~displayName=setMmExampleDisplayName,
-            ~script=setMmExampleScript
-        )
-    }
-]
+let getDefaultCollsOfMacros = () => {
+    [
+        {
+            id: -1,
+            version: 1,
+            displayName: setMmExampleDisplayName,
+            displayNameEdit: setMmExampleDisplayName,
+            scriptText: setMmExampleScript,
+            scriptTextEdit: setMmExampleScript,
+            macros: getMacrosFromCache(
+                ~displayName=setMmExampleDisplayName,
+                ~script=setMmExampleScript
+            )
+        }
+    ]
+}
 
 let makeEmptyState = () => {
     {
         nextId:0,
         activeCollOfMacrosId:-1,
-        collsOfMacros:defaultCollsOfMacros,
+        collsOfMacros:getDefaultCollsOfMacros(),
     }
 }
 
@@ -299,7 +301,7 @@ let stateLocStorToState = (ls:stateLocStor):state => {
                 )
             }
         }),
-        defaultCollsOfMacros,
+        getDefaultCollsOfMacros(),
     ])
     {
         nextId:ls.collsOfMacros->Array.length,
