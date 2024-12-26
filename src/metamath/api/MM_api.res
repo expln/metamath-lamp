@@ -149,3 +149,7 @@ let setUiApi = (
 let setEditorApi = ( editorApi:editorApi ):unit => {
     editorRef:= Some(editorApi)
 }
+
+let setMacroApi = ( macroApi:macroApi ):unit => {
+    macroRef:= Some(macroApi)
+}

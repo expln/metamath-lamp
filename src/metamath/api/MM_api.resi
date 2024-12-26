@@ -42,5 +42,6 @@ let makeApiFunc: (string, JSON.t=>promise<result<JSON.t,string>>) => api
 
 let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ) => unit
 let setEditorApi: editorApi => unit
+let setMacroApi: macroApi => unit
 
 let makeEmptySingleEditorApi: string => singleEditorApi
