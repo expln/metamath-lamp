@@ -22,20 +22,20 @@ let make = React.memo((
     React.useEffect0(() => {
         setUiApi(
             ~showInfoMsg = makeApiFunc("showInfoMsg", params => {
-                switch JSON.Decode.string(params) {
+                switch params->apiInputToJson->JSON.Decode.string {
                     | None => Promise.resolve(Error("The parameter of showInfoMsg() must be a string."))
                     | Some(msg) => {
                         actShowInfoMsg(msg)
-                        Promise.resolve(Ok(JSON.Encode.null))
+                        Promise.resolve(Ok(()))
                     }
                 }
             }),
             ~showErrMsg = makeApiFunc("showErrMsg", params => {
-                switch JSON.Decode.string(params) {
+                switch params->apiInputToJson->JSON.Decode.string {
                     | None => Promise.resolve(Error("The parameter of showErrMsg() must be a string."))
                     | Some(msg) => {
                         actShowErrMsg(msg)
-                        Promise.resolve(Ok(JSON.Encode.null))
+                        Promise.resolve(Ok(()))
                     }
                 }
             })

@@ -186,13 +186,13 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
 }
 
 let getTokenType = (
-    ~paramsJson:JSON.t,
+    ~paramsJson:apiInput,
     ~state:editorState,
 ):promise<result<JSON.t,string>> => {
     switch state.wrkCtx {
         | None => promiseResolved(Error("Cannot determine token type because the editor contains errors."))
         | Some(wrkCtx) => {
-            switch JSON.Decode.string(paramsJson) {
+            switch paramsJson->apiInputToJson->JSON.Decode.string {
                 | None => promiseResolved(Error("The parameter of getTokenType() must me a string."))
                 | Some(token) => {
                     promiseResolved(Ok(
@@ -407,7 +407,7 @@ type proverParams = {
     selectFirstFoundProof:bool,
 }
 let proveBottomUp = (
-    ~paramsJson:JSON.t,
+    ~paramsJson:apiInput,
     ~state:editorState,
     ~canStartProvingBottomUp:bool,
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
@@ -419,7 +419,7 @@ let proveBottomUp = (
         ))
     } else {
         open Expln_utils_jsonParse
-        let parseResult:result<proveBottomUpApiParams,string> = fromJson(paramsJson, asObj(_, d=>{
+        let parseResult:result<proveBottomUpApiParams,string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
             {
                 delayBeforeStartMs: d->intOpt("delayBeforeStartMs"),
                 stepToProve: d->str("stepToProve"),
@@ -579,10 +579,10 @@ let mergeDuplicatedSteps = (
 }
 
 let editorSetContIsHidden = (
-    ~params:JSON.t,
+    ~params:apiInput,
     ~setEditorContIsHidden:bool=>promise<unit>,
 ):promise<result<JSON.t,string>> => {
-    switch JSON.Decode.bool(params) {
+    switch params->apiInputToJson->JSON.Decode.bool {
         | None => promiseResolved(Error("The parameter of setContentIsHidden() must me a boolean."))
         | Some(bool) => setEditorContIsHidden(bool)->promiseMap(_ => Ok(JSON.Encode.null))
     }
@@ -670,11 +670,11 @@ type addStepsInputParams = {
 }
 let addSteps = (
     ~state:editorState,
-    ~paramsJson:JSON.t,
+    ~paramsJson:apiInput,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<addStepsInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
+    let parseResult:result<addStepsInputParams,string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
         {
             atIdx: d->intOpt("atIdx"),
             steps: d->arr("steps", asObj(_, d=>{
@@ -774,11 +774,11 @@ type substituteInputParams = {
     with_: string,
 }
 let substitute = (
-    ~paramsJson:JSON.t,
+    ~paramsJson:apiInput,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<substituteInputParams,string> = fromJson(paramsJson, asObj(_, d=>{
+    let parseResult:result<substituteInputParams,string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
         {
             what: d->str("what"),
             with_: d->str("with_"),
@@ -803,11 +803,11 @@ type updateStepInputParams = {
     isBkm: option<bool>,
 }
 let updateSteps = (
-    ~paramsJson:JSON.t,
+    ~paramsJson:apiInput,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson, asArr(_, asObj(_, d=>{
+    let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson->apiInputToJson, asArr(_, asObj(_, d=>{
         {
             label: d->str("label"),
             typ: d->strOpt("type", ~validator=validateStepType),
@@ -848,11 +848,11 @@ let updateSteps = (
 }
 
 let deleteSteps = (
-    ~params:JSON.t,
+    ~params:apiInput,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_)))
+    let parseResult:result<array<string>,string> = fromJson(params->apiInputToJson, asArr(_, asStr(_)))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(stepLabelsToDelete) => {
@@ -869,7 +869,7 @@ let deleteSteps = (
 }
 
 let editorBuildSyntaxTrees = (
-    ~params:JSON.t,
+    ~params:apiInput,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     ~state:editorState,
 ):promise<result<JSON.t,string>> => {
@@ -877,7 +877,7 @@ let editorBuildSyntaxTrees = (
         | None => promiseResolved(Error( "Cannot build syntax trees because there are errors in the editor." ))
         | Some(wrkCtx) => {
             open Expln_utils_jsonParse
-            let parseResult:result<array<string>,string> = fromJson(params, asArr(_, asStr(_)))
+            let parseResult:result<array<string>,string> = fromJson(params->apiInputToJson, asArr(_, asStr(_)))
             switch parseResult {
                 | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(exprs) => {

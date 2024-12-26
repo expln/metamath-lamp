@@ -2093,19 +2093,6 @@ let make = (
         promiseResolved(())
     }
 
-    let showInfoMsgForApi = (msg:string) => {
-        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre> )
-    }
-
-    let showErrMsgForApi = (msg:string) => {
-        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, 
-            ~icon=
-                <span style=ReactDOM.Style.make(~color="red", () ) >
-                    <MM_Icons.PriorityHigh/>
-                </span>
-        )
-    }
-
     MM_api_editor.updateEditorData(
         ~editorId,
         ~state,

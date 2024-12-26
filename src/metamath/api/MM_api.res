@@ -1,14 +1,18 @@
-open Common
+// apiInput can be anything. Setting "apiInput = int" just to make the compiler happy.
+type apiInput = int
+
+// apiOutput can be anything. Setting "apiOutput = int" just to make the compiler happy.
+type apiOutput = int
 
 type apiResp = {
     "isOk": bool,
-    "res": option<JSON.t>,
+    "res": option<apiOutput>,
     "err": option<string>,
 }
 
-type api = JSON.t => promise<apiResp>
+type api = apiInput => promise<apiResp>
 
-let okResp = (res:JSON.t):apiResp => {
+let okResp = (res:apiOutput):apiResp => {
     {
         "isOk": true,
         "res": Some(res),
@@ -24,11 +28,16 @@ let errResp = (msg:string):apiResp => {
     }
 }
 
+external apiInputToNullableObj: apiInput => Nullable.t<{..}> = "%identity"
+external apiInputToJson: apiInput => JSON.t = "%identity"
+
+external makeApiOutput: 'a => apiOutput = "%identity"
+
 let apiCallCnt = ref(0)
 
 let logApiCallsToConsole = ref(false)
 
-let makeApiFunc = (name:string, func:JSON.t=>promise<result<JSON.t,string>>):api => {
+let makeApiFunc = (name:string, func:apiInput=>promise<result<'a,string>>): api => {
     params => {
         apiCallCnt := apiCallCnt.contents + 1
         let apiCallId = apiCallCnt.contents
@@ -38,7 +47,7 @@ let makeApiFunc = (name:string, func:JSON.t=>promise<result<JSON.t,string>>):api
         func(params)->Promise.thenResolve(res => {
             let resp = switch res {
                 | Error(msg) => errResp(msg)
-                | Ok(json) => okResp(json)
+                | Ok(res) => res->makeApiOutput->okResp
             }
             if (logApiCallsToConsole.contents) {
                 Console.log2(`[${apiCallId->Belt.Int.toString}] >>> `, resp)
@@ -126,12 +135,12 @@ let api = {
     "macro": makeEmptyMacroApi("The macro API function is not defined."),
 }
 
-let setLogApiCallsToConsole = (params:JSON.t):promise<result<JSON.t,string>> => {
-    switch JSON.Decode.bool(params) {
+let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
+    switch params->apiInputToJson->JSON.Decode.bool {
         | None => Promise.resolve(Error("The parameter of setLogApiCallsToConsole() must be a boolean."))
         | Some(bool) => {
             logApiCallsToConsole := bool
-            Promise.resolve(Ok(JSON.Encode.null))
+            Promise.resolve(Ok(()))
         }
     }
 }

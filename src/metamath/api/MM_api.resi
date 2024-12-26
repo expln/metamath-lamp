@@ -1,10 +1,18 @@
+type apiInput
+type apiOutput
+
 type apiResp = {
     "isOk": bool,
-    "res": option<JSON.t>,
+    "res": option<apiOutput>,
     "err": option<string>,
 }
 
-type api = JSON.t => promise<apiResp>
+type api = apiInput => promise<apiResp>
+
+let apiInputToNullableObj: apiInput => Nullable.t<{..}>
+let apiInputToJson: apiInput => JSON.t
+
+let makeApiFunc: (string, apiInput=>promise<result<'a,string>>) => api
 
 type singleEditorApi = {
     "getState": api,
@@ -37,8 +45,6 @@ let api: {
     "editor" : editorApi,
     "macro" : macroApi,
 }
-
-let makeApiFunc: (string, JSON.t=>promise<result<JSON.t,string>>) => api
 
 let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ) => unit
 let setEditorApi: editorApi => unit

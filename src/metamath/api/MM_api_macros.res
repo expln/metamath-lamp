@@ -21,8 +21,8 @@ let registerMacroModule = (
     registerMacroModuleCnt := registerMacroModuleCnt.contents + 1
 }
 
-let apiRegisterMacroModule = (params:Nullable.t<{..}>):promise<result<JSON.t,string>> => {
-    let params = switch params->Nullable.toOption {
+let apiRegisterMacroModule = (params:apiInput):promise<result<unit,string>> => {
+    let params = switch params->apiInputToNullableObj->Nullable.toOption {
         | None => Exn.raiseError("apiRegisterMacroModule: got empty parameters.")
         | Some(params) => params
     }
@@ -34,7 +34,7 @@ let apiRegisterMacroModule = (params:Nullable.t<{..}>):promise<result<JSON.t,str
         }
     })
     registerMacroModule(~moduleName, ~macros)
-    Promise.resolve(Ok(JSON.Null))
+    Promise.resolve(Ok(()))
 }
 
 let unregisterMacroModule = (
@@ -43,14 +43,14 @@ let unregisterMacroModule = (
     macroModules->Belt_HashMapString.remove(moduleName)
 }
 
-let apiUnregisterMacroModule = (params:Nullable.t<{..}>):promise<result<JSON.t,string>> => {
-    let params = switch params->Nullable.toOption {
+let apiUnregisterMacroModule = (params:apiInput):promise<result<unit,string>> => {
+    let params = switch params->apiInputToNullableObj->Nullable.toOption {
         | None => Exn.raiseError("apiUnregisterMacroModule: got empty parameters.")
         | Some(params) => params
     }
     let moduleName = reqStrExn(params["moduleName"], "'moduleName' must be a string.")
     unregisterMacroModule(moduleName)
-    Promise.resolve(Ok(JSON.Null))
+    Promise.resolve(Ok(()))
 }
 
 let listRegisteredMacroModules = ():array<string> => {
@@ -67,8 +67,8 @@ let listRegisteredMacrosInModule = (moduleName:string):option<array<string>> => 
     macroModules->Belt_HashMapString.get(moduleName)->Option.map(Belt_HashMapString.keysToArray(_))
 }
 
-let apiListRegisteredMacrosInModule = (params:Nullable.t<{..}>):promise<result<JSON.t,string>> => {
-    let params = switch params->Nullable.toOption {
+let apiListRegisteredMacrosInModule = (params:apiInput):promise<result<JSON.t,string>> => {
+    let params = switch params->apiInputToNullableObj->Nullable.toOption {
         | None => Exn.raiseError("apiListRegisteredMacrosInModule: got empty parameters.")
         | Some(params) => params
     }
@@ -100,8 +100,8 @@ let runMacro = (
     }
 }
 
-let apiRunMacro = (params:Nullable.t<{..}>):promise<result<JSON.t,string>> => {
-    let params = switch params->Nullable.toOption {
+let apiRunMacro = (params:apiInput):promise<result<unit,string>> => {
+    let params = switch params->apiInputToNullableObj->Nullable.toOption {
         | None => Exn.raiseError("apiRunMacro: got empty parameters.")
         | Some(params) => params
     }
@@ -109,9 +109,17 @@ let apiRunMacro = (params:Nullable.t<{..}>):promise<result<JSON.t,string>> => {
     let macroName = reqStrExn(params["macroName"], "'macroName' must be a string.")
     switch runMacro(~moduleName, ~macroName) {
         | Error(msg) => Promise.resolve(Error(msg))
-        | Ok(_) => Promise.resolve(Ok(JSON.Null))
+        | Ok(_) => Promise.resolve(Ok(()))
     }
 }
+
+setMacroApi({
+    "registerMacroModule": makeApiFunc("macro.registerMacroModule", apiRegisterMacroModule),
+    "unregisterMacroModule": makeApiFunc("macro.unregisterMacroModule", apiUnregisterMacroModule),
+    "listRegisteredMacroModules": makeApiFunc("macro.listRegisteredMacroModules", _ => apiListRegisteredMacroModules()),
+    "listRegisteredMacrosInModule": makeApiFunc("macro.listRegisteredMacrosInModule", apiListRegisteredMacrosInModule),
+    "runMacro": makeApiFunc("macro.runMacro", apiRunMacro),
+})
 
 let overrideMacroModuleName:ref<option<string>> = ref(None)
 
