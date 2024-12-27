@@ -847,6 +847,68 @@ let updateSteps = (
     }
 }
 
+type setDisjointsInputParams = {
+    disj: array<array<string>>,
+}
+let setDisjoints = (
+    ~apiInput:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<setDisjointsInputParams,string> = fromJson(apiInput->apiInputToJson, asObj(_, d=>{
+        {
+            disj: d->arr("disj", asArr(_, asStr(_))),
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(params) => {
+            setState(st => {
+                Ok((
+                    st->completeDisjEditMode(
+                        params.disj->Array.map(line => {
+                            line->Array.join(" ")
+                        })->Array.join("\n")
+                    ),
+                    JSON.Encode.null
+                ))
+            })
+        }
+    }
+}
+
+type setDescriptionInputParams = {
+    descr: string,
+}
+let setDescription = (
+    ~apiInput:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<setDescriptionInputParams,string> = fromJson(apiInput->apiInputToJson, asObj(_, d=>{
+        {
+            descr: d->str("descr"),
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(params) => {
+            setState(st => {
+                Ok((
+                    st->completeDescrEditMode( params.descr ),
+                    JSON.Encode.null
+                ))
+            })
+        }
+    }
+}
+
+let resetEditorContent = (
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    setState(st => Ok(( st->resetEditorContent, JSON.Encode.null )))
+}
+
 let deleteSteps = (
     ~params:apiInput,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
@@ -944,6 +1006,9 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "addSteps": makeApiFunc("editor.addSteps", params => addSteps( ~state, ~paramsJson=params, ~setState, )),
         "updateSteps": makeApiFunc("editor.updateSteps", params => updateSteps( ~paramsJson=params, ~setState, )),
         "deleteSteps": makeApiFunc("editor.deleteSteps", params => deleteSteps( ~params, ~setState, )),
+        "setDisjoints": makeApiFunc("editor.setDisjoints", apiInput => setDisjoints( ~apiInput, ~setState, )),
+        "setDescription": makeApiFunc("editor.setDescription", apiInput => setDescription( ~apiInput, ~setState, )),
+        "resetEditorContent": makeApiFunc("editor.resetEditorContent", _ => resetEditorContent(~setState, )),
         "getTokenType": makeApiFunc("editor.getTokenType", params => getTokenType( ~paramsJson=params, ~state, )),
         "substitute": makeApiFunc("editor.substitute", params => substitute( ~paramsJson=params, ~setState, )),
         "mergeDuplicatedSteps": makeApiFunc("editor.mergeDuplicatedSteps", _ => mergeDuplicatedSteps( ~setState, )),
