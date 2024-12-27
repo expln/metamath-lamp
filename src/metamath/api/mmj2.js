@@ -1,3 +1,5 @@
+await api.setLogApiCallsToConsole(true)
+
 function code(code) {
     return String.fromCharCode(code)
 }
@@ -13,8 +15,6 @@ function getResponse(apiResponse) {
         exn(apiResponse.err)
     }
 }
-
-await api.setLogApiCallsToConsole(true)
 
 async function showInfoMsg(msg) {
     getResponse(await api.showInfoMsg({msg: String(msg)}))
@@ -91,30 +91,66 @@ function getStepByLabel(editorState, label) {
     return editorState.steps[getStepIdx(editorState, label)]
 }
 
+const varTypes = new Map([['W','wff'],['S','setvar'],['C','class']])
+const workVarRegex = /&[WSC]\d+/g
+function extractWorkVars(steps)/*array<(string,string)>*/ {
+    const workVars = []
+    for (const step of steps) {
+        for (const match of step.stmt.matchAll(workVarRegex)) {
+            const workVar = match[0]
+            workVars.push([varTypes.get(workVar[1]), workVar])
+        }
+    }
+    return [...new Set(workVars.map(v => v.join(' ')))].map(s => s.split(' '))
+}
+
+function renameHyps(steps) {
+    const renaming = new Map()/*oldLabel -> newLabel*/
+    for (const step of steps) {
+        if (step.type === 'h' && step.jstfOrig.includes(':')) {
+            renaming.set(step.label, step.jstfOrig.split(':')[1])
+        }
+    }
+    function rename(oldLabel) {
+        return renaming.get(oldLabel)??oldLabel
+    }
+    for (const step of steps) {
+        step.label = renaming.get(step.label)??step.label
+        if (step.jstf.includes(':')) {
+            const [args, asrt] = step.jstf.split(':')
+            step.jstf = args.split(' ').map(rename).join(' ') + ':' + asrt
+        }
+    }
+    return steps
+}
+
+const stepRegExp = /^([^:]+):([^:\s]*):(\S*)(\s.*)?/;
 function parseMmp(mmpText) {
     const lines = mmpText.split('\n')
     let firstComment = undefined // option<string>
     const disj = [] // array<array<string>>
-    const stmts = [] // array<step>; step = {label:string, type:string(h|p), jstf:string(1 2 3 : asrt), stmt:string}
+    const steps = [] // array<step>; step = {label:string, typ:string(h|p|g), jstf:string(1 2 3 : asrt), stmt:string}
     let curPart/**/ = undefined
     let partLines = []
 
     function parseStep(text)/*step | undefined*/ {
-        const parts = text.match(/^([^:]+):([^:\s]*):(\S*)(\s.*)?/)
+        const parts = text.match(stepRegExp)
         if (parts == null) {
             return undefined
         } else {
-            const label = parts[1]
+            let label = parts[1]
             const isHyp = label[0] === 'h'
-            let jstf = isHyp ?'' : parts[2].split(',').join(' ') + ' : ' + parts[3]
-            jstf = jstf.trim()
-            jstf = jstf === ':' ? '' : jstf
-            stmts.push({
+            label = isHyp ? label.slice(1) : label
+            label = label.slice(0,1) === '!' ? label.slice(1) : label
+            const jstfOrig = parts[2].split(',').join(' ') + ':' + parts[3]
+            const  jstf = isHyp ? 'HYP' : (jstfOrig === ':' ? '' : jstfOrig)
+            return {
                 label,
-                type:isHyp?'h':'p',
+                type:isHyp?'h':(label==='qed'?'g':'p'),
+                jstfOrig,
                 jstf,
                 stmt: parts.length > 4 ? parts[4].trim() : ''
-            })
+            }
         }
     }
 
@@ -138,21 +174,15 @@ function parseMmp(mmpText) {
 
     function closePrevPartAndPrepareForNewPart(newPart) {
         //close the previous part
-        if (curPart === 'h') {
-            //do nothing
-        } else if (curPart === 'c') {
-            if (firstComment === undefined && disj.length === 0 && stmts.length === 0) {
+        if (curPart === 'c') {
+            if (firstComment === undefined && disj.length === 0 && steps.length === 0) {
                 firstComment = partLines.join('\n').slice(1) //slice(1) removes the leading *
             }
         } else if (curPart === 'd') {
             //slice(3) removes the leading '$d '
             disj.push(partLines.join(' ').slice(3).split(' ').map(v => v.trim()).filter(v => v !== ''))
         } else if (curPart === 's') {
-            stmts.push(parseStep(partLines.join(' ')))
-        } else if (curPart === 'f') {
-            //do nothing
-        } else if (curPart === 'p') {
-            //do nothing
+            steps.push(parseStep(partLines.join(' ')))
         }
         //prepare for the new part
         partLines = []
@@ -162,21 +192,25 @@ function parseMmp(mmpText) {
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i]
         let newPart = getPartType(line)
-        if (newPart !== undefined && curPart !== newPart) {
+        if (newPart !== undefined) {
             closePrevPartAndPrepareForNewPart(newPart)
         }
         partLines.push(line)
     }
-    return {descr:firstComment, disj, stmts,}
+    closePrevPartAndPrepareForNewPart(undefined)
+    return {descr:firstComment??'', disj, vars:extractWorkVars(steps), steps:renameHyps(steps)}
 }
 
 async function importFromMmp() {
-    const mmpStrResp = getResponse(await api.multilineTextInput({prompt:'MMP file content:'}))
-    if (!mmpStrResp.okClicked) {
+    const {okClicked, text:mmpText} = getResponse(await api.multilineTextInput({prompt:'MMP file content:'}))
+    if (!okClicked) {
         return
     }
-    const parsed = parseMmp(mmpStrResp.text)
-    console.log('parsed', parsed)
+    const {descr, vars, disj, steps} = parseMmp(mmpText)
+    getResponse(await api.editor().resetEditorContent())
+    getResponse(await api.editor().setDescription({descr}))
+    getResponse(await api.editor().addSteps({steps,vars}))
+    getResponse(await api.editor().setDisjoints({disj}))
 }
 
 function makeMacro(name, func) {
@@ -212,7 +246,7 @@ await api.macro.runMacro({moduleName:'MMJ2', macroName:'Import from MMP file'})
 //     "!d3::              |- &W1\n" +
 //     "!d5::              |- &W2\n" +
 //     "!d6::ax-2              |- ( &W2 -> ( &W1 -> ( ph -> ch ) ) )\n" +
-//     "d4:d5,d6:ax-mp          |- ( &W1 -> ( ph -> ch ) )\n" +
+//     "d4:d5,d2:ax-mp          |- ( &W1 -> ( ph -> ch ) )\n" +
 //     "qed:d3,d4:ax-mp     |- ( ph -> ch ) \n" +
 //     "\n" +
 //     "$)")
