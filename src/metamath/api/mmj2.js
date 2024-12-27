@@ -28,13 +28,25 @@ async function getEditorState() {
     return getResponse(await api.editor().getState())
 }
 
+async function resetEditorContent() {
+    getResponse(await api.editor().resetEditorContent())
+}
+
+async function setDescriptionInEditor(descr) {
+    getResponse(await api.editor().setDescription({descr}))
+}
+
+async function addStepsToEditor({steps,vars}) {
+    getResponse(await api.editor().addSteps({steps,vars}))
+}
+
+async function setDisjointsInEditor(disj) {
+    getResponse(await api.editor().setDisjoints({disj}))
+}
+
 async function unifyAll() {
     getResponse(await api.editor().unifyAll())
     return await getEditorState()
-}
-
-function undefToNull(value) {
-    return value === undefined ? null : value
 }
 
 async function substitute({what, with_}) {
@@ -45,37 +57,6 @@ async function mergeDuplicatedSteps() {
     return getResponse(await api.editor().mergeDuplicatedSteps())
 }
 
-function isObj(x) {
-    return x !== undefined && x !== null && typeof x === 'object' && !Array.isArray(x)
-}
-
-function isArr(x) {
-    return x !== undefined && x !== null && Array.isArray(x)
-}
-
-function isStr(x) {
-    return x !== undefined && x !== null && typeof x === 'string'
-}
-
-function arDiff(a, ...bs) {
-    for (const b of bs) {
-        const bSet = new Set(b)
-        a = a.filter(e => !bSet.has(e))
-    }
-    return a
-}
-
-function arIntersect(a, ...bs) {
-    for (const b of bs) {
-        const bSet = new Set(b)
-        a = a.filter(e => bSet.has(e))
-    }
-    return a
-}
-
-function arUnion(a, ...bs) {
-    return [...new Set(a.concat(...bs))]
-}
 
 function getStepIdx(editorState, label) {
     const steps = editorState.steps
@@ -207,10 +188,10 @@ async function importFromMmp() {
         return
     }
     const {descr, vars, disj, steps} = parseMmp(mmpText)
-    getResponse(await api.editor().resetEditorContent())
-    getResponse(await api.editor().setDescription({descr}))
-    getResponse(await api.editor().addSteps({steps,vars}))
-    getResponse(await api.editor().setDisjoints({disj}))
+    await resetEditorContent()
+    await setDescriptionInEditor(descr)
+    await addStepsToEditor({steps,vars})
+    await setDisjointsInEditor(disj)
 }
 
 function makeMacro(name, func) {
