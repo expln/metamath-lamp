@@ -192,23 +192,31 @@ let getTokenType = (
     switch state.wrkCtx {
         | None => promiseResolved(Error("Cannot determine token type because the editor contains errors."))
         | Some(wrkCtx) => {
-            switch paramsJson->apiInputToJson->JSON.Decode.string {
-                | None => promiseResolved(Error("The parameter of getTokenType() must me a string."))
-                | Some(token) => {
+            open Expln_utils_jsonParse
+            let parseResult:result<{"tokens":array<string>},string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
+                {
+                    "tokens":d->arr("tokens", asStr(_))
+                }
+            }))
+            switch parseResult {
+                | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+                | Ok(params) => {
                     promiseResolved(Ok(
-                        switch wrkCtx->getTokenType(token) {
-                            | None => JSON.Encode.null
-                            | Some(tokenType) => {
-                                switch tokenType {
-                                    | C => "c"
-                                    | V => "v"
-                                    | F => "f"
-                                    | E => "e"
-                                    | A => "a"
-                                    | P => "p"
-                                }->JSON.Encode.string
+                        params["tokens"]->Array.map(token => {
+                            switch wrkCtx->getTokenType(token) {
+                                | None => JSON.Encode.null
+                                | Some(tokenType) => {
+                                    switch tokenType {
+                                        | C => "c"
+                                        | V => "v"
+                                        | F => "f"
+                                        | E => "e"
+                                        | A => "a"
+                                        | P => "p"
+                                    }->JSON.Encode.string
+                                }
                             }
-                        }
+                        })->JSON.Encode.array
                     ))
                 }
             }
@@ -781,18 +789,24 @@ let updateSteps = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<array<updateStepInputParams>,string> = fromJson(paramsJson->apiInputToJson, asArr(_, asObj(_, d=>{
-        {
-            label: d->str("label"),
-            typ: d->strOpt("type", ~validator=validateStepType),
-            stmt: d->strOpt("stmt"),
-            jstf: d->strOpt("jstf"),
-            isBkm: d->boolOpt("isBkm"),
-        }
-    })))
+    let parseResult:result<{"steps":array<updateStepInputParams>},string> = 
+        fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
+            {
+                "steps":d->arr("steps", asObj(_, d=>{
+                    {
+                        label: d->str("label"),
+                        typ: d->strOpt("type", ~validator=validateStepType),
+                        stmt: d->strOpt("stmt"),
+                        jstf: d->strOpt("jstf"),
+                        isBkm: d->boolOpt("isBkm"),
+                    }
+                }))
+            }
+        }))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
-        | Ok(inputSteps) => {
+        | Ok(inputParams) => {
+            let inputSteps = inputParams["steps"]
             setState(st => {
                 let labelToStmtId = st.stmts->Array.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
                 let stepWithoutId = inputSteps
@@ -914,13 +928,17 @@ let deleteSteps = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     open Expln_utils_jsonParse
-    let parseResult:result<array<string>,string> = fromJson(params->apiInputToJson, asArr(_, asStr(_)))
+    let parseResult:result<{"labels":array<string>},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            "labels":d->arr("labels", asStr(_))
+        }
+    }))
     switch parseResult {
         | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
         | Ok(stepLabelsToDelete) => {
             setState(st => {
                 let labelToStmtId = st.stmts->Array.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
-                let stepIdsToDelete = stepLabelsToDelete
+                let stepIdsToDelete = stepLabelsToDelete["labels"]
                     ->Array.map(label => labelToStmtId->Belt_HashMapString.get(label))
                     ->Array.filter(Belt.Option.isSome(_))
                     ->Array.map(Belt.Option.getExn(_))
@@ -939,11 +957,15 @@ let editorBuildSyntaxTrees = (
         | None => promiseResolved(Error( "Cannot build syntax trees because there are errors in the editor." ))
         | Some(wrkCtx) => {
             open Expln_utils_jsonParse
-            let parseResult:result<array<string>,string> = fromJson(params->apiInputToJson, asArr(_, asStr(_)))
+            let parseResult:result<{"exprs":array<string>},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+                {
+                    "exprs":d->arr("exprs", asStr(_))
+                }
+            }))
             switch parseResult {
                 | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
-                | Ok(exprs) => {
-                    switch buildSyntaxTrees(exprs) {
+                | Ok(params) => {
+                    switch buildSyntaxTrees(params["exprs"]) {
                         | Error(msg) => promiseResolved(Error(msg))
                         | Ok(syntaxTrees) => {
                             promiseResolved(

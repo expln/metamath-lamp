@@ -1,5 +1,13 @@
 await api.setLogApiCallsToConsole(true)
 
+function hasNoValue(x) {
+    return x === undefined || x === null
+}
+
+function hasValue(x) {
+    return !hasNoValue(x)
+}
+
 function code(code) {
     return String.fromCharCode(code)
 }
@@ -38,6 +46,10 @@ async function setDescriptionInEditor(descr) {
 
 async function addStepsToEditor({steps,vars}) {
     getResponse(await api.editor().addSteps({steps,vars}))
+}
+
+async function updateStepsInEditor({steps}) {
+    getResponse(await api.editor().updateSteps({steps}))
 }
 
 async function setDisjointsInEditor(disj) {
@@ -181,16 +193,49 @@ function parseMmp(mmpText) {
     return {descr:firstComment??'', disj, vars:extractWorkVars(steps), steps:renameHyps(steps)}
 }
 
-async function importFromMmp() {
-    const {okClicked, text:mmpText} = getResponse(await api.multilineTextInput({prompt:'MMP file content:'}))
-    if (!okClicked) {
-        return
-    }
+async function loadMmpTextToEditor(mmpText) {
     const {descr, vars, disj, steps} = parseMmp(mmpText)
     await resetEditorContent()
     await setDescriptionInEditor(descr)
     await addStepsToEditor({steps,vars})
     await setDisjointsInEditor(disj)
+    await unifyAll()
+}
+
+async function importFromMmp() {
+    const {okClicked, text:mmpText} = getResponse(await api.multilineTextInput({prompt:'MMP file content:'}))
+    if (okClicked) {
+        await loadMmpTextToEditor(mmpText)
+    }
+}
+
+function getFirstStepWithError(editorState) {
+    return editorState.steps.find(step =>
+        step.status === 'x' || hasValue(step.stmtErr) || hasValue(step.syntaxErr) || hasValue(step.unifErr)
+    )
+}
+
+async function mmj2Unify() {
+    //unify all to trigger error check
+    const st = await unifyAll()
+    const stepWithErr = getFirstStepWithError(st)
+    if (stepWithErr === undefined) {
+        await showInfoMsg('Nothing to unify.')
+        return
+    }
+    if ((stepWithErr.unifErr??'').startsWith('Could not find a match for assertion')) {
+        //check if this is the only error
+        const origJstf = stepWithErr.jstfText
+        await updateStepsInEditor({steps:[{label:stepWithErr.label, jstf:''}]})
+        const stAftrerErrorFix = await unifyAll()
+        if (getFirstStepWithError(stAftrerErrorFix) !== undefined) {
+            await updateStepsInEditor({steps:[{label:stepWithErr.label, jstf:origJstf}]})
+            await unifyAll()
+            await showErrMsg('Cannot determine how to unify because there are more than one error in the editor.')
+        }
+    } else {
+        await showInfoMsg('Cannot determine how to unify.')
+    }
 }
 
 function makeMacro(name, func) {
@@ -210,11 +255,32 @@ function makeMacro(name, func) {
 await api.macro.registerMacroModule({
     moduleName: 'MMJ2',
     macros: [
-        makeMacro('Import from MMP file', importFromMmp)
+        makeMacro('Import from MMP file', importFromMmp),
+        makeMacro('Unify', mmj2Unify),
     ]
 })
 
-await api.macro.runMacro({moduleName:'MMJ2', macroName:'Import from MMP file'})
+// await api.macro.runMacro({moduleName:'MMJ2', macroName:'Import from MMP file'})
+
+
+await loadMmpTextToEditor(`
+$( <MM> <PROOF_ASST> THEOREM=syllogism LOC_AFTER=
+
+hd1::syllogism.1 |- ( ph -> ps ) 
+hd2::syllogism.2 |- ( ps -> ch ) 
+
+* !              |- ( ph -> ( ps -> ch ) ) 
+* !              |- ( ( ph -> ps ) -> ( ph -> ch ) ) 
+!d3::              |- &W1
+!d5::              |- &W2
+!d6::ax-2              |- ( &W2 -> ( &W1 -> ( ph -> ch ) ) )
+d4:d5,d6:ax-mp          |- ( &W1 -> ( ph -> ch ) )
+qed:d3,d4:ax-mp     |- ( ph -> ch ) 
+
+$)
+`)
+
+await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'})
 
 // const parsed = parseMmp("$( <MM> <PROOF_ASST> THEOREM=syllogism LOC_AFTER=\n" +
 //     "\n" +

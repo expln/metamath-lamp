@@ -136,11 +136,11 @@ async function allIsProved() {
 }
 
 async function updateSteps(steps) {
-    return getResponse(await api.editor().updateSteps(steps))
+    return getResponse(await api.editor().updateSteps({steps}))
 }
 
 async function deleteSteps(labels) {
-    return getResponse(await api.editor().deleteSteps(labels))
+    return getResponse(await api.editor().deleteSteps({labels}))
 }
 
 function undefToNull(value) {
@@ -152,11 +152,11 @@ async function addSteps({atIdx, steps, vars}) {
 }
 
 async function buildSyntaxTrees(exprs) {
-    return getResponse(await api.editor().buildSyntaxTrees(exprs))
+    return getResponse(await api.editor().buildSyntaxTrees({exprs}))
 }
 
 async function getTokenType(token) {
-    return getResponse(await api.editor().getTokenType(token))
+    return getResponse(await api.editor().getTokenType({tokens:[token]}))[0]
 }
 
 async function substitute({what, with_}) {
