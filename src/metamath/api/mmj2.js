@@ -252,18 +252,7 @@ function makeMacro(name, func) {
     }
 }
 
-await api.macro.registerMacroModule({
-    moduleName: 'MMJ2',
-    macros: [
-        makeMacro('Import from MMP file', importFromMmp),
-        makeMacro('Unify', mmj2Unify),
-    ]
-})
-
-// await api.macro.runMacro({moduleName:'MMJ2', macroName:'Import from MMP file'})
-
-
-await loadMmpTextToEditor(`
+const mmpText1 = `
 $( <MM> <PROOF_ASST> THEOREM=syllogism LOC_AFTER=
 
 hd1::syllogism.1 |- ( ph -> ps ) 
@@ -278,22 +267,17 @@ d4:d5,d6:ax-mp          |- ( &W1 -> ( ph -> ch ) )
 qed:d3,d4:ax-mp     |- ( ph -> ch ) 
 
 $)
-`)
+`
 
-await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'})
-
-// const parsed = parseMmp("$( <MM> <PROOF_ASST> THEOREM=syllogism LOC_AFTER=\n" +
-//     "\n" +
-//     "hd1::syllogism.1 |- ( ph -> ps ) \n" +
-//     "hd2::syllogism.2 |- ( ps -> ch ) \n" +
-//     "\n" +
-//     "* !              |- ( ph -> ( ps -> ch ) ) \n" +
-//     "* !              |- ( ( ph -> ps ) -> ( ph -> ch ) ) \n" +
-//     "!d3::              |- &W1\n" +
-//     "!d5::              |- &W2\n" +
-//     "!d6::ax-2              |- ( &W2 -> ( &W1 -> ( ph -> ch ) ) )\n" +
-//     "d4:d5,d2:ax-mp          |- ( &W1 -> ( ph -> ch ) )\n" +
-//     "qed:d3,d4:ax-mp     |- ( ph -> ch ) \n" +
-//     "\n" +
-//     "$)")
+// const parsed = parseMmp(mmpText1)
 // console.log("parsed", parsed)
+
+await api.macro.registerMacroModule({
+    moduleName: 'MMJ2',
+    macros: [
+        makeMacro('Import from MMP file', importFromMmp),
+        makeMacro('Unify', mmj2Unify),
+    ]
+})
+await loadMmpTextToEditor(mmpText1)
+getResponse(await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'}))

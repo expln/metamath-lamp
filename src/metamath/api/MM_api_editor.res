@@ -996,6 +996,105 @@ let editorBuildSyntaxTrees = (
     }
 }
 
+let findAsrtsByUnif = (
+    ~wrkCtx:mmContext,
+    ~asrtSyntaxTrees:Belt_HashMapString.t<syntaxTreeNode>,
+    ~asrtLabels:array<string>,
+    ~exprSyntaxTrees:array<result<syntaxTreeNode,string>>,
+    ~isMetavar:string=>bool,
+):array<result<array<string>,string>> => {
+    let frames:Belt_MapString.t<frame> = wrkCtx->getAllFrames
+    let frames:array<frame> = asrtLabels->Array.map(asrtLabel => frames->Belt_MapString.get(asrtLabel))
+        ->Array.filter(Option.isSome)
+        ->Array.map(Option.getExn(_, ~message="findAsrtsByUnif.1"))
+        ->Array.filter(frame => asrtSyntaxTrees->Belt_HashMapString.has(frame.label))
+    let ctxDisj = wrkCtx->getAllDisj
+    let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
+    exprSyntaxTrees->Array.map(exprSyntaxTree => {
+        exprSyntaxTree->Result.map(exprSyntaxTree => {
+            frames->Array.filter(frame => {
+                MM_asrt_syntax_tree.unifSubsReset(foundSubs)
+                MM_asrt_syntax_tree.unify(
+                    ~asrtDisj=frame.disj,
+                    ~ctxDisj,
+                    ~asrtExpr=asrtSyntaxTrees->Belt_HashMapString.get(frame.label)->Option.getExn,
+                    ~ctxExpr=exprSyntaxTree,
+                    ~isMetavar,
+                    ~foundSubs,
+                )
+            })->Array.map(frame => frame.label)
+        })
+    })
+}
+
+type apiFindAsrtsByUnifInpParams = {
+    exprs:array<string>,
+    asrtLabels:option<array<string>>
+}
+
+let apiFindAsrtsByUnif = (
+    ~params:apiInput,
+    ~state:editorState,
+    ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
+    ~isMetavar:string=>bool,
+):promise<result<JSON.t,string>> => {
+    switch state.wrkCtx {
+        | None => Promise.resolve(Error(
+            "Cannot build syntax trees for expressions because there are errors in the editor."
+        ))
+        | Some(wrkCtx) => {
+            open Expln_utils_jsonParse
+            let parseResult:result<apiFindAsrtsByUnifInpParams,string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+                {
+                    exprs:d->arr("exprs", asStr(_)),
+                    asrtLabels:d->arrOpt("asrtLabels", asStr(_)),
+                }
+            }))
+            switch parseResult {
+                | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+                | Ok(params) => {
+                    switch buildSyntaxTrees(params.exprs) {
+                        | Error(msg) => Promise.resolve(Error(msg))
+                        | Ok(exprSyntaxTrees) => {
+                            getAsrtSyntaxTrees()->Promise.thenResolve(asrtSyntaxTrees => {
+                                let asrtLabels = switch params.asrtLabels {
+                                    | Some(asrtLabels) => asrtLabels
+                                    | None => asrtSyntaxTrees->Belt_HashMapString.keysToArray
+                                }
+                                Ok(
+                                    findAsrtsByUnif(
+                                        ~wrkCtx, ~asrtSyntaxTrees, ~asrtLabels, ~exprSyntaxTrees, ~isMetavar 
+                                    )->Array.map(foundAstrLabelsPerExpr => {
+                                        switch foundAstrLabelsPerExpr {
+                                            | Error(msg) => {
+                                                Dict.fromArray([
+                                                    ("err", msg->JSON.Encode.string),
+                                                ])->JSON.Encode.object 
+                                            }
+                                            | Ok(foundAsrtLabels) => {
+                                                Dict.fromArray([
+                                                    ("err", JSON.Encode.null),
+                                                    (
+                                                        "foundAsrtLabels", 
+                                                        foundAsrtLabels
+                                                            ->Array.map(JSON.Encode.string)
+                                                            ->JSON.Encode.array
+                                                    ),
+                                                ])->JSON.Encode.object 
+                                            }
+                                        }
+                                    })->JSON.Encode.array
+                                )
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 type editorData = {
     editorId:int,
     state:editorState,
