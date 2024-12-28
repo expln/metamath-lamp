@@ -2093,6 +2093,37 @@ let make = (
         promiseResolved(())
     }
 
+    let getAsrtSyntaxTrees = ():promise<Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode>> => {
+        switch preCtxData.asrtSyntaxTrees {
+            | Some(asrtSyntaxTrees) => Promise.resolve(asrtSyntaxTrees)
+            | None => {
+                openModal(modalRef, () => rndProgress(~text="Building syntax trees for all assertions", ~pct=0.))
+                    ->Promise.then(modalId => {
+                        updateModal( 
+                            modalRef, modalId, () => rndProgress(
+                                ~text="Building syntax trees for all assertions", 
+                                ~pct=0., ~onTerminate=makeActTerminate(modalId)
+                            )
+                        )
+                        MM_wrk_syntax_tree.buildSyntaxTreesForAllAssertions(
+                            ~settingsV=preCtxData.settingsV,
+                            ~preCtxVer=preCtxData.ctxV.ver,
+                            ~preCtx=preCtxData.ctxV.val.min,
+                            ~onProgress = pct => updateModal(
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Building syntax trees for all assertions", 
+                                    ~pct, ~onTerminate=makeActTerminate(modalId)
+                                )
+                            )
+                        )->Promise.thenResolve(asrtSyntaxTreesArr => {
+                            preCtxData.asrtSyntaxTrees = Some(Belt_HashMapString.fromArray(asrtSyntaxTreesArr))
+                            preCtxData.asrtSyntaxTrees->Option.getExn(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
+                        })
+                    })
+            }
+        }
+    }
+
     MM_api_editor.updateEditorData(
         ~editorId,
         ~state,

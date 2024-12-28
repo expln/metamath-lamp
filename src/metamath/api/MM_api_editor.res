@@ -1006,7 +1006,7 @@ let findAsrtsByUnif = (
     let frames:Belt_MapString.t<frame> = wrkCtx->getAllFrames
     let frames:array<frame> = asrtLabels->Array.map(asrtLabel => frames->Belt_MapString.get(asrtLabel))
         ->Array.filter(Option.isSome)
-        ->Array.map(Option.getExn(_, ~message="findAsrtsByUnif.1"))
+        ->Array.map(Option.getExn(_, ~message="MM_api_editor.findAsrtsByUnif.1"))
         ->Array.filter(frame => asrtSyntaxTrees->Belt_HashMapString.has(frame.label))
     let ctxDisj = wrkCtx->getAllDisj
     let foundSubs = MM_asrt_syntax_tree.unifSubsMake()

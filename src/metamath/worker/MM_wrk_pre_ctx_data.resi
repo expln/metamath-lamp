@@ -33,6 +33,7 @@ type preCtxData = {
     typeOrderInDisj:Belt_HashMapInt.t<int>,
     typeColors: Belt_HashMapString.t<string>,
     symColors: Belt_HashMapString.t<string>,
+    mutable asrtSyntaxTrees: option<Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode>>,
 }
 
 let preCtxDataMake: (~settings: settings) => preCtxData
