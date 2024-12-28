@@ -88,8 +88,8 @@ function extractWorkVars(steps)/*array<(string,string)>*/ {
 function renameHyps(steps) {
     const renaming = new Map()/*oldLabel -> newLabel*/
     for (const step of steps) {
-        if (step.type === 'h' && step.jstfOrig.includes(':')) {
-            renaming.set(step.label, step.jstfOrig.split(':')[1])
+        if (step.type === 'h' && step.jstf.includes(':')) {
+            renaming.set(step.label, step.jstf.split(':')[1])
         }
     }
     function rename(oldLabel) {
@@ -123,12 +123,11 @@ function parseMmp(mmpText) {
             const isHyp = label[0] === 'h'
             label = isHyp ? label.slice(1) : label
             label = label.slice(0,1) === '!' ? label.slice(1) : label
-            const jstfOrig = parts[2].split(',').join(' ') + ':' + parts[3]
-            const  jstf = isHyp ? 'HYP' : (jstfOrig === ':' ? '' : jstfOrig)
+            let jstf = parts[2].split(',').join(' ') + ':' + parts[3]
+            jstf = jstf === ':' ? '' : jstf
             return {
                 label,
                 type:isHyp?'h':(label==='qed'?'g':'p'),
-                jstfOrig,
                 jstf,
                 stmt: parts.length > 4 ? parts[4].trim() : ''
             }

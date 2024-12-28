@@ -769,32 +769,6 @@ let addSteps = (
     }
 }
 
-type substituteInputParams = {
-    what: string,
-    with_: string,
-}
-let substitute = (
-    ~paramsJson:apiInput,
-    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
-):promise<result<JSON.t,string>> => {
-    open Expln_utils_jsonParse
-    let parseResult:result<substituteInputParams,string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
-        {
-            what: d->str("what"),
-            with_: d->str("with_"),
-        }
-    }))
-    switch parseResult {
-        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
-        | Ok(parseResult) => {
-            setState(st => {
-                st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
-                    ->Belt.Result.map(st => (st,JSON.Encode.null))
-            })
-        }
-    }
-}
-
 type updateStepInputParams = {
     label: string,
     typ: option<string>,
@@ -842,6 +816,32 @@ let updateSteps = (
                         }
                     }
                 }
+            })
+        }
+    }
+}
+
+type substituteInputParams = {
+    what: string,
+    with_: string,
+}
+let substitute = (
+    ~paramsJson:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<substituteInputParams,string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
+        {
+            what: d->str("what"),
+            with_: d->str("with_"),
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(parseResult) => {
+            setState(st => {
+                st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
+                    ->Belt.Result.map(st => (st,JSON.Encode.null))
             })
         }
     }

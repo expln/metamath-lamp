@@ -2400,6 +2400,13 @@ let validateVarNames = (vars:array<(string,option<string>)>):bool => {
     || vars->Array.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isSome)
 }
 
+let correctJstfForHyp = (step:userStmtDtoOpt):userStmtDtoOpt => {
+    switch step.typ {
+        | Some(H) => {...step, jstf:None}
+        | None | Some(P) | Some(G) => step
+    }
+}
+
 let addSteps = (
     st:editorState,
     ~atIdx:option<int>=?,
@@ -2407,6 +2414,7 @@ let addSteps = (
     ~vars:array<(string,option<string>)>=[],
     ~dontAddVariablesToContext:bool
 ):result<(editorState,array<stmtId>),string> => {
+    let steps = steps->Array.map(correctJstfForHyp)
     if (vars->Array.length == 0) {
         st->addStepsWithoutVars( ~atIdx?, ~steps )
     } else {
@@ -2443,6 +2451,7 @@ let updateSteps = (
     st:editorState,
     steps:array<userStmtDtoOpt>,
 ):result<editorState,string> => {
+    let steps = steps->Array.map(correctJstfForHyp)
     let updates:array<(userStmt,userStmtDtoOpt)=>result<userStmt,string>> = [
         (stmt,step) => {
             switch step.cont {
