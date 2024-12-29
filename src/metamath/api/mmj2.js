@@ -52,7 +52,7 @@ async function updateStepsInEditor(steps) {
     getResponse(await api.editor().updateSteps({steps}))
 }
 
-async function checkStepsInEditor(labels) {
+async function markStepsCheckedInEditor(labels) {
     getResponse(await api.editor().markStepsChecked({labels}))
 }
 
@@ -97,10 +97,6 @@ function getStepIdx(editorState, label) {
         }
     }
     exn(`Cannot find the step with the label '${label}'`)
-}
-
-function getStepByLabel(editorState, label) {
-    return editorState.steps[getStepIdx(editorState, label)]
 }
 
 const varTypes = new Map([['W','wff'],['S','setvar'],['C','class']])
@@ -248,9 +244,9 @@ function getLabelAfterRenaming(renaming, label) {
 }
 
 async function unifyByAddingAsrt({stepLabelToUnify, asrtLabel}) {
-    await checkStepsInEditor([stepLabelToUnify])
+    await markStepsCheckedInEditor([stepLabelToUnify])
     await addAsrtByLabel(asrtLabel)
-    await checkStepsInEditor([])
+    await markStepsCheckedInEditor([])
     const editorState = await getEditorState()
     const existingStepIdx = getStepIdx(editorState, stepLabelToUnify)
     const newStepIdx = existingStepIdx - 1
