@@ -30,6 +30,7 @@ type singleEditorApi = {
     "mergeDuplicatedSteps": api,
     "setContentIsHidden": api,
     "buildSyntaxTrees": api,
+    "findAsrtsByUnif": api,
 }
 
 type editorApi = option<int> => singleEditorApi

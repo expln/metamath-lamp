@@ -2117,6 +2117,7 @@ let make = (
                             )
                         )->Promise.thenResolve(asrtSyntaxTreesArr => {
                             preCtxData.asrtSyntaxTrees = Some(Belt_HashMapString.fromArray(asrtSyntaxTreesArr))
+                            closeModal(modalRef, modalId)
                             preCtxData.asrtSyntaxTrees->Option.getExn(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
                         })
                     })
@@ -2126,6 +2127,7 @@ let make = (
 
     MM_api_editor.updateEditorData(
         ~editorId,
+        ~unifMetavarPrefix=preCtxData.settingsV.val.unifMetavarPrefix,
         ~state,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
@@ -2175,6 +2177,7 @@ let make = (
             })
         },
         ~buildSyntaxTrees=actBuildSyntaxTrees,
+        ~getAsrtSyntaxTrees,
     )
 
     <Expln_React_ContentWithStickyHeader

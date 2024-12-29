@@ -15,7 +15,8 @@ let setLastOpenedEditorId: int => unit
 
 let updateEditorData: (
     ~editorId:int,
-    ~state: editorState,
+    ~unifMetavarPrefix:string,
+    ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
@@ -23,6 +24,7 @@ let updateEditorData: (
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => JSON.t

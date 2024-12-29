@@ -88,6 +88,7 @@ type singleEditorApi = {
     "mergeDuplicatedSteps": api,
     "setContentIsHidden": api,
     "buildSyntaxTrees": api,
+    "findAsrtsByUnif": api,
 }
 
 type editorApi = option<int> => singleEditorApi
@@ -108,6 +109,7 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "mergeDuplicatedSteps": _ => Promise.resolve(errResp(msg)),
         "setContentIsHidden": _ => Promise.resolve(errResp(msg)),
         "buildSyntaxTrees": _ => Promise.resolve(errResp(msg)),
+        "findAsrtsByUnif": _ => Promise.resolve(errResp(msg)),
     }
 }
 

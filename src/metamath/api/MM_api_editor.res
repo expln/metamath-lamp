@@ -1000,7 +1000,7 @@ let findAsrtsByUnif = (
     ~wrkCtx:mmContext,
     ~asrtSyntaxTrees:Belt_HashMapString.t<syntaxTreeNode>,
     ~asrtLabels:array<string>,
-    ~exprSyntaxTrees:array<result<syntaxTreeNode,string>>,
+    ~exprSyntaxTrees:array<result<(int,syntaxTreeNode),string>>,
     ~isMetavar:string=>bool,
 ):array<result<array<string>,string>> => {
     let frames:Belt_MapString.t<frame> = wrkCtx->getAllFrames
@@ -1011,24 +1011,48 @@ let findAsrtsByUnif = (
     let ctxDisj = wrkCtx->getAllDisj
     let foundSubs = MM_asrt_syntax_tree.unifSubsMake()
     exprSyntaxTrees->Array.map(exprSyntaxTree => {
-        exprSyntaxTree->Result.map(exprSyntaxTree => {
-            frames->Array.filter(frame => {
-                MM_asrt_syntax_tree.unifSubsReset(foundSubs)
-                MM_asrt_syntax_tree.unify(
-                    ~asrtDisj=frame.disj,
-                    ~ctxDisj,
-                    ~asrtExpr=asrtSyntaxTrees->Belt_HashMapString.get(frame.label)->Option.getExn,
-                    ~ctxExpr=exprSyntaxTree,
-                    ~isMetavar,
-                    ~foundSubs,
+        switch exprSyntaxTree {
+            | Error(msg) => Error(msg)
+            | Ok((typ,exprSyntaxTree)) => {
+                Ok(
+                    frames->Array.filter(frame => {
+                        MM_asrt_syntax_tree.unifSubsReset(foundSubs)
+                        frame.asrt->Array.getUnsafe(0) == typ && MM_asrt_syntax_tree.unify(
+                            ~asrtDisj=frame.disj,
+                            ~ctxDisj,
+                            ~asrtExpr=asrtSyntaxTrees->Belt_HashMapString.get(frame.label)
+                                ->Option.getExn(~message="MM_api_editor.findAsrtsByUnif.2"),
+                            ~ctxExpr=exprSyntaxTree,
+                            ~isMetavar,
+                            ~foundSubs,
+                        )
+                    })->Array.map(frame => frame.label)
                 )
-            })->Array.map(frame => frame.label)
-        })
+            }
+        }
+    })
+}
+
+let statementsToExpressions = (
+    ~wrkCtx:mmContext,
+    ~stmts:array<string>,
+): array<result<(int,string),string>> => {
+    stmts->Array.map(stmt => {
+        let syms = getSpaceSeparatedValuesAsArray(stmt)
+        let len = syms->Array.length
+        if (len < 2) {
+            Error("The statement length must be at least 2 symbols.")
+        } else {
+            switch wrkCtx->ctxSymToInt(syms->Array.getUnsafe(0)) {
+                | None => Error(`Unrecognized symbol '${syms->Array.getUnsafe(0)}'.`)
+                | Some(typ) => Ok((typ, syms->Array.sliceToEnd(~start=1)->Array.join(" ")))
+            }
+        }
     })
 }
 
 type apiFindAsrtsByUnifInpParams = {
-    exprs:array<string>,
+    stmts:array<string>,
     asrtLabels:option<array<string>>
 }
 
@@ -1037,8 +1061,9 @@ let apiFindAsrtsByUnif = (
     ~state:editorState,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
-    ~isMetavar:string=>bool,
+    ~unifMetavarPrefix:string,
 ):promise<result<JSON.t,string>> => {
+    let isMetavar = String.startsWith(_, unifMetavarPrefix)
     switch state.wrkCtx {
         | None => Promise.resolve(Error(
             "Cannot build syntax trees for expressions because there are errors in the editor."
@@ -1047,14 +1072,21 @@ let apiFindAsrtsByUnif = (
             open Expln_utils_jsonParse
             let parseResult:result<apiFindAsrtsByUnifInpParams,string> = fromJson(params->apiInputToJson, asObj(_, d=>{
                 {
-                    exprs:d->arr("exprs", asStr(_)),
+                    stmts:d->arr("stmts", asStr(_)),
                     asrtLabels:d->arrOpt("asrtLabels", asStr(_)),
                 }
             }))
             switch parseResult {
                 | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(params) => {
-                    switch buildSyntaxTrees(params.exprs) {
+                    let exprs:array<result<(int,string),string>> = statementsToExpressions(~wrkCtx, ~stmts=params.stmts)
+                    let exprToBuildSyntaxTreesFor = exprs->Array.map(expr => {
+                        switch expr {
+                            | Error(_) => ""
+                            | Ok((_,str)) => str
+                        }
+                    })
+                    switch buildSyntaxTrees(exprToBuildSyntaxTreesFor) {
                         | Error(msg) => Promise.resolve(Error(msg))
                         | Ok(exprSyntaxTrees) => {
                             getAsrtSyntaxTrees()->Promise.thenResolve(asrtSyntaxTrees => {
@@ -1062,6 +1094,16 @@ let apiFindAsrtsByUnif = (
                                     | Some(asrtLabels) => asrtLabels
                                     | None => asrtSyntaxTrees->Belt_HashMapString.keysToArray
                                 }
+                                let exprSyntaxTrees:array<result<(int,syntaxTreeNode),string>> = 
+                                    exprs->Array.mapWithIndex((expr,idx) => {
+                                        switch expr {
+                                            | Error(msg) => Error(msg)
+                                            | Ok((typ,_)) => {
+                                                exprSyntaxTrees->Array.getUnsafe(idx)
+                                                    ->Result.map(exprSyntaxTree => (typ,exprSyntaxTree))
+                                            }
+                                        }
+                                    })
                                 Ok(
                                     findAsrtsByUnif(
                                         ~wrkCtx, ~asrtSyntaxTrees, ~asrtLabels, ~exprSyntaxTrees, ~isMetavar 
@@ -1097,6 +1139,7 @@ let apiFindAsrtsByUnif = (
 
 type editorData = {
     editorId:int,
+    unifMetavarPrefix:string,
     state:editorState,
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     setEditorContIsHidden:bool=>promise<unit>,
@@ -1105,10 +1148,12 @@ type editorData = {
     canStartUnifyAll:bool,
     startUnifyAll:unit=>promise<unit>,
     buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let editorId = editorData.editorId
+    let unifMetavarPrefix = editorData.unifMetavarPrefix
     let state = editorData.state
     let setState = editorData.setState
     let setEditorContIsHidden = editorData.setEditorContIsHidden
@@ -1117,6 +1162,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let canStartUnifyAll = editorData.canStartUnifyAll
     let startUnifyAll = editorData.startUnifyAll
     let buildSyntaxTrees = editorData.buildSyntaxTrees
+    let getAsrtSyntaxTrees = editorData.getAsrtSyntaxTrees
     {
         "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
         "proveBottomUp": makeApiFunc(
@@ -1140,6 +1186,10 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "buildSyntaxTrees": makeApiFunc(
             "editor.buildSyntaxTrees", 
             params => editorBuildSyntaxTrees( ~params, ~buildSyntaxTrees, ~state, )
+        ),
+        "findAsrtsByUnif": makeApiFunc(
+            "editor.apiFindAsrtsByUnif", 
+            params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
     }
 }
@@ -1177,6 +1227,7 @@ let deleteEditor = (editorId:int):unit => {
 
 let updateEditorData = (
     ~editorId:int,
+    ~unifMetavarPrefix:string,
     ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
@@ -1185,9 +1236,11 @@ let updateEditorData = (
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
 ):unit => {
     editorsData->Belt_HashMapInt.set(editorId, {
         editorId,
+        unifMetavarPrefix,
         state,
         setState,
         setEditorContIsHidden,
@@ -1196,5 +1249,6 @@ let updateEditorData = (
         canStartUnifyAll,
         startUnifyAll,
         buildSyntaxTrees,
+        getAsrtSyntaxTrees,
     })
 }
