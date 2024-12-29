@@ -85,6 +85,9 @@ async function mergeDuplicatedSteps() {
     return getResponse(await api.editor().mergeDuplicatedSteps())
 }
 
+async function renameStepsInEditor(renaming) {
+    getResponse(await api.editor().renameSteps({renaming}))
+}
 
 function getStepIdx(editorState, label) {
     const steps = editorState.steps
@@ -235,6 +238,15 @@ async function editorHasErrors() {
     return getFirstStepWithError(await unifyAll()) !== undefined
 }
 
+function getLabelAfterRenaming(renaming, label) {
+    for (const [oldLabel, newLabel] of renaming) {
+        if (label === oldLabel) {
+            label = newLabel
+        }
+    }
+    return label
+}
+
 async function unifyByAddingAsrt({stepLabelToUnify, asrtLabel}) {
     await checkStepsInEditor([stepLabelToUnify])
     await addAsrtByLabel(asrtLabel)
@@ -253,8 +265,11 @@ async function unifyByAddingAsrt({stepLabelToUnify, asrtLabel}) {
         }
     }
     await getEditorState()
-    const renames = await mergeDuplicatedSteps()
-    console.log('renames', renames)
+    const renaming = await mergeDuplicatedSteps()
+    const oldLabel = existingStep.label
+    const newLabel = getLabelAfterRenaming(renaming, oldLabel)
+    await renameStepsInEditor([[newLabel,oldLabel]])
+    await unifyAll()
 }
 
 async function mmj2Unify() {

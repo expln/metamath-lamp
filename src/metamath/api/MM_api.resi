@@ -21,6 +21,7 @@ type singleEditorApi = {
     "unifyAll": api,
     "addSteps": api,
     "updateSteps": api,
+    "renameSteps": api,
     "deleteSteps": api,
     "markStepsChecked": api,
     "setDisjoints": api,

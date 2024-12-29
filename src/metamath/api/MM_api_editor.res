@@ -832,6 +832,55 @@ let updateSteps = (
     }
 }
 
+type renameStepsInputParams = {
+    renaming: array<array<string>>
+}
+let apiRenameSteps = (
+    ~params:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<renameStepsInputParams,string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            renaming: d->arr("renaming", asArr(_, asStr(_, ~validator=str=>{
+                let trimed = str->String.trim
+                if (trimed == "") {
+                    Error("Labels must not be empty.")
+                } else {
+                    Ok(trimed)
+                }
+            }))),
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(params) => {
+            if ( params.renaming->Array.some(pair => pair->Array.length != 2) ) {
+                Promise.resolve(
+                    Error("Each sub-array of the 'renaming' array must consist of two labels: [renameFrom,renameTo].")
+                )
+            } else {
+                setState(st => {
+                    switch params.renaming->Array.reduce(Ok(st), @warning("-8")(st,([fromLabel,toLabel])) => {
+                        switch st {
+                            | Error(msg) => Error(msg)
+                            | Ok(st) => {
+                                switch st->editorGetStmtByLabel(fromLabel) {
+                                    | None => Error(`Cannot find a step with label ${fromLabel}`)
+                                    | Some(stmtToRename) => st->renameStmt(stmtToRename.id, toLabel)
+                                }
+                            }
+                        }
+                    }) {
+                        | Error(msg) => Error(msg)
+                        | Ok(st) => Ok((st,JSON.Encode.null))
+                    }
+                })
+            }
+        }
+    }
+}
+
 type substituteInputParams = {
     what: string,
     with_: string,
@@ -1224,6 +1273,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "unifyAll": makeApiFunc("editor.unifyAll", _ => unifyAll( ~canStartUnifyAll, ~startUnifyAll, )),
         "addSteps": makeApiFunc("editor.addSteps", params => addSteps( ~state, ~paramsJson=params, ~setState, )),
         "updateSteps": makeApiFunc("editor.updateSteps", params => updateSteps( ~paramsJson=params, ~setState, )),
+        "renameSteps": makeApiFunc("editor.renameSteps", params => apiRenameSteps( ~params, ~setState, )),
         "deleteSteps": makeApiFunc("editor.deleteSteps", params => deleteSteps( ~params, ~setState, )),
         "markStepsChecked": makeApiFunc("editor.markStepsChecked", params => apiMarkStepsChecked( ~params, ~setState, )),
         "setDisjoints": makeApiFunc("editor.setDisjoints", apiInput => setDisjoints( ~apiInput, ~setState, )),
