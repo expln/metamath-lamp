@@ -1,5 +1,4 @@
 open MM_wrk_editor
-open Expln_utils_promise
 open Common
 open MM_context
 open MM_syntax_tree
@@ -180,7 +179,7 @@ let getEditorState = (~editorId:int, ~state:editorState):promise<result<JSON.t,s
             ])->JSON.Encode.object
             stateCached->Belt_HashMapInt.set(editorId, state)
             stateJsonCached->Belt_HashMapInt.set(editorId, stateJson)
-            promiseResolved(Ok(stateJson))
+            Promise.resolve(Ok(stateJson))
         }
     }
 }
@@ -190,7 +189,7 @@ let getTokenType = (
     ~state:editorState,
 ):promise<result<JSON.t,string>> => {
     switch state.wrkCtx {
-        | None => promiseResolved(Error("Cannot determine token type because the editor contains errors."))
+        | None => Promise.resolve(Error("Cannot determine token type because the editor contains errors."))
         | Some(wrkCtx) => {
             open Expln_utils_jsonParse
             let parseResult:result<{"tokens":array<string>},string> = fromJson(paramsJson->apiInputToJson, asObj(_, d=>{
@@ -199,9 +198,9 @@ let getTokenType = (
                 }
             }))
             switch parseResult {
-                | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+                | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(params) => {
-                    promiseResolved(Ok(
+                    Promise.resolve(Ok(
                         params["tokens"]->Array.map(token => {
                             switch wrkCtx->getTokenType(token) {
                                 | None => JSON.Encode.null
@@ -421,7 +420,7 @@ let proveBottomUp = (
     ~startProvingBottomUp:proverParams=>promise<option<bool>>,
 ):promise<result<JSON.t,string>> => {
     if (!canStartProvingBottomUp) {
-        promiseResolved(Error(
+        Promise.resolve(Error(
             "Cannot start proving bottom-up because either there are syntax errors in the editor" 
                 ++ " or edit is in progress."
         ))
@@ -469,10 +468,10 @@ let proveBottomUp = (
             }
         }))
         switch parseResult {
-            | Error(msg) => promiseResolved(Error(msg))
+            | Error(msg) => Promise.resolve(Error(msg))
             | Ok(apiParams) => {
                 switch state.stmts->Array.find(stmt => stmt.label == apiParams.stepToProve) {
-                    | None => promiseResolved(Error(`Cannot find a step with the label '${apiParams.stepToProve}'`))
+                    | None => Promise.resolve(Error(`Cannot find a step with the label '${apiParams.stepToProve}'`))
                     | Some(stmtToProve) => {
                         let args = apiParams.frameParams->Array.reduce(
                             Ok([]),
@@ -492,7 +491,7 @@ let proveBottomUp = (
                             }
                         )
                         switch args {
-                            | Error(msg) => promiseResolved(Error(msg))
+                            | Error(msg) => Promise.resolve(Error(msg))
                             | Ok(args) => {
                                 let matches = apiParams.frameParams->Array.reduce(
                                     Ok([]),
@@ -515,7 +514,7 @@ let proveBottomUp = (
                                     }
                                 )
                                 switch matches {
-                                    | Error(msg) => promiseResolved(Error(msg))
+                                    | Error(msg) => Promise.resolve(Error(msg))
                                     | Ok(matches) => {
                                         startProvingBottomUp({
                                             delayBeforeStartMs:
@@ -544,7 +543,7 @@ let proveBottomUp = (
                                                     }
                                                 )
                                             }
-                                        })->promiseMap(proved => {
+                                        })->Promise.thenResolve(proved => {
                                             switch proved {
                                                 | None => Ok(JSON.Encode.null)
                                                 | Some(proved) => Ok(proved->JSON.Encode.bool)
@@ -566,11 +565,11 @@ let unifyAll = (
     ~startUnifyAll:unit=>promise<unit>,
 ):promise<result<JSON.t,string>> => {
     if (!canStartUnifyAll) {
-        promiseResolved(Error(
+        Promise.resolve(Error(
             "Cannot start \"Unify All\" because either there are syntax errors in the editor or edit is in progress."
         ))
     } else {
-        startUnifyAll()->promiseMap(_ => Ok(JSON.Encode.null))
+        startUnifyAll()->Promise.thenResolve(_ => Ok(JSON.Encode.null))
     }
 }
 
@@ -591,8 +590,8 @@ let editorSetContIsHidden = (
     ~setEditorContIsHidden:bool=>promise<unit>,
 ):promise<result<JSON.t,string>> => {
     switch params->apiInputToJson->JSON.Decode.bool {
-        | None => promiseResolved(Error("The parameter of setContentIsHidden() must me a boolean."))
-        | Some(bool) => setEditorContIsHidden(bool)->promiseMap(_ => Ok(JSON.Encode.null))
+        | None => Promise.resolve(Error("The parameter of setContentIsHidden() must me a boolean."))
+        | Some(bool) => setEditorContIsHidden(bool)->Promise.thenResolve(_ => Ok(JSON.Encode.null))
     }
 }
 
@@ -705,21 +704,21 @@ let addSteps = (
         }
     }))
     switch parseResult {
-        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
             if (
                 parseResult.vars->Belt.Option.map(vars => vars->Array.some(a => a->Array.length != 2))
                     ->Belt_Option.getWithDefault(false)
             ) {
-                promiseResolved(
+                Promise.resolve(
                     Error("Each sub-array of the 'vars' array must consist of two elements: [type,varName].")
                 )
             } else {
                 switch validateVarNamesAreUnique(parseResult.vars) {
-                    | Error(msg) => promiseResolved(Error(msg))
+                    | Error(msg) => Promise.resolve(Error(msg))
                     | Ok(_) => {
                         switch validateVarNamesNotPresentInCtx(state, parseResult.vars) {
-                            | Error(msg) => promiseResolved(Error(msg))
+                            | Error(msg) => Promise.resolve(Error(msg))
                             | Ok(_) => {
                                 let steps = parseResult.steps->Array.map(step => {
                                     {
@@ -804,7 +803,7 @@ let updateSteps = (
             }
         }))
     switch parseResult {
-        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
         | Ok(inputParams) => {
             let inputSteps = inputParams["steps"]
             setState(st => {
@@ -851,7 +850,7 @@ let substitute = (
         }
     }))
     switch parseResult {
-        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
         | Ok(parseResult) => {
             setState(st => {
                 st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
@@ -934,7 +933,7 @@ let deleteSteps = (
         }
     }))
     switch parseResult {
-        | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
         | Ok(stepLabelsToDelete) => {
             setState(st => {
                 let labelToStmtId = st.stmts->Array.map(stmt => (stmt.label,stmt.id))->Belt_HashMapString.fromArray
@@ -948,13 +947,58 @@ let deleteSteps = (
     }
 }
 
+let apiMarkStepsChecked = (
+    ~params:apiInput,
+    ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
+):promise<result<JSON.t,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<{"labels":array<string>},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            "labels":d->arr("labels", asStr(_))
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(params) => {
+            let stepLabelsToCheck = params["labels"]
+            setState(st => {
+                let st = st->uncheckAllStmts
+                let st = st.stmts->Array.reduce(st, (st, stmt) => {
+                    if (stepLabelsToCheck->Array.includes(stmt.label)) {
+                        st->toggleStmtChecked(stmt.id)
+                    } else {
+                        st
+                    }
+                })
+                Ok( st, JSON.Encode.null )
+            })
+        }
+    }
+}
+
+let apiAddAsrtByLabel = (
+    ~params:apiInput,
+    ~addAsrtByLabel: string=>promise<result<unit,string>>,
+):promise<result<unit,string>> => {
+    open Expln_utils_jsonParse
+    let parseResult:result<{"asrtLabel":string},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
+        {
+            "asrtLabel":d->str("asrtLabel")
+        }
+    }))
+    switch parseResult {
+        | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
+        | Ok(params) => addAsrtByLabel(params["asrtLabel"])
+    }
+}
+
 let editorBuildSyntaxTrees = (
     ~params:apiInput,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     ~state:editorState,
 ):promise<result<JSON.t,string>> => {
     switch state.wrkCtx {
-        | None => promiseResolved(Error( "Cannot build syntax trees because there are errors in the editor." ))
+        | None => Promise.resolve(Error( "Cannot build syntax trees because there are errors in the editor." ))
         | Some(wrkCtx) => {
             open Expln_utils_jsonParse
             let parseResult:result<{"exprs":array<string>},string> = fromJson(params->apiInputToJson, asObj(_, d=>{
@@ -963,12 +1007,12 @@ let editorBuildSyntaxTrees = (
                 }
             }))
             switch parseResult {
-                | Error(msg) => promiseResolved(Error(`Could not parse input parameters: ${msg}`))
+                | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
                 | Ok(params) => {
                     switch buildSyntaxTrees(params["exprs"]) {
-                        | Error(msg) => promiseResolved(Error(msg))
+                        | Error(msg) => Promise.resolve(Error(msg))
                         | Ok(syntaxTrees) => {
-                            promiseResolved(
+                            Promise.resolve(
                                 Ok(
                                     syntaxTrees->Array.map(syntaxTree => {
                                         switch syntaxTree {
@@ -1149,6 +1193,7 @@ type editorData = {
     startUnifyAll:unit=>promise<unit>,
     buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
+    addAsrtByLabel: string=>promise<result<unit,string>>,
 }
 
 let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
@@ -1163,6 +1208,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
     let startUnifyAll = editorData.startUnifyAll
     let buildSyntaxTrees = editorData.buildSyntaxTrees
     let getAsrtSyntaxTrees = editorData.getAsrtSyntaxTrees
+    let addAsrtByLabel = editorData.addAsrtByLabel
     {
         "getState": makeApiFunc("editor.getState", _ => getEditorState(~editorId, ~state)),
         "proveBottomUp": makeApiFunc(
@@ -1173,6 +1219,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
         "addSteps": makeApiFunc("editor.addSteps", params => addSteps( ~state, ~paramsJson=params, ~setState, )),
         "updateSteps": makeApiFunc("editor.updateSteps", params => updateSteps( ~paramsJson=params, ~setState, )),
         "deleteSteps": makeApiFunc("editor.deleteSteps", params => deleteSteps( ~params, ~setState, )),
+        "markStepsChecked": makeApiFunc("editor.markStepsChecked", params => apiMarkStepsChecked( ~params, ~setState, )),
         "setDisjoints": makeApiFunc("editor.setDisjoints", apiInput => setDisjoints( ~apiInput, ~setState, )),
         "setDescription": makeApiFunc("editor.setDescription", apiInput => setDescription( ~apiInput, ~setState, )),
         "resetEditorContent": makeApiFunc("editor.resetEditorContent", _ => resetEditorContent(~setState, )),
@@ -1191,6 +1238,7 @@ let makeSingleEditorApi = (editorData:editorData):singleEditorApi => {
             "editor.apiFindAsrtsByUnif", 
             params => apiFindAsrtsByUnif(~params, ~state, ~buildSyntaxTrees, ~getAsrtSyntaxTrees, ~unifMetavarPrefix)
         ),
+        "addAsrtByLabel": makeApiFunc("editor.addAsrtByLabel", params => apiAddAsrtByLabel( ~params, ~addAsrtByLabel, )),
     }
 }
 
@@ -1237,6 +1285,7 @@ let updateEditorData = (
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
+    ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ):unit => {
     editorsData->Belt_HashMapInt.set(editorId, {
         editorId,
@@ -1250,5 +1299,6 @@ let updateEditorData = (
         startUnifyAll,
         buildSyntaxTrees,
         getAsrtSyntaxTrees,
+        addAsrtByLabel,
     })
 }

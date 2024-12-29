@@ -22,6 +22,7 @@ type singleEditorApi = {
     "addSteps": api,
     "updateSteps": api,
     "deleteSteps": api,
+    "markStepsChecked": api,
     "setDisjoints": api,
     "setDescription": api,
     "resetEditorContent": api,
@@ -31,6 +32,7 @@ type singleEditorApi = {
     "setContentIsHidden": api,
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
+    "addAsrtByLabel": api,
 }
 
 type editorApi = option<int> => singleEditorApi

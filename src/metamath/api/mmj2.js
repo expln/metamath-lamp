@@ -48,8 +48,16 @@ async function addStepsToEditor({steps,vars}) {
     getResponse(await api.editor().addSteps({steps,vars}))
 }
 
-async function updateStepsInEditor({steps}) {
+async function updateStepsInEditor(steps) {
     getResponse(await api.editor().updateSteps({steps}))
+}
+
+async function checkStepsInEditor(labels) {
+    getResponse(await api.editor().markStepsChecked({labels}))
+}
+
+async function addAsrtByLabel(label) {
+    getResponse(await api.editor().addAsrtByLabel({asrtLabel:label}))
 }
 
 async function setDisjointsInEditor(disj) {
@@ -215,24 +223,38 @@ function getFirstStepWithError(editorState) {
     )
 }
 
+async function editorHasErrors() {
+    return getFirstStepWithError(await unifyAll()) !== undefined
+}
+
+async function unifyByAddingAsrt({editorState, stepLabelToUnify, asrtLabel}) {
+    await checkStepsInEditor([stepLabelToUnify])
+    await addAsrtByLabel(asrtLabel)
+    await checkStepsInEditor([])
+}
+
 async function mmj2Unify() {
     //unify all to trigger error check
-    const st = await unifyAll()
-    const stepWithErr = getFirstStepWithError(st)
+    const editorState = await unifyAll()
+    const stepWithErr = getFirstStepWithError(editorState)
     if (stepWithErr === undefined) {
         await showInfoMsg('Nothing to unify.')
         return
     }
-    if ((stepWithErr.unifErr??'').startsWith('Could not find a match for assertion')) {
+    if (
+        (stepWithErr.unifErr??'').startsWith('Could not find a match for assertion')
+        && stepWithErr.jstf.args.length === 0
+    ) {
         //check if this is the only error
         const origJstf = stepWithErr.jstfText
-        await updateStepsInEditor({steps:[{label:stepWithErr.label, jstf:''}]})
-        const stAftrerErrorFix = await unifyAll()
-        if (getFirstStepWithError(stAftrerErrorFix) !== undefined) {
+        await updateStepsInEditor([{label:stepWithErr.label, jstf:''}])
+        if (await editorHasErrors()) {
             await updateStepsInEditor({steps:[{label:stepWithErr.label, jstf:origJstf}]})
             await unifyAll()
             await showErrMsg('Cannot determine how to unify because there are more than one error in the editor.')
+            return
         }
+        await unifyByAddingAsrt({editorState, stepLabelToUnify:stepWithErr.label, asrtLabel:stepWithErr.jstf.asrt})
     } else {
         await showInfoMsg('Cannot determine how to unify.')
     }
@@ -272,12 +294,14 @@ $)
 // const parsed = parseMmp(mmpText1)
 // console.log("parsed", parsed)
 
-await api.macro.registerMacroModule({
-    moduleName: 'MMJ2',
-    macros: [
-        makeMacro('Import from MMP file', importFromMmp),
-        makeMacro('Unify', mmj2Unify),
-    ]
-})
+// await api.macro.registerMacroModule({
+//     moduleName: 'MMJ2',
+//     macros: [
+//         makeMacro('Import from MMP file', importFromMmp),
+//         makeMacro('Unify', mmj2Unify),
+//     ]
+// })
+// getResponse(await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'}))
+
 await loadMmpTextToEditor(mmpText1)
-getResponse(await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'}))
+await mmj2Unify()

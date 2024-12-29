@@ -709,8 +709,8 @@ let make = (
         })
     }
 
-    React.useEffect0(() => {
-        addAsrtByLabel.contents = Some(label => Promise.make((resolve, _) => {
+    let actAddAsrtByLabel = (asrtLabel:string):promise<result<unit,string>> => {
+        Promise.make((resolve, _) => {
             setState(st => {
                 switch st.wrkCtx {
                     | None => {
@@ -718,9 +718,9 @@ let make = (
                         st
                     }
                     | Some(wrkCtx) => {
-                        switch wrkCtx->getFrame(label) {
+                        switch wrkCtx->getFrame(asrtLabel) {
                             | None => {
-                                resolve(Error(`Cannot find a frame by name '${label}'`))
+                                resolve(Error(`Cannot find a frame by name '${asrtLabel}'`))
                                 st
                             }
                             | Some(frame) => {
@@ -732,7 +732,11 @@ let make = (
                     }
                 }
             })
-        }))
+        })
+    }
+
+    React.useEffect0(() => {
+        addAsrtByLabel.contents = Some(actAddAsrtByLabel)
         updateTabTitle.contents = Some(newTabTitle => {
             setStatePriv(st => {
                 let st = {...st, tabTitle:newTabTitle}
@@ -2178,6 +2182,7 @@ let make = (
         },
         ~buildSyntaxTrees=actBuildSyntaxTrees,
         ~getAsrtSyntaxTrees,
+        ~addAsrtByLabel=actAddAsrtByLabel,
     )
 
     <Expln_React_ContentWithStickyHeader

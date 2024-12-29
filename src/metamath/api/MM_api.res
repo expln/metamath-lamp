@@ -80,6 +80,7 @@ type singleEditorApi = {
     "addSteps": api,
     "updateSteps": api,
     "deleteSteps": api,
+    "markStepsChecked": api,
     "setDisjoints": api,
     "setDescription": api,
     "resetEditorContent": api,
@@ -89,6 +90,7 @@ type singleEditorApi = {
     "setContentIsHidden": api,
     "buildSyntaxTrees": api,
     "findAsrtsByUnif": api,
+    "addAsrtByLabel": api,
 }
 
 type editorApi = option<int> => singleEditorApi
@@ -101,6 +103,7 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "addSteps": _ => Promise.resolve(errResp(msg)),
         "updateSteps": _ => Promise.resolve(errResp(msg)),
         "deleteSteps": _ => Promise.resolve(errResp(msg)),
+        "markStepsChecked": _ => Promise.resolve(errResp(msg)),
         "setDisjoints": _ => Promise.resolve(errResp(msg)),
         "setDescription": _ => Promise.resolve(errResp(msg)),
         "resetEditorContent": _ => Promise.resolve(errResp(msg)),
@@ -110,6 +113,7 @@ let makeEmptySingleEditorApi = (msg:string):singleEditorApi => {
         "setContentIsHidden": _ => Promise.resolve(errResp(msg)),
         "buildSyntaxTrees": _ => Promise.resolve(errResp(msg)),
         "findAsrtsByUnif": _ => Promise.resolve(errResp(msg)),
+        "addAsrtByLabel": _ => Promise.resolve(errResp(msg)),
     }
 }
 

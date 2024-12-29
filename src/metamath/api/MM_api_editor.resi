@@ -25,6 +25,7 @@ let updateEditorData: (
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
     ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
+    ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => JSON.t
