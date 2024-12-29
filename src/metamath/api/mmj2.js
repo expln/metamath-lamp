@@ -60,6 +60,17 @@ async function addAsrtByLabel(label) {
     getResponse(await api.editor().addAsrtByLabel({asrtLabel:label}))
 }
 
+async function substitute({what, with_}) {
+    const resp = await api.editor().substitute({what, with_, method:'u'})
+    if (resp.isOk) {
+        return true
+    } else if (resp.err === 'No substitutions found.') {
+        return false
+    } else {
+        exn(resp.err)
+    }
+}
+
 async function setDisjointsInEditor(disj) {
     getResponse(await api.editor().setDisjoints({disj}))
 }
@@ -69,11 +80,8 @@ async function unifyAll() {
     return await getEditorState()
 }
 
-async function substitute({what, with_}) {
-    return getResponse(await api.editor().substitute({what, with_}))
-}
-
 async function mergeDuplicatedSteps() {
+    getResponse(await api.editor().unifyAll())
     return getResponse(await api.editor().mergeDuplicatedSteps())
 }
 
@@ -227,10 +235,26 @@ async function editorHasErrors() {
     return getFirstStepWithError(await unifyAll()) !== undefined
 }
 
-async function unifyByAddingAsrt({editorState, stepLabelToUnify, asrtLabel}) {
+async function unifyByAddingAsrt({stepLabelToUnify, asrtLabel}) {
     await checkStepsInEditor([stepLabelToUnify])
     await addAsrtByLabel(asrtLabel)
     await checkStepsInEditor([])
+    const editorState = await getEditorState()
+    const existingStepIdx = getStepIdx(editorState, stepLabelToUnify)
+    const newStepIdx = existingStepIdx - 1
+    const existingStep = editorState.steps[existingStepIdx];
+    const newStep = editorState.steps[newStepIdx];
+    const existingStmt = existingStep.stmt
+    const newStepStmt = newStep.stmt
+    if (!(await substitute({what:newStepStmt, with_:existingStmt}))) {
+        if (!(await substitute({what:existingStmt, with_:newStepStmt}))) {
+            await showErrMsg(`Cannot unify these two steps: ${newStep.label} and ${existingStep.label}`)
+            return
+        }
+    }
+    await getEditorState()
+    const renames = await mergeDuplicatedSteps()
+    console.log('renames', renames)
 }
 
 async function mmj2Unify() {
@@ -254,7 +278,7 @@ async function mmj2Unify() {
             await showErrMsg('Cannot determine how to unify because there are more than one error in the editor.')
             return
         }
-        await unifyByAddingAsrt({editorState, stepLabelToUnify:stepWithErr.label, asrtLabel:stepWithErr.jstf.asrt})
+        await unifyByAddingAsrt({stepLabelToUnify:stepWithErr.label, asrtLabel:stepWithErr.jstf.asrt})
     } else {
         await showInfoMsg('Cannot determine how to unify.')
     }

@@ -565,11 +565,9 @@ let unifyAll = (
     ~startUnifyAll:unit=>promise<unit>,
 ):promise<result<JSON.t,string>> => {
     if (!canStartUnifyAll) {
-        Promise.resolve(Error(
-            "Cannot start \"Unify All\" because either there are syntax errors in the editor or edit is in progress."
-        ))
+        Promise.resolve(Ok(JSON.Encode.bool(false)))
     } else {
-        startUnifyAll()->Promise.thenResolve(_ => Ok(JSON.Encode.null))
+        startUnifyAll()->Promise.thenResolve(_ => Ok(JSON.Encode.bool(true)))
     }
 }
 
@@ -577,7 +575,7 @@ let mergeDuplicatedSteps = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
 ):promise<result<JSON.t,string>> => {
     setState(st => {
-        let (st,renames) = st->autoMergeDuplicatedStatements(~selectFirst=true)
+        let (st,renames) = st->autoMergeDuplicatedStatements
         let renamesJson = renames->Array.map(((from,to_)) => {
             [from->JSON.Encode.string, to_->JSON.Encode.string]->JSON.Encode.array
         })->JSON.Encode.array
@@ -837,6 +835,7 @@ let updateSteps = (
 type substituteInputParams = {
     what: string,
     with_: string,
+    method: string,
 }
 let substitute = (
     ~paramsJson:apiInput,
@@ -847,13 +846,20 @@ let substitute = (
         {
             what: d->str("what"),
             with_: d->str("with_"),
+            method: d->str("method", ~validator=m=>{
+                if (m!="m" && m!="u") {
+                    Error("'method' must be 'm' (for matching) or 'u' (for unification).")
+                } else {
+                    Ok(m)
+                }
+            }),
         }
     }))
     switch parseResult {
         | Error(msg) => Promise.resolve(Error(`Could not parse input parameters: ${msg}`))
-        | Ok(parseResult) => {
+        | Ok(params) => {
             setState(st => {
-                st->substitute(~what=parseResult.what, ~with_=parseResult.with_)
+                st->substitute(~what=params.what, ~with_=params.with_, ~useMatching=params.method=="m")
                     ->Belt.Result.map(st => (st,JSON.Encode.null))
             })
         }
