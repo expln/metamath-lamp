@@ -8,17 +8,17 @@ type macro = {
 
 let macroModules:Belt_HashMapString.t<Belt_HashMapString.t<macro>> = Belt_HashMapString.make(~hintSize=4)
 
-let registerMacroModuleCnt = ref(0)
+let overrideMacroModuleName:ref<option<string>> = ref(None)
 
 let registerMacroModule = (
     ~moduleName:string,
     ~macros:array<macro>,
 ):unit => {
     macroModules->Belt_HashMapString.set(
-        moduleName,
+        overrideMacroModuleName.contents->Option.getOr(moduleName),
         macros->Array.map(macro => (macro.name, macro))->Belt_HashMapString.fromArray
     )
-    registerMacroModuleCnt := registerMacroModuleCnt.contents + 1
+    overrideMacroModuleName := None
 }
 
 let apiRegisterMacroModule = (params:apiInput):promise<result<unit,string>> => {
@@ -111,14 +111,6 @@ let initMacroApi = () => {
     })
 }
 
-let overrideMacroModuleName:ref<option<string>> = ref(None)
-
 let setOverrideMacroModuleName = (overrideName:option<string>):unit => {
     overrideMacroModuleName := overrideName
-}
-
-let getAndResetCountOfMacroModuleRegistrations = ():int => {
-    let res = registerMacroModuleCnt.contents
-    registerMacroModuleCnt := 0
-    res
 }
