@@ -272,52 +272,56 @@ let rec unify = (
     ~foundSubs:unifSubs, 
     ~continue:ref<bool>
 ):unit => {
-    if (a.typ != b.typ) {
-        continue := false
-    } else {
-        switch a->isVar(isMetavar) {
-            | Some((_,aVar)) => {
-                switch b->isVar(isMetavar) {
-                    | Some((_,bVar)) => {
-                        if (aVar != bVar) {
-                            continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
-                        }
-                    }
-                    | None => {
+    switch a->isVar(isMetavar) {
+        | Some((_,aVar)) => {
+            switch b->isVar(isMetavar) {
+                | Some((_,bVar)) => {
+                    if (aVar != bVar) {
                         continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
                     }
                 }
+                | None => {
+                    continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
+                }
             }
-            | None => {
-                switch b->isVar(isMetavar) {
-                    | Some((_,bVar)) => {
-                        continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
-                    }
-                    | None => {
-                        if (a.children->Array.length != b.children->Array.length) {
-                            continue := false
-                        } else {
-                            let maxI = a.children->Array.length-1
-                            let i = ref(0)
-                            while (continue.contents && i.contents <= maxI) {
-                                switch a.children->Array.getUnsafe(i.contents) {
-                                    | Symbol({sym:aSym}) => {
-                                        switch b.children->Array.getUnsafe(i.contents) {
-                                            | Symbol({sym:bSym}) => continue := aSym == bSym
-                                            | Subtree(_) => continue := false
+        }
+        | None => {
+            switch b->isVar(isMetavar) {
+                | Some((_,bVar)) => {
+                    continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
+                }
+                | None => {
+                    if (a.children->Array.length != b.children->Array.length) {
+                        continue := false
+                    } else {
+                        let maxI = a.children->Array.length-1
+                        let i = ref(0)
+                        while (continue.contents && i.contents <= maxI) {
+                            switch a.children->Array.getUnsafe(i.contents) {
+                                | Symbol({sym:aSym, isVar:aIsVar}) => {
+                                    switch b.children->Array.getUnsafe(i.contents) {
+                                        | Symbol({sym:bSym, isVar:bIsVar}) => {
+                                            continue := aSym == bSym
+                                                || (aIsVar && assignSubs(foundSubs, aSym, [bSym]))
+                                                || (bIsVar && assignSubs(foundSubs, bSym, [aSym]))
+                                        }
+                                        | Subtree(bCh) => {
+                                            continue := aIsVar && assignSubs(foundSubs, aSym, bCh->getAllSymbols)
                                         }
                                     }
-                                    | Subtree(aCh) => {
-                                        switch b.children->Array.getUnsafe(i.contents) {
-                                            | Symbol(_) => continue := false
-                                            | Subtree(bCh) => {
-                                                unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
-                                            }
+                                }
+                                | Subtree(aCh) => {
+                                    switch b.children->Array.getUnsafe(i.contents) {
+                                        | Symbol({sym:bSym, isVar:bIsVar}) => {
+                                            continue := bIsVar && assignSubs(foundSubs, bSym, aCh->getAllSymbols)
+                                        }
+                                        | Subtree(bCh) => {
+                                            unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
                                         }
                                     }
-                                } 
-                                i := i.contents + 1
-                            }
+                                }
+                            } 
+                            i := i.contents + 1
                         }
                     }
                 }

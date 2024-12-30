@@ -1,10 +1,16 @@
 Variables:
-.loca-var1 wff &W1
-.loca-var2 setvar &S1
-.loca-var3 class &C1
-.loca-var4 wff &W2
-.loca-var5 wff &W3
-.loca-var6 wff &W4
+.1 wff &W1
+.2 wff &W2
+.3 wff &W3
+.4 wff &W4
+.5 setvar &S1
+.6 setvar &S2
+.7 setvar &S3
+.8 setvar &S4
+.9 class &C1
+.10 class &C2
+.11 class &C3
+.12 class &C4
 
 Disjoints:
 

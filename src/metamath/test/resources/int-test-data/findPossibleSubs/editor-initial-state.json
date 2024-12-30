@@ -1,5 +1,5 @@
 {
-  "varsText": ".loca-var1 wff &W1\n.loca-var2 setvar &S1\n.loca-var3 class &C1\n.loca-var4 wff &W2\n.loca-var5 wff &W3\n.loca-var6 wff &W4",
+  "varsText": ".1 wff &W1\n.2 wff &W2\n.3 wff &W3\n.4 wff &W4\n.5 setvar &S1\n.6 setvar &S2\n.7 setvar &S3\n.8 setvar &S4\n.9 class &C1\n.10 class &C2\n.11 class &C3\n.12 class &C4",
   "disjText": "",
   "stmts": []
 }

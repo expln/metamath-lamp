@@ -673,6 +673,22 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         testUnifSubs( ~expr1="class &C1", ~expr2="setvar x", ~expected = [ ("&C1", "x") ] )
         testUnifSubs( ~expr1="&C1", ~expr2="&S1", ~expected = [ ("&C1", "&S1") ] )
         testUnifSubs( ~expr1="class &C1", ~expr2="setvar &S1", ~expected = [ ("&C1", "&S1") ] )
+        testUnifSubs( ~expr1="&C1", ~expr2="&S1", ~expected = [ ("&C1", "&S1"), ("&S1", "&S1") ] )
+        testUnifSubs( ~expr1="&S1", ~expr2="&C1", ~expected = [ ("&C1", "&S1"), ("&S1", "&S1") ] )
+        testUnifSubs( 
+            ~expr1="&C1 = &C2", 
+            ~expr2="&S1 = &S2", 
+            ~expected = [ 
+                ("&C1", "&S1"), 
+                ("&C2", "&S2"),
+                ("&S1", "&S1"),
+                ("&S2", "&S2"),
+            ]
+        )
+        testUnifSubs( ~expr1="&S1", ~expr2="&S2", ~expected = [ ("&S1", "&S2") ] )
+        testUnifSubs( ~expr1="&S2", ~expr2="&S1", ~expected = [ ("&S2", "&S1") ] )
+        testUnifSubs( ~expr1="&C1", ~expr2="&C2", ~expected = [ ("&C1", "&C2") ] )
+        testUnifSubs( ~expr1="&C2", ~expr2="&C1", ~expected = [ ("&C2", "&C1") ] )
 
         testUnifSubs( 
             ~expr1="( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )", 
