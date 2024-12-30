@@ -209,7 +209,7 @@ let addNewMacroModule = (st:state):state => {
             }],
             st.macroModules, 
         ])
-    }->reloadState
+    }
 }
 
 let deleteMacroModule = (st:state, ~moduleName:string):result<state,string> => {
@@ -506,7 +506,7 @@ let make = (
                     {
                         state.macroModules->Array.map(mod => {
                             let value = mod.name
-                            let dispName = mod.name ++ (mod.isActive ? "" : " (inactive)")
+                            let dispName = mod.nameEdit ++ (mod.isActive ? "" : " (inactive)")
                             <MenuItem key=value value>{React.string(dispName)}</MenuItem>
                         })->React.array
                     }
