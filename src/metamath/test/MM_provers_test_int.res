@@ -132,7 +132,7 @@ describe("proveSyntaxTypes", _ => {
             }
         }
         Expln_test.stopTimer("find match")
-        assertEqMsg(matchedAsrts->Array.length, 10001, "matchedAsrts->Array.length = 10001")
+        assertEqMsg(matchedAsrts->Array.length, 10023, "matchedAsrts->Array.length")
         // matchedAsrts->Array.sort(strCmp)
         // matchedAsrts->Array.forEach(Console.log)
     })

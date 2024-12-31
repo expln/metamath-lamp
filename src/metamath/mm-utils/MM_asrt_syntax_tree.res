@@ -212,11 +212,11 @@ let assignSubs = (foundSubs:unifSubs, var:sym, expr:array<sym>):bool => {
     }
 }
 
-let rec getAllSymbols = (syntaxTreeNode:MM_syntax_tree.syntaxTreeNode, ~isAsrt:bool):array<sym> => {
+let rec getAllSymbols = (syntaxTreeNode:MM_syntax_tree.syntaxTreeNode, ~intToVar:int=>sym):array<sym> => {
     syntaxTreeNode.children->Expln_utils_common.arrFlatMap(ch => {
         switch ch {
-            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode, ~isAsrt)
-            | Symbol({symInt}) => if (symInt < 0) {[Const(symInt)]} else {[isAsrt ? AsrtVar(symInt) : CtxVar(symInt)]}
+            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode, ~intToVar)
+            | Symbol({symInt}) => if (symInt < 0) {[Const(symInt)]} else {[intToVar(symInt)]}
         }
     })
 }
@@ -297,45 +297,50 @@ let verifyAllDisjoints = (~unifSubs:unifSubs, ~ctxDisj:disjMutable, ~asrtDisj:Be
 let rec unifyPriv = ( 
     ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>,
     ~ctxDisj:disjMutable,
-    ~asrtExpr:MM_syntax_tree.syntaxTreeNode,
-    ~ctxExpr:MM_syntax_tree.syntaxTreeNode,
-    ~isMetavar:string=>bool,
+    ~expr1:MM_syntax_tree.syntaxTreeNode,
+    ~isMetavar1:string=>bool,
+    ~int1ToVar:int=>sym,
+    ~expr2:MM_syntax_tree.syntaxTreeNode,
+    ~isMetavar2:string=>bool,
+    ~int2ToVar:int=>sym,
     ~foundSubs:unifSubs,
     ~continue:ref<bool>,
 ):unit => {
-    if (asrtExpr.typ != ctxExpr.typ) {
+    if (expr1.typ != expr2.typ) {
         continue := false
     } else {
-        switch asrtExpr->MM_syntax_tree.isVar(_=>true) {
-            | Some((asrtVar,_)) => {
-                continue := assignSubs(foundSubs, AsrtVar(asrtVar), ctxExpr->getAllSymbols(~isAsrt=false))
+        switch expr1->MM_syntax_tree.isVar(isMetavar1) {
+            | Some((var1,_)) => {
+                continue := assignSubs(foundSubs, int1ToVar(var1), expr2->getAllSymbols(~intToVar=int2ToVar))
             }
             | None => {
-                switch ctxExpr->MM_syntax_tree.isVar(isMetavar) {
-                    | Some((ctxVar,_)) => {
-                        continue := assignSubs(foundSubs, CtxVar(ctxVar), asrtExpr->getAllSymbols(~isAsrt=true))
+                switch expr2->MM_syntax_tree.isVar(isMetavar2) {
+                    | Some((var2,_)) => {
+                        continue := assignSubs(foundSubs, int2ToVar(var2), expr1->getAllSymbols(~intToVar=int1ToVar))
                     }
                     | None => {
-                        if (asrtExpr.children->Array.length != ctxExpr.children->Array.length) {
+                        if (expr1.children->Array.length != expr2.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = asrtExpr.children->Array.length-1
+                            let maxI = expr1.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
-                                switch asrtExpr.children->Array.getUnsafe(i.contents) {
-                                    | Symbol({symInt:asrtSymInt}) => {
-                                        switch ctxExpr.children->Array.getUnsafe(i.contents) {
-                                            | Symbol({symInt:ctxSymInt}) => continue := asrtSymInt == ctxSymInt
+                                switch expr1.children->Array.getUnsafe(i.contents) {
+                                    | Symbol({symInt:sym1Int}) => {
+                                        switch expr2.children->Array.getUnsafe(i.contents) {
+                                            | Symbol({symInt:sym2Int}) => continue := sym1Int == sym2Int
                                             | Subtree(_) => continue := false
                                         }
                                     }
-                                    | Subtree(asrtCh) => {
-                                        switch ctxExpr.children->Array.getUnsafe(i.contents) {
+                                    | Subtree(ch1) => {
+                                        switch expr2.children->Array.getUnsafe(i.contents) {
                                             | Symbol(_) => continue := false
-                                            | Subtree(ctxCh) => {
+                                            | Subtree(ch2) => {
                                                 unifyPriv(
                                                     ~asrtDisj, ~ctxDisj,
-                                                    ~asrtExpr=asrtCh, ~ctxExpr=ctxCh, ~isMetavar, ~foundSubs, ~continue
+                                                    ~expr1=ch1, ~isMetavar1, ~int1ToVar,
+                                                    ~expr2=ch2, ~isMetavar2, ~int2ToVar,
+                                                    ~foundSubs, ~continue
                                                 )
                                             }
                                         }
@@ -361,6 +366,28 @@ let unify = (
     ~foundSubs:unifSubs,
 ):bool => {
     let continue=ref(true)
-    unifyPriv( ~asrtDisj, ~ctxDisj, ~asrtExpr, ~ctxExpr, ~isMetavar, ~foundSubs, ~continue, )
-    continue.contents
+    foundSubs->unifSubsReset
+    unifyPriv( 
+        ~asrtDisj, 
+        ~ctxDisj, 
+        ~expr1=asrtExpr, ~isMetavar1=_=>true, ~int1ToVar=i=>AsrtVar(i),
+        ~expr2=ctxExpr, ~isMetavar2=isMetavar, ~int2ToVar=i=>CtxVar(i),
+        ~foundSubs, 
+        ~continue, 
+    )
+    if (!continue.contents) {
+        continue := true
+        foundSubs->unifSubsReset
+        unifyPriv(
+            ~asrtDisj, 
+            ~ctxDisj, 
+            ~expr1=ctxExpr, ~isMetavar1=isMetavar, ~int1ToVar=i=>CtxVar(i),
+            ~expr2=asrtExpr, ~isMetavar2=_=>true, ~int2ToVar=i=>AsrtVar(i),
+            ~foundSubs, 
+            ~continue, 
+        )
+        continue.contents
+    } else {
+        true
+    }
 }
