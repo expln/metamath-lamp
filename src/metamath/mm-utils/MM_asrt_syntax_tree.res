@@ -193,30 +193,30 @@ let substituteInPlace = (expr:array<sym>, e:sym, subExpr:array<sym>):unit => {
 }
 
 let applySubsInPlace = (expr:array<sym>, unifSubs:unifSubs):unit => {
-    unifSubs.subs->Belt_HashMap.forEachU((v, subExpr) => substituteInPlace(expr, v, subExpr))
+    unifSubs.subs->Belt_HashMap.forEach((v, subExpr) => substituteInPlace(expr, v, subExpr))
 }
 
 let assignSubs = (foundSubs:unifSubs, var:sym, expr:array<sym>):bool => {
+    applySubsInPlace(expr, foundSubs)
     if (expr->Array.some(symEq(_, var))) {
         false
     } else {
-        applySubsInPlace(expr, foundSubs)
         switch foundSubs.subs->Belt_HashMap.get(var) {
             | Some(existingExpr) => arrSymEq(expr, existingExpr)
             | None => {
                 foundSubs.subs->Belt_HashMap.set(var, expr)
-                foundSubs.subs->Belt_HashMap.forEachU((_, expr) => applySubsInPlace(expr, foundSubs))
+                foundSubs.subs->Belt_HashMap.forEach((_, expr) => applySubsInPlace(expr, foundSubs))
                 true
             }
         }
     }
 }
 
-let rec getAllSymbols = (syntaxTreeNode:MM_syntax_tree.syntaxTreeNode, ~intToVar:int=>sym):array<sym> => {
+let rec getAllSymbols = (syntaxTreeNode:MM_syntax_tree.syntaxTreeNode, ~intToSym:int=>sym):array<sym> => {
     syntaxTreeNode.children->Expln_utils_common.arrFlatMap(ch => {
         switch ch {
-            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode, ~intToVar)
-            | Symbol({symInt}) => if (symInt < 0) {[Const(symInt)]} else {[intToVar(symInt)]}
+            | Subtree(syntaxTreeNode) => getAllSymbols(syntaxTreeNode, ~intToSym)
+            | Symbol({symInt}) => [intToSym(symInt)]
         }
     })
 }
@@ -284,6 +284,14 @@ let isDisj = (a:sym, b:sym, ~ctxDisj:disjMutable, ~asrtDisj:Belt_MapInt.t<Belt_S
     }
 }
 
+let eqModSubs = (subs:unifSubs, a:sym, b:sym):bool => {
+    let expr1 = [a]
+    applySubsInPlace(expr1, subs)
+    let expr2 = [b]
+    applySubsInPlace(expr2, subs)
+    arrSymEq(expr1, expr2)
+}
+
 let verifyAllDisjoints = (~unifSubs:unifSubs, ~ctxDisj:disjMutable, ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>):bool => {
     let isDisj = (a,b) => isDisj(a, b, ~ctxDisj, ~asrtDisj)
     verifyDisjoints( ~unifSubs, ~isAsrt=true, ~ctxDisj, ~asrtDisj, ~isDisj )
@@ -297,49 +305,81 @@ let verifyAllDisjoints = (~unifSubs:unifSubs, ~ctxDisj:disjMutable, ~asrtDisj:Be
 let rec unifyPriv = ( 
     ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>,
     ~ctxDisj:disjMutable,
-    ~expr1:MM_syntax_tree.syntaxTreeNode,
-    ~isMetavar1:string=>bool,
-    ~int1ToVar:int=>sym,
-    ~expr2:MM_syntax_tree.syntaxTreeNode,
-    ~isMetavar2:string=>bool,
-    ~int2ToVar:int=>sym,
+    ~a:MM_syntax_tree.syntaxTreeNode,
+    ~isMetavarA:string=>bool,
+    ~intToSymA:int=>sym,
+    ~b:MM_syntax_tree.syntaxTreeNode,
+    ~isMetavarB:string=>bool,
+    ~intToSymB:int=>sym,
     ~foundSubs:unifSubs,
     ~continue:ref<bool>,
 ):unit => {
-    if (expr1.typ != expr2.typ) {
+    if (a.typ != b.typ) {
         continue := false
     } else {
-        switch expr1->MM_syntax_tree.isVar(isMetavar1) {
-            | Some((var1,_)) => {
-                continue := assignSubs(foundSubs, int1ToVar(var1), expr2->getAllSymbols(~intToVar=int2ToVar))
-            }
-            | None => {
-                switch expr2->MM_syntax_tree.isVar(isMetavar2) {
-                    | Some((var2,_)) => {
-                        continue := assignSubs(foundSubs, int2ToVar(var2), expr1->getAllSymbols(~intToVar=int1ToVar))
+        switch a->MM_syntax_tree.isVar(isMetavarA) {
+            | Some((aVar,_)) => {
+                switch b->MM_syntax_tree.isVar(isMetavarB) {
+                    | Some((bVar,_)) => {
+                        continue := eqModSubs(foundSubs, aVar->intToSymA, bVar->intToSymB) 
+                            || assignSubs(foundSubs, intToSymA(aVar), [bVar->intToSymB])
                     }
                     | None => {
-                        if (expr1.children->Array.length != expr2.children->Array.length) {
+                        continue := assignSubs(foundSubs, intToSymA(aVar), b->getAllSymbols(~intToSym=intToSymB))
+                    }
+                }
+            }
+            | None => {
+                switch b->MM_syntax_tree.isVar(isMetavarB) {
+                    | Some((bVar,_)) => {
+                        continue := assignSubs(foundSubs, intToSymB(bVar), a->getAllSymbols(~intToSym=intToSymA))
+                    }
+                    | None => {
+                        if (a.children->Array.length != b.children->Array.length) {
                             continue := false
                         } else {
-                            let maxI = expr1.children->Array.length-1
+                            let maxI = a.children->Array.length-1
                             let i = ref(0)
                             while (continue.contents && i.contents <= maxI) {
-                                switch expr1.children->Array.getUnsafe(i.contents) {
-                                    | Symbol({symInt:sym1Int}) => {
-                                        switch expr2.children->Array.getUnsafe(i.contents) {
-                                            | Symbol({symInt:sym2Int}) => continue := sym1Int == sym2Int
-                                            | Subtree(_) => continue := false
+                                switch a.children->Array.getUnsafe(i.contents) {
+                                    | Symbol({sym:aSym, symInt:aInt, isVar:aIsVar}) => {
+                                        switch b.children->Array.getUnsafe(i.contents) {
+                                            | Symbol({sym:bSym, symInt:bInt, isVar:bIsVar}) => {
+                                                continue := eqModSubs(foundSubs, intToSymA(aInt), intToSymB(bInt))
+                                                    || (
+                                                            aIsVar 
+                                                            && isMetavarA(aSym) 
+                                                            && assignSubs(foundSubs, intToSymA(aInt), [intToSymB(bInt)])
+                                                        )
+                                                    || (
+                                                            bIsVar 
+                                                            && isMetavarB(bSym) 
+                                                            && assignSubs(foundSubs, intToSymB(bInt), [intToSymA(aInt)])
+                                                        )
+                                            }
+                                            | Subtree(bCh) => {
+                                                continue := aIsVar && isMetavarA(aSym) 
+                                                    && assignSubs(
+                                                        foundSubs, intToSymA(aInt), 
+                                                        bCh->getAllSymbols(~intToSym=intToSymB)
+                                                    )
+                                            }
                                         }
                                     }
-                                    | Subtree(ch1) => {
-                                        switch expr2.children->Array.getUnsafe(i.contents) {
-                                            | Symbol(_) => continue := false
-                                            | Subtree(ch2) => {
+                                    | Subtree(aCh) => {
+                                        switch b.children->Array.getUnsafe(i.contents) {
+                                            | Symbol({sym:bSym, symInt:bInt, isVar:bIsVar}) => {
+                                                continue := bIsVar && isMetavarB(bSym) 
+                                                    && assignSubs(
+                                                        foundSubs, intToSymB(bInt), 
+                                                        aCh->getAllSymbols(~intToSym=intToSymA)
+                                                    )
+                                            }
+                                            | Subtree(bCh) => {
                                                 unifyPriv(
                                                     ~asrtDisj, ~ctxDisj,
-                                                    ~expr1=ch1, ~isMetavar1, ~int1ToVar,
-                                                    ~expr2=ch2, ~isMetavar2, ~int2ToVar,
+                                                    ~a=aCh, ~isMetavarA, ~intToSymA,
+                                                    ~b=bCh, ~isMetavarB, ~intToSymB,
                                                     ~foundSubs, ~continue
                                                 )
                                             }
@@ -357,6 +397,9 @@ let rec unifyPriv = (
     continue := continue.contents && verifyAllDisjoints(~unifSubs=foundSubs, ~ctxDisj, ~asrtDisj)
 }
 
+let intToAsrtSym = (i:int):sym => i < 0 ? Const(i) : AsrtVar(i)
+let intToCtxSym = (i:int):sym => i < 0 ? Const(i) : CtxVar(i)
+
 let unify = ( 
     ~asrtDisj:Belt_MapInt.t<Belt_SetInt.t>,
     ~ctxDisj:disjMutable,
@@ -370,8 +413,8 @@ let unify = (
     unifyPriv( 
         ~asrtDisj, 
         ~ctxDisj, 
-        ~expr1=asrtExpr, ~isMetavar1=_=>true, ~int1ToVar=i=>AsrtVar(i),
-        ~expr2=ctxExpr, ~isMetavar2=isMetavar, ~int2ToVar=i=>CtxVar(i),
+        ~a=asrtExpr, ~isMetavarA=_=>true, ~intToSymA=intToAsrtSym,
+        ~b=ctxExpr, ~isMetavarB=isMetavar, ~intToSymB=intToCtxSym,
         ~foundSubs, 
         ~continue, 
     )
@@ -381,8 +424,8 @@ let unify = (
         unifyPriv(
             ~asrtDisj, 
             ~ctxDisj, 
-            ~expr1=ctxExpr, ~isMetavar1=isMetavar, ~int1ToVar=i=>CtxVar(i),
-            ~expr2=asrtExpr, ~isMetavar2=_=>true, ~int2ToVar=i=>AsrtVar(i),
+            ~a=ctxExpr, ~isMetavarA=isMetavar, ~intToSymA=intToCtxSym,
+            ~b=asrtExpr, ~isMetavarB=_=>true, ~intToSymB=intToAsrtSym,
             ~foundSubs, 
             ~continue, 
         )
