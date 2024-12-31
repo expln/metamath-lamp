@@ -615,12 +615,6 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step1")
         let ctx = st.wrkCtx->Belt_Option.getExn
 
-        let unifSubsToMap = (wrkSubs:MM_wrk_editor.wrkSubs):Belt_MapString.t<string> => {
-            wrkSubs.subs->Belt_MapInt.toArray
-                ->Array.map(((e,expr)) => (ctx->MM_context.ctxIntToSymExn(e), ctx->MM_context.ctxIntsToStrExn(expr)))
-                ->Belt_MapString.fromArray
-        }
-
         let unifSubsToStr = (wrkSubs:MM_wrk_editor.wrkSubs):string => {
             wrkSubs.subs->Belt_MapInt.toArray
                 ->Array.map(((e,expr)) => (ctx->MM_context.ctxIntToSymExn(e), ctx->MM_context.ctxIntsToStrExn(expr)))
@@ -697,6 +691,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         )
 
         testUnifSubs(~expr1="A e. &C1", ~expr2="A e. X", ~expected = "&C1 → X")
+        testUnifSubs(~expr1="&C1 = ( &C1 + &C3 )", ~expr2="&C2 = &C2", ~expected = "")
     })
 
     it("autoMergeDuplicatedStatements", _ => {

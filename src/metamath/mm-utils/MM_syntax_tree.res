@@ -237,10 +237,10 @@ let applySubsInPlace = (expr:array<string>, subs:unifSubs):unit => {
 }
 
 let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
+    applySubsInPlace(expr, foundSubs)
     if (expr->Array.includes(var)) {
         false
     } else {
-        applySubsInPlace(expr, foundSubs)
         switch foundSubs->Belt_HashMapString.get(var) {
             | Some(existingExpr) => expr == existingExpr
             | None => {
@@ -261,6 +261,14 @@ let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
     })
 }
 
+let eqModSubs = (subs:unifSubs, a:string, b:string):bool => {
+    let expr1 = [a]
+    applySubsInPlace(expr1, subs)
+    let expr2 = [b]
+    applySubsInPlace(expr2, subs)
+    expr1 == expr2
+}
+
 /*
     The core idea of the unification algorithm is as per explanations by Mario Carneiro.
     https://github.com/expln/metamath-lamp/issues/77#issuecomment-1577804381
@@ -276,20 +284,14 @@ let rec unify = (
         | Some((_,aVar)) => {
             switch b->isVar(isMetavar) {
                 | Some((_,bVar)) => {
-                    if (aVar != bVar) {
-                        continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
-                    }
+                    continue := eqModSubs(foundSubs, aVar, bVar) || assignSubs(foundSubs, aVar, b->getAllSymbols)
                 }
-                | None => {
-                    continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
-                }
+                | None => continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
             }
         }
         | None => {
             switch b->isVar(isMetavar) {
-                | Some((_,bVar)) => {
-                    continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
-                }
+                | Some((_,bVar)) => continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
                 | None => {
                     if (a.children->Array.length != b.children->Array.length) {
                         continue := false
@@ -301,7 +303,7 @@ let rec unify = (
                                 | Symbol({sym:aSym, isVar:aIsVar}) => {
                                     switch b.children->Array.getUnsafe(i.contents) {
                                         | Symbol({sym:bSym, isVar:bIsVar}) => {
-                                            continue := aSym == bSym
+                                            continue := eqModSubs(foundSubs, aSym, bSym)
                                                 || (aIsVar && isMetavar(aSym) && assignSubs(foundSubs, aSym, [bSym]))
                                                 || (bIsVar && isMetavar(bSym) && assignSubs(foundSubs, bSym, [aSym]))
                                         }
