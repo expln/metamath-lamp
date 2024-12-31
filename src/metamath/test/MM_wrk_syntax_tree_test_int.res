@@ -27,7 +27,7 @@ let rec printSyntaxTree = (tree:MM_syntax_tree.childNode, ~level:int=0):unit => 
     }
 }
 
-describe("proveSyntaxTypes", _ => {
+describe("doBuildSyntaxTreesForAllAssertions", _ => {
 
     it("finds syntax proofs for each assertion in set.mm", _ => {
         //given
