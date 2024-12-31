@@ -302,18 +302,20 @@ let rec unify = (
                                     switch b.children->Array.getUnsafe(i.contents) {
                                         | Symbol({sym:bSym, isVar:bIsVar}) => {
                                             continue := aSym == bSym
-                                                || (aIsVar && assignSubs(foundSubs, aSym, [bSym]))
-                                                || (bIsVar && assignSubs(foundSubs, bSym, [aSym]))
+                                                || (aIsVar && isMetavar(aSym) && assignSubs(foundSubs, aSym, [bSym]))
+                                                || (bIsVar && isMetavar(bSym) && assignSubs(foundSubs, bSym, [aSym]))
                                         }
                                         | Subtree(bCh) => {
-                                            continue := aIsVar && assignSubs(foundSubs, aSym, bCh->getAllSymbols)
+                                            continue := aIsVar && isMetavar(aSym) 
+                                                && assignSubs(foundSubs, aSym, bCh->getAllSymbols)
                                         }
                                     }
                                 }
                                 | Subtree(aCh) => {
                                     switch b.children->Array.getUnsafe(i.contents) {
                                         | Symbol({sym:bSym, isVar:bIsVar}) => {
-                                            continue := bIsVar && assignSubs(foundSubs, bSym, aCh->getAllSymbols)
+                                            continue := bIsVar && isMetavar(bSym) 
+                                                && assignSubs(foundSubs, bSym, aCh->getAllSymbols)
                                         }
                                         | Subtree(bCh) => {
                                             unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
