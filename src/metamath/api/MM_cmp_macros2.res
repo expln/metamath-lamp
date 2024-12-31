@@ -7,7 +7,6 @@ open Expln_React_Modal
 open Expln_utils_promise
 
 type macroModule = {
-    name:string,
     nameEdit:string,
     isActive:bool,
     isActiveEdit:bool,
@@ -19,7 +18,7 @@ type macroModule = {
 
 type state = {
     selectedMacroModuleName:string,
-    macroModules:array<macroModule>,
+    macroModules:Belt_MapString.t<macroModule>,
 }
 
 type macroModuleLocStor = {
@@ -60,8 +59,10 @@ let runScript = (~macroModuleName:string, ~script:string):result<unit,string> =>
 }
 
 let removeStaleDataFromScriptCache = (st:state):unit => {
-    let validKeys = st.macroModules
-        ->Array.map(mod => getScriptCacheKey(~macroModuleName=mod.name, ~script=mod.scriptText))
+    let validKeys = []
+    st.macroModules->Belt_MapString.forEach((modName,mod) => {
+        validKeys->Array.push(getScriptCacheKey(~macroModuleName=modName, ~script=mod.scriptText))
+    })
     let allKeys = scriptCache->Belt_HashMapString.keysToArray
     allKeys->Array.forEach(key => {
         if (!(validKeys->Array.includes(key))) {
@@ -87,13 +88,18 @@ let isPredefinedMacroModule = (macroModuleName:string):bool => {
 let stateToStateLocStor = (st:state):stateLocStor => {
     {
         selectedMacroModuleName: st.selectedMacroModuleName,
-        macroModules: st.macroModules->Array.map(mod => {
-            {
-                name: mod.name,
-                scriptText: isPredefinedMacroModule(mod.name) ? "" : mod.scriptText,
-                isActive: mod.isActive,
-            }
-        }),
+        // no need to save modules without scripts because either they have been added via the console 
+        // or this is a user mistake
+        macroModules: 
+            st.macroModules->Belt_MapString.toArray
+                ->Array.filter(((modName,mod)) => mod.scriptText->String.trim != "")
+                ->Array.map(((modName,mod)) => {
+                    {
+                        name: modName,
+                        isActive: mod.isActive,
+                        scriptText: isPredefinedMacroModule(modName) ? "" : mod.scriptText,
+                    }
+                }),
     }
 }
 
@@ -107,8 +113,27 @@ let makeEmptyStateLocStor = () => {
 let macrosLocStorKey = "macros"
 
 let readStateFromLocStor = ():state => {
-    //read all modules from the local storage
-    let ls: stateLocStor = switch locStorReadString(macrosLocStorKey) {
+    //load predefined modules
+    let macroModules:Belt_HashMapString.t<macroModule> = predefinedMacroModuleScripts
+        ->Belt_HashMapString.toArray
+        ->Array.map(((modName,script)) => {
+            (
+                modName,
+                {
+                    nameEdit:modName,
+                    isActive:false,
+                    isActiveEdit:false,
+                    scriptText:script,
+                    scriptTextEdit:script,
+                    scriptExecutionErr:None,
+                    macros:[],
+                }
+            )
+        })
+        ->Belt_HashMapString.fromArray
+
+    //load modules from the local storage
+    let stateLocStor: stateLocStor = switch locStorReadString(macrosLocStorKey) {
         | None => makeEmptyStateLocStor()
         | Some(jsonStr) => {
             open Expln_utils_jsonParse
@@ -129,61 +154,82 @@ let readStateFromLocStor = ():state => {
             }
         }
     }
-    let modulesInLocStor = ls.macroModules->Array.map(mod => mod.name)->Belt_HashSetString.fromArray
+    stateLocStor.macroModules->Array.forEach(mod => {
+        switch macroModules->Belt_HashMapString.get(mod.name) {
+            | None => {
+                macroModules->Belt_HashMapString.set(
+                    mod.name, 
+                    {
+                        nameEdit:mod.name,
+                        isActive:mod.isActive,
+                        isActiveEdit:mod.isActive,
+                        scriptText:mod.scriptText,
+                        scriptTextEdit:mod.scriptText,
+                        scriptExecutionErr:None,
+                        macros:[],
+                    }
+                )
+            }
+            | Some(existingMod) => {
+                if (isPredefinedMacroModule(mod.name)) {
+                    macroModules->Belt_HashMapString.set(
+                        mod.name, 
+                        {
+                            ...existingMod,
+                            isActive:mod.isActive,
+                            isActiveEdit:mod.isActive,
+                        }
+                    )
+                }
+            }
+        }
+    })
 
     //add modules registered by the user via the console
-    MM_api_macros.listRegisteredMacroModules()->Array.forEach(modName => {
-        if (!(modulesInLocStor->Belt_HashSetString.has(modName))) {
-            ls.macroModules->Array.push({ name: modName, isActive: true, scriptText: "", })
+    MM_api_macros.listRegisteredMacroModules()->Array.forEach(registeredModName => {
+        if (!(macroModules->Belt_HashMapString.has(registeredModName))) {
+            macroModules->Belt_HashMapString.set(
+                registeredModName, 
+                {
+                    nameEdit:registeredModName,
+                    isActive:true,
+                    isActiveEdit:true,
+                    scriptText:"",
+                    scriptTextEdit:"",
+                    scriptExecutionErr:None,
+                    macros:[],
+                }
+            )
         }
     })
 
-    //add default modules
-    let updated = []
-    let maxI = ls.macroModules->Array.length-1
-    predefinedMacroModuleScripts->Belt_HashMapString.forEach((preModName,script) => {
-        for i in 0 to maxI {
-            let mod = ls.macroModules->Array.getUnsafe(i)
-            if (mod.name == preModName) {
-                ls.macroModules->Array.splice(~start=i, ~remove=1, ~insert=[ {...mod, scriptText:script} ])
-                updated->Array.push(preModName)
-            }
+    //delete modules with empty names
+    let emptyNames = []
+    macroModules->Belt_HashMapString.forEach((modName,_) => {
+        if (modName->String.trim == "") {
+            emptyNames->Array.push(modName)
         }
     })
-    predefinedMacroModuleScripts->Belt_HashMapString.forEach((preModName,script) => {
-        if (!(updated->Array.includes(preModName))) {
-            ls.macroModules->Array.push({ name: preModName, isActive: false, scriptText: script, })
+    emptyNames->Array.forEach(modName => macroModules->Belt_HashMapString.remove(modName))
+
+    //run active scripts
+    macroModules->Belt_HashMapString.forEach((modName,mod) => {
+        if (mod.isActive && mod.scriptText->String.trim != "") {
+            let scriptExecutionErr = switch runScript(~macroModuleName=modName, ~script=mod.scriptText) {
+                | Error(msg) => Some(msg)
+                | Ok(_) => None
+            }
+            let macros = MM_api_macros.listRegisteredMacrosInModule(modName)->Option.getOr([])
+            macroModules->Belt_HashMapString.set( modName, { ...mod, scriptExecutionErr, macros, } )
         }
     })
 
-    //run all scripts
-    let macroModules = ls.macroModules
-        ->Array.filter(mod => mod.name->String.length > 0)
-        ->Array.map(({name, isActive, scriptText}) => {
-            {
-                name,
-                nameEdit:name,
-                isActive,
-                isActiveEdit:isActive,
-                scriptText,
-                scriptTextEdit: scriptText,
-                scriptExecutionErr:
-                    if (isActive && scriptText->String.trim->String.length > 0) {
-                        switch runScript(~macroModuleName=name, ~script=scriptText) {
-                            | Error(msg) => Some(msg)
-                            | Ok(_) => None
-                        }
-                    } else {
-                        None
-                    },
-                macros: MM_api_macros.listRegisteredMacrosInModule(name)->Option.getOr([])
-            }
-        })
-    let allFoundMacroModules = macroModules->Array.map(mod => mod.name)
+    //make the final state object
+    let allLoadedMacroModules = macroModules->Belt_HashMapString.keysToArray
     {
-        selectedMacroModuleName: allFoundMacroModules->Array.find(n => n == ls.selectedMacroModuleName)
-            ->Option.getOr(allFoundMacroModules[0]->Option.getExn(~message="MM_cmp_macros.readStateFromLocStor.1")),
-        macroModules,
+        selectedMacroModuleName: allLoadedMacroModules->Array.find(n => n == stateLocStor.selectedMacroModuleName)
+            ->Option.getOr(allLoadedMacroModules[0]->Option.getExn(~message="MM_cmp_macros.readStateFromLocStor.1")),
+        macroModules: macroModules->Belt_HashMapString.toArray->Belt_MapString.fromArray,
     }
 }
 
@@ -196,9 +242,9 @@ let reloadState = (st:state):state => {
 let addNewMacroModule = (st:state):state => {
     {
         selectedMacroModuleName:"",
-        macroModules:Belt_Array.concatMany([
-            [{
-                name:"",
+        macroModules: st.macroModules->Belt_MapString.set(
+            "",
+            {
                 nameEdit:"New macros",
                 isActive:true,
                 isActiveEdit:true,
@@ -206,54 +252,47 @@ let addNewMacroModule = (st:state):state => {
                 scriptTextEdit:"",
                 scriptExecutionErr:None,
                 macros:[],
-            }],
-            st.macroModules, 
-        ])
+            }
+        )
     }
 }
 
 let deleteMacroModule = (st:state, ~moduleName:string):result<state,string> => {
-    if (predefinedMacroModuleScripts->Belt_HashMapString.has(moduleName)) {
+    if (isPredefinedMacroModule(moduleName)) {
         Error("Cannot delete a predefined macro module.")
     } else {
         MM_api_macros.unregisterMacroModule(moduleName)
-        Ok(
-            {
-                ...st,
-                macroModules:st.macroModules->Array.filter(mod => mod.name != moduleName)
-            }->reloadState
+        Ok( 
+            { 
+                ...st, 
+                macroModules:st.macroModules->Belt_MapString.remove(moduleName) 
+            }->reloadState 
         )
     }
 }
 
 let saveEdits = (st:state, ~moduleName:string):result<state,string> => {
-    if (predefinedMacroModuleScripts->Belt_HashMapString.has(moduleName)) {
+    if (isPredefinedMacroModule(moduleName)) {
         Error("Cannot update a predefined macro module.")
     } else {
-        switch st.macroModules->Array.find(mod => mod.name == moduleName) {
+        switch st.macroModules->Belt_MapString.get(moduleName) {
             | None => Ok(st)
             | Some(mod) => {
-                if (mod.name != mod.nameEdit && st.macroModules->Array.some(m => m.name == mod.nameEdit)) {
+                if (moduleName != mod.nameEdit && st.macroModules->Belt_MapString.has(mod.nameEdit)) {
                     Error(`A module with name "${mod.nameEdit}" already exists. Please choose another name.`)
+                } else if (mod.nameEdit->String.trim == "") {
+                    Error(`A module name must not be empty.`)
                 } else {
                     Ok(
                         {
                             selectedMacroModuleName:
-                                mod.name == st.selectedMacroModuleName ? mod.nameEdit : st.selectedMacroModuleName,
-                            macroModules: st.macroModules->Array.map(mod => {
-                                if (mod.name != moduleName) {
-                                    mod
-                                } else {
-                                    {
-                                        ...mod,
-                                        name:mod.nameEdit,
-                                        isActive:mod.isActiveEdit,
-                                        scriptText:mod.scriptTextEdit,
-                                        scriptExecutionErr:None,
-                                        macros:[],
-                                    }
-                                }
-                            })
+                                moduleName == st.selectedMacroModuleName ? mod.nameEdit : st.selectedMacroModuleName,
+                            macroModules: st.macroModules
+                                ->Belt_MapString.remove(moduleName)
+                                ->Belt_MapString.set(
+                                    mod.nameEdit,
+                                    { ...mod, isActive:mod.isActiveEdit, scriptText:mod.scriptTextEdit, }
+                                ),
                         }->reloadState
                     )
                 }
@@ -263,90 +302,89 @@ let saveEdits = (st:state, ~moduleName:string):result<state,string> => {
 }
 
 let setNameEdit = (st:state, ~moduleName:string, ~nameEdit:string):result<state,string> => {
-    if (predefinedMacroModuleScripts->Belt_HashMapString.has(moduleName)) {
+    if (isPredefinedMacroModule(moduleName)) {
         Error("Cannot update a predefined macro module.")
     } else {
-        Ok(
-            {
-                ...st,
-                macroModules:st.macroModules->Array.map(mod => {
-                    if (mod.name == moduleName) {
-                        { ...mod, nameEdit:nameEdit }
-                    } else {
-                        mod
-                    }
-                })
+        switch st.macroModules->Belt_MapString.get(moduleName) {
+            | None => Ok(st)
+            | Some(mod) => {
+                Ok( 
+                    {
+                        ...st, 
+                        macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, nameEdit, } ), 
+                    }->reloadState 
+                )
             }
-        )
-    }
-}
-
-let setScriptTextEdit = (st:state, ~moduleName:string, ~scriptTextEdit:string):result<state,string> => {
-    if (predefinedMacroModuleScripts->Belt_HashMapString.has(moduleName)) {
-        Error("Cannot update a predefined macro module.")
-    } else {
-        Ok(
-            {
-                ...st,
-                macroModules:st.macroModules->Array.map(mod => {
-                    if (mod.name == moduleName) {
-                        { ...mod, scriptTextEdit:scriptTextEdit }
-                    } else {
-                        mod
-                    }
-                })
-            }
-        )
+        }
     }
 }
 
 let setIsActiveEdit = (st:state, ~moduleName:string, ~isActiveEdit:bool):result<state,string> => {
-    if (predefinedMacroModuleScripts->Belt_HashMapString.has(moduleName)) {
+    if (isPredefinedMacroModule(moduleName)) {
         Error("Cannot update a predefined macro module.")
     } else {
-        Ok(
-            {
-                ...st,
-                macroModules:st.macroModules->Array.map(mod => {
-                    if (mod.name == moduleName) {
-                        { ...mod, isActiveEdit:isActiveEdit }
-                    } else {
-                        mod
-                    }
-                })
+        switch st.macroModules->Belt_MapString.get(moduleName) {
+            | None => Ok(st)
+            | Some(mod) => {
+                Ok( 
+                    {
+                        ...st, 
+                        macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, isActiveEdit, } ), 
+                    }->reloadState 
+                )
             }
-        )
+        }
+    }
+}
+
+let setScriptTextEdit = (st:state, ~moduleName:string, ~scriptTextEdit:string):result<state,string> => {
+    if (isPredefinedMacroModule(moduleName)) {
+        Error("Cannot update a predefined macro module.")
+    } else {
+        switch st.macroModules->Belt_MapString.get(moduleName) {
+            | None => Ok(st)
+            | Some(mod) => {
+                Ok( 
+                    {
+                        ...st, 
+                        macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, scriptTextEdit, } ), 
+                    }->reloadState 
+                )
+            }
+        }
     }
 }
 
 let resetEditsForMacroModule = (st:state, ~moduleName:string):result<state,string> => {
-    if (predefinedMacroModuleScripts->Belt_HashMapString.has(moduleName)) {
+    if (isPredefinedMacroModule(moduleName)) {
         Error("Cannot update a predefined macro module.")
     } else {
-        Ok(
-            {
-                ...st,
-                macroModules:st.macroModules->Array.map(mod => {
-                    if (mod.name == moduleName) {
-                        { 
-                            ...mod, 
-                            nameEdit:mod.name, 
-                            isActiveEdit:mod.isActive, 
-                            scriptTextEdit:mod.scriptText,
-                        }
-                    } else {
-                        mod
-                    }
-                })
+        switch st.macroModules->Belt_MapString.get(moduleName) {
+            | None => Ok(st)
+            | Some(mod) => {
+                Ok( 
+                    {
+                        ...st, 
+                        macroModules:st.macroModules->Belt_MapString.set( 
+                            moduleName, 
+                            { 
+                                ...mod, 
+                                nameEdit:moduleName, 
+                                isActiveEdit:mod.isActive, 
+                                scriptTextEdit:mod.scriptText,
+                            } 
+                        ), 
+                    }->reloadState 
+                )
             }
-        )
+        }
     }
 }
 
 let setSelectedMacroModuleName = (st:state, newSelectedMacroModuleName:string):result<state,string> => {
-    switch st.macroModules->Array.find(mod => mod.name == newSelectedMacroModuleName) {
+    switch st.macroModules->Belt_MapString.get(newSelectedMacroModuleName) {
         | None => Ok(st)
-        | Some(_) => {
+        | Some(mod) => {
             Ok(
                 {
                     ...st,
@@ -389,18 +427,15 @@ let make = (
         ~key="custom-macros-js-warning-hide", ~default=false
     )
 
-    let selectedMacroModule = state.macroModules
-        ->Array.find(mod => mod.name == state.selectedMacroModuleName)
+    let selectedMacroModule = state.macroModules->Belt_MapString.get(state.selectedMacroModuleName)
 
     let thereAreChangesInSelectedMacroModule = selectedMacroModule->Belt.Option.map(mod => {
-        mod.name != mod.nameEdit 
+        state.selectedMacroModuleName != mod.nameEdit 
             || mod.isActive != mod.isActiveEdit 
             || mod.scriptText != mod.scriptTextEdit
     })->Belt_Option.getWithDefault(false)
 
-    let selectedMacroModuleIsReadOnly = selectedMacroModule->Belt.Option.map(mod => {
-        predefinedMacroModuleScripts->Belt_HashMapString.has(mod.name)
-    })->Belt_Option.getWithDefault(false)
+    let selectedMacroModuleIsReadOnly = isPredefinedMacroModule(state.selectedMacroModuleName)
 
     let actShowWarning = () => {
         openModal(modalRef, _ => React.null)->promiseMap(modalId => {
@@ -423,20 +458,23 @@ let make = (
         None
     }, [selectedMacroModuleIsReadOnly])
 
-    let updateState = (fn:state=>result<state,string>):unit => {
+    let updateState = (update:state=>result<state,string>):unit => {
         setState(st => {
-            switch fn(st) {
-                | Error(_) => st
+            switch update(st) {
+                | Error(msg) => {
+                    openInfoDialog( ~modalRef, ~content={msg->React.string} )
+                    st
+                }
                 | Ok(st) => st
             }
         })
     }
 
-    let updateSelectedMacroModule = (fn:(state,string)=>result<state,string>):unit => {
+    let updateSelectedMacroModule = (update:(state,string)=>result<state,string>):unit => {
         switch selectedMacroModule {
             | None => ()
-            | Some({name}) => {
-                updateState(fn(_, name))
+            | Some(_) => {
+                updateState(update(_, state.selectedMacroModuleName))
             }
         }
     }
@@ -464,10 +502,10 @@ let make = (
     let actDeleteSelectedMacroModule = () => {
         switch selectedMacroModule {
             | None => ()
-            | Some({name}) => {
+            | Some(_) => {
                 openOkCancelDialog(
                     ~modalRef, 
-                    ~text=`Delete "${name}" module of macros?`, 
+                    ~text=`Delete "${state.selectedMacroModuleName}" module of macros?`, 
                 )->Promise.thenResolve(confirmed => {
                     if (confirmed) {
                         updateSelectedMacroModule((st,moduleName) => deleteMacroModule(st, ~moduleName))
@@ -504,9 +542,9 @@ let make = (
                     sx={"width": 330}
                 >
                     {
-                        state.macroModules->Array.map(mod => {
-                            let value = mod.name
-                            let dispName = mod.nameEdit ++ (mod.isActive ? "" : " (inactive)")
+                        state.macroModules->Belt_MapString.toArray->Array.map(((modName,mod)) => {
+                            let value = modName
+                            let dispName = modName ++ (mod.isActive ? "" : " (inactive)")
                             <MenuItem key=value value>{React.string(dispName)}</MenuItem>
                         })->React.array
                     }
@@ -535,9 +573,9 @@ let make = (
         </Row>
     }
 
-    let rndScriptTextField = (selectedMacroModule:macroModule) => {
+    let rndScriptTextField = (~modName:string, ~selectedMacroModule:macroModule) => {
         <TextField
-            key={selectedMacroModule.name}
+            key={modName}
             size=#small
             style=ReactDOM.Style.make(~width=if(selectedMacroModuleIsReadOnly) {"350px"} else {"300px"}, ())
             label="Script"
@@ -576,7 +614,7 @@ let make = (
                         />
                         {
                             if (selectedMacroModuleIsReadOnly) {
-                                {rndScriptTextField(selectedMacroModule)}
+                                {rndScriptTextField(~modName=state.selectedMacroModuleName, ~selectedMacroModule)}
                             } else {
                                 <table>
                                     <tbody>
@@ -589,7 +627,12 @@ let make = (
                                                 </IconButton>
                                             </td>
                                             <td style=ReactDOM.Style.make(~paddingLeft="5px", () )>
-                                                {rndScriptTextField(selectedMacroModule)}
+                                                {
+                                                    rndScriptTextField(
+                                                        ~modName=state.selectedMacroModuleName, 
+                                                        ~selectedMacroModule
+                                                    )
+                                                }
                                             </td>
                                         </tr>
                                     </tbody>
@@ -630,7 +673,7 @@ let make = (
                         rndError(`There was an error during initialization of this module of macros:\n${msg}`)
                     }
                     | None => {
-                        <ListCmp disablePadding=true key={selectedMacroModule.name}>
+                        <ListCmp disablePadding=true key={state.selectedMacroModuleName}>
                             {
                                 selectedMacroModule.macros->Array.map(macroName => {
                                     <ListItem key=macroName disablePadding=true >
@@ -638,7 +681,7 @@ let make = (
                                             onClick={_=>{
                                                 onClose()
                                                 MM_api_macros.runMacro(
-                                                    ~moduleName=selectedMacroModule.name, 
+                                                    ~moduleName=state.selectedMacroModuleName, 
                                                     ~macroName
                                                 )->ignore
                                             }}
