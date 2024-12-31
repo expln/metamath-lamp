@@ -13,3 +13,4 @@ let optObjExn: (Nullable.t<'a>, string) => option<'a>
 let reqFuncExn: (Nullable.t<'a>, string) => 'a
 let invokeExnFunc: (string, unit => 'a) => result<'a, string>
 let executeFunctionBody: string => {..}
+let executeAsyncFunctionBody: string => promise<{..}>

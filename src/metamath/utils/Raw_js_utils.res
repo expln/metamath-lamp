@@ -114,3 +114,9 @@ let invokeExnFunc = (title:string, func:unit=>'a):result<'a,string> => {
 }
 
 let executeFunctionBody: string => {..} = %raw(`body => new Function("", body)()`)
+let executeAsyncFunctionBody: string => promise<{..}> = %raw(`
+body => {
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    return (new AsyncFunction(body))();
+}
+`)

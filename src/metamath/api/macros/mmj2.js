@@ -1,15 +1,13 @@
 await api.setLogApiCallsToConsole(true)
 
+const NEW_LINE = String.fromCharCode(10)
+
 function hasNoValue(x) {
     return x === undefined || x === null
 }
 
 function hasValue(x) {
     return !hasNoValue(x)
-}
-
-function code(code) {
-    return String.fromCharCode(code)
 }
 
 function exn(msg) {
@@ -134,7 +132,7 @@ function renameHyps(steps) {
 
 const stepRegExp = /^([^:]+):([^:\s]*):(\S*)(\s.*)?/;
 function parseMmp(mmpText) {
-    const lines = mmpText.split('\n')
+    const lines = mmpText.split(NEW_LINE)
     let firstComment = undefined // option<string>
     const disj = [] // array<array<string>>
     const steps = [] // array<step>; step = {label:string, typ:string(h|p|g), jstf:string(1 2 3 : asrt), stmt:string}
@@ -183,7 +181,7 @@ function parseMmp(mmpText) {
         //close the previous part
         if (curPart === 'c') {
             if (firstComment === undefined && disj.length === 0 && steps.length === 0) {
-                firstComment = partLines.join('\n').slice(1) //slice(1) removes the leading *
+                firstComment = partLines.join(NEW_LINE).slice(1) //slice(1) removes the leading *
             }
         } else if (curPart === 'd') {
             //slice(3) removes the leading '$d '
@@ -302,32 +300,12 @@ function makeMacro(name, func) {
             try {
                 await func()
             } catch (ex) {
-                await showErrMsg(`${ex.message}${code(10)}${ex.stack}`)
+                await showErrMsg(`${ex.message}${NEW_LINE}${ex.stack}`)
                 throw ex
             }
         }
     }
 }
-
-const mmpText1 = `
-$( <MM> <PROOF_ASST> THEOREM=syllogism LOC_AFTER=
-
-hd1::syllogism.1 |- ( ph -> ps ) 
-hd2::syllogism.2 |- ( ps -> ch ) 
-
-* !              |- ( ph -> ( ps -> ch ) ) 
-* !              |- ( ( ph -> ps ) -> ( ph -> ch ) ) 
-!d3::              |- &W1
-!d5::              |- &W2
-!d6::ax-2              |- ( &W2 -> ( &W1 -> ( ph -> ch ) ) )
-d4:d5,d6:ax-mp          |- ( &W1 -> ( ph -> ch ) )
-qed:d3,d4:ax-mp     |- ( ph -> ch ) 
-
-$)
-`
-
-// const parsed = parseMmp(mmpText1)
-// console.log("parsed", parsed)
 
 await api.macro.registerMacroModule({
     moduleName: 'MMJ2',
@@ -336,7 +314,3 @@ await api.macro.registerMacroModule({
         makeMacro('Unify', mmj2Unify),
     ]
 })
-// getResponse(await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'}))
-
-// await loadMmpTextToEditor(mmpText1)
-// await mmj2Unify()

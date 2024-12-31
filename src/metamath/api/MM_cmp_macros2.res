@@ -46,7 +46,7 @@ let runScript = (~macroModuleName:string, ~script:string):result<unit,string> =>
             MM_api_macros.setOverrideMacroModuleName(Some(macroModuleName))
             let result = switch invokeExnFunc(
                 `Execute the script for '${macroModuleName}'`, 
-                () => executeFunctionBody(script)
+                () => executeAsyncFunctionBody(script)
             ) {
                 | Error(msg) => Error(msg)
                 | Ok(_) => Ok(())
@@ -78,7 +78,8 @@ let textToScript = (text:string):string => {
 }
 
 let predefinedMacroModuleScripts = Belt_HashMapString.fromArray([
-    ("set.mm example macros", textToScript(MM_macros_set_mm_example.setMmExampleMacros))
+    ("set.mm example macros", textToScript(MM_macros_set_mm_example.setMmExampleMacros)),
+    ("MMJ2", textToScript(MM_macros_mmj2.mmj2Macros)),
 ])
 
 let isPredefinedMacroModule = (macroModuleName:string):bool => {
