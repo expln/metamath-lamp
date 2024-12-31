@@ -92,7 +92,7 @@ let stateToStateLocStor = (st:state):stateLocStor => {
         // or this is a user mistake
         macroModules: 
             st.macroModules->Belt_MapString.toArray
-                ->Array.filter(((modName,mod)) => mod.scriptText->String.trim != "")
+                ->Array.filter(((_,mod)) => mod.scriptText->String.trim != "")
                 ->Array.map(((modName,mod)) => {
                     {
                         name: modName,
@@ -197,7 +197,7 @@ let readStateFromLocStor = ():state => {
                     scriptText:"",
                     scriptTextEdit:"",
                     scriptExecutionErr:None,
-                    macros:[],
+                    macros:MM_api_macros.listRegisteredMacrosInModule(registeredModName)->Option.getOr([]),
                 }
             )
         }
@@ -272,16 +272,21 @@ let deleteMacroModule = (st:state, ~moduleName:string):result<state,string> => {
 }
 
 let saveEdits = (st:state, ~moduleName:string):result<state,string> => {
-    if (isPredefinedMacroModule(moduleName)) {
-        Error("Cannot update a predefined macro module.")
-    } else {
-        switch st.macroModules->Belt_MapString.get(moduleName) {
-            | None => Ok(st)
-            | Some(mod) => {
+    switch st.macroModules->Belt_MapString.get(moduleName) {
+        | None => Ok(st)
+        | Some(mod) => {
+            if (
+                isPredefinedMacroModule(moduleName) 
+                    && (moduleName != mod.nameEdit || mod.scriptText != mod.scriptTextEdit)
+            ) {
+                Error("Cannot update a predefined macro module.")
+            } else {
                 if (moduleName != mod.nameEdit && st.macroModules->Belt_MapString.has(mod.nameEdit)) {
                     Error(`A module with name "${mod.nameEdit}" already exists. Please choose another name.`)
                 } else if (mod.nameEdit->String.trim == "") {
                     Error(`A module name must not be empty.`)
+                } else if (mod.scriptTextEdit->String.trim == "") {
+                    Error(`The script must not be empty.`)
                 } else {
                     Ok(
                         {
@@ -312,7 +317,7 @@ let setNameEdit = (st:state, ~moduleName:string, ~nameEdit:string):result<state,
                     {
                         ...st, 
                         macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, nameEdit, } ), 
-                    }->reloadState 
+                    }
                 )
             }
         }
@@ -320,19 +325,15 @@ let setNameEdit = (st:state, ~moduleName:string, ~nameEdit:string):result<state,
 }
 
 let setIsActiveEdit = (st:state, ~moduleName:string, ~isActiveEdit:bool):result<state,string> => {
-    if (isPredefinedMacroModule(moduleName)) {
-        Error("Cannot update a predefined macro module.")
-    } else {
-        switch st.macroModules->Belt_MapString.get(moduleName) {
-            | None => Ok(st)
-            | Some(mod) => {
-                Ok( 
-                    {
-                        ...st, 
-                        macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, isActiveEdit, } ), 
-                    }->reloadState 
-                )
-            }
+    switch st.macroModules->Belt_MapString.get(moduleName) {
+        | None => Ok(st)
+        | Some(mod) => {
+            Ok( 
+                {
+                    ...st, 
+                    macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, isActiveEdit, } ), 
+                }
+            )
         }
     }
 }
@@ -348,7 +349,7 @@ let setScriptTextEdit = (st:state, ~moduleName:string, ~scriptTextEdit:string):r
                     {
                         ...st, 
                         macroModules:st.macroModules->Belt_MapString.set( moduleName, { ...mod, scriptTextEdit, } ), 
-                    }->reloadState 
+                    }
                 )
             }
         }
@@ -384,7 +385,7 @@ let resetEditsForMacroModule = (st:state, ~moduleName:string):result<state,strin
 let setSelectedMacroModuleName = (st:state, newSelectedMacroModuleName:string):result<state,string> => {
     switch st.macroModules->Belt_MapString.get(newSelectedMacroModuleName) {
         | None => Ok(st)
-        | Some(mod) => {
+        | Some(_) => {
             Ok(
                 {
                     ...st,
@@ -497,6 +498,12 @@ let make = (
 
     let actSaveEdits = () => {
         updateSelectedMacroModule((st,moduleName) => saveEdits(st, ~moduleName))
+    }
+
+    let activateSelectedMacroModule = () => {
+        updateSelectedMacroModule((st,moduleName) => {
+            setIsActiveEdit(st, ~moduleName, ~isActiveEdit=true)->Result.flatMap(saveEdits(_, ~moduleName))
+        })
     }
 
     let actDeleteSelectedMacroModule = () => {
@@ -612,6 +619,15 @@ let make = (
                             ])
                             disabled={selectedMacroModuleIsReadOnly}
                         />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked=selectedMacroModule.isActiveEdit
+                                    onChange=evt2bool(actSetIsActiveEdit)
+                                />
+                            }
+                            label="Active"
+                        />
                         {
                             if (selectedMacroModuleIsReadOnly) {
                                 {rndScriptTextField(~modName=state.selectedMacroModuleName, ~selectedMacroModule)}
@@ -673,27 +689,35 @@ let make = (
                         rndError(`There was an error during initialization of this module of macros:\n${msg}`)
                     }
                     | None => {
-                        <ListCmp disablePadding=true key={state.selectedMacroModuleName}>
-                            {
-                                selectedMacroModule.macros->Array.map(macroName => {
-                                    <ListItem key=macroName disablePadding=true >
-                                        <ListItemButton 
-                                            onClick={_=>{
-                                                onClose()
-                                                MM_api_macros.runMacro(
-                                                    ~moduleName=state.selectedMacroModuleName, 
-                                                    ~macroName
-                                                )->ignore
-                                            }}
-                                        >
-                                            <ListItemText>
-                                                {React.string(macroName)}
-                                            </ListItemText>
-                                        </ListItemButton>
-                                    </ListItem>
-                                })->React.array
-                            }
-                        </ListCmp>
+                        if (!selectedMacroModule.isActive) {
+                            <Button onClick={_=>activateSelectedMacroModule()} variant=#contained >
+                                {React.string("Activate")}
+                            </Button>
+                        } else if (selectedMacroModule.macros->Array.length == 0) {
+                            React.string("This module has no registered macros.")
+                        } else {
+                            <ListCmp disablePadding=true key={state.selectedMacroModuleName}>
+                                {
+                                    selectedMacroModule.macros->Array.map(macroName => {
+                                        <ListItem key=macroName disablePadding=true >
+                                            <ListItemButton 
+                                                onClick={_=>{
+                                                    onClose()
+                                                    MM_api_macros.runMacro(
+                                                        ~moduleName=state.selectedMacroModuleName, 
+                                                        ~macroName
+                                                    )->ignore
+                                                }}
+                                            >
+                                                <ListItemText>
+                                                    {React.string(macroName)}
+                                                </ListItemText>
+                                            </ListItemButton>
+                                        </ListItem>
+                                    })->React.array
+                                }
+                            </ListCmp>
+                        }
                     }
                 }
             }

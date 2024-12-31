@@ -329,14 +329,14 @@ $)
 // const parsed = parseMmp(mmpText1)
 // console.log("parsed", parsed)
 
-// await api.macro.registerMacroModule({
-//     moduleName: 'MMJ2',
-//     macros: [
-//         makeMacro('Import from MMP file', importFromMmp),
-//         makeMacro('Unify', mmj2Unify),
-//     ]
-// })
+await api.macro.registerMacroModule({
+    moduleName: 'MMJ2',
+    macros: [
+        makeMacro('Import from MMP file', importFromMmp),
+        makeMacro('Unify', mmj2Unify),
+    ]
+})
 // getResponse(await api.macro.runMacro({moduleName:'MMJ2', macroName:'Unify'}))
 
-await loadMmpTextToEditor(mmpText1)
-await mmj2Unify()
+// await loadMmpTextToEditor(mmpText1)
+// await mmj2Unify()
