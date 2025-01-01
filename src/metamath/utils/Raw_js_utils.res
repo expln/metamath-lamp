@@ -98,18 +98,9 @@ let reqFuncExn = (nullable:Nullable.t<'a>, msg:string):'a => {
 }
 
 let invokeExnFunc = (title:string, func:unit=>'a):result<'a,string> => {
-    try {
-        Ok(func())
-    } catch {
-        | Exn.Error(exn) => {
-            let errMsg = `${title}: ${exn->Exn.message->Belt_Option.getWithDefault("unknown error.")}.`
-            let stack = exn->Exn.stack->Belt_Option.getWithDefault("")
-            Error([errMsg,stack]->Array.joinUnsafe("\n"))
-        }
-        | _ => {
-            let errMsg = `${title}: unknown error.`
-            Error(errMsg)
-        }
+    switch Common.catchExn(func) {
+        | Ok(res) => Ok(res)
+        | Error({msg,stack}) => Error(`${title}: ${msg}.${stack!=""?("\n"++stack):""}`)
     }
 }
 

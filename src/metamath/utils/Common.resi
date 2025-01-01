@@ -13,6 +13,7 @@ type exnData = {
     stack:string,
 }
 
+let jsErrorToExnData: exn => exnData
 let catchExn:(unit=>'a) => result<'a,exnData>
 
 let currTimeStr: unit => string

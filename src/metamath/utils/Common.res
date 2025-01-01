@@ -13,6 +13,15 @@ type exnData = {
     stack:string,
 }
 
+let jsErrorToExnData = (exn:exn):exnData => {
+    let jsExn = Error.fromException(exn)
+    {
+        exn:Some(exn),
+        msg: jsExn->Option.flatMap(Error.message)->Option.getOr("Unknown error."),
+        stack: jsExn->Option.flatMap(Error.stack)->Option.getOr(""),
+    }
+}
+
 let catchExn = (run:unit=>'a): result<'a,exnData> => {
     try {
         Ok(run())
