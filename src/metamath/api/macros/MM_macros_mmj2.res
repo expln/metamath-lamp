@@ -1,5 +1,4 @@
-let mmj2Macros = `
-await api.setLogApiCallsToConsole(true)
+let mmj2Macros = `await api.setLogApiCallsToConsole(true)
 
 const NEW_LINE = String.fromCharCode(10)
 
@@ -95,11 +94,11 @@ function getStepIdx(editorState, label) {
             return i
         }
     }
-    exn([!@#]Cannot find the step with the label '{!@#}{label}'[!@#])
+    exn([!@#]backtick[!@#]Cannot find the step with the label '[!@#]dollar[!@#]{label}'[!@#]backtick[!@#])
 }
 
 const varTypes = new Map([['W','wff'],['S','setvar'],['C','class']])
-const workVarRegex = /&[WSC]\d+/g
+const workVarRegex = /&[WSC][!@#]backslash[!@#]d+/g
 function extractWorkVars(steps)/*array<(string,string)>*/ {
     const workVars = []
     for (const step of steps) {
@@ -131,7 +130,7 @@ function renameHyps(steps) {
     return steps
 }
 
-const stepRegExp = /^([^:]+):([^:\s]*):(\S*)(\s.*)?/;
+const stepRegExp = /^([^:]+):([^:[!@#]backslash[!@#]s]*):([!@#]backslash[!@#]S*)([!@#]backslash[!@#]s.*)?/;
 function parseMmp(mmpText) {
     const lines = mmpText.split(NEW_LINE)
     let firstComment = undefined // option<string>
@@ -161,17 +160,17 @@ function parseMmp(mmpText) {
     }
 
     function getPartType(line)/*h|c|d|s|f|p|undefined*/ {
-        if (line.slice(0,2) === '{!@#}(') {
+        if (line.slice(0,2) === '[!@#]dollar[!@#](') {
             return 'h'/*header*/
         } else if (line.slice(0,1) === '*') {
             return 'c'/*comment*/
-        } else if (line.slice(0,2) === '{!@#}d') {
+        } else if (line.slice(0,2) === '[!@#]dollar[!@#]d') {
             return 'd'/*disjoints*/
         } else if (parseStep(line) !== undefined) {
             return 's'/*step - hypothesis or derivation*/
-        } else if (line.slice(0,2) === '{!@#})') {
+        } else if (line.slice(0,2) === '[!@#]dollar[!@#])') {
             return 'f'/*footer*/
-        } else if (line.slice(0,2) === '{!@#}=') {
+        } else if (line.slice(0,2) === '[!@#]dollar[!@#]=') {
             return 'p'/*generated proof*/
         } else {
             return undefined
@@ -185,7 +184,7 @@ function parseMmp(mmpText) {
                 firstComment = partLines.join(NEW_LINE).slice(1) //slice(1) removes the leading *
             }
         } else if (curPart === 'd') {
-            //slice(3) removes the leading '{!@#}d '
+            //slice(3) removes the leading '[!@#]dollar[!@#]d '
             disj.push(partLines.join(' ').slice(3).split(' ').map(v => v.trim()).filter(v => v !== ''))
         } else if (curPart === 's') {
             steps.push(parseStep(partLines.join(' ')))
@@ -255,7 +254,7 @@ async function unifyByAddingAsrt({stepLabelToUnify, asrtLabel}) {
     const newStepStmt = newStep.stmt
     if (!(await substitute({what:newStepStmt, with_:existingStmt}))) {
         if (!(await substitute({what:existingStmt, with_:newStepStmt}))) {
-            await showErrMsg([!@#]Cannot unify these two steps: {!@#}{newStep.label} and {!@#}{existingStep.label}[!@#])
+            await showErrMsg([!@#]backtick[!@#]Cannot unify these two steps: [!@#]dollar[!@#]{newStep.label} and [!@#]dollar[!@#]{existingStep.label}[!@#]backtick[!@#])
             return
         }
     }
@@ -301,7 +300,7 @@ function makeMacro(name, func) {
             try {
                 await func()
             } catch (ex) {
-                await showErrMsg([!@#]{!@#}{ex.message}{!@#}{NEW_LINE}{!@#}{ex.stack}[!@#])
+                await showErrMsg([!@#]backtick[!@#][!@#]dollar[!@#]{ex.message}[!@#]dollar[!@#]{NEW_LINE}[!@#]dollar[!@#]{ex.stack}[!@#]backtick[!@#])
                 throw ex
             }
         }
@@ -315,5 +314,4 @@ await api.macro.registerMacroModule({
         makeMacro('Unify', mmj2Unify),
     ]
 })
-
 `

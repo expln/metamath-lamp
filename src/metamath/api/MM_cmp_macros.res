@@ -81,8 +81,9 @@ let removeStaleDataFromScriptCache = (st:state):unit => {
 
 let textToScript = (text:string):string => {
     text
-        ->String.replaceRegExp(%re("/\[!@#\]/g"), "`")
-        ->String.replaceRegExp(%re("/\{!@#\}/g"), "$")
+        ->String.replaceAll("[!@#]backtick[!@#]", "`")
+        ->String.replaceAll("[!@#]dollar[!@#]", "$")
+        ->String.replaceAll("[!@#]backslash[!@#]", "\\")
 }
 
 let predefinedMacroModuleScripts = Belt_HashMapString.fromArray([
