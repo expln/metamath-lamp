@@ -1680,7 +1680,7 @@ let make = (
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
                 let closeDialog = ()=>closeModal(modalRef, modalId)
-                <MM_cmp_macros2
+                <MM_cmp_macros
                     modalRef
                     onClose=closeDialog
                 />
