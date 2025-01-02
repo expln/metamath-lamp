@@ -14,6 +14,12 @@ function exn(msg) {
     throw new Error(msg)
 }
 
+async function sleep(millis) {
+    return new Promise((resolve,reject) => {
+        setTimeout(() => resolve(), millis)
+    })
+}
+
 function getResponse(apiResponse) {
     if (apiResponse.isOk) {
         return apiResponse.res
@@ -212,6 +218,7 @@ function parseMmp(mmpText) {
 
 async function loadMmpTextToEditor(mmpText) {
     await setMarkFirstProvableStepAsGoal(false)
+    await sleep(100) // the sleep() is needed for the settings changes to propagate to all the React components
     const {descr, vars, disj, steps} = parseMmp(mmpText)
     await resetEditorContent()
     await setDescriptionInEditor(descr)
