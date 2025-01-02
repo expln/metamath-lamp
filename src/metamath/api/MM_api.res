@@ -127,18 +127,32 @@ type macroApi = {
     "runMacro": api,
 }
 
+type settingsApi = {
+    "setMarkFirstProvableStepAsGoal": api,
+}
+
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
 let showInfoMsgRef:ref<option<api>> = ref(None)
 let showErrMsgRef:ref<option<api>> = ref(None)
 let multilineTextInputRef:ref<option<api>> = ref(None)
 let editorRef:ref<option<editorApi>> = ref(None)
 let macroRef:ref<option<macroApi>> = ref(None)
+let settingsRef:ref<option<settingsApi>> = ref(None)
 
 let makeSingleMacroApi = (methodGetter:macroApi=>api):api => {
     apiInput => {
         switch macroRef.contents {
             | None => Promise.resolve(errResp("The macro API function is not defined."))
             | Some(macroApi) => methodGetter(macroApi)(apiInput)
+        }
+    }
+}
+
+let makeSingleSettingsApi = (methodGetter:settingsApi=>api):api => {
+    apiInput => {
+        switch settingsRef.contents {
+            | None => Promise.resolve(errResp("The settings API function is not defined."))
+            | Some(settingsApi) => methodGetter(settingsApi)(apiInput)
         }
     }
 }
@@ -150,6 +164,12 @@ let makeMacroApi = ():macroApi => {
         "listRegisteredMacroModules": makeSingleMacroApi(a => a["listRegisteredMacroModules"]),
         "listRegisteredMacrosInModule": makeSingleMacroApi(a => a["listRegisteredMacrosInModule"]),
         "runMacro": makeSingleMacroApi(a => a["runMacro"]),
+    }
+}
+
+let makeSettingsApi = ():settingsApi => {
+    {
+        "setMarkFirstProvableStepAsGoal": makeSingleSettingsApi(a => a["setMarkFirstProvableStepAsGoal"]),
     }
 }
 
@@ -165,6 +185,7 @@ let api = {
         }
     },
     "macro": makeMacroApi(),
+    "settings": makeSettingsApi(),
 }
 
 let setLogApiCallsToConsole = (params:apiInput):promise<result<unit,string>> => {
@@ -195,4 +216,8 @@ let setEditorApi = ( editorApi:editorApi ):unit => {
 
 let setMacroApi = ( macroApi:macroApi ):unit => {
     macroRef:= Some(macroApi)
+}
+
+let setSettingsApi = ( settingsApi:settingsApi ):unit => {
+    settingsRef:= Some(settingsApi)
 }

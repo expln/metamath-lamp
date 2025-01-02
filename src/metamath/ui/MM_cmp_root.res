@@ -333,7 +333,7 @@ let make = () => {
         None
     }, [activeTabId])
 
-    let actSettingsUpdated = (newSettings:settings) => {
+    let actSettingsUpdated = (newSettings:settings):promise<result<unit,string>> => {
         settingsSaveToLocStor(newSettings)
         setState(updatePreCtxData(_,~settings=newSettings))
         if (
@@ -342,9 +342,12 @@ let make = () => {
             || state.preCtxData.settingsV.val.descrRegexToDepr != newSettings.descrRegexToDepr
             || state.preCtxData.settingsV.val.labelRegexToDepr != newSettings.labelRegexToDepr
         ) {
-            reloadCtx.current->Option.forEach(reloadCtx => {
-                reloadCtx(~srcs=state.preCtxData.srcs, ~settings=newSettings, ~force=true)->ignore
-            })
+            switch reloadCtx.current {
+                | None => Promise.resolve(Error("The reloadCtx() function is not initialized in MM_cmp_root."))
+                | Some(reloadCtx) => reloadCtx(~srcs=state.preCtxData.srcs, ~settings=newSettings, ~force=true)
+            }
+        } else {
+            Promise.resolve(Ok(()))
         }
     }
 
@@ -490,7 +493,7 @@ let make = () => {
             | None => ()
             | Some(initialStateLocStor) => {
                 reloadCtx.current->Option.forEach(reloadCtx => {
-                    reloadCtx(~srcs=initialStateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->ignore
+                    reloadCtx(~srcs=initialStateLocStor.srcs, ~settings=state.preCtxData.settingsV.val)->Promise.done
                 })
             }
         }
@@ -649,6 +652,7 @@ let make = () => {
                         settings={state.preCtxData.settingsV.val}
                         onUrlBecomesTrusted={
                             url => state.preCtxData.settingsV.val->markUrlAsTrusted(url)->actSettingsUpdated
+                                ->Promise.done
                         }
                         onChange={(srcs,ctx)=>actCtxUpdated(srcs, ctx)}
                         reloadCtx

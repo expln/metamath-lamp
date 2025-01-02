@@ -985,7 +985,7 @@ let updateBottomUpProverDefaults = (st, bottomUpProverDefaults) => {
 let make = (
     ~modalRef:modalRef, 
     ~preCtxData:preCtxData,
-    ~onChange: settings => unit
+    ~onChange: settings => promise<result<unit,string>>
 ) => {
     let (state, setState) = React.useState(_ => preCtxData.settingsV.val->settingsToState)
     let (prevState, setPrevState) = React.useState(_ => state)
@@ -997,14 +997,35 @@ let make = (
         None
     }, [preCtxData.settingsV.ver])
 
-    let actApplyChanges = () => {
+    let applyChanges = (state:settingsState):promise<result<unit,string>> => {
         let st = validateAndCorrectState(state)
         setState(_ => st)
         if (st->isValid) {
             setPrevState(_ => st)
             onChange(st->stateToSettings)
+        } else {
+            Promise.resolve(Error("There are errros in the modified settings."))
         }
     }
+
+    let actApplyChanges = ():promise<result<unit,string>> => {
+        applyChanges(state)
+    }
+
+    let setMarkFirstProvableStepAsGoal = (bool:bool):promise<result<unit,string>> => {
+        if (!eqState(prevState, state)) {
+            Promise.resolve(Error(
+                "There are unsaved changes on the Setting tab."
+            ))
+        } else {
+            applyChanges(updateInitStmtIsGoal(state, bool))
+        }
+    }
+
+    React.useEffect0(() => {
+        MM_api_settings.updateSettingsApi(~setMarkFirstProvableStepAsGoal)
+        None
+    })
     
     let discardChanges = () => {
         setState(_ => prevState)
@@ -1623,9 +1644,9 @@ let make = (
     }
 
     let rndApplyChangesBtn = () => {
-        let disabled = eqState(prevState, state) 
+        let disabled = eqState(prevState, state)
         <Row spacing=3. alignItems={#baseline}>
-            <Button disabled onClick={_=>actApplyChanges()} variant=#contained 
+            <Button disabled onClick={_=>actApplyChanges()->Promise.done} variant=#contained 
                 color=?{if(!isValid(state)){Some("pastelred")}else{None}}
             >
                 {React.string("Apply changes")}

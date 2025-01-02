@@ -46,6 +46,10 @@ type macroApi = {
     "runMacro": api,
 }
 
+type settingsApi = {
+    "setMarkFirstProvableStepAsGoal": api,
+}
+
 let api: {
     "setLogApiCallsToConsole": api,
     "showInfoMsg": api,
@@ -53,10 +57,12 @@ let api: {
     "multilineTextInput": api,
     "editor" : editorApi,
     "macro" : macroApi,
+    "settings" : settingsApi,
 }
 
 let setUiApi: ( ~showInfoMsg:api, ~showErrMsg:api, ~multilineTextInput:api, ) => unit
 let setEditorApi: editorApi => unit
 let setMacroApi: macroApi => unit
+let setSettingsApi: settingsApi => unit
 
 let makeEmptySingleEditorApi: string => singleEditorApi
