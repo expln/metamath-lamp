@@ -15,6 +15,8 @@ function makeFrmParams(frames, matchers) {
     }
 }
 
+const NEW_LINE = String.fromCharCode(10)
+
 function code(code) {
     return String.fromCharCode(code)
 }
@@ -159,7 +161,14 @@ async function getTokenType(token) {
 }
 
 async function substitute({what, with_}) {
-    return getResponse(await api.editor().substitute({what, with_}))
+    const resp = await api.editor().substitute({what, with_, method:'m'})
+    if (resp.isOk) {
+        return true
+    } else if (resp.err === 'No substitutions found.') {
+        return false
+    } else {
+        exn(resp.err)
+    }
 }
 
 async function mergeDuplicatedSteps() {
