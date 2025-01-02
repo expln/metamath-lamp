@@ -218,7 +218,7 @@ function parseMmp(mmpText) {
 
 async function loadMmpTextToEditor(mmpText) {
     await setMarkFirstProvableStepAsGoal(false)
-    await sleep(100) // the sleep() is needed for the settings changes to propagate to all the React components
+    await sleep(100) // the sleep() is needed for the setting changes to propagate to all the React components
     const {descr, vars, disj, steps} = parseMmp(mmpText)
     await resetEditorContent()
     await setDescriptionInEditor(descr)
@@ -322,7 +322,7 @@ function makeMacro(name, func) {
 await api.macro.registerMacroModule({
     moduleName: 'MMJ2',
     macros: [
-        makeMacro('Import from MMP file', importFromMmp),
         makeMacro('Unify', mmj2Unify),
+        makeMacro('Import from MMP file', importFromMmp),
     ]
 })

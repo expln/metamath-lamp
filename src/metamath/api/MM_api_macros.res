@@ -6,7 +6,7 @@ type macro = {
     run:unit=>unit,
 }
 
-let macroModules:Belt_HashMapString.t<Belt_HashMapString.t<macro>> = Belt_HashMapString.make(~hintSize=4)
+let macroModules:Belt_HashMapString.t<array<macro>> = Belt_HashMapString.make(~hintSize=4)
 
 let overrideMacroModuleName:ref<option<string>> = ref(None)
 
@@ -14,10 +14,7 @@ let registerMacroModule = (
     ~moduleName:string,
     ~macros:array<macro>,
 ):unit => {
-    macroModules->Belt_HashMapString.set(
-        overrideMacroModuleName.contents->Option.getOr(moduleName),
-        macros->Array.map(macro => (macro.name, macro))->Belt_HashMapString.fromArray
-    )
+    macroModules->Belt_HashMapString.set( overrideMacroModuleName.contents->Option.getOr(moduleName), macros )
     overrideMacroModuleName := None
 }
 
@@ -58,7 +55,9 @@ let apiListRegisteredMacroModules = ():promise<result<JSON.t,string>> => {
 }
 
 let listRegisteredMacrosInModule = (moduleName:string):option<array<string>> => {
-    macroModules->Belt_HashMapString.get(moduleName)->Option.map(Belt_HashMapString.keysToArray(_))
+    macroModules->Belt_HashMapString.get(moduleName)->Option.map(macros => {
+        macros->Array.map(macro => macro.name)
+    })
 }
 
 let apiListRegisteredMacrosInModule = (params:apiInput):promise<result<JSON.t,string>> => {
@@ -80,7 +79,7 @@ let runMacro = (
     switch macroModules->Belt_HashMapString.get(moduleName) {
         | None => Error(`Cannot find a macro module with name "${moduleName}"`)
         | Some(macros) => {
-            switch macros->Belt_HashMapString.get(macroName) {
+            switch macros->Array.find(macro => macro.name == macroName) {
                 | None => Error(`Cannot find a macro with name "${macroName}" in the module "${moduleName}"`)
                 | Some(macro) => {
                     macro.run()

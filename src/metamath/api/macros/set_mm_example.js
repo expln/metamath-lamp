@@ -1333,20 +1333,6 @@ async function combineExponents() {
     })
 }
 
-function makeMacro(name, func) {
-    return {
-        displayName:name,
-        run: async globalContext => {
-            try {
-                await func(globalContext)
-            } catch (ex) {
-                await showErrMsg(`${ex.message}${code(10)}${ex.stack}`)
-                throw ex
-            }
-        }
-    }
-}
-
 async function saveEditorState(ctx) {
     ctx.editorState = await getEditorState()
     showInfoMsg('Editor state was saved.')
@@ -1371,29 +1357,44 @@ async function showNewAssertions(ctx, frmParams) {
     await showInfoMsg(`New assertions not present in ${JSON.stringify(frmParams)}:${code(10)}${newFrms.join(code(10))}`)
 }
 
-const macros = [
-    makeMacro('Prove "equals"', async () => await proveSelected({frmParams:FPR_EQUALS, debugLevel:0})),
-    makeMacro(`Prove "element of"`, async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
-    makeMacro('Introduce variables +', introduceVariablesSum),
-    makeMacro('Introduce variables x.', introduceVariablesMul),
-    makeMacro('Distribute x.', distributeMul),
-    makeMacro('Distribute ^', distributeExp),
-    makeMacro('Un-distribute x.', undistributeMul),
-    makeMacro('Sort polynomial variables', sortPolynomialVariables),
-    makeMacro('Group polynomial variables', groupPolynomialVariables),
-    makeMacro('Sort regular symbols', sortRegularSymbols),
-    makeMacro('Eliminate variables in selection', async () => await eliminateVariablesInSelectedFragment()),
-    makeMacro('Eliminate all variables', async () => {
-        await setContentIsHidden(true)
-        await eliminateVariables()
-        await setContentIsHidden(false)
-    }),
-    makeMacro('Combine exponents', combineExponents),
-    makeMacro('Deduction to inference', deductionToInference),
-    makeMacro('Inference to closed', inferenceToClosed),
-    // makeMacro('Save editor state', saveEditorState),
-    // makeMacro('Show new assertions for "element of"', ctx => showNewAssertions(ctx,FPR_ELEM_OF)),
-    // makeMacro('Show new assertions for "equals"', ctx => showNewAssertions(ctx,FPR_EQUALS)),
-]
+function makeMacro(name, func) {
+    return {
+        name,
+        run: async () => {
+            try {
+                await func()
+            } catch (ex) {
+                await showErrMsg(`${ex.message}${NEW_LINE}${ex.stack}`)
+                throw ex
+            }
+        }
+    }
+}
 
-return macros
+await api.macro.registerMacroModule({
+    moduleName: 'set.mm example macros',
+    macros: [
+        makeMacro('Prove "equals"', async () => await proveSelected({frmParams:FPR_EQUALS, debugLevel:0})),
+        makeMacro('Prove "element of"', async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
+        makeMacro('Introduce variables +', introduceVariablesSum),
+        makeMacro('Introduce variables x.', introduceVariablesMul),
+        makeMacro('Distribute x.', distributeMul),
+        makeMacro('Distribute ^', distributeExp),
+        makeMacro('Un-distribute x.', undistributeMul),
+        makeMacro('Sort polynomial variables', sortPolynomialVariables),
+        makeMacro('Group polynomial variables', groupPolynomialVariables),
+        makeMacro('Sort regular symbols', sortRegularSymbols),
+        makeMacro('Eliminate variables in selection', eliminateVariablesInSelectedFragment),
+        makeMacro('Eliminate all variables', async () => {
+            await setContentIsHidden(true)
+            await eliminateVariables()
+            await setContentIsHidden(false)
+        }),
+        makeMacro('Combine exponents', combineExponents),
+        makeMacro('Deduction to inference', deductionToInference),
+        makeMacro('Inference to closed', inferenceToClosed),
+        // makeMacro('Save editor state', saveEditorState),
+        // makeMacro('Show new assertions for "element of"', ctx => showNewAssertions(ctx,FPR_ELEM_OF)),
+        // makeMacro('Show new assertions for "equals"', ctx => showNewAssertions(ctx,FPR_EQUALS)),
+    ]
+})
