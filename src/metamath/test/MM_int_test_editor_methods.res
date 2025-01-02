@@ -232,16 +232,17 @@ let addStmtsBySearch = (
                 | None => st
                 | Some(stmtId) => st->toggleStmtChecked(stmtId)
             }
+            let preCtx = st.preCtxData.ctxV.val.min
             let searchResults = doSearchAssertions(
                 ~allFramesInDeclarationOrder=st.preCtxData.frms->frmsSelect
                     ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.frame.ord - b.frame.ord))
                     ->Array.map(frm => frm.frame),
                 ~isAxiom=None,
-                ~typ=Some(st.preCtxData.ctxMinV.val->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-"))),
+                ~typ=Some(preCtx->ctxSymToIntExn(filterTyp->Belt_Option.getWithDefault("|-"))),
                 ~label=filterLabel->Belt_Option.getWithDefault(""),
                 ~searchPattern=makeSearchPattern(
                     ~searchStr=filterPattern->Belt_Option.getWithDefault(""),
-                    ~ctx=st.preCtxData.ctxMinV.val
+                    ~ctx=preCtx
                 )->Result.getExn,
                 ~isDisc=None,
                 ~isDepr=None,

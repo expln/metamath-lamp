@@ -2,33 +2,6 @@ open MM_wrk_editor
 open MM_syntax_tree
 open MM_apply_asrt_matcher
 
-type apiResp = {
-    "isOk": bool,
-    "res": option<JSON.t>,
-    "err": option<string>,
-}
-
-type api = JSON.t => promise<apiResp>
-
-let api: {
-    "setLogApiCallsToConsole": api,
-    "showInfoMsg": api,
-    "showErrMsg": api,
-    "editor" : option<int> => {
-        "getState": api,
-        "proveBottomUp": api,
-        "unifyAll": api,
-        "addSteps": api,
-        "updateSteps": api,
-        "deleteSteps": api,
-        "getTokenType": api,
-        "substitute": api,
-        "mergeDuplicatedSteps": api,
-        "setContentIsHidden": api,
-        "buildSyntaxTrees": api,
-    }
-}
-
 type proverParams = {
     delayBeforeStartMs:int,
     stmtId: stmtId,
@@ -40,11 +13,10 @@ type proverParams = {
 let deleteEditor: int => unit
 let setLastOpenedEditorId: int => unit
 
-let updateEditorApi: (
+let updateEditorData: (
     ~editorId:int,
-    ~state: editorState,
-    ~showInfoMsg:string=>unit,
-    ~showErrMsg:string=>unit,
+    ~unifMetavarPrefix:string,
+    ~state:editorState,
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
@@ -52,6 +24,8 @@ let updateEditorApi: (
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
+    ~getAsrtSyntaxTrees:()=>promise<Belt_HashMapString.t<syntaxTreeNode>>,
+    ~addAsrtByLabel: string=>promise<result<unit,string>>,
 ) => unit
 
 let stmtToJson: (userStmt, option<int=>string>) => JSON.t

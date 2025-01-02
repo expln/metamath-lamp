@@ -1,5 +1,7 @@
+- add a test for disj in MM_asrt_syntax_tree.unify()
 - fix the bug with loading an assertion without proof to the editor
 - fix the "aModLen != bLen" bug in the editor history
+- rename tabs by Alt+click
 
 - Implement dynamic bottom-up prover params. Bind params to each statement.
 - docs:

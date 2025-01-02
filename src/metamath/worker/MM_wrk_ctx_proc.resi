@@ -20,10 +20,12 @@ let beginWorkerInteractionUsingCtx: (
     ~enableTrace: bool=?,
 ) => unit
 
+let getSettingsExn: () => settings
 let getWrkCtxExn: () => mmContext
 let getWrkParenCntExn: () => parenCnt
 let getWrkFrmsExn: () => frms
 let getAllFramesInDeclarationOrderExn: () => array<frame>
+let getSyntaxTypesExn: () => array<int>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 

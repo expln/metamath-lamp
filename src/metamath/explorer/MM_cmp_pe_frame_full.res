@@ -368,7 +368,7 @@ type props = {
 let propsAreSame = (a:props, b:props):bool => {
     a.top === b.top 
     && a.ctxSelectorIsExpanded === b.ctxSelectorIsExpanded
-    && a.preCtxData.ctxFullV.ver === b.preCtxData.ctxFullV.ver
+    && a.preCtxData.ctxV.ver === b.preCtxData.ctxV.ver
 }
 
 let rndIconButton = (
@@ -462,9 +462,9 @@ let makeFrameProofData = (
                                 createInitialState(
                                     ~settings=preCtxData.settingsV.val, 
                                     ~frmMmScopes,
-                                    ~preCtx=preCtxData.ctxFullV.val,
+                                    ~preCtx=preCtxData.ctxV.val.full,
                                     ~frmCtx,
-                                    ~frame=preCtxData.ctxFullV.val->getFrameExn(label)
+                                    ~frame=preCtxData.ctxV.val.full->getFrameExn(label)
                                 )
                             )
                         )
@@ -509,7 +509,7 @@ let frameProofDataToEditorStateLocStor = (
     let vars = []
     frameProofData.frmCtx->forEachHypothesisInDeclarationOrder(hyp => {
         if (hyp.typ == F) {
-            switch preCtxData.ctxFullV.val->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
+            switch preCtxData.ctxV.val.full->getTokenType(frameProofData.frmCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1))) {
                 | Some(V) => ()
                 | None | Some(C) | Some(F) | Some(E) | Some(A) | Some(P) => {
                     vars->Array.push(`${hyp.label} ${frameProofData.frmCtx->ctxIntsToStrExn(hyp.expr)}`)
@@ -528,7 +528,7 @@ let frameProofDataToEditorStateLocStor = (
     })
     frmDisj->disjForEachArr(disjGrp => {
         disjArr->Array.push(
-            preCtxData.ctxFullV.val->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
+            preCtxData.ctxV.val.full->frmIntsToSymsExn(frameProofData.frame, disjGrp)->Array.joinUnsafe(" ")
         )
     })
     switch frameProofData.dummyVarDisj {
@@ -560,7 +560,7 @@ let frameProofDataToEditorStateLocStor = (
                     typ: userStmtTypeToStr(E), 
                     isGoal: false,
                     isBkm: false,
-                    cont: preCtxData.ctxFullV.val->frmIntsToStrExn(frameProofData.frame, hyp.expr),
+                    cont: preCtxData.ctxV.val.full->frmIntsToStrExn(frameProofData.frame, hyp.expr),
                     jstfText: "",
                 }
             )
@@ -721,7 +721,7 @@ let make = React.memoCustomCompareProps(({
     toggleCtxSelector,
     ctxSelectorIsExpanded,
 }:props) => {
-    let (lastPreCtxVer, setLastPreCtxVer) = React.useState(() => preCtxData.ctxFullV.ver)
+    let (lastPreCtxVer, setLastPreCtxVer) = React.useState(() => preCtxData.ctxV.ver)
     let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
 
     let (loadPct, setLoadPct) = React.useState(() => 0.)
@@ -754,9 +754,9 @@ let make = React.memoCustomCompareProps(({
                                     createInitialState(
                                         ~settings=preCtxData.settingsV.val, 
                                         ~frmMmScopes,
-                                        ~preCtx=preCtxData.ctxFullV.val,
+                                        ~preCtx=preCtxData.ctxV.val.full,
                                         ~frmCtx,
-                                        ~frame=preCtxData.ctxFullV.val->getFrameExn(label)
+                                        ~frame=preCtxData.ctxV.val.full->getFrameExn(label)
                                     )
                                 }) {
                                     | Ok(state) => setState(_ => Some(state))
@@ -773,12 +773,12 @@ let make = React.memoCustomCompareProps(({
 
     let actRefreshOnPreCtxDataChange = () => {
         actPreCtxDataChanged()
-        setLastPreCtxVer( _ => preCtxData.ctxFullV.ver )
+        setLastPreCtxVer( _ => preCtxData.ctxV.ver )
         setRefreshIsNeeded(_ => false)
     }
 
     React.useEffect1(() => {
-        if (lastPreCtxVer != preCtxData.ctxFullV.ver) {
+        if (lastPreCtxVer != preCtxData.ctxV.ver) {
             setRefreshIsNeeded(_ => true)
             setState(_ => None)
             setLoadErr(_ => None)
@@ -786,7 +786,7 @@ let make = React.memoCustomCompareProps(({
             actPreCtxDataChanged()
         }
         None
-    }, [preCtxData.ctxFullV.ver])
+    }, [preCtxData.ctxV.ver])
 
     let modifyState = (update:state=>state):unit => {
         setState(st => {
@@ -999,7 +999,7 @@ let make = React.memoCustomCompareProps(({
                                 actOpenLoadProofToEditorDialog(state)
                             }}
                         >
-                            {React.string("Load this proof to the editor")}
+                            {React.string("Open this proof in a new editor tab")}
                         </MenuItem>
                     </Menu>
                 }

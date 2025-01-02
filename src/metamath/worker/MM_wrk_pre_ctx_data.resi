@@ -16,11 +16,15 @@ type mmCtxSrcDto = {
     allLabels: array<string>,
 }
 
+type preCtx = {
+    full:mmContext,
+    min:mmContext,
+}
+
 type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
-    ctxFullV: version<mmContext>,
-    ctxMinV: version<mmContext>,
+    ctxV: version<preCtx>,
     frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
@@ -29,14 +33,15 @@ type preCtxData = {
     typeOrderInDisj:Belt_HashMapInt.t<int>,
     typeColors: Belt_HashMapString.t<string>,
     symColors: Belt_HashMapString.t<string>,
+    mutable asrtSyntaxTrees: option<Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode>>,
 }
 
 let preCtxDataMake: (~settings: settings) => preCtxData
 
 let preCtxDataUpdate: (
-  preCtxData,
-  ~settings: settings=?,
-  ~ctx: (array<mmCtxSrcDto>, mmContext)=?,
+    preCtxData,
+    ~settings: settings=?,
+    ~ctx: (array<mmCtxSrcDto>, mmContext)=?,
 ) => preCtxData
 
 let findTypes: mmContext => (array<int>,array<int>)

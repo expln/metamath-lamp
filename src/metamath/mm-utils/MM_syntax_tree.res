@@ -3,7 +3,6 @@ open MM_proof_table
 
 type rec syntaxTreeNode = {
     id: int,
-    parent:option<syntaxTreeNode>,
     typ:int,
     label:string,
     children:array<childNode>,
@@ -11,7 +10,7 @@ type rec syntaxTreeNode = {
 }
 and childNode =
     | Subtree(syntaxTreeNode)
-    | Symbol({id:int, parent:syntaxTreeNode, symInt:int, sym:string, color:option<string>, isVar:bool})
+    | Symbol({id:int, symInt:int, sym:string, color:option<string>, isVar:bool})
 
 let extractVarToRecIdxMapping = (args:array<int>, frame):result<array<int>,string> => {
     let varToRecIdxMapping = Expln_utils_common.createArray(frame.numOfVars)
@@ -58,13 +57,12 @@ let getMaxHeight = (children:array<childNode>):int => {
     )
 }
 
-let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNode,string> => {
+let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, r):result<syntaxTreeNode,string> => {
     switch r.proof {
         | Hypothesis({label}) => {
             let maxI = r.expr->Array.length - 1
             let this = {
                 id: idSeq(),
-                parent,
                 typ:r.expr->Array.getUnsafe(0),
                 label,
                 children: Expln_utils_common.createArray(maxI),
@@ -73,7 +71,6 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
             for i in 1 to maxI {
                 this.children[i-1] = Symbol({
                     id: idSeq(),
-                    parent:this,
                     symInt: r.expr->Array.getUnsafe(i),
                     sym: ctx->ctxIntToSymExn(r.expr->Array.getUnsafe(i)),
                     isVar: r.expr->Array.getUnsafe(i) >= 0,
@@ -94,7 +91,6 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                         | Ok(varToRecIdxMapping) => {
                             let this = {
                                 id: idSeq(),
-                                parent,
                                 typ:frame.asrt->Array.getUnsafe(0),
                                 label,
                                 children: Expln_utils_common.createArray(frame.asrt->Array.length - 1),
@@ -106,14 +102,13 @@ let rec buildSyntaxTreeInner = (idSeq, ctx, tbl, parent, r):result<syntaxTreeNod
                                     if (s < 0) {
                                         this.children[i-1] = Symbol({
                                             id: idSeq(),
-                                            parent:this,
                                             symInt: s,
                                             sym: ctx->ctxIntToSymExn(s),
                                             isVar: false,
                                             color: None,
                                         })
                                     } else {
-                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, Some(this), tbl->Array.getUnsafe(varToRecIdxMapping->Array.getUnsafe(s))) {
+                                        switch buildSyntaxTreeInner(idSeq, ctx, tbl, tbl->Array.getUnsafe(varToRecIdxMapping->Array.getUnsafe(s))) {
                                             | Error(msg) => err := Some(Error(msg))
                                             | Ok(subtree) => this.children[i-1] = Subtree(subtree)
                                         }
@@ -144,7 +139,7 @@ let buildSyntaxTree = (ctx, tbl, targetIdx):result<syntaxTreeNode,string> => {
         nextId := nextId.contents + 1
         nextId.contents - 1
     }
-    buildSyntaxTreeInner(idSeq, ctx, tbl, None, tbl->Array.getUnsafe(targetIdx))
+    buildSyntaxTreeInner(idSeq, ctx, tbl, tbl->Array.getUnsafe(targetIdx))
 }
 
 let rec syntaxTreeToSymbols: syntaxTreeNode => array<string> = node => {
@@ -238,19 +233,19 @@ let substituteInPlace = (expr:array<string>, e:string, subExpr:array<string>):un
 }
 
 let applySubsInPlace = (expr:array<string>, subs:unifSubs):unit => {
-    subs->Belt_HashMapString.forEachU((. v, subExpr) => substituteInPlace(expr, v, subExpr))
+    subs->Belt_HashMapString.forEach((v, subExpr) => substituteInPlace(expr, v, subExpr))
 }
 
 let assignSubs = (foundSubs:unifSubs, var:string, expr:array<string>):bool => {
+    applySubsInPlace(expr, foundSubs)
     if (expr->Array.includes(var)) {
         false
     } else {
-        applySubsInPlace(expr, foundSubs)
         switch foundSubs->Belt_HashMapString.get(var) {
             | Some(existingExpr) => expr == existingExpr
             | None => {
                 foundSubs->Belt_HashMapString.set(var, expr)
-                foundSubs->Belt_HashMapString.forEachU((. _, expr) => applySubsInPlace(expr, foundSubs))
+                foundSubs->Belt_HashMapString.forEach((_, expr) => applySubsInPlace(expr, foundSubs))
                 true
             }
         }
@@ -266,6 +261,14 @@ let rec getAllSymbols = (syntaxTreeNode:syntaxTreeNode):array<string> => {
     })
 }
 
+let eqModSubs = (subs:unifSubs, a:string, b:string):bool => {
+    let expr1 = [a]
+    applySubsInPlace(expr1, subs)
+    let expr2 = [b]
+    applySubsInPlace(expr2, subs)
+    expr1 == expr2
+}
+
 /*
     The core idea of the unification algorithm is as per explanations by Mario Carneiro.
     https://github.com/expln/metamath-lamp/issues/77#issuecomment-1577804381
@@ -277,52 +280,52 @@ let rec unify = (
     ~foundSubs:unifSubs, 
     ~continue:ref<bool>
 ):unit => {
-    if (a.typ != b.typ) {
-        continue := false
-    } else {
-        switch a->isVar(isMetavar) {
-            | Some((_,aVar)) => {
-                switch b->isVar(isMetavar) {
-                    | Some((_,bVar)) => {
-                        if (aVar != bVar) {
-                            continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
-                        }
-                    }
-                    | None => {
-                        continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
-                    }
+    switch a->isVar(isMetavar) {
+        | Some((_,aVar)) => {
+            switch b->isVar(isMetavar) {
+                | Some((_,bVar)) => {
+                    continue := eqModSubs(foundSubs, aVar, bVar) || assignSubs(foundSubs, aVar, [bVar])
                 }
+                | None => continue := assignSubs(foundSubs, aVar, b->getAllSymbols)
             }
-            | None => {
-                switch b->isVar(isMetavar) {
-                    | Some((_,bVar)) => {
-                        continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
-                    }
-                    | None => {
-                        if (a.children->Array.length != b.children->Array.length) {
-                            continue := false
-                        } else {
-                            let maxI = a.children->Array.length-1
-                            let i = ref(0)
-                            while (continue.contents && i.contents <= maxI) {
-                                switch a.children->Array.getUnsafe(i.contents) {
-                                    | Symbol({sym:aSym}) => {
-                                        switch b.children->Array.getUnsafe(i.contents) {
-                                            | Symbol({sym:bSym}) => continue := aSym == bSym
-                                            | Subtree(_) => continue := false
+        }
+        | None => {
+            switch b->isVar(isMetavar) {
+                | Some((_,bVar)) => continue := assignSubs(foundSubs, bVar, a->getAllSymbols)
+                | None => {
+                    if (a.children->Array.length != b.children->Array.length) {
+                        continue := false
+                    } else {
+                        let maxI = a.children->Array.length-1
+                        let i = ref(0)
+                        while (continue.contents && i.contents <= maxI) {
+                            switch a.children->Array.getUnsafe(i.contents) {
+                                | Symbol({sym:aSym, isVar:aIsVar}) => {
+                                    switch b.children->Array.getUnsafe(i.contents) {
+                                        | Symbol({sym:bSym, isVar:bIsVar}) => {
+                                            continue := eqModSubs(foundSubs, aSym, bSym)
+                                                || (aIsVar && isMetavar(aSym) && assignSubs(foundSubs, aSym, [bSym]))
+                                                || (bIsVar && isMetavar(bSym) && assignSubs(foundSubs, bSym, [aSym]))
+                                        }
+                                        | Subtree(bCh) => {
+                                            continue := aIsVar && isMetavar(aSym) 
+                                                && assignSubs(foundSubs, aSym, bCh->getAllSymbols)
                                         }
                                     }
-                                    | Subtree(aCh) => {
-                                        switch b.children->Array.getUnsafe(i.contents) {
-                                            | Symbol(_) => continue := false
-                                            | Subtree(bCh) => {
-                                                unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
-                                            }
+                                }
+                                | Subtree(aCh) => {
+                                    switch b.children->Array.getUnsafe(i.contents) {
+                                        | Symbol({sym:bSym, isVar:bIsVar}) => {
+                                            continue := bIsVar && isMetavar(bSym) 
+                                                && assignSubs(foundSubs, bSym, aCh->getAllSymbols)
+                                        }
+                                        | Subtree(bCh) => {
+                                            unify(aCh, bCh, ~isMetavar, ~foundSubs, ~continue)
                                         }
                                     }
-                                } 
-                                i := i.contents + 1
-                            }
+                                }
+                            } 
+                            i := i.contents + 1
                         }
                     }
                 }
@@ -380,4 +383,24 @@ let syntaxTreeGetNumberOfSymbols = (node:childNode):int => {
         None
     })->ignore
     cnt.contents
+}
+
+let rec syntaxTreeGetParent = (root:syntaxTreeNode, childId:int): option<syntaxTreeNode> => {
+    root.children->Array.reduce(None, (res, ch) => {
+        switch res {
+            | Some(_) => res
+            | None => {
+                switch ch {
+                    | Symbol({id}) => id == childId ? Some(root) : None
+                    | Subtree(subRoot) => {
+                        if (subRoot.id == childId) {
+                            Some(root)
+                        } else {
+                            subRoot->syntaxTreeGetParent(childId)
+                        }
+                    }
+                }
+            }
+        }
+    })
 }

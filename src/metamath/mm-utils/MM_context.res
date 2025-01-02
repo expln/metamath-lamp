@@ -236,6 +236,14 @@ let disjForEach = (disjMutable, consumer) => {
     })
 }
 
+let disjImmForEach = (disj:Belt_MapInt.t<Belt_SetInt.t>, consumer) => {
+    disj->Belt_MapInt.forEach((n,ms) => {
+        ms->Belt_SetInt.forEach(m => {
+            consumer(n,m)
+        })
+    })
+}
+
 let disjGetAllVars = (disj:disjMutable):Belt_HashSetInt.t => {
     let res = Belt_HashSetInt.make(~hintSize=100)
     disj->Belt_HashMapInt.forEach((n,ms) => {

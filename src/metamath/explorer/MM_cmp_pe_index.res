@@ -41,7 +41,7 @@ let make = React.memoCustomCompareProps(({
     onTabTitleChange,
 }:props) => {
     let (lastNonEmptyPreCtxVer, setLastNonEmptyPreCtxVer) = React.useState(
-        () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+        () => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxV.ver)
     )
     let (refreshIsNeeded, setRefreshIsNeeded) = React.useState(() => false)
 
@@ -108,7 +108,7 @@ let make = React.memoCustomCompareProps(({
     }
 
     let actPreCtxDataChanged = () => {
-        let preCtx = preCtxData.ctxFullV.val
+        let preCtx = preCtxData.ctxV.val.full
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
             ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
@@ -131,7 +131,7 @@ let make = React.memoCustomCompareProps(({
 
     let actRefreshOnPreCtxDataChange = () => {
         actPreCtxDataChanged()
-        setLastNonEmptyPreCtxVer( _ => Some(preCtxData.ctxFullV.ver) )
+        setLastNonEmptyPreCtxVer( _ => Some(preCtxData.ctxV.ver) )
         setRefreshIsNeeded(_ => false)
     }
 
@@ -141,7 +141,7 @@ let make = React.memoCustomCompareProps(({
         } else {
             let searchPattern = MM_wrk_search_asrt.makeSearchPattern(
                 ~searchStr=patternFilterStr->String.trim,
-                ~ctx=preCtxData.ctxFullV.val
+                ~ctx=preCtxData.ctxV.val.full
             )
             switch searchPattern {
                 | Error(msg) => setPatternFilterErr(_ => Some(msg))
@@ -172,8 +172,8 @@ let make = React.memoCustomCompareProps(({
                             MM_wrk_search_asrt.searchAssertions(
                                 ~settingsVer=preCtxData.settingsV.ver,
                                 ~settings=preCtxData.settingsV.val,
-                                ~preCtxVer=preCtxData.ctxMinV.ver,
-                                ~preCtx=preCtxData.ctxMinV.val,
+                                ~preCtxVer=preCtxData.ctxV.ver,
+                                ~preCtx=preCtxData.ctxV.val.min,
                                 ~isAxiom=isAxiomFilter,
                                 ~typ=stmtTypeFilter,
                                 ~label=labelFilter,
@@ -215,7 +215,7 @@ let make = React.memoCustomCompareProps(({
     React.useEffect1(() => {
         switch lastNonEmptyPreCtxVer {
             | Some(lastNonEmptyPreCtxVer) => {
-                if (lastNonEmptyPreCtxVer != preCtxData.ctxFullV.ver) {
+                if (lastNonEmptyPreCtxVer != preCtxData.ctxV.ver) {
                     setRefreshIsNeeded(_ => true)
                 } else {
                     actPreCtxDataChanged()
@@ -223,7 +223,7 @@ let make = React.memoCustomCompareProps(({
             }
             | None => {
                 setLastNonEmptyPreCtxVer(
-                    _ => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxFullV.ver)
+                    _ => preCtxData.srcs->Array.length == 0 ? None : Some(preCtxData.ctxV.ver)
                 )
                 actPreCtxDataChanged()
             }
@@ -250,7 +250,7 @@ let make = React.memoCustomCompareProps(({
     let stmtTypeFilterToStr = typeFilter => {
         switch typeFilter {
             | None => allStmtTypesConcat
-            | Some(n) => preCtxData.ctxFullV.val->ctxIntToSymExn(n)
+            | Some(n) => preCtxData.ctxV.val.full->ctxIntToSymExn(n)
         }
     }
 
@@ -258,7 +258,7 @@ let make = React.memoCustomCompareProps(({
         if (str == allStmtTypesConcat) {
             None
         } else {
-            preCtxData.ctxFullV.val->ctxSymToInt(str)
+            preCtxData.ctxV.val.full->ctxSymToInt(str)
         }
     }
 
@@ -582,12 +582,12 @@ let make = React.memoCustomCompareProps(({
                     }
                     | None => {
                         <MM_cmp_pe_frame_list
-                            key=`${preCtxData.ctxFullV.ver->Belt_Int.toString}`
+                            key=`${preCtxData.ctxV.ver->Belt_Int.toString}`
                             modalRef
                             editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
                             settings=preCtxData.settingsV.val
                             typeColors=preCtxData.typeColors
-                            preCtx=preCtxData.ctxFullV.val
+                            preCtx=preCtxData.ctxV.val.full
                             frms=preCtxData.frms
                             parenCnt=preCtxData.parenCnt
                             syntaxTypes=preCtxData.syntaxTypes

@@ -366,7 +366,7 @@ let findPossibleSubs = (st:editorState, frmExpr:expr, expr:expr, useMatching:boo
     }
 }
 
-let substitute = (st:editorState, ~what:string, ~with_:string):result<editorState,string> => {
+let substitute = (st:editorState, ~what:string, ~with_:string, ~useMatching:bool):result<editorState,string> => {
     switch st.wrkCtx {
         | None => Error("Cannot apply a substitution because of errors in the editor.")
         | Some(wrkCtx) => {
@@ -385,7 +385,7 @@ let substitute = (st:editorState, ~what:string, ~with_:string):result<editorStat
                                 st, 
                                 wrkCtx->ctxSymsToIntsExn(syms1),
                                 wrkCtx->ctxSymsToIntsExn(syms2),
-                                true,
+                                useMatching,
                             )
                             switch foundSubs {
                                 | Error(msg) => Error(msg)

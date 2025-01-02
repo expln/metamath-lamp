@@ -17,11 +17,15 @@ type mmCtxSrcDto = {
     allLabels: array<string>,
 }
 
+type preCtx = {
+    full:mmContext,
+    min:mmContext,
+}
+
 type preCtxData = {
     settingsV: version<settings>,
     srcs: array<mmCtxSrcDto>,
-    ctxFullV: version<mmContext>,
-    ctxMinV: version<mmContext>,
+    ctxV: version<preCtx>,
     frms: frms,
     parenCnt: parenCnt,
     allTypes:array<int>,
@@ -30,14 +34,14 @@ type preCtxData = {
     typeOrderInDisj:Belt_HashMapInt.t<int>,
     typeColors: Belt_HashMapString.t<string>,
     symColors: Belt_HashMapString.t<string>,
+    mutable asrtSyntaxTrees: option<Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode>>,
 }
 
 let preCtxDataMake = (~settings:settings):preCtxData => {
     {
         settingsV:versionMake(settings),
         srcs: [],
-        ctxFullV: versionMake(createContext(())),
-        ctxMinV: versionMake(createContext(())),
+        ctxV: versionMake({full:createContext(), min:createContext()}),
         frms: frmsEmpty(),
         parenCnt: parenCntMake(~parenMin=0, ~canBeFirstMin=0, ~canBeFirstMax=0, ~canBeLastMin=0, ~canBeLastMax=0),
         allTypes:[],
@@ -46,6 +50,7 @@ let preCtxDataMake = (~settings:settings):preCtxData => {
         typeOrderInDisj:Belt_HashMapInt.make(~hintSize=0),
         typeColors: Belt_HashMapString.make(~hintSize=0),
         symColors: Belt_HashMapString.make(~hintSize=0),
+        asrtSyntaxTrees: None,
     }
 }
 
@@ -103,50 +108,52 @@ let preCtxDataUpdate = (
     ~settings:option<settings>=?,
     ~ctx:option<(array<mmCtxSrcDto>,mmContext)>=?
 ): preCtxData => {
-    let settingsV = settings->Belt_Option.mapWithDefault(
+    let settingsV = settings->Option.mapOr(
         preCtxData.settingsV, 
         settings => preCtxData.settingsV->versionSet(settings)
     )
-    let (srcs,ctxFullV) = ctx->Belt_Option.mapWithDefault(
-        (preCtxData.srcs, preCtxData.ctxFullV),
-        ((srcs,ctx)) => (srcs, preCtxData.ctxFullV->versionSet(ctx))
+    let (srcs,ctxV) = ctx->Option.mapOr(
+        (preCtxData.srcs, preCtxData.ctxV),
+        ((srcs,ctx)) => (srcs, preCtxData.ctxV->versionSet({full:ctx,min:ctx}))
     )
 
-    let ctxFullV = ctxFullV->versionSet(
-        ctxFullV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false)
+    let ctxFull = ctxV.val.full->ctxOptimizeForProver(
+        ~parens=settingsV.val.parens, ~removeAsrtDescr=false, ~removeProofs=false
     )
 
-    let ctxMinV = preCtxData.ctxMinV->versionSet(
-        ctxFullV.val->ctxOptimizeForProver(~parens=settingsV.val.parens, ~removeAsrtDescr=true, ~removeProofs=true)
+    let ctxMin = ctxFull->ctxOptimizeForProver(
+        ~parens=settingsV.val.parens, ~removeAsrtDescr=true, ~removeProofs=true
     )
 
-    let frms = prepareFrmSubsData( ~ctx=ctxMinV.val )
-    let parenCnt = MM_provers.makeParenCnt(~ctx=ctxMinV.val, ~parens=settingsV.val.parens)
-    let (allTypes, syntaxTypes) = findTypes(ctxMinV.val)
+    let ctxV = ctxV->versionSet({full:ctxFull, min:ctxMin})
 
-    let parenInts = prepareParenInts(ctxMinV.val, settingsV.val.parens)
+    let ctxMin = ctxV.val.min
+    let frms = prepareFrmSubsData( ~ctx=ctxMin )
+    let parenCnt = MM_provers.makeParenCnt(~ctx=ctxMin, ~parens=settingsV.val.parens)
+    let (allTypes, syntaxTypes) = findTypes(ctxMin)
+
+    let parenInts = prepareParenInts(ctxMin, settingsV.val.parens)
     let numOfParens = parenInts->Array.length / 2
     let parensMap = Belt_HashMapString.make(~hintSize=numOfParens)
     for i in 0 to numOfParens-1 {
         parensMap->Belt_HashMapString.set(
-            ctxMinV.val->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i)), 
-            ctxMinV.val->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i+1))
+            ctxMin->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i)), 
+            ctxMin->ctxIntToSymExn(parenInts->Array.getUnsafe(2*i+1))
         )
     }
 
     let typeOrderInDisj = createTypeOrderFromStr(
         ~sortDisjByType=settingsV.val.sortDisjByType, 
-        ~typeNameToInt=ctxSymToInt(ctxMinV.val, _)
+        ~typeNameToInt=ctxSymToInt(ctxMin, _)
     )
 
     let typeColors = settingsV.val->settingsGetTypeColors
-    let symColors = createSymbolColors(~ctx=ctxMinV.val, ~typeColors=typeColors)
+    let symColors = createSymbolColors(~ctx=ctxMin, ~typeColors=typeColors)
 
     {
         settingsV,
         srcs,
-        ctxFullV,
-        ctxMinV,
+        ctxV,
         frms,
         parenCnt,
         allTypes,
@@ -155,5 +162,6 @@ let preCtxDataUpdate = (
         typeOrderInDisj,
         typeColors,
         symColors,
+        asrtSyntaxTrees: None,
     }
 }

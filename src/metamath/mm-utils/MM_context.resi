@@ -183,6 +183,7 @@ let disjForEachArr: (
     array<int> => unit
 ) => unit
 let disjForEach: (disjMutable, (int,int) => unit) => unit
+let disjImmForEach: (Belt_MapInt.t<Belt_SetInt.t>, (int,int) => unit) => unit
 let disjIsEmpty: disjMutable => bool
 let disjMutToDisjImm: disjMutable => Belt_MapInt.t<Belt_SetInt.t>
 let disjGetAllVars: disjMutable => Belt_HashSetInt.t

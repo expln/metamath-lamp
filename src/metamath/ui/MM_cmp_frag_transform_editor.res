@@ -171,7 +171,7 @@ let make = (
                     settings
                 }
             }
-            preCtxVer=editorState.preCtxData.ctxMinV.ver
+            preCtxVer=editorState.preCtxData.ctxV.ver
             varsText=editorState.varsText
             wrkCtx=editorState.wrkCtx
             frms=editorState.preCtxData.frms

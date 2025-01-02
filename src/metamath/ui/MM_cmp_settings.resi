@@ -10,5 +10,5 @@ let settingsSaveToLocStor: settings => unit
 let make: (
     ~modalRef:modalRef, 
     ~preCtxData:preCtxData,
-    ~onChange: settings => unit
+    ~onChange: settings => promise<result<unit,string>>
 ) => reElem

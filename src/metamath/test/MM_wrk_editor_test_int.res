@@ -615,33 +615,30 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         assertEditorState(st, "step1")
         let ctx = st.wrkCtx->Belt_Option.getExn
 
-        let unifSubsToMap = (wrkSubs:MM_wrk_editor.wrkSubs):Belt_MapString.t<string> => {
+        let unifSubsToStr = (wrkSubs:MM_wrk_editor.wrkSubs):string => {
             wrkSubs.subs->Belt_MapInt.toArray
                 ->Array.map(((e,expr)) => (ctx->MM_context.ctxIntToSymExn(e), ctx->MM_context.ctxIntsToStrExn(expr)))
-                ->Belt_MapString.fromArray
+                ->Array.filter(((e,expr)) => e != expr)
+                ->Array.map(((e,expr)) => e ++ " \u2192 " ++ expr )
+                ->Array.toSorted(String.compare)
+                ->Array.join(" ; ")
         }
 
         let assertUnifSubs = (
             ~testCaseName:string,
             ~actualUnifSubs:result<array<MM_wrk_editor.wrkSubs>,string>, 
-            ~expectedUnifSubs:Belt_MapString.t<string>
+            ~expectedUnifSubs:string
         ):unit => {
             switch actualUnifSubs {
-                | Error(msg) => failMsg(`assertUnifSubs failed for '${testCaseName}': ${msg}`)
+                | Error(msg) => {
+                    if (expectedUnifSubs != "") {
+                        failMsg(`assertUnifSubs failed for '${testCaseName}': ` 
+                            ++ `expected to get some substitution, but got an error ${msg}`)
+                    }
+                }
                 | Ok([wrkSubs]) => {
-                    let actualSubsMap = unifSubsToMap(wrkSubs)
-                    expectedUnifSubs->Belt_MapString.forEach((expectedVar, expectedSubExpr) => {
-                        switch actualSubsMap->Belt_MapString.get(expectedVar) {
-                            | None => failMsg(`assertUnifSubs failed for '${testCaseName}': actualSubsMap doesn't contain a substitution for ${expectedVar}`)
-                            | Some(actualSubExpr) => {
-                                assertEqMsg(
-                                    expectedVar ++ " \u2192 " ++ actualSubExpr,
-                                    expectedVar ++ " \u2192 " ++ expectedSubExpr,
-                                    `assertUnifSubs failed for '${testCaseName}'`
-                                )
-                            }
-                        }
-                    })
+                    let actualUnifSubs = unifSubsToStr(wrkSubs)
+                    assertEqMsg( actualUnifSubs, expectedUnifSubs, `assertUnifSubs failed for '${testCaseName}'` )
                 }
                 | Ok(_) => failMsg(`assertUnifSubs failed for '${testCaseName}': actualUnifSubs.length != 1`)
             }
@@ -650,7 +647,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let testUnifSubs = (
             ~expr1:string,
             ~expr2:string,
-            ~expected:array<(string,string)>
+            ~expected:string
         ):unit => {
             assertUnifSubs(
                 ~testCaseName = expr1 ++ " <<<~>>> " ++ expr2,
@@ -659,44 +656,42 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
                     ctx->MM_context.ctxStrToIntsExn(expr2), 
                     false
                 ), 
-                ~expectedUnifSubs=expected->Belt_MapString.fromArray
+                ~expectedUnifSubs=expected
             )
         }
 
-        testUnifSubs( ~expr1="&W1", ~expr2="ph", ~expected = [ ("&W1", "ph") ] )
-        testUnifSubs( ~expr1="|- &W1", ~expr2="|- ph", ~expected = [ ("&W1", "ph") ] )
-        testUnifSubs( ~expr1="&C1", ~expr2="A", ~expected = [ ("&C1", "A") ] )
-        testUnifSubs( ~expr1="class &C1", ~expr2="class A", ~expected = [ ("&C1", "A") ] )
-        testUnifSubs( ~expr1="&S1", ~expr2="x", ~expected = [ ("&S1", "x") ] )
-        testUnifSubs( ~expr1="setvar &S1", ~expr2="setvar x", ~expected = [ ("&S1", "x") ] )
-        testUnifSubs( ~expr1="&C1", ~expr2="x", ~expected = [ ("&C1", "x") ] )
-        testUnifSubs( ~expr1="class &C1", ~expr2="setvar x", ~expected = [ ("&C1", "x") ] )
-        testUnifSubs( ~expr1="&C1", ~expr2="&S1", ~expected = [ ("&C1", "&S1") ] )
-        testUnifSubs( ~expr1="class &C1", ~expr2="setvar &S1", ~expected = [ ("&C1", "&S1") ] )
+        testUnifSubs(~expr1="&W1", ~expr2="ph", ~expected = "&W1 → ph")
+        testUnifSubs(~expr1="|- &W1", ~expr2="|- ph", ~expected = "&W1 → ph")
+        testUnifSubs(~expr1="&C1", ~expr2="A", ~expected = "&C1 → A")
+        testUnifSubs(~expr1="class &C1", ~expr2="class A", ~expected = "&C1 → A")
+        testUnifSubs(~expr1="&S1", ~expr2="x", ~expected = "&S1 → x")
+        testUnifSubs(~expr1="setvar &S1", ~expr2="setvar x", ~expected = "&S1 → x")
+        testUnifSubs(~expr1="&C1", ~expr2="x", ~expected = "&C1 → x")
+        testUnifSubs(~expr1="class &C1", ~expr2="setvar x", ~expected = "&C1 → x")
+        testUnifSubs(~expr1="&C1", ~expr2="&S1", ~expected = "&C1 → &S1")
+        testUnifSubs(~expr1="class &C1", ~expr2="setvar &S1", ~expected = "&C1 → &S1")
+        testUnifSubs(~expr1="&C1", ~expr2="&S1", ~expected = "&C1 → &S1")
+        testUnifSubs(~expr1="&S1", ~expr2="&C1", ~expected = "&C1 → &S1")
+        testUnifSubs(~expr1="&C1 = &C2", ~expr2="&S1 = &S2", ~expected = "&C1 → &S1 ; &C2 → &S2")
+        testUnifSubs(~expr1="&S1", ~expr2="&S2", ~expected = "&S1 → &S2")
+        testUnifSubs(~expr1="&S2", ~expr2="&S1", ~expected = "&S2 → &S1")
+        testUnifSubs(~expr1="&C1", ~expr2="&C2", ~expected = "&C1 → &C2")
+        testUnifSubs(~expr1="&C2", ~expr2="&C1", ~expected = "&C2 → &C1")
 
         testUnifSubs( 
             ~expr1="( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )", 
             ~expr2="( &W1                       -> ( ( ph  -> ps  ) -> ( ph  -> ch  ) ) )", 
-            ~expected = [ 
-                ("&W3", "ph"),
-                ("&W4", "ps"),
-                ("&W2", "ch"),
-                ("&W1", "( ph -> ( ps -> ch ) )"),
-            ] 
+            ~expected = "&W1 → ( ph -> ( ps -> ch ) ) ; &W2 → ch ; &W3 → ph ; &W4 → ps"
         )
 
         testUnifSubs( 
             ~expr1="|- ( ( &W3 -> ( &W4 -> &W2 ) ) -> ( ( &W3 -> &W4 ) -> ( &W3 -> &W2 ) ) )", 
             ~expr2="|- ( &W1                       -> ( ( ph  -> ps  ) -> ( ph  -> ch  ) ) )", 
-            ~expected = [ 
-                ("&W3", "ph"),
-                ("&W4", "ps"),
-                ("&W2", "ch"),
-                ("&W1", "( ph -> ( ps -> ch ) )"),
-            ] 
+            ~expected = "&W1 → ( ph -> ( ps -> ch ) ) ; &W2 → ch ; &W3 → ph ; &W4 → ps" 
         )
 
-        testUnifSubs( ~expr1="A e. &C1", ~expr2="A e. X", ~expected = [ ("&C1", "X"), ] )
+        testUnifSubs(~expr1="A e. &C1", ~expr2="A e. X", ~expected = "&C1 → X")
+        testUnifSubs(~expr1="&C1 = ( &C1 + &C3 )", ~expr2="&C2 = &C2", ~expected = "")
     })
 
     it("autoMergeDuplicatedStatements", _ => {
@@ -790,7 +785,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
 
         let prepareBottomUpProverParams = (
             state:MM_wrk_editor.editorState,
-            matcher:MM_cmp_api.apiApplyAsrtResultMatcher,
+            matcher:MM_api_editor.apiApplyAsrtResultMatcher,
         ):MM_provers.bottomUpProverParams => {
             {
                 maxSearchDepth:3,
@@ -803,7 +798,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
                     {
                         ...defaultFrameParams,
                         frmsToUse: Some(["syl"]),
-                        matches: MM_cmp_api.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
+                        matches: MM_api_editor.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
                     }
                 ],
             }

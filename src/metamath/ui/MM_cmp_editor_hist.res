@@ -118,7 +118,7 @@ let make = (
             modalRef
             settingsVer=state.preCtxData.settingsV.ver
             settings
-            preCtxVer=state.preCtxData.ctxMinV.ver
+            preCtxVer=state.preCtxData.ctxV.ver
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms

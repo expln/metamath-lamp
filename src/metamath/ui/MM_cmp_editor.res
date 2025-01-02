@@ -317,7 +317,7 @@ let make = (
     React.useEffect1(() => {
         actPreCtxDataUpdated()
         None
-    }, [preCtxData.settingsV.ver, preCtxData.ctxFullV.ver, preCtxData.ctxMinV.ver])
+    }, [preCtxData.settingsV.ver, preCtxData.ctxV.ver])
 
     let actOpenMainMenu = () => {
         setMainMenuIsOpened(_ => true)
@@ -709,8 +709,8 @@ let make = (
         })
     }
 
-    React.useEffect0(() => {
-        addAsrtByLabel.contents = Some(label => Promise.make((resolve, _) => {
+    let actAddAsrtByLabel = (asrtLabel:string):promise<result<unit,string>> => {
+        Promise.make((resolve, _) => {
             setState(st => {
                 switch st.wrkCtx {
                     | None => {
@@ -718,9 +718,9 @@ let make = (
                         st
                     }
                     | Some(wrkCtx) => {
-                        switch wrkCtx->getFrame(label) {
+                        switch wrkCtx->getFrame(asrtLabel) {
                             | None => {
-                                resolve(Error(`Cannot find a frame by name '${label}'`))
+                                resolve(Error(`Cannot find a frame by name '${asrtLabel}'`))
                                 st
                             }
                             | Some(frame) => {
@@ -732,7 +732,11 @@ let make = (
                     }
                 }
             })
-        }))
+        })
+    }
+
+    React.useEffect0(() => {
+        addAsrtByLabel.contents = Some(actAddAsrtByLabel)
         updateTabTitle.contents = Some(newTabTitle => {
             setStatePriv(st => {
                 let st = {...st, tabTitle:newTabTitle}
@@ -836,12 +840,12 @@ let make = (
                             modalRef
                             settingsVer=state.preCtxData.settingsV.ver
                             settings=state.preCtxData.settingsV.val
-                            preCtxVer=state.preCtxData.ctxMinV.ver
-                            preCtx=state.preCtxData.ctxMinV.val
+                            preCtxVer=state.preCtxData.ctxV.ver
+                            preCtx=state.preCtxData.ctxV.val.min
                             wrkCtx
                             frms=state.preCtxData.frms
-                            initialTyp={getLastUsedTyp(state.preCtxData.ctxMinV.val)}
-                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxMinV.val, _)}
+                            initialTyp={getLastUsedTyp(state.preCtxData.ctxV.val.min)}
+                            onTypChange={saveLastUsedTyp(state.preCtxData.ctxV.val.min, _)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
                             onResultsSelected={selectedResults=>{
                                 closeModal(modalRef, modalId)
@@ -1021,8 +1025,8 @@ let make = (
                                     modalRef
                                     settingsVer=state.preCtxData.settingsV.ver
                                     settings
-                                    preCtxVer=state.preCtxData.ctxMinV.ver
-                                    preCtx=state.preCtxData.ctxMinV.val
+                                    preCtxVer=state.preCtxData.ctxV.ver
+                                    preCtx=state.preCtxData.ctxV.val.min
                                     frms=state.preCtxData.frms parenCnt=state.preCtxData.parenCnt
                                     varsText disjText wrkCtx
                                     rootStmts=rootUserStmts
@@ -1061,8 +1065,8 @@ let make = (
                                 unify(
                                     ~settingsVer=state.preCtxData.settingsV.ver,
                                     ~settings,
-                                    ~preCtxVer=state.preCtxData.ctxMinV.ver,
-                                    ~preCtx=state.preCtxData.ctxMinV.val,
+                                    ~preCtxVer=state.preCtxData.ctxV.ver,
+                                    ~preCtx=state.preCtxData.ctxV.val.min,
                                     ~varsText,
                                     ~disjText,
                                     ~rootStmts,
@@ -1802,7 +1806,7 @@ let make = (
             modalRef
             settingsVer=state.preCtxData.settingsV.ver
             settings
-            preCtxVer=state.preCtxData.ctxMinV.ver
+            preCtxVer=state.preCtxData.ctxV.ver
             varsText=state.varsText
             wrkCtx=state.wrkCtx
             frms=state.preCtxData.frms
@@ -2093,24 +2097,42 @@ let make = (
         promiseResolved(())
     }
 
-    let showInfoMsgForApi = (msg:string) => {
-        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre> )
+    let getAsrtSyntaxTrees = ():promise<Belt_HashMapString.t<MM_syntax_tree.syntaxTreeNode>> => {
+        switch preCtxData.asrtSyntaxTrees {
+            | Some(asrtSyntaxTrees) => Promise.resolve(asrtSyntaxTrees)
+            | None => {
+                openModal(modalRef, () => rndProgress(~text="Building syntax trees for all assertions", ~pct=0.))
+                    ->Promise.then(modalId => {
+                        updateModal( 
+                            modalRef, modalId, () => rndProgress(
+                                ~text="Building syntax trees for all assertions", 
+                                ~pct=0., ~onTerminate=makeActTerminate(modalId)
+                            )
+                        )
+                        MM_wrk_syntax_tree.buildSyntaxTreesForAllAssertions(
+                            ~settingsV=preCtxData.settingsV,
+                            ~preCtxVer=preCtxData.ctxV.ver,
+                            ~preCtx=preCtxData.ctxV.val.min,
+                            ~onProgress = pct => updateModal(
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Building syntax trees for all assertions", 
+                                    ~pct, ~onTerminate=makeActTerminate(modalId)
+                                )
+                            )
+                        )->Promise.thenResolve(asrtSyntaxTreesArr => {
+                            preCtxData.asrtSyntaxTrees = Some(Belt_HashMapString.fromArray(asrtSyntaxTreesArr))
+                            closeModal(modalRef, modalId)
+                            preCtxData.asrtSyntaxTrees->Option.getExn(~message="MM_cmp_editor.getAsrtSyntaxTrees.1")
+                        })
+                    })
+            }
+        }
     }
 
-    let showErrMsgForApi = (msg:string) => {
-        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, 
-            ~icon=
-                <span style=ReactDOM.Style.make(~color="red", () ) >
-                    <MM_Icons.PriorityHigh/>
-                </span>
-        )
-    }
-
-    MM_cmp_api.updateEditorApi(
+    MM_api_editor.updateEditorData(
         ~editorId,
+        ~unifMetavarPrefix=preCtxData.settingsV.val.unifMetavarPrefix,
         ~state,
-        ~showInfoMsg=showInfoMsgForApi,
-        ~showErrMsg=showErrMsgForApi,
         ~setState=actSetStateFromApi,
         ~setEditorContIsHidden=actSetEditorContIsHidden,
         ~canStartProvingBottomUp=generalModificationActionIsEnabled,
@@ -2159,6 +2181,8 @@ let make = (
             })
         },
         ~buildSyntaxTrees=actBuildSyntaxTrees,
+        ~getAsrtSyntaxTrees,
+        ~addAsrtByLabel=actAddAsrtByLabel,
     )
 
     <Expln_React_ContentWithStickyHeader

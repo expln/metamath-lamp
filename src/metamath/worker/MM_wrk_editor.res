@@ -522,9 +522,11 @@ let createNewLabel = (st:editorState, ~prefix:option<string>=?, ~forHyp:bool=fal
         }
     }
 
+    let preCtx = st.preCtxData.ctxV.val.min
     let labelIsReserved = (label:string):bool => {
-        reservedLabels->Belt_HashSetString.has(label) || st.preCtxData.ctxMinV.val->isHyp(label) ||
-            forHyp && st.preCtxData.ctxMinV.val->getTokenType(label)->Belt.Option.isSome
+        reservedLabels->Belt_HashSetString.has(label) 
+            || preCtx->isHyp(label) 
+            || forHyp && preCtx->getTokenType(label)->Belt.Option.isSome
     }
 
     let prefixToUse = switch prefix {
@@ -999,7 +1001,7 @@ let parseWrkCtxErr = (st:editorState, wrkCtxErr:wrkCtxErr):editorState => {
 
 let refreshWrkCtx = (st:editorState):editorState => {
     let wrkCtxRes = createWrkCtx(
-        ~preCtx=st.preCtxData.ctxMinV.val,
+        ~preCtx=st.preCtxData.ctxV.val.min,
         ~varsText=st.varsText,
         ~disjText=st.disjText,
     )
@@ -2027,7 +2029,7 @@ let generateCompressedProof = (st, stmtId, ~useAllLocalEHyps:bool=false):option<
                             switch stmt.proof {
                                 | None => None
                                 | Some(proofNode) => {
-                                    let preCtx = st.preCtxData.ctxMinV.val
+                                    let preCtx = st.preCtxData.ctxV.val.min
                                     let expr = userStmtToRootStmt(stmt).expr
                                     let proofTableWithTypes = createProofTable(~tree=proofTreeDto, ~root=proofNode)
                                     let proofTableWithoutTypes = createProofTable(
@@ -2229,7 +2231,7 @@ let renameHypToMatchGoal = (st:editorState, oldStmt:userStmt, newStmt:userStmt):
         let newLabel = 
             if (
                 st.stmts->Array.find(stmt => stmt.isGoal)->Belt.Option.isSome
-                || st.preCtxData.ctxMinV.val->getTokenType(newStmt.label)->Belt.Option.isSome
+                || st.preCtxData.ctxV.val.min->getTokenType(newStmt.label)->Belt.Option.isSome
             ) {
                 createNewLabel(st, ~forHyp=true)
             } else {
@@ -2398,6 +2400,13 @@ let validateVarNames = (vars:array<(string,option<string>)>):bool => {
     || vars->Array.every(((_,varNameOpt)) => varNameOpt->Belt_Option.isSome)
 }
 
+let correctJstfForHyp = (step:userStmtDtoOpt):userStmtDtoOpt => {
+    switch step.typ {
+        | Some(H) => {...step, jstf:None}
+        | None | Some(P) | Some(G) => step
+    }
+}
+
 let addSteps = (
     st:editorState,
     ~atIdx:option<int>=?,
@@ -2405,6 +2414,7 @@ let addSteps = (
     ~vars:array<(string,option<string>)>=[],
     ~dontAddVariablesToContext:bool
 ):result<(editorState,array<stmtId>),string> => {
+    let steps = steps->Array.map(correctJstfForHyp)
     if (vars->Array.length == 0) {
         st->addStepsWithoutVars( ~atIdx?, ~steps )
     } else {
@@ -2441,6 +2451,7 @@ let updateSteps = (
     st:editorState,
     steps:array<userStmtDtoOpt>,
 ):result<editorState,string> => {
+    let steps = steps->Array.map(correctJstfForHyp)
     let updates:array<(userStmt,userStmtDtoOpt)=>result<userStmt,string>> = [
         (stmt,step) => {
             switch step.cont {
@@ -2560,7 +2571,7 @@ let findSecondDuplicatedStmt = (st:editorState, stmt1:userStmt):option<userStmt>
     })
 }
 
-let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorState,array<(string,string)>) => {
+let autoMergeDuplicatedStatements = (st:editorState):(editorState,array<(string,string)>) => {
     let renames = []
     let resultState = ref(st)
     let continue = ref(true)
@@ -2571,40 +2582,29 @@ let autoMergeDuplicatedStatements = (st:editorState, ~selectFirst:bool):(editorS
                 switch resultState.contents->findSecondDuplicatedStmt(stmt1) {
                     | None => continue := false
                     | Some(stmt2) => {
+                        let idx1 = resultState.contents.stmts->Array.findIndex(stmt => stmt.id == stmt1.id)
+                        let idx2 = resultState.contents.stmts->Array.findIndex(stmt => stmt.id == stmt2.id)
+                        let (stmt1, stmt2) = idx1 < idx2 ? (stmt1,stmt2) : (stmt2,stmt1)
                         let jstf1 = stmt1.jstfText->String.trim
                         let jstf2 = stmt2.jstfText->String.trim
-                        if (selectFirst) {
-                            if (jstf1 == "") {
-                                continue := false
-                            } else {
-                                switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
-                                    | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => {
-                                        renames->Array.push((stmt1.label, stmt2.label))
-                                        resultState := stateAfterMerge->prepareEditorForUnification
-                                    }
+                        if (jstf1 != "" && jstf2 == "") {
+                            switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
+                                | Error(_) => continue := false
+                                | Ok(stateAfterMerge) => {
+                                    renames->Array.push((stmt2.label, stmt1.label))
+                                    resultState := stateAfterMerge->prepareEditorForUnification
+                                }
+                            }
+                        } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
+                            switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
+                                | Error(_) => continue := false
+                                | Ok(stateAfterMerge) => {
+                                    renames->Array.push((stmt1.label, stmt2.label))
+                                    resultState := stateAfterMerge->prepareEditorForUnification
                                 }
                             }
                         } else {
-                            if (jstf1 != "" && jstf2 == "") {
-                                switch resultState.contents->mergeStmts(stmt1.id, stmt2.id) {
-                                    | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => {
-                                        renames->Array.push((stmt2.label, stmt1.label))
-                                        resultState := stateAfterMerge->prepareEditorForUnification
-                                    }
-                                }
-                            } else if (jstf2 != "" && (jstf1 == "" || jstf1 == jstf2)) {
-                                switch resultState.contents->mergeStmts(stmt2.id, stmt1.id) {
-                                    | Error(_) => continue := false
-                                    | Ok(stateAfterMerge) => {
-                                        renames->Array.push((stmt1.label, stmt2.label))
-                                        resultState := stateAfterMerge->prepareEditorForUnification
-                                    }
-                                }
-                            } else {
-                                continue := false
-                            }
+                            continue := false
                         }
                     }
                 }
@@ -2619,7 +2619,7 @@ let verifyEditorState = (st:editorState):editorState => {
     if (st.wrkCtx->Belt_Option.isSome) {
         let st = removeUnusedVars(st)
         let st = if (st.preCtxData.settingsV.val.autoMergeStmts) {
-            let (st,_) = autoMergeDuplicatedStatements(st, ~selectFirst=false)
+            let (st,_) = autoMergeDuplicatedStatements(st)
             st
         } else {
             st
@@ -2638,15 +2638,15 @@ let getSelectedSubtree = (treeData:stmtContTreeData):option<childNode> => {
             switch treeData.root->getNodeById(nodeId) {
                 | None => None
                 | Some(Subtree(_)) => None //this should never happen because a Subtree cannot be clicked
-                | Some(Symbol({id, parent, symInt, sym, color, isVar})) => {
+                | Some(Symbol({id, symInt, sym, color, isVar})) => {
                     if (treeData.expLvl == 0) {
-                        Some(Symbol({id, parent, symInt, sym, color, isVar}))
+                        Some(Symbol({id, symInt, sym, color, isVar}))
                     } else {
-                        let curParent = ref(Some(parent))
+                        let curParent = ref(treeData.root->syntaxTreeGetParent(id))
                         let curLvl = ref(treeData.expLvl)
                         while (curLvl.contents > 1 && curParent.contents->Belt_Option.isSome) {
                             curLvl := curLvl.contents - 1
-                            curParent := (curParent.contents->Belt_Option.getExn).parent
+                            curParent := treeData.root->syntaxTreeGetParent((curParent.contents->Belt_Option.getExn).id)
                         }
                         switch curParent.contents {
                             | Some(parent) => Some(Subtree(parent))
@@ -2778,12 +2778,17 @@ let incExpLvlIfConstClicked = (treeData:stmtContTreeData):stmtContTreeData => {
             | Some((clickedNodeId,_)) => {
                 switch treeData.root->getNodeById(clickedNodeId) {
                     | None => treeData
-                    | Some(Symbol({parent})) => {
-                        if (syntaxTreeGetNumberOfSymbols(Subtree(parent)) == 1) {
-                            /* if size == 1 then the clicked symbol is a variable in the syntax definition */
-                            treeData
-                        } else {
-                            treeData->updateExpLevel(true)
+                    | Some(Symbol({id})) => {
+                        switch treeData.root->syntaxTreeGetParent(id) {
+                            | None => treeData // this should never happen because a symbol cannot be the root
+                            | Some(parent) => {
+                                if (syntaxTreeGetNumberOfSymbols(Subtree(parent)) == 1) {
+                                    /* if size == 1 then the clicked symbol is a variable in the syntax definition */
+                                    treeData
+                                } else {
+                                    treeData->updateExpLevel(true)
+                                }
+                            }
                         }
                     }
                     | Some(Subtree(_)) => treeData
