@@ -1,7 +1,4 @@
-open MM_react_common
 open MM_api
-open Expln_React_Modal
-open Raw_js_utils
 
 let apiSetMarkFirstProvableStepAsGoal = (
     ~params:apiInput,
