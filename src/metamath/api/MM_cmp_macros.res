@@ -430,8 +430,10 @@ let warningText = `
 let useStateRenderer = (
     ~modalRef:modalRef,
     ~state:state,
-    ~updateState: (state=>promise<result<state,string>>) => unit,
-    ~updateSelectedMacroModule: ((state,string)=>promise<result<state,string>>)=>unit,
+    ~updateState: (state=>result<state,string>) => unit,
+    ~updateSelectedMacroModule: ((state,string)=>result<state,string>)=>unit,
+    ~updateStateAsync: (state=>promise<result<state,string>>) => unit,
+    ~updateSelectedMacroModuleAsync: ((state,string)=>promise<result<state,string>>)=>unit,
     ~onClose:unit=>unit,
 ):(unit=>React.element) => {
     let (isExpanded, setIsExpanded) = useStateFromLocalStorageBool(
@@ -473,29 +475,27 @@ let useStateRenderer = (
     })->Belt_Option.getWithDefault(false)
 
     let actSelectedMacroModuleNameChange = (newSelectedMacroModuleName:string) => {
-        updateState(setSelectedMacroModuleName(_, newSelectedMacroModuleName))
+        updateStateAsync(setSelectedMacroModuleName(_, newSelectedMacroModuleName))
     }
 
     let actSetNameEdit = (nameEdit:string) => {
-        updateSelectedMacroModule((st,moduleName) => setNameEdit(st, ~moduleName, ~nameEdit)->Promise.resolve)
+        updateSelectedMacroModule((st,moduleName) => setNameEdit(st, ~moduleName, ~nameEdit))
     }
 
     let actSetIsActiveEdit = (isActiveEdit:bool) => {
-        updateSelectedMacroModule((st,moduleName) => setIsActiveEdit(st, ~moduleName, ~isActiveEdit)->Promise.resolve)
+        updateSelectedMacroModule((st,moduleName) => setIsActiveEdit(st, ~moduleName, ~isActiveEdit))
     }
 
     let actSetScriptTextEdit = (scriptTextEdit:string) => {
-        updateSelectedMacroModule(
-            (st,moduleName) => setScriptTextEdit(st, ~moduleName, ~scriptTextEdit)->Promise.resolve
-        )
+        updateSelectedMacroModule((st,moduleName) => setScriptTextEdit(st, ~moduleName, ~scriptTextEdit))
     }
 
     let actSaveEdits = () => {
-        updateSelectedMacroModule((st,moduleName) => saveEdits(st, ~moduleName))
+        updateSelectedMacroModuleAsync((st,moduleName) => saveEdits(st, ~moduleName))
     }
 
     let activateSelectedMacroModule = () => {
-        updateSelectedMacroModule((st,moduleName) => {
+        updateSelectedMacroModuleAsync((st,moduleName) => {
             switch setIsActiveEdit(st, ~moduleName, ~isActiveEdit=true) {
                 | Error(msg) => Promise.resolve(Error(msg))
                 | Ok(st) => saveEdits(st, ~moduleName)
@@ -512,7 +512,7 @@ let useStateRenderer = (
                     ~text=`Delete "${state.selectedMacroModuleName}" module of macros?`, 
                 )->Promise.thenResolve(confirmed => {
                     if (confirmed) {
-                        updateSelectedMacroModule((st,moduleName) => deleteMacroModule(st, ~moduleName))
+                        updateSelectedMacroModuleAsync((st,moduleName) => deleteMacroModule(st, ~moduleName))
                     }
                 })->ignore
             }
@@ -520,7 +520,7 @@ let useStateRenderer = (
     }
 
     let actAddNewMacroModule = () => {
-        updateState(st => Ok(st->addNewMacroModule)->Promise.resolve)
+        updateState(st => Ok(st->addNewMacroModule))
     }
 
     let actToggleExpanded = () => {
@@ -745,7 +745,33 @@ let make = (
         None
     })
 
-    let updateState = (update:state=>promise<result<state,string>>):unit => {
+    let updateState = (update:state=>result<state,string>):unit => {
+        setState(st => {
+            switch st {
+                | None => None
+                | Some(st) => {
+                    switch update(st) {
+                        | Error(msg) => {
+                            openInfoDialog( ~modalRef, ~content={msg->React.string} )
+                            Some(st)
+                        }
+                        | Ok(st) => Some(st)
+                    }
+                }
+            }
+        })
+    }
+
+    let updateSelectedMacroModule = (update:(state,string)=>result<state,string>):unit => {
+        updateState(st => {
+            switch st.macroModules->Belt_MapString.get(st.selectedMacroModuleName) {
+                | None => Error(`Cannot find a module with name "${st.selectedMacroModuleName}"`)
+                | Some(_) => update(st, st.selectedMacroModuleName)
+            }
+        })
+    }
+
+    let updateStateAsync = (update:state=>promise<result<state,string>>):unit => {
         setState(st => {
             switch st {
                 | None => None
@@ -765,8 +791,8 @@ let make = (
         })
     }
 
-    let updateSelectedMacroModule = (update:(state,string)=>promise<result<state,string>>):unit => {
-        updateState(st => {
+    let updateSelectedMacroModuleAsync = (update:(state,string)=>promise<result<state,string>>):unit => {
+        updateStateAsync(st => {
             switch st.macroModules->Belt_MapString.get(st.selectedMacroModuleName) {
                 | None => Promise.resolve(Error(`Cannot find a module with name "${st.selectedMacroModuleName}"`))
                 | Some(_) => update(st, st.selectedMacroModuleName)
@@ -784,7 +810,13 @@ let make = (
         }
     }
     let stateRenderer = useStateRenderer(
-        ~modalRef, ~state=stateForRenderer, ~updateState, ~updateSelectedMacroModule, ~onClose
+        ~modalRef, 
+        ~state=stateForRenderer, 
+        ~updateState, 
+        ~updateSelectedMacroModule, 
+        ~updateStateAsync, 
+        ~updateSelectedMacroModuleAsync, 
+        ~onClose
     )
 
     switch state {
