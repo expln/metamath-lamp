@@ -1,3 +1,5 @@
+const moduleName = 'MMJ2'
+
 await api.setLogApiCallsToConsole(true)
 
 const NEW_LINE = String.fromCharCode(10)
@@ -320,7 +322,7 @@ function makeMacro(name, func) {
 }
 
 await api.macro.registerMacroModule({
-    moduleName: 'MMJ2',
+    moduleName,
     macros: [
         makeMacro('Unify', mmj2Unify),
         makeMacro('Import from MMP file', importFromMmp),

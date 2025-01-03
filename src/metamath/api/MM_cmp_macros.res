@@ -45,11 +45,7 @@ let runAsyncScript = (~macroModuleName:string, ~script:string):promise<result<un
         | Some(result) => Promise.resolve(result)
         | None => {
             let title = `Executing the script for '${macroModuleName}'`
-            MM_api_macros.setOverrideMacroModuleName(Some(macroModuleName))
-            switch invokeExnFunc(
-                title, 
-                () => executeAsyncFunctionBody(script)
-            ) {
+            switch invokeExnFunc( title, () => executeAsyncFunctionBody(script) ) {
                 | Error(msg) => Promise.resolve(Error(msg))
                 | Ok(promise) => {
                     promise->Promise.thenResolve(_ => Ok(()))->Promise.catch(exn => {
@@ -58,7 +54,6 @@ let runAsyncScript = (~macroModuleName:string, ~script:string):promise<result<un
                     })
                 }
             }->Promise.thenResolve(res => {
-                MM_api_macros.setOverrideMacroModuleName(None)
                 scriptCache->Belt_HashMapString.set(key, res)
                 res
             })
@@ -306,6 +301,9 @@ let saveEdits = (st:state, ~moduleName:string):promise<result<state,string>> => 
                 } else if (mod.scriptTextEdit->String.trim == "") {
                     Promise.resolve(Error(`The script must not be empty.`))
                 } else {
+                    if (!mod.isActiveEdit) {
+                        MM_api_macros.unregisterMacroModule(moduleName)
+                    }
                     {
                         selectedMacroModuleName:
                             moduleName == st.selectedMacroModuleName ? mod.nameEdit : st.selectedMacroModuleName,

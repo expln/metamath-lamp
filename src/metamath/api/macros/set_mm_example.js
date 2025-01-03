@@ -1,3 +1,5 @@
+const moduleName = 'set.mm example macros'
+
 const commonFrameParams = {
     minDist:null,
     maxDist:null,
@@ -1381,7 +1383,7 @@ function makeMacro(name, func) {
 }
 
 await api.macro.registerMacroModule({
-    moduleName: 'set.mm example macros',
+    moduleName,
     macros: [
         makeMacro('Prove "equals"', async () => await proveSelected({frmParams:FPR_EQUALS, debugLevel:0})),
         makeMacro('Prove "element of"', async () => await proveSelected({frmParams:FPR_ELEM_OF, debugLevel:0})),
