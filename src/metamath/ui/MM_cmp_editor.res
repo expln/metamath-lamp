@@ -1000,12 +1000,12 @@ let make = (
                             | None => {
                                 switch getArgs0AndAsrtLabel(checkedStmts, rootStmts) {
                                     | None => None
-                                    | Some((args0,asrtLabel)) => {
+                                    | Some((deriveFromOnLevel0,asrtLabel)) => {
                                         let bottomUpProverDefaults = preCtxData.settingsV.val.bottomUpProverDefaults
                                         Some(
                                             bottomUpProverParamsMakeDefault(
                                                 ~asrtLabel?, 
-                                                ~args0, 
+                                                ~deriveFromOnLevel0, 
                                                 ~maxSearchDepth=bottomUpProverDefaults.searchDepth,
                                                 ~lengthRestrict=bottomUpProverDefaults.lengthRestrict
                                                     ->lengthRestrictFromStr->Option.getOr(Less),
@@ -1445,11 +1445,11 @@ let make = (
                 let rootUserStmts = st->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
                 let (params,debugLevel) = switch getArgs0AndAsrtLabel([singleProvableChecked], rootStmts) {
-                    | Some((args0,asrtLabel)) => {
+                    | Some((deriveFromOnLevel0,asrtLabel)) => {
                         (
                             bottomUpProverParamsMakeDefault(
-                                ~args0, 
-                                ~args1=[],
+                                ~deriveFromOnLevel0, 
+                                ~deriveFromOnLevel1=[],
                                 ~asrtLabel?, 
                                 ~maxSearchDepth=1,
                                 ~lengthRestrict=Less,
@@ -1464,8 +1464,8 @@ let make = (
                     | None => {
                         (
                             bottomUpProverParamsMakeDefault(
-                                ~args0=rootStmts->Array.map(stmt => stmt.expr), 
-                                ~args1=[],
+                                ~deriveFromOnLevel0=rootStmts->Array.map(stmt => stmt.expr), 
+                                ~deriveFromOnLevel1=[],
                                 ~asrtLabel=?None, 
                                 ~maxSearchDepth=1,
                                 ~lengthRestrict=No,

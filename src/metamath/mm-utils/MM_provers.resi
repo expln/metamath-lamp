@@ -12,7 +12,7 @@ type bottomUpProverFrameParams = {
     maxDist: option<int>,
     frmsToUse: option<array<string>>,
     matches: option<array<applyAsrtResultMatcher>>,
-    args: array<expr>,
+    deriveFrom: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
@@ -32,8 +32,8 @@ let bottomUpProverParamsMakeDefault:(
     ~allowNewDisjForExistingVars: bool=?,
     ~allowNewStmts: bool=?,
     ~allowNewVars: bool=?,
-    ~args0: array<expr>=?,
-    ~args1: array<expr>=?,
+    ~deriveFromOnLevel0: array<expr>=?,
+    ~deriveFromOnLevel1: array<expr>=?,
     ~maxNumberOfBranches: int=?
 ) => bottomUpProverParams
 

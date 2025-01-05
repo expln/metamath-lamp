@@ -34,7 +34,7 @@ type rec proofNode = {
 }
 
 and exprSrc =
-    | VarType
+    | VarType // it is used for new variables only
     | Hypothesis({label:string})
     | Assertion({args:array<proofNode>, frame:frame})
     | AssertionWithErr({args:array<proofNode>, frame:frame, err:unifErr})
@@ -243,7 +243,7 @@ let pnMarkProved = ( node:proofNode ):unit => {
 
 let pnAddChild = (node, child): unit => {
     if (node.id != child.id) {
-        switch node.children->Array.find(existingChild => existingChild.id  == child.id) {
+        switch node.children->Array.find(existingChild => existingChild.id == child.id) {
             | None => node.children->Array.push(child)
             | Some(_) => ()
         }

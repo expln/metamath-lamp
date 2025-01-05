@@ -45,7 +45,7 @@ type proverFrameParamsToShow = {
     maxDist: option<int>,
     matches: option<array<applyAsrtResultMatcherToShow>>,
     frmsToUse: option<array<string>>,
-    args: array<string>,
+    deriveFrom: array<string>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
@@ -205,10 +205,10 @@ let makeInitialState = (
 
         initialParams:params,
         args0: possibleArgs->Array.map(possibleArg => {
-            frameParamsLen > 0 && (frameParams->Array.getUnsafe(0)).args->Array.some(arg => arg->exprEq(possibleArg))
+            frameParamsLen > 0 && (frameParams->Array.getUnsafe(0)).deriveFrom->Array.some(arg => arg->exprEq(possibleArg))
         }),
         args1: possibleArgs->Array.map(possibleArg => {
-            frameParamsLen > 1 && (frameParams->Array.getUnsafe(1)).args->Array.some(arg => arg->exprEq(possibleArg))
+            frameParamsLen > 1 && (frameParams->Array.getUnsafe(1)).deriveFrom->Array.some(arg => arg->exprEq(possibleArg))
         }),
         args1EqArgs0:false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
@@ -755,7 +755,7 @@ let make = (
         if (isApiCall) {
             state.initialParams
         } else {
-            let args0=state.rootStmtsRendered
+            let deriveFromOnLevel0=state.rootStmtsRendered
                     ->Array.filterWithIndex((_,i) => state.args0->Array.getUnsafe(i))
                     ->Array.map(stmt => stmt.expr)
             bottomUpProverParamsMakeDefault(
@@ -765,10 +765,10 @@ let make = (
                 ~allowNewDisjForExistingVars=state.allowNewDisjForExistingVars,
                 ~allowNewStmts=state.allowNewStmts,
                 ~allowNewVars=state.allowNewVars,
-                ~args0,
-                ~args1=
+                ~deriveFromOnLevel0,
+                ~deriveFromOnLevel1=
                     if (state.args1EqArgs0) {
-                        args0
+                        deriveFromOnLevel0
                     } else {
                         state.rootStmtsRendered
                             ->Array.filterWithIndex((_,i) => state.args1->Array.getUnsafe(i))
@@ -829,7 +829,7 @@ let make = (
                 maxDist: p.maxDist,
                 matches: p.matches->Belt.Option.map(makeMatchesToShow(wrkCtx, _)),
                 frmsToUse: p.frmsToUse,
-                args: p.args->Array.map(exprToLabel(state, _)),
+                deriveFrom: p.deriveFrom->Array.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
                 allowNewStmts: p.allowNewStmts,
                 allowNewVars: p.allowNewVars,

@@ -772,7 +772,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             minDist: None, maxDist: None,
             matches: None,
             frmsToUse: Some([]),
-            args: [
+            deriveFrom: [
                 getStmt(st, ~label="hyp1").expr->Belt.Option.getExn,
                 getStmt(st, ~label="hyp2").expr->Belt.Option.getExn,
             ],

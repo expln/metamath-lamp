@@ -533,7 +533,7 @@ let proveBottomUp = (
                                                             matches: matches->Array.getUnsafe(i),
                                                             frmsToUse: frameParams.framesToUse
                                                                 ->Belt.Option.map(sortFrames(state,_)),
-                                                            args: args->Array.getUnsafe(i),
+                                                            deriveFrom: args->Array.getUnsafe(i),
                                                             allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
                                                             allowNewStmts: frameParams.allowNewSteps,
                                                             allowNewVars: frameParams.allowNewVariables,

@@ -418,8 +418,8 @@ let unifyBottomUp = (
                                 ~allowNewDisjForExistingVars,
                                 ~allowNewStmts,
                                 ~allowNewVars,
-                                ~args0 = filterRootStmts(rootUserStmts, args0),
-                                ~args1 = filterRootStmts(rootUserStmts, args1)
+                                ~deriveFromOnLevel0 = filterRootStmts(rootUserStmts, args0),
+                                ~deriveFromOnLevel1 = filterRootStmts(rootUserStmts, args1)
                             )
                         }
                     },

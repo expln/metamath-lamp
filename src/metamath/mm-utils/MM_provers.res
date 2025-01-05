@@ -18,7 +18,7 @@ type bottomUpProverFrameParams = {
     maxDist: option<int>,
     frmsToUse: option<array<string>>,
     matches: option<array<applyAsrtResultMatcher>>,
-    args: array<expr>,
+    deriveFrom: array<expr>,
     allowNewDisjForExistingVars: bool,
     allowNewStmts: bool,
     allowNewVars: bool,
@@ -38,8 +38,8 @@ let bottomUpProverParamsMakeDefault = (
     ~allowNewDisjForExistingVars: bool=true,
     ~allowNewStmts: bool=true,
     ~allowNewVars: bool=false,
-    ~args0: array<expr>=[],
-    ~args1: array<expr>=[],
+    ~deriveFromOnLevel0: array<expr>=[],
+    ~deriveFromOnLevel1: array<expr>=[],
     ~maxNumberOfBranches: option<int>=?
 ):bottomUpProverParams => {
     {
@@ -50,7 +50,7 @@ let bottomUpProverParamsMakeDefault = (
                 maxDist: Some(0),
                 frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
                 matches: None,
-                args: args0,
+                deriveFrom: deriveFromOnLevel0,
                 allowNewDisjForExistingVars,
                 allowNewStmts,
                 allowNewVars: allowNewVars,
@@ -62,7 +62,7 @@ let bottomUpProverParamsMakeDefault = (
                 maxDist: None,
                 matches: None,
                 frmsToUse: None,
-                args: args1,
+                deriveFrom: deriveFromOnLevel1,
                 allowNewDisjForExistingVars,
                 allowNewStmts,
                 allowNewVars: false,
@@ -106,7 +106,7 @@ let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSrc> => {
     }
 }
 
-let findAsrtParentsWithoutNewVars = ( 
+let findAsrtParentsWithoutNewVars = (
     ~tree, 
     ~expr, 
     ~restrictExprLen:lengthRestrict, 
@@ -669,7 +669,7 @@ let proveStmtBottomUp = (
                 let parents:array<exprSrc> = findAsrtParentsWithNewVars(
                     ~tree,
                     ~expr,
-                    ~args=paramsI.args,
+                    ~args=paramsI.deriveFrom,
                     ~exactOrderOfArgs=false,
                     ~frmsToUse=?paramsI.frmsToUse,
                     ~allowEmptyArgs=paramsI.allowNewStmts,
