@@ -8,8 +8,10 @@ let validate = (values:bottomUpProverDefaults):bottomUpProverDefaults => {
     } else {
         values
     }
-    let values = switch MM_provers.lengthRestrictFromStr(values.lengthRestrict) {
-        | None => {...values, lengthRestrict:MM_provers.lengthRestrictToStr(MM_provers.Less)}
+    let values = switch MM_bottom_up_prover_params.lengthRestrictFromStr(values.lengthRestrict) {
+        | None => {
+            {...values, lengthRestrict:MM_bottom_up_prover_params.lengthRestrictToStr(MM_bottom_up_prover_params.Less)}
+        }
         | Some(_) => values
     }
     let values = if (values.debugLevel < 0 || 1 < values.debugLevel) {

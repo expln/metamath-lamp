@@ -1,6 +1,7 @@
 open Expln_test
 open MM_int_test_utils
 open MM_int_test_editor_methods
+open MM_bottom_up_prover_params
 
 module Ed = MM_int_test_editor_methods
 
@@ -768,7 +769,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let st = st->unifyAll
         assertEditorState(st, "step1")
 
-        let defaultFrameParams:MM_provers.bottomUpProverFrameParams = {
+        let defaultFrameParams:bottomUpProverFrameParams = {
             minDist: None, maxDist: None,
             matches: None,
             frmsToUse: Some([]),
@@ -786,7 +787,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
         let prepareBottomUpProverParams = (
             state:MM_wrk_editor.editorState,
             matcher:MM_api_editor.apiApplyAsrtResultMatcher,
-        ):MM_provers.bottomUpProverParams => {
+        ):bottomUpProverParams => {
             {
                 maxSearchDepth:3,
                 frameParams: [
@@ -801,6 +802,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
                         matches: MM_api_editor.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
                     }
                 ],
+                updateParams:None,
             }
         }
 

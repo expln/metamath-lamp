@@ -4,7 +4,7 @@ open MM_context
 open MM_syntax_tree
 open MM_wrk_editor_substitution
 open MM_substitution
-open MM_apply_asrt_matcher
+open MM_apply_asrt_matcher_type
 open MM_api
 
 let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
@@ -410,7 +410,7 @@ type proverParams = {
     delayBeforeStartMs:int,
     stmtId: MM_wrk_editor.stmtId,
     debugLevel:int,
-    bottomUpProverParams: MM_provers.bottomUpProverParams,
+    bottomUpProverParams: MM_bottom_up_prover_params.bottomUpProverParams,
     selectFirstFoundProof:bool,
 }
 let proveBottomUp = (
@@ -456,7 +456,7 @@ let proveBottomUp = (
                         allowNewSteps: d->bool("allowNewSteps"),
                         allowNewVariables: d->bool("allowNewVariables"),
                         statementLengthRestriction: d->str("statementLengthRestriction", ~validator = str => {
-                            switch MM_provers.lengthRestrictFromStr(str) {
+                            switch MM_bottom_up_prover_params.lengthRestrictFromStr(str) {
                                 | Some(_) => Ok(str)
                                 | None => Error(`statementLengthRestriction must be one of: No, LessEq, Less.`)
                             }
@@ -526,7 +526,7 @@ let proveBottomUp = (
                                             bottomUpProverParams: {
                                                 maxSearchDepth: apiParams.maxSearchDepth,
                                                 frameParams: apiParams.frameParams->Array.mapWithIndex(
-                                                    (frameParams,i):MM_provers.bottomUpProverFrameParams => {
+                                                    (frameParams,i):MM_bottom_up_prover_params.bottomUpProverFrameParams => {
                                                         {
                                                             minDist: frameParams.minDist,
                                                             maxDist: frameParams.maxDist,
@@ -537,11 +537,14 @@ let proveBottomUp = (
                                                             allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
                                                             allowNewStmts: frameParams.allowNewSteps,
                                                             allowNewVars: frameParams.allowNewVariables,
-                                                            lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
+                                                            lengthRestrict: 
+                                                                frameParams.statementLengthRestriction
+                                                                    ->MM_bottom_up_prover_params.lengthRestrictFromStrExn,
                                                             maxNumberOfBranches: frameParams.maxNumberOfBranches,
                                                         }
                                                     }
-                                                )
+                                                ),
+                                                updateParams:None,
                                             }
                                         })->Promise.thenResolve(proved => {
                                             switch proved {

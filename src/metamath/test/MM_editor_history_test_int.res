@@ -4,9 +4,9 @@ open MM_wrk_editor
 open MM_wrk_editor_json
 open MM_wrk_pre_ctx_data
 open MM_context
-
 open MM_int_test_utils
 open MM_int_test_editor_methods
+open MM_bottom_up_prover_params
 
 module Ed = MM_int_test_editor_methods
 
@@ -38,7 +38,7 @@ let createEmptyEditorState = ():editorState => {
         combCntMax:10000,
         bottomUpProverDefaults: {
             searchDepth: 4,
-            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            lengthRestrict: lengthRestrictToStr(Less),
             allowNewDisjForExistingVars: true,
             allowNewStmts: true,
             allowNewVars: false,

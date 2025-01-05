@@ -8,6 +8,7 @@ open MM_react_common
 open MM_cmp_type_settings
 open MM_cmp_web_src_settings
 open Common
+open MM_bottom_up_prover_params
 
 type settingsState = {
     parens: string,
@@ -180,7 +181,7 @@ let createDefaultSettings = ():settingsState => {
         combCntMaxStr:combCntMaxDefault->Belt.Int.toString,
         bottomUpProverDefaults: {
             searchDepth: 4,
-            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            lengthRestrict: lengthRestrictToStr(Less),
             allowNewDisjForExistingVars: true,
             allowNewStmts: true,
             allowNewVars: false,

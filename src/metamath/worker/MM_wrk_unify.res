@@ -8,6 +8,7 @@ open MM_statements_dto
 open MM_wrk_settings
 open MM_proof_verifier
 open Common
+open MM_bottom_up_prover_params
 
 let procName = "MM_wrk_unify"
 

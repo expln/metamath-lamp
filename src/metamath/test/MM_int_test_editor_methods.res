@@ -14,6 +14,7 @@ open MM_wrk_pre_ctx_data
 open MM_int_test_utils
 open MM_substitution
 open Common
+open MM_bottom_up_prover_params
 
 type rootStmtsToUse =
     | AllStmts
@@ -73,7 +74,7 @@ let createEditorState = (
         combCntMax:10000,
         bottomUpProverDefaults: {
             searchDepth: 4,
-            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            lengthRestrict: lengthRestrictToStr(Less),
             allowNewDisjForExistingVars: true,
             allowNewStmts: true,
             allowNewVars: false,

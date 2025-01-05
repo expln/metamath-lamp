@@ -7,15 +7,15 @@ open MM_context
 open MM_substitution
 open Expln_React_Modal
 open MM_statements_dto
-open MM_provers
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
 open MM_wrk_settings
 open MM_cmp_root_stmts
-open MM_apply_asrt_matcher
+open MM_apply_asrt_matcher_type
 open Common
+open MM_bottom_up_prover_params
 
 type sortBy = NewStmtsNum | UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 

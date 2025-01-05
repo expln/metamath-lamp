@@ -9,91 +9,9 @@ open MM_unification_debug
 open MM_statements_dto
 open Common
 open MM_wrk_settings
+open MM_apply_asrt_matcher_type
 open MM_apply_asrt_matcher
-
-type lengthRestrict = No | LessEq | Less
-
-type bottomUpProverFrameParams = {
-    minDist: option<int>,
-    maxDist: option<int>,
-    frmsToUse: option<array<string>>,
-    matches: option<array<applyAsrtResultMatcher>>,
-    deriveFrom: array<expr>,
-    allowNewDisjForExistingVars: bool,
-    allowNewStmts: bool,
-    allowNewVars: bool,
-    lengthRestrict: lengthRestrict,
-    maxNumberOfBranches: option<int>,
-}
-
-type bottomUpProverParams = {
-    maxSearchDepth: int,
-    frameParams: array<bottomUpProverFrameParams>,
-}
-
-let bottomUpProverParamsMakeDefault = (
-    ~asrtLabel: option<string>=?,
-    ~maxSearchDepth: int=4,
-    ~lengthRestrict: lengthRestrict=Less,
-    ~allowNewDisjForExistingVars: bool=true,
-    ~allowNewStmts: bool=true,
-    ~allowNewVars: bool=false,
-    ~deriveFromOnLevel0: array<expr>=[],
-    ~deriveFromOnLevel1: array<expr>=[],
-    ~maxNumberOfBranches: option<int>=?
-):bottomUpProverParams => {
-    {
-        maxSearchDepth,
-        frameParams: [
-            {
-                minDist: Some(0),
-                maxDist: Some(0),
-                frmsToUse: asrtLabel->Belt_Option.map(label => [label]),
-                matches: None,
-                deriveFrom: deriveFromOnLevel0,
-                allowNewDisjForExistingVars,
-                allowNewStmts,
-                allowNewVars: allowNewVars,
-                lengthRestrict: No,
-                maxNumberOfBranches,
-            },
-            {
-                minDist: Some(1),
-                maxDist: None,
-                matches: None,
-                frmsToUse: None,
-                deriveFrom: deriveFromOnLevel1,
-                allowNewDisjForExistingVars,
-                allowNewStmts,
-                allowNewVars: false,
-                lengthRestrict: lengthRestrict,
-                maxNumberOfBranches,
-            }
-        ],
-    }
-}
-
-let lengthRestrictToStr = (len:lengthRestrict) => {
-    switch len {
-        | No => "No"
-        | LessEq => "LessEq"
-        | Less => "Less"
-    }
-}
-let lengthRestrictFromStr = (str:string):option<lengthRestrict> => {
-    switch str {
-        | "No" => Some(No)
-        | "LessEq" => Some(LessEq)
-        | "Less" => Some(Less)
-        | _ => None
-    }
-}
-let lengthRestrictFromStrExn = (str:string):lengthRestrict => {
-    switch lengthRestrictFromStr(str) {
-        | Some(v) => v
-        | None => raise(MmException({msg:`Cannot convert '${str}' to lengthRestrict.`}))
-    }
-}
+open MM_bottom_up_prover_params
 
 let findNonAsrtParent = ( ~tree, ~expr, ):option<exprSrc> => {
     if (tree->ptIsNewVarDef(expr)) {
@@ -504,13 +422,50 @@ let srcIsBackRef = (expr:expr, src:exprSrc):bool => {
     }
 }
 
+let updateProverParams = (
+    ~node:proofNode, 
+    ~dist:int,
+    ~proofCtxIntToSymOpt:int=>option<string>,
+    ~symToProofCtxIntOpt:string=>option<int>,
+):unit => {
+    switch node->pnGetProverParams {
+        | None => raise(MmException({msg:`Internal error: node.proverParams is None.`}))
+        | Some(proverParams) => {
+            switch proverParams.bottomUpProverParams {
+                | None => ()
+                | Some(bottomUpProverParams) => {
+                    switch bottomUpProverParams.updateParams {
+                        | None => ()
+                        | Some(updateParams) => {
+                            switch updateParams(
+                                proverParams, 
+                                node->pnGetExpr,
+                                dist,
+                                proofCtxIntToSymOpt,
+                                symToProofCtxIntOpt
+                            ) {
+                                | None => ()
+                                | Some(newProverParams) => node->pnSetProverParams(Some(newProverParams))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 let proveBottomUp = (
+    ~initProverParams:proverParams,
     ~tree:proofTree,
     ~expr:expr,
-    ~getParents:(expr,int,option<int=>unit>)=>array<exprSrc>,
+    ~getParents:(bottomUpProverParams,expr,int,option<int=>unit>)=>array<exprSrc>,
     ~maxSearchDepth:int,
     ~onProgress:option<string=>unit>,
 ) => {
+    let proofCtxIntToSymOpt:int=>option<string> = i => tree->ptGetProofCtx->ctxIntToSym(i)
+    let symToProofCtxIntOpt:string=>option<int> = s => tree->ptGetProofCtx->ctxSymToInt(s)
+
     let nodesToCreateParentsFor = Belt_MutableQueue.make()
 
     let maxSearchDepthStr = maxSearchDepth->Belt.Int.toString
@@ -519,6 +474,7 @@ let proveBottomUp = (
     tree->ptClearDists
     let rootNode = tree->ptGetNode(expr)
     rootNode->pnSetDist(0)
+    rootNode->pnSetProverParams(Some(initProverParams))
     nodesToCreateParentsFor->Belt_MutableQueue.add(rootNode)
     let lastDist = ref(0)
     let maxCnt = ref(1)
@@ -563,22 +519,30 @@ let proveBottomUp = (
                 | None => {
                     let newDist = curDist + 1
                     if (newDist <= maxSearchDepth) {
-                        getParents(curExpr, curDist, onProgressP.contents)->Array.forEach(src => {
-                            if (!srcIsBackRef(curExpr, src)) {
-                                curNode->pnAddParent(src, true, false)
-                                switch src {
-                                    | Assertion({args}) => 
-                                        args->Array.forEach(arg => {
-                                            if (arg->pnGetProof->Belt.Option.isNone
-                                                    && arg->pnGetDist->Belt.Option.isNone) {
-                                                arg->pnSetDist(newDist)
-                                                nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
-                                            }
-                                        })
-                                    | _ => ()
-                                }
+                        updateProverParams(~node=curNode, ~dist=curDist, ~proofCtxIntToSymOpt, ~symToProofCtxIntOpt, )
+                        switch curNode->pnGetBottomUpProverParams {
+                            | None => ()
+                            | Some(bottomUpProverParams) => {
+                                getParents(bottomUpProverParams, curExpr, curDist, onProgressP.contents)->Array.forEach(src => {
+                                    if (!srcIsBackRef(curExpr, src)) {
+                                        curNode->pnAddParent(src, true, false)
+                                        switch src {
+                                            | Assertion({args}) => 
+                                                args->Array.forEach(arg => {
+                                                    if (arg->pnGetDist->Belt.Option.isNone) {
+                                                        arg->pnSetDist(newDist)
+                                                        arg->pnSetProverParams(curNode->pnGetProverParams)
+                                                        if (arg->pnGetProof->Belt.Option.isNone) {
+                                                            nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
+                                                        }
+                                                    }
+                                                })
+                                            | _ => ()
+                                        }
+                                    }
+                                })
                             }
-                        })
+                        }
                     }
                 }
             }
@@ -658,7 +622,12 @@ let proveStmtBottomUp = (
     ~debugLevel:int,
     ~onProgress:option<string=>unit>,
 ):proofNode => {
-    let getParents = (expr:expr, dist:int, onProgress:option<int=>unit>):array<exprSrc> => {
+    let getParents = (
+        params:bottomUpProverParams, 
+        expr:expr, 
+        dist:int, 
+        onProgress:option<int=>unit>
+    ):array<exprSrc> => {
         let res = []
         for i in 0 to params.frameParams->Array.length-1 {
             let paramsI = params.frameParams->Array.getUnsafe(i)
@@ -732,6 +701,7 @@ let proveStmtBottomUp = (
     }
 
     proveBottomUp(
+        ~initProverParams={customParams:None,bottomUpProverParams:Some(params)},
         ~tree, 
         ~expr, 
         ~getParents,
@@ -766,37 +736,13 @@ let proveStmt = (
     }
 }
 
-let makeExprToStr = (ctx, ctxMaxVar) => {
-    if (ctx->isDebug) {
-        let intToSym = i => {
-            if (i <= ctxMaxVar) {
-                ctx->ctxIntToSymExn(i)
-            } else {
-                "&" ++ i->Belt.Int.toString
-            }
-        }
-        Some(expr => expr->Array.map(intToSym)->Array.joinUnsafe(" "))
-    } else {
-        None
-    }
-}
-
 let createProofTree = (
     ~proofCtx: mmContext,
     ~frms: frms,
     ~parenCnt: parenCnt,
 ) => {
-    let ctxMaxVar = proofCtx->getNumOfVars - 1
-    let hyps = proofCtx->getAllHyps
-    let tree = ptMake(
-        ~frms, 
-        ~hyps, 
-        ~ctxMaxVar, 
-        ~ctxDisj=proofCtx->getAllDisj,
-        ~parenCnt, 
-        ~exprToStr=makeExprToStr(proofCtx, ctxMaxVar),
-    )
-    hyps->Belt_MapString.forEach((label,hyp) => {
+    let tree = ptMake( ~proofCtx, ~frms, ~parenCnt, )
+    proofCtx->getAllHyps->Belt_MapString.forEach((label,hyp) => {
         if (hyp.typ == E) {
             let node = tree->ptGetNode(hyp.expr)
             node->pnAddParent(Hypothesis({label:label}), true, false)

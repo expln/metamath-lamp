@@ -11,12 +11,12 @@ open MM_react_common
 open MM_statements_dto
 open MM_wrk_editor_json
 open MM_proof_tree
-open MM_provers
 open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
 open MM_proof_tree_dto
+open MM_bottom_up_prover_params
 
 let editorStateLocStorKey = "editor-state"
 let editorHistLocStorKey = "editor-hist"

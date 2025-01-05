@@ -3,43 +3,7 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_wrk_settings
-open MM_apply_asrt_matcher
-
-type lengthRestrict = No | LessEq | Less
-
-type bottomUpProverFrameParams = {
-    minDist: option<int>,
-    maxDist: option<int>,
-    frmsToUse: option<array<string>>,
-    matches: option<array<applyAsrtResultMatcher>>,
-    deriveFrom: array<expr>,
-    allowNewDisjForExistingVars: bool,
-    allowNewStmts: bool,
-    allowNewVars: bool,
-    lengthRestrict: lengthRestrict,
-    maxNumberOfBranches: option<int>,
-}
-
-type bottomUpProverParams = {
-    maxSearchDepth: int,
-    frameParams: array<bottomUpProverFrameParams>,
-}
-
-let bottomUpProverParamsMakeDefault:(
-    ~asrtLabel: string=?,
-    ~maxSearchDepth: int=?,
-    ~lengthRestrict: lengthRestrict=?,
-    ~allowNewDisjForExistingVars: bool=?,
-    ~allowNewStmts: bool=?,
-    ~allowNewVars: bool=?,
-    ~deriveFromOnLevel0: array<expr>=?,
-    ~deriveFromOnLevel1: array<expr>=?,
-    ~maxNumberOfBranches: int=?
-) => bottomUpProverParams
-
-let lengthRestrictToStr: lengthRestrict => string
-let lengthRestrictFromStr: string => option<lengthRestrict>
-let lengthRestrictFromStrExn: string => lengthRestrict
+open MM_bottom_up_prover_params
 
 let createProofCtx: (mmContext, array<rootStmt>) => mmContext
 
