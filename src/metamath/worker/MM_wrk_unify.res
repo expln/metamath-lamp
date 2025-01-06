@@ -106,6 +106,22 @@ let unify = (
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
+            let bottomUpProverParams = bottomUpProverParams
+                ->Option.map(bottomUpProverParams => {
+                    switch bottomUpProverParams.updateParamsStr {
+                        | None => bottomUpProverParams
+                        | Some(funcBody) => {
+                            {
+                                ...bottomUpProverParams,
+                                updateParams: Some(Raw_js_utils.makeFunction(
+                                    ~args="params, expr, dist, proofCtxIntToSymOpt, symToProofCtxIntOpt",
+                                    ~body=funcBody
+                                ))
+                            }
+                        }
+                    }
+                })
+                ->Option.map(bottomUpProverParams => {...bottomUpProverParams, updateParamsStr:None})
             let proofTree = unifyAll(
                 ~parenCnt = getWrkParenCntExn(),
                 ~frms = getWrkFrmsExn(),

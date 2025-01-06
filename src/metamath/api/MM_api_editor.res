@@ -6,6 +6,7 @@ open MM_wrk_editor_substitution
 open MM_substitution
 open MM_apply_asrt_matcher_type
 open MM_api
+open MM_bottom_up_prover_params
 
 let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
     Dict.fromArray([
@@ -405,6 +406,7 @@ type proveBottomUpApiParams = {
     debugLevel:option<int>,
     selectFirstFoundProof:option<bool>,
     frameParams: array<apiBottomUpProverFrameParams>,
+    updateParamsStr: option<string>,
 }
 type proverParams = {
     delayBeforeStartMs:int,
@@ -464,6 +466,7 @@ let proveBottomUp = (
                         maxNumberOfBranches: d->intOpt("maxNumberOfBranches"),
                     }
                 })),
+                updateParamsStr: d->strOpt("updateParams"),
             }
         }))
         switch parseResult {
@@ -543,7 +546,8 @@ let proveBottomUp = (
                                                         }
                                                     }
                                                 ),
-                                                updateParams:None,
+                                                updateParamsStr: apiParams.updateParamsStr,
+                                                updateParams: None,
                                             }
                                         })->Promise.thenResolve(proved => {
                                             switch proved {

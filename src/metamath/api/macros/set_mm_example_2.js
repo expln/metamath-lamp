@@ -59,7 +59,54 @@ async function addStepsToEditor({steps,vars}) {
     getResponse(await api.editor().addSteps({steps,vars}))
 }
 
+function updateParams(params, expr, dist, proofCtxIntToSymOpt, symToProofCtxIntOpt) {
+    let customParams = params.customParams
+    if (customParams === undefined) {
+        customParams = {
+            symbolCodes: {
+                elemOf:symToProofCtxIntOpt('e.'),
+                closingParen:symToProofCtxIntOpt(')'),
+            }
+        }
+        // console.log("customParams = " + JSON.stringify(customParams));
+    }
+    let bottomUpProverParams = params.bottomUpProverParams
+    if (
+        expr.length >= 3
+        && expr[expr.length-3] === customParams.symbolCodes.elemOf
+        && expr[expr.length-1] === customParams.symbolCodes.closingParen
+    ) {
+        bottomUpProverParams = {
+            ...bottomUpProverParams,
+            assertionParams: bottomUpProverParams.assertionParams.map(asrtParams => {
+                if (asrtParams.minDist === 1) {
+                    return {...asrtParams, statementLengthRestriction: 'LessEq'}
+                } else {
+                    return asrtParams
+                }
+            })
+        }
+        customParams = {...customParams, passedToLessEq:true}
+    }
+    if (
+        expr.length >= 3
+        && customParams.passedToLessEq
+        && (
+            expr[expr.length-3] !== customParams.symbolCodes.elemOf
+            || expr[expr.length-1] !== customParams.symbolCodes.closingParen
+        )
+    ) {
+        bottomUpProverParams = undefined
+    }
+    if (customParams !== params.customParams || bottomUpProverParams !== params.bottomUpProverParams) {
+        const newParams = {customParams, bottomUpProverParams};
+        // console.log("newParams = " + JSON.stringify(newParams));
+        return newParams
+    }
+}
+
 async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof, debugLevel}) {
+    const updateParamsStr = updateParams.toString()
     return getResponse(await api.editor().proveBottomUp({
         delayBeforeStartMs:200,
         stepToProve,
@@ -83,7 +130,8 @@ async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof,
                 allowNewVariables: false,
                 statementLengthRestriction: 'Less',
             }
-        ]
+        ],
+        updateParams: updateParamsStr.slice(updateParamsStr.indexOf('{')+1, updateParamsStr.length-1)
     }))
 }
 
@@ -99,12 +147,11 @@ async function test1() {
     await resetEditorContent()
     await addStepsToEditor({
         steps: [
-            {label:'h1', type:'h', stmt:'|- ( ph -> A e. CC )'},
-            {label:'h2', type:'h', stmt:'|- ( ph -> B e. RR )'},
-            {label:'h3', type:'h', stmt:'|- ( ph -> C e. CC )'},
+            {label:'h1', type:'h', stmt:'|- ( ph -> A e. QQ )'},
+            {label:'h2', type:'h', stmt:'|- ( ph -> B e. QQ )'},
+            {label:'h3', type:'h', stmt:'|- ( ph -> C e. QQ )'},
             {label:'h4', type:'h', stmt:'|- ( ph -> ( ( sqrt ` ( A - ( ( ( B - B ) ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0 )'},
             {label:'1', type:'p', stmt:'|- ( ph -> ( ( sqrt ` ( A - ( ( 0 ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0 )'},
-            {label:'2', type:'p', stmt:'|- ( ph -> ( ( sqrt ` ( B - ( ( 0 ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0 )'},
         ]
     })
     console.log('### proved = ', await prove({stepToProve: '1', stepsToDeriveFrom: ['h4']}))

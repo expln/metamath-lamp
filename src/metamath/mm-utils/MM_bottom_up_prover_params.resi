@@ -24,6 +24,7 @@ type bottomUpProverFrameParams = {
 type rec bottomUpProverParams = {
     @as("maxSearchDepth") maxSearchDepth: int, 
     @as("assertionParams") frameParams: array<bottomUpProverFrameParams>,
+    @as("updateParamsStr") updateParamsStr: option<string>,
     @as("updateParams") updateParams: option<updateParams>,
 } 
 and updateParams = (

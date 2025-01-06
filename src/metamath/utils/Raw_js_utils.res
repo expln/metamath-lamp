@@ -111,3 +111,5 @@ body => {
     return (new AsyncFunction(body))();
 }
 `)
+
+let makeFunction: (~args:string, ~body:string) => 'a = %raw(`(args,body) => new Function(args, body)`)

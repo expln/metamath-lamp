@@ -802,6 +802,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
                         matches: MM_api_editor.optArrayToMatchers(~state, ~matches=Some([matcher]))->Belt_Result.getExn,
                     }
                 ],
+                updateParamsStr:None,
                 updateParams:None,
             }
         }
