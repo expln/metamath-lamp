@@ -433,7 +433,7 @@ let proveBottomUp = (
                 debugLevel: d->intOpt("debugLevel"),
                 maxSearchDepth: d->int("maxSearchDepth"),
                 selectFirstFoundProof: d->boolOpt("selectFirstFoundProof"),
-                frameParams: d->arr("frameParameters", asObj(_, d=>{
+                frameParams: d->arr("assertionParams", asObj(_, d=>{
                     {
                         minDist: d->intOpt("minDist"),
                         maxDist: d->intOpt("maxDist"),
@@ -450,7 +450,7 @@ let proveBottomUp = (
                                 }), ~default = () => []),
                             }
                         })),
-                        framesToUse: d->arrOpt("frames", asStr(_)),
+                        framesToUse: d->arrOpt("assertionsToUse", asStr(_)),
                         stepsToUse: d->arr("stepsToDeriveFrom", asStr(_)),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables"),
                         allowNewSteps: d->bool("allowNewSteps"),

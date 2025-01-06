@@ -1,26 +1,30 @@
 open MM_context
+open MM_apply_asrt_matcher_type
 
 type customParams
 
-type lengthRestrict = No | LessEq | Less
+type lengthRestrict = 
+    | @as("No") No 
+    | @as("LessEq") LessEq 
+    | @as("Less") Less
 
 type bottomUpProverFrameParams = {
-    minDist: option<int>,
-    maxDist: option<int>,
-    frmsToUse: option<array<string>>,
-    matches: option<array<MM_apply_asrt_matcher_type.applyAsrtResultMatcher>>,
-    deriveFrom: array<MM_context.expr>,
-    allowNewDisjForExistingVars: bool,
-    allowNewStmts: bool,
-    allowNewVars: bool,
-    lengthRestrict: lengthRestrict,
-    maxNumberOfBranches: option<int>,
+    @as("minDist") minDist: option<int>,
+    @as("maxDist") maxDist: option<int>,
+    @as("assertionsToUse") frmsToUse: option<array<string>>,
+    @as("matches") matches: option<array<applyAsrtResultMatcher>>,
+    @as("deriveFrom") deriveFrom: array<expr>,
+    @as("allowNewDisjointsForExistingVariables") allowNewDisjForExistingVars: bool,
+    @as("allowNewStatements") allowNewStmts: bool,
+    @as("allowNewVariables") allowNewVars: bool,
+    @as("statementLengthRestriction") lengthRestrict: lengthRestrict,
+    @as("maxNumberOfBranches") maxNumberOfBranches: option<int>,
 }
 
 type rec bottomUpProverParams = {
-    maxSearchDepth: int, 
-    frameParams: array<bottomUpProverFrameParams>,
-    updateParams: option<updateParams>,
+    @as("maxSearchDepth") maxSearchDepth: int, 
+    @as("assertionParams") frameParams: array<bottomUpProverFrameParams>,
+    @as("updateParams") updateParams: option<updateParams>,
 } 
 and updateParams = (
     proverParams,
@@ -30,8 +34,8 @@ and updateParams = (
     string=>option<int>, /* symToProofCtxIntOpt */
 ) => option<proverParams>
 and proverParams = {
-    bottomUpProverParams:option<bottomUpProverParams>,
-    customParams:option<customParams>,
+    @as("bottomUpProverParams") bottomUpProverParams:option<bottomUpProverParams>,
+    @as("customParams") customParams:option<customParams>,
 }
 
 let bottomUpProverParamsMakeDefault: (
