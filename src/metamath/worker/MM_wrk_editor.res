@@ -2277,18 +2277,8 @@ let completeJstfEditMode = (st, stmtId, newJstfInp):editorState => {
         let newTyp = if (jstfTrimUpperCase == defaultJstfForHyp) {E} else {P}
         let newJstf = if (jstfTrimUpperCase == defaultJstfForHyp) {""} else {newJstfInp->String.trim}
 
-        let pCnt = st.stmts->Array.reduce(
-            0,
-            (cnt,stmt) => {
-                if (stmt.id != stmtId && stmt.typ == P) {
-                    cnt + 1
-                } else {
-                    cnt
-                }
-            }
-        )
         let settings = st.preCtxData.settingsV.val
-        let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal || settings.initStmtIsGoal && pCnt == 0 }
+        let newIsGoal = if (newTyp == E) { false } else { stmt.isGoal }
         let newLabel = if (newIsGoal && !stmt.isGoal && settings.defaultStmtLabel->String.length > 0) {
             settings.defaultStmtLabel
         } else { 

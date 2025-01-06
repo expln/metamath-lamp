@@ -1023,10 +1023,13 @@ let make = (
         }
     }
 
-    React.useEffect0(() => {
-        MM_api_settings.updateSettingsApi(~setMarkFirstProvableStepAsGoal)
+    React.useEffect1(() => {
+        MM_api_settings.updateSettingsApi(
+            ~setMarkFirstProvableStepAsGoal,
+            ~markFirstProvableStepAsGoal=prevState.initStmtIsGoal,
+        )
         None
-    })
+    }, [prevState.initStmtIsGoal])
     
     let discardChanges = () => {
         setState(_ => prevState)

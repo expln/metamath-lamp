@@ -453,7 +453,7 @@ let proveBottomUp = (
                         framesToUse: d->arrOpt("assertionsToUse", asStr(_)),
                         stepsToUse: d->arr("stepsToDeriveFrom", asStr(_)),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables"),
-                        allowNewSteps: d->bool("allowNewSteps"),
+                        allowNewSteps: d->bool("allowNewStatements"),
                         allowNewVariables: d->bool("allowNewVariables"),
                         statementLengthRestriction: d->str("statementLengthRestriction", ~validator = str => {
                             switch MM_bottom_up_prover_params.lengthRestrictFromStr(str) {
@@ -462,7 +462,6 @@ let proveBottomUp = (
                             }
                         }),
                         maxNumberOfBranches: d->intOpt("maxNumberOfBranches"),
-                        
                     }
                 })),
             }

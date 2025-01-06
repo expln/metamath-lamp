@@ -669,7 +669,7 @@ let make = (
     ~initialDebugLevel: option<int>=?,
     ~apiCallStartTime:option<Date.t>,
     ~delayBeforeStartMs:int,
-    ~selectFirstFoundProof:bool,
+    ~selectFirstFoundProof:option<bool>,
     ~onResultSelected:option<stmtsDto>=>unit,
     ~onCancel:unit=>unit
 ) => {
@@ -953,15 +953,24 @@ let make = (
     }
 
     React.useEffect1(() => {
-        if (selectFirstFoundProof && !state.resultHasBeenSelected) {
+        if (!state.resultHasBeenSelected) {
             switch state.resultsSorted {
                 | None => ()
                 | Some(resultsSorted) => {
-                    setState(setResultHasBeenSelected)
-                    if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
-                        actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
-                    } else {
-                        onResultSelected(None)
+                    switch selectFirstFoundProof {
+                        | None => ()
+                        | Some(selectFirstFoundProof) => {
+                            setState(setResultHasBeenSelected)
+                            if (selectFirstFoundProof) {
+                                if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
+                                    actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
+                                } else {
+                                    onResultSelected(None)
+                                }
+                            } else {
+                                onResultSelected(None)
+                            }
+                        }
                     }
                 }
             }

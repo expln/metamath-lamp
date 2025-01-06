@@ -967,7 +967,7 @@ let make = (
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
-        ~selectFirstFoundProof:bool=false,
+        ~selectFirstFoundProof:option<bool>=?,
         ~bottomUpProofResultConsumer:option<stmtsDto>=>unit = _ => (),
         ~nextAction: unit=>unit = ()=>()
     ) => {
@@ -1045,9 +1045,11 @@ let make = (
                                         actBottomUpResultSelected( 
                                             ~selectedResult=newStmtsDto,
                                             ~bottomUpProofResultConsumer,
-                                            ~selectedManually=!selectFirstFoundProof,
+                                            ~selectedManually=selectFirstFoundProof->Option.isNone,
                                         )
-                                        closeModal(modalRef, modalId)
+                                        if (selectFirstFoundProof->Option.getOr(true)) {
+                                            closeModal(modalRef, modalId)
+                                        }
                                     }}
                                     onCancel={() => closeModal(modalRef, modalId)}
                                 />
@@ -2160,14 +2162,11 @@ let make = (
                                     }
                                 }
                             }
+                        } else {
+                            resolve(None)
                         }
                     }
                 )
-                if (!params.selectFirstFoundProof) {
-                    resolve(None)
-                } else {
-                    ()
-                }
             })
         },
         ~canStartUnifyAll=generalModificationActionIsEnabled,
