@@ -103,6 +103,51 @@ let unify = (
     })
 }
 
+let extractSubstringByRegex = (str:string, regex:RegExp.t):result<string,int> => {
+    switch regex->RegExp.exec(str) {
+        | None => Error(1)
+        | Some(res) => {
+            switch (res->RegExp.Result.matches)[0] {
+                | None => Error(2)
+                | Some(substr) => Ok(substr)
+            }
+        }
+    }
+}
+
+let funcArgsRegex = RegExp.fromStringWithFlags("\\(([^\\)]*)\\)", ~flags="s")
+let getFunctionParams = (funcStr:string):result<string,string> => {
+    switch extractSubstringByRegex(funcStr, funcArgsRegex) {
+        | Error(code) => Error(`Cannot extract the list of paramaters [${code->Int.toString}]: ${funcStr}`)
+        | Ok(str) => Ok(str)
+    }
+}
+
+let funcBodyRegex = RegExp.fromStringWithFlags("[^\\{]*\\{(.*)\\}\\s*$", ~flags="s")
+let getFunctionBody = (funcStr:string):result<string,string> => {
+    switch extractSubstringByRegex(funcStr, funcBodyRegex) {
+        | Error(code) => Error(`Cannot extract the function body [${code->Int.toString}]: ${funcStr}`)
+        | Ok(str) => Ok(str)
+    }
+}
+
+let parseFunc = (funcStr:string):result<'a,string> => {
+    switch getFunctionParams(funcStr) {
+        | Error(msg) => Error(msg)
+        | Ok(funcParams) => {
+            switch getFunctionBody(funcStr) {
+                | Error(msg) => Error(msg)
+                | Ok(funcBody) => {
+                    switch catchExn(() => Raw_js_utils.makeFunction(~args=funcParams, ~body=funcBody)) {
+                        | Error({msg}) => Error(msg)
+                        | Ok(func) => Ok(func)
+                    }
+                }
+            }
+        }
+    }
+}
+
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
@@ -110,13 +155,15 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ->Option.map(bottomUpProverParams => {
                     switch bottomUpProverParams.updateParamsStr {
                         | None => bottomUpProverParams
-                        | Some(funcBody) => {
-                            {
-                                ...bottomUpProverParams,
-                                updateParams: Some(Raw_js_utils.makeFunction(
-                                    ~args="params, expr, dist, proofCtxIntToSymOpt, symToProofCtxIntOpt",
-                                    ~body=funcBody
-                                ))
+                        | Some(updateParamsStr) => {
+                            switch parseFunc(updateParamsStr) {
+                                | Error(msg) => Exn.raiseError(msg)
+                                | Ok(updateParamsFunc) => {
+                                    {
+                                        ...bottomUpProverParams,
+                                        updateParams: Some(updateParamsFunc)
+                                    }
+                                }
                             }
                         }
                     }

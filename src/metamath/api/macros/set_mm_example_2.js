@@ -105,8 +105,9 @@ function updateParams(params, expr, dist, proofCtxIntToSymOpt, symToProofCtxIntO
     return params
 }
 
+const updateParamsStr = updateParams.toString()
+
 async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof, debugLevel}) {
-    const updateParamsStr = updateParams.toString()
     return getResponse(await api.editor().proveBottomUp({
         delayBeforeStartMs:200,
         stepToProve,
@@ -131,7 +132,7 @@ async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof,
                 statementLengthRestriction: 'Less',
             }
         ],
-        updateParams: updateParamsStr.slice(updateParamsStr.indexOf('{')+1, updateParamsStr.length-1)
+        updateParams: updateParamsStr
     }))
 }
 
