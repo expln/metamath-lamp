@@ -31,7 +31,7 @@ type rec proofNode = {
     mutable proof: option<exprSrc>,
     mutable isInvalidFloating: bool,
     mutable dist: option<int>,
-    mutable proverParams:option<proverParams>,
+    mutable bottomUpProverParams:option<bottomUpProverParams>,
     pnDbg: option<proofNodeDbg>,
 }
 
@@ -103,15 +103,9 @@ let pnIsInvalidFloating = node => node.isInvalidFloating
 let pnSetInvalidFloating = node => node.isInvalidFloating = true
 let pnGetDist = node => node.dist
 let pnSetDist = (node,dist) => node.dist = Some(dist)
-let pnSetProverParams = (proofNode:proofNode,proverParams:option<proverParams>) => 
-    proofNode.proverParams = proverParams
-let pnGetProverParams = (proofNode:proofNode) => proofNode.proverParams
-let pnGetBottomUpProverParams = (proofNode:proofNode) => {
-    switch proofNode.proverParams {
-        | Some({bottomUpProverParams}) => bottomUpProverParams
-        | None =>  None
-    }
-}
+let pnSetBottomUpProverParams = (proofNode:proofNode,bottomUpProverParams:option<bottomUpProverParams>) => 
+    proofNode.bottomUpProverParams = bottomUpProverParams
+let pnGetBottomUpProverParams = (proofNode:proofNode) => proofNode.bottomUpProverParams
 let pnGetDbg = node => node.pnDbg
 
 let ptGetProofCtx = tree => tree.proofCtx
@@ -197,7 +191,7 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
                 children: [],
                 isInvalidFloating: false,
                 dist: None,
-                proverParams: None,
+                bottomUpProverParams: None,
                 pnDbg: tree.ptDbg->Belt_Option.map(dbg => {
                     {
                         exprStr: dbg.exprToStr(expr),

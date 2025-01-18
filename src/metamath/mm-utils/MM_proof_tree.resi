@@ -69,9 +69,8 @@ let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: proofNode => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode,int) => unit
-let pnSetProverParams: (proofNode,option<proverParams>) => unit
-let pnGetProverParams: proofNode => option<proverParams>
 let pnGetBottomUpProverParams: proofNode => option<bottomUpProverParams>
+let pnSetBottomUpProverParams: (proofNode,option<bottomUpProverParams>) => unit
 let pnGetDbg: proofNode => option<proofNodeDbg>
 
 let jstfEqSrc: (array<expr>, string, exprSrc) => bool

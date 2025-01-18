@@ -22,22 +22,21 @@ type bottomUpProverFrameParams = {
 }
 
 type rec bottomUpProverParams = {
+    @as("customParams") customParams:option<customParams>,
     @as("maxSearchDepth") maxSearchDepth: int, 
     @as("assertionParams") frameParams: array<bottomUpProverFrameParams>,
     @as("updateParamsStr") updateParamsStr: option<string>,
     @as("updateParams") updateParams: option<updateParams>,
 } 
 and updateParams = (
-    proverParams,
+    bottomUpProverParams,
     expr, /* expr */
     int, /* dist */
     int=>option<string>, /* proofCtxIntToSymOpt */
     string=>option<int>, /* symToProofCtxIntOpt */
-) => option<proverParams>
-and proverParams = {
-    @as("bottomUpProverParams") bottomUpProverParams:option<bottomUpProverParams>,
-    @as("customParams") customParams:option<customParams>,
-}
+) => option<bottomUpProverParams>
+
+let jsonToCustomParams: JSON.t => customParams
 
 let bottomUpProverParamsMakeDefault: (
     ~asrtLabel: string=?,

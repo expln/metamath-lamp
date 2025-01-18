@@ -789,6 +789,7 @@ describe("MM_wrk_editor integration tests: proofs", _ => {
             matcher:MM_api_editor.apiApplyAsrtResultMatcher,
         ):bottomUpProverParams => {
             {
+                customParams:None,
                 maxSearchDepth:3,
                 frameParams: [
                     {

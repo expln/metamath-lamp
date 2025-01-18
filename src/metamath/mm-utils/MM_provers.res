@@ -428,27 +428,21 @@ let updateProverParams = (
     ~proofCtxIntToSymOpt:int=>option<string>,
     ~symToProofCtxIntOpt:string=>option<int>,
 ):unit => {
-    switch node->pnGetProverParams {
-        | None => raise(MmException({msg:`Internal error: node.proverParams is None.`}))
-        | Some(proverParams) => {
-            switch proverParams.bottomUpProverParams {
+    switch node->pnGetBottomUpProverParams {
+        | None => ()
+        | Some(bottomUpProverParams) => {
+            switch bottomUpProverParams.updateParams {
                 | None => ()
-                | Some(bottomUpProverParams) => {
-                    switch bottomUpProverParams.updateParams {
-                        | None => ()
-                        | Some(updateParams) => {
-                            switch updateParams(
-                                proverParams, 
-                                node->pnGetExpr,
-                                dist,
-                                proofCtxIntToSymOpt,
-                                symToProofCtxIntOpt
-                            ) {
-                                | None => ()
-                                | Some(newProverParams) => node->pnSetProverParams(Some(newProverParams))
-                            }
-                        }
-                    }
+                | Some(updateParams) => {
+                    node->pnSetBottomUpProverParams(
+                        updateParams(
+                            bottomUpProverParams, 
+                            node->pnGetExpr,
+                            dist,
+                            proofCtxIntToSymOpt,
+                            symToProofCtxIntOpt
+                        )
+                    )
                 }
             }
         }
@@ -456,7 +450,7 @@ let updateProverParams = (
 }
 
 let proveBottomUp = (
-    ~initProverParams:proverParams,
+    ~params:bottomUpProverParams,
     ~tree:proofTree,
     ~expr:expr,
     ~getParents:(bottomUpProverParams,expr,int,option<int=>unit>)=>array<exprSrc>,
@@ -474,7 +468,7 @@ let proveBottomUp = (
     tree->ptClearDists
     let rootNode = tree->ptGetNode(expr)
     rootNode->pnSetDist(0)
-    rootNode->pnSetProverParams(Some(initProverParams))
+    rootNode->pnSetBottomUpProverParams(Some(params))
     nodesToCreateParentsFor->Belt_MutableQueue.add(rootNode)
     let lastDist = ref(0)
     let maxCnt = ref(1)
@@ -531,7 +525,7 @@ let proveBottomUp = (
                                                 args->Array.forEach(arg => {
                                                     if (arg->pnGetDist->Belt.Option.isNone) {
                                                         arg->pnSetDist(newDist)
-                                                        arg->pnSetProverParams(curNode->pnGetProverParams)
+                                                        arg->pnSetBottomUpProverParams(curNode->pnGetBottomUpProverParams)
                                                         if (arg->pnGetProof->Belt.Option.isNone) {
                                                             nodesToCreateParentsFor->Belt_MutableQueue.add(arg)
                                                         }
@@ -701,7 +695,7 @@ let proveStmtBottomUp = (
     }
 
     proveBottomUp(
-        ~initProverParams={customParams:None,bottomUpProverParams:Some(params)},
+        ~params,
         ~tree, 
         ~expr, 
         ~getParents,

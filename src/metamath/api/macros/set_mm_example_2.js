@@ -60,25 +60,30 @@ async function addStepsToEditor({steps,vars}) {
 }
 
 function updateParams(params, expr, dist, proofCtxIntToSymOpt, symToProofCtxIntOpt) {
-    let customParams = params.customParams
-    if (customParams === undefined) {
-        customParams = {
-            symbolCodes: {
-                elemOf:symToProofCtxIntOpt('e.'),
-                closingParen:symToProofCtxIntOpt(')'),
+    if (params.customParams === undefined) {
+        params = {
+            ...params,
+            customParams: {
+                symbolCodes: {
+                    elemOf:symToProofCtxIntOpt('e.'),
+                    closingParen:symToProofCtxIntOpt(')'),
+                }
             }
         }
-        // console.log("customParams = " + JSON.stringify(customParams));
+        // console.log("customParams = " + JSON.stringify(params.customParams));
     }
-    let bottomUpProverParams = params.bottomUpProverParams
     if (
         expr.length >= 3
-        && expr[expr.length-3] === customParams.symbolCodes.elemOf
-        && expr[expr.length-1] === customParams.symbolCodes.closingParen
+        && expr[expr.length-3] === params.customParams.symbolCodes.elemOf
+        && expr[expr.length-1] === params.customParams.symbolCodes.closingParen
     ) {
-        bottomUpProverParams = {
-            ...bottomUpProverParams,
-            assertionParams: bottomUpProverParams.assertionParams.map(asrtParams => {
+        params = {
+            ...params,
+            customParams: {
+                ...params.customParams,
+                passedToLessEq:true
+            },
+            assertionParams: params.assertionParams.map(asrtParams => {
                 if (asrtParams.minDist === 1) {
                     return {...asrtParams, statementLengthRestriction: 'LessEq'}
                 } else {
@@ -86,23 +91,18 @@ function updateParams(params, expr, dist, proofCtxIntToSymOpt, symToProofCtxIntO
                 }
             })
         }
-        customParams = {...customParams, passedToLessEq:true}
     }
     if (
         expr.length >= 3
-        && customParams.passedToLessEq
+        && params.customParams.passedToLessEq
         && (
-            expr[expr.length-3] !== customParams.symbolCodes.elemOf
-            || expr[expr.length-1] !== customParams.symbolCodes.closingParen
+            expr[expr.length-3] !== params.customParams.symbolCodes.elemOf
+            || expr[expr.length-1] !== params.customParams.symbolCodes.closingParen
         )
     ) {
-        bottomUpProverParams = undefined
+        params = undefined
     }
-    if (customParams !== params.customParams || bottomUpProverParams !== params.bottomUpProverParams) {
-        const newParams = {customParams, bottomUpProverParams};
-        // console.log("newParams = " + JSON.stringify(newParams));
-        return newParams
-    }
+    return params
 }
 
 async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof, debugLevel}) {

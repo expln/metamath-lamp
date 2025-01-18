@@ -405,6 +405,7 @@ type proveBottomUpApiParams = {
     maxSearchDepth:int,
     debugLevel:option<int>,
     selectFirstFoundProof:option<bool>,
+    customParams:option<JSON.t>,
     frameParams: array<apiBottomUpProverFrameParams>,
     updateParamsStr: option<string>,
 }
@@ -435,6 +436,7 @@ let proveBottomUp = (
                 debugLevel: d->intOpt("debugLevel"),
                 maxSearchDepth: d->int("maxSearchDepth"),
                 selectFirstFoundProof: d->boolOpt("selectFirstFoundProof"),
+                customParams: d->jsonOpt("customParams"),
                 frameParams: d->arr("assertionParams", asObj(_, d=>{
                     {
                         minDist: d->intOpt("minDist"),
@@ -526,6 +528,7 @@ let proveBottomUp = (
                                             selectFirstFoundProof:
                                                 apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
                                             bottomUpProverParams: {
+                                                customParams:apiParams.customParams->Option.map(jsonToCustomParams),
                                                 maxSearchDepth: apiParams.maxSearchDepth,
                                                 frameParams: apiParams.frameParams->Array.mapWithIndex(
                                                     (frameParams,i):MM_bottom_up_prover_params.bottomUpProverFrameParams => {
