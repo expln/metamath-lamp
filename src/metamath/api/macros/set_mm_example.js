@@ -180,21 +180,3 @@ await api.macro.registerMacroModule({
         makeMacro('Prove', setMmProve),
     ]
 })
-
-
-// async function test1() {
-//     await resetEditorContent()
-//     await addStepsToEditor({
-//         steps: [
-//             {label:'h1', type:'h', stmt:'|- ( ph -> A e. QQ )'},
-//             {label:'h2', type:'h', stmt:'|- ( ph -> B e. QQ )'},
-//             {label:'h3', type:'h', stmt:'|- ( ph -> C e. QQ )'},
-//             {label:'h4', type:'h', stmt:'|- ( ph -> ( ( sqrt ` ( A - ( ( ( B - B ) ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0 )'},
-//             {label:'1', type:'p', stmt:'|- ( ph -> ( ( sqrt ` ( A - ( ( 0 ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0 )'},
-//         ]
-//     })
-//     console.log('### proved = ', await prove({stepToProve: '1', stepsToDeriveFrom: ['h4']}))
-//     await unifyAll()
-// }
-//
-// await test1()
