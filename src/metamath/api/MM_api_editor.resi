@@ -20,7 +20,7 @@ let updateEditorData: (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,

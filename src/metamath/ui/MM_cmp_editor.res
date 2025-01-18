@@ -254,13 +254,35 @@ let make = (
         })
     }
 
-    let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
-        setStatePriv(st => {
-            let st = st->applyUnifyAllResults(proofTreeDto)
-            let st = st->saveStateToLocStorAndMakeHistSnapshot
-            let st = st->setNextAction(Some(Action(nextAction)))
-            st
-        })
+    let actUnifyAllResultsAreReady = (proofTreeDto:result<proofTreeDto,string>, nextAction: unit=>unit) => {
+        switch proofTreeDto {
+            | Ok(proofTreeDto) => {
+                setStatePriv(st => {
+                    let st = st->applyUnifyAllResults(proofTreeDto)
+                    let st = st->saveStateToLocStorAndMakeHistSnapshot
+                    let st = st->setNextAction(Some(Action(nextAction)))
+                    st
+                })
+            }
+            | Error(msg) => {
+                openInfoDialog(
+                    ~modalRef, 
+                    ~title="Error in UnifyAll",
+                    ~content={
+                        <Col>
+                            <pre style=ReactDOM.Style.make(~color="red", ())> {React.string("Error:")} </pre>
+                            <pre> {React.string(msg)} </pre>
+                        </Col>
+                    }, 
+                    ~onOk=()=>{
+                        setStatePriv(st => {
+                            let st = st->setNextAction(Some(Action(nextAction)))
+                            st
+                        })
+                    }, 
+                )
+            }
+        }
     }
 
     let showInfoMsg = (~title:option<string>=?, ~text:string) => {
@@ -968,7 +990,7 @@ let make = (
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
         ~selectFirstFoundProof:option<bool>=?,
-        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit = _ => (),
+        ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit = _ => (),
         ~nextAction: unit=>unit = ()=>()
     ) => {
         if (thereAreCriticalErrorsInEditor) {
@@ -1097,21 +1119,26 @@ let make = (
             }
         }
     } and let actBottomUpResultSelected = (
-        ~selectedResult:option<stmtsDto>,
-        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit,
+        ~selectedResult:option<result<stmtsDto,string>>,
+        ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit,
         ~selectedManually:bool,
     ) => {
         switch selectedResult {
             | None => bottomUpProofResultConsumer(None)
             | Some(selectedResult) => {
-                setState(st => {
-                    let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
-                    let st = st->uncheckAllStmts
-                    let st = st->setNextAction(Some(
-                        UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(selectedResult))})
-                    ))
-                    st
-                })
+                switch selectedResult {
+                    | Ok(selectedResult) => {
+                        setState(st => {
+                            let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
+                            let st = st->uncheckAllStmts
+                            let st = st->setNextAction(Some(
+                                UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult)))})
+                            ))
+                            st
+                        })
+                    }
+                    | Error(msg) => bottomUpProofResultConsumer(Some(Error(msg)))
+                }
             }
         }
     }
@@ -2148,22 +2175,10 @@ let make = (
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
                     ~selectFirstFoundProof=params.selectFirstFoundProof,
                     ~bottomUpProofResultConsumer = stmtsDto => {
-                        if (params.selectFirstFoundProof) {
-                            switch stmtsDto {
-                                | None => resolve(None)
-                                | Some(stmtsDto) => {
-                                    let len = stmtsDto.stmts->Array.length
-                                    if (len == 0) {
-                                        Exn.raiseError(
-                                            `bottom-up prover returned stmtsDto.stmts->Array.length == 0.`
-                                        )
-                                    } else {
-                                        resolve(Some((stmtsDto.stmts->Array.getUnsafe(len-1)).isProved))
-                                    }
-                                }
-                            }
-                        } else {
-                            resolve(None)
+                        switch stmtsDto {
+                            | None => resolve(Ok(false))
+                            | Some(Error(msg)) => resolve(Error(msg))
+                            | Some(Ok(_)) => resolve(Ok(true))
                         }
                     }
                 )

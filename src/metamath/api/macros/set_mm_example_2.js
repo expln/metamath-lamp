@@ -8,6 +8,7 @@ function getResponse(apiResponse) {
     if (apiResponse.isOk) {
         return apiResponse.res
     } else {
+        showErrMsg(apiResponse.err)
         exn(apiResponse.err)
     }
 }

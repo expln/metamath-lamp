@@ -25,6 +25,7 @@ type request =
 
 type response =
     | OnProgress(string)
+    | Err(string)
     | Result(proofTreeDto)
 
 let bottomUpProverParamsToStr = (params:option<bottomUpProverParams>):string => {
@@ -52,6 +53,7 @@ let reqToStr = req => {
 let respToStr = resp => {
     switch resp {
         | OnProgress(msg) => `OnProgress("${msg}")`
+        | Err(msg) => `Err("${msg}")`
         | Result(_) => `Result`
     }
 }
@@ -70,7 +72,7 @@ let unify = (
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress:string=>unit,
-): promise<proofTreeDto> => {
+): promise<result<proofTreeDto,string>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
@@ -92,9 +94,10 @@ let unify = (
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(msg) => onProgress(msg)
+                    | Err(msg) => resolve(Error(msg))
                     | Result(proofTree) => {
                         endWorkerInteraction()
-                        resolve(proofTree)
+                        resolve(Ok(proofTree))
                     }
                 }
             },
@@ -160,38 +163,47 @@ let parseFunc = (funcStr:string):result<'a,string> => {
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
-            let bottomUpProverParams = bottomUpProverParams
-                ->Option.map(bottomUpProverParams => {
+            let bottomUpProverParams:result<option<bottomUpProverParams>,string> = switch bottomUpProverParams {
+                | None => Ok(None)
+                | Some(bottomUpProverParams) => {
                     switch bottomUpProverParams.updateParamsStr {
-                        | None => bottomUpProverParams
+                        | None => Ok(Some(bottomUpProverParams))
                         | Some(updateParamsStr) => {
                             switch parseFunc(updateParamsStr) {
-                                | Error(msg) => Exn.raiseError(msg)
+                                | Error(msg) => Error(msg)
                                 | Ok(updateParamsFunc) => {
-                                    {
-                                        ...bottomUpProverParams,
-                                        updateParams: Some(updateParamsFunc)
-                                    }
+                                    Ok(Some(
+                                        {
+                                            ...bottomUpProverParams,
+                                            updateParamsStr:None,
+                                            updateParams: Some(updateParamsFunc)
+                                        }
+                                    ))
                                 }
                             }
                         }
                     }
-                })
-                ->Option.map(bottomUpProverParams => {...bottomUpProverParams, updateParamsStr:None})
-            let proofTree = unifyAll(
-                ~parenCnt = getWrkParenCntExn(),
-                ~frms = getWrkFrmsExn(),
-                ~wrkCtx = getWrkCtxExn(),
-                ~rootStmts,
-                ~bottomUpProverParams?,
-                ~allowedFrms,
-                ~combCntMax,
-                ~syntaxTypes?, 
-                ~exprsToSyntaxCheck?,
-                ~debugLevel,
-                ~onProgress = msg => sendToClient(OnProgress(msg))
-            )
-            sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))))
+                }
+            }
+            switch bottomUpProverParams {
+                | Error(msg) => sendToClient(Err(msg))
+                | Ok(bottomUpProverParams) => {
+                    let proofTree = unifyAll(
+                        ~parenCnt = getWrkParenCntExn(),
+                        ~frms = getWrkFrmsExn(),
+                        ~wrkCtx = getWrkCtxExn(),
+                        ~rootStmts,
+                        ~bottomUpProverParams?,
+                        ~allowedFrms,
+                        ~combCntMax,
+                        ~syntaxTypes?, 
+                        ~exprsToSyntaxCheck?,
+                        ~debugLevel,
+                        ~onProgress = msg => sendToClient(OnProgress(msg))
+                    )
+                    sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))))
+                }
+            }
         }
     }
 }

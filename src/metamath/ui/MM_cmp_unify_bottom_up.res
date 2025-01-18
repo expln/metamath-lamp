@@ -88,7 +88,7 @@ type state = {
     proverParamsToShow:option<proverParamsToShow>,
     tree: option<proofTreeDto>,
     warnings:array<string>,
-    results: option<array<stmtsDto>>,
+    results: option<result<array<stmtsDto>,string>>,
     resultsRendered: option<array<resultRendered>>,
     sortBy: sortBy,
     resultsSorted: option<array<resultRendered>>,
@@ -521,11 +521,11 @@ let setResults = (
     st,
     ~tree: option<proofTreeDto>,
     ~warnings:array<string>,
-    ~results: option<array<stmtsDto>>,
+    ~results: option<result<array<stmtsDto>,string>>,
     ~getFrmLabelBkgColor: string=>option<string>,
 ) => {
     switch results {
-        | None => {
+        | None | Some(Error(_)) => {
             {
                 ...st,
                 tree: None,
@@ -538,7 +538,7 @@ let setResults = (
                 checkedResultIdx: None,
             }
         }
-        | Some(results) => {
+        | Some(Ok(results)) => {
             let rootJstfs = st.rootStmts
                 ->Array.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
@@ -552,7 +552,7 @@ let setResults = (
                 ...st,
                 tree,
                 warnings,
-                results:Some(results),
+                results:Some(Ok(results)),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
                 resultsMaxPage: Math.Int.ceil(
@@ -670,7 +670,7 @@ let make = (
     ~apiCallStartTime:option<Date.t>,
     ~delayBeforeStartMs:int,
     ~selectFirstFoundProof:option<bool>,
-    ~onResultSelected:option<stmtsDto>=>unit,
+    ~onResultSelected:option<result<stmtsDto,string>>=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
@@ -681,8 +681,8 @@ let make = (
     let isApiCall = apiCallStartTime->Belt.Option.isSome
 
     let onlyOneResultIsAvailable = switch state.results {
-        | None => false
-        | Some(results) => results->Array.length == 1
+        | None | Some(Error(_)) => false
+        | Some(Ok(results)) => results->Array.length == 1
     }
 
     let actLabelUpdated = label => {
@@ -729,26 +729,40 @@ let make = (
         }
     }
 
-    let actOnResultsReady = (treeDto:proofTreeDto) => {
+    let actOnResultsReady = (treeDto:result<proofTreeDto,string>) => {
         let rootExprToLabel = state.rootStmts
             ->Array.map(stmt => (stmt.expr,stmt.label))
             ->Belt_HashMap.fromArray(~id=module(ExprHash))
-        let results = proofTreeDtoToNewStmtsDto(
-            ~treeDto, 
-            ~rootExprToLabel,
-            ~ctx = wrkCtx,
-            ~typeToPrefix,
-            ~exprToProve=state.exprToProve,
-            ~reservedLabels,
-        )
-        setState(st => {
-            st->setResults(
-                ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
-                ~warnings=findWarnings(treeDto),
-                ~results=Some(results), 
-                ~getFrmLabelBkgColor
-            )
-        })
+        switch treeDto {
+            | Error(msg) => {
+                setState(st => {
+                    st->setResults(
+                        ~tree = None, 
+                        ~warnings=[],
+                        ~results=Some(Error(msg)), 
+                        ~getFrmLabelBkgColor
+                    )
+                })
+            }
+            | Ok(treeDto) => {
+                let results = proofTreeDtoToNewStmtsDto(
+                    ~treeDto, 
+                    ~rootExprToLabel,
+                    ~ctx = wrkCtx,
+                    ~typeToPrefix,
+                    ~exprToProve=state.exprToProve,
+                    ~reservedLabels,
+                )
+                setState(st => {
+                    st->setResults(
+                        ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
+                        ~warnings=findWarnings(treeDto),
+                        ~results=Some(Ok(results)), 
+                        ~getFrmLabelBkgColor
+                    )
+                })
+            }
+        }
     }
 
     let getEffectiveProverParams = (state:state):bottomUpProverParams => {
@@ -925,24 +939,28 @@ let make = (
     }
 
     let actChooseSelected = (idxToSelect:option<int>) => {
+        /*  
+            Ignoring state.results == Some(Error(_)) because actChooseSelected should be called 
+            only when there are no errors. 
+        */
         switch state.results {
-            | None => ()
-            | Some(results) => {
+            | None | Some(Error(_)) => ()
+            | Some(Ok(results)) => {
                 if (onlyOneResultIsAvailable) {
                     setState(setResultHasBeenSelected)
-                    onResultSelected(Some(results->Array.getUnsafe(0)))
+                    onResultSelected(Some(Ok(results->Array.getUnsafe(0))))
                 } else {
                     switch idxToSelect {
                         | Some(checkedResultIdx) => {
                             setState(setResultHasBeenSelected)
-                            onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
+                            onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
                         }
                         | None => {
                             switch state.checkedResultIdx {
                                 | None => ()
                                 | Some(checkedResultIdx) => {
                                     setState(setResultHasBeenSelected)
-                                    onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
+                                    onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
                                 }
                             }
                         }
@@ -952,15 +970,28 @@ let make = (
         }
     }
 
-    React.useEffect1(() => {
-        if (!state.resultHasBeenSelected) {
+    React.useEffect2(() => {
+        if (isApiCall && !state.resultHasBeenSelected) {
             switch state.resultsSorted {
-                | None => ()
-                | Some(resultsSorted) => {
-                    switch selectFirstFoundProof {
+                | None => {
+                    switch state.results {
                         | None => ()
-                        | Some(selectFirstFoundProof) => {
+                        | Some(Ok(_)) => {
+                            Exn.raiseError(
+                                "Internal error: state.resultsSorted is None, but state.results is Some(Ok(_))"
+                            )
+                        }
+                        | Some(Error(msg)) => {
                             setState(setResultHasBeenSelected)
+                            onResultSelected(Some(Error(msg)))
+                        }
+                    }
+                }
+                | Some(resultsSorted) => {
+                    setState(setResultHasBeenSelected)
+                    switch selectFirstFoundProof {
+                        | None => onResultSelected(None)
+                        | Some(selectFirstFoundProof) => {
                             if (selectFirstFoundProof) {
                                 if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
                                     actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
@@ -976,7 +1007,7 @@ let make = (
             }
         }
         None
-    }, [state.resultsSorted])
+    }, (state.results, state.resultsSorted))
 
     let actShowProofTree = () => {
         switch state.tree {
@@ -1032,8 +1063,8 @@ let make = (
 
     let rndSortBySelector = () => {
         switch state.results {
-            | None => React.null
-            | Some(results) => {
+            | None | Some(Error(_)) => React.null
+            | Some(Ok(results)) => {
                 if (results->Array.length < 2) {
                     React.null
                 } else {
@@ -1277,7 +1308,7 @@ let make = (
     }
 
     let rndApplyButton = () => {
-        <Button onClick={_=>actChooseSelected(None)} variant=#contained 
+        <Button onClick={_=>actChooseSelected(None)} variant=#contained
                 disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
             {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
         </Button>
@@ -1355,7 +1386,22 @@ let make = (
 
     let rndResults = () => {
         switch state.resultsSorted {
-            | None => React.null
+            | None => {
+                switch state.results {
+                    | None => React.null
+                    | Some(Ok(_)) => {
+                        Exn.raiseError(
+                            "Internal error: state.resultsSorted is None, but state.results is Some(Ok(_))"
+                        )
+                    }
+                    | Some(Error(msg)) => {
+                        <Col>
+                            <pre style=ReactDOM.Style.make(~color="red", ())> {React.string("Error:")} </pre>
+                            <pre> {React.string(msg)} </pre>
+                        </Col>
+                    }
+                }
+            }
             | Some(resultsSorted) => {
                 let totalNumOfResults = resultsSorted->Array.length
                 if (totalNumOfResults == 0) {

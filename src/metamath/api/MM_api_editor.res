@@ -420,7 +420,7 @@ let proveBottomUp = (
     ~paramsJson:apiInput,
     ~state:editorState,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
 ):promise<result<JSON.t,string>> => {
     if (!canStartProvingBottomUp) {
         Promise.resolve(Error(
@@ -554,8 +554,8 @@ let proveBottomUp = (
                                             }
                                         })->Promise.thenResolve(proved => {
                                             switch proved {
-                                                | None => Ok(JSON.Encode.null)
-                                                | Some(proved) => Ok(proved->JSON.Encode.bool)
+                                                | Error(msg) => Error(msg)
+                                                | Ok(proved) => Ok(proved->JSON.Encode.bool)
                                             }
                                         })
                                     }
@@ -1252,7 +1252,7 @@ type editorData = {
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     setEditorContIsHidden:bool=>promise<unit>,
     canStartProvingBottomUp:bool,
-    startProvingBottomUp:proverParams=>promise<option<bool>>,
+    startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     canStartUnifyAll:bool,
     startUnifyAll:unit=>promise<unit>,
     buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
@@ -1345,7 +1345,7 @@ let updateEditorData = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,

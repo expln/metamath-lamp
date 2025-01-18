@@ -23,7 +23,7 @@ let unify: (
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress: string => unit,
-) => promise<MM_proof_tree_dto.proofTreeDto>
+) => promise<result<MM_proof_tree_dto.proofTreeDto,string>>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 
