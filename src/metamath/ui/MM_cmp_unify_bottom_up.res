@@ -41,23 +41,25 @@ type applyAsrtResultMatcherToShow = {
 }
 
 type proverFrameParamsToShow = {
-    minDist: option<int>,
-    maxDist: option<int>,
-    matches: option<array<applyAsrtResultMatcherToShow>>,
-    frmsToUse: option<array<string>>,
-    deriveFrom: array<string>,
-    allowNewDisjForExistingVars: bool,
-    allowNewStmts: bool,
-    allowNewVars: bool,
-    lengthRestrict: string,
-    maxNumberOfBranches: option<int>,
+    @as("minDist") minDist: option<int>,
+    @as("maxDist") maxDist: option<int>,
+    @as("assertionsToUse") frmsToUse: option<array<string>>,
+    @as("matches") matches: option<array<applyAsrtResultMatcherToShow>>,
+    @as("stepsToDeriveFrom") deriveFrom: array<string>,
+    @as("allowNewDisjointsForExistingVariables") allowNewDisjForExistingVars: bool,
+    @as("allowNewStatements") allowNewStmts: bool,
+    @as("allowNewVariables") allowNewVars: bool,
+    @as("statementLengthRestriction") lengthRestrict: string,
+    @as("maxNumberOfBranches") maxNumberOfBranches: option<int>,
 }
 
 type proverParamsToShow = {
-    stepToProve:string,
-    debugLevel:int,
-    maxSearchDepth:int,
-    frameParams: array<proverFrameParamsToShow>,
+    @as("stepToProve") stepToProve:string,
+    @as("debugLevel") debugLevel:int,
+    @as("customParams") customParams:option<customParams>,
+    @as("maxSearchDepth") maxSearchDepth:int,
+    @as("assertionParams") frameParams: array<proverFrameParamsToShow>,
+    @as("updateParams") updateParams: option<string>,
 }
 
 type state = {
@@ -837,6 +839,7 @@ let make = (
         {
             stepToProve: (state.rootStmts->Array.getUnsafe(state.rootStmts->Array.length-1)).label,
             debugLevel: state.debugLevel,
+            customParams:params.customParams,
             maxSearchDepth: params.maxSearchDepth,
             frameParams: params.frameParams->Array.map(p => {
                 minDist: p.minDist,
@@ -850,6 +853,7 @@ let make = (
                 lengthRestrict: p.lengthRestrict->lengthRestrictToStr,
                 maxNumberOfBranches: p.maxNumberOfBranches,
             }),
+            updateParams: params.updateParamsStr,
         }
     }
 
