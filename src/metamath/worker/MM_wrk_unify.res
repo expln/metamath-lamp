@@ -115,20 +115,21 @@ let extractSubstringByRegex = (str:string, regex:RegExp.t):result<string,int> =>
     }
 }
 
-let funcArgsRegex = RegExp.fromStringWithFlags("\\(([^\\)]*)\\)", ~flags="s")
-let getFunctionParams = (funcStr:string):result<string,string> => {
-    switch extractSubstringByRegex(funcStr, funcArgsRegex) {
-        | Error(code) => Error(`Cannot extract the list of paramaters [${code->Int.toString}]: ${funcStr}`)
+let extractSubstringByRegexWithErrMsg = (str:string, regex:RegExp.t, errMsg:string):result<string,string> => {
+    switch extractSubstringByRegex(str, regex) {
+        | Error(code) => Error(`${errMsg} [${code->Int.toString}]: ${str}`)
         | Ok(str) => Ok(str)
     }
 }
 
+let funcArgsRegex = RegExp.fromStringWithFlags("\\(([^\\)]*)\\)", ~flags="s")
+let getFunctionParams = (funcStr:string):result<string,string> => {
+    extractSubstringByRegexWithErrMsg(funcStr, funcArgsRegex, "Cannot extract the list of paramaters")
+}
+
 let funcBodyRegex = RegExp.fromStringWithFlags("[^\\{]*\\{(.*)\\}\\s*$", ~flags="s")
 let getFunctionBody = (funcStr:string):result<string,string> => {
-    switch extractSubstringByRegex(funcStr, funcBodyRegex) {
-        | Error(code) => Error(`Cannot extract the function body [${code->Int.toString}]: ${funcStr}`)
-        | Ok(str) => Ok(str)
-    }
+    extractSubstringByRegexWithErrMsg(funcStr, funcBodyRegex, "Cannot extract the function body")
 }
 
 let parseFunc = (funcStr:string):result<'a,string> => {
