@@ -122,7 +122,7 @@ let extractSubstringByRegexWithErrMsg = (str:string, regex:RegExp.t, errMsg:stri
     }
 }
 
-let funcArgsRegex = RegExp.fromStringWithFlags("\\(([^\\)]*)\\)", ~flags="s")
+let funcArgsRegex = RegExp.fromStringWithFlags("^[^\\(\\)]*\\(([^\\)]*)\\)", ~flags="s")
 let getFunctionParams = (funcStr:string):result<string,string> => {
     extractSubstringByRegexWithErrMsg(funcStr, funcArgsRegex, "Cannot extract the list of paramaters")
 }
@@ -140,7 +140,15 @@ let parseFunc = (funcStr:string):result<'a,string> => {
                 | Error(msg) => Error(msg)
                 | Ok(funcBody) => {
                     switch catchExn(() => Raw_js_utils.makeFunction(~args=funcParams, ~body=funcBody)) {
-                        | Error({msg}) => Error(msg)
+                        | Error({msg}) => {
+                            let msg = [
+                                `Cannot parse a function: "${msg}".`,
+                                `Parsed params: "${funcParams}".`,
+                                `Parsed body: "${funcBody}".`,
+                                `Provided function text: ${funcStr}.`,
+                            ]->Array.join("\n")
+                            Error(msg)
+                        }
                         | Ok(func) => Ok(func)
                     }
                 }
