@@ -3,7 +3,7 @@ open MM_api
 
 type macro = {
     name: string,
-    run:unit=>unit,
+    run:unit=>promise<unit>,
 }
 
 let macroModules:Belt_HashMapString.t<array<macro>> = Belt_HashMapString.make(~hintSize=4)
@@ -72,16 +72,15 @@ let apiListRegisteredMacrosInModule = (params:apiInput):promise<result<JSON.t,st
 let runMacro = (
     ~moduleName:string,
     ~macroName:string,
-):result<unit,string> => {
+):promise<result<unit,string>> => {
     switch macroModules->Belt_HashMapString.get(moduleName) {
-        | None => Error(`Cannot find a macro module with name "${moduleName}"`)
+        | None => Promise.resolve(Error(`Cannot find a macro module with name "${moduleName}"`))
         | Some(macros) => {
             switch macros->Array.find(macro => macro.name == macroName) {
-                | None => Error(`Cannot find a macro with name "${macroName}" in the module "${moduleName}"`)
-                | Some(macro) => {
-                    macro.run()
-                    Ok()
+                | None => {
+                    Promise.resolve(Error(`Cannot find a macro with name "${macroName}" in the module "${moduleName}"`))
                 }
+                | Some(macro) => macro.run()->Promise.thenResolve(_ => Ok())
             }
         }
     }
@@ -91,10 +90,7 @@ let apiRunMacro = (params:apiInput):promise<result<unit,string>> => {
     let params = params->apiInputToObjExn("apiRunMacro: got empty parameters.")
     let moduleName = reqStrExn(params["moduleName"], "'moduleName' must be a string.")
     let macroName = reqStrExn(params["macroName"], "'macroName' must be a string.")
-    switch runMacro(~moduleName, ~macroName) {
-        | Error(msg) => Promise.resolve(Error(msg))
-        | Ok(_) => Promise.resolve(Ok(()))
-    }
+    runMacro(~moduleName, ~macroName)
 }
 
 let initMacroApi = () => {

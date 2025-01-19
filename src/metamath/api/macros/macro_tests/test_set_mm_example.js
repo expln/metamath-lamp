@@ -1,14 +1,48 @@
 await api.setLogApiCallsToConsole(true)
 
-await api.showInfoMsg({
-    msg:
-        "Do the following steps:\n" +
-        "1. Load set.mm and stop before mathbox.\n" +
-        "2. Run the code from set_mm_example.js in the console.\n" +
-        "3. Click Ok."
-})
+const ALL_TESTS = []
 
-async function bottomUpProver_proves_B_is_CC_from_B_is_QQ() {
+async function runAllTests() {
+    for (const test of ALL_TESTS) {
+        console.log(`Starting test: ${test.name}`)
+        await test()
+        console.log(`Passed test: ${test.name}`)
+    }
+    console.log(`All ${ALL_TESTS.length} tests passed.`)
+}
+
+function exn(msg) {
+    throw new Error(msg)
+}
+
+function getResponse(apiResponse) {
+    if (apiResponse.isOk) {
+        return apiResponse.res
+    } else {
+        exn(apiResponse.err)
+    }
+}
+
+async function getEditorState() {
+    return getResponse(await api.editor().getState())
+}
+
+async function markStepsCheckedInEditor(labels) {
+    getResponse(await api.editor().markStepsChecked({labels}))
+}
+
+async function assertStepIsProved(stepLabel) {
+    const editorState = await getEditorState()
+    if (!editorState.steps.some(step => step.label === stepLabel && step.status === 'v')) {
+        exn(`Step is not proved: ${stepLabel}`)
+    }
+}
+
+async function prove() {
+    await api.macro.runMacro({moduleName:'set.mm example macros', macroName:'Prove'})
+}
+
+async function test_bottomUpProver_proves_B_is_CC_from_B_is_QQ() {
     await resetEditorContent()
     await addStepsToEditor({
         steps: [
@@ -19,8 +53,10 @@ async function bottomUpProver_proves_B_is_CC_from_B_is_QQ() {
             {label:'1', type:'p', stmt:'|- ( ph -> ( ( sqrt ` ( A - ( ( 0 ^ 2 ) x. C ) ) ) / ( cos ` ( A + ( B + C ) ) ) ) = ; 1 0 )'},
         ]
     })
-    console.log('### proved = ', await prove({stepToProve: '1', stepsToDeriveFrom: ['h4']}))
-    await unifyAll()
+    await markStepsCheckedInEditor(['h4', '1'])
+    await prove()
+    await assertStepIsProved('1')
 }
+ALL_TESTS.push(test_bottomUpProver_proves_B_is_CC_from_B_is_QQ)
 
-await bottomUpProver_proves_B_is_CC_from_B_is_QQ()
+await runAllTests()
