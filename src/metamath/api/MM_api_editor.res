@@ -414,7 +414,7 @@ type proverParams = {
     stmtId: MM_wrk_editor.stmtId,
     debugLevel:int,
     bottomUpProverParams: MM_bottom_up_prover_params.bottomUpProverParams,
-    selectFirstFoundProof:bool,
+    selectFirstFoundProof:option<bool>,
 }
 let proveBottomUp = (
     ~paramsJson:apiInput,
@@ -525,8 +525,7 @@ let proveBottomUp = (
                                                 apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
                                             stmtId: stmtToProve.id,
                                             debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
-                                            selectFirstFoundProof:
-                                                apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
+                                            selectFirstFoundProof: apiParams.selectFirstFoundProof,
                                             bottomUpProverParams: {
                                                 customParams:apiParams.customParams->Option.map(jsonToCustomParams),
                                                 maxSearchDepth: apiParams.maxSearchDepth,

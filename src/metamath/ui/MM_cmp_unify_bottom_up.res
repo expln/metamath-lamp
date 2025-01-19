@@ -98,7 +98,7 @@ type state = {
     resultsMaxPage:int,
     resultsPage:int,
     checkedResultIdx: option<int>,
-    resultHasBeenSelected: bool,
+    resultForApiCallHasBeenSelected: bool,
 
     showApiParams:bool,
 }
@@ -278,7 +278,7 @@ let makeInitialState = (
         resultsMaxPage: 0,
         resultsPage: 0,
         checkedResultIdx: None,
-        resultHasBeenSelected: false,
+        resultForApiCallHasBeenSelected: false,
 
         showApiParams:false,
     }
@@ -351,10 +351,10 @@ let toggleShowApiParams = (st) => {
     }
 }
 
-let setResultHasBeenSelected = (st) => {
+let setResultForApiCallHasBeenSelected = (st) => {
     {
         ...st,
-        resultHasBeenSelected: true
+        resultForApiCallHasBeenSelected: true
     }
 }
 
@@ -951,19 +951,19 @@ let make = (
             | None | Some(Error(_)) => ()
             | Some(Ok(results)) => {
                 if (onlyOneResultIsAvailable) {
-                    setState(setResultHasBeenSelected)
+                    setState(setResultForApiCallHasBeenSelected)
                     onResultSelected(Some(Ok(results->Array.getUnsafe(0))))
                 } else {
                     switch idxToSelect {
                         | Some(checkedResultIdx) => {
-                            setState(setResultHasBeenSelected)
+                            setState(setResultForApiCallHasBeenSelected)
                             onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
                         }
                         | None => {
                             switch state.checkedResultIdx {
                                 | None => ()
                                 | Some(checkedResultIdx) => {
-                                    setState(setResultHasBeenSelected)
+                                    setState(setResultForApiCallHasBeenSelected)
                                     onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
                                 }
                             }
@@ -975,7 +975,7 @@ let make = (
     }
 
     React.useEffect2(() => {
-        if (isApiCall && !state.resultHasBeenSelected) {
+        if (isApiCall && !state.resultForApiCallHasBeenSelected) {
             switch state.resultsSorted {
                 | None => {
                     switch state.results {
@@ -986,15 +986,14 @@ let make = (
                             )
                         }
                         | Some(Error(msg)) => {
-                            setState(setResultHasBeenSelected)
+                            setState(setResultForApiCallHasBeenSelected)
                             onResultSelected(Some(Error(msg)))
                         }
                     }
                 }
                 | Some(resultsSorted) => {
-                    setState(setResultHasBeenSelected)
+                    setState(setResultForApiCallHasBeenSelected)
                     switch selectFirstFoundProof {
-                        | None => onResultSelected(None)
                         | Some(selectFirstFoundProof) => {
                             if (selectFirstFoundProof) {
                                 if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
@@ -1002,6 +1001,13 @@ let make = (
                                 } else {
                                     onResultSelected(None)
                                 }
+                            } else {
+                                onResultSelected(None)
+                            }
+                        }
+                        | None => {
+                            if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
+                                actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
                             } else {
                                 onResultSelected(None)
                             }

@@ -7,7 +7,15 @@ type proverParams = {
     stmtId: stmtId,
     debugLevel:int,
     bottomUpProverParams: MM_bottom_up_prover_params.bottomUpProverParams,
-    selectFirstFoundProof:bool,
+    /* 
+    selectFirstFoundProof == true: if a proof is found, add it to the editor. In any case close the dialog 
+        (even if a proof is not found).
+    selectFirstFoundProof == false: if a proof found, do not add it to the editor. Leave the dialog open in any case
+        (even if a proof is found).
+    selectFirstFoundProof == null: if a proof is found, add it to the editor and close the dialog;
+        if a proof is not found, leave the dialog open.
+    */
+    selectFirstFoundProof:option<bool>,
 }
 
 let deleteEditor: int => unit

@@ -23,6 +23,12 @@ function code(code) {
     return String.fromCharCode(code)
 }
 
+async function sleep(millis) {
+    return new Promise((resolve,reject) => {
+        setTimeout(() => resolve(), millis)
+    })
+}
+
 const frms = {}
 
 const FPR_ELEM_OF = 'ELEM_OF';

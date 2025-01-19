@@ -983,6 +983,23 @@ let make = (
         }
     }
 
+    let shouldCloseBottomUpProverDialog = (
+        ~isApiCall:bool,
+        ~selectFirstFoundProof:option<bool>,
+        ~selectedResult:option<result<stmtsDto,string>>,
+    ):bool => {
+        !isApiCall 
+        || selectFirstFoundProof->Option.getOr(false) 
+        || (
+            selectFirstFoundProof->Option.isNone 
+            &&
+            switch selectedResult {
+                | Some(Ok(_)) => true
+                | None | Some(Error(_)) => false
+            }
+        )
+    }
+
     let rec actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
@@ -1067,9 +1084,15 @@ let make = (
                                         actBottomUpResultSelected( 
                                             ~selectedResult=newStmtsDto,
                                             ~bottomUpProofResultConsumer,
-                                            ~selectedManually=selectFirstFoundProof->Option.isNone,
+                                            ~selectedManually=!isApiCall,
                                         )
-                                        if (selectFirstFoundProof->Option.getOr(true)) {
+                                        if (
+                                            shouldCloseBottomUpProverDialog(
+                                                ~isApiCall, 
+                                                ~selectFirstFoundProof, 
+                                                ~selectedResult=newStmtsDto,
+                                            )
+                                        ) {
                                             closeModal(modalRef, modalId)
                                         }
                                     }}
@@ -2173,7 +2196,7 @@ let make = (
                     ~initialDebugLevel=params.debugLevel,
                     ~isApiCall=true,
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
-                    ~selectFirstFoundProof=params.selectFirstFoundProof,
+                    ~selectFirstFoundProof=?params.selectFirstFoundProof,
                     ~bottomUpProofResultConsumer = stmtsDto => {
                         switch stmtsDto {
                             | None => resolve(Ok(false))

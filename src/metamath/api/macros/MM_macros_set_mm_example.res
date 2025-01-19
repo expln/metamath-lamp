@@ -108,7 +108,7 @@ async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof,
         stepToProve,
         debugLevel,
         maxSearchDepth:100,
-        selectFirstFoundProof,
+        selectFirstFoundProof:undefToNull(selectFirstFoundProof),
         assertionParams: [
             {
                 maxDist:0,
@@ -132,11 +132,7 @@ async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof,
 }
 
 async function prove({stepToProve, stepsToDeriveFrom}) {
-    if (!(await provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof:true, debugLevel:0}))) {
-        return await provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof:false, debugLevel:1})
-    } else {
-        return true
-    }
+    return await provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof:null, debugLevel:1})
 }
 
 function getLabelsOfSelectedProvableSteps(editorState) {
@@ -152,8 +148,7 @@ async function setMmProve() {
         await showErrMsg('Select at least one provable step.')
         return
     }
-    // const stepToProve = labelsOfSelectedProvableSteps[labelsOfSelectedProvableSteps.length-1]
-    const stepToProve = labelsOfSelectedProvableSteps[0]
+    const stepToProve = labelsOfSelectedProvableSteps[labelsOfSelectedProvableSteps.length-1]
     await prove({
         stepToProve,
         stepsToDeriveFrom: editorState.selectedSteps.filter(label => label !== stepToProve)
