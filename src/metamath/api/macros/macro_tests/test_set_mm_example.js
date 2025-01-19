@@ -27,6 +27,14 @@ async function getEditorState() {
     return getResponse(await api.editor().getState())
 }
 
+async function resetEditorContent() {
+    getResponse(await api.editor().resetEditorContent())
+}
+
+async function addStepsToEditor({steps,vars}) {
+    getResponse(await api.editor().addSteps({steps,vars}))
+}
+
 async function markStepsCheckedInEditor(labels) {
     getResponse(await api.editor().markStepsChecked({labels}))
 }
