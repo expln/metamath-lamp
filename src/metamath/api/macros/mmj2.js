@@ -95,10 +95,6 @@ async function renameStepsInEditor(renaming) {
     getResponse(await api.editor().renameSteps({renaming}))
 }
 
-async function setMarkFirstProvableStepAsGoal(bool) {
-    getResponse(await api.settings.setMarkFirstProvableStepAsGoal(bool))
-}
-
 function getStepIdx(editorState, label) {
     const steps = editorState.steps
     for (let i = 0; i < steps.length; i++) {
@@ -219,8 +215,6 @@ function parseMmp(mmpText) {
 }
 
 async function loadMmpTextToEditor(mmpText) {
-    await setMarkFirstProvableStepAsGoal(false)
-    await sleep(100) // the sleep() is needed for the setting changes to propagate to all the React components
     const {descr, vars, disj, steps} = parseMmp(mmpText)
     await resetEditorContent()
     await setDescriptionInEditor(descr)

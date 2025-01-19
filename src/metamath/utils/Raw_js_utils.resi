@@ -14,3 +14,4 @@ let reqFuncExn: (Nullable.t<'a>, string) => 'a
 let invokeExnFunc: (string, unit => 'a) => result<'a, string>
 let executeFunctionBody: string => {..}
 let executeAsyncFunctionBody: string => promise<{..}>
+let makeFunction: (~args:string, ~body:string) => 'a

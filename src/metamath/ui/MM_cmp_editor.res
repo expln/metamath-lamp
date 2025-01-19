@@ -11,12 +11,12 @@ open MM_react_common
 open MM_statements_dto
 open MM_wrk_editor_json
 open MM_proof_tree
-open MM_provers
 open Local_storage_utils
 open Common
 open MM_wrk_pre_ctx_data
 open MM_editor_history
 open MM_proof_tree_dto
+open MM_bottom_up_prover_params
 
 let editorStateLocStorKey = "editor-state"
 let editorHistLocStorKey = "editor-hist"
@@ -254,13 +254,35 @@ let make = (
         })
     }
 
-    let actUnifyAllResultsAreReady = (proofTreeDto:proofTreeDto, nextAction: unit=>unit) => {
-        setStatePriv(st => {
-            let st = st->applyUnifyAllResults(proofTreeDto)
-            let st = st->saveStateToLocStorAndMakeHistSnapshot
-            let st = st->setNextAction(Some(Action(nextAction)))
-            st
-        })
+    let actUnifyAllResultsAreReady = (proofTreeDto:result<proofTreeDto,string>, nextAction: unit=>unit) => {
+        switch proofTreeDto {
+            | Ok(proofTreeDto) => {
+                setStatePriv(st => {
+                    let st = st->applyUnifyAllResults(proofTreeDto)
+                    let st = st->saveStateToLocStorAndMakeHistSnapshot
+                    let st = st->setNextAction(Some(Action(nextAction)))
+                    st
+                })
+            }
+            | Error(msg) => {
+                openInfoDialog(
+                    ~modalRef, 
+                    ~title="Error in UnifyAll",
+                    ~content={
+                        <Col>
+                            <pre style=ReactDOM.Style.make(~color="red", ())> {React.string("Error:")} </pre>
+                            <pre> {React.string(msg)} </pre>
+                        </Col>
+                    }, 
+                    ~onOk=()=>{
+                        setStatePriv(st => {
+                            let st = st->setNextAction(Some(Action(nextAction)))
+                            st
+                        })
+                    }, 
+                )
+            }
+        }
     }
 
     let showInfoMsg = (~title:option<string>=?, ~text:string) => {
@@ -961,14 +983,31 @@ let make = (
         }
     }
 
+    let shouldCloseBottomUpProverDialog = (
+        ~isApiCall:bool,
+        ~selectFirstFoundProof:option<bool>,
+        ~selectedResult:option<result<stmtsDto,string>>,
+    ):bool => {
+        !isApiCall 
+        || selectFirstFoundProof->Option.getOr(false) 
+        || (
+            selectFirstFoundProof->Option.isNone 
+            &&
+            switch selectedResult {
+                | Some(Ok(_)) => true
+                | None | Some(Error(_)) => false
+            }
+        )
+    }
+
     let rec actUnify = (
         ~stmtId:option<stmtId>=?,
         ~params:option<bottomUpProverParams>=?,
         ~initialDebugLevel:option<int>=?,
         ~isApiCall:bool=false,
         ~delayBeforeStartMs:int=0,
-        ~selectFirstFoundProof:bool=false,
-        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit = _ => (),
+        ~selectFirstFoundProof:option<bool>=?,
+        ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit = _ => (),
         ~nextAction: unit=>unit = ()=>()
     ) => {
         if (thereAreCriticalErrorsInEditor) {
@@ -1000,12 +1039,12 @@ let make = (
                             | None => {
                                 switch getArgs0AndAsrtLabel(checkedStmts, rootStmts) {
                                     | None => None
-                                    | Some((args0,asrtLabel)) => {
+                                    | Some((deriveFromOnLevel0,asrtLabel)) => {
                                         let bottomUpProverDefaults = preCtxData.settingsV.val.bottomUpProverDefaults
                                         Some(
                                             bottomUpProverParamsMakeDefault(
                                                 ~asrtLabel?, 
-                                                ~args0, 
+                                                ~deriveFromOnLevel0, 
                                                 ~maxSearchDepth=bottomUpProverDefaults.searchDepth,
                                                 ~lengthRestrict=bottomUpProverDefaults.lengthRestrict
                                                     ->lengthRestrictFromStr->Option.getOr(Less),
@@ -1045,9 +1084,17 @@ let make = (
                                         actBottomUpResultSelected( 
                                             ~selectedResult=newStmtsDto,
                                             ~bottomUpProofResultConsumer,
-                                            ~selectedManually=!selectFirstFoundProof,
+                                            ~selectedManually=!isApiCall,
                                         )
-                                        closeModal(modalRef, modalId)
+                                        if (
+                                            shouldCloseBottomUpProverDialog(
+                                                ~isApiCall, 
+                                                ~selectFirstFoundProof, 
+                                                ~selectedResult=newStmtsDto,
+                                            )
+                                        ) {
+                                            closeModal(modalRef, modalId)
+                                        }
                                     }}
                                     onCancel={() => closeModal(modalRef, modalId)}
                                 />
@@ -1095,21 +1142,26 @@ let make = (
             }
         }
     } and let actBottomUpResultSelected = (
-        ~selectedResult:option<stmtsDto>,
-        ~bottomUpProofResultConsumer:option<stmtsDto>=>unit,
+        ~selectedResult:option<result<stmtsDto,string>>,
+        ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit,
         ~selectedManually:bool,
     ) => {
         switch selectedResult {
             | None => bottomUpProofResultConsumer(None)
             | Some(selectedResult) => {
-                setState(st => {
-                    let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
-                    let st = st->uncheckAllStmts
-                    let st = st->setNextAction(Some(
-                        UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(selectedResult))})
-                    ))
-                    st
-                })
+                switch selectedResult {
+                    | Ok(selectedResult) => {
+                        setState(st => {
+                            let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
+                            let st = st->uncheckAllStmts
+                            let st = st->setNextAction(Some(
+                                UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult)))})
+                            ))
+                            st
+                        })
+                    }
+                    | Error(msg) => bottomUpProofResultConsumer(Some(Error(msg)))
+                }
             }
         }
     }
@@ -1445,11 +1497,11 @@ let make = (
                 let rootUserStmts = st->getRootStmtsForUnification
                 let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
                 let (params,debugLevel) = switch getArgs0AndAsrtLabel([singleProvableChecked], rootStmts) {
-                    | Some((args0,asrtLabel)) => {
+                    | Some((deriveFromOnLevel0,asrtLabel)) => {
                         (
                             bottomUpProverParamsMakeDefault(
-                                ~args0, 
-                                ~args1=[],
+                                ~deriveFromOnLevel0, 
+                                ~deriveFromOnLevel1=[],
                                 ~asrtLabel?, 
                                 ~maxSearchDepth=1,
                                 ~lengthRestrict=Less,
@@ -1464,8 +1516,8 @@ let make = (
                     | None => {
                         (
                             bottomUpProverParamsMakeDefault(
-                                ~args0=rootStmts->Array.map(stmt => stmt.expr), 
-                                ~args1=[],
+                                ~deriveFromOnLevel0=rootStmts->Array.map(stmt => stmt.expr), 
+                                ~deriveFromOnLevel1=[],
                                 ~asrtLabel=?None, 
                                 ~maxSearchDepth=1,
                                 ~lengthRestrict=No,
@@ -2144,30 +2196,15 @@ let make = (
                     ~initialDebugLevel=params.debugLevel,
                     ~isApiCall=true,
                     ~delayBeforeStartMs=params.delayBeforeStartMs,
-                    ~selectFirstFoundProof=params.selectFirstFoundProof,
+                    ~selectFirstFoundProof=?params.selectFirstFoundProof,
                     ~bottomUpProofResultConsumer = stmtsDto => {
-                        if (params.selectFirstFoundProof) {
-                            switch stmtsDto {
-                                | None => resolve(None)
-                                | Some(stmtsDto) => {
-                                    let len = stmtsDto.stmts->Array.length
-                                    if (len == 0) {
-                                        Exn.raiseError(
-                                            `bottom-up prover returned stmtsDto.stmts->Array.length == 0.`
-                                        )
-                                    } else {
-                                        resolve(Some((stmtsDto.stmts->Array.getUnsafe(len-1)).isProved))
-                                    }
-                                }
-                            }
+                        switch stmtsDto {
+                            | None => resolve(Ok(false))
+                            | Some(Error(msg)) => resolve(Error(msg))
+                            | Some(Ok(_)) => resolve(Ok(true))
                         }
                     }
                 )
-                if (!params.selectFirstFoundProof) {
-                    resolve(None)
-                } else {
-                    ()
-                }
             })
         },
         ~canStartUnifyAll=generalModificationActionIsEnabled,

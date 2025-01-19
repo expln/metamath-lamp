@@ -7,15 +7,15 @@ open MM_context
 open MM_substitution
 open Expln_React_Modal
 open MM_statements_dto
-open MM_provers
 open MM_proof_tree
 open MM_proof_tree_dto
 open MM_wrk_unify
 open MM_parenCounter
 open MM_wrk_settings
 open MM_cmp_root_stmts
-open MM_apply_asrt_matcher
+open MM_apply_asrt_matcher_type
 open Common
+open MM_bottom_up_prover_params
 
 type sortBy = NewStmtsNum | UnprovedStmtsNum | NumOfNewVars | AsrtLabel
 
@@ -41,23 +41,25 @@ type applyAsrtResultMatcherToShow = {
 }
 
 type proverFrameParamsToShow = {
-    minDist: option<int>,
-    maxDist: option<int>,
-    matches: option<array<applyAsrtResultMatcherToShow>>,
-    frmsToUse: option<array<string>>,
-    args: array<string>,
-    allowNewDisjForExistingVars: bool,
-    allowNewStmts: bool,
-    allowNewVars: bool,
-    lengthRestrict: string,
-    maxNumberOfBranches: option<int>,
+    @as("minDist") minDist: option<int>,
+    @as("maxDist") maxDist: option<int>,
+    @as("assertionsToUse") frmsToUse: option<array<string>>,
+    @as("matches") matches: option<array<applyAsrtResultMatcherToShow>>,
+    @as("stepsToDeriveFrom") deriveFrom: array<string>,
+    @as("allowNewDisjointsForExistingVariables") allowNewDisjForExistingVars: bool,
+    @as("allowNewStatements") allowNewStmts: bool,
+    @as("allowNewVariables") allowNewVars: bool,
+    @as("statementLengthRestriction") lengthRestrict: string,
+    @as("maxNumberOfBranches") maxNumberOfBranches: option<int>,
 }
 
 type proverParamsToShow = {
-    stepToProve:string,
-    debugLevel:int,
-    maxSearchDepth:int,
-    frameParams: array<proverFrameParamsToShow>,
+    @as("stepToProve") stepToProve:string,
+    @as("debugLevel") debugLevel:int,
+    @as("customParams") customParams:option<customParams>,
+    @as("maxSearchDepth") maxSearchDepth:int,
+    @as("assertionParams") frameParams: array<proverFrameParamsToShow>,
+    @as("updateParams") updateParams: option<string>,
 }
 
 type state = {
@@ -88,7 +90,7 @@ type state = {
     proverParamsToShow:option<proverParamsToShow>,
     tree: option<proofTreeDto>,
     warnings:array<string>,
-    results: option<array<stmtsDto>>,
+    results: option<result<array<stmtsDto>,string>>,
     resultsRendered: option<array<resultRendered>>,
     sortBy: sortBy,
     resultsSorted: option<array<resultRendered>>,
@@ -96,7 +98,7 @@ type state = {
     resultsMaxPage:int,
     resultsPage:int,
     checkedResultIdx: option<int>,
-    resultHasBeenSelected: bool,
+    resultForApiCallHasBeenSelected: bool,
 
     showApiParams:bool,
 }
@@ -205,10 +207,10 @@ let makeInitialState = (
 
         initialParams:params,
         args0: possibleArgs->Array.map(possibleArg => {
-            frameParamsLen > 0 && (frameParams->Array.getUnsafe(0)).args->Array.some(arg => arg->exprEq(possibleArg))
+            frameParamsLen > 0 && (frameParams->Array.getUnsafe(0)).deriveFrom->Array.some(arg => arg->exprEq(possibleArg))
         }),
         args1: possibleArgs->Array.map(possibleArg => {
-            frameParamsLen > 1 && (frameParams->Array.getUnsafe(1)).args->Array.some(arg => arg->exprEq(possibleArg))
+            frameParamsLen > 1 && (frameParams->Array.getUnsafe(1)).deriveFrom->Array.some(arg => arg->exprEq(possibleArg))
         }),
         args1EqArgs0:false,
         availableLabels: getAvailableAsrtLabels( ~frms, ~parenCnt, ~exprToProve, ),
@@ -276,7 +278,7 @@ let makeInitialState = (
         resultsMaxPage: 0,
         resultsPage: 0,
         checkedResultIdx: None,
-        resultHasBeenSelected: false,
+        resultForApiCallHasBeenSelected: false,
 
         showApiParams:false,
     }
@@ -349,10 +351,10 @@ let toggleShowApiParams = (st) => {
     }
 }
 
-let setResultHasBeenSelected = (st) => {
+let setResultForApiCallHasBeenSelected = (st) => {
     {
         ...st,
-        resultHasBeenSelected: true
+        resultForApiCallHasBeenSelected: true
     }
 }
 
@@ -521,11 +523,11 @@ let setResults = (
     st,
     ~tree: option<proofTreeDto>,
     ~warnings:array<string>,
-    ~results: option<array<stmtsDto>>,
+    ~results: option<result<array<stmtsDto>,string>>,
     ~getFrmLabelBkgColor: string=>option<string>,
 ) => {
     switch results {
-        | None => {
+        | None | Some(Error(_)) => {
             {
                 ...st,
                 tree: None,
@@ -538,7 +540,7 @@ let setResults = (
                 checkedResultIdx: None,
             }
         }
-        | Some(results) => {
+        | Some(Ok(results)) => {
             let rootJstfs = st.rootStmts
                 ->Array.map(stmt => (stmt.expr, stmt.jstf))
                 ->Belt_HashMap.fromArray(~id=module(ExprHash))
@@ -552,7 +554,7 @@ let setResults = (
                 ...st,
                 tree,
                 warnings,
-                results:Some(results),
+                results:Some(Ok(results)),
                 resultsRendered,
                 resultsSorted: sortResultsRendered(resultsRendered, st.sortBy),
                 resultsMaxPage: Math.Int.ceil(
@@ -669,8 +671,8 @@ let make = (
     ~initialDebugLevel: option<int>=?,
     ~apiCallStartTime:option<Date.t>,
     ~delayBeforeStartMs:int,
-    ~selectFirstFoundProof:bool,
-    ~onResultSelected:option<stmtsDto>=>unit,
+    ~selectFirstFoundProof:option<bool>,
+    ~onResultSelected:option<result<stmtsDto,string>>=>unit,
     ~onCancel:unit=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState( 
@@ -681,8 +683,8 @@ let make = (
     let isApiCall = apiCallStartTime->Belt.Option.isSome
 
     let onlyOneResultIsAvailable = switch state.results {
-        | None => false
-        | Some(results) => results->Array.length == 1
+        | None | Some(Error(_)) => false
+        | Some(Ok(results)) => results->Array.length == 1
     }
 
     let actLabelUpdated = label => {
@@ -729,33 +731,47 @@ let make = (
         }
     }
 
-    let actOnResultsReady = (treeDto:proofTreeDto) => {
+    let actOnResultsReady = (treeDto:result<proofTreeDto,string>) => {
         let rootExprToLabel = state.rootStmts
             ->Array.map(stmt => (stmt.expr,stmt.label))
             ->Belt_HashMap.fromArray(~id=module(ExprHash))
-        let results = proofTreeDtoToNewStmtsDto(
-            ~treeDto, 
-            ~rootExprToLabel,
-            ~ctx = wrkCtx,
-            ~typeToPrefix,
-            ~exprToProve=state.exprToProve,
-            ~reservedLabels,
-        )
-        setState(st => {
-            st->setResults(
-                ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
-                ~warnings=findWarnings(treeDto),
-                ~results=Some(results), 
-                ~getFrmLabelBkgColor
-            )
-        })
+        switch treeDto {
+            | Error(msg) => {
+                setState(st => {
+                    st->setResults(
+                        ~tree = None, 
+                        ~warnings=[],
+                        ~results=Some(Error(msg)), 
+                        ~getFrmLabelBkgColor
+                    )
+                })
+            }
+            | Ok(treeDto) => {
+                let results = proofTreeDtoToNewStmtsDto(
+                    ~treeDto, 
+                    ~rootExprToLabel,
+                    ~ctx = wrkCtx,
+                    ~typeToPrefix,
+                    ~exprToProve=state.exprToProve,
+                    ~reservedLabels,
+                )
+                setState(st => {
+                    st->setResults(
+                        ~tree = if (st.debugLevel > 0) {Some(treeDto)} else {None}, 
+                        ~warnings=findWarnings(treeDto),
+                        ~results=Some(Ok(results)), 
+                        ~getFrmLabelBkgColor
+                    )
+                })
+            }
+        }
     }
 
     let getEffectiveProverParams = (state:state):bottomUpProverParams => {
         if (isApiCall) {
             state.initialParams
         } else {
-            let args0=state.rootStmtsRendered
+            let deriveFromOnLevel0=state.rootStmtsRendered
                     ->Array.filterWithIndex((_,i) => state.args0->Array.getUnsafe(i))
                     ->Array.map(stmt => stmt.expr)
             bottomUpProverParamsMakeDefault(
@@ -765,10 +781,10 @@ let make = (
                 ~allowNewDisjForExistingVars=state.allowNewDisjForExistingVars,
                 ~allowNewStmts=state.allowNewStmts,
                 ~allowNewVars=state.allowNewVars,
-                ~args0,
-                ~args1=
+                ~deriveFromOnLevel0,
+                ~deriveFromOnLevel1=
                     if (state.args1EqArgs0) {
-                        args0
+                        deriveFromOnLevel0
                     } else {
                         state.rootStmtsRendered
                             ->Array.filterWithIndex((_,i) => state.args1->Array.getUnsafe(i))
@@ -823,19 +839,21 @@ let make = (
         {
             stepToProve: (state.rootStmts->Array.getUnsafe(state.rootStmts->Array.length-1)).label,
             debugLevel: state.debugLevel,
+            customParams:params.customParams,
             maxSearchDepth: params.maxSearchDepth,
             frameParams: params.frameParams->Array.map(p => {
                 minDist: p.minDist,
                 maxDist: p.maxDist,
                 matches: p.matches->Belt.Option.map(makeMatchesToShow(wrkCtx, _)),
                 frmsToUse: p.frmsToUse,
-                args: p.args->Array.map(exprToLabel(state, _)),
+                deriveFrom: p.deriveFrom->Array.map(exprToLabel(state, _)),
                 allowNewDisjForExistingVars: p.allowNewDisjForExistingVars,
                 allowNewStmts: p.allowNewStmts,
                 allowNewVars: p.allowNewVars,
                 lengthRestrict: p.lengthRestrict->lengthRestrictToStr,
                 maxNumberOfBranches: p.maxNumberOfBranches,
             }),
+            updateParams: params.updateParamsStr,
         }
     }
 
@@ -925,24 +943,28 @@ let make = (
     }
 
     let actChooseSelected = (idxToSelect:option<int>) => {
+        /*  
+            Ignoring state.results == Some(Error(_)) because actChooseSelected should be called 
+            only when there are no errors. 
+        */
         switch state.results {
-            | None => ()
-            | Some(results) => {
+            | None | Some(Error(_)) => ()
+            | Some(Ok(results)) => {
                 if (onlyOneResultIsAvailable) {
-                    setState(setResultHasBeenSelected)
-                    onResultSelected(Some(results->Array.getUnsafe(0)))
+                    setState(setResultForApiCallHasBeenSelected)
+                    onResultSelected(Some(Ok(results->Array.getUnsafe(0))))
                 } else {
                     switch idxToSelect {
                         | Some(checkedResultIdx) => {
-                            setState(setResultHasBeenSelected)
-                            onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
+                            setState(setResultForApiCallHasBeenSelected)
+                            onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
                         }
                         | None => {
                             switch state.checkedResultIdx {
                                 | None => ()
                                 | Some(checkedResultIdx) => {
-                                    setState(setResultHasBeenSelected)
-                                    onResultSelected(Some(results->Array.getUnsafe(checkedResultIdx)))
+                                    setState(setResultForApiCallHasBeenSelected)
+                                    onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
                                 }
                             }
                         }
@@ -952,22 +974,50 @@ let make = (
         }
     }
 
-    React.useEffect1(() => {
-        if (selectFirstFoundProof && !state.resultHasBeenSelected) {
+    React.useEffect2(() => {
+        if (isApiCall && !state.resultForApiCallHasBeenSelected) {
             switch state.resultsSorted {
-                | None => ()
+                | None => {
+                    switch state.results {
+                        | None => ()
+                        | Some(Ok(_)) => {
+                            Exn.raiseError(
+                                "Internal error: state.resultsSorted is None, but state.results is Some(Ok(_))"
+                            )
+                        }
+                        | Some(Error(msg)) => {
+                            setState(setResultForApiCallHasBeenSelected)
+                            onResultSelected(Some(Error(msg)))
+                        }
+                    }
+                }
                 | Some(resultsSorted) => {
-                    setState(setResultHasBeenSelected)
-                    if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
-                        actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
-                    } else {
-                        onResultSelected(None)
+                    setState(setResultForApiCallHasBeenSelected)
+                    switch selectFirstFoundProof {
+                        | Some(selectFirstFoundProof) => {
+                            if (selectFirstFoundProof) {
+                                if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
+                                    actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
+                                } else {
+                                    onResultSelected(None)
+                                }
+                            } else {
+                                onResultSelected(None)
+                            }
+                        }
+                        | None => {
+                            if (resultsSorted->Array.length > 0 && (resultsSorted->Array.getUnsafe(0)).isProved) {
+                                actChooseSelected(Some((resultsSorted->Array.getUnsafe(0)).idx))
+                            } else {
+                                onResultSelected(None)
+                            }
+                        }
                     }
                 }
             }
         }
         None
-    }, [state.resultsSorted])
+    }, (state.results, state.resultsSorted))
 
     let actShowProofTree = () => {
         switch state.tree {
@@ -1023,8 +1073,8 @@ let make = (
 
     let rndSortBySelector = () => {
         switch state.results {
-            | None => React.null
-            | Some(results) => {
+            | None | Some(Error(_)) => React.null
+            | Some(Ok(results)) => {
                 if (results->Array.length < 2) {
                     React.null
                 } else {
@@ -1268,7 +1318,7 @@ let make = (
     }
 
     let rndApplyButton = () => {
-        <Button onClick={_=>actChooseSelected(None)} variant=#contained 
+        <Button onClick={_=>actChooseSelected(None)} variant=#contained
                 disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
             {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
         </Button>
@@ -1346,7 +1396,22 @@ let make = (
 
     let rndResults = () => {
         switch state.resultsSorted {
-            | None => React.null
+            | None => {
+                switch state.results {
+                    | None => React.null
+                    | Some(Ok(_)) => {
+                        Exn.raiseError(
+                            "Internal error: state.resultsSorted is None, but state.results is Some(Ok(_))"
+                        )
+                    }
+                    | Some(Error(msg)) => {
+                        <Col>
+                            <pre style=ReactDOM.Style.make(~color="red", ())> {React.string("Error:")} </pre>
+                            <pre> {React.string(msg)} </pre>
+                        </Col>
+                    }
+                }
+            }
             | Some(resultsSorted) => {
                 let totalNumOfResults = resultsSorted->Array.length
                 if (totalNumOfResults == 0) {

@@ -8,6 +8,7 @@ open MM_statements_dto
 open MM_wrk_settings
 open MM_proof_verifier
 open Common
+open MM_bottom_up_prover_params
 
 let procName = "MM_wrk_unify"
 
@@ -24,6 +25,7 @@ type request =
 
 type response =
     | OnProgress(string)
+    | Err(string)
     | Result(proofTreeDto)
 
 let bottomUpProverParamsToStr = (params:option<bottomUpProverParams>):string => {
@@ -51,6 +53,7 @@ let reqToStr = req => {
 let respToStr = resp => {
     switch resp {
         | OnProgress(msg) => `OnProgress("${msg}")`
+        | Err(msg) => `Err("${msg}")`
         | Result(_) => `Result`
     }
 }
@@ -69,7 +72,7 @@ let unify = (
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress:string=>unit,
-): promise<proofTreeDto> => {
+): promise<result<proofTreeDto,string>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
@@ -91,9 +94,10 @@ let unify = (
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(msg) => onProgress(msg)
+                    | Err(msg) => resolve(Error(msg))
                     | Result(proofTree) => {
                         endWorkerInteraction()
-                        resolve(proofTree)
+                        resolve(Ok(proofTree))
                     }
                 }
             },
@@ -102,23 +106,104 @@ let unify = (
     })
 }
 
+let extractSubstringByRegex = (str:string, regex:RegExp.t):result<string,int> => {
+    switch regex->RegExp.exec(str) {
+        | None => Error(1)
+        | Some(res) => {
+            switch (res->RegExp.Result.matches)[0] {
+                | None => Error(2)
+                | Some(substr) => Ok(substr)
+            }
+        }
+    }
+}
+
+let extractSubstringByRegexWithErrMsg = (str:string, regex:RegExp.t, errMsg:string):result<string,string> => {
+    switch extractSubstringByRegex(str, regex) {
+        | Error(code) => Error(`${errMsg} [${code->Int.toString}]: ${str}`)
+        | Ok(str) => Ok(str)
+    }
+}
+
+let funcArgsRegex = RegExp.fromStringWithFlags("^[^\\(\\)]*\\(([^\\)]*)\\)", ~flags="s")
+let getFunctionParams = (funcStr:string):result<string,string> => {
+    extractSubstringByRegexWithErrMsg(funcStr, funcArgsRegex, "Cannot extract the list of paramaters")
+}
+
+let funcBodyRegex = RegExp.fromStringWithFlags("[^\\{]*\\{(.*)\\}\\s*$", ~flags="s")
+let getFunctionBody = (funcStr:string):result<string,string> => {
+    extractSubstringByRegexWithErrMsg(funcStr, funcBodyRegex, "Cannot extract the function body")
+}
+
+let parseFunc = (funcStr:string):result<'a,string> => {
+    switch getFunctionParams(funcStr) {
+        | Error(msg) => Error(msg)
+        | Ok(funcParams) => {
+            switch getFunctionBody(funcStr) {
+                | Error(msg) => Error(msg)
+                | Ok(funcBody) => {
+                    switch catchExn(() => Raw_js_utils.makeFunction(~args=funcParams, ~body=funcBody)) {
+                        | Error({msg}) => {
+                            let msg = [
+                                `Cannot parse a function: "${msg}".`,
+                                `Parsed params: "${funcParams}".`,
+                                `Parsed body: "${funcBody}".`,
+                                `Provided function text: ${funcStr}.`,
+                            ]->Array.join("\n")
+                            Error(msg)
+                        }
+                        | Ok(func) => Ok(func)
+                    }
+                }
+            }
+        }
+    }
+}
+
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
         | Unify({rootStmts, bottomUpProverParams, allowedFrms, combCntMax, syntaxTypes, exprsToSyntaxCheck, debugLevel}) => {
-            let proofTree = unifyAll(
-                ~parenCnt = getWrkParenCntExn(),
-                ~frms = getWrkFrmsExn(),
-                ~wrkCtx = getWrkCtxExn(),
-                ~rootStmts,
-                ~bottomUpProverParams?,
-                ~allowedFrms,
-                ~combCntMax,
-                ~syntaxTypes?, 
-                ~exprsToSyntaxCheck?,
-                ~debugLevel,
-                ~onProgress = msg => sendToClient(OnProgress(msg))
-            )
-            sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))))
+            let bottomUpProverParams:result<option<bottomUpProverParams>,string> = switch bottomUpProverParams {
+                | None => Ok(None)
+                | Some(bottomUpProverParams) => {
+                    switch bottomUpProverParams.updateParamsStr {
+                        | None => Ok(Some(bottomUpProverParams))
+                        | Some(updateParamsStr) => {
+                            switch parseFunc(updateParamsStr) {
+                                | Error(msg) => Error(msg)
+                                | Ok(updateParamsFunc) => {
+                                    Ok(Some(
+                                        {
+                                            ...bottomUpProverParams,
+                                            updateParamsStr:None,
+                                            updateParams: Some(updateParamsFunc)
+                                        }
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            switch bottomUpProverParams {
+                | Error(msg) => sendToClient(Err(msg))
+                | Ok(bottomUpProverParams) => {
+                    let proofTree = unifyAll(
+                        ~parenCnt = getWrkParenCntExn(),
+                        ~frms = getWrkFrmsExn(),
+                        ~wrkCtx = getWrkCtxExn(),
+                        ~rootStmts,
+                        ~bottomUpProverParams?,
+                        ~allowedFrms,
+                        ~combCntMax,
+                        ~syntaxTypes?, 
+                        ~exprsToSyntaxCheck?,
+                        ~debugLevel,
+                        ~onProgress = msg => sendToClient(OnProgress(msg))
+                    )
+                    sendToClient(Result(proofTree->proofTreeToDto(rootStmts->Array.map(stmt=>stmt.expr))))
+                }
+            }
         }
     }
 }

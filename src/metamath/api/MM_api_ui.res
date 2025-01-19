@@ -6,20 +6,22 @@ open Raw_js_utils
 let apiShowInfoMsg = (modalRef:modalRef, params:apiInput):promise<result<unit,string>> => {
     let params = params->apiInputToObjExn("apiShowInfoMsg: got empty parameters.")
     let msg = reqStrExn(params["msg"], "'msg' must be a string.")
-    openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre> )
-    Promise.resolve(Ok(()))
+    Promise.make((resolve,_) => {
+        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, ~onOk=()=>resolve(Ok(())) )
+    })
 }
 
 let apiShowErrMsg = (modalRef:modalRef, params:apiInput):promise<result<unit,string>> => {
     let params = params->apiInputToObjExn("apiShowErrMsg: got empty parameters.")
     let msg = reqStrExn(params["msg"], "'msg' must be a string.")
-    openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, 
-        ~icon=
-            <span style=ReactDOM.Style.make(~color="red", () ) >
-                <MM_Icons.PriorityHigh/>
-            </span>
-    )
-    Promise.resolve(Ok(()))
+    Promise.make((resolve,_) => {
+        openInfoDialog( ~modalRef, ~content=<pre>{msg->React.string}</pre>, ~onOk=()=>resolve(Ok(())), 
+            ~icon=
+                <span style=ReactDOM.Style.make(~color="red", () ) >
+                    <MM_Icons.PriorityHigh/>
+                </span>
+        )
+    })
 }
 
 let apiMultilineTextInput = (modalRef:modalRef, params:apiInput):promise<result<JSON.t,string>> => {

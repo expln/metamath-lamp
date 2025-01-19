@@ -3,6 +3,7 @@ open MM_substitution
 open MM_parenCounter
 open MM_unification_debug
 open MM_statements_dto
+open MM_bottom_up_prover_params
 
 type rootStmt = {
     isHyp: bool,
@@ -31,14 +32,12 @@ type exprSrc =
 type proofTree
 
 let ptMake: (
+    ~proofCtx:mmContext,
     ~frms: frms,
-    ~hyps: Belt_MapString.t<hypothesis>,
-    ~ctxMaxVar: int,
-    ~ctxDisj: disjMutable,
     ~parenCnt: parenCnt,
-    ~exprToStr: option<expr=>string>,
 ) => proofTree
 
+let ptGetProofCtx: proofTree => mmContext
 let ptGetFrms: proofTree => frms
 let ptGetHypByExpr: (proofTree, expr) => option<hypothesis>
 let ptGetHypByLabel: (proofTree, string) => option<hypothesis>
@@ -70,6 +69,8 @@ let pnIsInvalidFloating: proofNode => bool
 let pnSetInvalidFloating: proofNode => unit
 let pnGetDist: proofNode => option<int>
 let pnSetDist: (proofNode,int) => unit
+let pnGetBottomUpProverParams: proofNode => option<bottomUpProverParams>
+let pnSetBottomUpProverParams: (proofNode,option<bottomUpProverParams>) => unit
 let pnGetDbg: proofNode => option<proofNodeDbg>
 
 let jstfEqSrc: (array<expr>, string, exprSrc) => bool

@@ -2,14 +2,7 @@ open MM_context
 open MM_substitution
 open MM_parenCounter
 open MM_proof_tree
-
-type hypMatcherType = Label(string) | Idx(int)
-
-type applyAsrtResultMatcher = {
-    frm:frmSubsData,
-    matchAsrt:bool,
-    hypMatchers:array<hypMatcherType>,
-}
+open MM_apply_asrt_matcher_type
 
 let getArgToMatchPriv = (
     ~frame:frame,

@@ -1,6 +1,7 @@
 - add a test for disj in MM_asrt_syntax_tree.unify()
 - fix the bug with loading an assertion without proof to the editor
-- fix the "aModLen != bLen" bug in the editor history
+- fix the "aModLen != bLen" bug in the editor history.
+    Repeat manually the "bottomUpProver_proves_B_is_CC_from_B_is_QQ" test, restoring the initial state from the history.
 - rename tabs by Alt+click
 
 - Implement dynamic bottom-up prover params. Bind params to each statement.

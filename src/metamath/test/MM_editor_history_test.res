@@ -33,7 +33,7 @@ let createEditorState = ():editorState => {
         combCntMax:10000,
         bottomUpProverDefaults: {
             searchDepth: 4,
-            lengthRestrict: MM_provers.lengthRestrictToStr(MM_provers.Less),
+            lengthRestrict: MM_bottom_up_prover_params.lengthRestrictToStr(MM_bottom_up_prover_params.Less),
             allowNewDisjForExistingVars: true,
             allowNewStmts: true,
             allowNewVars: false,

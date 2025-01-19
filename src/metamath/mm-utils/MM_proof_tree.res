@@ -4,6 +4,7 @@ open MM_parenCounter
 open MM_unification_debug
 open MM_statements_dto
 open Common
+open MM_bottom_up_prover_params
 
 type rootStmt = {
     isHyp: bool,
@@ -30,16 +31,18 @@ type rec proofNode = {
     mutable proof: option<exprSrc>,
     mutable isInvalidFloating: bool,
     mutable dist: option<int>,
+    mutable bottomUpProverParams:option<bottomUpProverParams>,
     pnDbg: option<proofNodeDbg>,
 }
 
 and exprSrc =
-    | VarType
+    | VarType // it is used for new variables only
     | Hypothesis({label:string})
     | Assertion({args:array<proofNode>, frame:frame})
     | AssertionWithErr({args:array<proofNode>, frame:frame, err:unifErr})
 
 and proofTree = {
+    proofCtx:mmContext,
     frms: frms,
     hypsByExpr: Belt_HashMap.t<expr,hypothesis,ExprHash.identity>,
     hypsByLabel: Belt_HashMapString.t<hypothesis>,
@@ -100,8 +103,12 @@ let pnIsInvalidFloating = node => node.isInvalidFloating
 let pnSetInvalidFloating = node => node.isInvalidFloating = true
 let pnGetDist = node => node.dist
 let pnSetDist = (node,dist) => node.dist = Some(dist)
+let pnSetBottomUpProverParams = (proofNode:proofNode,bottomUpProverParams:option<bottomUpProverParams>) => 
+    proofNode.bottomUpProverParams = bottomUpProverParams
+let pnGetBottomUpProverParams = (proofNode:proofNode) => proofNode.bottomUpProverParams
 let pnGetDbg = node => node.pnDbg
 
+let ptGetProofCtx = tree => tree.proofCtx
 let ptGetFrms = tree => tree.frms
 let ptGetParenCnt = tree => tree.parenCnt
 let ptIsDisjInCtx = (tree:proofTree, n, m) => tree.ctxDisj->disjContains(n,m)
@@ -116,16 +123,31 @@ let ptGetDbg = (tree:proofTree) => tree.ptDbg
 let ptGetCopyOfNewVars = tree => tree.newVars->Belt_HashSet.toArray
 let ptGetCtxDisj = tree => tree.ctxDisj
 
+let makeExprToStr = (ctx, ctxMaxVar) => {
+    if (ctx->isDebug) {
+        let intToSym = i => {
+            if (i <= ctxMaxVar) {
+                ctx->ctxIntToSymExn(i)
+            } else {
+                "&" ++ i->Belt.Int.toString
+            }
+        }
+        Some(expr => expr->Array.map(intToSym)->Array.joinUnsafe(" "))
+    } else {
+        None
+    }
+}
+
 let ptMake = (
+    ~proofCtx:mmContext,
     ~frms: frms,
-    ~hyps: Belt_MapString.t<hypothesis>,
-    ~ctxMaxVar: int,
-    ~ctxDisj: disjMutable,
     ~parenCnt: parenCnt,
-    ~exprToStr: option<expr=>string>,
 ) => {
-    let hypsArr = hyps->Belt_MapString.toArray
+    let hypsArr = proofCtx->getAllHyps->Belt_MapString.toArray
+    let ctxMaxVar = proofCtx->getNumOfVars - 1
+    let exprToStr = makeExprToStr(proofCtx, ctxMaxVar)
     {
+        proofCtx,
         frms: frms,
         hypsByLabel: hypsArr->Belt_HashMapString.fromArray,
         hypsByExpr: hypsArr
@@ -134,7 +156,7 @@ let ptMake = (
         ctxMaxVar,
         maxVar:ctxMaxVar,
         newVars: Belt_HashSet.make(~id=module(ExprHash), ~hintSize=16),
-        ctxDisj,
+        ctxDisj:proofCtx->getAllDisj,
         parenCnt,
         nextNodeId: 0,
         nodes: Belt_HashMap.make(~id=module(ExprHash), ~hintSize=128),
@@ -169,6 +191,7 @@ let ptGetNode = ( tree:proofTree, expr:expr):proofNode => {
                 children: [],
                 isInvalidFloating: false,
                 dist: None,
+                bottomUpProverParams: None,
                 pnDbg: tree.ptDbg->Belt_Option.map(dbg => {
                     {
                         exprStr: dbg.exprToStr(expr),
@@ -243,7 +266,7 @@ let pnMarkProved = ( node:proofNode ):unit => {
 
 let pnAddChild = (node, child): unit => {
     if (node.id != child.id) {
-        switch node.children->Array.find(existingChild => existingChild.id  == child.id) {
+        switch node.children->Array.find(existingChild => existingChild.id == child.id) {
             | None => node.children->Array.push(child)
             | Some(_) => ()
         }

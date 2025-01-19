@@ -1,6 +1,6 @@
 open MM_wrk_editor
 open MM_statements_dto
-open MM_provers
+open MM_bottom_up_prover_params
 
 type rootStmtsToUse =
     | AllStmts
@@ -80,7 +80,7 @@ let unifyBottomUp: (
     ~args1:rootStmtsToUse=?,
     ~asrtLabel: string=?,
     ~maxSearchDepth: int=?,
-    ~lengthRestrict: MM_provers.lengthRestrict=?,
+    ~lengthRestrict: MM_bottom_up_prover_params.lengthRestrict=?,
     ~allowNewDisjForExistingVars:bool=?,
     ~allowNewStmts:bool=?,
     ~allowNewVars: bool=?,

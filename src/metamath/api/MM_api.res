@@ -129,6 +129,7 @@ type macroApi = {
 
 type settingsApi = {
     "setMarkFirstProvableStepAsGoal": api,
+    "getMarkFirstProvableStepAsGoal": api,
 }
 
 let setLogApiCallsToConsoleRef:ref<option<api>> = ref(None)
@@ -170,6 +171,7 @@ let makeMacroApi = ():macroApi => {
 let makeSettingsApi = ():settingsApi => {
     {
         "setMarkFirstProvableStepAsGoal": makeSingleSettingsApi(a => a["setMarkFirstProvableStepAsGoal"]),
+        "getMarkFirstProvableStepAsGoal": makeSingleSettingsApi(a => a["getMarkFirstProvableStepAsGoal"]),
     }
 }
 

@@ -4,8 +4,9 @@ open MM_context
 open MM_syntax_tree
 open MM_wrk_editor_substitution
 open MM_substitution
-open MM_apply_asrt_matcher
+open MM_apply_asrt_matcher_type
 open MM_api
+open MM_bottom_up_prover_params
 
 let rec syntaxTreeNodeToJson = (node:syntaxTreeNode, ctxConstIntToSymExn:int=>string):JSON.t => {
     Dict.fromArray([
@@ -404,20 +405,22 @@ type proveBottomUpApiParams = {
     maxSearchDepth:int,
     debugLevel:option<int>,
     selectFirstFoundProof:option<bool>,
+    customParams:option<JSON.t>,
     frameParams: array<apiBottomUpProverFrameParams>,
+    updateParamsStr: option<string>,
 }
 type proverParams = {
     delayBeforeStartMs:int,
     stmtId: MM_wrk_editor.stmtId,
     debugLevel:int,
-    bottomUpProverParams: MM_provers.bottomUpProverParams,
-    selectFirstFoundProof:bool,
+    bottomUpProverParams: MM_bottom_up_prover_params.bottomUpProverParams,
+    selectFirstFoundProof:option<bool>,
 }
 let proveBottomUp = (
     ~paramsJson:apiInput,
     ~state:editorState,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
 ):promise<result<JSON.t,string>> => {
     if (!canStartProvingBottomUp) {
         Promise.resolve(Error(
@@ -433,7 +436,8 @@ let proveBottomUp = (
                 debugLevel: d->intOpt("debugLevel"),
                 maxSearchDepth: d->int("maxSearchDepth"),
                 selectFirstFoundProof: d->boolOpt("selectFirstFoundProof"),
-                frameParams: d->arr("frameParameters", asObj(_, d=>{
+                customParams: d->jsonOpt("customParams"),
+                frameParams: d->arr("assertionParams", asObj(_, d=>{
                     {
                         minDist: d->intOpt("minDist"),
                         maxDist: d->intOpt("maxDist"),
@@ -450,21 +454,21 @@ let proveBottomUp = (
                                 }), ~default = () => []),
                             }
                         })),
-                        framesToUse: d->arrOpt("frames", asStr(_)),
+                        framesToUse: d->arrOpt("assertionsToUse", asStr(_)),
                         stepsToUse: d->arr("stepsToDeriveFrom", asStr(_)),
                         allowNewDisjointsForExistingVariables: d->bool("allowNewDisjointsForExistingVariables"),
-                        allowNewSteps: d->bool("allowNewSteps"),
+                        allowNewSteps: d->bool("allowNewStatements"),
                         allowNewVariables: d->bool("allowNewVariables"),
                         statementLengthRestriction: d->str("statementLengthRestriction", ~validator = str => {
-                            switch MM_provers.lengthRestrictFromStr(str) {
+                            switch MM_bottom_up_prover_params.lengthRestrictFromStr(str) {
                                 | Some(_) => Ok(str)
                                 | None => Error(`statementLengthRestriction must be one of: No, LessEq, Less.`)
                             }
                         }),
                         maxNumberOfBranches: d->intOpt("maxNumberOfBranches"),
-                        
                     }
                 })),
+                updateParamsStr: d->strOpt("updateParams"),
             }
         }))
         switch parseResult {
@@ -521,32 +525,36 @@ let proveBottomUp = (
                                                 apiParams.delayBeforeStartMs->Belt_Option.getWithDefault(1000),
                                             stmtId: stmtToProve.id,
                                             debugLevel: apiParams.debugLevel->Belt_Option.getWithDefault(0),
-                                            selectFirstFoundProof:
-                                                apiParams.selectFirstFoundProof->Belt_Option.getWithDefault(false),
+                                            selectFirstFoundProof: apiParams.selectFirstFoundProof,
                                             bottomUpProverParams: {
+                                                customParams:apiParams.customParams->Option.map(jsonToCustomParams),
                                                 maxSearchDepth: apiParams.maxSearchDepth,
                                                 frameParams: apiParams.frameParams->Array.mapWithIndex(
-                                                    (frameParams,i):MM_provers.bottomUpProverFrameParams => {
+                                                    (frameParams,i):MM_bottom_up_prover_params.bottomUpProverFrameParams => {
                                                         {
                                                             minDist: frameParams.minDist,
                                                             maxDist: frameParams.maxDist,
                                                             matches: matches->Array.getUnsafe(i),
                                                             frmsToUse: frameParams.framesToUse
                                                                 ->Belt.Option.map(sortFrames(state,_)),
-                                                            args: args->Array.getUnsafe(i),
+                                                            deriveFrom: args->Array.getUnsafe(i),
                                                             allowNewDisjForExistingVars: frameParams.allowNewDisjointsForExistingVariables,
                                                             allowNewStmts: frameParams.allowNewSteps,
                                                             allowNewVars: frameParams.allowNewVariables,
-                                                            lengthRestrict: frameParams.statementLengthRestriction->MM_provers.lengthRestrictFromStrExn,
+                                                            lengthRestrict: 
+                                                                frameParams.statementLengthRestriction
+                                                                    ->MM_bottom_up_prover_params.lengthRestrictFromStrExn,
                                                             maxNumberOfBranches: frameParams.maxNumberOfBranches,
                                                         }
                                                     }
-                                                )
+                                                ),
+                                                updateParamsStr: apiParams.updateParamsStr,
+                                                updateParams: None,
                                             }
                                         })->Promise.thenResolve(proved => {
                                             switch proved {
-                                                | None => Ok(JSON.Encode.null)
-                                                | Some(proved) => Ok(proved->JSON.Encode.bool)
+                                                | Error(msg) => Error(msg)
+                                                | Ok(proved) => Ok(proved->JSON.Encode.bool)
                                             }
                                         })
                                     }
@@ -1243,7 +1251,7 @@ type editorData = {
     setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     setEditorContIsHidden:bool=>promise<unit>,
     canStartProvingBottomUp:bool,
-    startProvingBottomUp:proverParams=>promise<option<bool>>,
+    startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     canStartUnifyAll:bool,
     startUnifyAll:unit=>promise<unit>,
     buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,
@@ -1336,7 +1344,7 @@ let updateEditorData = (
     ~setState:(editorState=>result<(editorState,JSON.t),string>)=>promise<result<JSON.t,string>>,
     ~setEditorContIsHidden:bool=>promise<unit>,
     ~canStartProvingBottomUp:bool,
-    ~startProvingBottomUp:proverParams=>promise<option<bool>>,
+    ~startProvingBottomUp:proverParams=>promise<result<bool,string>>,
     ~canStartUnifyAll:bool,
     ~startUnifyAll:unit=>promise<unit>,
     ~buildSyntaxTrees:array<string>=>result<array<result<syntaxTreeNode,string>>,string>,

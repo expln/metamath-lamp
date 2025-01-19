@@ -701,7 +701,7 @@ let useStateRenderer = (
                                                     MM_api_macros.runMacro(
                                                         ~moduleName=state.selectedMacroModuleName, 
                                                         ~macroName
-                                                    )->ignore
+                                                    )->Promise.done
                                                 }}
                                             >
                                                 <ListItemText>

@@ -48,6 +48,7 @@ type macroApi = {
 
 type settingsApi = {
     "setMarkFirstProvableStepAsGoal": api,
+    "getMarkFirstProvableStepAsGoal": api,
 }
 
 let api: {

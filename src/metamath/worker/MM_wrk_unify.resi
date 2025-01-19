@@ -17,13 +17,13 @@ let unify: (
     ~varsText: string,
     ~disjText: string,
     ~rootStmts: array<rootStmt>,
-    ~bottomUpProverParams: option<MM_provers.bottomUpProverParams>,
+    ~bottomUpProverParams: option<MM_bottom_up_prover_params.bottomUpProverParams>,
     ~allowedFrms:allowedFrms,
     ~syntaxTypes:option<array<int>>,
     ~exprsToSyntaxCheck:option<array<expr>>,
     ~debugLevel:int,
     ~onProgress: string => unit,
-) => promise<MM_proof_tree_dto.proofTreeDto>
+) => promise<result<MM_proof_tree_dto.proofTreeDto,string>>
 
 let processOnWorkerSide: (~req: request, ~sendToClient: response => unit) => unit
 

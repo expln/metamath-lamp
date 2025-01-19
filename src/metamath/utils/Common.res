@@ -27,14 +27,7 @@ let catchExn = (run:unit=>'a): result<'a,exnData> => {
         Ok(run())
     } catch {
         | MmException({msg}) => Error({ exn:None, msg, stack: "", })
-        | exn => {
-            let jsExn = Error.fromException(exn)
-            Error({
-                exn:Some(exn),
-                msg: jsExn->Option.flatMap(Error.message)->Option.getOr("Unknown error."),
-                stack: jsExn->Option.flatMap(Error.stack)->Option.getOr(""),
-            })
-        }
+        | exn => Error(jsErrorToExnData(exn))
     }
 }
 
