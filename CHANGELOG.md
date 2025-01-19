@@ -2,6 +2,7 @@
 * Multiple editor tabs. https://github.com/expln/metamath-lamp/issues/153
 * Bug fix: Search by description produces misleading results. https://github.com/expln/metamath-lamp/issues/215
 * Updates in the macros API.
+* Updates in the "set.mm example macros" collection of macros.
 ### Version 26
 * Enable automatic substitution search to minimize presses of the "Find Substitution" button.
 * Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog.
