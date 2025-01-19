@@ -102,13 +102,12 @@ function updateParams(params, expr, dist, intToSym, symToInt) {
 
 const updateParamsStr = updateParams.toString()
 
-async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof, debugLevel}) {
+async function provePriv({stepToProve, stepsToDeriveFrom, debugLevel}) {
     return getResponse(await api.editor().proveBottomUp({
         delayBeforeStartMs:200,
         stepToProve,
         debugLevel,
         maxSearchDepth:100,
-        selectFirstFoundProof:undefToNull(selectFirstFoundProof),
         assertionParams: [
             {
                 maxDist:0,
@@ -132,7 +131,7 @@ async function provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof,
 }
 
 async function prove({stepToProve, stepsToDeriveFrom}) {
-    return await provePriv({stepToProve, stepsToDeriveFrom, selectFirstFoundProof:null, debugLevel:1})
+    return await provePriv({stepToProve, stepsToDeriveFrom, debugLevel:1})
 }
 
 function getLabelsOfSelectedProvableSteps(editorState) {
