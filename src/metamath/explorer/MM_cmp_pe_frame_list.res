@@ -124,9 +124,9 @@ let make = React.memoCustomCompareProps(({
                     typeColors
                     typeOrderInDisj
                     editStmtsByLeftClick
-                    openFrameExplorer
-                    openExplorer
-                    addAsrtByLabel
+                    openFrameExplorer=Some(openFrameExplorer)
+                    openExplorer=Some(openExplorer)
+                    addAsrtByLabel=Some(addAsrtByLabel)
                 />
             }
         }

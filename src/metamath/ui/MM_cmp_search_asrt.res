@@ -9,6 +9,7 @@ open Expln_React_Modal
 open MM_statements_dto
 open MM_wrk_settings
 open Common
+open MM_wrk_pre_ctx_data
 
 type resultForRender = React.element
 
@@ -160,24 +161,20 @@ let toggleResultChecked = (st,idx) => {
 @react.component
 let make = (
     ~modalRef:modalRef,
-    ~settingsVer:int,
-    ~settings:settings,
-    ~preCtxVer: int,
-    ~preCtx: mmContext,
+    ~preCtxData:preCtxData,
     ~wrkCtx: mmContext,
-    ~frms: frms,
     ~initialTyp:option<int>,
     ~onTypChange:int=>unit,
     ~onCanceled:unit=>unit,
     ~onResultsSelected:array<stmtsDto>=>unit
 ) => {
-    let (state, setState) = React.useState(() => makeInitialState(frms, initialTyp))
+    let (state, setState) = React.useState(() => makeInitialState(preCtxData.frms, initialTyp))
 
     let getFrmLabelBkgColor = (label:string):option<string> => {
-        switch frms->frmsGetByLabel(label) {
+        switch preCtxData.frms->frmsGetByLabel(label) {
             | None => None
             | Some(frm) => {
-                MM_react_common.getFrmLabelBkgColor(frm.frame, settings)
+                MM_react_common.getFrmLabelBkgColor(frm.frame, preCtxData.settingsV.val)
             }
         }
     }
@@ -209,10 +206,10 @@ let make = (
                         )
                     )
                     searchAssertions(
-                        ~settingsVer,
-                        ~settings,
-                        ~preCtxVer,
-                        ~preCtx,
+                        ~settingsVer=preCtxData.settingsV.ver,
+                        ~settings=preCtxData.settingsV.val,
+                        ~preCtxVer=preCtxData.ctxV.ver,
+                        ~preCtx=preCtxData.ctxV.val.min,
                         ~isAxiom=None,
                         ~typ=Some(state.typ),
                         ~label=state.label->String.trim,
@@ -349,6 +346,31 @@ let make = (
             </Button>
             <Button onClick={_=>onCanceled()}> {React.string("Cancel")} </Button>
         </Row>
+    }
+
+    let rndFrameSummary = (order:int,label:string) => {
+        switch preCtxData.ctxV.val.min->getFrame(label) {
+            | None => React.null
+            | Some(frame) => {
+                <MM_cmp_pe_frame_summary
+                    key={`${order->Belt.Int.toString}-${label}`}
+                    modalRef
+                    settings=preCtxData.settingsV.val
+                    preCtx=preCtxData.ctxV.val.min
+                    syntaxTypes=preCtxData.syntaxTypes
+                    frms=preCtxData.frms
+                    parenCnt=preCtxData.parenCnt
+                    frame
+                    order
+                    typeColors=preCtxData.typeColors
+                    typeOrderInDisj=preCtxData.typeOrderInDisj
+                    editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
+                    openFrameExplorer=None
+                    openExplorer=None
+                    addAsrtByLabel=None
+                />
+            }
+        }
     }
 
     let rndResults = () => {

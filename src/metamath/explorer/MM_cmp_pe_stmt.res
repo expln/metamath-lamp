@@ -38,7 +38,7 @@ type props = {
     symColors:Belt_HashMapString.t<string>,
     symRename:option<Belt_HashMapString.t<string>>,
     editStmtsByLeftClick:bool,
-    openExplorer:(~initPatternFilterStr:string=?)=>unit,
+    openExplorer:option<(~initPatternFilterStr:string=?)=>unit>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -137,7 +137,7 @@ let make = React.memoCustomCompareProps( ({
     let actSearchSelectedInNewExplorer = () => {
         switch getSelectedText(state.cont) {
             | None => ()
-            | Some(selectedText) => openExplorer(~initPatternFilterStr="$+ " ++ selectedText)
+            | Some(selectedText) => openExplorer->Option.forEach(fn=>fn(~initPatternFilterStr="$+ " ++ selectedText))
         }
     }
 
@@ -199,11 +199,18 @@ let make = React.memoCustomCompareProps( ({
                 <Button title="Expand selection, W" onClick={_=>actExpandSelection()}> <MM_Icons.ZoomOutMap/> </Button>
                 <Button title="Shrink selection, S" onClick={_=>actShrinkSelection()}> <MM_Icons.ZoomInMap/> </Button>
                 <Button title="Copy to the clipboard" onClick={_=>actCopyToClipboard()}> <MM_Icons.ContentCopy/> </Button>
-                <Button title="Search in a new Explorer tab" 
-                    onClick={_=>actSearchSelectedInNewExplorer()}
-                > 
-                    <MM_Icons.Search/>
-                </Button>
+                {
+                    switch openExplorer {
+                        | Some(_) => {
+                            <Button title="Search in a new Explorer tab" 
+                                onClick={_=>actSearchSelectedInNewExplorer()}
+                            > 
+                                <MM_Icons.Search/>
+                            </Button>
+                        }
+                        | None => React.null
+                    }
+                }
                 <Button title="Unselect, Esc" onClick={_=>actUnselect()}> <MM_Icons.CancelOutlined/> </Button>
             </ButtonGroup>
             {

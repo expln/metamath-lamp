@@ -860,12 +860,8 @@ let make = (
                     updateModal(modalRef, modalId, () => {
                         <MM_cmp_search_asrt
                             modalRef
-                            settingsVer=state.preCtxData.settingsV.ver
-                            settings=state.preCtxData.settingsV.val
-                            preCtxVer=state.preCtxData.ctxV.ver
-                            preCtx=state.preCtxData.ctxV.val.min
+                            preCtxData=state.preCtxData
                             wrkCtx
-                            frms=state.preCtxData.frms
                             initialTyp={getLastUsedTyp(state.preCtxData.ctxV.val.min)}
                             onTypChange={saveLastUsedTyp(state.preCtxData.ctxV.val.min, _)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
