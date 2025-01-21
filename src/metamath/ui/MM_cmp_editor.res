@@ -722,15 +722,6 @@ let make = (
         st->addNewStatements(stmtsDto, ~isBkm=showBkmOnlyRef.current)
     }
 
-    let actAsrtSearchResultsSelected = (selectedResults:array<stmtsDto>) => {
-        setState(st => {
-            selectedResults->Array.reduce(
-                st,
-                (st,stmtsDto) => addNewStatementsPriv(st,stmtsDto)
-            )
-        })
-    }
-
     let actAddAsrtByLabel = (asrtLabel:string):promise<result<unit,string>> => {
         Promise.make((resolve, _) => {
             setState(st => {
@@ -755,6 +746,40 @@ let make = (
                 }
             })
         })
+    }
+
+    let actAsrtSearchResultsSelected = (selectedLabels:array<string>):unit => {
+        switch state.wrkCtx {
+            | None => showErrMsg(~text="MM context is not loaded.")
+            | Some(wrkCtx) => {
+                switch selectedLabels->Array.reduce(Ok([]), (res,label) => {
+                    switch res {
+                        | Error(_) => res
+                        | Ok(selectedFrames) => {
+                            switch wrkCtx->getFrame(label) {
+                                | None => Error(`Internal error: cannot find a frame by label '${label}'`)
+                                | Some(frame) => {
+                                    selectedFrames->Array.push(frame)
+                                    Ok(selectedFrames)
+                                }
+                            }
+                        }
+                    }
+                }) {
+                    | Error(msg) => showErrMsg(~text=msg)
+                    | Ok(selectedFrames) => {
+                        setState(st => {
+                            selectedFrames->Array.reduce(
+                                st,
+                                (st,frame) => {
+                                    addNewStatementsPriv(st,MM_wrk_search_asrt.frameToStmtsDto(~wrkCtx, ~frame))
+                                }
+                            )
+                        })
+                    }
+                }
+            }
+        }
     }
 
     React.useEffect0(() => {
@@ -865,9 +890,9 @@ let make = (
                             initialTyp={getLastUsedTyp(state.preCtxData.ctxV.val.min)}
                             onTypChange={saveLastUsedTyp(state.preCtxData.ctxV.val.min, _)}
                             onCanceled={()=>closeModal(modalRef, modalId)}
-                            onResultsSelected={selectedResults=>{
+                            onResultsSelected={selectedLabels=>{
                                 closeModal(modalRef, modalId)
-                                actAsrtSearchResultsSelected(selectedResults)
+                                actAsrtSearchResultsSelected(selectedLabels)
                             }}
                         />
                     })

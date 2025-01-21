@@ -96,8 +96,8 @@ let make = React.memoCustomCompareProps(({
         }
     }
 
-    let mapToOrdAndLabel = (frames:array<frame>):array<(int,string)> => {
-        frames->Array.map(frame => (frame.ord+1,frame.label))
+    let mapToLabel = (frames:array<frame>):array<string> => {
+        frames->Array.map(frame => frame.label)
     }
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
@@ -112,7 +112,7 @@ let make = React.memoCustomCompareProps(({
         let allFramesInDeclarationOrder = preCtx->getAllFrames->Belt_MapString.valuesToArray
             ->Expln_utils_common.sortInPlaceWith((a,b) => Belt_Float.fromInt(a.ord - b.ord))
         setAllFramesInDeclarationOrder(_ => allFramesInDeclarationOrder)
-        setFilteredLabels(_ => allFramesInDeclarationOrder->mapToOrdAndLabel)
+        setFilteredLabels(_ => allFramesInDeclarationOrder->mapToLabel)
 
         let allStmtIntTypes = []
         preCtx->forEachFrame(frame => {
@@ -160,7 +160,7 @@ let make = React.memoCustomCompareProps(({
                                 ~isTranDepr=tranDeprFilter,
                             )
                             ->filterByDescr
-                            ->mapToOrdAndLabel
+                            ->mapToLabel
                         })
                     } else {
                         openModal(modalRef, () => rndProgress(~text="Searching", ~pct=0. ))->promiseMap(modalId => {
@@ -181,19 +181,18 @@ let make = React.memoCustomCompareProps(({
                                 ~isDisc=discFilter,
                                 ~isDepr=deprFilter,
                                 ~isTranDepr=tranDeprFilter,
-                                ~returnLabelsOnly=true,
                                 ~onProgress = pct => updateModal(
                                     modalRef, modalId, () => rndProgress(
                                         ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                                     )
                                 )
-                            )->promiseMap(((_,foundLabels)) => {
+                            )->promiseMap(foundLabels => {
                                 let foundLabelsSet = Belt_HashSetString.fromArray(foundLabels)
                                 setFilteredLabels(_ => {
                                     allFramesInDeclarationOrder
                                         ->Array.filter(frame => foundLabelsSet->Belt_HashSetString.has(frame.label))
                                         ->filterByDescr
-                                        ->mapToOrdAndLabel
+                                        ->mapToLabel
                                 })
                                 closeModal(modalRef, modalId)
                             })

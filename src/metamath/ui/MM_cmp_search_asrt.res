@@ -6,12 +6,9 @@ open MM_wrk_search_asrt
 open MM_context
 open MM_substitution
 open Expln_React_Modal
-open MM_statements_dto
 open MM_wrk_settings
 open Common
 open MM_wrk_pre_ctx_data
-
-type resultForRender = React.element
 
 type state = {
     label:string,
@@ -19,8 +16,7 @@ type state = {
     typ: int,
     patternStr: string,
     patternErr: option<string>,
-    results: option<array<stmtsDto>>,
-    resultsForRender: option<array<resultForRender>>,
+    results: option<array<string>>,
     resultsPerPage:int,
     resultsMaxPage:int,
     resultsPage:int,
@@ -41,7 +37,6 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
         patternStr: "",
         patternErr: None,
         results: None,
-        resultsForRender: None,
         resultsPerPage:10,
         resultsMaxPage:1,
         resultsPage:1,
@@ -51,58 +46,12 @@ let makeInitialState = (frms, initialTyp:option<int>) => {
 
 let setResults = (
     st,
-    ~results: array<stmtsDto>,
-    ~getFrmLabelBkgColor: string=>option<string>,
+    ~results: array<string>,
 ):state => {
     let maxPage = Math.Int.ceil(results->Array.length->Belt_Int.toFloat /. st.resultsPerPage->Belt_Int.toFloat)
     {
         ...st,
         results:Some(results),
-        resultsForRender:Some(
-            results->Array.map(result => {
-                let numOfStmt = result.stmts->Array.length
-                let lastStmtIdx = numOfStmt - 1
-                <Paper style=ReactDOM.Style.make(~padding="3px", ())>
-                    <Col>
-                        {React.array(
-                            result.newDisjStr->Array.mapWithIndex((disjStr,i) => {
-                                <React.Fragment key={"disj-" ++ i->Belt_Int.toString} >
-                                    {React.string("$d " ++ disjStr ++ " $.")}
-                                    <Divider/>
-                                </React.Fragment>
-                            })
-                        )}
-                        {React.array(
-                            result.stmts->Array.mapWithIndex((stmt,i) => {
-                                <React.Fragment key={"stmt-" ++ i->Belt_Int.toString} >
-                                    <span 
-                                        style=ReactDOM.Style.make(
-                                            ~backgroundColor=?{
-                                                if (i == lastStmtIdx) {getFrmLabelBkgColor(stmt.label)} else {None}
-                                            }, 
-                                            ~borderRadius="3px",
-                                            ()
-                                        )
-                                    >
-                                        {React.string(stmt.label)}
-                                    </span>
-                                    <span>
-                                        {React.string(": " ++ stmt.exprStr)}
-                                    </span>
-                                    {
-                                        if (i != lastStmtIdx) {
-                                            <Divider/>
-                                        } else {
-                                            React.null
-                                        }
-                                    }
-                                </React.Fragment>
-                            })
-                        )}
-                    </Col>
-                </Paper>
-            })
-        ),
         resultsMaxPage: maxPage,
         resultsPage: 1,
         checkedResultsIdx: [],
@@ -166,21 +115,12 @@ let make = (
     ~initialTyp:option<int>,
     ~onTypChange:int=>unit,
     ~onCanceled:unit=>unit,
-    ~onResultsSelected:array<stmtsDto>=>unit
+    ~onResultsSelected:array<string>=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(preCtxData.frms, initialTyp))
 
-    let getFrmLabelBkgColor = (label:string):option<string> => {
-        switch preCtxData.frms->frmsGetByLabel(label) {
-            | None => None
-            | Some(frm) => {
-                MM_react_common.getFrmLabelBkgColor(frm.frame, preCtxData.settingsV.val)
-            }
-        }
-    }
-
-    let actResultsRetrieved = results => {
-        setState(setResults(_, ~results, ~getFrmLabelBkgColor))
+    let actResultsRetrieved = (results:array<string>) => {
+        setState(setResults(_, ~results))
     }
 
     let makeActTerminate = (modalId:modalId):(unit=>unit) => {
@@ -217,15 +157,14 @@ let make = (
                         ~isDisc=None,
                         ~isDepr=None,
                         ~isTranDepr=None,
-                        ~returnLabelsOnly=false,
                         ~onProgress = pct => updateModal(
                             modalRef, modalId, () => rndProgress(
                                 ~text="Searching", ~pct, ~onTerminate=makeActTerminate(modalId)
                             )
                         )
-                    )->promiseMap(((found,_)) => {
+                    )->promiseMap(foundLabels => {
                         closeModal(modalRef, modalId)
-                        actResultsRetrieved(found)
+                        actResultsRetrieved(foundLabels)
                     })
                 })->ignore
             }
@@ -348,12 +287,12 @@ let make = (
         </Row>
     }
 
-    let rndFrameSummary = (order:int,label:string) => {
+    let rndFrameSummary = (label:string) => {
         switch preCtxData.ctxV.val.min->getFrame(label) {
             | None => React.null
             | Some(frame) => {
                 <MM_cmp_pe_frame_summary
-                    key={`${order->Belt.Int.toString}-${label}`}
+                    key={`${frame.ord->Belt.Int.toString}-${label}`}
                     modalRef
                     settings=preCtxData.settingsV.val
                     preCtx=preCtxData.ctxV.val.min
@@ -361,7 +300,7 @@ let make = (
                     frms=preCtxData.frms
                     parenCnt=preCtxData.parenCnt
                     frame
-                    order
+                    order=None
                     typeColors=preCtxData.typeColors
                     typeOrderInDisj=preCtxData.typeOrderInDisj
                     editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
@@ -374,22 +313,21 @@ let make = (
     }
 
     let rndResults = () => {
-        switch state.resultsForRender {
+        switch state.results {
             | None => React.null
-            | Some(resultsForRender) => {
-                let items = []
+            | Some(results) => {
+                let labelsToRender = []
                 let minI = (state.resultsPage - 1) * state.resultsPerPage
-                let maxI = Math.Int.min(minI + state.resultsPerPage - 1, resultsForRender->Array.length-1)
+                let maxI = Math.Int.min(minI + state.resultsPerPage - 1, results->Array.length-1)
                 for i in minI to maxI {
-                    let resultForRender = resultsForRender->Array.getUnsafe(i)
-                    items->Array.push(resultForRender)
+                    labelsToRender->Array.push(results->Array.getUnsafe(i))
                 }
-                let totalNumOfResults = resultsForRender->Array.length
+                let totalNumOfResults = results->Array.length
                 <Col>
                     {rndResultButtons()}
                     {rndPagination(totalNumOfResults)}
                     {
-                        items->Array.mapWithIndex((item,i) => {
+                        labelsToRender->Array.mapWithIndex((label,i) => {
                             let resIdx = minI + i
                             <table key={resIdx->Belt_Int.toString}>
                                 <tbody>
@@ -401,7 +339,7 @@ let make = (
                                             />
                                         </td>
                                         <td>
-                                            item
+                                            {rndFrameSummary(label)}
                                         </td>
                                     </tr>
                                 </tbody>

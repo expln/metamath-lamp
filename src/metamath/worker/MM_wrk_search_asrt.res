@@ -24,12 +24,11 @@ type request =
         isDisc:option<bool>,
         isDepr:option<bool>,
         isTranDepr:option<bool>,
-        returnLabelsOnly:bool,
     })
 
 type response =
     | OnProgress(float)
-    | SearchResult({found:array<stmtsDto>, foundLabels:array<string>})
+    | SearchResult(array<string>)
 
 let reqToStr = req => {
     switch req {
@@ -480,9 +479,8 @@ let searchAssertions = (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
-    ~returnLabelsOnly:bool,
     ~onProgress:float=>unit,
-): promise<(array<stmtsDto>,array<string>)> => {
+): promise<array<string>> => {
     promise(resolve => {
         beginWorkerInteractionUsingCtx(
             ~settingsVer,
@@ -492,15 +490,13 @@ let searchAssertions = (
             ~varsText="",
             ~disjText="",
             ~procName,
-            ~initialRequest = FindAssertions({
-                isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly,
-            }),
+            ~initialRequest = FindAssertions({ isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, }),
             ~onResponse = (~resp, ~sendToWorker as _, ~endWorkerInteraction) => {
                 switch resp {
                     | OnProgress(pct) => onProgress(pct)
-                    | SearchResult({found, foundLabels}) => {
+                    | SearchResult(foundLabels) => {
                         endWorkerInteraction()
-                        resolve((found,foundLabels))
+                        resolve(foundLabels)
                     }
                 }
             },
@@ -604,7 +600,7 @@ let doSearchAssertions = (
 
 let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit => {
     switch req {
-        | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr, returnLabelsOnly}) => {
+        | FindAssertions({isAxiom, typ, label, searchPattern, isDisc, isDepr, isTranDepr}) => {
             let filteredFrames = doSearchAssertions(
                 ~allFramesInDeclarationOrder=getAllFramesInDeclarationOrderExn(),
                 ~isAxiom,
@@ -616,12 +612,7 @@ let processOnWorkerSide = (~req: request, ~sendToClient: response => unit): unit
                 ~isTranDepr,
                 ~onProgress = pct => sendToClient(OnProgress(pct))
             )
-            let (results,labels) = if (returnLabelsOnly) {
-                ([], filteredFrames->Array.map(frame => frame.label))
-            } else {
-                (filteredFrames->Array.map(frame => frameToStmtsDto(~wrkCtx=getWrkCtxExn(), ~frame)),[])
-            }
-            sendToClient(SearchResult({found:results,foundLabels:labels}))
+            sendToClient(SearchResult(filteredFrames->Array.map(frame => frame.label)))
         }
     }
 }

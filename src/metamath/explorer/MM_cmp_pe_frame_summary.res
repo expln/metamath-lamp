@@ -26,7 +26,7 @@ type props = {
     parenCnt: parenCnt,
 
     frame:frame,
-    order:int,
+    order:option<int>,
     openFrameExplorer:option<string=>unit>,
     openExplorer:option<(~initPatternFilterStr:string=?)=>unit>,
     addAsrtByLabel:option<string=>promise<result<unit,string>>>,
@@ -181,7 +181,7 @@ let make = React.memoCustomCompareProps( ({
                 style=ReactDOM.Style.make(~cursor=openFrameExplorer->Option.isSome?"pointer":"default", ())
                 onClick=clickHnd(~act=()=>openFrameExplorer->Option.forEach(fn => fn(frame.label)))
             >
-                { React.string( order->Belt_Int.toString ++ " ") }
+                { React.string( order->Option.mapOr("", Belt_Int.toString(_)) ++ " ") }
                 asrtType
                 { React.string( " ") }
                 <span 

@@ -42,9 +42,8 @@ let searchAssertions: (
     ~isDisc:option<bool>,
     ~isDepr:option<bool>,
     ~isTranDepr:option<bool>,
-    ~returnLabelsOnly:bool,
     ~onProgress:float=>unit,
-) => promise<(array<stmtsDto>,array<string>)>
+) => promise<array<string>>
 
 let frameToStmtsDto: (
     ~wrkCtx:mmContext,

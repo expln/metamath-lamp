@@ -23,7 +23,7 @@ type props = {
     syntaxTypes:array<int>,
     typeOrderInDisj:Belt_HashMapInt.t<int>,
 
-    labels:array<(int,string)>,
+    labels:array<string>,
     openFrameExplorer:string=>unit,
     openExplorer:(~initPatternFilterStr:string=?)=>unit,
     asrtsPerPage:int,
@@ -107,10 +107,11 @@ let make = React.memoCustomCompareProps(({
         </Row>
     }
 
-    let rndFrameSummary = (order,label) => {
+    let rndFrameSummary = (label) => {
         switch preCtx->getFrame(label) {
             | None => React.null
             | Some(frame) => {
+                let order = frame.ord+1
                 <MM_cmp_pe_frame_summary
                     key={`${order->Belt.Int.toString}-${label}`}
                     modalRef
@@ -120,7 +121,7 @@ let make = React.memoCustomCompareProps(({
                     frms
                     parenCnt
                     frame
-                    order
+                    order=Some(order)
                     typeColors
                     typeOrderInDisj
                     editStmtsByLeftClick
@@ -140,7 +141,7 @@ let make = React.memoCustomCompareProps(({
                 {rndPagination()}
                 {
                     labels->Array.slice(~start=beginIdx, ~end=endIdx+1)
-                        ->Array.map(((order,label)) => rndFrameSummary(order,label))
+                        ->Array.map(label => rndFrameSummary(label))
                         ->React.array
                 }
                 {rndPagination()}
