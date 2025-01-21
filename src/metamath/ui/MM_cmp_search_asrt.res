@@ -287,6 +287,11 @@ let make = (
         </Row>
     }
 
+    let addAsrtByLabel = (label:string):promise<result<unit,string>> => {
+        onResultsSelected([label])
+        Promise.resolve(Ok(()))
+    }
+
     let rndFrameSummary = (label:string) => {
         switch preCtxData.ctxV.val.min->getFrame(label) {
             | None => React.null
@@ -306,7 +311,7 @@ let make = (
                     editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
                     openFrameExplorer=None
                     openExplorer=None
-                    addAsrtByLabel=None
+                    addAsrtByLabel=Some(addAsrtByLabel)
                 />
             }
         }
