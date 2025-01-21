@@ -1033,7 +1033,7 @@ let make = React.memoCustomCompareProps(({
                                         symColors=state.symColors
                                         symRename=None
                                         editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-                                        openExplorer
+                                        openExplorer=Some(openExplorer)
                                     /> 
                                 </td>
                             </tr>
@@ -1053,7 +1053,7 @@ let make = React.memoCustomCompareProps(({
                             symColors=state.symColors
                             symRename=None
                             editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-                            openExplorer
+                            openExplorer=Some(openExplorer)
                         /> 
                     </td>
                 </tr>
@@ -1222,7 +1222,7 @@ let make = React.memoCustomCompareProps(({
             symColors=state.symColors
             symRename=None
             editStmtsByLeftClick=preCtxData.settingsV.val.editStmtsByLeftClick
-            openExplorer
+            openExplorer=Some(openExplorer)
         />
     }
 

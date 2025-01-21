@@ -26,10 +26,10 @@ type props = {
     parenCnt: parenCnt,
 
     frame:frame,
-    order:int,
-    openFrameExplorer:string=>unit,
-    openExplorer:(~initPatternFilterStr:string=?)=>unit,
-    addAsrtByLabel:string=>promise<result<unit,string>>,
+    order:option<int>,
+    openFrameExplorer:option<string=>unit>,
+    openExplorer:option<(~initPatternFilterStr:string=?)=>unit>,
+    addAsrtByLabel:option<string=>promise<result<unit,string>>>,
 }
 
 let propsAreSame = (a:props,b:props):bool => {
@@ -71,21 +71,26 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let actAddAsrtToEditor = (label:string) => {
-        addAsrtByLabel(label)->promiseMap(res => {
-            setAsrtWasAddedToEditor(msgAndTimerId => {
-                switch msgAndTimerId {
-                    | None => ()
-                    | Some((_, timerId)) => clearTimeout(timerId)
-                }
-                Some((
-                    res,
-                    setTimeout(
-                        () => setAsrtWasAddedToEditor(_ => None),
-                        5000
-                    )
-                ))
-            })
-        })->ignore
+        switch addAsrtByLabel {
+            | None => ()
+            | Some(addAsrtByLabel) => {
+                addAsrtByLabel(label)->promiseMap(res => {
+                    setAsrtWasAddedToEditor(msgAndTimerId => {
+                        switch msgAndTimerId {
+                            | None => ()
+                            | Some((_, timerId)) => clearTimeout(timerId)
+                        }
+                        Some((
+                            res,
+                            setTimeout(
+                                () => setAsrtWasAddedToEditor(_ => None),
+                                5000
+                            )
+                        ))
+                    })
+                })->Promise.done
+            }
+        }
     }
 
     let rndExpBtn = () => {
@@ -125,35 +130,40 @@ let make = React.memoCustomCompareProps( ({
     }
 
     let rndUseBtn = () => {
-        <span>
-            {React.string(nbsp ++ nbsp)}
-            <span 
-                onClick=clickHnd(~act=() => actAddAsrtToEditor(frame.label))
-                style=ReactDOM.Style.make(
-                    ~fontFamily="monospace",
-                    ~color="grey",
-                    ~cursor="pointer",
-                    ()
-                )
-            >
-                { React.string( "use" ) }
-            </span>
-            {
-                switch asrtWasAddedToEditor {
-                    | None => React.null
-                    | Some((Ok(_), _)) => {
-                        <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="black", () ) >
-                            { React.string( nbsp ++ "Added to the editor" ) }
-                        </span>
+        switch addAsrtByLabel {
+            | None => React.null
+            | Some(_) => {
+                <span>
+                    {React.string(nbsp ++ nbsp)}
+                    <span 
+                        onClick=clickHnd(~act=() => actAddAsrtToEditor(frame.label))
+                        style=ReactDOM.Style.make(
+                            ~fontFamily="monospace",
+                            ~color="grey",
+                            ~cursor="pointer",
+                            ()
+                        )
+                    >
+                        { React.string( "use" ) }
+                    </span>
+                    {
+                        switch asrtWasAddedToEditor {
+                            | None => React.null
+                            | Some((Ok(_), _)) => {
+                                <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="black", () ) >
+                                    { React.string( nbsp ++ "Added to the editor" ) }
+                                </span>
+                            }
+                            | Some((Error(msg), _)) => {
+                                <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="red", () ) >
+                                    { React.string( nbsp ++ "Error: " ++ msg ) }
+                                </span>
+                            }
+                        }
                     }
-                    | Some((Error(msg), _)) => {
-                        <span style=ReactDOM.Style.make( ~fontFamily="monospace", ~color="red", () ) >
-                            { React.string( nbsp ++ "Error: " ++ msg ) }
-                        </span>
-                    }
-                }
+                </span>
             }
-        </span>
+        }
     }
 
     let rndLabel = ():reElem => {
@@ -168,10 +178,10 @@ let make = React.memoCustomCompareProps( ({
         }
         <span style=ReactDOM.Style.make(~paddingLeft, ~paddingRight, ()) >
             <span
-                style=ReactDOM.Style.make(~cursor="pointer", ())
-                onClick=clickHnd(~act=()=>openFrameExplorer(frame.label))
+                style=ReactDOM.Style.make(~cursor=openFrameExplorer->Option.isSome?"pointer":"default", ())
+                onClick=clickHnd(~act=()=>openFrameExplorer->Option.forEach(fn => fn(frame.label)))
             >
-                { React.string( order->Belt_Int.toString ++ " ") }
+                { React.string( order->Option.mapOr("", Belt_Int.toString(_)) ++ " ") }
                 asrtType
                 { React.string( " ") }
                 <span 
