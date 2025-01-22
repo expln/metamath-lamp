@@ -18,6 +18,8 @@ open MM_editor_history
 open MM_proof_tree_dto
 open MM_bottom_up_prover_params
 
+type frameProofData = MM_cmp_pe_frame_full.frameProofData
+
 let editorStateLocStorKey = "editor-state"
 let editorHistLocStorKey = "editor-hist"
 let editorHistRegLocStorKey = "hist-reg"
@@ -1337,6 +1339,54 @@ let make = (
                 }
             }
             | _ => showInfoMsg(~title=`A proof is not available`, ~text=infoAboutGettingCompletedProof)
+        }
+    }
+
+    let makeFrameProofDataForAssertions = (
+        ~preCtxData:preCtxData,
+        ~labels:Belt_SetString.t,
+        ~onProgress:float=>unit,
+    ):promise<result<Belt_MapString.t<frameProofData>,string>> => {
+        if (labels->Belt_SetString.size == 0) {
+            Promise.resolve(Ok(Belt_MapString.empty))
+        } else {
+            let pctPerFrame = 1.0 /. labels->Belt_SetString.size->Int.toFloat
+            let rec go = async (
+                ~labelsToProcess:Belt_SetString.t, 
+                ~res:result<Belt_MapString.t<frameProofData>,string>,
+            ):result<Belt_MapString.t<frameProofData>,string> => {
+                switch res {
+                    | Error(_) => res
+                    | Ok(proofDatas) => {
+                        if (labelsToProcess->Belt_SetString.size == 0) {
+                            res
+                        } else {
+                            let curLabel = labelsToProcess->Belt_SetString.toArray->Array.getUnsafe(0)
+                            switch await MM_cmp_pe_frame_full.makeFrameProofData(
+                                ~preCtxData,
+                                ~label=curLabel,
+                                ~onProgress = pct => {
+                                    let processedPct = proofDatas->Belt_MapString.size->Int.toFloat *. pctPerFrame
+                                    let curPct = processedPct +. pctPerFrame *. pct
+                                    onProgress(curPct)
+                                }
+                            ) {
+                                | Error(msg) => {
+                                    let errMsg = `An error occured while getting proof for ${curLabel}: ${msg}`
+                                    await go(~labelsToProcess=Belt_SetString.empty, ~res=Error(errMsg))
+                                }
+                                | Ok(proofData) => {
+                                    await go(
+                                        ~labelsToProcess=labelsToProcess->Belt_SetString.remove(curLabel),
+                                        ~res=Ok(proofDatas->Belt_MapString.set(curLabel, proofData))
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            go(~labelsToProcess=labels, ~res=Ok(Belt_MapString.empty))
         }
     }
 
