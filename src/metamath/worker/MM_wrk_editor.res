@@ -3088,6 +3088,17 @@ let reorderSteps = (st:editorState):editorState => {
                 }
             }
         })
+        if (!moved.contents) {
+            stepsToMove.contents->Array.forEach(stmt => {
+                switch dependencies->Belt_HashMapString.get(stmt.label) {
+                    | None => {
+                        newSteps->Array.push(stmt)
+                        moved := true
+                    }
+                    | Some(_) => ()
+                }
+            })
+        }
     }
     stepsToMove.contents->Array.forEach(stmt => newSteps->Array.push(stmt))
     { ...st, stmts:newSteps, }
