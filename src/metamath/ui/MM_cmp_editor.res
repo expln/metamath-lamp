@@ -108,10 +108,9 @@ let infoAboutGettingCompletedProof = `In order to show a completed proof please 
                 ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
                 ++ `3) Select "Show completed proof" menu item.`
 
-let infoAboutInliningProof = `In order to inline a proof please do the following: ` 
-                ++ `1) Make sure the step you want to inline the proof for is marked with a green chekmark. ` 
-                ++ `If it is not, try to "unify all"; 2) Select the step you want to inline the proof for; ` 
-                ++ `3) Select "Inline proof" menu item.`
+let infoAboutInliningTheorems = `In order to inline theorems please do the following: ` 
+                ++ `1) Make sure all steps in the editor are marked with a green check mark. `
+                ++ `If they are not, try to "unify all"; 2) Select "Inline theorems" menu item.`
 
 @react.component
 let make = (
@@ -1390,6 +1389,56 @@ let make = (
         }
     }
 
+    let inlineTheorems = (labels:array<string>):unit => {
+        Console.log2(`labels`, labels)
+    }
+
+    let actInlineTheorems = () => {
+        switch state.wrkCtx {
+            | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.")
+            | Some(wrkCtx) => {
+                let theoremLabels = state.stmts->Array.map(stmt => {
+                    switch stmt.src {
+                        | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => None
+                        | Some(Assertion({label})) => Some((label, wrkCtx->getTokenType(label)))
+                    }
+                })->Array.filter(labelData => {
+                    @warning("-8")
+                    switch labelData {
+                        | Some((_,Some(P))) => true
+                        | _ => false
+                    }
+                })->Array.map(labelData => {
+                    @warning("-8")
+                    switch labelData {
+                        | Some((label,_)) => label
+                        | _ => Exn.raiseError("Internal error: cannot convert labelData to label.")
+                    }
+                })
+                    ->Belt_SetString.fromArray
+                    ->Belt_SetString.toArray
+                    ->Array.toSorted(String.compare)
+                if (theoremLabels->Array.length == 0) {
+                    showInfoMsg(~title=`Cannot inline theorems`, ~text=infoAboutInliningTheorems)
+                } else {
+                    openModalPaneWithTitle(
+                        ~modalRef, 
+                        ~content = (~close:unit=>unit) => {
+                            <MM_cmp_editor_select_theorems
+                                labels=theoremLabels
+                                onOk={selectedLabels => {
+                                    close()
+                                    inlineTheorems(selectedLabels)
+                                }}
+                                onCancel={() => close()}
+                            />
+                        },
+                    )
+                }
+            }
+        }
+    }
+
     let actInlineProof = () => {
         switch state->getTheOnlyCheckedStmt {
             | Some(stmt) => {
@@ -1400,9 +1449,9 @@ let make = (
                     )
                 } else {
                     switch stmt.src {
-                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
+                        | None => showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningTheorems)
                         | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => {
-                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningProof)
+                            showInfoMsg(~title=`Cannot inline proof`, ~text=infoAboutInliningTheorems)
                         }
                         | Some(Assertion({args, label})) => {
                             switch stmt.proofTreeDto {
@@ -1741,10 +1790,10 @@ let make = (
                         <MenuItem
                             onClick={() => {
                                 actCloseMainMenu()
-                                actInlineProof()
+                                actInlineTheorems()
                             }}
                         >
-                            {"Inline proof"->React.string}
+                            {"Inline theorems"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {
