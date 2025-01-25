@@ -1595,6 +1595,10 @@ let make = (
         }
     }
 
+    let actReorderSteps = () => {
+        setState(reorderSteps)
+    }
+
     let actOpenMoveStepsDialog = () => {
         openModal(modalRef, () => React.null)->promiseMap(modalId => {
             updateModal(modalRef, modalId, () => {
@@ -1860,6 +1864,14 @@ let make = (
                             }}
                         >
                             {"Move steps"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actReorderSteps()
+                            }}
+                        >
+                            {"Reorder steps"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

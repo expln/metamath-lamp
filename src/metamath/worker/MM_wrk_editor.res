@@ -3051,3 +3051,44 @@ let deleteUnrelatedSteps = (
         Ok(state->deleteStmts(idsToRemove))
     }
 }
+
+let getStepDependencies = (jstfStr:string):option<Belt_SetString.t> => {
+    switch parseJstf(jstfStr) {
+        | Error(_) => None
+        | Ok(jstfParsed) => jstfParsed->Option.map(({args}) => Belt_SetString.fromArray(args))
+    }
+}
+
+let allDependenciesArePresent = (movedLabels:Belt_HashSetString.t, deps:Belt_SetString.t):bool => {
+    deps->Belt_SetString.every(arg => movedLabels->Belt_HashSetString.has(arg))
+}
+
+let reorderSteps = (st:editorState):editorState => {
+    let newSteps:array<userStmt> = st.stmts->Array.filter(stmt => stmt.typ == E)
+    let stepsToMove:ref<array<userStmt>> = ref(st.stmts->Array.filter(stmt => stmt.typ != E))
+    let dependencies:Belt_HashMapString.t<Belt_SetString.t> = Belt_HashMapString.make(~hintSize=st.stmts->Array.length)
+    st.stmts->Array.forEach(stmt => {
+        getStepDependencies(stmt.jstfText)->Option.forEach(deps => {
+            dependencies->Belt_HashMapString.set(stmt.label, deps)
+        })
+    })
+    let moved = ref(true)
+    while (moved.contents) {
+        moved := false
+        let movedLabels = Belt_HashSetString.fromArray( newSteps->Array.map(stmt => stmt.label) )
+        stepsToMove := stepsToMove.contents->Array.filter(stmt => !(movedLabels->Belt_HashSetString.has(stmt.label)))
+        stepsToMove.contents->Array.forEach(stmt => {
+            switch dependencies->Belt_HashMapString.get(stmt.label) {
+                | None => ()
+                | Some(deps) => {
+                    if (allDependenciesArePresent(movedLabels, deps)) {
+                        newSteps->Array.push(stmt)
+                        moved := true
+                    }
+                }
+            }
+        })
+    }
+    stepsToMove.contents->Array.forEach(stmt => newSteps->Array.push(stmt))
+    { ...st, stmts:newSteps, }
+}
