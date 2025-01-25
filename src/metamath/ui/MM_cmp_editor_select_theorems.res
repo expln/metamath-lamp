@@ -1,7 +1,10 @@
 open Expln_React_Mui
+open Expln_React_Modal
+open MM_react_common
 
 @react.component
 let make = (
+    ~modalRef:modalRef, 
     ~labels:array<string>, 
     ~onOk:array<string>=>unit,
     ~onCancel:unit=>unit,
@@ -18,8 +21,15 @@ let make = (
         })
     }
 
-    let actOk = () => {
-        onOk(selectedLabels->Belt_SetString.toArray)
+    let actOk = async () => {
+        let continue = await openOkCancelDialog(
+            ~modalRef, 
+            ~title="Confirm inlining theorems",
+            ~text=labels->Array.filter(label => selectedLabels->Belt_SetString.has(label))->Array.join(", "), 
+        )
+        if (continue) {
+            onOk(selectedLabels->Belt_SetString.toArray)
+        }
     }
 
     let rndCheckboxes = () => {
@@ -47,7 +57,13 @@ let make = (
         </span>
         {rndCheckboxes()}
         <Row>
-            <Button onClick={_=>actOk()} variant=#contained> {React.string("Ok")} </Button>
+            <Button 
+                onClick={_=>actOk()->Promise.done} 
+                variant=#contained
+                disabled={selectedLabels->Belt_SetString.size==0}
+            > 
+                {React.string("Ok")} 
+            </Button>
             <Button onClick={_=>onCancel()}> {React.string("Cancel")} </Button>
         </Row>
     </Col>
