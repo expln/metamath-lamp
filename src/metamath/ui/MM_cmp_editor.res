@@ -103,12 +103,12 @@ let previousEditingIsNotCompletedText =
     `You've attempted to edit something in the editor while the previous edit is not complete.`
         ++ ` Please complete the previous edit before starting a new one.`
 
-let infoAboutGettingCompletedProof = `In order to show a completed proof please do the following: ` 
+let infoAboutGettingCompletedProof = `In order to show a completed proof do the following: ` 
                 ++ `1) Make sure the step you want to show a completed proof for is marked with a green chekmark. ` 
                 ++ `If it is not, try to "unify all"; 2) Select the step you want to show a completed proof for; ` 
                 ++ `3) Select "Show completed proof" menu item.`
 
-let infoAboutInliningTheorems = `In order to inline theorems please do the following: ` 
+let infoAboutInliningTheorems = `In order to inline theorems do the following: ` 
                 ++ `1) Make sure all steps you want to inline the proof for are marked with a green check mark. `
                 ++ `If they are not, try to "unify all"; 2) Select "Inline theorems" menu item.`
 
