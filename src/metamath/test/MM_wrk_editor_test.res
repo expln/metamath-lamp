@@ -1734,3 +1734,109 @@ describe("toggleStmtCheckedWithShift", _ => {
         assertStmtsChecked(st, [1,3,5,9,11,13])
     })
 })
+
+describe("reorderSteps", _ => {
+    it("reorders steps taking into account step dependencies", _ => {
+        //given
+        let st = createEditorState(demo0)
+        let (st, id1) = addNewStmt(st)
+        let (st, id2) = addNewStmt(st)
+        let (st, id3) = addNewStmt(st)
+        let (st, id4) = addNewStmt(st)
+        let (st, id5) = addNewStmt(st)
+        let (st, id6) = addNewStmt(st)
+        let (st, id7) = addNewStmt(st)
+        let (st, id8) = addNewStmt(st)
+        let (st, id9) = addNewStmt(st)
+        let (st, id10) = addNewStmt(st)
+        let (st, id11) = addNewStmt(st)
+        let st = updateStmt(st, id1, stmt => { ...stmt, 
+            label:"1", typ:E, jstfText: "HYP", cont:strToCont("1) hyp1")
+        })
+        let st = updateStmt(st, id2, stmt => { ...stmt, 
+            label:"2", typ:E, jstfText: "HYP", cont:strToCont("2) hyp2")
+        })
+        let st = updateStmt(st, id3, stmt => { ...stmt, 
+            label:"3", typ:P, jstfText: ": th", cont:strToCont("3) no dependencies")
+        })
+        let st = updateStmt(st, id4, stmt => { ...stmt, 
+            label:"4", typ:P, jstfText: "1 : th", cont:strToCont("4) depends on hyp only")
+        })
+        let st = updateStmt(st, id5, stmt => { ...stmt, 
+            label:"5", typ:P, jstfText: "4 : th", cont:strToCont("5) depends on 4")
+        })
+        let st = updateStmt(st, id6, stmt => { ...stmt, 
+            label:"6", typ:P, jstfText: "4 5 : th", cont:strToCont("6) depends on 4 and 5")
+        })
+        let st = updateStmt(st, id7, stmt => { ...stmt, 
+            label:"7", typ:P, jstfText: "", cont:strToCont("7) no jstf")
+        })
+        let st = updateStmt(st, id8, stmt => { ...stmt, 
+            label:"8", typ:P, jstfText: "ddd", cont:strToCont("8) unparsable jstf")
+        })
+        let st = updateStmt(st, id9, stmt => { ...stmt, 
+            label:"9", typ:P, jstfText: "3 4 : th", cont:strToCont("9) depends on 3 and 4")
+        })
+        let st = updateStmt(st, id10, stmt => { ...stmt, 
+            label:"10", typ:P, jstfText: "7 : th", cont:strToCont("10) depends on 7")
+        })
+        let st = updateStmt(st, id11, stmt => { ...stmt, 
+            label:"11", typ:P, jstfText: "10 : th", cont:strToCont("11) depends on 10")
+        })
+        let st = {
+            ...st,
+            stmts: [
+                st.stmts->Array.getUnsafe(10),
+                st.stmts->Array.getUnsafe(9),
+                st.stmts->Array.getUnsafe(8),
+                st.stmts->Array.getUnsafe(7),
+                st.stmts->Array.getUnsafe(6),
+                st.stmts->Array.getUnsafe(5),
+                st.stmts->Array.getUnsafe(4),
+                st.stmts->Array.getUnsafe(3),
+                st.stmts->Array.getUnsafe(2),
+                st.stmts->Array.getUnsafe(1),
+                st.stmts->Array.getUnsafe(0),
+            ]
+        }
+        assertEqMsg(
+            st.stmts->Array.map(stmt => stmt.cont->contToStr),
+            [
+                "11) depends on 10",
+                "10) depends on 7",
+                "9) depends on 3 and 4",
+                "8) unparsable jstf",
+                "7) no jstf",
+                "6) depends on 4 and 5",
+                "5) depends on 4",
+                "4) depends on hyp only",
+                "3) no dependencies",
+                "2) hyp2",
+                "1) hyp1"
+            ],
+            "before"
+        )
+
+        //when
+        let st = reorderSteps(st)
+
+        //then
+        assertEqMsg(
+            st.stmts->Array.map(stmt => stmt.cont->contToStr),
+            [
+                "2) hyp2",
+                "1) hyp1",
+                "4) depends on hyp only",
+                "3) no dependencies",
+                "9) depends on 3 and 4",
+                "5) depends on 4",
+                "6) depends on 4 and 5",
+                "8) unparsable jstf",
+                "7) no jstf",
+                "10) depends on 7",
+                "11) depends on 10",
+            ],
+            "after"
+        )
+    })
+})

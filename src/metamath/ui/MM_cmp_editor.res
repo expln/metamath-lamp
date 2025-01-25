@@ -1473,14 +1473,14 @@ let make = (
     }
 
     let inlineTheorems = (labels:array<string>):unit => {
-        openModal(modalRef, () => rndProgress(~text="Getting proof data", ~pct=0.))->Promise.thenResolve(modalId => {
+        openModal(modalRef, () => rndProgress(~text="Collecting proof data", ~pct=0.))->Promise.thenResolve(modalId => {
             let onTerminate = makeActTerminate(modalId)
-            updateModal( modalRef, modalId, () => rndProgress( ~text="Getting proof data", ~pct=0., ~onTerminate ) )
+            updateModal( modalRef, modalId, () => rndProgress( ~text="Collecting proof data", ~pct=0., ~onTerminate ) )
             makeFrameProofDataForAssertions(
                 ~preCtxData,
                 ~labels=Belt_SetString.fromArray(labels),
                 ~onProgress = pct=>updateModal(
-                    modalRef, modalId, () => rndProgress( ~text="Getting proof data", ~pct, ~onTerminate )
+                    modalRef, modalId, () => rndProgress( ~text="Collecting proof data", ~pct, ~onTerminate )
                 ),
             )->Promise.thenResolve(proofData => {
                 switch proofData {
@@ -1545,6 +1545,7 @@ let make = (
                         ~modalRef, 
                         ~content = (~close:unit=>unit) => {
                             <MM_cmp_editor_select_theorems
+                                modalRef
                                 labels=theoremLabels
                                 onOk={selectedLabels => {
                                     close()
@@ -1592,6 +1593,10 @@ let make = (
                 }
             }
         }
+    }
+
+    let actReorderSteps = () => {
+        setState(reorderSteps)
     }
 
     let actOpenMoveStepsDialog = () => {
@@ -1859,6 +1864,14 @@ let make = (
                             }}
                         >
                             {"Move steps"->React.string}
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                actCloseMainMenu()
+                                actReorderSteps()
+                            }}
+                        >
+                            {"Reorder steps"->React.string}
                         </MenuItem>
                         <MenuItem
                             onClick={() => {

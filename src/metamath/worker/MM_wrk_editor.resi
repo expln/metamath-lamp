@@ -281,3 +281,5 @@ let textToSyntaxTree: (
 ) => result<array<result<syntaxTreeNode,string>>,string>
 
 let recalcWrkColors: editorState => editorState
+
+let reorderSteps: editorState => editorState
