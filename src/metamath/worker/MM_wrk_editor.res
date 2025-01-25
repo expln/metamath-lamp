@@ -1567,7 +1567,17 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
                         switch stmtDto.jstf {
                             | None => stmtToUpdate.jstfText
                             | Some(jstf) => jstf->replaceDtoLabelsWithCtxLabels->jstfToStr
-                        }
+                        },
+                    jstf:
+                        switch stmtDto.jstf {
+                            | None => stmtToUpdate.jstf
+                            | Some(_) => None
+                        },
+                    src:
+                        switch stmtDto.jstf {
+                            | None => stmtToUpdate.src
+                            | Some(_) => None
+                        },
                 }
             })
             newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,checkedStmt.label)

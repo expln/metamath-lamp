@@ -109,7 +109,7 @@ let infoAboutGettingCompletedProof = `In order to show a completed proof please 
                 ++ `3) Select "Show completed proof" menu item.`
 
 let infoAboutInliningTheorems = `In order to inline theorems please do the following: ` 
-                ++ `1) Make sure all steps in the editor are marked with a green check mark. `
+                ++ `1) Make sure all steps you want to inline the proof for are marked with a green check mark. `
                 ++ `If they are not, try to "unify all"; 2) Select "Inline theorems" menu item.`
 
 @react.component
@@ -1123,42 +1123,40 @@ let make = (
                             })
                         })->ignore
                     } else {
-                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0.))
-                            ->promiseMap(modalId => {
-                                updateModal( 
-                                    modalRef, modalId, () => rndProgress(
-                                        ~text="Unifying all", ~pct=0., ~onTerminate=makeActTerminate(modalId)
-                                    )
+                        openModal(modalRef, () => rndProgress(~text="Unifying all", ~pct=0.))->promiseMap(modalId => {
+                            let onTerminate = makeActTerminate(modalId)
+                            updateModal( 
+                                modalRef, modalId, () => rndProgress(
+                                    ~text="Unifying all", ~pct=0., ~onTerminate
                                 )
-                                let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
-                                unify(
-                                    ~settingsVer=state.preCtxData.settingsV.ver,
-                                    ~settings,
-                                    ~preCtxVer=state.preCtxData.ctxV.ver,
-                                    ~preCtx=state.preCtxData.ctxV.val.min,
-                                    ~varsText,
-                                    ~disjText,
-                                    ~rootStmts,
-                                    ~bottomUpProverParams=None,
-                                    ~allowedFrms=settings.allowedFrms,
-                                    ~syntaxTypes=Some(state.preCtxData.syntaxTypes),
-                                    ~exprsToSyntaxCheck=
-                                        if (settings.checkSyntax) {
-                                            Some(state->getAllExprsToSyntaxCheck(rootStmts))
-                                        } else {
-                                            None
-                                        },
-                                    ~debugLevel=0,
-                                    ~onProgress = msg => updateModal(
-                                        modalRef, modalId, () => rndProgress(
-                                            ~text=msg, ~onTerminate=makeActTerminate(modalId)
-                                        )
-                                    )
-                                )->promiseMap(proofTreeDto => {
-                                    actUnifyAllResultsAreReady(proofTreeDto, nextAction)
-                                    closeModal(modalRef, modalId)
-                                })
-                            })->ignore
+                            )
+                            let rootStmts = rootUserStmts->Array.map(userStmtToRootStmt)
+                            unify(
+                                ~settingsVer=state.preCtxData.settingsV.ver,
+                                ~settings,
+                                ~preCtxVer=state.preCtxData.ctxV.ver,
+                                ~preCtx=state.preCtxData.ctxV.val.min,
+                                ~varsText,
+                                ~disjText,
+                                ~rootStmts,
+                                ~bottomUpProverParams=None,
+                                ~allowedFrms=settings.allowedFrms,
+                                ~syntaxTypes=Some(state.preCtxData.syntaxTypes),
+                                ~exprsToSyntaxCheck=
+                                    if (settings.checkSyntax) {
+                                        Some(state->getAllExprsToSyntaxCheck(rootStmts))
+                                    } else {
+                                        None
+                                    },
+                                ~debugLevel=0,
+                                ~onProgress = msg => updateModal(
+                                    modalRef, modalId, () => rndProgress( ~text=msg, ~onTerminate )
+                                )
+                            )->promiseMap(proofTreeDto => {
+                                actUnifyAllResultsAreReady(proofTreeDto, nextAction)
+                                closeModal(modalRef, modalId)
+                            })
+                        })->ignore
                     }
                 }
             }
@@ -1389,32 +1387,154 @@ let make = (
         }
     }
 
+    let inlineTheoremForStep = (
+        ~state:editorState,
+        ~stmtId:stmtId,
+        ~proofData:Belt_MapString.t<frameProofData>,
+    ):result<editorState,string> => {
+        let state = state->uncheckAllStmts->toggleStmtChecked(stmtId)
+        switch state->getTheOnlyCheckedStmt {
+            | None => Error("Internal error: cannot find the step to inline the proof for.")
+            | Some(stmt) => {
+                switch stmt.src {
+                    | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => {
+                        Error("Not a provable step.")
+                    }
+                    | Some(Assertion({args, label})) => {
+                        switch stmt.proofTreeDto {
+                            | None => Error("Internal error: proofTreeDto is not set.")
+                            | Some(proofTreeDto) => {
+                                switch state.wrkCtx {
+                                    | None => Error("Internal error: wrkCtx is not set.")
+                                    | Some(wrkCtx) => {
+                                        switch proofData->Belt_MapString.get(label) {
+                                            | None => Error(`Internal error: no proof data for label ${label}.`)
+                                            | Some(frameProofData) => {
+                                                switch MM_cmp_pe_frame_full.frameProofDataToStmtsDto(
+                                                    ~preCtxData, ~wrkCtx, 
+                                                    ~proofTreeDto, ~args, ~frameProofData
+                                                ) {
+                                                    | Error(msg) => Error(msg)
+                                                    | Ok(stmtsDto) => Ok(state->addNewStatements(stmtsDto))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let findStepToInlineProofFor = (
+        ~state:editorState,
+        ~proofData:Belt_MapString.t<frameProofData>,
+    ):option<userStmt> => {
+        state.stmts->Array.find(stmt => {
+            switch stmt.src {
+                | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => false
+                | Some(Assertion({label})) => proofData->Belt_MapString.has(label) && stmt.proofTreeDto->Option.isSome
+            }
+        })
+    }
+
+    let inlineTheoremForSteps = (
+        ~state:editorState,
+        ~proofData:Belt_MapString.t<frameProofData>,
+        ~onProcessedStepCntChange:int=>unit,
+    ):(editorState,option<string>) => {
+        let state = ref(state)
+        let errMsg = ref(None)
+        let stepsInlinedCnt = ref(0)
+        onProcessedStepCntChange(stepsInlinedCnt.contents)
+        let getNextStmt = ():option<userStmt> => findStepToInlineProofFor( ~state=state.contents, ~proofData, )
+        let stmtToInlineRef = ref(getNextStmt())
+        while (stmtToInlineRef.contents->Option.isSome && errMsg.contents->Option.isNone) {
+            let stmtToInline = stmtToInlineRef.contents
+                ->Option.getExn(~message="inlineTheoremForSteps: stmtToInlineRef.contents is None.")
+            switch inlineTheoremForStep(
+                ~state=state.contents,
+                ~stmtId=stmtToInline.id,
+                ~proofData,
+            ) {
+                | Error(msg) => errMsg := Some(`An error happened while inlining step ${stmtToInline.label}: ${msg}`)
+                | Ok(updatedState) => {
+                    state := updatedState
+                    stepsInlinedCnt := stepsInlinedCnt.contents + 1
+                    onProcessedStepCntChange(stepsInlinedCnt.contents)
+                    stmtToInlineRef := getNextStmt()
+                }
+            }
+        }
+        (state.contents, errMsg.contents)
+    }
+
     let inlineTheorems = (labels:array<string>):unit => {
-        Console.log2(`labels`, labels)
+        openModal(modalRef, () => rndProgress(~text="Getting proof data", ~pct=0.))->Promise.thenResolve(modalId => {
+            let onTerminate = makeActTerminate(modalId)
+            updateModal( modalRef, modalId, () => rndProgress( ~text="Getting proof data", ~pct=0., ~onTerminate ) )
+            makeFrameProofDataForAssertions(
+                ~preCtxData,
+                ~labels=Belt_SetString.fromArray(labels),
+                ~onProgress = pct=>updateModal(
+                    modalRef, modalId, () => rndProgress( ~text="Getting proof data", ~pct, ~onTerminate )
+                ),
+            )->Promise.thenResolve(proofData => {
+                switch proofData {
+                    | Error(msg) => {
+                        closeModal(modalRef, modalId)
+                        showInfoMsg(~title=`Cannot inline theorems`, ~text=msg)
+                    }
+                    | Ok(proofData) => {
+                        updateModal( modalRef, modalId, () => rndProgress( ~text="Inlining theorems" ) )
+                        let (newState,errMsg) = inlineTheoremForSteps(
+                            ~state, 
+                            ~proofData,
+                            ~onProcessedStepCntChange = cnt => updateModal( 
+                                modalRef, modalId, 
+                                () => rndProgress(~text=`Inlining theorems: ${cnt->Int.toString} steps updated.`) 
+                            )
+                        )
+                        closeModal(modalRef, modalId)
+                        setState(_ => {
+                            {
+                                ...newState,
+                                nextAction: errMsg->Option.map(errMsg => {
+                                    Action(() => showErrMsg(~title="Inline theorems", ~text=errMsg))
+                                })
+                            }
+                        })
+                    }
+                }
+            })
+        })->ignore
     }
 
     let actInlineTheorems = () => {
         switch state.wrkCtx {
-            | None => showErrMsg(~title="Internal error", ~text="wrkCtx is not set.")
+            | None => showErrMsg(~title="actInlineTheorems internal error", ~text="wrkCtx is not set.")
             | Some(wrkCtx) => {
                 let theoremLabels = state.stmts->Array.map(stmt => {
                     switch stmt.src {
                         | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => None
                         | Some(Assertion({label})) => Some((label, wrkCtx->getTokenType(label)))
                     }
-                })->Array.filter(labelData => {
-                    @warning("-8")
-                    switch labelData {
-                        | Some((_,Some(P))) => true
-                        | _ => false
-                    }
-                })->Array.map(labelData => {
-                    @warning("-8")
-                    switch labelData {
-                        | Some((label,_)) => label
-                        | _ => Exn.raiseError("Internal error: cannot convert labelData to label.")
-                    }
                 })
+                    ->Array.map(labelData => {
+                        switch labelData {
+                            | Some((label,Some(P))) => Some(label)
+                            | None | Some((_,None)) | Some((_,Some(_))) => None
+                        }
+                    })
+                    ->Array.filter(Option.isSome(_))
+                    ->Array.map(opt => {
+                        opt->Option.getExn(
+                            ~message="actInlineTheorems internal error: cannot map to label."
+                        )
+                    })
                     ->Belt_SetString.fromArray
                     ->Belt_SetString.toArray
                     ->Array.toSorted(String.compare)
@@ -1792,6 +1912,7 @@ let make = (
                                 actCloseMainMenu()
                                 actInlineTheorems()
                             }}
+                            disabled={state.wrkCtx->Option.isNone}
                         >
                             {"Inline theorems"->React.string}
                         </MenuItem>
