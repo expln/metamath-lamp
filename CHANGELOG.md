@@ -4,6 +4,8 @@
 * Updates in the macros API.
 * Updates in the "set.mm example macros" collection of macros.
 * Improve usability of the assertion search dialog in the editor.
+* Update the "inline proof" feature: instead of inlining the theorem for a single step, it is now possible to inline multiple theorems
+  (and all steps using those theorems) at once.
 ### Version 26
 * Enable automatic substitution search to minimize presses of the "Find Substitution" button.
 * Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog.
