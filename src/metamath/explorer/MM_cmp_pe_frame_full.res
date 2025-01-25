@@ -651,10 +651,11 @@ let frameProofDataToStmtsDto = (
     ~frameProofData:frameProofData,
 ):result<stmtsDto,string> => {
     let frmVarToCtxExpr:Belt_HashMapString.t<string> = args->Array.mapWithIndex((arg,i) => {
-            if ((frameProofData.frame.hyps->Array.getUnsafe(i)).typ == F) {
+            let hyp = frameProofData.frame.hyps->Array.getUnsafe(i)
+            if (hyp.typ == F) {
                 Some(
                     (
-                        wrkCtx->frmIntToSymExn(frameProofData.frame, (frameProofData.frame.hyps->Array.getUnsafe(i)).expr->Array.getUnsafe(1)),
+                        wrkCtx->frmIntToSymExn(frameProofData.frame, hyp.expr->Array.getUnsafe(1)),
                         wrkCtx->ctxIntsToStrExn((proofTreeDto.nodes->Array.getUnsafe(arg)).expr->Array.sliceToEnd(~start=1)),
                     )
                 )
