@@ -572,7 +572,18 @@ let frameProofDataToEditorStateLocStor = (
         }
     })
     switch frameProofData.proofTable {
-        | None => ()
+        | None => {
+            stmts->Array.push(
+                {
+                    label: frameProofData.frame.label, 
+                    typ: userStmtTypeToStr(P), 
+                    isGoal: true,
+                    isBkm:false,
+                    cont: frameProofData.frmCtx->ctxIntsToStrExn(frameProofData.asrt),
+                    jstfText: "",
+                }
+            )
+        }
         | Some(proofTable) => {
             let idxToLabel = Belt_HashMapInt.make(~hintSize=proofTable->Array.length)
             proofTable
