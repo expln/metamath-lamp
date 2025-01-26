@@ -3129,12 +3129,14 @@ let reorderStepsLazy = (st:editorState):editorState => {
                     curIdx := curIdx.contents + 1
                     passedLabels->Belt_HashSetString.add(curStmt.label)
                 } else {
-                    switch newSteps->Array.findIndexOpt(stmt => deps->Belt_SetString.has(stmt.label)) {
-                        | None => {
+                    switch newSteps->Array.findIndexWithIndex((stmt,i) => {
+                        curIdx.contents < i && deps->Belt_SetString.has(stmt.label)
+                    }) {
+                        | -1 => {
                             curIdx := curIdx.contents + 1
                             passedLabels->Belt_HashSetString.add(curStmt.label)
                         }
-                        | Some(missingIdx) => {
+                        | missingIdx => {
                             if (missingIdx <= curIdx.contents) {
                                 curIdx := curIdx.contents + 1
                                 passedLabels->Belt_HashSetString.add(curStmt.label)
