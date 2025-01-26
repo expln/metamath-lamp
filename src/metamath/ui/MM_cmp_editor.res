@@ -1442,9 +1442,11 @@ let make = (
     let findStepToInlineProofFor = (
         ~state:editorState,
         ~proofData:Belt_MapString.t<frameProofData>,
+        ~updatedLabels:Belt_HashSetString.t,
     ):option<userStmt> => {
         state.stmts->Array.find(stmt => {
-            switch stmt.src {
+            !(updatedLabels->Belt_HashSetString.has(stmt.label))
+            && switch stmt.src {
                 | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => false
                 | Some(Assertion({label})) => proofData->Belt_MapString.has(label) && stmt.proofTreeDto->Option.isSome
             }
@@ -1460,7 +1462,16 @@ let make = (
         let errMsg = ref(None)
         let stepsInlinedCnt = ref(0)
         onProcessedStepCntChange(stepsInlinedCnt.contents)
-        let getNextStmt = ():option<userStmt> => findStepToInlineProofFor( ~state=state.contents, ~proofData, )
+        let updatedLabels = Belt_HashSetString.make(~hintSize=10)
+        let getNextStmt = ():option<userStmt> => {
+            switch findStepToInlineProofFor( ~state=state.contents, ~proofData, ~updatedLabels) {
+                | None => None
+                | Some(stmt) => {
+                    updatedLabels->Belt_HashSetString.add(stmt.label)
+                    Some(stmt)
+                }
+            }
+        }
         let stmtToInlineRef = ref(getNextStmt())
         while (stmtToInlineRef.contents->Option.isSome && errMsg.contents->Option.isNone) {
             let stmtToInline = stmtToInlineRef.contents

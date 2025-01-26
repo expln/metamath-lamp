@@ -458,15 +458,20 @@ let makeFrameProofData = (
                     | Error(msg) => resolve(Error(msg))
                     | Ok((frmMmScopes,frmCtx)) => {
                         resolve(
-                            Ok(
-                                createInitialState(
-                                    ~settings=preCtxData.settingsV.val, 
-                                    ~frmMmScopes,
-                                    ~preCtx=preCtxData.ctxV.val.full,
-                                    ~frmCtx,
-                                    ~frame=preCtxData.ctxV.val.full->getFrameExn(label)
-                                )
-                            )
+                            switch preCtxData.ctxV.val.full->getFrame(label) {
+                                | None => Error(`Cannot find a frame by the label '${label}'`)
+                                | Some(frame) => {
+                                    Ok(
+                                        createInitialState(
+                                            ~settings=preCtxData.settingsV.val, 
+                                            ~frmMmScopes,
+                                            ~preCtx=preCtxData.ctxV.val.full,
+                                            ~frmCtx,
+                                            ~frame,
+                                        )
+                                    )
+                                }
+                            }
                         )
                     }
                 }
