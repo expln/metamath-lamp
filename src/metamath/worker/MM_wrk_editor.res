@@ -1983,13 +1983,9 @@ let proofToText = (
     switch proof {
         | Compressed({labels, compressedProofBlock}) => {
             let blk = splitIntoChunks(compressedProofBlock, 50)->Array.joinUnsafe(" ")
-            let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Array.joinUnsafe(" ")} ) ${blk} $.`
             let descrIsEmpty = descr->String.trim->String.length == 0
             let blockIsRequired = newHyps->Array.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
-            if (blockIsRequired) {
-                result->Array.push("${")
-            }
             let varsArrStr = newHyps->Array.filter(hyp => hyp.typ == F)
                 ->Array.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
             if (varsArrStr->Array.length > 0) {
@@ -2017,11 +2013,15 @@ let proofToText = (
             if (!descrIsEmpty) {
                 result->Array.push("$( " ++ descr ++ " $)")
             }
-            result->Array.push(asrt)
-            if (blockIsRequired) {
-                result->Array.push("$}")
+            result->Array.push(stmt.label)
+            result->Array.push(`    $p ${stmt.cont->contToStr}`)
+            result->Array.push(`    $= ( ${labels->Array.joinUnsafe(" ")} ) ${blk} $.`)
+            let result = if (blockIsRequired) {
+                ["${", ...(result->Array.map(str => "    "++str)), "$}"]
+            } else {
+                result
             }
-            result->Array.joinUnsafe("\r\n")
+            result->Array.joinUnsafe("\n")
         }
         | _ => "Error: only compressed proofs are supported."
     }

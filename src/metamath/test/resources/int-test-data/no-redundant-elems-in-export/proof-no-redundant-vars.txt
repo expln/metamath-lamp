@@ -1,1 +1,3 @@
-stmt5 $p |- ( ( u = x /\ v = y ) -> ( F ` v ) = ( F ` y ) ) $= ( cv wceq cfv fveq2 adantl ) CFZBFZGKEHLEHGDFAFGKLEIJ $.
+stmt5
+    $p |- ( ( u = x /\ v = y ) -> ( F ` v ) = ( F ` y ) )
+    $= ( cv wceq cfv fveq2 adantl ) CFZBFZGKEHLEHGDFAFGKLEIJ $.

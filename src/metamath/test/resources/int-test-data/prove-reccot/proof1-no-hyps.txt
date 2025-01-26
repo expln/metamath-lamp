@@ -1,1 +1,3 @@
-reccot $p |- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( 1 / ( cot ` A ) ) ) $= ( cc wcel csin cfv cc0 wne ccos w3a c1 cdiv co ccot ctan wceq wa sincl coscl recdiv sylanl1 sylanr1 uun2131p1 cotval 3adant3 oveq2d tanval 3adant2 3eqtr4rd ) ABZCZADEZFZGZAHEZULGZIZJZUNUKKZLZURLZUKUNURLZUQAME ZURLANEZUJUMUOUTVAOZUJUJUOPUKUICZUMVDAQUJUNUICUOVE UMPVDARUNUKSTUAUBUPVBUSUQURUJUMVBUSOUOAUCUDUEUJUOV CVAOUMAUFUGUH $.
+reccot
+    $p |- ( ( A e. CC /\ ( sin ` A ) =/= 0 /\ ( cos ` A ) =/= 0 ) -> ( tan ` A ) = ( 1 / ( cot ` A ) ) )
+    $= ( cc wcel csin cfv cc0 wne ccos w3a c1 cdiv co ccot ctan wceq wa sincl coscl recdiv sylanl1 sylanr1 uun2131p1 cotval 3adant3 oveq2d tanval 3adant2 3eqtr4rd ) ABZCZADEZFZGZAHEZULGZIZJZUNUKKZLZURLZUKUNURLZUQAME ZURLANEZUJUMUOUTVAOZUJUJUOPUKUICZUMVDAQUJUNUICUOVE UMPVDARUNUKSTUAUBUPVBUSUQURUJUMVBUSOUOAUCUDUEUJUOV CVAOUMAUFUGUH $.

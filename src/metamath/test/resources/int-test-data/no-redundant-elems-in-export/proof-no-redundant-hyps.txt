@@ -1,5 +1,7 @@
 ${
-$v width $.
-.var1 $f class width $.
-stmt11 $p |- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er width <-> { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } Er width ) ) $= ( cv wcel wa cfv wceq copab ereq1 ) EDFBFZEGAFZEGHMCINCIJHBAKL $.
+    $v width $.
+    .var1 $f class width $.
+    stmt11
+        $p |- ( r = { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } -> ( r Er width <-> { <. u , v >. | ( ( u e. width /\ v e. width ) /\ ( F ` u ) = ( F ` v ) ) } Er width ) )
+        $= ( cv wcel wa cfv wceq copab ereq1 ) EDFBFZEGAFZEGHMCINCIJHBAKL $.
 $}
