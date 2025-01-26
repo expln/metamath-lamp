@@ -961,7 +961,14 @@ let make = (
                         }
                         | None => {
                             switch state.checkedResultIdx {
-                                | None => ()
+                                | None => {
+                                    state.resultsSorted->Option.forEach(resultsSorted => {
+                                        setState(setResultForApiCallHasBeenSelected)
+                                        onResultSelected(Some(Ok(results->Array.getUnsafe(
+                                            (resultsSorted->Array.getUnsafe(0)).idx
+                                        ))))
+                                    })
+                                }
                                 | Some(checkedResultIdx) => {
                                     setState(setResultForApiCallHasBeenSelected)
                                     onResultSelected(Some(Ok(results->Array.getUnsafe(checkedResultIdx))))
@@ -1318,9 +1325,16 @@ let make = (
     }
 
     let rndApplyButton = () => {
-        <Button onClick={_=>actChooseSelected(None)} variant=#contained
-                disabled={!onlyOneResultIsAvailable && state.checkedResultIdx->Belt.Option.isNone}>
-            {React.string(if onlyOneResultIsAvailable {"Apply"} else {"Apply selected"})}
+        <Button onClick={_=>actChooseSelected(None)} variant=#contained >
+            {React.string(
+                if onlyOneResultIsAvailable {
+                    "Apply"
+                } else if (state.checkedResultIdx->Belt.Option.isNone) {
+                    "Apply first"
+                } else {
+                    "Apply selected"
+                }
+            )}
         </Button>
     }
 

@@ -406,8 +406,20 @@ let make = (
             st->scheduleUnifyAllIfAllowed
         })
     }
-    let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
-    let actMoveCheckedStmtsDown = () => setState(moveCheckedStmts(_, false))
+    let actMoveCheckedStmtsUp = () => {
+        if (showBkmOnly) {
+            setState(moveCheckedBookmarkedStmts(_, true))
+        } else {
+            setState(moveCheckedStmts(_, true))
+        }
+    }
+    let actMoveCheckedStmtsDown = () => {
+        if (showBkmOnly) {
+            setState(moveCheckedBookmarkedStmts(_, false))
+        } else {
+            setState(moveCheckedStmts(_, false))
+        }
+    }
     let actBookmarkCheckedStmts = () => {
         setStatePriv(st => {
             let st = st->bookmarkCheckedStmts(true)
@@ -1106,7 +1118,6 @@ let make = (
                                         actBottomUpResultSelected( 
                                             ~selectedResult=newStmtsDto,
                                             ~bottomUpProofResultConsumer,
-                                            ~selectedManually=!isApiCall,
                                         )
                                         if (
                                             shouldCloseBottomUpProverDialog(
@@ -1164,7 +1175,6 @@ let make = (
     } and let actBottomUpResultSelected = (
         ~selectedResult:option<result<stmtsDto,string>>,
         ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit,
-        ~selectedManually:bool,
     ) => {
         switch selectedResult {
             | None => bottomUpProofResultConsumer(None)
@@ -1172,7 +1182,7 @@ let make = (
                 switch selectedResult {
                     | Ok(selectedResult) => {
                         setState(st => {
-                            let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
+                            let st = st->addNewStatements(selectedResult, ~isBkm = showBkmOnly)
                             let st = st->uncheckAllStmts
                             let st = st->setNextAction(Some(
                                 UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult)))})
@@ -1432,9 +1442,11 @@ let make = (
     let findStepToInlineProofFor = (
         ~state:editorState,
         ~proofData:Belt_MapString.t<frameProofData>,
+        ~updatedLabels:Belt_HashSetString.t,
     ):option<userStmt> => {
         state.stmts->Array.find(stmt => {
-            switch stmt.src {
+            !(updatedLabels->Belt_HashSetString.has(stmt.label))
+            && switch stmt.src {
                 | None | Some(VarType) | Some(Hypothesis(_)) | Some(AssertionWithErr(_)) => false
                 | Some(Assertion({label})) => proofData->Belt_MapString.has(label) && stmt.proofTreeDto->Option.isSome
             }
@@ -1450,7 +1462,16 @@ let make = (
         let errMsg = ref(None)
         let stepsInlinedCnt = ref(0)
         onProcessedStepCntChange(stepsInlinedCnt.contents)
-        let getNextStmt = ():option<userStmt> => findStepToInlineProofFor( ~state=state.contents, ~proofData, )
+        let updatedLabels = Belt_HashSetString.make(~hintSize=10)
+        let getNextStmt = ():option<userStmt> => {
+            switch findStepToInlineProofFor( ~state=state.contents, ~proofData, ~updatedLabels) {
+                | None => None
+                | Some(stmt) => {
+                    updatedLabels->Belt_HashSetString.add(stmt.label)
+                    Some(stmt)
+                }
+            }
+        }
         let stmtToInlineRef = ref(getNextStmt())
         while (stmtToInlineRef.contents->Option.isSome && errMsg.contents->Option.isNone) {
             let stmtToInline = stmtToInlineRef.contents
@@ -1945,10 +1966,10 @@ let make = (
                     ~onClick=actToggleShowBkmOnly, ~active=true,
                     ~title="Show bookmarked steps only / show all steps", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
-                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
+                ~active= !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected steps down", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
-                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
+                ~active= !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected steps up", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, )}

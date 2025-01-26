@@ -5,21 +5,20 @@ open MM_wrk_settings
 open Common
 open Expln_React_Mui
 open Expln_React_common
+open Local_storage_utils
 
 type state = {
     ctxMaxVar: int,
     exprToLabel: Belt_HashMap.t<expr,string,ExprHash.identity>,
-    showUnprovedOnly:bool,
 }
 
-let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>,):state => {
+let makeInitialState = (~wrkCtx:mmContext, ~rootStmts: array<rootStmt>):state => {
     {
         ctxMaxVar: wrkCtx->getNumOfVars - 1,
         exprToLabel: Belt_HashMap.fromArray(
             rootStmts->Array.map(stmt => (stmt.expr, stmt.label)), 
             ~id=module(ExprHash)
         ),
-        showUnprovedOnly:false,
     }
 }
 
@@ -31,10 +30,13 @@ let make = (
     ~wrkCtx:mmContext,
     ~rootStmts: array<rootStmt>,
 ) => {
-    let (state, setState) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
+    let (state, _) = React.useState(() => makeInitialState(~wrkCtx, ~rootStmts))
+    let (showUnprovedOnly, setShowUnprovedOnly) = useStateFromLocalStorageBool(
+        ~key="bottom-up-proof-tree-showUnprovedOnly", ~default=false,
+    )
 
     let actSetShowUnprovedOnly = (newShowUnprovedOnly:bool):unit => {
-        setState(st => ({...st, showUnprovedOnly:newShowUnprovedOnly}))
+        setShowUnprovedOnly(_ => newShowUnprovedOnly)
     }
 
     let nodeIdxToLabel = idx => {
@@ -89,7 +91,7 @@ let make = (
                     exprToReElem
                     frmExprToStr
                     getFrmLabelBkgColor
-                    showUnprovedOnly=state.showUnprovedOnly
+                    showUnprovedOnly
                 />
             }
         }
@@ -100,7 +102,7 @@ let make = (
             <FormControlLabel
                 control={
                     <Checkbox
-                        checked=state.showUnprovedOnly
+                        checked=showUnprovedOnly
                         onChange=evt2bool(actSetShowUnprovedOnly)
                     />
                 }

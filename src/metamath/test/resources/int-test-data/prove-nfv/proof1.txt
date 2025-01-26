@@ -1,4 +1,6 @@
 ${
-$d ph x $.
-3 $p |- F/ x ph $= ( ax5ea nfi ) ABABCD $.
+    $d ph x $.
+    3
+        $p |- F/ x ph
+        $= ( ax5ea nfi ) ABABCD $.
 $}

@@ -441,7 +441,7 @@ let canMoveCheckedStmts = (st:editorState, up):bool => {
     )
 }
 
-let moveCheckedStmts = (st:editorState,up):editorState => {
+let moveCheckedStmts = (st:editorState,up:bool):editorState => {
     if (!canMoveCheckedStmts(st,up)) {
         st
     } else {
@@ -1523,6 +1523,7 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
 }
 
 let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):editorState => {
+    let allProved = newStmts.stmts->Array.every(stmt => stmt.isProved)
     let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes)
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Array.forEachWithIndex((newStmtsVarInt,i) => {
@@ -1587,7 +1588,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
                 ~placeAtMaxIdxByDefault,
-                ~isBkm,
+                ~isBkm = isBkm && !allProved,
             )
             stMut.contents = st
             newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
@@ -1982,13 +1983,9 @@ let proofToText = (
     switch proof {
         | Compressed({labels, compressedProofBlock}) => {
             let blk = splitIntoChunks(compressedProofBlock, 50)->Array.joinUnsafe(" ")
-            let asrt = `${stmt.label} $p ${stmt.cont->contToStr} $= ( ${labels->Array.joinUnsafe(" ")} ) ${blk} $.`
             let descrIsEmpty = descr->String.trim->String.length == 0
             let blockIsRequired = newHyps->Array.length > 0 || !(newDisj->disjIsEmpty) || !descrIsEmpty
             let result = []
-            if (blockIsRequired) {
-                result->Array.push("${")
-            }
             let varsArrStr = newHyps->Array.filter(hyp => hyp.typ == F)
                 ->Array.map(hyp => wrkCtx->ctxIntToSymExn(hyp.expr->Array.getUnsafe(1)))
             if (varsArrStr->Array.length > 0) {
@@ -2016,11 +2013,15 @@ let proofToText = (
             if (!descrIsEmpty) {
                 result->Array.push("$( " ++ descr ++ " $)")
             }
-            result->Array.push(asrt)
-            if (blockIsRequired) {
-                result->Array.push("$}")
+            result->Array.push(stmt.label)
+            result->Array.push(`    $p ${stmt.cont->contToStr}`)
+            result->Array.push(`    $= ( ${labels->Array.joinUnsafe(" ")} ) ${blk} $.`)
+            let result = if (blockIsRequired) {
+                ["${", ...(result->Array.map(str => "    "++str)), "$}"]
+            } else {
+                result
             }
-            result->Array.joinUnsafe("\r\n")
+            result->Array.joinUnsafe("\n")
         }
         | _ => "Error: only compressed proofs are supported."
     }
@@ -3102,4 +3103,86 @@ let reorderSteps = (st:editorState):editorState => {
     }
     stepsToMove.contents->Array.forEach(stmt => newSteps->Array.push(stmt))
     { ...st, stmts:newSteps, }
+}
+
+let reorderStepsLazy = (st:editorState):editorState => {
+    let newSteps = st.stmts->Array.copy
+    let stepsCnt = newSteps->Array.length
+    let dependencies:Belt_HashMapString.t<Belt_SetString.t> = Belt_HashMapString.make(~hintSize=stepsCnt)
+    newSteps->Array.forEach(stmt => {
+        getStepDependencies(stmt.jstfText)->Option.forEach(deps => {
+            dependencies->Belt_HashMapString.set(stmt.label, deps)
+        })
+    })
+    let passedLabels = Belt_HashSetString.make(~hintSize=newSteps->Array.length)
+    let moveCnt = ref(0)
+    let curIdx = ref(0)
+    while (curIdx.contents < stepsCnt && moveCnt.contents <= stepsCnt/*circular dependency guard*/) {
+        let curStmt = newSteps->Array.getUnsafe(curIdx.contents)
+        switch dependencies->Belt_HashMapString.get(curStmt.label) {
+            | None => {
+                curIdx := curIdx.contents + 1
+                passedLabels->Belt_HashSetString.add(curStmt.label)
+            }
+            | Some(deps) => {
+                if (allDependenciesArePresent(passedLabels,deps)) {
+                    curIdx := curIdx.contents + 1
+                    passedLabels->Belt_HashSetString.add(curStmt.label)
+                } else {
+                    switch newSteps->Array.findIndexWithIndex((stmt,i) => {
+                        curIdx.contents < i && deps->Belt_SetString.has(stmt.label)
+                    }) {
+                        | -1 => {
+                            curIdx := curIdx.contents + 1
+                            passedLabels->Belt_HashSetString.add(curStmt.label)
+                        }
+                        | missingIdx => {
+                            if (missingIdx <= curIdx.contents) {
+                                curIdx := curIdx.contents + 1
+                                passedLabels->Belt_HashSetString.add(curStmt.label)
+                            } else {
+                                newSteps->Array.splice(
+                                    ~start=curIdx.contents, 
+                                    ~remove=0, 
+                                    ~insert=[newSteps->Array.getUnsafe(missingIdx)]
+                                )
+                                newSteps->Array.splice( ~start=missingIdx+1, ~remove=1, ~insert=[] )
+                                moveCnt := moveCnt.contents + 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    {...st, stmts:newSteps}
+}
+
+let moveCheckedBookmarkedStmts = (st:editorState, up:bool):editorState => {
+    let bookmarkedStmtIds = Belt_SetString.fromArray(
+        st.stmts
+            ->Array.filter(stmt => stmt.isBkm || stmt.typ == E || stmt.isGoal)
+            ->Array.map(stmt => stmt.id)
+    )
+    //make sure that only bookmarked steps are checked
+    let st = {
+        ...st,
+        checkedStmtIds: st.checkedStmtIds->Array.filter(((stmtId,_)) => {
+            bookmarkedStmtIds->Belt_SetString.has(stmtId)
+        })
+    }
+    //put all bookmarked steps at the bottom 
+    //(reorderStepsLazy will restore the correct position at the end of this method)
+    let unbookmarkedSteps = st.stmts->Array.filter(stmt => {
+        !(bookmarkedStmtIds->Belt_SetString.has(stmt.id))
+    })
+    let bookmarkedSteps = st.stmts->Array.filter(stmt => {
+        bookmarkedStmtIds->Belt_SetString.has(stmt.id)
+    })
+    let st = {
+        ...st,
+        stmts: Array.concat(unbookmarkedSteps, bookmarkedSteps)
+    }
+    let st = moveCheckedStmts(st,up)
+    reorderStepsLazy(st)
 }

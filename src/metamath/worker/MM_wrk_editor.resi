@@ -164,6 +164,7 @@ let deleteStmt: (editorState, stmtId) => editorState
 let deleteStmts: (editorState, array<stmtId>) => editorState
 let canMoveCheckedStmts: (editorState, bool) => bool
 let moveCheckedStmts: (editorState, bool) => editorState
+let moveCheckedBookmarkedStmts: (editorState, bool) => editorState
 let moveCheckedStmtsToTop: editorState => editorState
 let moveCheckedStmtsToBottom: editorState => editorState
 let getRootStmtsForUnification: editorState => array<userStmt>
