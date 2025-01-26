@@ -1118,7 +1118,6 @@ let make = (
                                         actBottomUpResultSelected( 
                                             ~selectedResult=newStmtsDto,
                                             ~bottomUpProofResultConsumer,
-                                            ~selectedManually=!isApiCall,
                                         )
                                         if (
                                             shouldCloseBottomUpProverDialog(
@@ -1176,7 +1175,6 @@ let make = (
     } and let actBottomUpResultSelected = (
         ~selectedResult:option<result<stmtsDto,string>>,
         ~bottomUpProofResultConsumer:option<result<stmtsDto,string>>=>unit,
-        ~selectedManually:bool,
     ) => {
         switch selectedResult {
             | None => bottomUpProofResultConsumer(None)
@@ -1184,7 +1182,7 @@ let make = (
                 switch selectedResult {
                     | Ok(selectedResult) => {
                         setState(st => {
-                            let st = st->addNewStatements(selectedResult, ~isBkm = selectedManually && showBkmOnly)
+                            let st = st->addNewStatements(selectedResult, ~isBkm = showBkmOnly)
                             let st = st->uncheckAllStmts
                             let st = st->setNextAction(Some(
                                 UnifyAll({nextAction:() => bottomUpProofResultConsumer(Some(Ok(selectedResult)))})

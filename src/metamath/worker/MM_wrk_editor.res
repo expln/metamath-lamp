@@ -1523,6 +1523,7 @@ let replaceDtoVarsWithCtxVarsInExprs = (newStmts:stmtsDto, newStmtsVarToCtxVar:B
 }
 
 let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):editorState => {
+    let allProved = newStmts.stmts->Array.every(stmt => stmt.isProved)
     let (st, newCtxVarInts) = createNewVars(st,~varTypes=newStmts.newVarTypes)
     let newStmtsVarToCtxVar = Belt_MutableMapInt.make()
     newStmts.newVars->Array.forEachWithIndex((newStmtsVarInt,i) => {
@@ -1587,7 +1588,7 @@ let addNewStatements = (st:editorState, newStmts:stmtsDto, ~isBkm:bool=false):ed
                 ~jstf=stmtDto.jstf->Belt_Option.map(replaceDtoLabelsWithCtxLabels), 
                 ~before = checkedStmt->Belt_Option.map(stmt => stmt.id),
                 ~placeAtMaxIdxByDefault,
-                ~isBkm,
+                ~isBkm = isBkm && !allProved,
             )
             stMut.contents = st
             newStmtsLabelToCtxLabel->Belt_MutableMapString.set(stmtDto.label,ctxLabel)
