@@ -406,8 +406,20 @@ let make = (
             st->scheduleUnifyAllIfAllowed
         })
     }
-    let actMoveCheckedStmtsUp = () => setState(moveCheckedStmts(_, true))
-    let actMoveCheckedStmtsDown = () => setState(moveCheckedStmts(_, false))
+    let actMoveCheckedStmtsUp = () => {
+        if (showBkmOnly) {
+            setState(moveCheckedBookmarkedStmts(_, true))
+        } else {
+            setState(moveCheckedStmts(_, true))
+        }
+    }
+    let actMoveCheckedStmtsDown = () => {
+        if (showBkmOnly) {
+            setState(moveCheckedBookmarkedStmts(_, false))
+        } else {
+            setState(moveCheckedStmts(_, false))
+        }
+    }
     let actBookmarkCheckedStmts = () => {
         setStatePriv(st => {
             let st = st->bookmarkCheckedStmts(true)
@@ -1945,10 +1957,10 @@ let make = (
                     ~onClick=actToggleShowBkmOnly, ~active=true,
                     ~title="Show bookmarked steps only / show all steps", ~smallBtns)}
                 {rndIconButton(~icon=<MM_Icons.ArrowDownward/>, ~onClick=actMoveCheckedStmtsDown, 
-                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,false),
+                ~active= !editIsActive && canMoveCheckedStmts(state,false),
                     ~title="Move selected steps down", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.ArrowUpward/>, ~onClick=actMoveCheckedStmtsUp, 
-                ~active= !showBkmOnly && !editIsActive && canMoveCheckedStmts(state,true),
+                ~active= !editIsActive && canMoveCheckedStmts(state,true),
                     ~title="Move selected steps up", ~smallBtns, )}
                 {rndIconButton(~icon=<MM_Icons.Add/>, ~onClick=actAddNewStmt, ~active= !editIsActive,
                     ~title="Add new step (and place before selected steps if any)", ~smallBtns, )}
