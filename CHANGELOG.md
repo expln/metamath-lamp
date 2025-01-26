@@ -7,6 +7,8 @@
 * Update the "inline proof" feature: instead of inlining the theorem for a single step, it is now possible to inline multiple theorems
   (and all steps using those theorems) at once.
 * A new feature "Reorder steps". It automatically reorders steps taking into account dependencies between them.
+* Possibility to reorder bookmarked steps when only bookmarked steps are displayed.
+* Slight changes in the formatting of the completed proof.
 ### Version 26
 * Enable automatic substitution search to minimize presses of the "Find Substitution" button.
 * Add "Show unproved only" and "Expand all sources" buttons to the Proof Tree dialog.
