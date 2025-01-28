@@ -1,10 +1,10 @@
 - add a test for disj in MM_asrt_syntax_tree.unify()
-- fix the bug with loading an assertion without proof to the editor
 - fix the "aModLen != bLen" bug in the editor history.
     Repeat manually the "bottomUpProver_proves_B_is_CC_from_B_is_QQ" test, restoring the initial state from the history.
 - rename tabs by Alt+click
+- add a unit test for moving bookmarked steps: cycle dependency
+- rename "Extract: X ⇒ ( ph -> X )" to "Copy: X ⇒ ( ph -> X )"
 
-- Implement dynamic bottom-up prover params. Bind params to each statement.
 - docs:
     - debug bottom-up proof for:
         hyp1: |- ( ph -> A e. RR )
@@ -17,7 +17,6 @@
     https://github.com/expln/metamath-lamp/issues/128
 - implement text comments for statements
 - fix a bug: set "auto unify all" = true. Update settings - an error occurs.
-- implement "reorder steps"
 - check where MM_context and MM_parser may throw an exception
 - add a few options to the proof tree explorer: show essentials only, show unproved steps only, show number of unproved steps for each source.
 - implement "a macro is running" mode when popups are not appearing (so the screen is not blinking)

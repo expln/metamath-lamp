@@ -216,7 +216,7 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
 
 let getStmtIdsFromStatusUnset = (diffs:array<editorDiff>):array<stmtId> => {
     diffs->Array.map(diff => {
-        switch diff {
+        switch diff {//check if StmtStatusUnset should be here as well
             | StmtStatus({stmtId, proofStatus:None}) => stmtId
             | _ => raise(MmException({msg:`getStmtIdsFromStatusUnset: unexpected type of diff.`}))
         }
@@ -250,7 +250,7 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     let aModLen = aMod.contents.stmts->Array.length
     let bLen = b.stmts->Array.length
     if (aModLen != bLen) {
-        raise(MmException({msg:`aModLen != bLen`}))
+        raise(MmException({msg:`aModLen != bLen (aModLen=${aModLen->Int.toString}, bLen=${bLen->Int.toString})`}))
     }
     for i in 0 to bLen-1 {
         let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
