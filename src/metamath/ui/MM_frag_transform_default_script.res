@@ -696,7 +696,7 @@ const trReplace = {
 }
 
 const trExtract = {
-    displayName: ({step}) => "Extract: X ⇒ ( ph -> X )",
+    displayName: ({step}) => "Copy: X ⇒ ( ph -> X )",
     canApply: ({step}) => true,
     createInitialState: ({step}) => {
         let deductionMatchResult = match(step.tree.root, ['(', varOfType('wff'), '->', '', ')'])

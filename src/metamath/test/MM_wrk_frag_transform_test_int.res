@@ -494,10 +494,10 @@ describe("MM_wrk_editor integration tests: MM_wrk_frag_transform", _ => {
         )
     })
 
-    it("Extract: X ⇒ ( ph -> X )", _ => {
+    it("Copy: X ⇒ ( ph -> X )", _ => {
         setTestDataDir("MM_wrk_frag_transform")
         let editorState = createEditorState( ~mmFilePath=setMmPath, ~stopBefore="mathbox", ~debug )
-        let transformName = "Extract: X ⇒ ( ph -> X )"
+        let transformName = "Copy: X ⇒ ( ph -> X )"
 
         testTransform( ~editorState, ~transformName,
             ~selectedFragment = "A = B",

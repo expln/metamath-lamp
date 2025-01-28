@@ -69,7 +69,7 @@ let make = (
         </Col>
     }
 
-    <Col style=ReactDOM.Style.make(~padding="10px", ())>
+    <Col>
         <span style=ReactDOM.Style.make(~fontWeight="bold", ~fontSize="1.1em", ())>
             { React.string("Select theorems to inline:") }
         </span>
