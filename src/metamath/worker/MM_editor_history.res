@@ -214,15 +214,6 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
     }
 }
 
-let getStmtIdsFromStatusUnset = (diffs:array<editorDiff>):array<stmtId> => {
-    diffs->Array.map(diff => {
-        switch diff {//check if StmtStatusUnset should be here as well
-            | StmtStatus({stmtId, proofStatus:None}) => stmtId
-            | _ => raise(MmException({msg:`getStmtIdsFromStatusUnset: unexpected type of diff.`}))
-        }
-    })
-}
-
 /*
 If findDiff(a,b)==diff then applyDiff(a,diff)==b
 */
@@ -250,7 +241,12 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     let aModLen = aMod.contents.stmts->Array.length
     let bLen = b.stmts->Array.length
     if (aModLen != bLen) {
-        raise(MmException({msg:`aModLen != bLen (aModLen=${aModLen->Int.toString}, bLen=${bLen->Int.toString})`}))
+        let aIdsStr = "["++a.stmts->Array.map(stmt => stmt.id)->Array.join(",")++"]"
+        let bIdsStr = "["++b.stmts->Array.map(stmt => stmt.id)->Array.join(",")++"]"
+        raise(MmException({
+            msg: `aModLen != bLen (aModLen=${aModLen->Int.toString}, bLen=${bLen->Int.toString}, `
+                ++ `aIds=${aIdsStr}, bIds=${bIdsStr})`
+        }))
     }
     for i in 0 to bLen-1 {
         let stmtA = aMod.contents.stmts->Array.getUnsafe(i)
@@ -298,7 +294,16 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
     }
 
     if (diffs->Array.length > 1 && diffs->allStatusUnset) {
-        [StmtStatusUnset({ stmtIds:diffs->getStmtIdsFromStatusUnset})]
+        [
+            StmtStatusUnset({ 
+                stmtIds: diffs->Array.map(diff => {
+                    switch diff {
+                        | StmtStatus({stmtId, proofStatus:None}) => stmtId
+                        | _ => raise(MmException({msg:`getStmtIdsFromStatusUnset: unexpected type of diff.`}))
+                    }
+                })
+            })
+        ]
     } else {
         diffs
     }
@@ -332,6 +337,7 @@ let editorHistAddSnapshot = (ht:editorHistory, st:editorState):editorHistory => 
             {
                 ...ht,
                 head: newHead,
+                prev: [],
             }
         } else {
             let diff = newHead->findDiff(ht.head)
