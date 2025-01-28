@@ -2,7 +2,6 @@
 - fix the "aModLen != bLen" bug in the editor history.
     Repeat manually the "bottomUpProver_proves_B_is_CC_from_B_is_QQ" test, restoring the initial state from the history.
 - rename tabs by Alt+click
-- scroll to the top on page change in the asrt search in the editor
 
 - docs:
     - debug bottom-up proof for:

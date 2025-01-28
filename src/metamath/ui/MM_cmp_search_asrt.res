@@ -118,6 +118,20 @@ let make = (
     ~onResultsSelected:array<string>=>unit
 ) => {
     let (state, setState) = React.useState(() => makeInitialState(preCtxData.frms, initialTyp))
+    let rootPaperRef = React.useRef(Nullable.null)
+
+    React.useEffect1(() => {
+        switch rootPaperRef.current->Nullable.toOption {
+            | None => ()
+            | Some(rootPaperRef) => {
+                switch Nullable.toOption(ReactDOM.domElementToObj(rootPaperRef)["parentNode"]) {
+                    | None => ()
+                    | Some(parentNode) => ReactDOM.domElementToObj(parentNode)["scrollTop"] = 0
+                }
+            }
+        }
+        None
+    }, [state.resultsPage])
 
     let actResultsRetrieved = (results:array<string>) => {
         setState(setResults(_, ~results))
@@ -358,7 +372,7 @@ let make = (
         }
     }
 
-    <Paper style=ReactDOM.Style.make(~padding="10px", ())>
+    <Paper ref=ReactDOM.Ref.domRef(rootPaperRef) style=ReactDOM.Style.make(~padding="10px", ())>
         <Col spacing=1.>
             {rndFilters()}
             {rndResults()}
