@@ -424,6 +424,64 @@ let restoreEditorStateFromSnapshot = (st:editorState, ht:editorHistory, idx:int)
     })
 }
 
+let selectMaxId = (id1:option<int>, id2:option<int>):option<int> => {
+    switch id1 {
+        | None => id2
+        | Some(id1Int) => {
+            switch id2 {
+                | None => id1
+                | Some(id2Int) => Some(Math.Int.max(id1Int, id2Int))
+            }
+        }
+    }
+}
+
+let getMaxIntStmtIdFromDiffs = (diffs:array<editorDiff>):option<int> => {
+    diffs->Array.reduce(None, (maxId, diff) => {
+        switch diff {
+            | Descr(_) => maxId
+            | Vars(_) => maxId
+            | Disj(_) => maxId
+            | StmtLabel({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtTyp({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtBkm({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtJstf({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtCont({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtStatus({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtStatusUnset({stmtIds}) => {
+                stmtIds->Array.reduce(maxId, (maxId,stmtId) => selectMaxId(maxId, stmtId->Int.fromString))
+            }
+            | StmtAdd({stmt: {id}}) => selectMaxId(maxId, id->Int.fromString)
+            | StmtRemove({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+            | StmtMove({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
+        }
+    })
+}
+
+let editorHistGetMaxIntStmtId = (ht:editorHistory):option<int> => {
+    let maxId = ht.head.stmts->Array.reduce(None, (maxId, stmt) => selectMaxId(maxId, stmt.id->Int.fromString))
+    let maxId = ht.prev->Array.reduce(maxId, (maxId, diffs) => selectMaxId(maxId, getMaxIntStmtIdFromDiffs(diffs)))
+    maxId
+}
+
+let editorHistoryPrintIdInfo = (ht:editorHistory):unit => {
+    Console.log(`--- History id info ---------------------------`)
+    Console.log2("maxStmtId", ht->editorHistGetMaxIntStmtId)
+    ht.prev->Array.forEachWithIndex((diffs,i) => {
+        let addRemoveStmts = diffs->Array.map(diff => {
+            switch diff {
+                | StmtAdd({stmt:{id}}) => Some("+" ++ id)
+                | StmtRemove({stmtId}) => Some("-" ++ stmtId)
+                | _ => None
+            }
+        })->Array.filter(Option.isSome(_))->Array.map(Option.getExn(_))->Array.join(", ")
+        if (addRemoveStmts->String.length > 0) {
+            Console.log(`${Int.toString(i+1)}: ${addRemoveStmts}`)
+        }
+    })
+    Console.log(`-----------------------------------------------`)
+}
+
 type stmtSnapshotLocStor = {
     d: string, /* id */
     l: string, /* label */

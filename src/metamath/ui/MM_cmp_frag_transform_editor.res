@@ -23,7 +23,7 @@ let putSingleStatementToEditor = (st:editorState, stmt:string):editorState => {
 }
 
 let prepareTestEditorState = (~preCtxData:preCtxData, ~testStmt:string):editorState => {
-    createInitialEditorState(~preCtxData, ~stateLocStor=None)->putSingleStatementToEditor(testStmt)
+    createInitialEditorState(~preCtxData, ~stateLocStor=None, ~nextStmtId=0)->putSingleStatementToEditor(testStmt)
 }
 
 let warningText = `

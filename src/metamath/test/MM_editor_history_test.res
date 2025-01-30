@@ -42,7 +42,8 @@ let createEditorState = ():editorState => {
     }
     createInitialEditorState(
         ~preCtxData=preCtxDataMake(~settings)->preCtxDataUpdate(~ctx=([],createContext(()))),
-        ~stateLocStor=None
+        ~stateLocStor=None,
+        ~nextStmtId=0,
     )
 }
 

@@ -35,21 +35,38 @@ let getEditorHistLocStorKey = (editorId:int):string => {
 }
 
 let editorSaveStateToLocStor = (state:editorState, ~editorId:int):unit => {
+    // Console.log("------------- Editor ids info --------------------")
+    // Console.log2("nextStmtId", state.nextStmtId)
+    // let allIds = state.stmts
+    //     ->Array.map(({id}) => Int.fromString(id)->Option.getExn)
+    //     ->Array.toSorted(Int.compare)
+    //     ->Array.map(Int.toString(_))
+    //     ->Array.join(", ")
+    // Console.log(allIds)
+    // Console.log("--------------------------------------------------")
     locStorWriteString(getEditorLocStorKey(editorId), Expln_utils_common.stringify(state->editorStateToEditorStateLocStor))
 }
 
 let histSaveToLocStor = (hist:editorHistory, ~editorId:int):unit => {
     let histStr = hist->editorHistToString
-    locStorWriteString( getEditorHistLocStorKey(editorId), histStr )
+    let locStorKey = getEditorHistLocStorKey(editorId)
+    let histChanged = switch locStorReadString(locStorKey) {
+        | None => true
+        | Some(oldHistStr) => oldHistStr != histStr
+    }
+    if (histChanged) {
+        locStorWriteString( locStorKey, histStr )
+        // hist->editorHistoryPrintIdInfo
+    }
 }
 
-let histReadFromLocStor = (~editorId:int, ~editorState:editorState, ~maxLength:int):editorHistory => {
+let histReadFromLocStor = (~editorId:int):option<editorHistory> => {
     switch locStorReadString(getEditorHistLocStorKey(editorId)) {
-        | None => editorHistMake(~initState=editorState, ~maxLength)
+        | None => None
         | Some(histStr) => {
             switch editorHistFromString(histStr) {
-                | Error(_) => editorHistMake(~initState=editorState, ~maxLength)
-                | Ok(hist) => hist->editorHistAddSnapshot(editorState)
+                | Error(_) => None
+                | Ok(hist) => Some(hist)
             }
         }
     }
@@ -162,12 +179,18 @@ let make = (
         ~key="paren-autocomplete", ~default=true,
     )
 
-    let (state, setStatePriv) = React.useState(_ => createInitialEditorState(
-        ~preCtxData:preCtxData, 
-        ~stateLocStor=initialStateLocStor
-    ))
+    let (state, setStatePriv) = React.useState(_ => {
+        let nextStmtId = switch histReadFromLocStor(~editorId) {
+            | None => 0
+            | Some(hist) => hist->editorHistGetMaxIntStmtId->Option.map(i => i+1)->Option.getOr(0)
+        }
+        createInitialEditorState( ~preCtxData:preCtxData, ~stateLocStor=initialStateLocStor, ~nextStmtId, )
+    })
     let (hist, setHistPriv) = React.useState(() => {
-        histReadFromLocStor(~editorId, ~editorState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
+        switch histReadFromLocStor(~editorId) {
+            | None => editorHistMake(~initState=state, ~maxLength=preCtxData.settingsV.val.editorHistMaxLength)
+            | Some(hist) => hist->editorHistAddSnapshot(state)
+        }
     })
 
     let stmtsToShow =
@@ -1288,7 +1311,8 @@ let make = (
 
     let actLoadEditorState = (stateLocStor:editorStateLocStor):unit => {
         actResetPageIdx()
-        let newState = createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor) )
+        let nextStmtId = hist->editorHistGetMaxIntStmtId->Option.map(i => i+1)->Option.getOr(0)
+        let newState = createInitialEditorState( ~preCtxData, ~stateLocStor=Some(stateLocStor), ~nextStmtId, )
             ->setNextAction(Some(Action(()=>())))
         setState(_ => newState)
         onTabTitleChange(newState.tabTitle)

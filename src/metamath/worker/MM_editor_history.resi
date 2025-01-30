@@ -11,8 +11,11 @@ let editorHistGetSnapshotPreview: (editorHistory, int, editorState) => result<ed
 let restoreEditorStateFromSnapshot: (editorState, editorHistory, int) => result<editorState,string>
 let editorHistToString: editorHistory => string
 let editorHistFromString: string => result<editorHistory,string>
+let editorHistGetMaxIntStmtId: editorHistory => option<int>
 
 let editorHistToStringExtended: editorHistory => string
+
+let editorHistoryPrintIdInfo: editorHistory => unit
 
 
 // --------- Tests for private types and functions ---------------------------------------
