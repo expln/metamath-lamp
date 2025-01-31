@@ -115,6 +115,30 @@ let jsonStrOptToEditorStateLocStor = (jsonStrOpt:option<string>):option<editorSt
     })
 }
 
+let loadEditorInitialStateFromLocStor = (
+    ~editorId:int,
+    ~preCtxData:preCtxData,
+    ~initialStateLocStor:option<editorStateLocStor>,
+):editorState => {
+    switch histReadFromLocStor(~editorId) {
+        | None => createInitialEditorState( ~preCtxData, ~stateLocStor=initialStateLocStor, ~nextStmtId=0, )
+        | Some(hist) => {
+            let nextStmtId = hist->editorHistGetMaxIntStmtId->Option.map(i => i+1)->Option.getOr(0)
+            let stateFromLocStor = createInitialEditorState( ~preCtxData, ~stateLocStor=initialStateLocStor, ~nextStmtId, )
+            switch stateFromLocStor->restoreEditorStateFromSnapshot(hist, -1) {
+                | Error(_) => stateFromLocStor
+                | Ok(stateFromHistory) => {
+                    if (editorStatesHaveSameContent(stateFromLocStor, stateFromHistory)) {
+                        stateFromHistory
+                    } else {
+                        stateFromLocStor
+                    }
+                }
+            }
+        }
+    }
+}
+
 let previousEditingIsNotCompletedTitle = "Previous editing is not completed"
 let previousEditingIsNotCompletedText = 
     `You've attempted to edit something in the editor while the previous edit is not complete.`
@@ -180,11 +204,7 @@ let make = (
     )
 
     let (state, setStatePriv) = React.useState(_ => {
-        let nextStmtId = switch histReadFromLocStor(~editorId) {
-            | None => 0
-            | Some(hist) => hist->editorHistGetMaxIntStmtId->Option.map(i => i+1)->Option.getOr(0)
-        }
-        createInitialEditorState( ~preCtxData:preCtxData, ~stateLocStor=initialStateLocStor, ~nextStmtId, )
+        loadEditorInitialStateFromLocStor( ~editorId, ~preCtxData, ~initialStateLocStor, )
     })
     let (hist, setHistPriv) = React.useState(() => {
         switch histReadFromLocStor(~editorId) {

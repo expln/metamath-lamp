@@ -12,6 +12,7 @@ let restoreEditorStateFromSnapshot: (editorState, editorHistory, int) => result<
 let editorHistToString: editorHistory => string
 let editorHistFromString: string => result<editorHistory,string>
 let editorHistGetMaxIntStmtId: editorHistory => option<int>
+let editorStatesHaveSameContent: (editorState, editorState) => bool
 
 let editorHistToStringExtended: editorHistory => string
 

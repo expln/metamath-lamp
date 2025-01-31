@@ -395,7 +395,7 @@ let editorHistLength = (ht:editorHistory):int => {
 
 let editorHistGetSnapshotPreview = (ht:editorHistory, idx:int, st:editorState): result<editorState,string> => {
     if (idx == -1) {
-        Ok(st->updateEditorStateFromSnapshot(ht.head))
+        Ok(st->updateEditorStateFromSnapshot(ht.head)->recalcWrkColors)
     } else {
         let histLen = ht->editorHistLength
         if (histLen == 0 || histLen <= idx) {
@@ -462,6 +462,28 @@ let editorHistGetMaxIntStmtId = (ht:editorHistory):option<int> => {
     let maxId = ht.head.stmts->Array.reduce(None, (maxId, stmt) => selectMaxId(maxId, stmt.id->Int.fromString))
     let maxId = ht.prev->Array.reduce(maxId, (maxId, diffs) => selectMaxId(maxId, getMaxIntStmtIdFromDiffs(diffs)))
     maxId
+}
+
+let editorStatesHaveSameContent = (st1:editorState, st2:editorState):bool => {
+    let sn1 = st1->editorSnapshotMake
+    let sn2 = st2->editorSnapshotMake
+    sn1.descr == sn2.descr
+        && sn1.varsText == sn2.varsText
+        && sn1.disjText == sn2.disjText
+        && sn1.stmts->Array.length == sn2.stmts->Array.length
+        && sn1.stmts->Array.reduceWithIndex(true, (res, stmt1, idx) => {
+            if (!res) {
+                res
+            } else {
+                let stmt2 = sn2.stmts->Array.getUnsafe(idx)
+                stmt1.label == stmt2.label
+                    && stmt1.typ == stmt2.typ
+                    && stmt1.isGoal == stmt2.isGoal
+                    && stmt1.isBkm == stmt2.isBkm
+                    && stmt1.jstfText == stmt2.jstfText
+                    && stmt1.cont == stmt2.cont
+            }
+        })
 }
 
 let editorHistoryPrintIdInfo = (ht:editorHistory):unit => {
