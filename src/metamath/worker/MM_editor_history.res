@@ -32,7 +32,7 @@ type editorDiff =
     | StmtCont({stmtId: stmtId, cont: string})
     | StmtStatus({stmtIds: array<stmtId>, proofStatus: option<proofStatus>})
     | StmtAdd({idx: int, stmt: stmtSnapshot})
-    | StmtRemove({stmtId: stmtId})
+    | StmtRemove({stmtIds: array<stmtId>})
     | StmtMove({stmtId: stmtId, idx: int})
 
 type editorHistory = {
@@ -241,7 +241,12 @@ let applyDiffSingle = (sn:editorSnapshot, diff:editorDiff):editorSnapshot => {
             }
         }
         | StmtAdd({idx, stmt}) => sn->addStmt(idx, stmt)
-        | StmtRemove({stmtId}) => sn->removeStmt(stmtId)
+        | StmtRemove({stmtIds}) => {
+            {
+                ...sn,
+                stmts: sn.stmts->Array.filter(stmt => !(stmtIds->Array.includes(stmt.id)))
+            }
+        }
         | StmtMove({stmtId, idx}) => sn->moveStmt(stmtId, idx)
     }
 }
@@ -258,11 +263,15 @@ let findDiff = (a:editorSnapshot, b:editorSnapshot):array<editorDiff> => {
 
     let aIds = a.stmts->Array.map(stmt => stmt.id)->Belt_HashSetString.fromArray
     let bIds = b.stmts->Array.map(stmt => stmt.id)->Belt_HashSetString.fromArray
+    let stmtIdsToRemove = []
     a.stmts->Array.forEach(stmtA => {
         if (!(bIds->Belt_HashSetString.has(stmtA.id))) {
-            diffs->Array.push(StmtRemove({stmtId:stmtA.id}))
+            stmtIdsToRemove->Array.push(stmtA.id)
         }
     })
+    if (stmtIdsToRemove->Array.length != 0) {
+        diffs->Array.push(StmtRemove({stmtIds:stmtIdsToRemove}))
+    }
     b.stmts->Array.forEachWithIndex((stmtB,i) => {
         if (!(aIds->Belt_HashSetString.has(stmtB.id))) {
             diffs->Array.push(StmtAdd({idx:i, stmt:stmtB}))
@@ -479,16 +488,12 @@ let getMaxIntStmtIdFromDiffs = (diffs:array<editorDiff>):option<int> => {
             | Disj(_) => maxId
             | StmtLabel({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtTyp({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
-            | StmtBkm({stmtIds}) => {
+            | StmtBkm({stmtIds}) | StmtStatus({stmtIds}) | StmtRemove({stmtIds}) => {
                 stmtIds->Array.reduce(maxId, (maxId,stmtId) => selectMaxId(maxId, stmtId->Int.fromString))
             }
             | StmtJstf({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtCont({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
-            | StmtStatus({stmtIds}) => {
-                stmtIds->Array.reduce(maxId, (maxId,stmtId) => selectMaxId(maxId, stmtId->Int.fromString))
-            }
             | StmtAdd({stmt: {id}}) => selectMaxId(maxId, id->Int.fromString)
-            | StmtRemove({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
             | StmtMove({stmtId}) => selectMaxId(maxId, stmtId->Int.fromString)
         }
     })
@@ -529,7 +534,7 @@ let editorHistoryPrintIdInfo = (ht:editorHistory):unit => {
         let addRemoveStmts = diffs->Array.map(diff => {
             switch diff {
                 | StmtAdd({stmt:{id}}) => Some("+" ++ id)
-                | StmtRemove({stmtId}) => Some("-" ++ stmtId)
+                | StmtRemove({stmtIds}) => Some("-" ++ stmtIds->Array.join(","))
                 | _ => None
             }
         })->Array.filter(Option.isSome(_))->Array.map(Option.getExn(_))->Array.join(", ")
@@ -660,8 +665,8 @@ let editorDiffToLocStor = (diff:editorDiff):editorDiffLocStor => {
             { t:"SS", a:stmtIds, s:?(proofStatus->Belt_Option.map(proofStatusToStr)) }
         | StmtAdd({idx, stmt}) => 
             { t:"SA", i:idx, m:stmt->stmtSnapshotToLocStor }
-        | StmtRemove({stmtId}) => 
-            { t:"SR", d:stmtId }
+        | StmtRemove({stmtIds}) => 
+            { t:"SR", a:stmtIds }
         | StmtMove({stmtId, idx}) => 
             { t:"SM", d:stmtId, i:idx }
     }
@@ -693,7 +698,7 @@ let editorDiffFromLocStor = (diff:editorDiffLocStor):editorDiff => {
         | "SC" => StmtCont({stmtId:diff->edlsGetId, cont:diff->edlsGetStr})
         | "SS" => StmtStatus({stmtIds:diff->edlsGetIds, proofStatus:diff.s->Belt.Option.map(proofStatusFromStr)})
         | "SA" => StmtAdd({idx:diff->edlsGetInt, stmt:diff->edlsGetStmt->stmtSnapshotFromLocStor})
-        | "SR" => StmtRemove({stmtId:diff->edlsGetId})
+        | "SR" => StmtRemove({stmtIds:diff->edlsGetIds})
         | "SM" => StmtMove({stmtId:diff->edlsGetId, idx:diff->edlsGetInt})
         | _ => raise(MmException({msg:`Cannot convert editorDiffLocStor to editorDiff for diff.typ='${diff.t}'.`}))
     }
@@ -839,7 +844,7 @@ let diffToStringExtendedSingle = (diff:editorDiff):string => {
             `StmtStatus({stmtIds=[${stmtIds->Array.joinUnsafe(", ")}], ` 
                 ++ `proofStatus=${proofStatus->Belt_Option.map(proofStatusToStr)->Belt_Option.getWithDefault("None")}})`
         | StmtAdd({idx, stmt}) => `StmtAdd({idx=${idx->Belt.Int.toString}, stmtId=${stmt.id}})`
-        | StmtRemove({stmtId}) => `StmtRemove({stmtId=${stmtId}})`
+        | StmtRemove({stmtIds}) => `StmtRemove({stmtIds=[${stmtIds->Array.joinUnsafe(", ")}]})`
         | StmtMove({stmtId, idx}) => `StmtMove({stmtId=${stmtId}, idx=${idx->Belt.Int.toString}})`
     }
 }
@@ -978,15 +983,15 @@ let mm_editor_history__test_findDiff = ():unit => {
             [StmtAdd({idx: 3, stmt: { id: "4", label: "label4", typ: P, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: None }})]
         )
 
-        assertEq( findDiff(a, a->removeStmt("1")), [StmtRemove({stmtId: "1"})] )
-        assertEq( findDiff(a, a->removeStmt("2")), [StmtRemove({stmtId: "2"})] )
-        assertEq( findDiff(a, a->removeStmt("3")), [StmtRemove({stmtId: "3"})] )
+        assertEq( findDiff(a, a->removeStmt("1")), [StmtRemove({stmtIds: ["1"]})] )
+        assertEq( findDiff(a, a->removeStmt("2")), [StmtRemove({stmtIds: ["2"]})] )
+        assertEq( findDiff(a, a->removeStmt("3")), [StmtRemove({stmtIds: ["3"]})] )
         assertEq( 
             findDiff(
                 {...a, stmts:[]}->addStmt(0, { id: "4", label: "label4", typ: E, isGoal: true, isBkm: false, jstfText: "jstfText4", cont: "cont4", proofStatus: Some(Ready) }),
                 {...a, stmts:[]},
             ), 
-            [StmtRemove({stmtId: "4"})]
+            [StmtRemove({stmtIds: ["4"]})]
         )
 
         assertEq( findDiff(a, a->moveStmtDown("1")), [StmtMove({stmtId: "2", idx: 0})] )
@@ -995,8 +1000,7 @@ let mm_editor_history__test_findDiff = ():unit => {
         assertEq( 
             findDiff(a, a->removeStmt("1")->removeStmt("2")), 
             [
-                StmtRemove({stmtId: "1"}),
-                StmtRemove({stmtId: "2"}),
+                StmtRemove({stmtIds: ["1","2"]}),
             ] 
         )
 
